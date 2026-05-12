@@ -16,6 +16,12 @@ export interface InvoiceNumericInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   /** نص إضافي يُضاف داخل title بعد القيمة المنسّقة (مثلاً "%"). */
   unitLabel?: string;
+  /** الحدّ الأدنى لعرض الحقل بالبكسل (افتراضي 72). */
+  minWidthPx?: number;
+  /** الحدّ الأقصى لعرض الحقل بالبكسل قبل التركيز (افتراضي 140). */
+  maxWidthPx?: number;
+  /** الحدّ الأقصى لعرض الحقل أثناء التركيز ليرى المستخدم القيمة كاملة (افتراضي maxWidthPx + 40). */
+  focusMaxWidthPx?: number;
 }
 
 function formatFullValue(raw: unknown): string {
@@ -37,10 +43,18 @@ function fitClass(len: number): string {
 }
 
 const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInputProps>(
-  ({ className, value, unitLabel, title, ...rest }, ref) => {
+  ({ className, value, unitLabel, title, minWidthPx = 72, maxWidthPx = 140, focusMaxWidthPx, style, ...rest }, ref) => {
     const raw = value === undefined || value === null ? "" : String(value);
-    const len = raw.length;
     const formatted = formatFullValue(value);
+    // نستخدم طول القيمة المنسّقة (مع الفواصل) لحساب العرض الفعلي المرئي.
+    const visibleLen = Math.max(raw.length, formatted.length);
+    const len = visibleLen;
+    // عرض ديناميكي: ~0.62ch لكل خانة + padding ~24px + سهمي number ~16px.
+    // نحسبه بالبكسل لضمان عمل max-width بدقة.
+    const charPx = 7.2; // ≈ عرض رقم tabular ~12px
+    const desiredPx = Math.round(len * charPx + 28);
+    const widthPx = Math.min(maxWidthPx, Math.max(minWidthPx, desiredPx));
+    const focusMax = focusMaxWidthPx ?? maxWidthPx + 60;
     const computedTitle =
       title ?? (formatted ? `${formatted}${unitLabel ? ` ${unitLabel}` : ""}` : undefined);
 
@@ -52,10 +66,19 @@ const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInp
         value={value as any}
         title={computedTitle}
         aria-label={computedTitle}
+        style={{
+          width: `${widthPx}px`,
+          maxWidth: "100%",
+          // CSS variable يستخدمه class focus-within أدناه لتمديد العرض عند التركيز.
+          ["--focus-max" as any]: `${focusMax}px`,
+          ...style,
+        }}
         className={cn(
           "h-9 rounded-md border border-input bg-background text-center tabular-nums shadow-sm",
           "hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15",
-          "px-1.5",
+          "px-1.5 transition-[width] duration-100",
+          // عند التركيز: وسّع العرض حتى focus-max ليرى المستخدم الرقم كاملًا.
+          "focus:!w-[var(--focus-max)] focus:relative focus:z-10",
           fitClass(len),
           className,
         )}

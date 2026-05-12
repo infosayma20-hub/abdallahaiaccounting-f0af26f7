@@ -2201,13 +2201,13 @@ const InvoiceCreatePage = () => {
               <thead>
                 <tr className="bg-muted/70 text-[10.5px] font-semibold text-foreground/80 uppercase tracking-wide">
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
-                  <th className="py-2.5 px-3 text-right">المنتج / الخدمة</th>
-                  <th className="py-2.5 px-3 text-center w-[80px]">الكمية</th>
-                  <th className="py-2.5 px-3 text-center w-[70px]" title="كمية بونص / مجاني">بونص</th>
-                  <th className="py-2.5 px-3 text-center w-[110px] bg-muted/90">السعر</th>
-                  <th className="py-2.5 px-3 text-center w-[120px]">الخصم</th>
-                  {taxEnabled && <th className="py-2.5 px-3 text-center w-[130px]">الضريبة</th>}
-                  <th className="py-2.5 px-3 text-left w-[120px] bg-primary/10 text-primary">الإجمالي</th>
+                  <th className="py-2.5 px-3 text-right min-w-[260px]">المنتج / الخدمة</th>
+                  <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]">الكمية</th>
+                  <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]" title="كمية بونص / مجاني">بونص</th>
+                  <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px] bg-muted/90">السعر</th>
+                  <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px]">الخصم</th>
+                  {taxEnabled && <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px]">الضريبة</th>}
+                  <th className="py-2.5 px-3 text-left min-w-[140px] w-[150px] bg-primary/10 text-primary">الإجمالي</th>
                   <th className="py-2.5 px-2 text-center w-[40px]"></th>
                 </tr>
               </thead>
@@ -2287,29 +2287,33 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Quantity */}
-                      <td className="py-1.5 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           data-invoice-qty={item.id}
                           min={1}
                           value={item.quantity}
                           onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
                           onKeyDown={handleCellEnter("qty", item.id)}
+                          minWidthPx={84}
+                          maxWidthPx={140}
                           className="font-semibold"
                         />
                       </td>
 
                       {/* Bonus quantity (free units) */}
-                      <td className="py-1.5 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           min={0}
                           value={item.bonusQuantity}
                           onChange={e => updateItem(item.id, "bonusQuantity", Math.max(0, Number(e.target.value)))}
+                          minWidthPx={84}
+                          maxWidthPx={140}
                           title="كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"
                         />
                       </td>
 
                       {/* Price */}
-                      <td className="py-1.5 px-2 align-middle relative bg-muted/20">
+                      <td className="py-1.5 px-2 align-middle relative bg-muted/20 min-w-[120px]">
                         <InvoiceNumericInput
                           data-invoice-price={item.id}
                           min={0}
@@ -2317,6 +2321,9 @@ const InvoiceCreatePage = () => {
                           onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))}
                           onKeyDown={handleCellEnter("price", item.id)}
                           unitLabel={currSymbol}
+                          minWidthPx={96}
+                          maxWidthPx={160}
+                          focusMaxWidthPx={220}
                           className={`font-semibold ${showWarning ? "border-amber-400 bg-amber-50" : ""}`}
                         />
                         {showWarning && (
@@ -2336,7 +2343,7 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Discount with type toggle inline */}
-                      <td className="py-1.5 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle min-w-[120px]">
                         <div className="flex items-center gap-1">
                           <InvoiceNumericInput
                             data-invoice-discount={item.id}
@@ -2345,6 +2352,9 @@ const InvoiceCreatePage = () => {
                             onChange={e => updateItem(item.id, "discount", Number(e.target.value))}
                             onKeyDown={handleCellEnter("discount", item.id)}
                             unitLabel={item.discountType === "percent" ? "%" : currSymbol}
+                            minWidthPx={80}
+                            maxWidthPx={130}
+                            focusMaxWidthPx={180}
                             className="flex-1 min-w-0"
                           />
                           <button
@@ -2358,8 +2368,8 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Tax Category */}
-                      {taxEnabled && (
-                        <td className="py-1.5 px-2 align-middle">
+                       {taxEnabled && (
+                         <td className="py-1.5 px-2 align-middle min-w-[120px]">
                           <div className="flex items-center gap-1">
                             <div className="relative flex-1 min-w-0">
                               <InvoiceNumericInput
@@ -2386,6 +2396,8 @@ const InvoiceCreatePage = () => {
                                 onKeyDown={handleCellEnter("tax", item.id)}
                                 className="pr-6"
                                 unitLabel="%"
+                                minWidthPx={84}
+                                maxWidthPx={120}
                                 title="نسبة الضريبة %"
                               />
                               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
@@ -2419,8 +2431,8 @@ const InvoiceCreatePage = () => {
                         </td>
                       )}
 
-                      {/* Subtotal */}
-                      <td className="py-2 px-3 text-left align-middle bg-primary/5">
+                       {/* Subtotal */}
+                       <td className="py-2 px-3 text-left align-middle bg-primary/5 min-w-[140px] whitespace-nowrap">
                         {(() => {
                           const sub = calcItemSubtotal(item);
                           const formatted = fmtCurrency(sub);
