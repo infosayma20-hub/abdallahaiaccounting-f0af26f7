@@ -10,6 +10,7 @@ type ProductOption = {
   id: string;
   name: string;
   barcode?: string | null;
+  sku?: string | null;
   buy_price?: number | null;
   sell_price?: number | null;
   quantity?: number | null;
@@ -96,7 +97,7 @@ export default function InlineProductAutocomplete({
     const query = debouncedQuery.toLowerCase();
     const base = query
       ? products.filter((product) => {
-          const haystack = [product.name, product.barcode, product.unit]
+          const haystack = [product.name, product.barcode, product.sku, product.unit]
             .filter(Boolean)
             .join(" ")
             .toLowerCase();
@@ -191,7 +192,13 @@ export default function InlineProductAutocomplete({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[11.5px] font-medium text-foreground">{product.name}</p>
                   <p className="truncate text-[10px] text-muted-foreground">
-                    {[product.barcode, product.unit].filter(Boolean).join(" • ") || "—"}
+                    {(() => {
+                      const code = product.sku || product.barcode;
+                      const parts: string[] = [];
+                      if (code) parts.push(`كود: ${code}`);
+                      if (product.unit) parts.push(String(product.unit));
+                      return parts.length ? parts.join(" • ") : "—";
+                    })()}
                   </p>
                 </div>
                 <div className="shrink-0 text-left">
