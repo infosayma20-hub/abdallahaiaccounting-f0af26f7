@@ -1,92 +1,98 @@
 
-## نطاق العمل
+# تحسين صفحة إنشاء الفاتورة
 
-إعادة تنظيم تجربة HR بدون أي تعديل على schema قاعدة البيانات أو RLS أو منطق الرواتب/الحضور — فقط: تنظيم التنقّل، تنظيف الواجهات المزدحمة، توحيد الأقسام المكرّرة، وإصلاح عرض البيانات (مثل HRMSG raw وJSON).
+نطاق التغيير محصور في طبقة الواجهة لصفحة إنشاء/تعديل الفاتورة فقط. لا تعديل على schema/migrations، ولا تغيير في حساب الضريبة أو الترحيل أو الطباعة أو PDF.
 
-## الوضع الحالي (ما تم اكتشافه)
+الملفات المتأثرة (بدون أي تغييرات DB):
+- `src/pages/InvoiceCreatePage.tsx` — الجزء الأكبر من العمل
+- `src/components/invoice/InlineProductAutocomplete.tsx` — ترتيب النتائج وسلوك Enter
+- `src/hooks/useSearchableDropdown.ts` — auto-highlight أول نتيجة
+- ملفات جديدة:
+  - `src/components/invoice/DraftStatusBadge.tsx` — مؤشر "جاري حفظ المسودة…/تم الحفظ قبل X"
+  - `src/components/invoice/DraftsHistoryDialog.tsx` — نافذة سجل المسودات
+  - `src/lib/invoiceDraftsRegistry.ts` — قراءة/حذف مسودات الفواتير من localStorage
 
-- يوجد **+15 مسار HR متفرق** في `App.tsx` بدون شريط تبويبات موحّد:
-  `/hr`, `/employees`, `/hr-attendance`, `/leaves`, `/loans`, `/advances`, `/hr-deductions`, `/payroll`, `/payroll/inputs`, `/payroll/preview-all`, `/payroll/approval`, `/payroll-settings`, `/employee-forms-management`, `/hr/definitions`, `/hr/day-types`, `/hr/shifts`, `/hr/settings`, `/manager/roster`, `/hr/employee/:id`.
-- **`HrCommandCenter`** الحالية (لوحة HR) جيدة لكن تكرّر روابط الأقسام الأربعة + KPIs + ملخص قابل للطي → سنبقي البنية ونبسّطها.
-- **`HRAttendancePage`** ضخمة (1919 سطر): تنبيهات إعداد كبيرة + كروت كل الفروع + جدول → نطوي التنبيهات ونحدّ الكروت.
-- **`EmployeesPage`** (1449 سطر): KPIs زائدة → نخفّضها لـ 4 مفيدة.
-- **`EmployeeFormsManagementPage`** (583 سطر): يحتاج فلتر `?type=` (يستخدمه HrCommandCenter بالفعل) + إخفاء HRMSG raw عبر `decodeHRMessage` الموجود في `src/lib/hrMessages.ts`.
-- **الرواتب مفرّقة في 5 مسارات** بدون wrapper موحّد.
-- **جدول الدوام** (`BranchRosterPage`) يحتاج Empty State بدل جدول مليء بشرطات.
+---
 
-## الخريطة النهائية
+## 1. زر "جديد" يبدأ فاتورة فارغة فعلًا
 
-```
-الموارد البشرية (/hr)
-├─ لوحة HR              /hr
-├─ الموظفون             /employees           → Employee 360 /hr/employee/:id
-├─ الحضور               /hr-attendance       (تبويبات داخلية: اليوم / الشهري / طلبات التعديل / تقارير)
-├─ جدول الدوام          /attendance/roster
-├─ طلبات الموظفين       /employee-forms-management
-├─ الرواتب              /payroll             (تبويبات داخلية: معاينة / احتساب / قسائم / سياسات)
-├─ القروض               /loans
-└─ إعدادات HR           /hr/settings         (تبويبات: فروع وأقسام / شفتات / أنواع اليوم / بدلات وخصومات / ربط السياسات / إعدادات القرض والإجازات)
-```
+- زر **"جديد"** الموجود حاليًا (الذي ينقل لـ `/invoices/new` فقط) يصبح يستدعي `startNewInvoice()` يقوم بـ:
+  - مسح `form` لقيم افتراضية فارغة (تاريخ اليوم، نوع الفاتورة الحالي، عنصر فارغ واحد).
+  - مسح `selectedContact`, `contactSearch`, `customerOverrides`, `attachments`, `invoiceTerms`, `editInvoiceId` (عبر `navigate` لمسار جديد بدون `?edit=`).
+  - استدعاء `clearDraft()` للمسودة المرتبطة بالنوع الحالي.
+  - إعادة احتساب `nextInvoiceNumber`.
+  - تعطيل auto-restore الصامت في هذه الجلسة (flag في الـ ref) حتى لا يقفز ويعيد المسودة فورًا بعد المسح.
+- ضبط `useFormDraft` بحيث `autoRestoreWithinMs = 0` افتراضيًا في صفحة الفاتورة (نزيل السلوك الصامت)، والاعتماد كليًا على Banner واضح.
 
-## المراحل (بالترتيب)
+## 2. Autosave + مؤشر حالة الحفظ
 
-### المرحلة 1 — شريط تبويبات HR موحّد (الأهم)
-- إنشاء `src/components/hr/HRTopNav.tsx`: شريط تبويبات أفقي ثابت، RTL، 8 عناصر فقط، مع `dropdown "المزيد"` على الشاشات الضيقة. يستخدم `useHRManagerPermissions` لإخفاء التبويبات غير المسموح بها.
-- إنشاء `src/components/hr/HRShell.tsx`: layout يلفّ كل صفحات HR (يضع `HRTopNav` بالأعلى + `<Outlet/>` أو children).
-- تحديث المسارات الـ HR في `App.tsx` لتكون داخل `HRShell` (دون كسر RoleGuard/HRPermGuard الحاليين — نلفّ children فقط).
+- إبقاء `useFormDraft` الحالي (debounce 800ms يفي بالغرض).
+- توسيع المسودة لتخزن metadata: `{ contactName, itemCount, total, type, savedAt }` حتى نعرضها في سجل المسودات.
+- إضافة `<DraftStatusBadge />` صغير بجانب زر "حفظ" يعرض:
+  - "جاري حفظ المسودة…" أثناء الـ debounce
+  - "تم حفظ المسودة قبل X ثانية" بعد الحفظ
+  - "تعذّر حفظ المسودة" عند فشل localStorage (quota)
+- المسودة لا تنشئ فاتورة رسمية، فقط localStorage. مدة الاحتفاظ 7 أيام (cleanup عند تجاوز العمر في القراءة).
+- عند نجاح `clearDraft()` بعد إنشاء/تحديث الفاتورة: حذف فوري للمفتاح.
 
-### المرحلة 2 — تنظيف لوحة HR
-- في `HrCommandCenter.tsx`: حذف رأس الصفحة المكرّر (سيظهر اسم القسم في `HRTopNav`)، إبقاء الفلاتر + الأقسام الأربعة + KPIs.
-- نقل "ملخص سريع" (حضور اليوم + الطلبات المعلقة + Charts) لتكون مفتوحة افتراضيًا على Desktop ومطوية على الموبايل.
+## 3. Banner المسودة بدل الاسترجاع التلقائي
 
-### المرحلة 3 — تنظيف الحضور
-- في `HRAttendancePage.tsx`:
-  - تنبيه الإعداد (`HRReadinessPanel` أو ما يقابله): قابل للطي + collapsed افتراضيًا إذا لا يوجد فعل عاجل.
-  - كروت الفروع: limit 5 + scroll أفقي للباقي.
-  - جدول التعديلات: ربط `decodeHRMessage` من `src/lib/hrMessages.ts` لإزالة `<<HRMSG:{...}>>` raw.
-  - تنظيم أعمدة جدول الحضور حسب: الموظف / الفرع / القسم / دخول / خروج / ساعات / الحالة / المشكلة / إجراء.
+- إذا وُجدت مسودة عند فتح الصفحة في وضع جديد (وليس تعديل/duplicate)، يظهر `DraftRestoreBanner` الحالي بنصّ أوضح:
+  - "يوجد مسودة محفوظة من الساعة HH:MM (Y عنصر، الإجمالي ≈ ₪Z)"
+  - زر **استعادة المسودة**
+  - زر **تجاهل وبدء فاتورة جديدة** → يستدعي `clearDraft()` + `startNewInvoice()`
+- حذف منطق `autoRestoreWithinMs` لهذه الصفحة فقط (يبقى لباقي الصفحات بدون تغيير).
 
-### المرحلة 4 — توحيد الرواتب
-- إنشاء `src/pages/PayrollPage.tsx` (موجودة) → تحويلها إلى **wrapper بتبويبات داخلية**:
-  - معاينة: تستضيف `PayrollPreviewAllPage`
-  - احتساب: المحتوى الحالي للـ `PayrollPage`
-  - قسائم: drawer/list من `MalakiPayslipDialog`
-  - سياسات: `PayrollSettingsPage`
-- إعادة توجيه `/payroll/preview-all`, `/payroll-settings` إلى `/payroll?tab=preview|settings` (مع الإبقاء على المسارات القديمة كـ aliases لتجنّب كسر روابط خارجية).
-- إصلاح Empty States في "احتساب": رسالة واضحة (لا سياسة / لا حضور / لا مدخلات).
+## 4. سجل المسودات
 
-### المرحلة 5 — طلبات الموظفين
-- في `EmployeeFormsManagementPage.tsx`:
-  - إعادة تسمية الترويسة لـ "طلبات الموظفين".
-  - دعم `?type=` filter من URL (موجود؟ نتأكد).
-  - استخدام `RequestDetailsDialog` الموجود (تم بناؤه في المرحلة 2 لتطبيق الموظف) — استخراجه ليكون عام وقابل لإعادة الاستخدام في الـ HR، أو إنشاء `RequestDetailsDialogHR.tsx` يعتمد على نفس `getDetailGroups`.
-  - إخفاء أزرار الحذف عن غير admin.
+- زر صغير في شريط أدوات الفاتورة "المسودات" يفتح `DraftsHistoryDialog`.
+- الديالوج يقرأ من localStorage كل مفاتيح `amwali_draft_*invoice_*_new` للمستخدم/الشركة الحالية، ويعرض:
+  - التاريخ/الوقت، اسم الزبون، عدد البنود، الإجمالي التقريبي، النوع (مبيعات/مشتريات).
+  - زر **استعادة** → يحمّل المسودة في الفورم الحالي.
+  - زر **حذف** → يحذف المفتاح.
+- Helper جديد `src/lib/invoiceDraftsRegistry.ts`: `listInvoiceDrafts(scope)`, `removeInvoiceDraft(key)`, `getInvoiceDraft(key)`.
+- المسودة المسترجعة لا تأخذ `invoice_id` من فاتورة محفوظة (المسودات لا تخزن `editInvoiceId`).
 
-### المرحلة 6 — صفحات أصغر
-- `EmployeesPage`: تقليل KPIs لـ 4 (الإجمالي، نشط، غير نشط، إجمالي الرواتب). تقليل المساحة العلوية.
-- `BranchRosterPage`: Empty State + زر "نسخ من أسبوع سابق" فوق الجدول إذا كان فارغًا.
-- `Employee360Page`: مرتب أصلًا — لا تغيير.
-- `LoansPage`: تثبيت أزرار الإجراءات فوق + ضغط الكروت.
+## 5. سلوك Enter في البحث عن الصنف
 
-### المرحلة 7 — إعدادات HR موحّدة
-- `src/pages/hr/HrSettingsPage.tsx` جديدة بتبويبات تستضيف: `HrDefinitionsPage`, `HrWorkShiftsPage`, `HrDayTypesPage`, `PayrollSettingsPage` (سياسات ربط الموظفين)، إلخ — كـ inner tabs بدون تكرار في الشريط العلوي.
+السبب الجذري: في `useSearchableDropdown` يبدأ `activeIndex = -1`، ومع `headerOptionCount=1` و `onHeaderSelect=onQuickAdd`، أول Enter يختار "تعريف صنف جديد".
 
-## ما لن يتغيّر (ضمانات)
-- Schema قاعدة البيانات / RLS / Migrations.
-- منطق `usePayrollCalculator`, `useEmployee360`, `useHrCommandCenter`.
-- مكوّنات تطبيق الموظف (`src/components/employee/*`, `src/pages/EmployeeApp.tsx`).
-- Edge functions.
+الإصلاحات:
+- في `useSearchableDropdown`: إضافة خيار `autoHighlightFirstItem` (افتراضي false للحفاظ على التوافق). في `InlineProductAutocomplete` نفعّله. عندما `items.length > 0` و `activeIndex === -1`، اضبط على 0 تلقائيًا، ولا تنزل أبدًا تلقائيًا إلى header.
+- التنقل بالأسهم لا يصل إلى header إلا بـ ArrowUp من أول عنصر بشكل صريح (نمنعه بـ `min = 0` عند `autoHighlightFirstItem`).
+- "تعريف صنف جديد" يبقى في القائمة لكن كزر منفصل ولا يُختار بـ Enter إلا إذا المستخدم نقره أو نزل إليه يدويًا. سننقله بصريًا ليكون أسفل النتائج بدلًا من رأسها (إن وُجدت نتائج).
+- إذا لا توجد نتائج: يظهر زر "تعريف صنف جديد" واضحًا، ويتطلب نقرة مباشرة (لا ينفّذ Enter بدون selection صريح).
+- Esc يغلق القائمة (موجود).
 
-## ملاحظات تنفيذية
+## 6. تدفق الكيبورد بين الأعمدة
 
-- نظرًا لحجم العمل (~10 ملفات كبيرة)، المنفّذ سيتم على دفعات: المرحلة 1+2 أولًا (الأكثر أثرًا)، ثم 3+5، ثم 4، ثم 6+7. بعد كل دفعة: `tsc --noEmit` + جولة بصرية في المعاينة على `/hr`, `/hr-attendance`, `/employee-forms-management`, `/payroll`.
-- إذا اكتشفنا أن `HRTopNav` يكسر صفحة فيها sidebar داخلي خاص، سنستثنيها من `HRShell`.
+- بعد اختيار صنف → focus ينتقل إلى خانة الكمية لنفس السطر (الحالي يعتمد على ترتيب DOM؛ نحوّله لاستدعاء `focusCell("qty", itemId)` صريح من `onSelect`).
+- Enter في الكمية → السعر، السعر → الخصم، الخصم → الضريبة (حقل النسبة)، الضريبة → سطر جديد + focus على بحث الصنف.
+- نضيف `data-invoice-tax="${itemId}"` ونحدّث `focusNextInvoiceCell` ليشمل التسلسل الجديد: qty → price → discount → tax → next-row search/qty.
+- Shift+Enter يرجع للخلف بنفس التسلسل.
 
-## التقدير
-- المرحلة 1+2: ~5 ملفات جديدة، تعديل `App.tsx` + `HrCommandCenter.tsx`.
-- المرحلة 3: تعديل ضخم على `HRAttendancePage.tsx` (لكن نقطة-نقطة، بدون كسر منطق).
-- المرحلة 4: refactor `PayrollPage.tsx` إلى wrapper.
-- المرحلة 5: تعديل `EmployeeFormsManagementPage.tsx` + استخراج Dialog.
-- المراحل 6+7: تنظيفات بصرية صغيرة.
+## 7. حقل الضريبة كنسبة
 
-هل أبدأ التنفيذ بالمراحل بهذا الترتيب، أم تفضّل ترتيبًا مختلفًا (مثلًا الحضور أولًا لأنها الأكثر إزعاجًا اليوم)؟
+- استبدال `Select` الحالي للـ tax category بـ:
+  - `Input type="number"` لنسبة الضريبة (`taxRate`) بعرض ضيق + مجموعة أزرار presets `16% / 0% / معفي`.
+  - عند اختيار "معفي" → `taxRate=0, taxCategory="exempt"`. "0%" → `taxRate=0, taxCategory="zero"`. كتابة 16 (أو غيرها) → `taxCategory="taxable"`.
+- لا نمسّ دالة `calcItemSubtotal` ولا أي حساب — نحن فقط نعدّل واجهة الإدخال. القيمة المخزّنة لا تتغير شكلًا.
+
+## 8. منع خلط المسودة مع فاتورة محفوظة
+
+- `useFormDraft` معطّل أصلًا في `isEditMode`. سنضيف ضمان إضافي:
+  - عند الضغط على "جديد" أثناء التعديل، نستدعي `navigate('/invoices/new', { replace: true })` ثم `startNewInvoice()`.
+  - المسودة دائمًا scope بـ `(user, company, type, "new")` بدون `editInvoiceId` → استحالة اختلاطها بفاتورة محفوظة.
+
+## 9. التحقق
+
+- TypeScript build نظيف (الهارنس يبني تلقائيًا).
+- اختبار يدوي عبر preview للسيناريوهات السبعة المذكورة في الطلب.
+
+## ممنوع/خارج النطاق
+
+- لا تغييرات في schema أو migrations.
+- لا تغيير في منطق الترحيل (transactions, ledger, RPC).
+- لا تغيير في PDF/الطباعة.
+- لا تغيير في حساب الضريبة الفعلي.
+- لا تعديل على باقي الصفحات (UseFormDraft يبقى بسلوكه الحالي لغير الفاتورة).
