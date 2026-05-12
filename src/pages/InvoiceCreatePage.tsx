@@ -40,6 +40,7 @@ import TypedDateInput from "@/components/forms/TypedDateInput";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
+import InvoiceNumericInput from "@/components/invoice/InvoiceNumericInput";
 import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
 import DraftStatusBadge, { type DraftStatus } from "@/components/invoice/DraftStatusBadge";
 import DraftsHistoryDialog from "@/components/invoice/DraftsHistoryDialog";
