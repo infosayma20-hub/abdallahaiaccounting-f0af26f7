@@ -308,6 +308,13 @@ const InvoiceCreatePage = () => {
 
   const [productSearchByRow, setProductSearchByRow] = useState<Record<string, string>>({});
 
+  // ─── Draft autosave UX state ───
+  const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle");
+  const [showDraftsHistory, setShowDraftsHistory] = useState(false);
+  // Used to suppress the restore banner immediately after the user explicitly
+  // chose "بدء فاتورة جديدة" / "جديد", so the just-cleared draft never resurfaces.
+  const suppressRestoreRef = useRef(false);
+
   // Form state
   // ─── Accounting policy (post QuickBooks-style refactor) ───
   // All invoices are issued on **credit (آجل)** basis. Payment is recorded later
