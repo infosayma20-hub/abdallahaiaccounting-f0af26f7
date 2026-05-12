@@ -1587,7 +1587,7 @@ const InvoiceCreatePage = () => {
 
   const itemIds = form.items.map(i => i.id);
   const handleCellEnter = useCallback(
-    (field: "qty" | "price" | "discount", itemId: string) =>
+    (field: "qty" | "price" | "discount" | "tax", itemId: string) =>
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
@@ -1595,6 +1595,65 @@ const InvoiceCreatePage = () => {
       },
     [itemIds, addItemAndFocus],
   );
+
+  // ─── Start a brand-new invoice ───
+  // Wipes ALL working state so nothing leaks from a previously-edited invoice
+  // or auto-saved draft. Used by the "جديد" button in the toolbar.
+  const startNewInvoice = useCallback(() => {
+    suppressRestoreRef.current = true;
+    // Clear the autosaved draft first so the banner does not pop back up.
+    try { clearDraft(); } catch { /* noop */ }
+
+    setForm({
+      type: form.type,
+      contactName: "",
+      contactId: null,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: "",
+      paymentTerms: "net_30",
+      paymentMethod: "credit",
+      currency: "شيكل",
+      exchangeRate: 1,
+      notes: "",
+      notesInternal: "",
+      salespersonId: null,
+      billingAddress: "",
+      taxInclusive: false,
+      warehouseId: null,
+      workshopId: null,
+      items: [{ ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }],
+    });
+    setContactSearch("");
+    setSelectedContact(null);
+    setCustomerOverrides({ phone: "", email: "", tax_number: "", address: "" });
+    setContactDebtWarning(null);
+    setAttachments([]);
+    setInvoiceTerms(defaultTerms);
+    setProductSearchByRow({});
+    setDraftStatus("idle");
+    originalInvoiceRef.current = null;
+
+    // If we are on an edit URL, leave it so we are unambiguously on the new path.
+    if (isEditMode) {
+      navigate("/invoices/new", { replace: true });
+    }
+    toast({ title: "تم بدء فاتورة جديدة" });
+  }, [form.type, defaultTaxCategory, defaultTerms, clearDraft, isEditMode, navigate, toast]);
+
+  // Restore a draft chosen explicitly from the drafts history dialog.
+  const restoreDraftFromHistory = useCallback((data: any) => {
+    if (!data) return;
+    const formData = data?.form ?? data;
+    if (!formData) return;
+    setForm(formData as typeof form);
+    setContactSearch(data?.contactSearch || formData?.contactName || "");
+    setCustomerOverrides(data?.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
+    setInvoiceTerms(data?.invoiceTerms ?? "");
+    setAttachments(Array.isArray(data?.attachments) ? data.attachments : []);
+    // Make sure we're on a clean "new invoice" URL — never carry an edit id over.
+    if (isEditMode) navigate("/invoices/new", { replace: true });
+    toast({ title: "تم استعادة المسودة ✓" });
+  }, [isEditMode, navigate, toast]);
 
   // ─── RENDER ───
   if (loadingEditInvoice) {
