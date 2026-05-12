@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
+import VersionBadge from "@/components/VersionBadge";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
 const VersionChecker = () => { useVersionCheck(); return null; };
 import GlobalFormFocusProvider from "@/components/forms/GlobalFormFocusProvider";
@@ -295,6 +296,7 @@ const App = () => (
             <CompanyThemeProvider>
             <GlobalFormFocusProvider />
             <VersionChecker />
+            <VersionBadge />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
