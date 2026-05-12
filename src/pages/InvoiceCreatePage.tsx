@@ -1679,12 +1679,12 @@ const InvoiceCreatePage = () => {
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
       {/* Draft Restore Banner — يظهر عند العودة لصفحة فيها مسودة محفوظة تلقائياً */}
-      {hasDraft && !isEditMode && (
+      {hasDraft && !isEditMode && !suppressRestoreRef.current && (
         <DraftRestoreBanner
           onRestore={restoreDraft}
-          onDismiss={clearDraft}
+          onDismiss={() => { suppressRestoreRef.current = true; clearDraft(); }}
           savedAt={draftSavedAt}
-          label="يوجد مسودة فاتورة لم تُحفظ"
+          label={`يوجد مسودة فاتورة محفوظة تلقائياً — ${form.items.length} بند`}
         />
       )}
 
@@ -1701,6 +1701,7 @@ const InvoiceCreatePage = () => {
         onPrint={handlePrint}
         onDelete={isEditMode ? () => setShowDeleteConfirm(true) : undefined}
         onNewSimilar={isEditMode ? handleNewSimilar : undefined}
+        onNew={startNewInvoice}
         showNavigation={isEditMode}
         onSaveDraft={() => handleCreate(true)}
         onSavePost={() => handleCreate(false)}
