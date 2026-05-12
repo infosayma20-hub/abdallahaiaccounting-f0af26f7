@@ -78,6 +78,21 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const currSymbol = CURRENCY_SYMBOLS[invoice.currency] || "₪";
   const currLabel = CURRENCY_LABELS[invoice.currency] || CURRENCY_LABELS["شيكل"];
   const fmtAmount = (n: number) => fmtAmountWithSymbol(n, currSymbol);
+  /** تنسيق رقم خام (كمية/بونص) بفواصل آلاف دون عملة. */
+  const fmtNum = (n: number | string | undefined | null) => {
+    if (n === null || n === undefined || n === "") return "";
+    const v = Number(n);
+    if (!Number.isFinite(v)) return String(n);
+    return v.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  };
+  /** حجم خط ديناميكي للأرقام في الطباعة لمنع تداخل الأعمدة. */
+  const numFontSize = (val: number | string | null | undefined, base = 14): number => {
+    const s = val === null || val === undefined ? "" : String(val);
+    if (s.length <= 8) return base;
+    if (s.length <= 12) return Math.max(base - 2, 11);
+    if (s.length <= 16) return Math.max(base - 3, 10);
+    return Math.max(base - 4, 9);
+  };
 
   const taxEnabled = settings.vat_enabled ?? true;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
