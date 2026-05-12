@@ -3,6 +3,7 @@ import { amountToArabicWords } from "@/lib/arabic-number-words";
 
 interface InvoiceItem {
   description: string;
+  productCode?: string;
   quantity: number;
   bonusQuantity?: number;
   unitPrice: number;
@@ -459,7 +460,12 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                 >
                   <td style={{ padding: "12px 6px", textAlign: "center", color: "#6B7280", fontWeight: 700, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>{idx + 1}</td>
                   <td style={{ padding: "12px 8px", fontWeight: 700, color: "#111827", fontSize: "14px", lineHeight: 1.4, wordWrap: "break-word", whiteSpace: "normal", borderRight: "1px solid #F1F5F9" }}>
-                    {item.description}
+                    <div>{item.description}</div>
+                    {item.productCode && (
+                      <div style={{ marginTop: 2, fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: 0.2 }}>
+                        كود الصنف: <span style={{ fontFamily: "monospace" }}>{item.productCode}</span>
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: numFontSize(item.quantity), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>{fmtNum(item.quantity)}</td>
                   {hasAnyBonus && (

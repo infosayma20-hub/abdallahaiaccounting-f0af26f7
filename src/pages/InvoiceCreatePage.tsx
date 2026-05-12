@@ -1484,6 +1484,11 @@ const InvoiceCreatePage = () => {
     contactAddress: customerOverrides.address || selectedContact?.address,
     items: form.items.map(i => ({
       description: i.description || "—",
+      productCode: (() => {
+        if (!i.productId) return undefined;
+        const p: any = products.find(p => p.id === i.productId);
+        return p?.sku || p?.barcode || undefined;
+      })(),
       quantity: i.quantity,
       bonusQuantity: Number(i.bonusQuantity || 0),
       unitPrice: i.unitPrice,
@@ -2283,6 +2288,11 @@ const InvoiceCreatePage = () => {
                               )}
                             </p>
                           )
+                        )}
+                        {item.productId && (prod?.sku || prod?.barcode) && (
+                          <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums">
+                            كود: <span className="font-mono">{prod?.sku || prod?.barcode}</span>
+                          </p>
                         )}
                       </td>
 
