@@ -2201,13 +2201,13 @@ const InvoiceCreatePage = () => {
               <thead>
                 <tr className="bg-muted/70 text-[10.5px] font-semibold text-foreground/80 uppercase tracking-wide">
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
-                  <th className="py-2.5 px-3 text-right">المنتج / الخدمة</th>
-                  <th className="py-2.5 px-3 text-center w-[80px]">الكمية</th>
-                  <th className="py-2.5 px-3 text-center w-[70px]" title="كمية بونص / مجاني">بونص</th>
-                  <th className="py-2.5 px-3 text-center w-[110px] bg-muted/90">السعر</th>
-                  <th className="py-2.5 px-3 text-center w-[120px]">الخصم</th>
-                  {taxEnabled && <th className="py-2.5 px-3 text-center w-[130px]">الضريبة</th>}
-                  <th className="py-2.5 px-3 text-left w-[120px] bg-primary/10 text-primary">الإجمالي</th>
+                  <th className="py-2.5 px-3 text-right min-w-[260px]">المنتج / الخدمة</th>
+                  <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]">الكمية</th>
+                  <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]" title="كمية بونص / مجاني">بونص</th>
+                  <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px] bg-muted/90">السعر</th>
+                  <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px]">الخصم</th>
+                  {taxEnabled && <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px]">الضريبة</th>}
+                  <th className="py-2.5 px-3 text-left min-w-[140px] w-[150px] bg-primary/10 text-primary">الإجمالي</th>
                   <th className="py-2.5 px-2 text-center w-[40px]"></th>
                 </tr>
               </thead>
