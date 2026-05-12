@@ -62,6 +62,13 @@ export interface UseSearchableDropdownOptions<T> {
   advanceFocus?: boolean;
   /** Delay (ms) before closing on blur to allow click events to register. Default 200. */
   blurCloseDelay?: number;
+  /**
+   * If true and items.length > 0, automatically highlight the first item (index 0)
+   * so that Enter selects an existing item instead of falling through to a header
+   * option (e.g. "Add new"). Header options remain reachable only via explicit
+   * ArrowUp navigation past index 0 or by mouse/click. Default false (back-compat).
+   */
+  autoHighlightFirstItem?: boolean;
 }
 
 export interface UseSearchableDropdownReturn {
@@ -123,6 +130,7 @@ export function useSearchableDropdown<T>(
     onHeaderSelect,
     advanceFocus = true,
     blurCloseDelay = 200,
+    autoHighlightFirstItem = false,
   } = options;
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -135,10 +143,11 @@ export function useSearchableDropdown<T>(
   useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
   useEffect(() => { itemsRef.current = items; }, [items]);
 
-  // Reset index when items list changes (search changes)
+  // Reset index when items list changes (search changes).
+  // If auto-highlight is on and items exist, snap to first item so Enter selects it.
   useEffect(() => {
-    setActiveIndex(-1);
-  }, [items.length]);
+    setActiveIndex(autoHighlightFirstItem && items.length > 0 ? 0 : -1);
+  }, [items.length, autoHighlightFirstItem]);
 
   // Scroll active option into view
   useEffect(() => {
@@ -195,7 +204,9 @@ export function useSearchableDropdown<T>(
 
   const onKeyDown = useCallback((e: ReactKeyboardEvent<HTMLInputElement>) => {
     const max = items.length - 1;
-    const min = headerOptionCount > 0 ? -headerOptionCount : 0;
+    // When auto-highlighting first item, never let ArrowUp dive into header rows
+    // — Enter must select an existing item, not a stray header action.
+    const min = headerOptionCount > 0 && !autoHighlightFirstItem ? -headerOptionCount : 0;
 
     // Open on ArrowDown if closed
     if (!isOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
@@ -215,7 +226,10 @@ export function useSearchableDropdown<T>(
       setActiveIndex(i => Math.max(i - 1, min));
     } else if (e.key === "Enter") {
       const idx = activeIndexRef.current;
-      if (isOpen && (idx >= 0 || (idx < 0 && headerOptionCount > 0 && onHeaderSelect))) {
+      // With autoHighlightFirstItem, NEVER let Enter trigger a header action
+      // even if the user manually navigated up. Enter is reserved for items.
+      const headerAllowed = !autoHighlightFirstItem;
+      if (isOpen && (idx >= 0 || (idx < 0 && headerAllowed && headerOptionCount > 0 && onHeaderSelect))) {
         e.preventDefault();
         e.stopPropagation();
         selectAt(idx);
@@ -237,7 +251,7 @@ export function useSearchableDropdown<T>(
         selectAt(idx);
       }
     }
-  }, [isOpen, items.length, headerOptionCount, onHeaderSelect, open, close, selectAt]);
+  }, [isOpen, items.length, headerOptionCount, onHeaderSelect, open, close, selectAt, autoHighlightFirstItem]);
 
   // Cleanup blur timer
   useEffect(() => () => {
