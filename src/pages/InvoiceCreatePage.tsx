@@ -2284,6 +2284,11 @@ const InvoiceCreatePage = () => {
                             </p>
                           )
                         )}
+                        {item.productId && (prod?.sku || prod?.barcode) && (
+                          <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums">
+                            كود: <span className="font-mono">{prod?.sku || prod?.barcode}</span>
+                          </p>
+                        )}
                       </td>
 
                       {/* Quantity */}
