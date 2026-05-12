@@ -2287,29 +2287,33 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Quantity */}
-                      <td className="py-1.5 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           data-invoice-qty={item.id}
                           min={1}
                           value={item.quantity}
                           onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
                           onKeyDown={handleCellEnter("qty", item.id)}
+                          minWidthPx={84}
+                          maxWidthPx={140}
                           className="font-semibold"
                         />
                       </td>
 
                       {/* Bonus quantity (free units) */}
-                      <td className="py-1.5 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle min-w-[100px]">
                         <InvoiceNumericInput
                           min={0}
                           value={item.bonusQuantity}
                           onChange={e => updateItem(item.id, "bonusQuantity", Math.max(0, Number(e.target.value)))}
+                          minWidthPx={84}
+                          maxWidthPx={140}
                           title="كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"
                         />
                       </td>
 
                       {/* Price */}
-                      <td className="py-1.5 px-2 align-middle relative bg-muted/20">
+                      <td className="py-1.5 px-2 align-middle relative bg-muted/20 min-w-[120px]">
                         <InvoiceNumericInput
                           data-invoice-price={item.id}
                           min={0}
@@ -2317,6 +2321,9 @@ const InvoiceCreatePage = () => {
                           onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))}
                           onKeyDown={handleCellEnter("price", item.id)}
                           unitLabel={currSymbol}
+                          minWidthPx={96}
+                          maxWidthPx={160}
+                          focusMaxWidthPx={220}
                           className={`font-semibold ${showWarning ? "border-amber-400 bg-amber-50" : ""}`}
                         />
                         {showWarning && (
@@ -2336,7 +2343,7 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Discount with type toggle inline */}
-                      <td className="py-1.5 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle min-w-[120px]">
                         <div className="flex items-center gap-1">
                           <InvoiceNumericInput
                             data-invoice-discount={item.id}
@@ -2345,6 +2352,9 @@ const InvoiceCreatePage = () => {
                             onChange={e => updateItem(item.id, "discount", Number(e.target.value))}
                             onKeyDown={handleCellEnter("discount", item.id)}
                             unitLabel={item.discountType === "percent" ? "%" : currSymbol}
+                            minWidthPx={80}
+                            maxWidthPx={130}
+                            focusMaxWidthPx={180}
                             className="flex-1 min-w-0"
                           />
                           <button
