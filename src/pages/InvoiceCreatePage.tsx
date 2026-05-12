@@ -2725,13 +2725,19 @@ const InvoiceCreatePage = () => {
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
         <div className="w-full mx-auto flex gap-2 items-center">
           {/* Live mini-summary: invoices are credit-only, so always shows total as outstanding (آجل) */}
-          <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
-            <span className="text-muted-foreground">الإجمالي</span>
-            <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
-            <span className="text-muted-foreground/50">·</span>
+          <div
+            className="hidden lg:flex items-center gap-3 px-4 h-12 rounded-xl bg-primary/5 border border-primary/15 min-w-[260px] shrink-0"
+            title={fmtCurrency(summary.total)}
+          >
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">الإجمالي</span>
+            <span
+              dir="ltr"
+              className="font-extrabold text-primary tabular-nums whitespace-nowrap leading-none text-xl xl:text-2xl"
+            >
+              {fmtCurrency(summary.total)}
+            </span>
+            <span className="text-muted-foreground/40">·</span>
             <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-[10px]">آجل</span>
-            <span className="text-muted-foreground/50">·</span>
-            <span className="text-muted-foreground">يُسجَّل القبض لاحقاً عبر سند</span>
           </div>
           <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
             <Save className="h-4 w-4" /> حفظ كمسودة
