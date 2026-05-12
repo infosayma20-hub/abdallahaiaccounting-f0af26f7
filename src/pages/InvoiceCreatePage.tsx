@@ -2152,6 +2152,19 @@ const InvoiceCreatePage = () => {
               <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? "بند" : "بنود"})</span>
             </CardTitle>
             <div className="flex gap-1.5 items-center">
+              {!isEditMode && (
+                <DraftStatusBadge status={draftStatus} savedAt={draftSavedAt} />
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[10px] gap-1 h-7"
+                onClick={() => setShowDraftsHistory(true)}
+                title="عرض سجل المسودات المحفوظة"
+              >
+                <FileText className="h-3 w-3" />
+                المسودات
+              </Button>
               <span className="hidden lg:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-background border border-border/50 rounded-md px-2 py-1">
                 <kbd className="font-mono">Enter</kbd> للتنقل
                 <span className="text-muted-foreground/60">·</span>
