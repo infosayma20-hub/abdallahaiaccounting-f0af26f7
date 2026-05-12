@@ -2287,46 +2287,36 @@ const InvoiceCreatePage = () => {
 
                       {/* Quantity */}
                       <td className="py-1.5 px-2 align-middle">
-                        <Input
+                        <InvoiceNumericInput
                           data-invoice-qty={item.id}
-                          type="number"
                           min={1}
                           value={item.quantity}
                           onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
                           onKeyDown={handleCellEnter("qty", item.id)}
-                          className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm font-semibold"
-                          dir="ltr"
+                          className="font-semibold"
                         />
                       </td>
 
                       {/* Bonus quantity (free units) */}
                       <td className="py-1.5 px-2 align-middle">
-                        <Input
-                          type="number"
+                        <InvoiceNumericInput
                           min={0}
                           value={item.bonusQuantity}
                           onChange={e => updateItem(item.id, "bonusQuantity", Math.max(0, Number(e.target.value)))}
-                          className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm"
-                          dir="ltr"
                           title="كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"
                         />
                       </td>
 
                       {/* Price */}
                       <td className="py-1.5 px-2 align-middle relative bg-muted/20">
-                        <Input
+                        <InvoiceNumericInput
                           data-invoice-price={item.id}
-                          type="number"
                           min={0}
                           value={item.unitPrice}
                           onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))}
                           onKeyDown={handleCellEnter("price", item.id)}
-                          className={`rounded-md text-[12px] h-9 text-center border bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm font-semibold ${
-                            showWarning
-                              ? "border-amber-400 bg-amber-50"
-                              : "border-input"
-                          }`}
-                          dir="ltr"
+                          unitLabel={currSymbol}
+                          className={`font-semibold ${showWarning ? "border-amber-400 bg-amber-50" : ""}`}
                         />
                         {showWarning && (
                           <Tooltip>
@@ -2347,15 +2337,14 @@ const InvoiceCreatePage = () => {
                       {/* Discount with type toggle inline */}
                       <td className="py-1.5 px-2 align-middle">
                         <div className="flex items-center gap-1">
-                          <Input
+                          <InvoiceNumericInput
                             data-invoice-discount={item.id}
-                            type="number"
                             min={0}
                             value={item.discount}
                             onChange={e => updateItem(item.id, "discount", Number(e.target.value))}
                             onKeyDown={handleCellEnter("discount", item.id)}
-                            className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums flex-1 min-w-0 shadow-sm"
-                            dir="ltr"
+                            unitLabel={item.discountType === "percent" ? "%" : currSymbol}
+                            className="flex-1 min-w-0"
                           />
                           <button
                             onClick={() => updateItem(item.id, "discountType", item.discountType === "percent" ? "amount" : "percent")}
@@ -2372,9 +2361,8 @@ const InvoiceCreatePage = () => {
                         <td className="py-1.5 px-2 align-middle">
                           <div className="flex items-center gap-1">
                             <div className="relative flex-1 min-w-0">
-                              <Input
+                              <InvoiceNumericInput
                                 data-invoice-tax={item.id}
-                                type="number"
                                 min={0}
                                 max={100}
                                 step="0.01"
@@ -2395,8 +2383,8 @@ const InvoiceCreatePage = () => {
                                   }));
                                 }}
                                 onKeyDown={handleCellEnter("tax", item.id)}
-                                className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm pr-6"
-                                dir="ltr"
+                                className="pr-6"
+                                unitLabel="%"
                                 title="نسبة الضريبة %"
                               />
                               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
@@ -2432,7 +2420,28 @@ const InvoiceCreatePage = () => {
 
                       {/* Subtotal */}
                       <td className="py-2 px-3 text-left align-middle bg-primary/5">
-                        <span className="text-[13px] font-bold text-primary tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</span>
+                        {(() => {
+                          const sub = calcItemSubtotal(item);
+                          const formatted = fmtCurrency(sub);
+                          const sizeClass =
+                            formatted.length <= 10
+                              ? "text-[13px]"
+                              : formatted.length <= 14
+                              ? "text-[12px]"
+                              : formatted.length <= 18
+                              ? "text-[11px]"
+                              : "text-[10px]";
+                          return (
+                            <span
+                              dir="ltr"
+                              title={formatted}
+                              aria-label={formatted}
+                              className={`block whitespace-nowrap font-bold text-primary tabular-nums ${sizeClass}`}
+                            >
+                              {formatted}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Delete */}
