@@ -2396,6 +2396,8 @@ const InvoiceCreatePage = () => {
                                 onKeyDown={handleCellEnter("tax", item.id)}
                                 className="pr-6"
                                 unitLabel="%"
+                                minWidthPx={84}
+                                maxWidthPx={120}
                                 title="نسبة الضريبة %"
                               />
                               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
