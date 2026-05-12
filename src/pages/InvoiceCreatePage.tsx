@@ -2723,6 +2723,17 @@ const InvoiceCreatePage = () => {
 
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
+        {/* Mobile-only prominent total row (desktop shows it inline below) */}
+        <div className="lg:hidden flex items-center justify-between gap-2 mb-2 px-3 h-11 rounded-xl bg-primary/5 border border-primary/15">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">الإجمالي</span>
+          <span
+            dir="ltr"
+            title={fmtCurrency(summary.total)}
+            className="font-extrabold text-primary tabular-nums whitespace-nowrap text-lg"
+          >
+            {fmtCurrency(summary.total)}
+          </span>
+        </div>
         <div className="w-full mx-auto flex gap-2 items-center">
           {/* Live mini-summary: invoices are credit-only, so always shows total as outstanding (آجل) */}
           <div
