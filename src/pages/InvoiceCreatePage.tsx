@@ -1002,14 +1002,18 @@ const InvoiceCreatePage = () => {
     setForm(prev => ({ ...prev, items: [createEmptyItem()] }));
   };
 
-  // Adds a new row and focuses its quantity field — used by Enter on last row's discount cell.
+  // Adds a new row and focuses its product search field — used as overflow target
+  // when the user presses Enter on the last row's tax cell. Focuses the product
+  // autocomplete (not qty) so the next data-entry step is choosing a product.
   const addItemAndFocus = useCallback(() => {
     const newItem = { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 };
     setForm(prev => ({ ...prev, items: [...prev.items, newItem] }));
     setTimeout(() => {
-      const el = document.querySelector<HTMLInputElement>(`[data-invoice-qty="${newItem.id}"]`);
+      const el =
+        document.querySelector<HTMLInputElement>(`input[data-row-id="${newItem.id}"]`) ||
+        document.querySelector<HTMLInputElement>(`[data-invoice-qty="${newItem.id}"]`);
       el?.focus();
-      el?.select();
+      el?.select?.();
     }, 30);
   }, [defaultTaxCategory]);
 
