@@ -2353,16 +2353,63 @@ const InvoiceCreatePage = () => {
                       {/* Tax Category */}
                       {taxEnabled && (
                         <td className="py-1.5 px-2 align-middle">
-                          <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
-                            <SelectTrigger className="rounded-md text-[10.5px] h-9 border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 px-2 shadow-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {TAX_CATEGORY_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-1">
+                            <div className="relative flex-1 min-w-0">
+                              <Input
+                                data-invoice-tax={item.id}
+                                type="number"
+                                min={0}
+                                max={100}
+                                step="0.01"
+                                value={item.taxCategory === "exempt" ? "" : item.taxRate}
+                                placeholder={item.taxCategory === "exempt" ? "معفي" : "0"}
+                                disabled={item.taxCategory === "exempt"}
+                                onChange={e => {
+                                  const rate = Number(e.target.value);
+                                  setForm(prev => ({
+                                    ...prev,
+                                    items: prev.items.map(it => {
+                                      if (it.id !== item.id) return it;
+                                      const nextCat: TaxCategory = rate > 0 ? "taxable" : "zero";
+                                      const updated = { ...it, taxRate: isFinite(rate) ? rate : 0, taxCategory: nextCat };
+                                      updated.subtotal = calcItemSubtotal(updated);
+                                      return updated;
+                                    }),
+                                  }));
+                                }}
+                                onKeyDown={handleCellEnter("tax", item.id)}
+                                className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm pr-6"
+                                dir="ltr"
+                                title="نسبة الضريبة %"
+                              />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="h-9 w-9 shrink-0 rounded-md border border-input bg-background flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
+                                  title="اختصارات الضريبة"
+                                  aria-label="اختصارات الضريبة"
+                                  tabIndex={-1}
+                                  data-smart-skip="true"
+                                >
+                                  <ChevronDown className="h-3 w-3" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="min-w-[140px]">
+                                <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "taxable")}>
+                                  16% — خاضعة
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "zero")}>
+                                  0% — صفرية
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "exempt")}>
+                                  معفي
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </td>
                       )}
 
