@@ -2368,8 +2368,8 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Tax Category */}
-                      {taxEnabled && (
-                        <td className="py-1.5 px-2 align-middle">
+                       {taxEnabled && (
+                         <td className="py-1.5 px-2 align-middle min-w-[120px]">
                           <div className="flex items-center gap-1">
                             <div className="relative flex-1 min-w-0">
                               <InvoiceNumericInput
@@ -2431,8 +2431,8 @@ const InvoiceCreatePage = () => {
                         </td>
                       )}
 
-                      {/* Subtotal */}
-                      <td className="py-2 px-3 text-left align-middle bg-primary/5">
+                       {/* Subtotal */}
+                       <td className="py-2 px-3 text-left align-middle bg-primary/5 min-w-[140px] whitespace-nowrap">
                         {(() => {
                           const sub = calcItemSubtotal(item);
                           const formatted = fmtCurrency(sub);
