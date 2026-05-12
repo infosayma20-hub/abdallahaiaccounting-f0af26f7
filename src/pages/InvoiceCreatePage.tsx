@@ -41,6 +41,8 @@ import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyb
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
 import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
+import DraftStatusBadge, { type DraftStatus } from "@/components/invoice/DraftStatusBadge";
+import DraftsHistoryDialog from "@/components/invoice/DraftsHistoryDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
 import { fetchManyContactStatementBalances, fetchContactStatementBalance } from "@/lib/contact-balance";
 
@@ -306,6 +308,13 @@ const InvoiceCreatePage = () => {
 
   const [productSearchByRow, setProductSearchByRow] = useState<Record<string, string>>({});
 
+  // ─── Draft autosave UX state ───
+  const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle");
+  const [showDraftsHistory, setShowDraftsHistory] = useState(false);
+  // Used to suppress the restore banner immediately after the user explicitly
+  // chose "بدء فاتورة جديدة" / "جديد", so the just-cleared draft never resurfaces.
+  const suppressRestoreRef = useRef(false);
+
   // Form state
   // ─── Accounting policy (post QuickBooks-style refactor) ───
   // All invoices are issued on **credit (آجل)** basis. Payment is recorded later
@@ -339,6 +348,7 @@ const InvoiceCreatePage = () => {
   // معطّل في وضع التعديل (التعديل يحمل بياناته من قاعدة البيانات)،
   // وعند الاستيراد من duplicate (له منطق منفصل).
   const draftFormId = `invoice_${form.type === "purchase" ? "purchase" : "sales"}_new`;
+  const draftScope = [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":");
   const invoiceDraftSnapshot = useMemo(() => ({
     form,
     contactSearch,
@@ -368,10 +378,11 @@ const InvoiceCreatePage = () => {
     {
       enabled: !isEditMode && !fromDuplicate,
       version: 3,
-      scope: [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":"),
+      scope: draftScope,
       ready: draftReady,
-      // استرجاع تلقائي صامت للمسودات الحديثة (آخر 30 دقيقة) — يحاكي عودة سلسة بين التبويبات
-      autoRestoreWithinMs: 30 * 60 * 1000,
+      // لا استرجاع صامت: نريد دائماً عرض Banner واضح حتى لا تظهر بيانات
+      // فاتورة قديمة بعد ضغط "جديد".
+      autoRestoreWithinMs: 0,
       isEmpty: (data: typeof invoiceDraftSnapshot) =>
         !data.form?.contactName?.trim() &&
         !data.form?.contactId &&
@@ -380,6 +391,21 @@ const InvoiceCreatePage = () => {
           data.form.items.every((it: any) => !it.description?.trim() && !it.productId)),
     }
   );
+
+  // Reflect autosave activity in the small status badge.
+  // We mark "saving" the moment the user edits the snapshot, then "saved" once
+  // useFormDraft updates `draftSavedAt` (debounced internally).
+  const lastSnapshotRef = useRef(invoiceDraftSnapshot);
+  useEffect(() => {
+    if (isEditMode || fromDuplicate) return;
+    if (lastSnapshotRef.current !== invoiceDraftSnapshot) {
+      lastSnapshotRef.current = invoiceDraftSnapshot;
+      setDraftStatus(prev => (prev === "error" ? prev : "saving"));
+    }
+  }, [invoiceDraftSnapshot, isEditMode, fromDuplicate]);
+  useEffect(() => {
+    if (draftSavedAt) setDraftStatus("saved");
+  }, [draftSavedAt]);
 
   useEffect(() => {
     if (!fromDuplicate) return;
@@ -1561,7 +1587,7 @@ const InvoiceCreatePage = () => {
 
   const itemIds = form.items.map(i => i.id);
   const handleCellEnter = useCallback(
-    (field: "qty" | "price" | "discount", itemId: string) =>
+    (field: "qty" | "price" | "discount" | "tax", itemId: string) =>
       (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
@@ -1569,6 +1595,65 @@ const InvoiceCreatePage = () => {
       },
     [itemIds, addItemAndFocus],
   );
+
+  // ─── Start a brand-new invoice ───
+  // Wipes ALL working state so nothing leaks from a previously-edited invoice
+  // or auto-saved draft. Used by the "جديد" button in the toolbar.
+  const startNewInvoice = useCallback(() => {
+    suppressRestoreRef.current = true;
+    // Clear the autosaved draft first so the banner does not pop back up.
+    try { clearDraft(); } catch { /* noop */ }
+
+    setForm({
+      type: form.type,
+      contactName: "",
+      contactId: null,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: "",
+      paymentTerms: "net_30",
+      paymentMethod: "credit",
+      currency: "شيكل",
+      exchangeRate: 1,
+      notes: "",
+      notesInternal: "",
+      salespersonId: null,
+      billingAddress: "",
+      taxInclusive: false,
+      warehouseId: null,
+      workshopId: null,
+      items: [{ ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }],
+    });
+    setContactSearch("");
+    setSelectedContact(null);
+    setCustomerOverrides({ phone: "", email: "", tax_number: "", address: "" });
+    setContactDebtWarning(null);
+    setAttachments([]);
+    setInvoiceTerms(defaultTerms);
+    setProductSearchByRow({});
+    setDraftStatus("idle");
+    originalInvoiceRef.current = null;
+
+    // If we are on an edit URL, leave it so we are unambiguously on the new path.
+    if (isEditMode) {
+      navigate("/invoices/new", { replace: true });
+    }
+    toast({ title: "تم بدء فاتورة جديدة" });
+  }, [form.type, defaultTaxCategory, defaultTerms, clearDraft, isEditMode, navigate, toast]);
+
+  // Restore a draft chosen explicitly from the drafts history dialog.
+  const restoreDraftFromHistory = useCallback((data: any) => {
+    if (!data) return;
+    const formData = data?.form ?? data;
+    if (!formData) return;
+    setForm(formData as typeof form);
+    setContactSearch(data?.contactSearch || formData?.contactName || "");
+    setCustomerOverrides(data?.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
+    setInvoiceTerms(data?.invoiceTerms ?? "");
+    setAttachments(Array.isArray(data?.attachments) ? data.attachments : []);
+    // Make sure we're on a clean "new invoice" URL — never carry an edit id over.
+    if (isEditMode) navigate("/invoices/new", { replace: true });
+    toast({ title: "تم استعادة المسودة ✓" });
+  }, [isEditMode, navigate, toast]);
 
   // ─── RENDER ───
   if (loadingEditInvoice) {
@@ -1594,12 +1679,12 @@ const InvoiceCreatePage = () => {
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
       {/* Draft Restore Banner — يظهر عند العودة لصفحة فيها مسودة محفوظة تلقائياً */}
-      {hasDraft && !isEditMode && (
+      {hasDraft && !isEditMode && !suppressRestoreRef.current && (
         <DraftRestoreBanner
           onRestore={restoreDraft}
-          onDismiss={clearDraft}
+          onDismiss={() => { suppressRestoreRef.current = true; clearDraft(); }}
           savedAt={draftSavedAt}
-          label="يوجد مسودة فاتورة لم تُحفظ"
+          label={`يوجد مسودة فاتورة محفوظة تلقائياً — ${form.items.length} بند`}
         />
       )}
 
@@ -1616,6 +1701,7 @@ const InvoiceCreatePage = () => {
         onPrint={handlePrint}
         onDelete={isEditMode ? () => setShowDeleteConfirm(true) : undefined}
         onNewSimilar={isEditMode ? handleNewSimilar : undefined}
+        onNew={startNewInvoice}
         showNavigation={isEditMode}
         onSaveDraft={() => handleCreate(true)}
         onSavePost={() => handleCreate(false)}
@@ -2066,6 +2152,19 @@ const InvoiceCreatePage = () => {
               <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? "بند" : "بنود"})</span>
             </CardTitle>
             <div className="flex gap-1.5 items-center">
+              {!isEditMode && (
+                <DraftStatusBadge status={draftStatus} savedAt={draftSavedAt} />
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[10px] gap-1 h-7"
+                onClick={() => setShowDraftsHistory(true)}
+                title="عرض سجل المسودات المحفوظة"
+              >
+                <FileText className="h-3 w-3" />
+                المسودات
+              </Button>
               <span className="hidden lg:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-background border border-border/50 rounded-md px-2 py-1">
                 <kbd className="font-mono">Enter</kbd> للتنقل
                 <span className="text-muted-foreground/60">·</span>
@@ -2267,16 +2366,63 @@ const InvoiceCreatePage = () => {
                       {/* Tax Category */}
                       {taxEnabled && (
                         <td className="py-1.5 px-2 align-middle">
-                          <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
-                            <SelectTrigger className="rounded-md text-[10.5px] h-9 border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 px-2 shadow-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {TAX_CATEGORY_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-1">
+                            <div className="relative flex-1 min-w-0">
+                              <Input
+                                data-invoice-tax={item.id}
+                                type="number"
+                                min={0}
+                                max={100}
+                                step="0.01"
+                                value={item.taxCategory === "exempt" ? "" : item.taxRate}
+                                placeholder={item.taxCategory === "exempt" ? "معفي" : "0"}
+                                disabled={item.taxCategory === "exempt"}
+                                onChange={e => {
+                                  const rate = Number(e.target.value);
+                                  setForm(prev => ({
+                                    ...prev,
+                                    items: prev.items.map(it => {
+                                      if (it.id !== item.id) return it;
+                                      const nextCat: TaxCategory = rate > 0 ? "taxable" : "zero";
+                                      const updated = { ...it, taxRate: isFinite(rate) ? rate : 0, taxCategory: nextCat };
+                                      updated.subtotal = calcItemSubtotal(updated);
+                                      return updated;
+                                    }),
+                                  }));
+                                }}
+                                onKeyDown={handleCellEnter("tax", item.id)}
+                                className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm pr-6"
+                                dir="ltr"
+                                title="نسبة الضريبة %"
+                              />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="h-9 w-9 shrink-0 rounded-md border border-input bg-background flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
+                                  title="اختصارات الضريبة"
+                                  aria-label="اختصارات الضريبة"
+                                  tabIndex={-1}
+                                  data-smart-skip="true"
+                                >
+                                  <ChevronDown className="h-3 w-3" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="min-w-[140px]">
+                                <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "taxable")}>
+                                  16% — خاضعة
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "zero")}>
+                                  0% — صفرية
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateItem(item.id, "taxCategory", "exempt")}>
+                                  معفي
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </td>
                       )}
 
@@ -2660,6 +2806,15 @@ const InvoiceCreatePage = () => {
           invoiceDate={form.date}
         />
       )}
+
+      {/* Drafts history dialog */}
+      <DraftsHistoryDialog
+        open={showDraftsHistory}
+        onOpenChange={setShowDraftsHistory}
+        scope={draftScope}
+        onRestore={(data) => restoreDraftFromHistory(data)}
+        currencySymbol={currSymbol}
+      />
 
       {/* Advanced product search popup (مثل حساباتي) */}
       <ProductSearchDialog

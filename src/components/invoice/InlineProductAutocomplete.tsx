@@ -113,8 +113,11 @@ export default function InlineProductAutocomplete({
     isOpen: open,
     setOpen,
     advanceFocus: true,
-    headerOptionCount: onQuickAdd ? 1 : 0,
-    onHeaderSelect: onQuickAdd ? () => onQuickAdd() : undefined,
+    // "Add new product" is rendered as a footer button below the results.
+    // It is intentionally NOT navigable via the keyboard list, so Enter always
+    // selects an existing matching product (the first result by default).
+    headerOptionCount: 0,
+    autoHighlightFirstItem: true,
     onSelect: (product) => {
       onSelect(product.id);
     },
@@ -168,26 +171,6 @@ export default function InlineProductAutocomplete({
             dropdownClassName,
           )}
         >
-          {onQuickAdd && (
-            <button
-              type="button"
-              ref={(el) => dd.registerOption(-1, el)}
-              onMouseEnter={() => dd.setActive(-1)}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                onQuickAdd();
-                dd.close();
-              }}
-              className={cn(
-                "flex w-full items-center gap-2 border-b border-border px-3 py-2 text-right text-[11px] font-semibold text-primary transition-colors",
-                dd.activeIndex === -1 ? "bg-muted" : "hover:bg-muted",
-              )}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              تعريف صنف جديد
-            </button>
-          )}
-
           {filteredProducts.map((product, index) => {
             const active = dd.activeIndex === index;
             const price = invoiceType === "sales" ? Number(product.sell_price || 0) : Number(product.buy_price || 0);
@@ -225,7 +208,29 @@ export default function InlineProductAutocomplete({
           })}
 
           {filteredProducts.length === 0 && (
-            <p className="py-3 text-center text-xs text-muted-foreground">لا توجد نتائج</p>
+            <p className="py-3 text-center text-xs text-muted-foreground">لا توجد نتائج مطابقة</p>
+          )}
+
+          {onQuickAdd && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onQuickAdd();
+                dd.close();
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 border-t border-border px-3 py-2 text-right text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10",
+                filteredProducts.length === 0 && "bg-primary/5",
+              )}
+              title="إضافة صنف غير موجود — يحتاج نقرة صريحة، Enter يختار صنفاً موجوداً"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              تعريف صنف جديد
+              <span className="ms-auto text-[9px] font-normal text-muted-foreground">
+                (نقرة فقط)
+              </span>
+            </button>
           )}
         </div>
       )}

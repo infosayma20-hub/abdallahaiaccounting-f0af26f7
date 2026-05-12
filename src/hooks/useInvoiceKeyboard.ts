@@ -41,21 +41,22 @@ export default function useInvoiceKeyboard({ enabled = true, onSave, onAddRow }:
 
 /**
  * Move focus to the next invoice cell on Enter inside a row.
- * Order: qty → price → discount → next row's qty.
- * If on the last row's discount, callback `onOverflow` is invoked
+ * Order: qty → price → discount → tax → next row's qty.
+ * If on the last row's tax, callback `onOverflow` is invoked
  * (typically to add a new row, then the caller focuses its qty input).
  */
 export function focusNextInvoiceCell(
-  currentField: "qty" | "price" | "discount",
+  currentField: "qty" | "price" | "discount" | "tax",
   currentItemId: string,
   itemIds: string[],
   onOverflow: () => void,
 ) {
   const idx = itemIds.indexOf(currentItemId);
-  const nextOrder: Record<typeof currentField, "qty" | "price" | "discount" | "next-qty"> = {
+  const nextOrder: Record<typeof currentField, "qty" | "price" | "discount" | "tax" | "next-qty"> = {
     qty: "price",
     price: "discount",
-    discount: "next-qty",
+    discount: "tax",
+    tax: "next-qty",
   };
   const target = nextOrder[currentField];
   if (target === "next-qty") {
@@ -70,13 +71,15 @@ export function focusNextInvoiceCell(
   focusCell(target, currentItemId);
 }
 
-function focusCell(field: "qty" | "price" | "discount", itemId: string) {
+function focusCell(field: "qty" | "price" | "discount" | "tax", itemId: string) {
   const selector =
     field === "qty"
       ? `[data-invoice-qty="${itemId}"]`
       : field === "price"
       ? `[data-invoice-price="${itemId}"]`
-      : `[data-invoice-discount="${itemId}"]`;
+      : field === "discount"
+      ? `[data-invoice-discount="${itemId}"]`
+      : `[data-invoice-tax="${itemId}"]`;
   // small timeout so React commits any new row first
   setTimeout(() => {
     const el = document.querySelector<HTMLInputElement>(selector);
