@@ -2807,6 +2807,15 @@ const InvoiceCreatePage = () => {
         />
       )}
 
+      {/* Drafts history dialog */}
+      <DraftsHistoryDialog
+        open={showDraftsHistory}
+        onOpenChange={setShowDraftsHistory}
+        scope={draftScope}
+        onRestore={(data) => restoreDraftFromHistory(data)}
+        currencySymbol={currSymbol}
+      />
+
       {/* Advanced product search popup (مثل حساباتي) */}
       <ProductSearchDialog
         open={productSearchDialog.open}
