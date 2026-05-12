@@ -348,6 +348,7 @@ const InvoiceCreatePage = () => {
   // معطّل في وضع التعديل (التعديل يحمل بياناته من قاعدة البيانات)،
   // وعند الاستيراد من duplicate (له منطق منفصل).
   const draftFormId = `invoice_${form.type === "purchase" ? "purchase" : "sales"}_new`;
+  const draftScope = [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":");
   const invoiceDraftSnapshot = useMemo(() => ({
     form,
     contactSearch,
@@ -377,10 +378,11 @@ const InvoiceCreatePage = () => {
     {
       enabled: !isEditMode && !fromDuplicate,
       version: 3,
-      scope: [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":"),
+      scope: draftScope,
       ready: draftReady,
-      // استرجاع تلقائي صامت للمسودات الحديثة (آخر 30 دقيقة) — يحاكي عودة سلسة بين التبويبات
-      autoRestoreWithinMs: 30 * 60 * 1000,
+      // لا استرجاع صامت: نريد دائماً عرض Banner واضح حتى لا تظهر بيانات
+      // فاتورة قديمة بعد ضغط "جديد".
+      autoRestoreWithinMs: 0,
       isEmpty: (data: typeof invoiceDraftSnapshot) =>
         !data.form?.contactName?.trim() &&
         !data.form?.contactId &&
@@ -389,6 +391,21 @@ const InvoiceCreatePage = () => {
           data.form.items.every((it: any) => !it.description?.trim() && !it.productId)),
     }
   );
+
+  // Reflect autosave activity in the small status badge.
+  // We mark "saving" the moment the user edits the snapshot, then "saved" once
+  // useFormDraft updates `draftSavedAt` (debounced internally).
+  const lastSnapshotRef = useRef(invoiceDraftSnapshot);
+  useEffect(() => {
+    if (isEditMode || fromDuplicate) return;
+    if (lastSnapshotRef.current !== invoiceDraftSnapshot) {
+      lastSnapshotRef.current = invoiceDraftSnapshot;
+      setDraftStatus(prev => (prev === "error" ? prev : "saving"));
+    }
+  }, [invoiceDraftSnapshot, isEditMode, fromDuplicate]);
+  useEffect(() => {
+    if (draftSavedAt) setDraftStatus("saved");
+  }, [draftSavedAt]);
 
   useEffect(() => {
     if (!fromDuplicate) return;
