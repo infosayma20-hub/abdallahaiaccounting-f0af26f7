@@ -41,6 +41,8 @@ import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyb
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
 import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
+import DraftStatusBadge, { type DraftStatus } from "@/components/invoice/DraftStatusBadge";
+import DraftsHistoryDialog from "@/components/invoice/DraftsHistoryDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
 import { fetchManyContactStatementBalances, fetchContactStatementBalance } from "@/lib/contact-balance";
 
