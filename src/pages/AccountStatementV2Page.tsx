@@ -1554,6 +1554,21 @@ const AccountStatementV2Page = () => {
             >
               <iframe
                 title="معاينة كشف الحساب"
+                onLoad={(e) => {
+                  try {
+                    const f = e.currentTarget;
+                    const doc = f.contentDocument;
+                    if (!doc) return;
+                    const h = Math.max(
+                      doc.documentElement.scrollHeight,
+                      doc.body?.scrollHeight || 0,
+                      1123 // ≈ 297mm at 96dpi
+                    );
+                    f.style.height = h + "px";
+                    const wrap = f.parentElement as HTMLElement | null;
+                    if (wrap) wrap.style.minHeight = h + "px";
+                  } catch {}
+                }}
                 srcDoc={buildAccountStatementPrintHTML({
                   company: {
                     name: companyInfo.name || "AMWALI",
