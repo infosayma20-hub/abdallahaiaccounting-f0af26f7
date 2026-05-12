@@ -386,15 +386,16 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       <div style={{ padding: "10px 28px" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed", border: "1px solid #E5E7EB" }}>
           <colgroup>
-            <col style={{ width: "5%" }} />
-            <col style={{ width: hasAnyBonus ? (taxEnabled ? "25%" : "31%") : (taxEnabled ? "33%" : "39%") }} />
-            <col style={{ width: hasAnyBonus ? "7%" : "10%" }} />
-            {hasAnyBonus && <col style={{ width: "7%" }} />}
-            {hasAnyBonus && <col style={{ width: "9%" }} />}
-            <col style={{ width: hasAnyBonus ? "12%" : "15%" }} />
+            <col style={{ width: "4%" }} />
+            {/* Description column flexes; remaining columns get fixed comfortable widths so big numbers never overlap. */}
+            <col style={{ width: "auto" }} />
             <col style={{ width: hasAnyBonus ? "9%" : "11%" }} />
+            {hasAnyBonus && <col style={{ width: "9%" }} />}
+            {hasAnyBonus && <col style={{ width: "10%" }} />}
+            <col style={{ width: hasAnyBonus ? "13%" : "15%" }} />
+            <col style={{ width: hasAnyBonus ? "10%" : "12%" }} />
             {taxEnabled && <col style={{ width: hasAnyBonus ? "11%" : "12%" }} />}
-            <col style={{ width: hasAnyBonus ? (taxEnabled ? "15%" : "17%") : (taxEnabled ? "14%" : "20%") }} />
+            <col style={{ width: hasAnyBonus ? (taxEnabled ? "16%" : "18%") : (taxEnabled ? "16%" : "20%") }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
@@ -445,27 +446,27 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                   <td style={{ padding: "12px 8px", fontWeight: 700, color: "#111827", fontSize: "14px", lineHeight: 1.4, wordWrap: "break-word", whiteSpace: "normal", borderRight: "1px solid #F1F5F9" }}>
                     {item.description}
                   </td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px", borderRight: "1px solid #F1F5F9" }}>{item.quantity}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: numFontSize(item.quantity), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>{fmtNum(item.quantity)}</td>
                   {hasAnyBonus && (
-                    <td style={{ padding: "12px 6px", textAlign: "center", color: bonusQty > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
-                      {bonusQty > 0 ? bonusQty : "—"}
+                    <td style={{ padding: "12px 6px", textAlign: "center", color: bonusQty > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: numFontSize(bonusQty), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>
+                      {bonusQty > 0 ? fmtNum(bonusQty) : "—"}
                     </td>
                   )}
                   {hasAnyBonus && (
-                    <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", color: "#4B5563", borderRight: "1px solid #F1F5F9" }}>
-                      {deliveredQty}
+                    <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: numFontSize(deliveredQty), whiteSpace: "nowrap", direction: "ltr", color: "#4B5563", borderRight: "1px solid #F1F5F9" }}>
+                      {fmtNum(deliveredQty)}
                     </td>
                   )}
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px", borderRight: "1px solid #F1F5F9" }}>{fmtAmount(item.unitPrice)}</td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: numFontSize(fmtAmount(item.unitPrice)), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>{fmtAmount(item.unitPrice)}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: numFontSize(item.discount > 0 ? fmtAmount(item.discount) : ""), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
                   </td>
                   {taxEnabled && (
-                    <td style={{ padding: "12px 6px", textAlign: "center", color: calc.tax > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
+                    <td style={{ padding: "12px 6px", textAlign: "center", color: calc.tax > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: numFontSize(calc.tax > 0 ? fmtAmount(calc.tax) : ""), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>
                       {calc.tax > 0 ? fmtAmount(calc.tax) : "—"}
                     </td>
                   )}
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 800, color: "#1B3A5C", fontFeatureSettings: "'tnum'", fontSize: "15px", background: "#EEF4FB" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 800, color: "#1B3A5C", fontFeatureSettings: "'tnum'", fontSize: numFontSize(fmtAmount(calc.total), 15), whiteSpace: "nowrap", direction: "ltr", background: "#EEF4FB" }}>
                     {fmtAmount(calc.total)}
                   </td>
                 </tr>
