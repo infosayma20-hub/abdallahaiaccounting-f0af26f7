@@ -1,0 +1,79 @@
+import * as React from "react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+/**
+ * InvoiceNumericInput
+ * ─────────────────────────────────────────────────────────────
+ * مدخل رقمي مخصّص لخلايا جدول الفاتورة (الكمية/البونص/السعر/الخصم/الضريبة).
+ * - يصغّر الخط تلقائياً للأرقام الطويلة بدل قصّها.
+ * - tabular-nums + dir="ltr" + محاذاة وسط لقراءة سهلة في RTL.
+ * - title يعرض القيمة الكاملة المنسّقة عند hover.
+ * - يحافظ على نفس واجهة <Input> ويمرّر كل الخصائص (data-*، onKeyDown، ref…).
+ */
+
+export interface InvoiceNumericInputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
+  /** نص إضافي يُضاف داخل title بعد القيمة المنسّقة (مثلاً "%"). */
+  unitLabel?: string;
+}
+
+function formatFullValue(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === "") return "";
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return String(raw);
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  });
+}
+
+/** يُرجع class حجم خط مناسب حسب طول القيمة لتجنّب القصّ. */
+function fitClass(len: number): string {
+  if (len <= 6) return "text-[12px]";
+  if (len <= 9) return "text-[11px]";
+  if (len <= 12) return "text-[10px]";
+  return "text-[9px]";
+}
+
+const InvoiceNumericInput = React.forwardRef<HTMLInputElement, InvoiceNumericInputProps>(
+  ({ className, value, unitLabel, title, ...rest }, ref) => {
+    const raw = value === undefined || value === null ? "" : String(value);
+    const len = raw.length;
+    const formatted = formatFullValue(value);
+    const computedTitle =
+      title ?? (formatted ? `${formatted}${unitLabel ? ` ${unitLabel}` : ""}` : undefined);
+
+    return (
+      <Input
+        ref={ref}
+        type="number"
+        dir="ltr"
+        value={value as any}
+        title={computedTitle}
+        aria-label={computedTitle}
+        className={cn(
+          "h-9 rounded-md border border-input bg-background text-center tabular-nums shadow-sm",
+          "hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15",
+          "px-1.5",
+          fitClass(len),
+          className,
+        )}
+        {...rest}
+      />
+    );
+  },
+);
+InvoiceNumericInput.displayName = "InvoiceNumericInput";
+
+export default InvoiceNumericInput;
+
+/** Helper لعرض الإجمالي/أي رقم نصّي بنفس قواعد التصغير + tooltip. */
+export function formatInvoiceNumberTitle(value: unknown): string {
+  return formatFullValue(value);
+}
+
+export function numericFitClass(value: unknown): string {
+  const raw = value === null || value === undefined ? "" : String(value);
+  return fitClass(raw.length);
+}
