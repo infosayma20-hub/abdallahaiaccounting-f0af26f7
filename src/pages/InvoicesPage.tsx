@@ -47,6 +47,7 @@ interface InvoiceItem {
   id: string;
   productId?: string;
   description: string;
+  productCode?: string;
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -215,7 +216,7 @@ const InvoicesPage = () => {
       // Fetch from database
       const { data: dbInvoices } = await supabase
         .from("invoices")
-        .select("*, invoice_items(*), contacts(tax_number, phone, email, address)")
+        .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -235,6 +236,7 @@ const InvoicesPage = () => {
           id: item.id,
           productId: item.product_id || undefined,
           description: item.product_name || item.description || '',
+          productCode: item.products?.sku || item.products?.barcode || undefined,
           quantity: Number(item.quantity) || 1,
           unitPrice: Number(item.unit_price) || 0,
           discount: Number(item.discount) || 0,
