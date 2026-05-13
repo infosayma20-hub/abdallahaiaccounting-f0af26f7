@@ -1011,6 +1011,42 @@ export default function HRReportsPage() {
             ملاحظة: هذا التقرير يعرض جاهزية البيانات فقط (بصمات + طلبات). لا يحسب أي مبالغ نهائية ولا يغيّر منطق الرواتب.
           </p>
         </TabsContent>
+
+        {/* ── Leaves tab ── */}
+        <TabsContent value="leaves" className="space-y-3 mt-4">
+          <HRLeavesTab
+            employees={filteredEmployees.map((e) => ({
+              id: e.id,
+              full_name: e.full_name,
+              department: e.department,
+              branch_id: e.branch_id,
+              annual_leave_balance: e.annual_leave_balance ?? null,
+              annual_leave_days: e.annual_leave_days ?? null,
+              previous_year_balance: e.previous_year_balance ?? null,
+            }))}
+            branchName={(id) => (id && refData ? (refData.branches.find((b) => b.id === id)?.name || "-") : "-")}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            loading={loading}
+          />
+        </TabsContent>
+
+        {/* ── Occasions tab ── */}
+        <TabsContent value="occasions" className="space-y-3 mt-4">
+          <HROccasionsTab
+            employees={filteredEmployees.map((e) => ({
+              id: e.id,
+              full_name: e.full_name,
+              department: e.department,
+              branch_id: e.branch_id,
+              date_of_birth: e.date_of_birth ?? null,
+              start_date: e.start_date ?? null,
+              phone: e.phone ?? null,
+            }))}
+            branchName={(id) => (id && refData ? (refData.branches.find((b) => b.id === id)?.name || "-") : "-")}
+            loading={loading}
+          />
+        </TabsContent>
       </Tabs>
 
       <DrillDialog state={drill} onClose={() => setDrill(null)} />
