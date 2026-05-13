@@ -8,7 +8,7 @@ const SECTIONS: { to: string; title: string; desc: string; Icon: any }[] = [
   { to: "/hr/day-types", title: "أنواع اليوم وأسبوع العمل", desc: "أيام العمل والعطل والاحتساب", Icon: CalendarDays },
   { to: "/payroll-settings", title: "سياسات الرواتب", desc: "البدلات، الخصومات وإعدادات الاحتساب", Icon: Banknote },
   { to: "/hr-deductions", title: "البدلات والخصومات", desc: "إدارة الخصومات الشهرية", Icon: Layers },
-  { to: "/employees", title: "ربط الموظفين بالسياسات", desc: "تعيين الفرع/الشفت/سياسة الراتب لكل موظف", Icon: UserCog },
+  { to: "/hr/policy-assignment", title: "ربط الموظفين بالسياسات", desc: "تعيين الفرع/الشفت/سياسة الراتب لكل موظف", Icon: UserCog },
 ];
 
 export default function HrSettingsPage() {
