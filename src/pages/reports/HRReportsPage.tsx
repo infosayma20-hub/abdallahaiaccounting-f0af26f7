@@ -749,6 +749,11 @@ export default function HRReportsPage() {
             </Badge>
           )}
         </div>
+        {dateTo > toIsoDate(new Date()) && (
+          <p className="text-[11px] text-amber-600 mt-2">
+            ملاحظة: يتم احتساب الحضور والغياب حتى تاريخ اليوم ({fmtDateDisplay(toIsoDate(new Date()))}) عند اختيار فترة مستقبلية. الأيام بعد اليوم لا تُحتسب غياباً أو بصمات ناقصة.
+          </p>
+        )}
       </Card>
 
       {/* Tabs */}
