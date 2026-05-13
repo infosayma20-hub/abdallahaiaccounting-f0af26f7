@@ -1000,13 +1000,13 @@ export default function HRReportsPage() {
                   <table className="w-full text-sm" dir="rtl">
                     <thead className="bg-muted/50">
                       <tr>
-                        <th className="text-right px-3 py-2 font-semibold">التاريخ</th>
-                        <th className="text-right px-3 py-2 font-semibold">الموظف</th>
-                        <th className="text-right px-3 py-2 font-semibold">الفرع</th>
+                        <SortableHeader label="التاريخ" columnKey="date" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
+                        <SortableHeader label="الموظف" columnKey="employee" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
+                        <SortableHeader label="الفرع" columnKey="branch" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
                         <th className="text-center px-3 py-2 font-semibold">دخول</th>
                         <th className="text-center px-3 py-2 font-semibold">خروج</th>
-                        <th className="text-center px-3 py-2 font-semibold">المشكلة</th>
-                        <th className="text-center px-3 py-2 font-semibold">طلب تصحيح</th>
+                        <SortableHeader label="المشكلة" columnKey="issue" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center" />
+                        <SortableHeader label="طلب تصحيح" columnKey="corr" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center" />
                         <th className="text-center px-3 py-2 font-semibold print:hidden">إجراء</th>
                       </tr>
                     </thead>
