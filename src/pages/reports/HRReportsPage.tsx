@@ -894,6 +894,27 @@ export default function HRReportsPage() {
               </Card>
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-2 print:hidden" dir="rtl">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={readinessQuery}
+                onChange={(e) => setReadinessQuery(e.target.value)}
+                placeholder="بحث: اسم الموظف، الفرع، أو القسم..."
+                className="pr-8 h-9 text-sm"
+              />
+              {readinessQuery && (
+                <button onClick={() => setReadinessQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-1">
+              <Button size="sm" variant={readinessFilter === "all" ? "default" : "outline"} onClick={() => setReadinessFilter("all")} className="h-9 text-xs">الكل</Button>
+              <Button size="sm" variant={readinessFilter === "ready" ? "default" : "outline"} onClick={() => setReadinessFilter("ready")} className="h-9 text-xs">جاهز فقط</Button>
+              <Button size="sm" variant={readinessFilter === "review" ? "default" : "outline"} onClick={() => setReadinessFilter("review")} className="h-9 text-xs">يحتاج مراجعة</Button>
+            </div>
+          </div>
           <Card className="overflow-hidden">
             {loading ? (
               <div className="p-6 space-y-2">
