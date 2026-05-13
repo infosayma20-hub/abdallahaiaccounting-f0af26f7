@@ -398,7 +398,7 @@ export default function HRReportsPage() {
       days: periodData.days,
       shifts, workingDays, holidays,
       corrections: periodData.corrections,
-      branches, dateFrom, dateTo,
+      branches, dateFrom, dateTo, todayIso: toIsoDate(new Date()),
     });
   }, [refData, periodData, filteredEmployees, dateFrom, dateTo]);
 
@@ -413,7 +413,7 @@ export default function HRReportsPage() {
       days: prevPeriodData.days,
       shifts, workingDays, holidays,
       corrections: prevPeriodData.corrections,
-      branches, dateFrom: prevRange.from, dateTo: prevRange.to,
+      branches, dateFrom: prevRange.from, dateTo: prevRange.to, todayIso: toIsoDate(new Date()),
     });
   }, [comparePrev, refData, prevPeriodData, filteredEmployees, prevRange]);
 
