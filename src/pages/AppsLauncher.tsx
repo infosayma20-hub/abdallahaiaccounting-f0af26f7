@@ -31,7 +31,7 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
   accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "tax"],
   accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports"],
   accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports"],
-  hr_manager: ["dashboard", "hr"],
+  hr_manager: ["hr"],
 };
 
 /* AppCard component moved to src/pages/Apps/components/AppCardV2.tsx (Phase 1) */
