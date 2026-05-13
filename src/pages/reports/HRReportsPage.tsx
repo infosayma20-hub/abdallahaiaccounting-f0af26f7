@@ -231,8 +231,8 @@ function DrillDialog({ state, onClose }: { state: DrillState; onClose: () => voi
           <div className="text-center py-8 text-muted-foreground text-sm">لا توجد سجلات</div>
         ) : (
           <div className="overflow-auto max-h-[60vh] border rounded-md">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 sticky top-0">
+            <table className="w-full text-sm" dir="rtl">
+            <thead className="bg-muted/50 sticky top-0">
                 <tr>
                   {state.columns.map((c) => (
                     <th key={c.key} className="text-right px-3 py-2 font-semibold">{c.label}</th>
