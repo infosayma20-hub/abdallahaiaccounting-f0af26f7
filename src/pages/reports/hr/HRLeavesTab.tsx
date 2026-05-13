@@ -11,6 +11,7 @@ import { Search, X, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
+import { SortableHeader, applySort, cycleSort, noSort, type SortState } from "./SortableHeader";
 
 type EmployeeLite = {
   id: string;
@@ -70,6 +71,11 @@ export default function HRLeavesTab({
 }) {
   const [query, setQuery] = useState("");
   const [drill, setDrill] = useState<{ title: string; rows: LeaveRow[] } | null>(null);
+  const [sort, setSort] = useState<SortState>(noSort);
+  const [colBranch, setColBranch] = useState<string>("all");
+  const [colDept, setColDept] = useState<string>("all");
+  const [colStatus, setColStatus] = useState<string>("all"); // all | ok | needs_policy | low
+  const [colLeaveType, setColLeaveType] = useState<string>("all"); // category of last leave
 
   // Pull all leave_requests for the year (for balance/used calc) and the period (for "during selected period")
   const yearStart = useMemo(() => `${dateFrom.slice(0, 4)}-01-01`, [dateFrom]);
@@ -152,14 +158,57 @@ export default function HRLeavesTab({
   }, [employees, byEmployee, branchName]);
 
   const q = query.trim().toLowerCase();
-  const filtered = !q
-    ? rows
-    : rows.filter(
-        (r) =>
+  const filtered = useMemo(() => {
+    const base = rows.filter((r) => {
+      if (q) {
+        const hit =
           r.emp.full_name.toLowerCase().includes(q) ||
           (r.branch || "").toLowerCase().includes(q) ||
-          (r.emp.department || "").toLowerCase().includes(q),
-      );
+          (r.emp.department || "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (colBranch !== "all" && r.branch !== colBranch) return false;
+      if (colDept !== "all" && (r.emp.department || "") !== colDept) return false;
+      if (colStatus !== "all") {
+        const st = r.annualEntitlement == null ? "needs_policy" : (r.annualRemaining != null && r.annualRemaining < 3 ? "low" : "ok");
+        if (st !== colStatus) return false;
+      }
+      if (colLeaveType !== "all") {
+        const lastType = (r.all[0]?.leave_type || "").toLowerCase();
+        if (lastType !== colLeaveType) return false;
+      }
+      return true;
+    });
+    return applySort(base, sort, {
+      employee: (r) => r.emp.full_name,
+      branch: (r) => r.branch,
+      department: (r) => r.emp.department || "",
+      annualEntitlement: (r) => r.annualEntitlement ?? -1,
+      annualUsed: (r) => r.annualUsed,
+      annualRemaining: (r) => r.annualRemaining ?? -1,
+      sickUsed: (r) => r.sickUsed,
+      unpaidUsed: (r) => r.unpaidUsed,
+      pendingCount: (r) => r.pendingCount,
+      lastLeaveDate: (r) => r.lastLeaveDate || "",
+      status: (r) => (r.annualEntitlement == null ? 2 : r.annualRemaining != null && r.annualRemaining < 3 ? 1 : 0),
+    });
+  }, [rows, q, colBranch, colDept, colStatus, colLeaveType, sort]);
+
+  const branchOptions = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => { if (r.branch && r.branch !== "-") s.add(r.branch); });
+    return Array.from(s).sort().map((v) => ({ value: v, label: v }));
+  }, [rows]);
+  const deptOptions = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => { if (r.emp.department) s.add(r.emp.department); });
+    return Array.from(s).sort().map((v) => ({ value: v, label: v }));
+  }, [rows]);
+  const leaveTypeOptions = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => { const t = (r.all[0]?.leave_type || "").toLowerCase(); if (t) s.add(t); });
+    return Array.from(s).sort().map((v) => ({ value: v, label: labelLeaveType(v) }));
+  }, [rows]);
 
   const exportExcel = () => {
     const data = filtered.map((r) => ({
@@ -228,17 +277,26 @@ export default function HRLeavesTab({
             <table className="w-full text-sm" dir="rtl">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-right px-3 py-2 font-semibold sticky right-0 bg-muted/50 min-w-[150px]">الموظف</th>
-                  <th className="text-right px-3 py-2 font-semibold">الفرع</th>
-                  <th className="text-right px-3 py-2 font-semibold">القسم</th>
-                  <th className="text-center px-3 py-2 font-semibold">الرصيد السنوي</th>
-                  <th className="text-center px-3 py-2 font-semibold">المستخدم السنوي</th>
-                  <th className="text-center px-3 py-2 font-semibold">المتبقي السنوي</th>
-                  <th className="text-center px-3 py-2 font-semibold">المرضي المستخدم</th>
-                  <th className="text-center px-3 py-2 font-semibold">إجازات غير مدفوعة</th>
-                  <th className="text-center px-3 py-2 font-semibold">قيد المراجعة</th>
-                  <th className="text-center px-3 py-2 font-semibold">آخر إجازة</th>
-                  <th className="text-right px-3 py-2 font-semibold">ملاحظات</th>
+                  <SortableHeader label="الموظف" columnKey="employee" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
+                  <SortableHeader label="الفرع" columnKey="branch" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))}
+                    filterValue={colBranch} filterOptions={[{ value: "all", label: "كل الفروع" }, ...branchOptions]} onFilterChange={setColBranch} />
+                  <SortableHeader label="القسم" columnKey="department" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))}
+                    filterValue={colDept} filterOptions={[{ value: "all", label: "كل الأقسام" }, ...deptOptions]} onFilterChange={setColDept} />
+                  <SortableHeader label="الرصيد السنوي" columnKey="annualEntitlement" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="المستخدم السنوي" columnKey="annualUsed" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="المتبقي السنوي" columnKey="annualRemaining" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="المرضي المستخدم" columnKey="sickUsed" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="إجازات غير مدفوعة" columnKey="unpaidUsed" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="قيد المراجعة" columnKey="pendingCount" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="آخر إجازة" columnKey="lastLeaveDate" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center"
+                    filterValue={colLeaveType} filterOptions={[{ value: "all", label: "كل الأنواع" }, ...leaveTypeOptions]} onFilterChange={setColLeaveType} />
+                  <SortableHeader label="الحالة" columnKey="status" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))}
+                    filterValue={colStatus} filterOptions={[
+                      { value: "all", label: "الكل" },
+                      { value: "ok", label: "سليم" },
+                      { value: "low", label: "رصيد منخفض" },
+                      { value: "needs_policy", label: "يحتاج ضبط السياسة" },
+                    ]} onFilterChange={setColStatus} />
                 </tr>
               </thead>
               <tbody>
