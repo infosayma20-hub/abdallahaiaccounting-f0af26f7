@@ -759,20 +759,36 @@ export default function HRReportsPage() {
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
+          <div className="flex flex-wrap items-center gap-2 print:hidden" dir="rtl">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={incompleteQuery}
+                onChange={(e) => setIncompleteQuery(e.target.value)}
+                placeholder="بحث: اسم الموظف، الفرع، التاريخ، أو المشكلة..."
+                className="pr-8 h-9 text-sm"
+              />
+              {incompleteQuery && (
+                <button onClick={() => setIncompleteQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
           <Card className="overflow-hidden">
             {loading ? (
               <div className="p-6 space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
               </div>
             ) : (() => {
-              const rows = summaries.flatMap((s) =>
+              const allRows = summaries.flatMap((s) =>
                 s.incompleteDates.map((d) => {
                   const issue = !d.first_check_in ? "بدون دخول" : !d.last_check_out ? "بدون خروج" : "بصمة ناقصة";
                   const corr = (periodData?.corrections || []).find((c) => c.employee_id === s.employee.id && c.attendance_date === d.attendance_date);
                   return { s, d, issue, corr };
                 })
               );
-              if (rows.length === 0) {
+              if (allRows.length === 0) {
                 return (
                   <div className="text-center py-12 text-emerald-600 text-sm">
                     <CheckCircle2 className="h-12 w-12 mx-auto mb-2 opacity-60" />
@@ -780,6 +796,15 @@ export default function HRReportsPage() {
                   </div>
                 );
               }
+              const q = incompleteQuery.trim().toLowerCase();
+              const rows = !q ? allRows : allRows.filter(({ s, d, issue }) =>
+                s.employee.full_name.toLowerCase().includes(q) ||
+                (s.branchName || "").toLowerCase().includes(q) ||
+                fmtDateDisplay(d.attendance_date).toLowerCase().includes(q) ||
+                d.attendance_date.includes(q) ||
+                issue.toLowerCase().includes(q)
+              );
+              if (rows.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
               return (
                 <div className="overflow-x-auto" dir="rtl">
                   <table className="w-full text-sm" dir="rtl">
@@ -827,6 +852,13 @@ export default function HRReportsPage() {
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr className="bg-muted/30 border-t font-semibold text-xs">
+                        <td colSpan={8} className="px-3 py-2 text-right text-muted-foreground">
+                          عرض {rows.length} من {allRows.length} بصمة ناقصة
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               );
