@@ -102,6 +102,7 @@ const GeneralLedgerPage = lazy(() => import("./pages/GeneralLedgerPage"));
 const AccountStatementPage = lazy(() => import("./pages/AccountStatementV2Page"));
 const HRPayrollReport = lazy(() => import("./pages/reports/HRPayrollReport"));
 const HRAttendanceReport = lazy(() => import("./pages/reports/HRAttendanceReport"));
+const HRReportsPage = lazy(() => import("./pages/reports/HRReportsPage"));
 const HRLeaveReport = lazy(() => import("./pages/reports/HRLeaveReport"));
 const HRStaffCostReport = lazy(() => import("./pages/reports/HRStaffCostReport"));
 const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage"));
@@ -481,6 +482,7 @@ const App = () => (
                       <Route path="/account-statement" element={<AccountStatementPage />} />
                       <Route path="/reports/hr-payroll" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_payroll_reports", "can_view_salary_info"]}><HRPayrollReport /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/reports/hr-attendance" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_attendance_reports", "can_view_hr_reports"]}><HRAttendanceReport /></HRPermGuard></RoleGuard></HRShell>} />
+                      <Route path="/hr/reports" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_reports", "can_view_hr_attendance_reports"]}><HRReportsPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/reports/hr-leaves" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_leave_reports", "can_view_hr_reports"]}><HRLeaveReport /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/reports/hr-staff-cost" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_staff_cost_reports", "can_view_staff_cost"]}><HRStaffCostReport /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/reports/ar-aging" element={<GenericReportPage reportKey="ar-aging" />} />
