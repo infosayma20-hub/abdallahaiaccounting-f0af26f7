@@ -579,6 +579,7 @@ export default function HRReportsPage() {
       overtime: (s) => s.overtime_hours,
       late: (s) => s.late_minutes,
       ready: (s) => (s.ready ? 1 : 0),
+      reason: (s) => (s.incomplete_days > 0 ? "1-incomplete" : s.pending_corrections > 0 ? "2-pending" : s.absent_days > 0 ? "3-absence" : !s.employee.shift_id ? "4-no_shift" : "5-other"),
     });
   }, [summaries, readinessQuery, readinessFilter, readinessFilters, readinessSort]);
 
