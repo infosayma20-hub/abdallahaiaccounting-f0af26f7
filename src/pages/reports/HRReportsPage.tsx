@@ -114,13 +114,17 @@ function buildSummary(args: {
   branches: Map<string, string>;
   dateFrom: string;
   dateTo: string;
+  /** Cap "today" to avoid counting future dates as absence/incomplete/late/etc. */
+  todayIso: string;
 }): EmpSummary[] {
-  const allDates = enumerateDates(args.dateFrom, args.dateTo);
-  const requiredDates = allDates.filter((d) => {
+  // Cap end date to today: never count future days as required/absent/incomplete/late/early.
+  const effectiveTo = args.dateTo < args.todayIso ? args.dateTo : args.todayIso;
+  const inRange = effectiveTo >= args.dateFrom;
+  const allDates = inRange ? enumerateDates(args.dateFrom, effectiveTo) : [];
+  const requiredDatesGlobal = allDates.filter((d) => {
     const dow = parseISO(d).getDay();
     return args.workingDays.has(dow) && !args.holidays.has(d);
   });
-  const required_days = requiredDates.length;
   const holiday_days = allDates.filter((d) => args.holidays.has(d)).length;
 
   const daysByEmp = new Map<string, AttDay[]>();
@@ -135,7 +139,14 @@ function buildSummary(args: {
   });
 
   return args.employees.map((emp) => {
-    const empDays = daysByEmp.get(emp.id) || [];
+    // Per-employee required dates: exclude pre-hire days and future days.
+    const startIso = emp.start_date || null;
+    const requiredDates = requiredDatesGlobal.filter(
+      (d) => (!startIso || d >= startIso) && d <= effectiveTo
+    );
+    const required_days = requiredDates.length;
+    // Only consider att rows up to effectiveTo (defensive — future rows shouldn't normally exist).
+    const empDays = (daysByEmp.get(emp.id) || []).filter((d) => d.attendance_date <= effectiveTo);
     const dayMap = new Map(empDays.map((d) => [d.attendance_date, d]));
     const shift = emp.shift_id ? args.shifts.get(emp.shift_id) : undefined;
 
@@ -387,7 +398,7 @@ export default function HRReportsPage() {
       days: periodData.days,
       shifts, workingDays, holidays,
       corrections: periodData.corrections,
-      branches, dateFrom, dateTo,
+      branches, dateFrom, dateTo, todayIso: toIsoDate(new Date()),
     });
   }, [refData, periodData, filteredEmployees, dateFrom, dateTo]);
 
@@ -402,7 +413,7 @@ export default function HRReportsPage() {
       days: prevPeriodData.days,
       shifts, workingDays, holidays,
       corrections: prevPeriodData.corrections,
-      branches, dateFrom: prevRange.from, dateTo: prevRange.to,
+      branches, dateFrom: prevRange.from, dateTo: prevRange.to, todayIso: toIsoDate(new Date()),
     });
   }, [comparePrev, refData, prevPeriodData, filteredEmployees, prevRange]);
 
@@ -738,6 +749,11 @@ export default function HRReportsPage() {
             </Badge>
           )}
         </div>
+        {dateTo > toIsoDate(new Date()) && (
+          <p className="text-[11px] text-amber-600 mt-2">
+            ملاحظة: يتم احتساب الحضور والغياب حتى تاريخ اليوم ({fmtDateDisplay(toIsoDate(new Date()))}) عند اختيار فترة مستقبلية. الأيام بعد اليوم لا تُحتسب غياباً أو بصمات ناقصة.
+          </p>
+        )}
       </Card>
 
       {/* Tabs */}
