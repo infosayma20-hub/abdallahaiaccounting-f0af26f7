@@ -624,6 +624,8 @@ export default function HRReportsPage() {
           <TabsTrigger value="summary"><FileText className="h-4 w-4 ml-1" /> ملخص الدوام الشهري</TabsTrigger>
           <TabsTrigger value="incomplete"><AlertTriangle className="h-4 w-4 ml-1" /> البصمات غير المكتملة</TabsTrigger>
           <TabsTrigger value="readiness"><Wallet className="h-4 w-4 ml-1" /> جاهزية الرواتب</TabsTrigger>
+          <TabsTrigger value="leaves"><CalendarDays className="h-4 w-4 ml-1" /> الإجازات</TabsTrigger>
+          <TabsTrigger value="occasions"><Gift className="h-4 w-4 ml-1" /> المناسبات القادمة</TabsTrigger>
         </TabsList>
 
         {/* ── Summary tab ── */}
