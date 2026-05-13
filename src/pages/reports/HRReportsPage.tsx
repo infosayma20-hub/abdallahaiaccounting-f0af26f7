@@ -14,6 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X, CalendarDays, Gift } from "lucide-react";
 import HRLeavesTab from "./hr/HRLeavesTab";
 import HROccasionsTab from "./hr/HROccasionsTab";
+import {
+  SummaryFilterBar, IncompleteFilterBar, ReadinessFilterBar,
+  defaultSummaryFilters, defaultIncompleteFilters, defaultReadinessFilters,
+  type SummaryFilters, type IncompleteFilters, type ReadinessFilters,
+} from "./hr/HRFilters";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
@@ -282,6 +287,10 @@ export default function HRReportsPage() {
   const [incompleteQuery, setIncompleteQuery] = useState("");
   const [readinessQuery, setReadinessQuery] = useState("");
   const [readinessFilter, setReadinessFilter] = useState<"all" | "ready" | "review">("all");
+  // Advanced per-tab filters
+  const [summaryFilters, setSummaryFilters] = useState<SummaryFilters>(defaultSummaryFilters);
+  const [incompleteFilters, setIncompleteFilters] = useState<IncompleteFilters>(defaultIncompleteFilters);
+  const [readinessFilters, setReadinessFilters] = useState<ReadinessFilters>(defaultReadinessFilters);
 
   // Sync month -> from/to
   useEffect(() => {
@@ -406,13 +415,129 @@ export default function HRReportsPage() {
     return Array.from(set).sort();
   }, [refData]);
 
+  // Build filter option lists from current summaries
+  const summaryBranchOptions = useMemo(() => {
+    const set = new Set<string>();
+    summaries.forEach((s) => { if (s.branchName && s.branchName !== "-") set.add(s.branchName); });
+    return Array.from(set).sort().map((v) => ({ value: v, label: v }));
+  }, [summaries]);
+  const summaryDeptOptions = useMemo(() => {
+    const set = new Set<string>();
+    summaries.forEach((s) => { if (s.employee.department) set.add(s.employee.department); });
+    return Array.from(set).sort().map((v) => ({ value: v, label: v }));
+  }, [summaries]);
+  const employeeOptions = useMemo(
+    () => filteredEmployees.map((e) => ({ value: e.id, label: e.full_name })),
+    [filteredEmployees]
+  );
+
+  // ── Filtered datasets ──
+  const filteredSummaries = useMemo(() => {
+    const q = summaryQuery.trim().toLowerCase();
+    const f = summaryFilters;
+    return summaries.filter((s) => {
+      if (summaryOnlyReview && s.ready) return false;
+      if (q) {
+        const hit =
+          s.employee.full_name.toLowerCase().includes(q) ||
+          (s.branchName || "").toLowerCase().includes(q) ||
+          (s.employee.department || "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (f.status === "ready" && !s.ready) return false;
+      if (f.status === "review" && s.ready) return false;
+      if (f.branch !== "all" && s.branchName !== f.branch) return false;
+      if (f.department !== "all" && (s.employee.department || "") !== f.department) return false;
+      const tri = (state: typeof f.absence, val: number) => state === "all" || (state === "has" ? val > 0 : val === 0);
+      if (!tri(f.absence, s.absent_days)) return false;
+      if (!tri(f.incomplete, s.incomplete_days)) return false;
+      if (!tri(f.overtime, s.overtime_hours)) return false;
+      if (!tri(f.late, s.late_minutes)) return false;
+      if (f.absentMin !== undefined && s.absent_days < f.absentMin) return false;
+      if (f.absentMax !== undefined && s.absent_days > f.absentMax) return false;
+      if (f.hoursMin !== undefined && s.work_hours < f.hoursMin) return false;
+      if (f.hoursMax !== undefined && s.work_hours > f.hoursMax) return false;
+      if (f.otMin !== undefined && s.overtime_hours < f.otMin) return false;
+      if (f.otMax !== undefined && s.overtime_hours > f.otMax) return false;
+      return true;
+    });
+  }, [summaries, summaryQuery, summaryOnlyReview, summaryFilters]);
+
+  const filteredIncomplete = useMemo(() => {
+    const all = summaries.flatMap((s) =>
+      s.incompleteDates.map((d) => {
+        const issueKey = !d.first_check_in ? "no_in" : !d.last_check_out ? "no_out" : "missing";
+        const issue = issueKey === "no_in" ? "بدون دخول" : issueKey === "no_out" ? "بدون خروج" : "بصمة ناقصة";
+        const corr = (periodData?.corrections || []).find((c) => c.employee_id === s.employee.id && c.attendance_date === d.attendance_date);
+        return { s, d, issue, issueKey, corr };
+      })
+    );
+    const q = incompleteQuery.trim().toLowerCase();
+    const f = incompleteFilters;
+    return all.filter(({ s, d, issue, issueKey, corr }) => {
+      if (q) {
+        const hit =
+          s.employee.full_name.toLowerCase().includes(q) ||
+          (s.branchName || "").toLowerCase().includes(q) ||
+          fmtDateDisplay(d.attendance_date).toLowerCase().includes(q) ||
+          d.attendance_date.includes(q) ||
+          issue.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (f.issue !== "all" && f.issue !== issueKey) return false;
+      if (f.corrStatus !== "all") {
+        if (f.corrStatus === "none" && corr) return false;
+        if (f.corrStatus !== "none" && (!corr || corr.status !== f.corrStatus)) return false;
+      }
+      if (f.branch !== "all" && s.branchName !== f.branch) return false;
+      if (f.department !== "all" && (s.employee.department || "") !== f.department) return false;
+      if (f.employeeId !== "all" && s.employee.id !== f.employeeId) return false;
+      if (f.dateFrom && d.attendance_date < f.dateFrom) return false;
+      if (f.dateTo && d.attendance_date > f.dateTo) return false;
+      return true;
+    });
+  }, [summaries, periodData, incompleteQuery, incompleteFilters]);
+
+  const filteredReadiness = useMemo(() => {
+    const q = readinessQuery.trim().toLowerCase();
+    const f = readinessFilters;
+    return summaries.filter((s) => {
+      if (readinessFilter === "ready" && !s.ready) return false;
+      if (readinessFilter === "review" && s.ready) return false;
+      if (q) {
+        const hit =
+          s.employee.full_name.toLowerCase().includes(q) ||
+          (s.branchName || "").toLowerCase().includes(q) ||
+          (s.employee.department || "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (f.status === "ready" && !s.ready) return false;
+      if (f.status === "review" && s.ready) return false;
+      if (f.branch !== "all" && s.branchName !== f.branch) return false;
+      if (f.department !== "all" && (s.employee.department || "") !== f.department) return false;
+      if (f.employeeId !== "all" && s.employee.id !== f.employeeId) return false;
+      if (f.reason !== "all") {
+        if (f.reason === "incomplete" && s.incomplete_days === 0) return false;
+        if (f.reason === "pending" && s.pending_corrections === 0) return false;
+        if (f.reason === "absence" && s.absent_days === 0) return false;
+        if (f.reason === "no_shift" && s.employee.shift_id) return false;
+        if (f.reason === "other") {
+          // "other" = not ready but no specific known reason
+          if (s.ready) return false;
+          if (s.incomplete_days > 0 || s.pending_corrections > 0) return false;
+        }
+      }
+      return true;
+    });
+  }, [summaries, readinessQuery, readinessFilter, readinessFilters]);
+
   // Excel export per active tab
   const exportExcel = (tab: "summary" | "incomplete" | "readiness") => {
     let rows: Record<string, any>[] = [];
     let title = "";
     if (tab === "summary") {
       title = "ملخص_الدوام_الشهري";
-      rows = summaries.map((s) => ({
+      rows = filteredSummaries.map((s) => ({
         "الموظف": s.employee.full_name,
         "الفرع": s.branchName,
         "القسم": s.employee.department || "-",
@@ -430,22 +555,19 @@ export default function HRReportsPage() {
       }));
     } else if (tab === "incomplete") {
       title = "البصمات_غير_المكتملة";
-      summaries.forEach((s) => {
-        s.incompleteDates.forEach((d) => {
-          const issue = !d.first_check_in ? "بدون دخول" : !d.last_check_out ? "بدون خروج" : "بصمة ناقصة";
-          rows.push({
-            "التاريخ": fmtDateDisplay(d.attendance_date),
-            "الموظف": s.employee.full_name,
-            "الفرع": s.branchName,
-            "دخول": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-",
-            "خروج": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-",
-            "نوع المشكلة": issue,
-          });
-        });
-      });
+      rows = filteredIncomplete.map(({ s, d, issue, corr }) => ({
+        "التاريخ": fmtDateDisplay(d.attendance_date),
+        "الموظف": s.employee.full_name,
+        "الفرع": s.branchName,
+        "القسم": s.employee.department || "-",
+        "دخول": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-",
+        "خروج": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-",
+        "نوع المشكلة": issue,
+        "طلب تصحيح": corr ? (corr.status === "pending" ? "قيد المراجعة" : corr.status === "approved" ? "معتمد" : "مرفوض") : "—",
+      }));
     } else {
       title = "جاهزية_الرواتب";
-      rows = summaries.map((s) => ({
+      rows = filteredReadiness.map((s) => ({
         "الموظف": s.employee.full_name,
         "الفرع": s.branchName,
         "القسم": s.employee.department || "-",
@@ -632,7 +754,7 @@ export default function HRReportsPage() {
         <TabsContent value="summary" className="space-y-3 mt-4">
           <div className="flex items-center justify-between print:hidden">
             <h2 className="text-sm font-semibold">ملخص الدوام الشهري</h2>
-            <Button size="sm" variant="outline" onClick={() => exportExcel("summary")} disabled={summaries.length === 0}>
+            <Button size="sm" variant="outline" onClick={() => exportExcel("summary")} disabled={filteredSummaries.length === 0}>
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
@@ -655,6 +777,10 @@ export default function HRReportsPage() {
             <Button size="sm" variant={summaryOnlyReview ? "default" : "outline"} onClick={() => setSummaryOnlyReview(v => !v)} className="h-9 text-xs">
               <AlertTriangle className="h-3.5 w-3.5 ml-1" /> يحتاج مراجعة فقط
             </Button>
+            <SummaryFilterBar
+              filters={summaryFilters} setFilters={setSummaryFilters}
+              branches={summaryBranchOptions} departments={summaryDeptOptions}
+            />
           </div>
           <Card className="overflow-hidden">
             {loading ? (
@@ -664,17 +790,13 @@ export default function HRReportsPage() {
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
             ) : (() => {
-              const q = summaryQuery.trim().toLowerCase();
-              const filtered = summaries.filter(s => {
-                if (summaryOnlyReview && s.ready) return false;
-                if (!q) return true;
-                return (
-                  s.employee.full_name.toLowerCase().includes(q) ||
-                  (s.branchName || "").toLowerCase().includes(q) ||
-                  (s.employee.department || "").toLowerCase().includes(q)
-                );
-              });
-              if (filtered.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
+              const filtered = filteredSummaries;
+              if (filtered.length === 0) return (
+                <div className="text-center py-10 text-muted-foreground text-sm space-y-2">
+                  <div>لا توجد نتائج مطابقة للفلاتر الحالية</div>
+                  <Button size="sm" variant="outline" onClick={() => { setSummaryFilters(defaultSummaryFilters); setSummaryQuery(""); setSummaryOnlyReview(false); }}>مسح الفلاتر</Button>
+                </div>
+              );
               return (
               <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm" dir="rtl">
@@ -765,7 +887,7 @@ export default function HRReportsPage() {
         <TabsContent value="incomplete" className="space-y-3 mt-4">
           <div className="flex items-center justify-between print:hidden">
             <h2 className="text-sm font-semibold">البصمات غير المكتملة</h2>
-            <Button size="sm" variant="outline" onClick={() => exportExcel("incomplete")} disabled={summaries.every((s) => s.incompleteDates.length === 0)}>
+            <Button size="sm" variant="outline" onClick={() => exportExcel("incomplete")} disabled={filteredIncomplete.length === 0}>
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
@@ -784,6 +906,10 @@ export default function HRReportsPage() {
                 </button>
               )}
             </div>
+            <IncompleteFilterBar
+              filters={incompleteFilters} setFilters={setIncompleteFilters}
+              branches={summaryBranchOptions} departments={summaryDeptOptions} employees={employeeOptions}
+            />
           </div>
           <Card className="overflow-hidden">
             {loading ? (
@@ -806,15 +932,13 @@ export default function HRReportsPage() {
                   </div>
                 );
               }
-              const q = incompleteQuery.trim().toLowerCase();
-              const rows = !q ? allRows : allRows.filter(({ s, d, issue }) =>
-                s.employee.full_name.toLowerCase().includes(q) ||
-                (s.branchName || "").toLowerCase().includes(q) ||
-                fmtDateDisplay(d.attendance_date).toLowerCase().includes(q) ||
-                d.attendance_date.includes(q) ||
-                issue.toLowerCase().includes(q)
+              const rows = filteredIncomplete;
+              if (rows.length === 0) return (
+                <div className="text-center py-10 text-muted-foreground text-sm space-y-2">
+                  <div>لا توجد نتائج مطابقة للفلاتر الحالية</div>
+                  <Button size="sm" variant="outline" onClick={() => { setIncompleteFilters(defaultIncompleteFilters); setIncompleteQuery(""); }}>مسح الفلاتر</Button>
+                </div>
               );
-              if (rows.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
               return (
                 <div className="overflow-x-auto" dir="rtl">
                   <table className="w-full text-sm" dir="rtl">
@@ -880,7 +1004,7 @@ export default function HRReportsPage() {
         <TabsContent value="readiness" className="space-y-3 mt-4">
           <div className="flex items-center justify-between print:hidden">
             <h2 className="text-sm font-semibold">جاهزية الرواتب</h2>
-            <Button size="sm" variant="outline" onClick={() => exportExcel("readiness")} disabled={summaries.length === 0}>
+            <Button size="sm" variant="outline" onClick={() => exportExcel("readiness")} disabled={filteredReadiness.length === 0}>
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
@@ -924,6 +1048,10 @@ export default function HRReportsPage() {
               <Button size="sm" variant={readinessFilter === "ready" ? "default" : "outline"} onClick={() => setReadinessFilter("ready")} className="h-9 text-xs">جاهز فقط</Button>
               <Button size="sm" variant={readinessFilter === "review" ? "default" : "outline"} onClick={() => setReadinessFilter("review")} className="h-9 text-xs">يحتاج مراجعة</Button>
             </div>
+            <ReadinessFilterBar
+              filters={readinessFilters} setFilters={setReadinessFilters}
+              branches={summaryBranchOptions} departments={summaryDeptOptions} employees={employeeOptions}
+            />
           </div>
           <Card className="overflow-hidden">
             {loading ? (
@@ -933,18 +1061,13 @@ export default function HRReportsPage() {
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
             ) : (() => {
-              const q = readinessQuery.trim().toLowerCase();
-              const filtered = summaries.filter(s => {
-                if (readinessFilter === "ready" && !s.ready) return false;
-                if (readinessFilter === "review" && s.ready) return false;
-                if (!q) return true;
-                return (
-                  s.employee.full_name.toLowerCase().includes(q) ||
-                  (s.branchName || "").toLowerCase().includes(q) ||
-                  (s.employee.department || "").toLowerCase().includes(q)
-                );
-              });
-              if (filtered.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
+              const filtered = filteredReadiness;
+              if (filtered.length === 0) return (
+                <div className="text-center py-10 text-muted-foreground text-sm space-y-2">
+                  <div>لا توجد نتائج مطابقة للفلاتر الحالية</div>
+                  <Button size="sm" variant="outline" onClick={() => { setReadinessFilters(defaultReadinessFilters); setReadinessQuery(""); setReadinessFilter("all"); }}>مسح الفلاتر</Button>
+                </div>
+              );
               return (
               <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm" dir="rtl">
