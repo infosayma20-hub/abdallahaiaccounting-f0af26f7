@@ -102,6 +102,7 @@ const GeneralLedgerPage = lazy(() => import("./pages/GeneralLedgerPage"));
 const AccountStatementPage = lazy(() => import("./pages/AccountStatementV2Page"));
 const HRPayrollReport = lazy(() => import("./pages/reports/HRPayrollReport"));
 const HRAttendanceReport = lazy(() => import("./pages/reports/HRAttendanceReport"));
+const HRReportsPage = lazy(() => import("./pages/reports/HRReportsPage"));
 const HRLeaveReport = lazy(() => import("./pages/reports/HRLeaveReport"));
 const HRStaffCostReport = lazy(() => import("./pages/reports/HRStaffCostReport"));
 const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage"));
