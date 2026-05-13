@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft } from "lucide-react";
+import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
@@ -268,6 +268,12 @@ export default function HRReportsPage() {
   const [employeeId, setEmployeeId] = useState<string>("all");
   const [comparePrev, setComparePrev] = useState(false);
   const [drill, setDrill] = useState<DrillState>(null);
+  // Per-table quick filters
+  const [summaryQuery, setSummaryQuery] = useState("");
+  const [summaryOnlyReview, setSummaryOnlyReview] = useState(false);
+  const [incompleteQuery, setIncompleteQuery] = useState("");
+  const [readinessQuery, setReadinessQuery] = useState("");
+  const [readinessFilter, setReadinessFilter] = useState<"all" | "ready" | "review">("all");
 
   // Sync month -> from/to
   useEffect(() => {
