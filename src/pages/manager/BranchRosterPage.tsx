@@ -450,7 +450,7 @@ export default function BranchRosterPage() {
           ) : !filteredEmployees.length ? (
             <div className="p-8 text-center text-muted-foreground">لا نتائج مطابقة</div>
           ) : (
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse" dir="rtl">
               <thead>
                 <tr className="bg-muted/40 text-xs">
                   <th className="text-right p-2 sticky right-0 bg-muted/40 min-w-[140px]">الموظف</th>
