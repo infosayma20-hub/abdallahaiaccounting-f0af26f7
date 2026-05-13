@@ -747,7 +747,7 @@ const EmployeesPage = () => {
       ) : (
         <div className="rounded-xl border border-border overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-sm border-collapse" dir="rtl">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
                   <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px]"><SortHeader label="الموظف" field="full_name" /></th>
