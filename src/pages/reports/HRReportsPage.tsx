@@ -19,6 +19,7 @@ import {
   defaultSummaryFilters, defaultIncompleteFilters, defaultReadinessFilters,
   type SummaryFilters, type IncompleteFilters, type ReadinessFilters,
 } from "./hr/HRFilters";
+import { SortableHeader, applySort, cycleSort, noSort, type SortState } from "./hr/SortableHeader";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
@@ -302,6 +303,10 @@ export default function HRReportsPage() {
   const [summaryFilters, setSummaryFilters] = useState<SummaryFilters>(defaultSummaryFilters);
   const [incompleteFilters, setIncompleteFilters] = useState<IncompleteFilters>(defaultIncompleteFilters);
   const [readinessFilters, setReadinessFilters] = useState<ReadinessFilters>(defaultReadinessFilters);
+  // Per-table sort state
+  const [summarySort, setSummarySort] = useState<SortState>(noSort);
+  const [incompleteSort, setIncompleteSort] = useState<SortState>(noSort);
+  const [readinessSort, setReadinessSort] = useState<SortState>(noSort);
 
   // Sync month -> from/to
   useEffect(() => {
@@ -446,7 +451,7 @@ export default function HRReportsPage() {
   const filteredSummaries = useMemo(() => {
     const q = summaryQuery.trim().toLowerCase();
     const f = summaryFilters;
-    return summaries.filter((s) => {
+    const base = summaries.filter((s) => {
       if (summaryOnlyReview && s.ready) return false;
       if (q) {
         const hit =
@@ -472,7 +477,23 @@ export default function HRReportsPage() {
       if (f.otMax !== undefined && s.overtime_hours > f.otMax) return false;
       return true;
     });
-  }, [summaries, summaryQuery, summaryOnlyReview, summaryFilters]);
+    return applySort(base, summarySort, {
+      employee: (s) => s.employee.full_name,
+      branch: (s) => s.branchName,
+      department: (s) => s.employee.department || "",
+      required: (s) => s.required_days,
+      present: (s) => s.present_days,
+      absent: (s) => s.absent_days,
+      leave: (s) => s.leave_days,
+      holiday: (s) => s.holiday_days,
+      incomplete: (s) => s.incomplete_days,
+      hours: (s) => s.work_hours,
+      overtime: (s) => s.overtime_hours,
+      late: (s) => s.late_minutes,
+      early: (s) => s.early_leave_minutes,
+      status: (s) => (s.ready ? 1 : 0),
+    });
+  }, [summaries, summaryQuery, summaryOnlyReview, summaryFilters, summarySort]);
 
   const filteredIncomplete = useMemo(() => {
     const all = summaries.flatMap((s) =>
@@ -485,7 +506,7 @@ export default function HRReportsPage() {
     );
     const q = incompleteQuery.trim().toLowerCase();
     const f = incompleteFilters;
-    return all.filter(({ s, d, issue, issueKey, corr }) => {
+    const base = all.filter(({ s, d, issue, issueKey, corr }) => {
       if (q) {
         const hit =
           s.employee.full_name.toLowerCase().includes(q) ||
@@ -507,12 +528,19 @@ export default function HRReportsPage() {
       if (f.dateTo && d.attendance_date > f.dateTo) return false;
       return true;
     });
-  }, [summaries, periodData, incompleteQuery, incompleteFilters]);
+    return applySort(base, incompleteSort, {
+      date: (r) => r.d.attendance_date,
+      employee: (r) => r.s.employee.full_name,
+      branch: (r) => r.s.branchName,
+      issue: (r) => r.issue,
+      corr: (r) => r.corr?.status || "",
+    });
+  }, [summaries, periodData, incompleteQuery, incompleteFilters, incompleteSort]);
 
   const filteredReadiness = useMemo(() => {
     const q = readinessQuery.trim().toLowerCase();
     const f = readinessFilters;
-    return summaries.filter((s) => {
+    const base = summaries.filter((s) => {
       if (readinessFilter === "ready" && !s.ready) return false;
       if (readinessFilter === "review" && s.ready) return false;
       if (q) {
@@ -540,7 +568,19 @@ export default function HRReportsPage() {
       }
       return true;
     });
-  }, [summaries, readinessQuery, readinessFilter, readinessFilters]);
+    return applySort(base, readinessSort, {
+      employee: (s) => s.employee.full_name,
+      branch: (s) => s.branchName,
+      department: (s) => s.employee.department || "",
+      present: (s) => s.present_days,
+      absent: (s) => s.absent_days,
+      incomplete: (s) => s.incomplete_days,
+      pending: (s) => s.pending_corrections,
+      overtime: (s) => s.overtime_hours,
+      late: (s) => s.late_minutes,
+      ready: (s) => (s.ready ? 1 : 0),
+    });
+  }, [summaries, readinessQuery, readinessFilter, readinessFilters, readinessSort]);
 
   // Excel export per active tab
   const exportExcel = (tab: "summary" | "incomplete" | "readiness") => {
