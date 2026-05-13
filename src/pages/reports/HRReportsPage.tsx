@@ -754,7 +754,7 @@ export default function HRReportsPage() {
         <TabsContent value="summary" className="space-y-3 mt-4">
           <div className="flex items-center justify-between print:hidden">
             <h2 className="text-sm font-semibold">ملخص الدوام الشهري</h2>
-            <Button size="sm" variant="outline" onClick={() => exportExcel("summary")} disabled={summaries.length === 0}>
+            <Button size="sm" variant="outline" onClick={() => exportExcel("summary")} disabled={filteredSummaries.length === 0}>
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
@@ -777,6 +777,10 @@ export default function HRReportsPage() {
             <Button size="sm" variant={summaryOnlyReview ? "default" : "outline"} onClick={() => setSummaryOnlyReview(v => !v)} className="h-9 text-xs">
               <AlertTriangle className="h-3.5 w-3.5 ml-1" /> يحتاج مراجعة فقط
             </Button>
+            <SummaryFilterBar
+              filters={summaryFilters} setFilters={setSummaryFilters}
+              branches={summaryBranchOptions} departments={summaryDeptOptions}
+            />
           </div>
           <Card className="overflow-hidden">
             {loading ? (
@@ -786,17 +790,13 @@ export default function HRReportsPage() {
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
             ) : (() => {
-              const q = summaryQuery.trim().toLowerCase();
-              const filtered = summaries.filter(s => {
-                if (summaryOnlyReview && s.ready) return false;
-                if (!q) return true;
-                return (
-                  s.employee.full_name.toLowerCase().includes(q) ||
-                  (s.branchName || "").toLowerCase().includes(q) ||
-                  (s.employee.department || "").toLowerCase().includes(q)
-                );
-              });
-              if (filtered.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
+              const filtered = filteredSummaries;
+              if (filtered.length === 0) return (
+                <div className="text-center py-10 text-muted-foreground text-sm space-y-2">
+                  <div>لا توجد نتائج مطابقة للفلاتر الحالية</div>
+                  <Button size="sm" variant="outline" onClick={() => { setSummaryFilters(defaultSummaryFilters); setSummaryQuery(""); setSummaryOnlyReview(false); }}>مسح الفلاتر</Button>
+                </div>
+              );
               return (
               <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm" dir="rtl">
