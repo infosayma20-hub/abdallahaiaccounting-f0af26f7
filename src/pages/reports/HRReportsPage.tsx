@@ -1011,11 +1011,31 @@ export default function HRReportsPage() {
                       <tr>
                         <SortableHeader label="التاريخ" columnKey="date" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
                         <SortableHeader label="الموظف" columnKey="employee" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
-                        <SortableHeader label="الفرع" columnKey="branch" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
+                        <SortableHeader label="الفرع" columnKey="branch" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))}
+                          filterValue={incompleteFilters.branch}
+                          filterOptions={[{ value: "all", label: "كل الفروع" }, ...summaryBranchOptions]}
+                          onFilterChange={(v) => setIncompleteFilters({ ...incompleteFilters, branch: v })} />
                         <th className="text-center px-3 py-2 font-semibold">دخول</th>
                         <th className="text-center px-3 py-2 font-semibold">خروج</th>
-                        <SortableHeader label="المشكلة" columnKey="issue" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center" />
-                        <SortableHeader label="طلب تصحيح" columnKey="corr" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center" />
+                        <SortableHeader label="المشكلة" columnKey="issue" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center"
+                          filterValue={incompleteFilters.issue}
+                          filterOptions={[
+                            { value: "all", label: "الكل" },
+                            { value: "no_in", label: "بدون دخول" },
+                            { value: "no_out", label: "بدون خروج" },
+                            { value: "missing", label: "بصمة ناقصة" },
+                          ]}
+                          onFilterChange={(v) => setIncompleteFilters({ ...incompleteFilters, issue: v as any })} />
+                        <SortableHeader label="طلب تصحيح" columnKey="corr" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center"
+                          filterValue={incompleteFilters.corrStatus}
+                          filterOptions={[
+                            { value: "all", label: "الكل" },
+                            { value: "none", label: "لا يوجد طلب" },
+                            { value: "pending", label: "قيد المراجعة" },
+                            { value: "approved", label: "مقبول" },
+                            { value: "rejected", label: "مرفوض" },
+                          ]}
+                          onFilterChange={(v) => setIncompleteFilters({ ...incompleteFilters, corrStatus: v as any })} />
                         <th className="text-center px-3 py-2 font-semibold print:hidden">إجراء</th>
                       </tr>
                     </thead>
