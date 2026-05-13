@@ -14,6 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X, CalendarDays, Gift } from "lucide-react";
 import HRLeavesTab from "./hr/HRLeavesTab";
 import HROccasionsTab from "./hr/HROccasionsTab";
+import {
+  SummaryFilterBar, IncompleteFilterBar, ReadinessFilterBar,
+  defaultSummaryFilters, defaultIncompleteFilters, defaultReadinessFilters,
+  type SummaryFilters, type IncompleteFilters, type ReadinessFilters,
+} from "./hr/HRFilters";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
