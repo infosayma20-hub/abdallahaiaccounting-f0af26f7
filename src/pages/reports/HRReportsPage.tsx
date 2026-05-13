@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft } from "lucide-react";
+import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
@@ -268,6 +268,12 @@ export default function HRReportsPage() {
   const [employeeId, setEmployeeId] = useState<string>("all");
   const [comparePrev, setComparePrev] = useState(false);
   const [drill, setDrill] = useState<DrillState>(null);
+  // Per-table quick filters
+  const [summaryQuery, setSummaryQuery] = useState("");
+  const [summaryOnlyReview, setSummaryOnlyReview] = useState(false);
+  const [incompleteQuery, setIncompleteQuery] = useState("");
+  const [readinessQuery, setReadinessQuery] = useState("");
+  const [readinessFilter, setReadinessFilter] = useState<"all" | "ready" | "review">("all");
 
   // Sync month -> from/to
   useEffect(() => {
@@ -620,6 +626,26 @@ export default function HRReportsPage() {
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
+          {/* Per-table filter bar */}
+          <div className="flex flex-wrap items-center gap-2 print:hidden" dir="rtl">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={summaryQuery}
+                onChange={(e) => setSummaryQuery(e.target.value)}
+                placeholder="بحث: اسم الموظف، الفرع، أو القسم..."
+                className="pr-8 h-9 text-sm"
+              />
+              {summaryQuery && (
+                <button onClick={() => setSummaryQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <Button size="sm" variant={summaryOnlyReview ? "default" : "outline"} onClick={() => setSummaryOnlyReview(v => !v)} className="h-9 text-xs">
+              <AlertTriangle className="h-3.5 w-3.5 ml-1" /> يحتاج مراجعة فقط
+            </Button>
+          </div>
           <Card className="overflow-hidden">
             {loading ? (
               <div className="p-6 space-y-2">
@@ -627,7 +653,19 @@ export default function HRReportsPage() {
               </div>
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
-            ) : (
+            ) : (() => {
+              const q = summaryQuery.trim().toLowerCase();
+              const filtered = summaries.filter(s => {
+                if (summaryOnlyReview && s.ready) return false;
+                if (!q) return true;
+                return (
+                  s.employee.full_name.toLowerCase().includes(q) ||
+                  (s.branchName || "").toLowerCase().includes(q) ||
+                  (s.employee.department || "").toLowerCase().includes(q)
+                );
+              });
+              if (filtered.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
+              return (
               <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm" dir="rtl">
                   <thead className="bg-muted/50">
@@ -649,7 +687,7 @@ export default function HRReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summaries.map((s) => {
+                    {filtered.map((s) => {
                       const prev = prevByEmp.get(s.employee.id);
                       return (
                         <tr key={s.employee.id} className="border-t hover:bg-muted/30">
@@ -699,9 +737,17 @@ export default function HRReportsPage() {
                       );
                     })}
                   </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/30 border-t font-semibold text-xs">
+                      <td colSpan={14} className="px-3 py-2 text-right text-muted-foreground">
+                        عرض {filtered.length} من {summaries.length} موظف
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
-            )}
+              );
+            })()}
           </Card>
         </TabsContent>
 
@@ -713,20 +759,36 @@ export default function HRReportsPage() {
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
+          <div className="flex flex-wrap items-center gap-2 print:hidden" dir="rtl">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={incompleteQuery}
+                onChange={(e) => setIncompleteQuery(e.target.value)}
+                placeholder="بحث: اسم الموظف، الفرع، التاريخ، أو المشكلة..."
+                className="pr-8 h-9 text-sm"
+              />
+              {incompleteQuery && (
+                <button onClick={() => setIncompleteQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
           <Card className="overflow-hidden">
             {loading ? (
               <div className="p-6 space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
               </div>
             ) : (() => {
-              const rows = summaries.flatMap((s) =>
+              const allRows = summaries.flatMap((s) =>
                 s.incompleteDates.map((d) => {
                   const issue = !d.first_check_in ? "بدون دخول" : !d.last_check_out ? "بدون خروج" : "بصمة ناقصة";
                   const corr = (periodData?.corrections || []).find((c) => c.employee_id === s.employee.id && c.attendance_date === d.attendance_date);
                   return { s, d, issue, corr };
                 })
               );
-              if (rows.length === 0) {
+              if (allRows.length === 0) {
                 return (
                   <div className="text-center py-12 text-emerald-600 text-sm">
                     <CheckCircle2 className="h-12 w-12 mx-auto mb-2 opacity-60" />
@@ -734,6 +796,15 @@ export default function HRReportsPage() {
                   </div>
                 );
               }
+              const q = incompleteQuery.trim().toLowerCase();
+              const rows = !q ? allRows : allRows.filter(({ s, d, issue }) =>
+                s.employee.full_name.toLowerCase().includes(q) ||
+                (s.branchName || "").toLowerCase().includes(q) ||
+                fmtDateDisplay(d.attendance_date).toLowerCase().includes(q) ||
+                d.attendance_date.includes(q) ||
+                issue.toLowerCase().includes(q)
+              );
+              if (rows.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
               return (
                 <div className="overflow-x-auto" dir="rtl">
                   <table className="w-full text-sm" dir="rtl">
@@ -781,6 +852,13 @@ export default function HRReportsPage() {
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr className="bg-muted/30 border-t font-semibold text-xs">
+                        <td colSpan={8} className="px-3 py-2 text-right text-muted-foreground">
+                          عرض {rows.length} من {allRows.length} بصمة ناقصة
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               );
@@ -816,6 +894,27 @@ export default function HRReportsPage() {
               </Card>
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-2 print:hidden" dir="rtl">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={readinessQuery}
+                onChange={(e) => setReadinessQuery(e.target.value)}
+                placeholder="بحث: اسم الموظف، الفرع، أو القسم..."
+                className="pr-8 h-9 text-sm"
+              />
+              {readinessQuery && (
+                <button onClick={() => setReadinessQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-1">
+              <Button size="sm" variant={readinessFilter === "all" ? "default" : "outline"} onClick={() => setReadinessFilter("all")} className="h-9 text-xs">الكل</Button>
+              <Button size="sm" variant={readinessFilter === "ready" ? "default" : "outline"} onClick={() => setReadinessFilter("ready")} className="h-9 text-xs">جاهز فقط</Button>
+              <Button size="sm" variant={readinessFilter === "review" ? "default" : "outline"} onClick={() => setReadinessFilter("review")} className="h-9 text-xs">يحتاج مراجعة</Button>
+            </div>
+          </div>
           <Card className="overflow-hidden">
             {loading ? (
               <div className="p-6 space-y-2">
@@ -823,7 +922,20 @@ export default function HRReportsPage() {
               </div>
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
-            ) : (
+            ) : (() => {
+              const q = readinessQuery.trim().toLowerCase();
+              const filtered = summaries.filter(s => {
+                if (readinessFilter === "ready" && !s.ready) return false;
+                if (readinessFilter === "review" && s.ready) return false;
+                if (!q) return true;
+                return (
+                  s.employee.full_name.toLowerCase().includes(q) ||
+                  (s.branchName || "").toLowerCase().includes(q) ||
+                  (s.employee.department || "").toLowerCase().includes(q)
+                );
+              });
+              if (filtered.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
+              return (
               <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm" dir="rtl">
                   <thead className="bg-muted/50">
@@ -842,7 +954,7 @@ export default function HRReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summaries.map((s) => {
+                    {filtered.map((s) => {
                       const reasons: string[] = [];
                       if (s.incomplete_days > 0) reasons.push(`${s.incomplete_days} بصمات ناقصة`);
                       if (s.pending_corrections > 0) reasons.push(`${s.pending_corrections} طلبات معلقة`);
@@ -873,9 +985,17 @@ export default function HRReportsPage() {
                       );
                     })}
                   </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/30 border-t font-semibold text-xs">
+                      <td colSpan={11} className="px-3 py-2 text-right text-muted-foreground">
+                        عرض {filtered.length} من {summaries.length} موظف
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
-            )}
+              );
+            })()}
           </Card>
           <p className="text-[11px] text-muted-foreground print:hidden">
             ملاحظة: هذا التقرير يعرض جاهزية البيانات فقط (بصمات + طلبات). لا يحسب أي مبالغ نهائية ولا يغيّر منطق الرواتب.
