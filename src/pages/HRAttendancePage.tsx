@@ -1905,7 +1905,7 @@ export default function HRAttendancePage() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded-md border bg-muted/40 max-h-56 overflow-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" dir="rtl">
                 <thead className="bg-muted/70 text-xs">
                   <tr>
                     <th className="text-right p-2">الموظف</th>
