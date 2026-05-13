@@ -858,20 +858,20 @@ export default function HRReportsPage() {
                 <table className="w-full text-sm" dir="rtl">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-right px-3 py-2 font-semibold sticky right-0 bg-muted/50 min-w-[150px]">الموظف</th>
-                      <th className="text-right px-3 py-2 font-semibold">الفرع</th>
-                      <th className="text-right px-3 py-2 font-semibold">القسم</th>
-                      <th className="text-center px-3 py-2 font-semibold">المطلوبة</th>
-                      <th className="text-center px-3 py-2 font-semibold">حضور</th>
-                      <th className="text-center px-3 py-2 font-semibold">غياب</th>
-                      <th className="text-center px-3 py-2 font-semibold">إجازة</th>
-                      <th className="text-center px-3 py-2 font-semibold">عطل</th>
-                      <th className="text-center px-3 py-2 font-semibold">ناقصة</th>
-                      <th className="text-center px-3 py-2 font-semibold">ساعات</th>
-                      <th className="text-center px-3 py-2 font-semibold">إضافي</th>
-                      <th className="text-center px-3 py-2 font-semibold">تأخير (د)</th>
-                      <th className="text-center px-3 py-2 font-semibold">خروج مبكر (د)</th>
-                      <th className="text-center px-3 py-2 font-semibold">الحالة</th>
+                      <SortableHeader label="الموظف" columnKey="employee" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
+                      <SortableHeader label="الفرع" columnKey="branch" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} />
+                      <SortableHeader label="القسم" columnKey="department" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} />
+                      <SortableHeader label="المطلوبة" columnKey="required" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="حضور" columnKey="present" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="غياب" columnKey="absent" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="إجازة" columnKey="leave" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="عطل" columnKey="holiday" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="ناقصة" columnKey="incomplete" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="ساعات" columnKey="hours" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="إضافي" columnKey="overtime" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="تأخير (د)" columnKey="late" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="خروج مبكر (د)" columnKey="early" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="الحالة" columnKey="status" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                     </tr>
                   </thead>
                   <tbody>
