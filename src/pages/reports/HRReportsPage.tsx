@@ -859,8 +859,14 @@ export default function HRReportsPage() {
                   <thead className="bg-muted/50">
                     <tr>
                       <SortableHeader label="الموظف" columnKey="employee" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
-                      <SortableHeader label="الفرع" columnKey="branch" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} />
-                      <SortableHeader label="القسم" columnKey="department" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} />
+                      <SortableHeader label="الفرع" columnKey="branch" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))}
+                        filterValue={summaryFilters.branch}
+                        filterOptions={[{ value: "all", label: "كل الفروع" }, ...summaryBranchOptions]}
+                        onFilterChange={(v) => setSummaryFilters({ ...summaryFilters, branch: v })} />
+                      <SortableHeader label="القسم" columnKey="department" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))}
+                        filterValue={summaryFilters.department}
+                        filterOptions={[{ value: "all", label: "كل الأقسام" }, ...summaryDeptOptions]}
+                        onFilterChange={(v) => setSummaryFilters({ ...summaryFilters, department: v })} />
                       <SortableHeader label="المطلوبة" columnKey="required" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="حضور" columnKey="present" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="غياب" columnKey="absent" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
@@ -871,7 +877,10 @@ export default function HRReportsPage() {
                       <SortableHeader label="إضافي" columnKey="overtime" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="تأخير (د)" columnKey="late" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="خروج مبكر (د)" columnKey="early" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
-                      <SortableHeader label="الحالة" columnKey="status" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="الحالة" columnKey="status" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center"
+                        filterValue={summaryFilters.status}
+                        filterOptions={[{ value: "all", label: "الكل" }, { value: "ready", label: "مكتمل" }, { value: "review", label: "يحتاج مراجعة" }]}
+                        onFilterChange={(v) => setSummaryFilters({ ...summaryFilters, status: v as any })} />
                     </tr>
                   </thead>
                   <tbody>
