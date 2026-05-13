@@ -40,25 +40,25 @@ const SAMPLE_ORDER: PrintOrder = {
   total: 211,
   tenderedAmount: 211,
   change: 0,
-  cashier: "malaky broast",
+  cashier: "كاشير تجريبي",
   branchName: "",
   tableNumber: "",
 };
 
 const SAMPLE_COMPANY_INFO = {
-  name: "مطعم الملكي",
+  name: "اسم الشركة",
   phone: "",
   address: "",
   taxNumber: "",
   terminalName: "نقطة بيع 1",
-  logoUrl: "/images/malaky-logo.png",
+  logoUrl: "",
 };
 
 const SAMPLE_SHIFT: ShiftSummaryPrintData = {
-  companyName: "مطعم الملكي",
-  logoUrl: "/images/malaky-logo.png",
+  companyName: "اسم الشركة",
+  logoUrl: "",
   terminalName: "نقطة بيع 1",
-  cashierName: "malaky broast",
+  cashierName: "كاشير تجريبي",
   cashBoxName: "صندوق رئيسي",
   openedAt: new Date(Date.now() - 8 * 3600000).toISOString(),
   closedAt: new Date().toISOString(),
