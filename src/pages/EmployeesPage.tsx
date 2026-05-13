@@ -745,9 +745,9 @@ const EmployeesPage = () => {
           <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterBranch("all"); setFilterStatus("all"); setFilterJob("all"); }}>مسح الفلاتر</Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse" dir="rtl">
+         <div className="rounded-xl border border-border overflow-hidden shadow-sm">
+           <div className="overflow-x-auto" dir="rtl">
+             <table className="w-full text-sm border-collapse" dir="rtl">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
                   <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px]"><SortHeader label="الموظف" field="full_name" /></th>
