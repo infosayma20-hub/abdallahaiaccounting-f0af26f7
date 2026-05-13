@@ -735,8 +735,8 @@ export default function HRReportsPage() {
                 );
               }
               return (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div className="overflow-x-auto" dir="rtl">
+                  <table className="w-full text-sm" dir="rtl">
                     <thead className="bg-muted/50">
                       <tr>
                         <th className="text-right px-3 py-2 font-semibold">التاريخ</th>
