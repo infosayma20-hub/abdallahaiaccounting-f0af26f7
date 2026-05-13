@@ -283,7 +283,7 @@ export default function HROccasionsTab({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm mb-1">{t.label}</div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{t.text}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{renderTemplate(t.text, tplFor?.name || "{employee_name}")}</p>
                   </div>
                   <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => copyText(t.text, tplFor?.name || "{employee_name}")}>
                     <Copy className="h-3.5 w-3.5 ml-1" /> نسخ
@@ -291,7 +291,7 @@ export default function HROccasionsTab({
                 </div>
               </Card>
             ))}
-            <p className="text-[11px] text-muted-foreground">استبدل ‎{`{employee_name}`}‎ تلقائياً عند الاستخدام من جدول المناسبات.</p>
+            <p className="text-[11px] text-muted-foreground">يتم استبدال ‎{`{employee_name}`}‎ و‎{`{company_name}`}‎ تلقائياً عند النسخ.</p>
           </div>
         </DialogContent>
       </Dialog>
