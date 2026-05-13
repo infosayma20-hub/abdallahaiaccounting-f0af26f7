@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -68,26 +68,28 @@ type Opt = { value: string; label: string };
 function FilterShell({
   count, onClear, children, label = "فلترة",
 }: { count: number; onClear: () => void; children: React.ReactNode; label?: string }) {
+  const [open, setOpen] = useState(false);
   return (
     <div className="flex items-center gap-2" dir="rtl">
-      <Popover>
-        <PopoverTrigger asChild>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
           <Button size="sm" variant={count > 0 ? "default" : "outline"} className="h-9 text-xs">
             <Filter className="h-3.5 w-3.5 ml-1" /> {label}
             {count > 0 && <Badge variant="secondary" className="mr-2 h-5 px-1.5 text-[10px]">{count}</Badge>}
           </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" side="bottom" className="w-[360px] max-h-[70vh] overflow-y-auto p-3" dir="rtl">
-          {children}
-          <Separator className="my-3" />
-          <div className="flex items-center justify-between">
-            <Button size="sm" variant="ghost" onClick={onClear} className="h-8 text-xs">
-              <X className="h-3.5 w-3.5 ml-1" /> مسح الفلاتر
-            </Button>
-            <span className="text-[11px] text-muted-foreground">{count} فلتر مفعّل</span>
-          </div>
-        </PopoverContent>
-      </Popover>
+        </SheetTrigger>
+        <SheetContent side="left" dir="rtl" className="w-full sm:max-w-md p-0 flex flex-col gap-0 max-h-[100dvh]">
+          <SheetHeader className="p-4 border-b shrink-0 text-right">
+            <SheetTitle className="text-base">{label}</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-4">{children}</div>
+          <SheetFooter className="p-3 border-t bg-background shrink-0 flex-row-reverse gap-2 sm:flex-row-reverse">
+            <Button size="sm" onClick={() => setOpen(false)} className="h-9 text-xs flex-1">تطبيق ({count})</Button>
+            <Button size="sm" variant="outline" onClick={onClear} className="h-9 text-xs"><X className="h-3.5 w-3.5 ml-1" /> مسح</Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)} className="h-9 text-xs">إغلاق</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       {count > 0 && (
         <Badge variant="outline" className="text-[11px]">{count} فلاتر مفعلة</Badge>
       )}
