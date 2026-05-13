@@ -1004,7 +1004,7 @@ export default function HRReportsPage() {
         <TabsContent value="readiness" className="space-y-3 mt-4">
           <div className="flex items-center justify-between print:hidden">
             <h2 className="text-sm font-semibold">جاهزية الرواتب</h2>
-            <Button size="sm" variant="outline" onClick={() => exportExcel("readiness")} disabled={summaries.length === 0}>
+            <Button size="sm" variant="outline" onClick={() => exportExcel("readiness")} disabled={filteredReadiness.length === 0}>
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
@@ -1048,6 +1048,10 @@ export default function HRReportsPage() {
               <Button size="sm" variant={readinessFilter === "ready" ? "default" : "outline"} onClick={() => setReadinessFilter("ready")} className="h-9 text-xs">جاهز فقط</Button>
               <Button size="sm" variant={readinessFilter === "review" ? "default" : "outline"} onClick={() => setReadinessFilter("review")} className="h-9 text-xs">يحتاج مراجعة</Button>
             </div>
+            <ReadinessFilterBar
+              filters={readinessFilters} setFilters={setReadinessFilters}
+              branches={summaryBranchOptions} departments={summaryDeptOptions} employees={employeeOptions}
+            />
           </div>
           <Card className="overflow-hidden">
             {loading ? (
@@ -1057,18 +1061,13 @@ export default function HRReportsPage() {
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
             ) : (() => {
-              const q = readinessQuery.trim().toLowerCase();
-              const filtered = summaries.filter(s => {
-                if (readinessFilter === "ready" && !s.ready) return false;
-                if (readinessFilter === "review" && s.ready) return false;
-                if (!q) return true;
-                return (
-                  s.employee.full_name.toLowerCase().includes(q) ||
-                  (s.branchName || "").toLowerCase().includes(q) ||
-                  (s.employee.department || "").toLowerCase().includes(q)
-                );
-              });
-              if (filtered.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
+              const filtered = filteredReadiness;
+              if (filtered.length === 0) return (
+                <div className="text-center py-10 text-muted-foreground text-sm space-y-2">
+                  <div>لا توجد نتائج مطابقة للفلاتر الحالية</div>
+                  <Button size="sm" variant="outline" onClick={() => { setReadinessFilters(defaultReadinessFilters); setReadinessQuery(""); setReadinessFilter("all"); }}>مسح الفلاتر</Button>
+                </div>
+              );
               return (
               <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm" dir="rtl">
