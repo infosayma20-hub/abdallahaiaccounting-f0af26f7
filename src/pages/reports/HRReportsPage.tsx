@@ -922,7 +922,20 @@ export default function HRReportsPage() {
               </div>
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
-            ) : (
+            ) : (() => {
+              const q = readinessQuery.trim().toLowerCase();
+              const filtered = summaries.filter(s => {
+                if (readinessFilter === "ready" && !s.ready) return false;
+                if (readinessFilter === "review" && s.ready) return false;
+                if (!q) return true;
+                return (
+                  s.employee.full_name.toLowerCase().includes(q) ||
+                  (s.branchName || "").toLowerCase().includes(q) ||
+                  (s.employee.department || "").toLowerCase().includes(q)
+                );
+              });
+              if (filtered.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
+              return (
               <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm" dir="rtl">
                   <thead className="bg-muted/50">
@@ -941,7 +954,7 @@ export default function HRReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summaries.map((s) => {
+                    {filtered.map((s) => {
                       const reasons: string[] = [];
                       if (s.incomplete_days > 0) reasons.push(`${s.incomplete_days} بصمات ناقصة`);
                       if (s.pending_corrections > 0) reasons.push(`${s.pending_corrections} طلبات معلقة`);
@@ -972,9 +985,17 @@ export default function HRReportsPage() {
                       );
                     })}
                   </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/30 border-t font-semibold text-xs">
+                      <td colSpan={11} className="px-3 py-2 text-right text-muted-foreground">
+                        عرض {filtered.length} من {summaries.length} موظف
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
-            )}
+              );
+            })()}
           </Card>
           <p className="text-[11px] text-muted-foreground print:hidden">
             ملاحظة: هذا التقرير يعرض جاهزية البيانات فقط (بصمات + طلبات). لا يحسب أي مبالغ نهائية ولا يغيّر منطق الرواتب.
