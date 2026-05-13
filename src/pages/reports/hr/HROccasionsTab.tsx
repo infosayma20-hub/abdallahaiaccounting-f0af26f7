@@ -9,6 +9,7 @@ import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 type EmployeeLite = {
   id: string;
@@ -32,12 +33,12 @@ type OccasionRow = {
 };
 
 const TEMPLATES: { key: string; label: string; Icon: any; text: string }[] = [
-  { key: "birthday", label: "عيد ميلاد", Icon: Cake, text: "كل عام وأنت بخير يا {employee_name}، نتمنى لك سنة سعيدة مليئة بالصحة والنجاح. مع تحيات إدارة مطاعم الدجاج الملكي." },
-  { key: "marriage", label: "زواج", Icon: Heart, text: "نبارك لك يا {employee_name} بمناسبة الزواج، ونتمنى لك حياة سعيدة ومباركة." },
-  { key: "newborn", label: "مولود", Icon: Baby, text: "نبارك لك يا {employee_name} بالمولود الجديد، ونسأل الله أن يجعله من مواليد السعادة." },
-  { key: "promotion", label: "ترقية", Icon: Award, text: "نبارك لك يا {employee_name} الترقية الجديدة، ونتمنى لك دوام التوفيق والنجاح." },
-  { key: "work_anniversary", label: "ذكرى عمل", Icon: CalendarHeart, text: "نشكرك يا {employee_name} على عطائك وجهودك خلال فترة عملك معنا، ونتمنى لك دوام التوفيق." },
-  { key: "general", label: "تهنئة عامة", Icon: Sparkles, text: "تهانينا لك يا {employee_name}، مع أطيب التمنيات من إدارة مطاعم الدجاج الملكي." },
+  { key: "birthday", label: "عيد ميلاد", Icon: Cake, text: "كل عام وأنت بخير يا {employee_name}، نتمنى لك سنة سعيدة مليئة بالصحة والنجاح، مع تحيات {company_name}." },
+  { key: "marriage", label: "زواج", Icon: Heart, text: "نبارك لك يا {employee_name} بمناسبة الزواج، ونتمنى لك حياة سعيدة ومباركة، مع تحيات {company_name}." },
+  { key: "newborn", label: "مولود", Icon: Baby, text: "نبارك لك يا {employee_name} بالمولود الجديد، ونسأل الله أن يجعله من مواليد السعادة، مع تحيات {company_name}." },
+  { key: "promotion", label: "ترقية", Icon: Award, text: "نبارك لك يا {employee_name} على الترقية الجديدة، ونتمنى لك دوام التوفيق والنجاح، مع تحيات {company_name}." },
+  { key: "work_anniversary", label: "ذكرى عمل", Icon: CalendarHeart, text: "نشكرك يا {employee_name} على عطائك وجهودك خلال فترة عملك معنا، ونتمنى لك دوام التوفيق، مع تحيات {company_name}." },
+  { key: "general", label: "تهنئة عامة", Icon: Sparkles, text: "تهانينا لك يا {employee_name}، مع أطيب التمنيات من {company_name}." },
 ];
 
 function nextOccurrence(monthDay: string, today: Date): { date: Date; daysLeft: number } {
@@ -73,6 +74,10 @@ export default function HROccasionsTab({
   const [typeFilter, setTypeFilter] = useState<"all" | OccasionType>("all");
   const [tplOpen, setTplOpen] = useState(false);
   const [tplFor, setTplFor] = useState<{ name: string } | null>(null);
+  const { settings } = useCompanySettings();
+  const companyName = (settings?.company_name || "").trim() || "إدارة الشركة";
+  const renderTemplate = (text: string, name: string) =>
+    text.replace(/\{employee_name\}/g, name).replace(/\{company_name\}/g, companyName);
 
   const today = new Date();
 
@@ -142,7 +147,7 @@ export default function HROccasionsTab({
   };
 
   const copyText = async (text: string, name: string) => {
-    const final = text.replace(/\{employee_name\}/g, name);
+    const final = renderTemplate(text, name);
     try {
       await navigator.clipboard.writeText(final);
       toast.success("تم نسخ نص التهنئة");
@@ -154,7 +159,7 @@ export default function HROccasionsTab({
   const openWhatsApp = (phone: string | null | undefined, text: string, name: string) => {
     const p = normalizePhonePalestine(phone);
     if (!p) { toast.error("لا يوجد رقم هاتف صالح"); return; }
-    const final = text.replace(/\{employee_name\}/g, name);
+    const final = renderTemplate(text, name);
     window.open(`https://wa.me/${p}?text=${encodeURIComponent(final)}`, "_blank");
   };
 
