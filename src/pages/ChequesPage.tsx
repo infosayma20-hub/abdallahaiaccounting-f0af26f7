@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS } from "@/components/cheques/ChequeActionModal";
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 import UnendorseChequeDialog from "@/components/cheques/UnendorseChequeDialog";
+import UndepositChequeDialog from "@/components/cheques/UndepositChequeDialog";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import AccountingShell from "@/components/layout/AccountingShell";
@@ -129,6 +130,7 @@ const ChequesPage = () => {
   const [quickAddingContact, setQuickAddingContact] = useState(false);
   const [actionTarget, setActionTarget] = useState<Cheque | null>(null);
   const [unendorseTarget, setUnendorseTarget] = useState<Cheque | null>(null);
+  const [undepositTarget, setUndepositTarget] = useState<Cheque | null>(null);
   const [actionType, setActionType] = useState<ActionType | null>(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("cheque_date");
@@ -1164,6 +1166,16 @@ const ChequesPage = () => {
                                 <Undo2 className="h-3 w-3" />إلغاء التجيير
                               </button>
                             )}
+                            {c.status === 'مودع' && c.cheque_type === 'وارد' && (
+                              <button
+                                onClick={() => setUndepositTarget(c)}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:opacity-90"
+                                style={{ background: '#FEF3C7', color: '#92400E' }}
+                                title="إلغاء الإيداع وإرجاع الشيك إلى بحوزتك"
+                              >
+                                <Undo2 className="h-3 w-3" />إلغاء الإيداع
+                              </button>
+                            )}
                             <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-red-50 transition-colors" title="حذف">
                               <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
                             </button>
@@ -1416,6 +1428,19 @@ const ChequesPage = () => {
         onOpenChange={(v) => { if (!v) setUnendorseTarget(null); }}
         onSuccess={() => {
           setUnendorseTarget(null);
+          setStatusHistory({});
+          fetchCheques();
+        }}
+      />
+
+      {/* ============ UNDEPOSIT DIALOG ============ */}
+      <UndepositChequeDialog
+        cheque={undepositTarget}
+        userId={user?.id || null}
+        open={!!undepositTarget}
+        onOpenChange={(v) => { if (!v) setUndepositTarget(null); }}
+        onSuccess={() => {
+          setUndepositTarget(null);
           setStatusHistory({});
           fetchCheques();
         }}
