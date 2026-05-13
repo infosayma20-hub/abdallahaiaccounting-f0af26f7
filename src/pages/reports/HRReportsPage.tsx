@@ -415,6 +415,122 @@ export default function HRReportsPage() {
     return Array.from(set).sort();
   }, [refData]);
 
+  // Build filter option lists from current summaries
+  const summaryBranchOptions = useMemo(() => {
+    const set = new Set<string>();
+    summaries.forEach((s) => { if (s.branchName && s.branchName !== "-") set.add(s.branchName); });
+    return Array.from(set).sort().map((v) => ({ value: v, label: v }));
+  }, [summaries]);
+  const summaryDeptOptions = useMemo(() => {
+    const set = new Set<string>();
+    summaries.forEach((s) => { if (s.employee.department) set.add(s.employee.department); });
+    return Array.from(set).sort().map((v) => ({ value: v, label: v }));
+  }, [summaries]);
+  const employeeOptions = useMemo(
+    () => filteredEmployees.map((e) => ({ value: e.id, label: e.full_name })),
+    [filteredEmployees]
+  );
+
+  // ── Filtered datasets ──
+  const filteredSummaries = useMemo(() => {
+    const q = summaryQuery.trim().toLowerCase();
+    const f = summaryFilters;
+    return summaries.filter((s) => {
+      if (summaryOnlyReview && s.ready) return false;
+      if (q) {
+        const hit =
+          s.employee.full_name.toLowerCase().includes(q) ||
+          (s.branchName || "").toLowerCase().includes(q) ||
+          (s.employee.department || "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (f.status === "ready" && !s.ready) return false;
+      if (f.status === "review" && s.ready) return false;
+      if (f.branch !== "all" && s.branchName !== f.branch) return false;
+      if (f.department !== "all" && (s.employee.department || "") !== f.department) return false;
+      const tri = (state: typeof f.absence, val: number) => state === "all" || (state === "has" ? val > 0 : val === 0);
+      if (!tri(f.absence, s.absent_days)) return false;
+      if (!tri(f.incomplete, s.incomplete_days)) return false;
+      if (!tri(f.overtime, s.overtime_hours)) return false;
+      if (!tri(f.late, s.late_minutes)) return false;
+      if (f.absentMin !== undefined && s.absent_days < f.absentMin) return false;
+      if (f.absentMax !== undefined && s.absent_days > f.absentMax) return false;
+      if (f.hoursMin !== undefined && s.work_hours < f.hoursMin) return false;
+      if (f.hoursMax !== undefined && s.work_hours > f.hoursMax) return false;
+      if (f.otMin !== undefined && s.overtime_hours < f.otMin) return false;
+      if (f.otMax !== undefined && s.overtime_hours > f.otMax) return false;
+      return true;
+    });
+  }, [summaries, summaryQuery, summaryOnlyReview, summaryFilters]);
+
+  const filteredIncomplete = useMemo(() => {
+    const all = summaries.flatMap((s) =>
+      s.incompleteDates.map((d) => {
+        const issueKey = !d.first_check_in ? "no_in" : !d.last_check_out ? "no_out" : "missing";
+        const issue = issueKey === "no_in" ? "بدون دخول" : issueKey === "no_out" ? "بدون خروج" : "بصمة ناقصة";
+        const corr = (periodData?.corrections || []).find((c) => c.employee_id === s.employee.id && c.attendance_date === d.attendance_date);
+        return { s, d, issue, issueKey, corr };
+      })
+    );
+    const q = incompleteQuery.trim().toLowerCase();
+    const f = incompleteFilters;
+    return all.filter(({ s, d, issue, issueKey, corr }) => {
+      if (q) {
+        const hit =
+          s.employee.full_name.toLowerCase().includes(q) ||
+          (s.branchName || "").toLowerCase().includes(q) ||
+          fmtDateDisplay(d.attendance_date).toLowerCase().includes(q) ||
+          d.attendance_date.includes(q) ||
+          issue.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (f.issue !== "all" && f.issue !== issueKey) return false;
+      if (f.corrStatus !== "all") {
+        if (f.corrStatus === "none" && corr) return false;
+        if (f.corrStatus !== "none" && (!corr || corr.status !== f.corrStatus)) return false;
+      }
+      if (f.branch !== "all" && s.branchName !== f.branch) return false;
+      if (f.department !== "all" && (s.employee.department || "") !== f.department) return false;
+      if (f.employeeId !== "all" && s.employee.id !== f.employeeId) return false;
+      if (f.dateFrom && d.attendance_date < f.dateFrom) return false;
+      if (f.dateTo && d.attendance_date > f.dateTo) return false;
+      return true;
+    });
+  }, [summaries, periodData, incompleteQuery, incompleteFilters]);
+
+  const filteredReadiness = useMemo(() => {
+    const q = readinessQuery.trim().toLowerCase();
+    const f = readinessFilters;
+    return summaries.filter((s) => {
+      if (readinessFilter === "ready" && !s.ready) return false;
+      if (readinessFilter === "review" && s.ready) return false;
+      if (q) {
+        const hit =
+          s.employee.full_name.toLowerCase().includes(q) ||
+          (s.branchName || "").toLowerCase().includes(q) ||
+          (s.employee.department || "").toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (f.status === "ready" && !s.ready) return false;
+      if (f.status === "review" && s.ready) return false;
+      if (f.branch !== "all" && s.branchName !== f.branch) return false;
+      if (f.department !== "all" && (s.employee.department || "") !== f.department) return false;
+      if (f.employeeId !== "all" && s.employee.id !== f.employeeId) return false;
+      if (f.reason !== "all") {
+        if (f.reason === "incomplete" && s.incomplete_days === 0) return false;
+        if (f.reason === "pending" && s.pending_corrections === 0) return false;
+        if (f.reason === "absence" && s.absent_days === 0) return false;
+        if (f.reason === "no_shift" && s.employee.shift_id) return false;
+        if (f.reason === "other") {
+          // "other" = not ready but no specific known reason
+          if (s.ready) return false;
+          if (s.incomplete_days > 0 || s.pending_corrections > 0) return false;
+        }
+      }
+      return true;
+    });
+  }, [summaries, readinessQuery, readinessFilter, readinessFilters]);
+
   // Excel export per active tab
   const exportExcel = (tab: "summary" | "incomplete" | "readiness") => {
     let rows: Record<string, any>[] = [];
