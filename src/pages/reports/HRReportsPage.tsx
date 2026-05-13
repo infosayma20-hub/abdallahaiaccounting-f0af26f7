@@ -887,7 +887,7 @@ export default function HRReportsPage() {
         <TabsContent value="incomplete" className="space-y-3 mt-4">
           <div className="flex items-center justify-between print:hidden">
             <h2 className="text-sm font-semibold">البصمات غير المكتملة</h2>
-            <Button size="sm" variant="outline" onClick={() => exportExcel("incomplete")} disabled={summaries.every((s) => s.incompleteDates.length === 0)}>
+            <Button size="sm" variant="outline" onClick={() => exportExcel("incomplete")} disabled={filteredIncomplete.length === 0}>
               <Download className="h-4 w-4 ml-1" /> Excel
             </Button>
           </div>
@@ -906,6 +906,10 @@ export default function HRReportsPage() {
                 </button>
               )}
             </div>
+            <IncompleteFilterBar
+              filters={incompleteFilters} setFilters={setIncompleteFilters}
+              branches={summaryBranchOptions} departments={summaryDeptOptions} employees={employeeOptions}
+            />
           </div>
           <Card className="overflow-hidden">
             {loading ? (
@@ -928,15 +932,13 @@ export default function HRReportsPage() {
                   </div>
                 );
               }
-              const q = incompleteQuery.trim().toLowerCase();
-              const rows = !q ? allRows : allRows.filter(({ s, d, issue }) =>
-                s.employee.full_name.toLowerCase().includes(q) ||
-                (s.branchName || "").toLowerCase().includes(q) ||
-                fmtDateDisplay(d.attendance_date).toLowerCase().includes(q) ||
-                d.attendance_date.includes(q) ||
-                issue.toLowerCase().includes(q)
+              const rows = filteredIncomplete;
+              if (rows.length === 0) return (
+                <div className="text-center py-10 text-muted-foreground text-sm space-y-2">
+                  <div>لا توجد نتائج مطابقة للفلاتر الحالية</div>
+                  <Button size="sm" variant="outline" onClick={() => { setIncompleteFilters(defaultIncompleteFilters); setIncompleteQuery(""); }}>مسح الفلاتر</Button>
+                </div>
               );
-              if (rows.length === 0) return <div className="text-center py-10 text-muted-foreground text-sm">لا نتائج مطابقة</div>;
               return (
                 <div className="overflow-x-auto" dir="rtl">
                   <table className="w-full text-sm" dir="rtl">
