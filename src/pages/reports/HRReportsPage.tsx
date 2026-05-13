@@ -579,6 +579,7 @@ export default function HRReportsPage() {
       overtime: (s) => s.overtime_hours,
       late: (s) => s.late_minutes,
       ready: (s) => (s.ready ? 1 : 0),
+      reason: (s) => (s.incomplete_days > 0 ? "1-incomplete" : s.pending_corrections > 0 ? "2-pending" : s.absent_days > 0 ? "3-absence" : !s.employee.shift_id ? "4-no_shift" : "5-other"),
     });
   }, [summaries, readinessQuery, readinessFilter, readinessFilters, readinessSort]);
 
@@ -859,8 +860,14 @@ export default function HRReportsPage() {
                   <thead className="bg-muted/50">
                     <tr>
                       <SortableHeader label="الموظف" columnKey="employee" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
-                      <SortableHeader label="الفرع" columnKey="branch" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} />
-                      <SortableHeader label="القسم" columnKey="department" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} />
+                      <SortableHeader label="الفرع" columnKey="branch" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))}
+                        filterValue={summaryFilters.branch}
+                        filterOptions={[{ value: "all", label: "كل الفروع" }, ...summaryBranchOptions]}
+                        onFilterChange={(v) => setSummaryFilters({ ...summaryFilters, branch: v })} />
+                      <SortableHeader label="القسم" columnKey="department" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))}
+                        filterValue={summaryFilters.department}
+                        filterOptions={[{ value: "all", label: "كل الأقسام" }, ...summaryDeptOptions]}
+                        onFilterChange={(v) => setSummaryFilters({ ...summaryFilters, department: v })} />
                       <SortableHeader label="المطلوبة" columnKey="required" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="حضور" columnKey="present" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="غياب" columnKey="absent" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
@@ -871,7 +878,10 @@ export default function HRReportsPage() {
                       <SortableHeader label="إضافي" columnKey="overtime" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="تأخير (د)" columnKey="late" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
                       <SortableHeader label="خروج مبكر (د)" columnKey="early" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
-                      <SortableHeader label="الحالة" columnKey="status" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center" />
+                      <SortableHeader label="الحالة" columnKey="status" sort={summarySort} onSort={(k) => setSummarySort(cycleSort(summarySort, k))} align="center"
+                        filterValue={summaryFilters.status}
+                        filterOptions={[{ value: "all", label: "الكل" }, { value: "ready", label: "مكتمل" }, { value: "review", label: "يحتاج مراجعة" }]}
+                        onFilterChange={(v) => setSummaryFilters({ ...summaryFilters, status: v as any })} />
                     </tr>
                   </thead>
                   <tbody>
@@ -1002,11 +1012,31 @@ export default function HRReportsPage() {
                       <tr>
                         <SortableHeader label="التاريخ" columnKey="date" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
                         <SortableHeader label="الموظف" columnKey="employee" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
-                        <SortableHeader label="الفرع" columnKey="branch" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} />
+                        <SortableHeader label="الفرع" columnKey="branch" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))}
+                          filterValue={incompleteFilters.branch}
+                          filterOptions={[{ value: "all", label: "كل الفروع" }, ...summaryBranchOptions]}
+                          onFilterChange={(v) => setIncompleteFilters({ ...incompleteFilters, branch: v })} />
                         <th className="text-center px-3 py-2 font-semibold">دخول</th>
                         <th className="text-center px-3 py-2 font-semibold">خروج</th>
-                        <SortableHeader label="المشكلة" columnKey="issue" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center" />
-                        <SortableHeader label="طلب تصحيح" columnKey="corr" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center" />
+                        <SortableHeader label="المشكلة" columnKey="issue" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center"
+                          filterValue={incompleteFilters.issue}
+                          filterOptions={[
+                            { value: "all", label: "الكل" },
+                            { value: "no_in", label: "بدون دخول" },
+                            { value: "no_out", label: "بدون خروج" },
+                            { value: "missing", label: "بصمة ناقصة" },
+                          ]}
+                          onFilterChange={(v) => setIncompleteFilters({ ...incompleteFilters, issue: v as any })} />
+                        <SortableHeader label="طلب تصحيح" columnKey="corr" sort={incompleteSort} onSort={(k) => setIncompleteSort(cycleSort(incompleteSort, k))} align="center"
+                          filterValue={incompleteFilters.corrStatus}
+                          filterOptions={[
+                            { value: "all", label: "الكل" },
+                            { value: "none", label: "لا يوجد طلب" },
+                            { value: "pending", label: "قيد المراجعة" },
+                            { value: "approved", label: "مقبول" },
+                            { value: "rejected", label: "مرفوض" },
+                          ]}
+                          onFilterChange={(v) => setIncompleteFilters({ ...incompleteFilters, corrStatus: v as any })} />
                         <th className="text-center px-3 py-2 font-semibold print:hidden">إجراء</th>
                       </tr>
                     </thead>
@@ -1130,16 +1160,35 @@ export default function HRReportsPage() {
                   <thead className="bg-muted/50">
                     <tr>
                       <SortableHeader label="الموظف" columnKey="employee" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
-                      <SortableHeader label="الفرع" columnKey="branch" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} />
-                      <SortableHeader label="القسم" columnKey="department" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} />
+                      <SortableHeader label="الفرع" columnKey="branch" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))}
+                        filterValue={readinessFilters.branch}
+                        filterOptions={[{ value: "all", label: "كل الفروع" }, ...summaryBranchOptions]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, branch: v })} />
+                      <SortableHeader label="القسم" columnKey="department" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))}
+                        filterValue={readinessFilters.department}
+                        filterOptions={[{ value: "all", label: "كل الأقسام" }, ...summaryDeptOptions]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, department: v })} />
                       <SortableHeader label="حضور" columnKey="present" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="غياب" columnKey="absent" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="بصمات ناقصة" columnKey="incomplete" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="طلبات معلقة" columnKey="pending" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="إضافي" columnKey="overtime" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="تأخير (د)" columnKey="late" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
-                      <SortableHeader label="جاهز للراتب؟" columnKey="ready" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
-                      <th className="text-right px-3 py-2 font-semibold">سبب التعليق</th>
+                      <SortableHeader label="جاهز للراتب؟" columnKey="ready" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center"
+                        filterValue={readinessFilters.status}
+                        filterOptions={[{ value: "all", label: "الكل" }, { value: "ready", label: "جاهز" }, { value: "review", label: "يحتاج مراجعة" }]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, status: v as any })} />
+                      <SortableHeader label="سبب التعليق" columnKey="reason" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))}
+                        filterValue={readinessFilters.reason}
+                        filterOptions={[
+                          { value: "all", label: "الكل" },
+                          { value: "incomplete", label: "بصمات ناقصة" },
+                          { value: "pending", label: "طلبات معلقة" },
+                          { value: "absence", label: "غياب" },
+                          { value: "no_shift", label: "لا يوجد وردية" },
+                          { value: "other", label: "أخرى" },
+                        ]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, reason: v as any })} />
                     </tr>
                   </thead>
                   <tbody>

@@ -10,6 +10,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { SortableHeader, applySort, cycleSort, noSort, type SortState } from "./SortableHeader";
 
 type EmployeeLite = {
   id: string;
@@ -74,6 +75,10 @@ export default function HROccasionsTab({
   const [typeFilter, setTypeFilter] = useState<"all" | OccasionType>("all");
   const [tplOpen, setTplOpen] = useState(false);
   const [tplFor, setTplFor] = useState<{ name: string } | null>(null);
+  const [sort, setSort] = useState<SortState>(noSort);
+  const [colBranch, setColBranch] = useState<string>("all");
+  const [colDept, setColDept] = useState<string>("all");
+  const [colHasPhone, setColHasPhone] = useState<string>("all"); // all | yes | no
   const { settings } = useCompanySettings();
   const companyName = (settings?.company_name || "").trim() || "إدارة الشركة";
   const renderTemplate = (text: string, name: string) =>
@@ -116,16 +121,45 @@ export default function HROccasionsTab({
   }, [employees, branchName, windowDays]);
 
   const q = query.trim().toLowerCase();
-  const filtered = occasions.filter((r) => {
-    if (typeFilter !== "all" && r.type !== typeFilter) return false;
-    if (!q) return true;
-    return (
-      r.emp.full_name.toLowerCase().includes(q) ||
-      (r.branch || "").toLowerCase().includes(q) ||
-      (r.emp.department || "").toLowerCase().includes(q) ||
-      r.typeLabel.toLowerCase().includes(q)
-    );
-  });
+  const filtered = useMemo(() => {
+    const base = occasions.filter((r) => {
+      if (typeFilter !== "all" && r.type !== typeFilter) return false;
+      if (colBranch !== "all" && r.branch !== colBranch) return false;
+      if (colDept !== "all" && (r.emp.department || "") !== colDept) return false;
+      if (colHasPhone !== "all") {
+        const hasPhone = !!normalizePhonePalestine(r.emp.phone);
+        if (colHasPhone === "yes" && !hasPhone) return false;
+        if (colHasPhone === "no" && hasPhone) return false;
+      }
+      if (q && !(
+        r.emp.full_name.toLowerCase().includes(q) ||
+        (r.branch || "").toLowerCase().includes(q) ||
+        (r.emp.department || "").toLowerCase().includes(q) ||
+        r.typeLabel.toLowerCase().includes(q)
+      )) return false;
+      return true;
+    });
+    return applySort(base, sort, {
+      employee: (r) => r.emp.full_name,
+      branch: (r) => r.branch,
+      department: (r) => r.emp.department || "",
+      typeLabel: (r) => r.typeLabel,
+      date: (r) => r.date,
+      daysLeft: (r) => r.daysLeft,
+      phone: (r) => r.emp.phone || "",
+    });
+  }, [occasions, typeFilter, colBranch, colDept, colHasPhone, q, sort]);
+
+  const branchOptions = useMemo(() => {
+    const s = new Set<string>();
+    occasions.forEach((r) => { if (r.branch && r.branch !== "-") s.add(r.branch); });
+    return Array.from(s).sort().map((v) => ({ value: v, label: v }));
+  }, [occasions]);
+  const deptOptions = useMemo(() => {
+    const s = new Set<string>();
+    occasions.forEach((r) => { if (r.emp.department) s.add(r.emp.department); });
+    return Array.from(s).sort().map((v) => ({ value: v, label: v }));
+  }, [occasions]);
 
   const exportExcel = () => {
     const data = filtered.map((r) => ({
@@ -212,13 +246,25 @@ export default function HROccasionsTab({
             <table className="w-full text-sm" dir="rtl">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-right px-3 py-2 font-semibold sticky right-0 bg-muted/50 min-w-[150px]">الموظف</th>
-                  <th className="text-right px-3 py-2 font-semibold">الفرع</th>
-                  <th className="text-right px-3 py-2 font-semibold">القسم</th>
-                  <th className="text-right px-3 py-2 font-semibold">نوع المناسبة</th>
-                  <th className="text-center px-3 py-2 font-semibold">التاريخ</th>
-                  <th className="text-center px-3 py-2 font-semibold">بعد كم يوم</th>
-                  <th className="text-right px-3 py-2 font-semibold">الهاتف</th>
+                  <SortableHeader label="الموظف" columnKey="employee" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
+                  <SortableHeader label="الفرع" columnKey="branch" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))}
+                    filterValue={colBranch} filterOptions={[{ value: "all", label: "كل الفروع" }, ...branchOptions]} onFilterChange={setColBranch} />
+                  <SortableHeader label="القسم" columnKey="department" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))}
+                    filterValue={colDept} filterOptions={[{ value: "all", label: "كل الأقسام" }, ...deptOptions]} onFilterChange={setColDept} />
+                  <SortableHeader label="نوع المناسبة" columnKey="typeLabel" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))}
+                    filterValue={typeFilter} filterOptions={[
+                      { value: "all", label: "الكل" },
+                      { value: "birthday", label: "أعياد الميلاد" },
+                      { value: "work_anniversary", label: "ذكرى العمل" },
+                    ]} onFilterChange={(v) => setTypeFilter(v as any)} />
+                  <SortableHeader label="التاريخ" columnKey="date" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="بعد كم يوم" columnKey="daysLeft" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))} align="center" />
+                  <SortableHeader label="الهاتف" columnKey="phone" sort={sort} onSort={(k) => setSort(cycleSort(sort, k))}
+                    filterValue={colHasPhone} filterOptions={[
+                      { value: "all", label: "الكل" },
+                      { value: "yes", label: "لديه رقم" },
+                      { value: "no", label: "بدون رقم" },
+                    ]} onFilterChange={setColHasPhone} />
                   <th className="text-center px-3 py-2 font-semibold print:hidden">إجراءات</th>
                 </tr>
               </thead>
