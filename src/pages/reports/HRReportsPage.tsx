@@ -287,6 +287,10 @@ export default function HRReportsPage() {
   const [incompleteQuery, setIncompleteQuery] = useState("");
   const [readinessQuery, setReadinessQuery] = useState("");
   const [readinessFilter, setReadinessFilter] = useState<"all" | "ready" | "review">("all");
+  // Advanced per-tab filters
+  const [summaryFilters, setSummaryFilters] = useState<SummaryFilters>(defaultSummaryFilters);
+  const [incompleteFilters, setIncompleteFilters] = useState<IncompleteFilters>(defaultIncompleteFilters);
+  const [readinessFilters, setReadinessFilters] = useState<ReadinessFilters>(defaultReadinessFilters);
 
   // Sync month -> from/to
   useEffect(() => {
