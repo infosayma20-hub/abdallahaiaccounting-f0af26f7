@@ -1129,16 +1129,16 @@ export default function HRReportsPage() {
                 <table className="w-full text-sm" dir="rtl">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-right px-3 py-2 font-semibold sticky right-0 bg-muted/50 min-w-[150px]">الموظف</th>
-                      <th className="text-right px-3 py-2 font-semibold">الفرع</th>
-                      <th className="text-right px-3 py-2 font-semibold">القسم</th>
-                      <th className="text-center px-3 py-2 font-semibold">حضور</th>
-                      <th className="text-center px-3 py-2 font-semibold">غياب</th>
-                      <th className="text-center px-3 py-2 font-semibold">بصمات ناقصة</th>
-                      <th className="text-center px-3 py-2 font-semibold">طلبات معلقة</th>
-                      <th className="text-center px-3 py-2 font-semibold">إضافي</th>
-                      <th className="text-center px-3 py-2 font-semibold">تأخير (د)</th>
-                      <th className="text-center px-3 py-2 font-semibold">جاهز للراتب؟</th>
+                      <SortableHeader label="الموظف" columnKey="employee" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
+                      <SortableHeader label="الفرع" columnKey="branch" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} />
+                      <SortableHeader label="القسم" columnKey="department" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} />
+                      <SortableHeader label="حضور" columnKey="present" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
+                      <SortableHeader label="غياب" columnKey="absent" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
+                      <SortableHeader label="بصمات ناقصة" columnKey="incomplete" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
+                      <SortableHeader label="طلبات معلقة" columnKey="pending" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
+                      <SortableHeader label="إضافي" columnKey="overtime" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
+                      <SortableHeader label="تأخير (د)" columnKey="late" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
+                      <SortableHeader label="جاهز للراتب؟" columnKey="ready" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <th className="text-right px-3 py-2 font-semibold">سبب التعليق</th>
                     </tr>
                   </thead>
