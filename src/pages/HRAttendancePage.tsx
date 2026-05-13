@@ -1485,7 +1485,7 @@ export default function HRAttendancePage() {
             </Card>
           ) : (
             <Card className="overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" dir="rtl">
                 <table className="w-full text-sm border-collapse" dir="rtl">
                   <thead>
                     <tr className="bg-primary text-primary-foreground">
