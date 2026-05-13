@@ -421,7 +421,7 @@ export default function HRReportsPage() {
     let title = "";
     if (tab === "summary") {
       title = "ملخص_الدوام_الشهري";
-      rows = summaries.map((s) => ({
+      rows = filteredSummaries.map((s) => ({
         "الموظف": s.employee.full_name,
         "الفرع": s.branchName,
         "القسم": s.employee.department || "-",
@@ -439,22 +439,19 @@ export default function HRReportsPage() {
       }));
     } else if (tab === "incomplete") {
       title = "البصمات_غير_المكتملة";
-      summaries.forEach((s) => {
-        s.incompleteDates.forEach((d) => {
-          const issue = !d.first_check_in ? "بدون دخول" : !d.last_check_out ? "بدون خروج" : "بصمة ناقصة";
-          rows.push({
-            "التاريخ": fmtDateDisplay(d.attendance_date),
-            "الموظف": s.employee.full_name,
-            "الفرع": s.branchName,
-            "دخول": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-",
-            "خروج": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-",
-            "نوع المشكلة": issue,
-          });
-        });
-      });
+      rows = filteredIncomplete.map(({ s, d, issue, corr }) => ({
+        "التاريخ": fmtDateDisplay(d.attendance_date),
+        "الموظف": s.employee.full_name,
+        "الفرع": s.branchName,
+        "القسم": s.employee.department || "-",
+        "دخول": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-",
+        "خروج": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-",
+        "نوع المشكلة": issue,
+        "طلب تصحيح": corr ? (corr.status === "pending" ? "قيد المراجعة" : corr.status === "approved" ? "معتمد" : "مرفوض") : "—",
+      }));
     } else {
       title = "جاهزية_الرواتب";
-      rows = summaries.map((s) => ({
+      rows = filteredReadiness.map((s) => ({
         "الموظف": s.employee.full_name,
         "الفرع": s.branchName,
         "القسم": s.employee.department || "-",
