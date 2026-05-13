@@ -10,6 +10,7 @@ import {
   Banknote,
   HandCoins,
   Settings,
+  BarChart3,
   ChevronDown,
 } from "lucide-react";
 import {
@@ -38,10 +39,11 @@ const ITEMS: Item[] = [
   { to: "/employee-forms-management", label: "طلبات الموظفين", Icon: ClipboardList, perms: ["can_manage_forms", "can_approve_requests", "can_view_employee_requests"], matchPrefixes: ["/employee-forms-management", "/leaves"] },
   { to: "/payroll", label: "الرواتب", Icon: Banknote, perms: ["can_view_payroll", "can_process_payroll"], matchPrefixes: ["/payroll", "/payroll-settings"] },
   { to: "/loans", label: "القروض", Icon: HandCoins, perms: ["can_manage_loans", "can_manage_advances"], matchPrefixes: ["/loans", "/advances", "/hr-deductions"] },
+  { to: "/hr/reports", label: "تقارير HR", Icon: BarChart3, perms: ["can_view_hr_reports", "can_view_hr_attendance_reports"], matchPrefixes: ["/hr/reports"] },
   { to: "/hr/settings", label: "إعدادات HR", Icon: Settings, perms: ["can_manage_hr_settings"], matchPrefixes: ["/hr/settings", "/hr/definitions", "/hr/day-types", "/payroll-settings"] },
 ];
 
-const VISIBLE_DESKTOP = 8; // all fit on a typical desktop; collapse to "more" only when needed.
+const VISIBLE_DESKTOP = 9; // all fit on a typical desktop; collapse to "more" only when needed.
 
 export function HRTopNav() {
   const { isAdmin, isHRManager, can } = useHRManagerPermissions();
