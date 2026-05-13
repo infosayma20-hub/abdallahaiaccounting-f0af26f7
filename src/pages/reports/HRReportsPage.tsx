@@ -1159,16 +1159,35 @@ export default function HRReportsPage() {
                   <thead className="bg-muted/50">
                     <tr>
                       <SortableHeader label="الموظف" columnKey="employee" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} className="sticky right-0 bg-muted/50 min-w-[150px]" />
-                      <SortableHeader label="الفرع" columnKey="branch" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} />
-                      <SortableHeader label="القسم" columnKey="department" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} />
+                      <SortableHeader label="الفرع" columnKey="branch" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))}
+                        filterValue={readinessFilters.branch}
+                        filterOptions={[{ value: "all", label: "كل الفروع" }, ...summaryBranchOptions]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, branch: v })} />
+                      <SortableHeader label="القسم" columnKey="department" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))}
+                        filterValue={readinessFilters.department}
+                        filterOptions={[{ value: "all", label: "كل الأقسام" }, ...summaryDeptOptions]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, department: v })} />
                       <SortableHeader label="حضور" columnKey="present" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="غياب" columnKey="absent" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="بصمات ناقصة" columnKey="incomplete" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="طلبات معلقة" columnKey="pending" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="إضافي" columnKey="overtime" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
                       <SortableHeader label="تأخير (د)" columnKey="late" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
-                      <SortableHeader label="جاهز للراتب؟" columnKey="ready" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center" />
-                      <th className="text-right px-3 py-2 font-semibold">سبب التعليق</th>
+                      <SortableHeader label="جاهز للراتب؟" columnKey="ready" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))} align="center"
+                        filterValue={readinessFilters.status}
+                        filterOptions={[{ value: "all", label: "الكل" }, { value: "ready", label: "جاهز" }, { value: "review", label: "يحتاج مراجعة" }]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, status: v as any })} />
+                      <SortableHeader label="سبب التعليق" columnKey="reason" sort={readinessSort} onSort={(k) => setReadinessSort(cycleSort(readinessSort, k))}
+                        filterValue={readinessFilters.reason}
+                        filterOptions={[
+                          { value: "all", label: "الكل" },
+                          { value: "incomplete", label: "بصمات ناقصة" },
+                          { value: "pending", label: "طلبات معلقة" },
+                          { value: "absence", label: "غياب" },
+                          { value: "no_shift", label: "لا يوجد وردية" },
+                          { value: "other", label: "أخرى" },
+                        ]}
+                        onFilterChange={(v) => setReadinessFilters({ ...readinessFilters, reason: v as any })} />
                     </tr>
                   </thead>
                   <tbody>
