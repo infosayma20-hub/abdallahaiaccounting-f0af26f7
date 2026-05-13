@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X } from "lucide-react";
+import { Download, Printer, RefreshCw, FileText, Clock, Wallet, AlertTriangle, CheckCircle2, ChevronLeft, Search, X, CalendarDays, Gift } from "lucide-react";
+import HRLeavesTab from "./hr/HRLeavesTab";
+import HROccasionsTab from "./hr/HROccasionsTab";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
@@ -27,6 +29,12 @@ type Employee = {
   shift_id: string | null;
   is_active: boolean;
   is_terminated: boolean | null;
+  date_of_birth?: string | null;
+  start_date?: string | null;
+  phone?: string | null;
+  annual_leave_balance?: number | null;
+  annual_leave_days?: number | null;
+  previous_year_balance?: number | null;
 };
 type Branch = { id: string; name: string };
 type Department = { id: string; name: string; name_ar: string | null };
@@ -290,7 +298,7 @@ export default function HRReportsPage() {
       const [branchesQ, depsQ, empsQ, shiftsQ, weekQ, holsQ] = await Promise.all([
         supabase.from("branches").select("id,name").eq("is_active", true),
         supabase.from("departments").select("id,name,name_ar").eq("is_active", true).eq("is_deleted", false),
-        supabase.from("employees").select("id,full_name,department,branch_id,shift_id,is_active,is_terminated").eq("is_active", true),
+        supabase.from("employees").select("id,full_name,department,branch_id,shift_id,is_active,is_terminated,date_of_birth,start_date,phone,annual_leave_balance,annual_leave_days,previous_year_balance").eq("is_active", true),
         supabase.from("work_shifts").select("id,start_time,end_time,late_tolerance_minutes,days_of_week").eq("is_active", true),
         supabase.from("hr_work_week_config").select("working_days").maybeSingle(),
         supabase.from("official_holidays").select("holiday_date").eq("is_active", true),
@@ -616,6 +624,8 @@ export default function HRReportsPage() {
           <TabsTrigger value="summary"><FileText className="h-4 w-4 ml-1" /> ملخص الدوام الشهري</TabsTrigger>
           <TabsTrigger value="incomplete"><AlertTriangle className="h-4 w-4 ml-1" /> البصمات غير المكتملة</TabsTrigger>
           <TabsTrigger value="readiness"><Wallet className="h-4 w-4 ml-1" /> جاهزية الرواتب</TabsTrigger>
+          <TabsTrigger value="leaves"><CalendarDays className="h-4 w-4 ml-1" /> الإجازات</TabsTrigger>
+          <TabsTrigger value="occasions"><Gift className="h-4 w-4 ml-1" /> المناسبات القادمة</TabsTrigger>
         </TabsList>
 
         {/* ── Summary tab ── */}
@@ -1000,6 +1010,42 @@ export default function HRReportsPage() {
           <p className="text-[11px] text-muted-foreground print:hidden">
             ملاحظة: هذا التقرير يعرض جاهزية البيانات فقط (بصمات + طلبات). لا يحسب أي مبالغ نهائية ولا يغيّر منطق الرواتب.
           </p>
+        </TabsContent>
+
+        {/* ── Leaves tab ── */}
+        <TabsContent value="leaves" className="space-y-3 mt-4">
+          <HRLeavesTab
+            employees={filteredEmployees.map((e) => ({
+              id: e.id,
+              full_name: e.full_name,
+              department: e.department,
+              branch_id: e.branch_id,
+              annual_leave_balance: e.annual_leave_balance ?? null,
+              annual_leave_days: e.annual_leave_days ?? null,
+              previous_year_balance: e.previous_year_balance ?? null,
+            }))}
+            branchName={(id) => (id && refData ? (refData.branches.find((b) => b.id === id)?.name || "-") : "-")}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            loading={loading}
+          />
+        </TabsContent>
+
+        {/* ── Occasions tab ── */}
+        <TabsContent value="occasions" className="space-y-3 mt-4">
+          <HROccasionsTab
+            employees={filteredEmployees.map((e) => ({
+              id: e.id,
+              full_name: e.full_name,
+              department: e.department,
+              branch_id: e.branch_id,
+              date_of_birth: e.date_of_birth ?? null,
+              start_date: e.start_date ?? null,
+              phone: e.phone ?? null,
+            }))}
+            branchName={(id) => (id && refData ? (refData.branches.find((b) => b.id === id)?.name || "-") : "-")}
+            loading={loading}
+          />
         </TabsContent>
       </Tabs>
 
