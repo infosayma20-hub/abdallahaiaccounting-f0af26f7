@@ -824,8 +824,8 @@ export default function HRReportsPage() {
             ) : summaries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto" dir="rtl">
+                <table className="w-full text-sm" dir="rtl">
                   <thead className="bg-muted/50">
                     <tr>
                       <th className="text-right px-3 py-2 font-semibold sticky right-0 bg-muted/50 min-w-[150px]">الموظف</th>
