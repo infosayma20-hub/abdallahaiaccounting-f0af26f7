@@ -1076,18 +1076,35 @@ const InvoiceCreatePage = () => {
       let contactId = form.contactId;
 
       if (form.contactName.trim() && !contactId) {
-        const { data: newContact, error: contactError } = await supabase
+        const trimmedName = form.contactName.trim();
+        // Lookup first — contact may already exist (e.g. created from another flow
+        // or stale local state). Avoid INSERT to prevent unique-constraint errors.
+        const { data: existing } = await supabase
           .from("contacts")
-          .insert({
-            user_id: user.id,
-            contact_name: form.contactName.trim(),
-            contact_type: form.type === "sales" ? "عميل" : "مورد",
-          } as any)
           .select("id")
-          .single();
+          .eq("user_id", user.id)
+          .eq("contact_name", trimmedName)
+          .maybeSingle();
 
-        if (contactError) throw contactError;
-        contactId = newContact?.id ?? null;
+        if (existing?.id) {
+          contactId = existing.id;
+        } else {
+          const { data: upserted, error: contactError } = await supabase
+            .from("contacts")
+            .upsert(
+              {
+                user_id: user.id,
+                contact_name: trimmedName,
+                contact_type: form.type === "sales" ? "عميل" : "مورد",
+              } as any,
+              { onConflict: "user_id,contact_name" }
+            )
+            .select("id")
+            .single();
+
+          if (contactError) throw contactError;
+          contactId = upserted?.id ?? null;
+        }
       }
 
       const invoicePayload = {
