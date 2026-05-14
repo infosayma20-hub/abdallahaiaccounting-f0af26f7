@@ -1118,6 +1118,7 @@ const InvoiceCreatePage = () => {
 
       const invoicePayload = {
         invoice_type: form.type === "sales" ? "sale" : "purchase",
+        invoice_number: isEditMode ? (originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber) : nextInvoiceNumber,
         contact_name: form.contactName,
         contact_id: contactId,
         invoice_date: form.date,
