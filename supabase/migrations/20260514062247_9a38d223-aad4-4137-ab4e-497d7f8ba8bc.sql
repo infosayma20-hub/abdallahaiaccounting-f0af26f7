@@ -1,0 +1,2 @@
+UPDATE invoice_items ii SET product_id = NULL WHERE product_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM products p WHERE p.id = ii.product_id);
+ALTER TABLE public.invoice_items ADD CONSTRAINT invoice_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE SET NULL;
