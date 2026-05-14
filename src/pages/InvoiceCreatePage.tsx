@@ -591,10 +591,9 @@ const InvoiceCreatePage = () => {
     if (!cache) return;
     const isSales = form.type === "sales";
     const prefix = isSales ? cache.salesPrefix : cache.purchasePrefix;
-    const count = isSales ? cache.sales : cache.purchase;
-    const offset = isSales ? cache.salesOffset : 0;
     const year = new Date().getFullYear();
-    const nextNum = String(count + 1 + offset).padStart(4, "0");
+    const nextSequence = isSales ? cache.salesNext : cache.purchaseNext;
+    const nextNum = String(nextSequence).padStart(4, "0");
     setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
   }, [form.type, isEditMode]);
 
