@@ -453,13 +453,13 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes, bRes, salesCountRes, purchaseCountRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
+      const [cRes, pRes, sRes, bRes, salesNumbersRes, purchaseNumbersRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("invoice_type", "sale"),
-        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("invoice_type", "purchase"),
+        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "sale").neq("status", "cancelled").eq("is_voided", false),
+        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "purchase").neq("status", "cancelled").eq("is_voided", false),
         supabase.from("tax_settings").select("registration_type").eq("user_id", user.id).maybeSingle(),
         supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
         (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", user.id).maybeSingle() as any),
@@ -527,20 +527,21 @@ const InvoiceCreatePage = () => {
       const settingsRow = (settingsRes as any)?.data || {};
       const salesPrefix = (settingsRow.invoice_prefix || "INV").trim() || "INV";
       const purchasePrefix = (settingsRow.purchase_order_prefix || "PO").trim() || "PO";
-      const prefix = form.type === "sales" ? salesPrefix : purchasePrefix;
-      const typeCount = form.type === "sales" ? (salesCountRes.count || 0) : (purchaseCountRes.count || 0);
       // Offset applies only to sales (legacy invoice_number_offset on companies)
-      const invoiceOffset = form.type === "sales" ? ((companyRes.data as any)?.invoice_number_offset || 0) : 0;
+      const invoiceOffset = (companyRes.data as any)?.invoice_number_offset || 0;
+      const salesNext = getNextInvoiceSequence((salesNumbersRes.data as any[]) || [], invoiceOffset);
+      const purchaseNext = getNextInvoiceSequence((purchaseNumbersRes.data as any[]) || [], 0);
+      const prefix = form.type === "sales" ? salesPrefix : purchasePrefix;
+      const nextSequence = form.type === "sales" ? salesNext : purchaseNext;
       const year = new Date().getFullYear();
-      const nextNum = String(typeCount + 1 + invoiceOffset).padStart(4, "0");
+      const nextNum = String(nextSequence).padStart(4, "0");
       setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
-      // Cache counts so the type-toggle effect can recompute without re-fetching
+      // Cache next sequences so the type-toggle effect can recompute without re-fetching
       typeCountsRef.current = {
-        sales: salesCountRes.count || 0,
-        purchase: purchaseCountRes.count || 0,
+        salesNext,
+        purchaseNext,
         salesPrefix,
         purchasePrefix,
-        salesOffset: (companyRes.data as any)?.invoice_number_offset || 0,
       };
 
       // Resolve duplicate contact after contacts load
