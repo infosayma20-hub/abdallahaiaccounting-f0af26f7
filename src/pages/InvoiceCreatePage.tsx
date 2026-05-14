@@ -168,6 +168,15 @@ const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولا�
 const fmtCurrencyStatic = (n: number) =>
   `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null | undefined, offset = 0) => {
+  const maxUsed = (rows || []).reduce((max, row) => {
+    const match = String(row.invoice_number || "").match(/-(\d+)$/);
+    const value = match ? Number(match[1]) : 0;
+    return Number.isFinite(value) ? Math.max(max, value) : max;
+  }, offset);
+  return Math.max(maxUsed + 1, offset + 1);
+};
+
 // ─── Component ───
 const InvoiceCreatePage = () => {
   const navigate = useNavigate();
