@@ -106,6 +106,7 @@ export function useFormDraft<T>(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialCheckDoneRef = useRef(false);
   const loadedDraftOnMountRef = useRef(false);
+  const skipNextUnmountSaveRef = useRef(false);
   const storageKey = getKey(formId, scope);
 
   // عند التحميل الأولي: تحقق من وجود مسودة
@@ -178,11 +179,15 @@ export function useFormDraft<T>(
   const latestValueRef = useRef<T>(currentValue);
   useEffect(() => {
     latestValueRef.current = currentValue;
+    if (skipNextUnmountSaveRef.current) {
+      skipNextUnmountSaveRef.current = false;
+    }
   }, [currentValue]);
 
   useEffect(() => {
     return () => {
       if (!enabled) return;
+      if (skipNextUnmountSaveRef.current) return;
       const value = latestValueRef.current;
       if (isEmpty && isEmpty(value)) return;
       // اكتب فوراً بدون debounce — نحن نُغادر الصفحة الآن
@@ -196,6 +201,7 @@ export function useFormDraft<T>(
   useEffect(() => {
     if (!enabled || !ready) return;
     const handler = () => {
+      if (skipNextUnmountSaveRef.current) return;
       if (isEmpty && isEmpty(currentValue)) return;
       saveDraft(formId, currentValue, version, scope);
     };
@@ -212,6 +218,11 @@ export function useFormDraft<T>(
   }, [applyDraft]);
 
   const clearDraft = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    skipNextUnmountSaveRef.current = true;
     try {
       localStorage.removeItem(storageKey);
     } catch { /* noop */ }
