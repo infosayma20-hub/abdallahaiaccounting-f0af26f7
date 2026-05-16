@@ -1019,31 +1019,96 @@ const InvoicesPage = () => {
   );
 
   const handleExport = () => {
-    const rows = sorted.map(inv => ({
-      "رقم الفاتورة": inv.invoiceNumber,
-      "التاريخ": inv.date,
-      "النوع": inv.type === "sales" ? "مبيعات" : "مشتريات",
-      "العميل/المورد": inv.contactName,
-      "الحالة": statusConfig[inv.status]?.label || inv.status,
-      "طريقة الدفع": paymentLabels[inv.paymentMethod] || inv.paymentMethod,
-      "الإجمالي الفرعي": inv.subtotal,
-      "الخصم": inv.totalDiscount,
-      "الضريبة": inv.totalTax,
-      "الإجمالي": inv.total,
-      "المدفوع": inv.paidAmount,
-      "المتبقي": inv.remainingAmount,
-      "العملة": inv.currency,
-      "ملاحظات": inv.notes,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 25 }];
+    const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+    const headers = [
+      "رقم الفاتورة", "التاريخ", "النوع", "العميل/المورد", "الحالة", "طريقة الدفع",
+      "الإجمالي الفرعي", "الخصم", "الضريبة", "الإجمالي", "المدفوع", "المتبقي",
+      "العملة", "ملاحظات",
+    ];
+    const dataRows = sorted.map(inv => [
+      inv.invoiceNumber,
+      inv.date,
+      inv.type === "sales" ? "مبيعات" : "مشتريات",
+      inv.contactName,
+      statusConfig[inv.status]?.label || inv.status,
+      paymentLabels[inv.paymentMethod] || inv.paymentMethod,
+      round2(inv.subtotal),
+      round2(inv.totalDiscount),
+      round2(inv.totalTax),
+      round2(inv.total),
+      round2(inv.paidAmount),
+      round2(inv.remainingAmount),
+      inv.currency,
+      inv.notes,
+    ]);
+
+    // Totals row uses SUM formulas — but skip cancelled rows by using array of indices that aren't cancelled
+    // Simpler: write the precomputed numeric total to match the in-app summary (cancelled excluded).
+    const t = totalsAll;
+    const totalsRow: any[] = [
+      "الإجمالي", "", "", "", "", "",
+      round2(t.subtotal), round2(t.totalDiscount), round2(t.totalTax),
+      round2(t.total), round2(t.paid), round2(t.remaining),
+      "", "",
+    ];
+
+    const aoa: any[][] = [headers, ...dataRows, totalsRow];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [
+      { wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 12 }, { wch: 12 },
+      { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 },
+      { wch: 8 }, { wch: 25 },
+    ];
+    (ws as any)["!sheetView"] = [{ rightToLeft: true }];
+
+    // Apply number format #,##0.00 to financial columns (G..L = 6..11 zero-indexed)
+    const financialCols = [6, 7, 8, 9, 10, 11];
+    const lastRow = dataRows.length + 1; // header at row 0, last data at dataRows.length
+    for (let r = 1; r <= lastRow; r++) {
+      for (const c of financialCols) {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        const cell = ws[addr];
+        if (cell && typeof cell.v === "number") {
+          cell.t = "n";
+          cell.z = "#,##0.00;(#,##0.00);-";
+        }
+      }
+    }
+
+    // Bold + light fill on header row (0) and totals row (lastRow)
+    const styleRow = (rowIdx: number, fill: string) => {
+      for (let c = 0; c < headers.length; c++) {
+        const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+        if (!ws[addr]) ws[addr] = { v: "", t: "s" };
+        ws[addr].s = {
+          font: { bold: true },
+          fill: { patternType: "solid", fgColor: { rgb: fill } },
+          alignment: { horizontal: "center", vertical: "center" },
+        };
+      }
+    };
+    styleRow(0, "E5E7EB");
+    styleRow(lastRow, "FEF3C7");
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الفواتير");
+
+    const filters: string[] = [];
+    if (filterType !== "all") filters.push(`النوع: ${filterType === "sales" ? "مبيعات" : "مشتريات"}`);
+    if (statusFilter !== "all") filters.push(`الحالة: ${statusConfig[statusFilter]?.label || statusFilter}`);
+    if (searchQuery) filters.push(`بحث: ${searchQuery}`);
+    if (amountMin) filters.push(`من مبلغ: ${amountMin}`);
+    if (amountMax) filters.push(`إلى مبلغ: ${amountMax}`);
+
     setNextExportBranding({
       title: "تقرير الفواتير",
       currency: "متعدد العملات (الإجمالي بعملة كل فاتورة)",
       period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : undefined,
-      extraInfo: [`عدد الفواتير: ${sorted.length.toLocaleString()}`],
+      extraInfo: [
+        `عدد الفواتير: ${sorted.length.toLocaleString()}`,
+        `الفواتير الملغاة (مستبعدة من المجاميع): ${t.cancelledCount.toLocaleString()}`,
+        filters.length ? `الفلاتر: ${filters.join(" | ")}` : "",
+      ],
     });
     XLSX.writeFile(wb, `الفواتير_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast({ title: "تم تصدير التقرير ✅" });
