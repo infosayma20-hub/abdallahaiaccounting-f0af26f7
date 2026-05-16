@@ -98,14 +98,20 @@ const AppsLauncher = () => {
         const roles = (data || []).map((r) => r.role);
         const hasEmployeeRecord = !!employee && employee.is_active && !employee.is_terminated;
         const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
-        const hasDualEmployeeRepAccess = hasEmployeeRecord && !hasAdminAccess && roles.includes("employee") && roles.includes("sales_rep");
-        if (hasDualEmployeeRepAccess) {
+        const hasPureSystemRole =
+          roles.includes("super_admin") ||
+          roles.includes("portal") ||
+          roles.includes("store_tracker") ||
+          roles.includes("worker") ||
+          roles.includes("cashier");
+        // sales_rep أولوية أعلى من سجل الموظف
+        if (roles.includes("sales_rep") && !hasAdminAccess) {
           try {
             sessionStorage.removeItem(`workspace-choice:${user.id}`);
           } catch {}
           setEmployeeOnlyRedirect(false);
-          navigate("/choose-workspace", { replace: true });
-        } else if (hasEmployeeRecord && !hasAdminAccess) {
+          navigate("/rep", { replace: true });
+        } else if (hasEmployeeRecord && !hasAdminAccess && !hasPureSystemRole) {
           try {
             Object.keys(localStorage).forEach((key) => {
               if (key.startsWith("amwali-open-tabs") || key.includes("lastVisitedRoute")) localStorage.removeItem(key);

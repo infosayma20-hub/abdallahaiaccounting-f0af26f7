@@ -51,25 +51,13 @@ export function useRoleRedirect() {
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
         const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
 
-        // Dual-role users (employee + sales_rep) get a chooser screen on each
-        // login. Once they pick a workspace within the current tab session,
-        // honor that choice until they sign out / close the tab.
-        const isDualEmployeeRep =
-          isEmployee &&
-          !hasAdminAccess &&
-          roles.includes("employee") &&
-          roles.includes("sales_rep") &&
-          !roles.includes("super_admin");
-        if (isDualEmployeeRep) {
-          let chosen: string | null = null;
-          try {
-            chosen = sessionStorage.getItem(`workspace-choice:${user.id}`);
-          } catch {}
-          const nextPath = chosen === "/employee" || chosen === "/rep" ? chosen : "/choose-workspace";
+        // sales_rep أولوية أعلى من سجل الموظف: المستخدم اللي عنده دور
+        // مندوب مبيعات يروح مباشرة لشاشة المندوب حتى لو كان مرتبط بسجل
+        // employees.
+        if (roles.includes("sales_rep") && !hasAdminAccess) {
+          const nextPath = "/rep";
           if (isCancelled) return;
-          // Do not cache the chooser route so the user always gets it on a
-          // fresh session, but cache the resolved choice for this tab.
-          if (chosen) redirectCache.set(user.id, nextPath);
+          redirectCache.set(user.id, nextPath);
           setTargetPath(nextPath);
           setChecking(false);
           return;
