@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/layout/PageHeader";
@@ -10,12 +10,19 @@ import TaxSalesLedger from "@/components/tax/TaxSalesLedger";
 import TaxPurchasesLedger from "@/components/tax/TaxPurchasesLedger";
 import TaxSubmissions from "@/components/tax/TaxSubmissions";
 import TaxSettingsSection from "@/components/tax/TaxSettingsSection";
+import { calculateTaxSummary } from "@/lib/reports/tax-summary";
+
+const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
 export default function TaxCenterPage() {
   const { user } = useAuth();
   const [ownerId, setOwnerId] = useState<string>("");
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const now = new Date();
+  // Shared period state — cards + periodic report read/write the same year/month
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
 
   useEffect(() => {
     if (!user) return;
@@ -27,20 +34,14 @@ export default function TaxCenterPage() {
   useEffect(() => {
     if (!ownerId) return;
     loadSummary();
-  }, [ownerId]);
+  }, [ownerId, year, month]);
 
-  const loadSummary = async () => {
+  const loadSummary = useCallback(async () => {
+    if (!ownerId) return;
     setLoading(true);
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-
-    const { data: ledger } = await supabase
-      .from("tax_ledger")
-      .select("tax_type, tax_amount, is_deductible")
-      .eq("user_id", ownerId)
-      .eq("period_year", year)
-      .eq("period_month", month);
+    const today = new Date();
+    // Unified VAT helper — same source as TaxPeriodicReport
+    const tx = await calculateTaxSummary({ ownerId, year, month });
 
     const { data: submission } = await supabase
       .from("tax_submissions")
@@ -56,12 +57,12 @@ export default function TaxCenterPage() {
       .eq("user_id", ownerId)
       .maybeSingle();
 
-    const outputTax = (ledger || []).filter(l => l.tax_type === "output").reduce((s, l) => s + Number(l.tax_amount), 0);
-    const inputTax = (ledger || []).filter(l => l.tax_type === "input" && l.is_deductible).reduce((s, l) => s + Number(l.tax_amount), 0);
-    const netTax = outputTax - inputTax;
+    const outputTax = tx.totalOutputTax;
+    const inputTax = tx.totalInputTax;
+    const netTax = tx.netTaxDue;
     const dueDay = settings?.report_due_day || 15;
     const dueDate = new Date(year, month, dueDay); // next month
-    const daysRemaining = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     let statusColor = "text-amber-600";
     let statusBg = "bg-amber-50";
@@ -82,9 +83,9 @@ export default function TaxCenterPage() {
 
     setSummary({ outputTax, inputTax, netTax, daysRemaining, statusColor, statusBg, statusLabel, StatusIcon, submission, settings });
     setLoading(false);
-  };
+  }, [ownerId, year, month]);
 
-  const monthName = new Date().toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+  const monthName = `${MONTHS_AR[month - 1]} ${year}`;
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -165,7 +166,13 @@ export default function TaxCenterPage() {
         </TabsList>
 
         <TabsContent value="periodic">
-          <TaxPeriodicReport ownerId={ownerId} />
+          <TaxPeriodicReport
+            ownerId={ownerId}
+            year={year}
+            month={month}
+            onPeriodChange={(y, m) => { setYear(y); setMonth(m); }}
+            onCalculated={loadSummary}
+          />
         </TabsContent>
         <TabsContent value="sales">
           <TaxSalesLedger ownerId={ownerId} />
