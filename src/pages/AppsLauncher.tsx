@@ -95,7 +95,7 @@ const AppsLauncher = () => {
         .maybeSingle(),
     ]).then(([{ data }, { data: employee }]) => {
         if (cancelled) return;
-        const roles = (data || []).map((r) => r.role);
+        const roles: string[] = (data || []).map((r) => r.role as string);
         const hasEmployeeRecord = !!employee && employee.is_active && !employee.is_terminated;
         const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
         const hasPureSystemRole =

@@ -46,7 +46,7 @@ const AuthPage = () => {
         .eq("auth_user_id", userId)
         .maybeSingle(),
     ]);
-    const roles = (data || []).map((r) => r.role);
+    const roles: string[] = (data || []).map((r) => r.role as string);
     const hasEmployeeRecord = !!employee && employee.is_active && !employee.is_terminated;
     const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
     // sales_rep أولوية أعلى من سجل الموظف: المستخدم اللي عنده دور مندوب
