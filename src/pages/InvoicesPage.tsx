@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -929,6 +929,31 @@ const InvoicesPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Number formatter — always 2 decimals with thousands separators
+  const fmtNum = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Totals — exclude cancelled invoices from financial sums (unless user filtered ONLY cancelled)
+  const computeTotals = (list: Invoice[]) => {
+    const cancelledCount = list.filter(i => i.status === "cancelled").length;
+    const onlyCancelled = statusFilter === "cancelled";
+    const financial = onlyCancelled ? list : list.filter(i => i.status !== "cancelled");
+    const sum = (key: keyof Invoice) => financial.reduce((s, i) => s + (Number(i[key] as any) || 0), 0);
+    return {
+      count: list.length,
+      cancelledCount,
+      financialCount: financial.length,
+      subtotal: sum("subtotal"),
+      totalDiscount: sum("totalDiscount"),
+      totalTax: sum("totalTax"),
+      total: sum("total"),
+      paid: sum("paidAmount"),
+      remaining: sum("remainingAmount"),
+      onlyCancelled,
+    };
+  };
+  const totalsAll = useMemo(() => computeTotals(sorted), [sorted, statusFilter]);
+  const totalsPage = useMemo(() => computeTotals(paginated), [paginated, statusFilter]);
+
   useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
 
   const statusConfig: Record<string, { label: string; color: string }> = {
@@ -994,31 +1019,96 @@ const InvoicesPage = () => {
   );
 
   const handleExport = () => {
-    const rows = sorted.map(inv => ({
-      "رقم الفاتورة": inv.invoiceNumber,
-      "التاريخ": inv.date,
-      "النوع": inv.type === "sales" ? "مبيعات" : "مشتريات",
-      "العميل/المورد": inv.contactName,
-      "الحالة": statusConfig[inv.status]?.label || inv.status,
-      "طريقة الدفع": paymentLabels[inv.paymentMethod] || inv.paymentMethod,
-      "الإجمالي الفرعي": inv.subtotal,
-      "الخصم": inv.totalDiscount,
-      "الضريبة": inv.totalTax,
-      "الإجمالي": inv.total,
-      "المدفوع": inv.paidAmount,
-      "المتبقي": inv.remainingAmount,
-      "العملة": inv.currency,
-      "ملاحظات": inv.notes,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 25 }];
+    const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+    const headers = [
+      "رقم الفاتورة", "التاريخ", "النوع", "العميل/المورد", "الحالة", "طريقة الدفع",
+      "الإجمالي الفرعي", "الخصم", "الضريبة", "الإجمالي", "المدفوع", "المتبقي",
+      "العملة", "ملاحظات",
+    ];
+    const dataRows = sorted.map(inv => [
+      inv.invoiceNumber,
+      inv.date,
+      inv.type === "sales" ? "مبيعات" : "مشتريات",
+      inv.contactName,
+      statusConfig[inv.status]?.label || inv.status,
+      paymentLabels[inv.paymentMethod] || inv.paymentMethod,
+      round2(inv.subtotal),
+      round2(inv.totalDiscount),
+      round2(inv.totalTax),
+      round2(inv.total),
+      round2(inv.paidAmount),
+      round2(inv.remainingAmount),
+      inv.currency,
+      inv.notes,
+    ]);
+
+    // Totals row uses SUM formulas — but skip cancelled rows by using array of indices that aren't cancelled
+    // Simpler: write the precomputed numeric total to match the in-app summary (cancelled excluded).
+    const t = totalsAll;
+    const totalsRow: any[] = [
+      "الإجمالي", "", "", "", "", "",
+      round2(t.subtotal), round2(t.totalDiscount), round2(t.totalTax),
+      round2(t.total), round2(t.paid), round2(t.remaining),
+      "", "",
+    ];
+
+    const aoa: any[][] = [headers, ...dataRows, totalsRow];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [
+      { wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 12 }, { wch: 12 },
+      { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 },
+      { wch: 8 }, { wch: 25 },
+    ];
+    (ws as any)["!sheetView"] = [{ rightToLeft: true }];
+
+    // Apply number format #,##0.00 to financial columns (G..L = 6..11 zero-indexed)
+    const financialCols = [6, 7, 8, 9, 10, 11];
+    const lastRow = dataRows.length + 1; // header at row 0, last data at dataRows.length
+    for (let r = 1; r <= lastRow; r++) {
+      for (const c of financialCols) {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        const cell = ws[addr];
+        if (cell && typeof cell.v === "number") {
+          cell.t = "n";
+          cell.z = "#,##0.00;(#,##0.00);-";
+        }
+      }
+    }
+
+    // Bold + light fill on header row (0) and totals row (lastRow)
+    const styleRow = (rowIdx: number, fill: string) => {
+      for (let c = 0; c < headers.length; c++) {
+        const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+        if (!ws[addr]) ws[addr] = { v: "", t: "s" };
+        ws[addr].s = {
+          font: { bold: true },
+          fill: { patternType: "solid", fgColor: { rgb: fill } },
+          alignment: { horizontal: "center", vertical: "center" },
+        };
+      }
+    };
+    styleRow(0, "E5E7EB");
+    styleRow(lastRow, "FEF3C7");
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الفواتير");
+
+    const filters: string[] = [];
+    if (filterType !== "all") filters.push(`النوع: ${filterType === "sales" ? "مبيعات" : "مشتريات"}`);
+    if (statusFilter !== "all") filters.push(`الحالة: ${statusConfig[statusFilter]?.label || statusFilter}`);
+    if (searchQuery) filters.push(`بحث: ${searchQuery}`);
+    if (amountMin) filters.push(`من مبلغ: ${amountMin}`);
+    if (amountMax) filters.push(`إلى مبلغ: ${amountMax}`);
+
     setNextExportBranding({
       title: "تقرير الفواتير",
       currency: "متعدد العملات (الإجمالي بعملة كل فاتورة)",
       period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : undefined,
-      extraInfo: [`عدد الفواتير: ${sorted.length.toLocaleString()}`],
+      extraInfo: [
+        `عدد الفواتير: ${sorted.length.toLocaleString()}`,
+        `الفواتير الملغاة (مستبعدة من المجاميع): ${t.cancelledCount.toLocaleString()}`,
+        filters.length ? `الفلاتر: ${filters.join(" | ")}` : "",
+      ],
     });
     XLSX.writeFile(wb, `الفواتير_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast({ title: "تم تصدير التقرير ✅" });
@@ -1307,6 +1397,19 @@ const InvoicesPage = () => {
                   );
                 })}
               </TableBody>
+              <TableFooter>
+                <TableRow className="bg-muted/40 font-semibold">
+                  <TableCell colSpan={6} className="text-right text-xs">
+                    الإجمالي ({totalsAll.financialCount.toLocaleString()} فاتورة
+                    {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
+                  </TableCell>
+                  <TableCell className="tabular-nums text-sm font-bold">₪{fmtNum(totalsAll.total)}</TableCell>
+                  <TableCell className={`tabular-nums text-sm font-bold ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    ₪{fmtNum(totalsAll.remaining)}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
             </Table>
           </CardContent>
         </Card>
@@ -1368,6 +1471,50 @@ const InvoicesPage = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Summary bar — totals across all filtered results (cancelled excluded unless filter targets them) */}
+      {!loading && sorted.length > 0 && (
+        <Card className="border-0 shadow-sm rounded-2xl bg-muted/20">
+          <CardContent className="p-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+              <span className="font-semibold text-foreground">
+                {totalsAll.onlyCancelled ? "مجاميع الفواتير الملغاة" : "إجمالي النتائج المفلترة"}
+              </span>
+              <span className="text-muted-foreground">
+                عدد الفواتير: <span className="font-bold text-foreground tabular-nums">{totalsAll.financialCount.toLocaleString()}</span>
+              </span>
+              {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled && (
+                <span className="text-muted-foreground">
+                  ملغاة (مستبعدة): <span className="font-bold tabular-nums">{totalsAll.cancelledCount.toLocaleString()}</span>
+                </span>
+              )}
+              <span className="text-muted-foreground">
+                الإجمالي الفرعي: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.subtotal)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                الخصم: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalDiscount)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                الضريبة: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalTax)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                الإجمالي: <span className="font-bold text-primary tabular-nums">₪{fmtNum(totalsAll.total)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                المدفوع: <span className="font-bold text-success tabular-nums">₪{fmtNum(totalsAll.paid)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                المتبقي: <span className={`font-bold tabular-nums ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>₪{fmtNum(totalsAll.remaining)}</span>
+              </span>
+              {sorted.length > PAGE_SIZE && (
+                <span className="text-[10px] text-muted-foreground border-r pr-3 mr-auto">
+                  إجمالي الصفحة: ₪{fmtNum(totalsPage.total)} • متبقي الصفحة: ₪{fmtNum(totalsPage.remaining)}
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Pagination */}
