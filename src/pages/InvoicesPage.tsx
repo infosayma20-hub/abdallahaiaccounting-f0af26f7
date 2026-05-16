@@ -929,6 +929,31 @@ const InvoicesPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Number formatter — always 2 decimals with thousands separators
+  const fmtNum = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Totals — exclude cancelled invoices from financial sums (unless user filtered ONLY cancelled)
+  const computeTotals = (list: Invoice[]) => {
+    const cancelledCount = list.filter(i => i.status === "cancelled").length;
+    const onlyCancelled = statusFilter === "cancelled";
+    const financial = onlyCancelled ? list : list.filter(i => i.status !== "cancelled");
+    const sum = (key: keyof Invoice) => financial.reduce((s, i) => s + (Number(i[key] as any) || 0), 0);
+    return {
+      count: list.length,
+      cancelledCount,
+      financialCount: financial.length,
+      subtotal: sum("subtotal"),
+      totalDiscount: sum("totalDiscount"),
+      totalTax: sum("totalTax"),
+      total: sum("total"),
+      paid: sum("paidAmount"),
+      remaining: sum("remainingAmount"),
+      onlyCancelled,
+    };
+  };
+  const totalsAll = useMemo(() => computeTotals(sorted), [sorted, statusFilter]);
+  const totalsPage = useMemo(() => computeTotals(paginated), [paginated, statusFilter]);
+
   useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
 
   const statusConfig: Record<string, { label: string; color: string }> = {
