@@ -732,6 +732,9 @@ const InvoiceCreatePage = () => {
           remainingAmount: Number(data.remaining_amount) || 0,
           invoiceNumber: data.invoice_number || null,
         };
+        originalItemsRef.current = (data.invoice_items || [])
+          .filter((it: any) => it.product_id)
+          .map((it: any) => ({ productId: it.product_id, quantity: Number(it.quantity) || 0 }));
 
         const paymentTerms = data.payment_terms || "net_30";
 
