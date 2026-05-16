@@ -49,6 +49,12 @@ const AuthPage = () => {
     const roles = (data || []).map((r) => r.role);
     const hasEmployeeRecord = !!employee && employee.is_active && !employee.is_terminated;
     const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
+    if (hasEmployeeRecord && !hasAdminAccess && roles.includes("employee") && roles.includes("sales_rep")) {
+      try {
+        sessionStorage.removeItem(`workspace-choice:${userId}`);
+      } catch {}
+      return "/choose-workspace";
+    }
     if (hasEmployeeRecord && !hasAdminAccess) {
       try {
         Object.keys(localStorage).forEach((key) => {
@@ -76,6 +82,7 @@ const AuthPage = () => {
     if (roles.includes("super_admin")) return "/super-admin/dashboard";
     if (roles.includes("portal") && !roles.includes("admin")) return "/portal/dashboard";
     if (roles.includes("employee") && roles.length === 1) return "/employee";
+    if (roles.includes("sales_rep") && !roles.includes("admin")) return "/rep";
     if (roles.includes("cashier") && !roles.includes("admin")) return "/pos";
     return "/apps";
   }, []);
@@ -148,6 +155,11 @@ const AuthPage = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+      try {
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith("workspace-choice:")) sessionStorage.removeItem(key);
+        });
+      } catch {}
       await supabase.auth.signOut();
       localStorage.removeItem("trial_banner_dismissed");
       const { error } = await lovable.auth.signInWithOAuth("google", {

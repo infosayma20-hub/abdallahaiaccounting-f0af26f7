@@ -10,7 +10,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -264,8 +264,10 @@ const AuthCheckSpinner = () => (
 const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesRep }: { children: React.ReactNode; blockCashier?: boolean; blockStoreTracker?: boolean; blockSalesRep?: boolean }) => {
   const { user, loading } = useAuth();
   const { targetPath, checking } = useRoleRedirect();
+  const location = useLocation();
   if (loading || ((blockCashier || blockStoreTracker || blockSalesRep) && checking)) return <AuthCheckSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (!checking && targetPath === "/choose-workspace" && location.pathname !== "/choose-workspace") return <Navigate to="/choose-workspace" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
   if (blockStoreTracker && targetPath === "/store-tracker") return <Navigate to="/store-tracker" replace />;
   if (blockSalesRep && targetPath === "/rep") return <Navigate to="/rep" replace />;

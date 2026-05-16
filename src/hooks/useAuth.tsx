@@ -101,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       for (const key of Object.keys(localStorage)) {
         if (key.startsWith(prefix)) localStorage.removeItem(key);
       }
+      if (currentUser?.id) sessionStorage.removeItem(`workspace-choice:${currentUser.id}`);
     } catch {}
     await supabase.auth.signOut();
   };

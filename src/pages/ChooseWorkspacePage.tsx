@@ -17,6 +17,9 @@ export default function ChooseWorkspacePage() {
   };
 
   const signOut = async () => {
+    try {
+      if (user?.id) sessionStorage.removeItem(`workspace-choice:${user.id}`);
+    } catch {}
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };
