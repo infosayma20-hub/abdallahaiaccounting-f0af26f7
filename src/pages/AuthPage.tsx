@@ -155,6 +155,11 @@ const AuthPage = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+      try {
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith("workspace-choice:")) sessionStorage.removeItem(key);
+        });
+      } catch {}
       await supabase.auth.signOut();
       localStorage.removeItem("trial_banner_dismissed");
       const { error } = await lovable.auth.signInWithOAuth("google", {
