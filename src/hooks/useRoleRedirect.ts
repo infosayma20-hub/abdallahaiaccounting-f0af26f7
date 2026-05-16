@@ -27,7 +27,7 @@ export function useRoleRedirect() {
     }
 
     const cachedTarget = redirectCache.get(user.id);
-    if (cachedTarget !== undefined && cachedTarget !== "/apps") {
+    if (cachedTarget !== undefined && !["/apps", "/employee", "/rep", "/choose-workspace"].includes(cachedTarget || "")) {
       setTargetPath(cachedTarget);
       setChecking(false);
       return;
