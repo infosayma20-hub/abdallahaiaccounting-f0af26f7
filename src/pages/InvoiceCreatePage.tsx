@@ -2275,6 +2275,7 @@ const InvoiceCreatePage = () => {
                               products={products}
                               invoiceType={form.type}
                               currencySymbol={currSymbol}
+                              supplierId={form.type === "purchase" ? form.contactId : null}
                               onChange={(value) => {
                                 setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
                                 setForm(prev => ({
