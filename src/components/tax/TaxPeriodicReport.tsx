@@ -5,31 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Printer, FileSpreadsheet, Send, Receipt } from "lucide-react";
 import { toast } from "sonner";
-import { filterOutVoidedInvoiceRows } from "@/lib/reports/tax-ledger-filter";
+import { calculateTaxSummary, type TaxSummary } from "@/lib/reports/tax-summary";
 import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 
-interface Props { ownerId: string; }
+interface Props {
+  ownerId: string;
+  year?: number;
+  month?: number;
+  onPeriodChange?: (year: number, month: number) => void;
+  onCalculated?: () => void;
+}
 
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
-interface ReportData {
-  standardSalesNet: number; standardTax: number;
-  zeroSalesNet: number;
-  exemptSalesNet: number;
-  deductiblePurchasesNet: number; deductibleInputTax: number;
-  nonDeductiblePurchasesNet: number; nonDeductibleTax: number;
-  zeroPurchasesNet: number;
-  exemptPurchasesNet: number;
-  // قيم الإشعارات (مرتجعات): تخزن كأرقام موجبة لعرضها بإشارة سالبة
-  creditNotesNet: number; creditNotesTax: number;       // إشعارات دائنة (تخفض المخرجات)
-  debitNotesNet: number; debitNotesTax: number;         // إشعارات مدينة (تخفض المدخلات)
-}
-
-export default function TaxPeriodicReport({ ownerId }: Props) {
+export default function TaxPeriodicReport({ ownerId, year: yearProp, month: monthProp, onPeriodChange, onCalculated }: Props) {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [data, setData] = useState<ReportData | null>(null);
+  const isControlled = typeof yearProp === "number" && typeof monthProp === "number";
+  const [yearInner, setYearInner] = useState(now.getFullYear());
+  const [monthInner, setMonthInner] = useState(now.getMonth() + 1);
+  const year = isControlled ? (yearProp as number) : yearInner;
+  const month = isControlled ? (monthProp as number) : monthInner;
+  const setYear = (y: number) => { if (isControlled) onPeriodChange?.(y, month); else setYearInner(y); };
+  const setMonth = (m: number) => { if (isControlled) onPeriodChange?.(year, m); else setMonthInner(m); };
+  const [data, setData] = useState<TaxSummary | null>(null);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,52 +39,17 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
   const calculate = async () => {
     if (!ownerId) return;
     setLoading(true);
-    const { data: ledger } = await supabase
-      .from("tax_ledger")
-      .select("*")
-      .eq("user_id", ownerId)
-      .eq("period_year", year)
-      .eq("period_month", month);
-
-    const rows = await filterOutVoidedInvoiceRows(ownerId, ledger || []);
-    const output = rows.filter(r => r.tax_type === "output");
-    const input = rows.filter(r => r.tax_type === "input");
-
-    // فصل الإشعارات (مرتجعات) — تأتي بقيم سالبة من credit_note/debit_note
-    const isCreditNote = (r: any) => r.reference_type === "credit_note" || Number(r.tax_amount) < 0 && r.tax_type === "output";
-    const isDebitNote = (r: any) => r.reference_type === "debit_note" || Number(r.tax_amount) < 0 && r.tax_type === "input";
-
-    const creditNotes = output.filter(isCreditNote);
-    const debitNotes = input.filter(isDebitNote);
-    const regularOutput = output.filter(r => !isCreditNote(r));
-    const regularInput = input.filter(r => !isDebitNote(r));
-
-    setData({
-      standardSalesNet: regularOutput.filter(r => r.tax_category === "standard").reduce((s, r) => s + Number(r.net_amount), 0),
-      standardTax: regularOutput.filter(r => r.tax_category === "standard").reduce((s, r) => s + Number(r.tax_amount), 0),
-      zeroSalesNet: regularOutput.filter(r => r.tax_category === "zero").reduce((s, r) => s + Number(r.net_amount), 0),
-      exemptSalesNet: regularOutput.filter(r => r.tax_category === "exempt").reduce((s, r) => s + Number(r.net_amount), 0),
-      deductiblePurchasesNet: regularInput.filter(r => r.is_deductible && r.tax_category === "standard").reduce((s, r) => s + Number(r.net_amount), 0),
-      deductibleInputTax: regularInput.filter(r => r.is_deductible && r.tax_category === "standard").reduce((s, r) => s + Number(r.tax_amount), 0),
-      nonDeductiblePurchasesNet: regularInput.filter(r => !r.is_deductible).reduce((s, r) => s + Number(r.net_amount), 0),
-      nonDeductibleTax: regularInput.filter(r => !r.is_deductible).reduce((s, r) => s + Number(r.tax_amount), 0),
-      zeroPurchasesNet: regularInput.filter(r => r.tax_category === "zero").reduce((s, r) => s + Number(r.net_amount), 0),
-      exemptPurchasesNet: regularInput.filter(r => r.tax_category === "exempt").reduce((s, r) => s + Number(r.net_amount), 0),
-      // مرتجعات — نُخزن قيماً موجبة للعرض (ستُعرض بإشارة سالبة في الجدول)
-      creditNotesNet: Math.abs(creditNotes.reduce((s, r) => s + Number(r.net_amount), 0)),
-      creditNotesTax: Math.abs(creditNotes.reduce((s, r) => s + Number(r.tax_amount), 0)),
-      debitNotesNet: Math.abs(debitNotes.reduce((s, r) => s + Number(r.net_amount), 0)),
-      debitNotesTax: Math.abs(debitNotes.reduce((s, r) => s + Number(r.tax_amount), 0)),
-    });
+    const summary = await calculateTaxSummary({ ownerId, year, month });
+    setData(summary);
     setLoading(false);
+    onCalculated?.();
   };
 
   const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // إجمالي الضريبة المستحقة بعد طرح المرتجعات
-  const totalOutputTax = data ? data.standardTax - data.creditNotesTax : 0;
-  const totalInputTax = data ? data.deductibleInputTax - data.debitNotesTax : 0;
-  const netTax = totalOutputTax - totalInputTax;
+  const totalOutputTax = data?.totalOutputTax ?? 0;
+  const totalInputTax = data?.totalInputTax ?? 0;
+  const netTax = data?.netTaxDue ?? 0;
 
   const handlePrint = () => {
     const printContent = document.getElementById("tax-report-print");
