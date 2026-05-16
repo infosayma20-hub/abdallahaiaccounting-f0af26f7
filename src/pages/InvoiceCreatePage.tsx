@@ -1371,7 +1371,23 @@ const InvoiceCreatePage = () => {
             ? Number(prod.quantity) - deliveredQty
             : Number(prod.quantity) + item.quantity;
 
-          await supabase.from("products").update({ quantity: newQty } as any).eq("id", item.productId);
+          // ─── Purchase invoice: refresh buy_price & supplier link ───
+          // - buy_price is the single source of "سعر الشراء" displayed on the
+          //   products screen (no separate last_purchase_price column exists).
+          //   We update it only when the line carries a meaningful price.
+          // - default_supplier_id is filled when the product was not yet
+          //   linked to any supplier, so future purchase invoices prioritise it.
+          const productUpdate: Record<string, any> = { quantity: newQty };
+          if (form.type === "purchase") {
+            const linePrice = Number(item.unitPrice || 0);
+            if (linePrice > 0 && form.currency === "شيكل") {
+              productUpdate.buy_price = linePrice;
+            }
+            if (contactId && !prod.default_supplier_id) {
+              productUpdate.default_supplier_id = contactId;
+            }
+          }
+          await supabase.from("products").update(productUpdate as any).eq("id", item.productId);
           await supabase.from("stock_movements").insert({
             product_id: item.productId,
             quantity: form.type === "sales" ? deliveredQty : item.quantity,
@@ -2275,6 +2291,7 @@ const InvoiceCreatePage = () => {
                               products={products}
                               invoiceType={form.type}
                               currencySymbol={currSymbol}
+                              supplierId={form.type === "purchase" ? form.contactId : null}
                               onChange={(value) => {
                                 setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
                                 setForm(prev => ({

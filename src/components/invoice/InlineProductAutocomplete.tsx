@@ -15,6 +15,7 @@ type ProductOption = {
   sell_price?: number | null;
   quantity?: number | null;
   unit?: string | null;
+  default_supplier_id?: string | null;
 };
 
 interface InlineProductAutocompleteProps {
@@ -30,6 +31,12 @@ interface InlineProductAutocompleteProps {
   inputClassName?: string;
   dropdownClassName?: string;
   disabled?: boolean;
+  /**
+   * When set with invoiceType="purchase", products whose
+   * default_supplier_id matches will be prioritised at the top and
+   * unrelated products will be flagged as "غير مربوط بهذا المورد".
+   */
+  supplierId?: string | null;
   inputProps?: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "onFocus" | "onBlur" | "onKeyDown"> & Record<string, any>;
 }
 
@@ -46,6 +53,7 @@ export default function InlineProductAutocomplete({
   inputClassName,
   dropdownClassName,
   disabled,
+  supplierId,
   inputProps,
 }: InlineProductAutocompleteProps) {
   const [open, setOpen] = React.useState(false);
@@ -106,8 +114,20 @@ export default function InlineProductAutocomplete({
         })
       : products;
 
-    return base.slice(0, 40);
-  }, [debouncedQuery, products]);
+    // For purchase invoices with a chosen supplier: surface products linked to
+    // that supplier first (stable order preserved within each group). This
+    // never hides unrelated products — keeps Enter-selects-first-match UX.
+    const supplierFiltered =
+      invoiceType === "purchase" && supplierId
+        ? [...base].sort((a, b) => {
+            const aMatch = a.default_supplier_id === supplierId ? 0 : 1;
+            const bMatch = b.default_supplier_id === supplierId ? 0 : 1;
+            return aMatch - bMatch;
+          })
+        : base;
+
+    return supplierFiltered.slice(0, 40);
+  }, [debouncedQuery, products, invoiceType, supplierId]);
 
   const dd = useSearchableDropdown<ProductOption>({
     items: filteredProducts,
@@ -175,6 +195,13 @@ export default function InlineProductAutocomplete({
           {filteredProducts.map((product, index) => {
             const active = dd.activeIndex === index;
             const price = invoiceType === "sales" ? Number(product.sell_price || 0) : Number(product.buy_price || 0);
+            const isOtherSupplier =
+              invoiceType === "purchase" &&
+              !!supplierId &&
+              !!product.default_supplier_id &&
+              product.default_supplier_id !== supplierId;
+            const isUnlinked =
+              invoiceType === "purchase" && !!supplierId && !product.default_supplier_id;
 
             return (
               <button
@@ -190,7 +217,19 @@ export default function InlineProductAutocomplete({
                 )}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11.5px] font-medium text-foreground">{product.name}</p>
+                  <p className="truncate text-[11.5px] font-medium text-foreground">
+                    {product.name}
+                    {isOtherSupplier && (
+                      <span className="ms-2 inline-block rounded bg-amber-100 px-1.5 py-[1px] text-[9px] font-semibold text-amber-700 align-middle">
+                        مورد آخر
+                      </span>
+                    )}
+                    {isUnlinked && (
+                      <span className="ms-2 inline-block rounded bg-muted px-1.5 py-[1px] text-[9px] font-semibold text-muted-foreground align-middle">
+                        غير مربوط
+                      </span>
+                    )}
+                  </p>
                   <p className="truncate text-[10px] text-muted-foreground">
                     {(() => {
                       const code = product.sku || product.barcode;
