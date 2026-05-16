@@ -1330,6 +1330,67 @@ const InvoiceCreatePage = () => {
             remainingAmount: Number(summary.remainingAmount || 0),
             invoiceNumber: originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber,
           };
+
+          // ─── Stock + buy_price reconciliation on edit ───
+          // Behaviour:
+          // • Treat edit as a fresh post: refresh products.buy_price for purchases
+          //   when the line carries a meaningful price (option A from spec).
+          // • Apply ONLY the delta between original and new quantity per product
+          //   so the on-hand stock doesn't double-count (avoids 10 → 25 bug).
+          // • Fill default_supplier_id only when it's still empty (never overwrite).
+          // • Cancelled invoices never reach this branch (handled by status flip
+          //   elsewhere), so buy_price/default_supplier_id stay untouched.
+          const oldByProduct = new Map<string, number>();
+          for (const o of originalItemsRef.current) {
+            oldByProduct.set(o.productId, (oldByProduct.get(o.productId) || 0) + Number(o.quantity || 0));
+          }
+          const newByProduct = new Map<string, { qty: number; bonus: number; price: number }>();
+          for (const it of form.items) {
+            if (!it.productId) continue;
+            const cur = newByProduct.get(it.productId) || { qty: 0, bonus: 0, price: 0 };
+            cur.qty += Number(it.quantity || 0);
+            cur.bonus += form.type === "sales" ? Number(it.bonusQuantity || 0) : 0;
+            cur.price = Number(it.unitPrice || 0) || cur.price;
+            newByProduct.set(it.productId, cur);
+          }
+          const allProductIds = new Set<string>([...oldByProduct.keys(), ...newByProduct.keys()]);
+          for (const pid of allProductIds) {
+            const prod = products.find(p => p.id === pid);
+            if (!prod) continue;
+            const oldQty = oldByProduct.get(pid) || 0;
+            const entry = newByProduct.get(pid);
+            const newQty = entry ? entry.qty + entry.bonus : 0;
+            const delta = form.type === "sales" ? -(newQty - oldQty) : (newQty - oldQty);
+            const productUpdate: Record<string, any> = {};
+            if (delta !== 0) {
+              productUpdate.quantity = Number(prod.quantity || 0) + delta;
+            }
+            if (form.type === "purchase" && entry) {
+              if (entry.price > 0 && form.currency === "شيكل") {
+                productUpdate.buy_price = entry.price;
+              }
+              if (contactId && !prod.default_supplier_id) {
+                productUpdate.default_supplier_id = contactId;
+              }
+            }
+            if (Object.keys(productUpdate).length > 0) {
+              await supabase.from("products").update(productUpdate as any).eq("id", pid);
+            }
+            if (delta !== 0) {
+              await supabase.from("stock_movements").insert({
+                product_id: pid,
+                quantity: Math.abs(delta),
+                movement_type: delta > 0 ? "وارد" : "صادر",
+                reference_note: `تعديل فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} (فرق ${delta > 0 ? "+" : ""}${delta})`,
+                user_id: user.id,
+              } as any);
+            }
+          }
+          // Refresh snapshot so a subsequent save in the same session uses the new baseline.
+          originalItemsRef.current = Array.from(newByProduct.entries()).map(([productId, v]) => ({
+            productId,
+            quantity: v.qty,
+          }));
         }
 
         await supabase.from("invoice_activity_log").insert({
