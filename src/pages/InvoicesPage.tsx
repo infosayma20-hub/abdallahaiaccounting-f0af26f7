@@ -1473,6 +1473,50 @@ const InvoicesPage = () => {
         </div>
       )}
 
+      {/* Summary bar — totals across all filtered results (cancelled excluded unless filter targets them) */}
+      {!loading && sorted.length > 0 && (
+        <Card className="border-0 shadow-sm rounded-2xl bg-muted/20">
+          <CardContent className="p-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+              <span className="font-semibold text-foreground">
+                {totalsAll.onlyCancelled ? "مجاميع الفواتير الملغاة" : "إجمالي النتائج المفلترة"}
+              </span>
+              <span className="text-muted-foreground">
+                عدد الفواتير: <span className="font-bold text-foreground tabular-nums">{totalsAll.financialCount.toLocaleString()}</span>
+              </span>
+              {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled && (
+                <span className="text-muted-foreground">
+                  ملغاة (مستبعدة): <span className="font-bold tabular-nums">{totalsAll.cancelledCount.toLocaleString()}</span>
+                </span>
+              )}
+              <span className="text-muted-foreground">
+                الإجمالي الفرعي: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.subtotal)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                الخصم: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalDiscount)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                الضريبة: <span className="font-bold text-foreground tabular-nums">₪{fmtNum(totalsAll.totalTax)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                الإجمالي: <span className="font-bold text-primary tabular-nums">₪{fmtNum(totalsAll.total)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                المدفوع: <span className="font-bold text-success tabular-nums">₪{fmtNum(totalsAll.paid)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                المتبقي: <span className={`font-bold tabular-nums ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>₪{fmtNum(totalsAll.remaining)}</span>
+              </span>
+              {sorted.length > PAGE_SIZE && (
+                <span className="text-[10px] text-muted-foreground border-r pr-3 mr-auto">
+                  إجمالي الصفحة: ₪{fmtNum(totalsPage.total)} • متبقي الصفحة: ₪{fmtNum(totalsPage.remaining)}
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Pagination */}
       {!loading && sorted.length > PAGE_SIZE && (
         <div className="flex items-center justify-between pt-2 px-1">
