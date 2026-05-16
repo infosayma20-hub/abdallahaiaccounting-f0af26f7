@@ -205,6 +205,9 @@ const InvoiceCreatePage = () => {
     remainingAmount: number;
     invoiceNumber: string | null;
   } | null>(null);
+  // Snapshot of items at load time — used on edit-save to compute stock delta
+  // and avoid duplicating stock_movements when a line quantity changes.
+  const originalItemsRef = useRef<Array<{ productId: string; quantity: number }>>([]);
 
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
