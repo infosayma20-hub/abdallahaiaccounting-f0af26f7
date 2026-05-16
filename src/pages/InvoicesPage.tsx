@@ -1397,6 +1397,19 @@ const InvoicesPage = () => {
                   );
                 })}
               </TableBody>
+              <TableFooter>
+                <TableRow className="bg-muted/40 font-semibold">
+                  <TableCell colSpan={6} className="text-right text-xs">
+                    الإجمالي ({totalsAll.financialCount.toLocaleString()} فاتورة
+                    {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
+                  </TableCell>
+                  <TableCell className="tabular-nums text-sm font-bold">₪{fmtNum(totalsAll.total)}</TableCell>
+                  <TableCell className={`tabular-nums text-sm font-bold ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    ₪{fmtNum(totalsAll.remaining)}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
             </Table>
           </CardContent>
         </Card>
