@@ -17085,6 +17085,7 @@ export type Database = {
         Args: { p_branch_id: string; p_user_id: string }
         Returns: string
       }
+      reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
