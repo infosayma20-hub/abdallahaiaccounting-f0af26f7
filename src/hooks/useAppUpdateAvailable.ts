@@ -25,6 +25,11 @@ function currentAssetSignature(): string {
 }
 
 async function fetchLatestSignature(): Promise<string> {
+  try {
+    const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
+    await Promise.all(regs.map((r) => r.update().catch(() => undefined)));
+  } catch {}
+
   const versionRes = await fetch(`/app-version.json?__check=${Date.now()}`, {
     cache: "no-store",
     headers: {
