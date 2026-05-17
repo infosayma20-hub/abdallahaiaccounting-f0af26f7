@@ -461,8 +461,10 @@ const InvoiceCreatePage = () => {
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "sale").neq("status", "cancelled").eq("is_voided", false),
-        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "purchase").neq("status", "cancelled").eq("is_voided", false),
+        // Include cancelled/voided invoices — the DB unique index covers them too,
+        // so the next sequence must skip past any existing number regardless of status.
+        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "sale"),
+        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "purchase"),
         supabase.from("tax_settings").select("registration_type").eq("user_id", user.id).maybeSingle(),
         supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
         (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", user.id).maybeSingle() as any),
