@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 
 declare const __APP_BUILD_TIME__: string;
 
+function buildDate(value: string): Date | null {
+  const source = String(value || "");
+  const isoDate = source.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?/)?.[0];
+  const d = new Date(isoDate || source);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /**
  * VersionBadge — مؤشر إصدار صغير غير مزعج في زاوية الشاشة.
  * يساعد المستخدم/الدعم لمعرفة إن كان يرى أحدث نسخة منشورة (vs cache قديم).
@@ -13,10 +20,8 @@ export default function VersionBadge() {
 
   let label = "v—";
   try {
-    const buildValue = String(__APP_BUILD_TIME__ || "");
-    const isoDate = buildValue.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?/)?.[0] ?? buildValue;
-    const d = new Date(isoDate);
-    if (Number.isNaN(d.getTime())) throw new Error("Invalid build date");
+    const d = buildDate(__APP_BUILD_TIME__);
+    if (!d) throw new Error("Invalid build date");
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
