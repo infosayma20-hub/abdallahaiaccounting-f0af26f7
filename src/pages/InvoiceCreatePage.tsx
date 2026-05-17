@@ -1413,7 +1413,7 @@ const InvoiceCreatePage = () => {
         return;
       }
 
-      const { data: dbInv, error: invErr } = await supabase
+      const createInvoiceHeader = () => supabase
         .from("invoices")
         .insert({
           ...invoicePayload,
@@ -1423,6 +1423,16 @@ const InvoiceCreatePage = () => {
         } as any)
         .select("id, invoice_number")
         .single();
+
+      let { data: dbInv, error: invErr } = await createInvoiceHeader();
+      if (invErr && isDuplicateInvoiceNumberError(invErr)) {
+        // Retry once with the same payload. The DB trigger now owns invoice_number
+        // and advances past stale sequences / cancelled numbers atomically.
+        ({ data: dbInv, error: invErr } = await createInvoiceHeader());
+        if (invErr && isDuplicateInvoiceNumberError(invErr)) {
+          throw new Error("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.");
+        }
+      }
 
       if (invErr || !dbInv) throw invErr ?? new Error("Invoice insert failed");
 
