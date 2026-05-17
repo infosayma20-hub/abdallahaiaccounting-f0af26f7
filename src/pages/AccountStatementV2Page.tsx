@@ -1142,11 +1142,12 @@ const AccountStatementV2Page = () => {
                         };
                         const headerStyle: React.CSSProperties = {
                           fontSize: 10,
-                          color: "#64748B",
-                          fontWeight: 600,
-                          marginBottom: 6,
-                          paddingBottom: 5,
-                          borderBottom: "1px dashed #E2E8F0",
+                          color: "#FFFFFF",
+                          fontWeight: 700,
+                          marginBottom: 8,
+                          padding: "6px 10px",
+                          background: "#0D1B2E",
+                          borderRadius: 6,
                         };
                         const chipStyle: React.CSSProperties = {
                           display: "inline-flex",
@@ -1168,8 +1169,8 @@ const AccountStatementV2Page = () => {
                             <tr key={row.transaction_id + "-" + i}>
                               <td colSpan={colSpan} style={{ padding: 0 }}>
                                 <div style={cardStyle}>
-                                  <div style={headerStyle}>
-                                    تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{row.reference}</span> · 1 صنف
+                                   <div style={headerStyle}>
+                                    تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#FFFFFF" }}>{row.reference}</span> · 1 صنف
                                   </div>
                                   <div style={{ display: "flex", flexWrap: "wrap" }}>
                                     <span style={{ ...chipStyle, background: "#0D1B2E", borderColor: "#0D1B2E", color: "#fff", fontWeight: 700 }}>
@@ -1209,22 +1210,22 @@ const AccountStatementV2Page = () => {
                             <td colSpan={colSpan} style={{ padding: 0 }}>
                               <div style={cardStyle}>
                                 <div style={headerStyle}>
-                                  تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{row.reference}</span> · {items.length} أصناف
+                                  تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#FFFFFF" }}>{row.reference}</span> · {items.length} أصناف
                                 </div>
                                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, background: "#fff", borderRadius: 6, overflow: "hidden", border: "1px solid #E2E8F0" }}>
                                   <thead>
-                                    <tr style={{ background: "#F1F5F9", borderBottom: "1px solid #E2E8F0" }}>
-                                      <th style={{ textAlign: "right", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10 }}>الصنف</th>
-                                      <th style={{ textAlign: "center", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10, width: 60 }}>كمية</th>
-                                      <th style={{ textAlign: "left", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10, width: 80 }}>سعر</th>
-                                      <th style={{ textAlign: "left", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10, width: 60 }}>خصم</th>
-                                      <th style={{ textAlign: "left", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10, width: 55 }}>ضريبة</th>
-                                      <th style={{ textAlign: "left", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10, width: 90 }}>إجمالي</th>
+                                    <tr style={{ background: "#0D1B2E", borderBottom: "1px solid #0D1B2E" }}>
+                                      <th style={{ textAlign: "right", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10 }}>الصنف</th>
+                                      <th style={{ textAlign: "center", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 60 }}>كمية</th>
+                                      <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 80 }}>سعر</th>
+                                      <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 60 }}>خصم</th>
+                                      <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 55 }}>ضريبة</th>
+                                      <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 90 }}>إجمالي</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {items.map((it, idx) => (
-                                      <tr key={idx} style={{ borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9" }}>
+                                      <tr key={idx} style={{ background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC", borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9" }}>
                                         <td style={{ padding: "3px 8px", color: "#1F2937", fontSize: 10.5 }}>{it.productName || "—"}</td>
                                         <td style={{ padding: "3px 8px", textAlign: "center", color: "#475569", fontFamily: "tabular-nums", fontSize: 10.5 }}>
                                           {it.quantity}{it.unit ? <span style={{ color: "#94A3B8", fontSize: 9, marginRight: 2 }}>{it.unit}</span> : null}
