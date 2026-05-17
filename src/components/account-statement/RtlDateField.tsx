@@ -35,7 +35,7 @@ export default function RtlDateField({ value, onChange, label, ariaLabel }: Prop
   const openPicker = () => {
     const el = inputRef.current;
     if (!el) return;
-    el.focus();
+    el.focus({ preventScroll: true });
     if (typeof (el as any).showPicker === "function") {
       try { (el as any).showPicker(); return; } catch { /* fall through */ }
     }
@@ -51,10 +51,14 @@ export default function RtlDateField({ value, onChange, label, ariaLabel }: Prop
       )}
       <div
         onClick={openPicker}
+        onPointerDown={(e) => { e.preventDefault(); openPicker(); }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); } }}
         className="relative inline-flex items-center gap-1.5 h-7 px-2 rounded border bg-card text-foreground text-xs tabular-nums hover:border-primary/50 focus-within:border-primary/70 transition-colors cursor-pointer"
         style={{ borderColor: "#E5E7EB", direction: "ltr" }}
       >
-        <Calendar className="w-3 h-3 text-muted-foreground pointer-events-none" />
+        <Calendar aria-hidden="true" className="w-3 h-3 text-muted-foreground pointer-events-none" />
         <span className="pointer-events-none">{fmtDDMMYYYY(value)}</span>
         {/* Real input — transparent overlay that captures clicks and
             opens the native picker reliably across browsers. */}
@@ -72,13 +76,11 @@ export default function RtlDateField({ value, onChange, label, ariaLabel }: Prop
             opacity: 0,
             cursor: "pointer",
             direction: "ltr",
-            // Hide the native text/caret entirely so only our formatted
-            // label is visible — but the input still receives clicks &
-            // opens the OS date picker.
             color: "transparent",
             background: "transparent",
             border: "none",
             padding: 0,
+            pointerEvents: "none",
           }}
         />
       </div>
