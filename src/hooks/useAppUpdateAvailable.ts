@@ -22,12 +22,6 @@ async function clearBrowserAppCache() {
   } catch {}
 }
 
-function versionDate(value: string): Date | null {
-  const isoDate = String(value || "").match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?/)?.[0];
-  const date = new Date(isoDate || value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 function extractAssetSignature(html: string): string {
   // Match Vite hashed assets: /assets/index-XXXX.js|css and any /assets/*-hash.js|css
   const matches = html.match(/\/assets\/[A-Za-z0-9_\-./]+\.(?:js|css)/g) || [];
@@ -97,7 +91,7 @@ export function useAppUpdateAvailable() {
     const host = window.location.hostname;
     if (host.includes("id-preview--") || host.includes("lovableproject.com")) return;
 
-    baseSig.current = currentAssetSignature() || CURRENT_BUILD;
+    baseSig.current = CURRENT_BUILD || currentAssetSignature();
     console.log("[AppUpdate] base signature:", baseSig.current);
 
     const check = async () => {
