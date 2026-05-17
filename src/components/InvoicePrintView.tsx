@@ -484,8 +484,10 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     </td>
                   )}
                   <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: numFontSize(fmtAmount(item.unitPrice)), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>{fmtAmount(item.unitPrice)}</td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: numFontSize(item.discount > 0 ? fmtAmount(item.discount) : ""), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>
-                    {item.discount > 0 ? fmtAmount(item.discount) : "—"}
+                  <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: numFontSize(item.discount > 0 ? (item.discountType === "percent" ? `${item.discount}%` : fmtAmount(item.discount)) : ""), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>
+                    {item.discount > 0
+                      ? (item.discountType === "percent" ? `${item.discount}%` : fmtAmount(item.discount))
+                      : "—"}
                   </td>
                   {taxEnabled && (
                     <td style={{ padding: "12px 6px", textAlign: "center", color: calc.tax > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: numFontSize(calc.tax > 0 ? fmtAmount(calc.tax) : ""), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9" }}>
