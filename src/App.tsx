@@ -300,6 +300,7 @@ const App = () => (
             <CompanyThemeProvider>
             <GlobalFormFocusProvider />
             <VersionBadge />
+            <AppUpdatePrompt />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
