@@ -4,7 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-const appReleaseId = "update-popup-force-2026-05-17-18-25";
+const appReleaseId = "update-button-cleanup-2026-05-17-18-38";
 const appBuildTime = `${appReleaseId}:${new Date().toISOString()}`;
 
 function appVersionPlugin(): Plugin {
