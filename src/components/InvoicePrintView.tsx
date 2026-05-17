@@ -8,6 +8,7 @@ interface InvoiceItem {
   bonusQuantity?: number;
   unitPrice: number;
   discount: number;
+  discountType?: "amount" | "percent";
   taxRate: number;
   taxCategory?: "taxable" | "zero" | "exempt";
   subtotal: number;
@@ -116,7 +117,11 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   // Calculate item-level tax
   const calcItemTotal = (item: InvoiceItem) => {
     const base = item.quantity * item.unitPrice;
-    const afterDiscount = base - (item.discount || 0);
+    const rawDiscount = Number(item.discount) || 0;
+    const discountAmount = item.discountType === "percent"
+      ? base * (rawDiscount / 100)
+      : rawDiscount;
+    const afterDiscount = base - discountAmount;
     if (!taxEnabled) return { base, afterDiscount, tax: 0, total: afterDiscount, category: "none" as const };
     const cat = item.taxCategory || (item.taxRate > 0 ? "taxable" : "exempt");
     if (invoice.taxInclusive) {
