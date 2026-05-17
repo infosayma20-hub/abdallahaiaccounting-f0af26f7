@@ -139,6 +139,9 @@ export function useAppUpdateAvailable() {
   };
 
   const refreshNow = async () => {
+    try {
+      if (newSignature) localStorage.setItem(DISMISSED_KEY, newSignature);
+    } catch {}
     await clearBrowserAppCache();
     try {
       const url = new URL(window.location.href);
