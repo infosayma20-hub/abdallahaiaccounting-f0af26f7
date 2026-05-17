@@ -2,9 +2,8 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import { VitePWA } from "vite-plugin-pwa";
 
-const appReleaseId = "update-button-cleanup-2026-05-17-18-38";
+const appReleaseId = "disable-update-popup-2026-05-17-19-05";
 const appBuildTime = `${appReleaseId}:${new Date().toISOString()}`;
 
 function appVersionPlugin(): Plugin {
@@ -36,50 +35,6 @@ export default defineConfig(({ mode }) => ({
     react(),
     appVersionPlugin(),
     mode === "development" && componentTagger(),
-    VitePWA({
-      registerType: "autoUpdate",
-      devOptions: { enabled: false },
-      includeAssets: ["favicon.ico", "robots.txt"],
-      workbox: {
-        navigateFallbackDenylist: [/^\/~oauth/],
-        globPatterns: ["**/*.{html,js,css,ico,png,svg,woff2}"],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
-        skipWaiting: true,
-        clientsClaim: true,
-        cleanupOutdatedCaches: true,
-      },
-      manifest: {
-        name: "AMWALI | أموالي",
-        short_name: "أموالي",
-        description: "AMWALI أموالي — نظام ERP متكامل للمحاسبة وإدارة الأعمال",
-        theme_color: "#0D1B2E",
-        background_color: "#0D1B2E",
-        display: "standalone",
-        orientation: "portrait",
-        scope: "/",
-        start_url: "/",
-        dir: "rtl",
-        lang: "ar",
-        icons: [
-          {
-            src: "/icon-192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "/icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "/icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
-          },
-        ],
-      },
-    }),
   ].filter(Boolean),
   resolve: {
     alias: {
