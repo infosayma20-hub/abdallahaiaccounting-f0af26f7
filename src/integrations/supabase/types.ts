@@ -6630,6 +6630,7 @@ export type Database = {
         Row: {
           invoice_type: string
           last_number: number
+          prefix: string
           updated_at: string
           user_id: string
           year: number
@@ -6637,6 +6638,7 @@ export type Database = {
         Insert: {
           invoice_type: string
           last_number?: number
+          prefix?: string
           updated_at?: string
           user_id: string
           year: number
@@ -6644,6 +6646,7 @@ export type Database = {
         Update: {
           invoice_type?: string
           last_number?: number
+          prefix?: string
           updated_at?: string
           user_id?: string
           year?: number
