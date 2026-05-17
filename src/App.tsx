@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import VersionBadge from "@/components/VersionBadge";
+import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
 const VersionChecker = () => { useVersionCheck(); return null; };
 import GlobalFormFocusProvider from "@/components/forms/GlobalFormFocusProvider";
@@ -302,6 +303,7 @@ const App = () => (
             <GlobalFormFocusProvider />
             <VersionChecker />
             <VersionBadge />
+            <AppUpdatePrompt />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
