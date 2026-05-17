@@ -40,14 +40,10 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Generate invoice number
-      const invoiceNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
-
       // Create the invoice
       const { error: invErr } = await supabase.from("invoices").insert({
         user_id: rec.user_id,
         invoice_type: rec.invoice_type,
-        invoice_number: invoiceNumber,
         invoice_date: rec.next_due_date,
         contact_name: rec.contact_name,
         contact_id: rec.contact_id,

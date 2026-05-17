@@ -177,6 +177,11 @@ const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null
   return Math.max(maxUsed + 1, offset + 1);
 };
 
+const isDuplicateInvoiceNumberError = (error: any) => {
+  const message = String(error?.message || error?.details || "").toLowerCase();
+  return message.includes("duplicate key") && message.includes("idx_invoices_unique_number_per_user_type");
+};
+
 // ─── Component ───
 const InvoiceCreatePage = () => {
   const navigate = useNavigate();
@@ -1126,10 +1131,6 @@ const InvoiceCreatePage = () => {
 
       const invoicePayload = {
         invoice_type: form.type === "sales" ? "sale" : "purchase",
-        // In create mode, leave null so the BEFORE INSERT trigger (generate_invoice_number)
-        // assigns the number atomically from invoice_sequences. Client-side computation
-        // raced with cancelled/voided invoices and stale fetches → duplicate key errors.
-        invoice_number: isEditMode ? (originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber) : null,
         contact_name: form.contactName,
         contact_id: contactId,
         invoice_date: form.date,
@@ -1220,6 +1221,7 @@ const InvoiceCreatePage = () => {
 
       if (isEditMode && editInvoiceId) {
         const updatePayload: Record<string, any> = { ...invoicePayload };
+        updatePayload.invoice_number = originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber;
         if (asDraft) updatePayload.status = "draft";
 
         const { error: updateError } = await supabase
@@ -1411,7 +1413,7 @@ const InvoiceCreatePage = () => {
         return;
       }
 
-      const { data: dbInv, error: invErr } = await supabase
+      const createInvoiceHeader = () => supabase
         .from("invoices")
         .insert({
           ...invoicePayload,
@@ -1421,6 +1423,16 @@ const InvoiceCreatePage = () => {
         } as any)
         .select("id, invoice_number")
         .single();
+
+      let { data: dbInv, error: invErr } = await createInvoiceHeader();
+      if (invErr && isDuplicateInvoiceNumberError(invErr)) {
+        // Retry once with the same payload. The DB trigger now owns invoice_number
+        // and advances past stale sequences / cancelled numbers atomically.
+        ({ data: dbInv, error: invErr } = await createInvoiceHeader());
+        if (invErr && isDuplicateInvoiceNumberError(invErr)) {
+          throw new Error("تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى.");
+        }
+      }
 
       if (invErr || !dbInv) throw invErr ?? new Error("Invoice insert failed");
 
@@ -1580,7 +1592,10 @@ const InvoiceCreatePage = () => {
       navigate(workshopId ? "/workshops" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
-      toast({ title: "خطأ في حفظ الفاتورة", description: err.message, variant: "destructive" });
+      const message = isDuplicateInvoiceNumberError(err)
+        ? "تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."
+        : err.message;
+      toast({ title: "خطأ في حفظ الفاتورة", description: message, variant: "destructive" });
     } finally {
       setCreating(false);
     }

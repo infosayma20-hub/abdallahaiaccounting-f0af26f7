@@ -30,7 +30,6 @@ export interface RepSaleParams {
   paymentMethod: "cash" | "credit";
   items: RepSaleItem[];
   idempotencyKey: string;
-  invoiceNumber?: string | null;
   discountType?: "percent" | "value" | null;
   discountValue?: number | null;
 }
@@ -66,7 +65,7 @@ export async function callCreateRepSaleAtomic(p: RepSaleParams): Promise<RepSale
       price: i.price,
     })),
     p_idempotency_key: p.idempotencyKey,
-    p_invoice_number: p.invoiceNumber ?? null,
+    p_invoice_number: null,
     p_discount_type: p.discountType ?? null,
     p_discount_value: p.discountValue ?? 0,
   });

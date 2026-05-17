@@ -268,7 +268,6 @@ export default function RepNewOrderPage() {
         paymentMethod,
         items: items.map((i) => ({ product_id: i.product_id, name: i.name, qty: i.qty, price: i.price })),
         idempotencyKey: invoiceNumber,
-        invoiceNumber,
         discountType: discountAmount > 0 ? discountType : null,
         discountValue: discountAmount > 0 ? discountRaw : 0,
       });
