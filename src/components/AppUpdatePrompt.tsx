@@ -6,6 +6,7 @@ import { Sparkles, RefreshCw } from "lucide-react";
 const AppUpdatePrompt = () => {
   const { updateAvailable, dismiss, refreshNow } = useAppUpdateAvailable();
   const [refreshing, setRefreshing] = useState(false);
+  // build-bump: trigger update popup test
 
   if (!updateAvailable) return null;
 
