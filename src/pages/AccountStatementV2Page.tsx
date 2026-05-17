@@ -1299,7 +1299,7 @@ const AccountStatementV2Page = () => {
                         );
                       }
                       return (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) { setDrawerRow(row); setDrawerOpen(true); } }}>
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) { setDrawerRow(row); setDrawerOpen(true); } }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
@@ -1323,7 +1323,7 @@ const AccountStatementV2Page = () => {
                           if (c.key === "description") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>
                           {(row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) && (
-                            <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#F59E0B", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>عكس قيد</span>
+                            <span style={{ display: "inline-block", padding: "1px 6px", marginLeft: 6, background: "#FFFBEB", color: "#B45309", border: "1px solid #FDE68A", borderRadius: 4, fontSize: 9, fontWeight: 600 }}>قيد عكسي</span>
                           )}
                           {row.isCancelled && (
                             <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#9CA3AF", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>ملغى</span>
@@ -1335,7 +1335,7 @@ const AccountStatementV2Page = () => {
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
                           );
                           if (c.key === "type") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#B45309" : "#6B7280", fontWeight: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? 700 : 400 }}>{getTypeBadge(row.transaction_type)}</td>
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280", fontWeight: 400 }}>{getTypeBadge(row.transaction_type)}</td>
                           );
                           if (c.key === "debit") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
