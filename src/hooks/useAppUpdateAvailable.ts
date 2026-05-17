@@ -15,6 +15,9 @@ function extractAssetSignature(html: string): string {
 }
 
 function currentAssetSignature(): string {
+  const htmlVersion = document.documentElement.getAttribute("data-app-build-time") || "";
+  if (htmlVersion) return htmlVersion;
+
   const scripts = Array.from(document.querySelectorAll('script[src]'))
     .map((s) => s.getAttribute("src") || "")
     .filter((s) => s.includes("/assets/"));
@@ -74,7 +77,7 @@ export function useAppUpdateAvailable() {
     const host = window.location.hostname;
     if (host.includes("id-preview--") || host.includes("lovableproject.com")) return;
 
-    baseSig.current = CURRENT_BUILD || currentAssetSignature();
+    baseSig.current = currentAssetSignature() || CURRENT_BUILD;
     console.log("[AppUpdate] base signature:", baseSig.current);
 
     const check = async () => {

@@ -4,7 +4,8 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-const appBuildTime = new Date().toISOString();
+const appReleaseId = "update-popup-force-2026-05-17-18-25";
+const appBuildTime = `${appReleaseId}:${new Date().toISOString()}`;
 
 function appVersionPlugin(): Plugin {
   return {
@@ -41,7 +42,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "robots.txt"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
-        globPatterns: ["**/*.{js,css,ico,png,svg,woff2}"],
+        globPatterns: ["**/*.{html,js,css,ico,png,svg,woff2}"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
