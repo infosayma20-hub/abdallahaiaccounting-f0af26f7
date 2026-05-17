@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-const appReleaseId = "disable-update-popup-2026-05-17-19-05";
+const appReleaseId = "test-update-popup-2026-05-17-19-30";
 const appBuildTime = `${appReleaseId}:${new Date().toISOString()}`;
 
 function appVersionPlugin(): Plugin {
