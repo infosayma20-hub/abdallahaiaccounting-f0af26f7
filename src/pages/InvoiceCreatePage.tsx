@@ -177,6 +177,11 @@ const getNextInvoiceSequence = (rows: { invoice_number: string | null }[] | null
   return Math.max(maxUsed + 1, offset + 1);
 };
 
+const isDuplicateInvoiceNumberError = (error: any) => {
+  const message = String(error?.message || error?.details || "").toLowerCase();
+  return message.includes("duplicate key") && message.includes("idx_invoices_unique_number_per_user_type");
+};
+
 // ─── Component ───
 const InvoiceCreatePage = () => {
   const navigate = useNavigate();
