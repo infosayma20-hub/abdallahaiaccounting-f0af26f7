@@ -109,8 +109,13 @@ function useCountUp(target: number, duration = 800) {
 }
 
 function fmtSigned(n: number) {
-  const abs = Math.abs(n).toLocaleString();
-  return n < 0 ? `-₪${abs}` : `₪${abs}`;
+  const rounded = Math.round(Number(n) || 0);
+  const abs = Math.abs(rounded).toLocaleString('en-US');
+  return rounded < 0 ? `-₪${abs}` : `₪${abs}`;
+}
+
+function fmtMoney(n: number) {
+  return Math.round(Number(n) || 0).toLocaleString('en-US');
 }
 
 function getGreeting() {
@@ -277,13 +282,13 @@ export default function PortalDashboard() {
         <div style={{ position: 'absolute', top: -30, left: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', fontFamily: 'Cairo', marginBottom: 4 }}>إجمالي المستحقات</div>
-        <div style={{ fontSize: 36, fontWeight: 900, fontFamily: 'Cairo', lineHeight: 1 }}>₪{animatedReceivables.toLocaleString()}</div>
+        <div style={{ fontSize: 36, fontWeight: 900, fontFamily: 'Cairo', lineHeight: 1 }}>₪{fmtMoney(animatedReceivables)}</div>
         {topDebtors.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: 'Cairo', flexWrap: 'wrap' }}>
             {topDebtors.slice(0, 3).map((d: any, i: number) => (
               <span key={i}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.4)', display: 'inline-block', marginLeft: 4, verticalAlign: 'middle' }} />
-                ₪{d.balance.toLocaleString()} {d.name}
+                ₪{fmtMoney(d.balance)} {d.name}
               </span>
             ))}
           </div>
@@ -378,7 +383,7 @@ export default function PortalDashboard() {
                   <div style={{ fontSize: 11, color: c.textMuted, marginTop: 2, fontFamily: 'Cairo' }}>{act.timeAgo}</div>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: c.textPrimary, fontFamily: 'Cairo', flexShrink: 0 }}>
-                  ₪{act.amount?.toLocaleString()}
+                  ₪{fmtMoney(act.amount)}
                 </div>
               </div>
             ))}
