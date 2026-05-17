@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import VersionBadge from "@/components/VersionBadge";
+import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
 import GlobalFormFocusProvider from "@/components/forms/GlobalFormFocusProvider";
 import { useSearchParams } from "react-router-dom";
