@@ -58,8 +58,8 @@ export default function RtlDateField({ value, onChange, label, ariaLabel }: Prop
         className="relative inline-flex items-center gap-1.5 h-7 px-2 rounded border bg-card text-foreground text-xs tabular-nums hover:border-primary/50 focus-within:border-primary/70 transition-colors cursor-pointer"
         style={{ borderColor: "#E5E7EB", direction: "ltr" }}
       >
-        <Calendar aria-hidden="true" className="w-3 h-3 text-muted-foreground pointer-events-none" />
         <span className="pointer-events-none">{fmtDDMMYYYY(value)}</span>
+        <Calendar aria-hidden="true" className="w-3 h-3 text-muted-foreground pointer-events-none" />
         {/* Real input — transparent overlay that captures clicks and
             opens the native picker reliably across browsers. */}
         <input
