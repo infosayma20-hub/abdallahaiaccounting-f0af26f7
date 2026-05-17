@@ -3,10 +3,11 @@ import { useAppUpdateAvailable } from "@/hooks/useAppUpdateAvailable";
 import { Button } from "@/components/ui/button";
 import { Sparkles, RefreshCw } from "lucide-react";
 
+const UPDATE_PROMPT_BUILD_MARKER = "update-prompt-test-2026-05-17-18-01";
+
 const AppUpdatePrompt = () => {
   const { updateAvailable, dismiss, refreshNow } = useAppUpdateAvailable();
   const [refreshing, setRefreshing] = useState(false);
-  // build-bump: trigger update popup test
 
   if (!updateAvailable) return null;
 
@@ -18,6 +19,7 @@ const AppUpdatePrompt = () => {
   return (
     <div
       dir="rtl"
+      data-update-build={UPDATE_PROMPT_BUILD_MARKER}
       className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:bottom-6 z-[9998] sm:max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300"
     >
       <div className="rounded-2xl border border-border bg-card/95 backdrop-blur shadow-2xl p-4 sm:p-5">
