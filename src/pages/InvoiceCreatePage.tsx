@@ -1592,7 +1592,10 @@ const InvoiceCreatePage = () => {
       navigate(workshopId ? "/workshops" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
-      toast({ title: "خطأ في حفظ الفاتورة", description: err.message, variant: "destructive" });
+      const message = isDuplicateInvoiceNumberError(err)
+        ? "تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."
+        : err.message;
+      toast({ title: "خطأ في حفظ الفاتورة", description: message, variant: "destructive" });
     } finally {
       setCreating(false);
     }
