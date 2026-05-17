@@ -8,6 +8,20 @@ const CURRENT_BUILD = __APP_BUILD_TIME__;
 
 type AppVersion = { buildTime?: string };
 
+async function clearBrowserAppCache() {
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch {}
+
+  try {
+    const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
+    await Promise.all(regs.map((r) => r.unregister().catch(() => undefined)));
+  } catch {}
+}
+
 function extractAssetSignature(html: string): string {
   // Match Vite hashed assets: /assets/index-XXXX.js|css and any /assets/*-hash.js|css
   const matches = html.match(/\/assets\/[A-Za-z0-9_\-./]+\.(?:js|css)/g) || [];
@@ -77,7 +91,7 @@ export function useAppUpdateAvailable() {
     const host = window.location.hostname;
     if (host.includes("id-preview--") || host.includes("lovableproject.com")) return;
 
-    baseSig.current = currentAssetSignature() || CURRENT_BUILD;
+    baseSig.current = CURRENT_BUILD || currentAssetSignature();
     console.log("[AppUpdate] base signature:", baseSig.current);
 
     const check = async () => {
@@ -125,22 +139,13 @@ export function useAppUpdateAvailable() {
   };
 
   const refreshNow = async () => {
-    try {
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-    } catch {}
-    try {
-      const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
-      await Promise.all(regs.map((r) => r.update().catch(() => undefined)));
-    } catch {}
+    await clearBrowserAppCache();
     try {
       const url = new URL(window.location.href);
       url.searchParams.set("__refresh", Date.now().toString());
-      window.location.replace(url.toString());
+      window.location.href = url.toString();
     } catch {
-      window.location.reload();
+      window.location.href = `${window.location.pathname}?__refresh=${Date.now()}`;
     }
   };
 
