@@ -296,16 +296,16 @@ function BalanceRow({
   const color = muted
     ? "text-muted-foreground"
     : isDebit
-      ? "text-rose-600"
+      ? "text-emerald-600"
       : isCredit
-        ? "text-emerald-600"
+        ? "text-rose-600"
         : "text-foreground";
   const tag = isDebit ? "مدين" : isCredit ? "دائن" : "متوازن";
   return (
     <div className="flex items-center justify-between text-[11px]">
       <span className="text-muted-foreground">{label}</span>
       <span className="flex items-center gap-1.5">
-        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isDebit ? "bg-rose-500/10 text-rose-600" : isCredit ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${isDebit ? "bg-emerald-500/10 text-emerald-600" : isCredit ? "bg-rose-500/10 text-rose-600" : "bg-muted text-muted-foreground"}`}>
           {tag}
         </span>
         <span
@@ -359,15 +359,15 @@ function BalanceBreakdown({
   const hasBreakdown = !isZero && componentCount >= 2;
 
   const totalColor = isDebit
-    ? "text-rose-600"
+    ? "text-emerald-600"
     : isCredit
-      ? "text-emerald-600"
+      ? "text-rose-600"
       : "text-foreground";
   const tag = isDebit ? "مدين" : isCredit ? "دائن" : "متوازن";
   const tagBg = isDebit
-    ? "bg-rose-500/10 text-rose-600"
+    ? "bg-emerald-500/10 text-emerald-600"
     : isCredit
-      ? "bg-emerald-500/10 text-emerald-600"
+      ? "bg-rose-500/10 text-rose-600"
       : "bg-muted text-muted-foreground";
 
   return (
