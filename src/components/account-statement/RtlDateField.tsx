@@ -35,11 +35,10 @@ export default function RtlDateField({ value, onChange, label, ariaLabel }: Prop
   const openPicker = () => {
     const el = inputRef.current;
     if (!el) return;
-    // Modern browsers
+    el.focus();
     if (typeof (el as any).showPicker === "function") {
       try { (el as any).showPicker(); return; } catch { /* fall through */ }
     }
-    el.focus();
     el.click();
   };
 
@@ -50,36 +49,39 @@ export default function RtlDateField({ value, onChange, label, ariaLabel }: Prop
           {label}
         </span>
       )}
-      <button
-        type="button"
+      <div
         onClick={openPicker}
-        aria-label={ariaLabel || label}
-        className="inline-flex items-center gap-1.5 h-7 px-2 rounded border bg-card text-foreground text-xs tabular-nums hover:border-primary/50 focus:outline-none focus:border-primary/70 transition-colors"
+        className="relative inline-flex items-center gap-1.5 h-7 px-2 rounded border bg-card text-foreground text-xs tabular-nums hover:border-primary/50 focus-within:border-primary/70 transition-colors cursor-pointer"
         style={{ borderColor: "#E5E7EB", direction: "ltr" }}
       >
-        <Calendar className="w-3 h-3 text-muted-foreground" />
-        <span>{fmtDDMMYYYY(value)}</span>
-      </button>
-      {/* Real input — visually hidden but accessible to the picker.
-          We DO NOT overlay it on top of any visible text — this is what
-          previously caused the caret-misalignment bug. */}
-      <input
-        ref={inputRef}
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-hidden="true"
-        tabIndex={-1}
-        style={{
-          position: "absolute",
-          width: 1,
-          height: 1,
-          opacity: 0,
-          pointerEvents: "none",
-          // Keep it in LTR so the OS picker positions correctly
-          direction: "ltr",
-        }}
-      />
+        <Calendar className="w-3 h-3 text-muted-foreground pointer-events-none" />
+        <span className="pointer-events-none">{fmtDDMMYYYY(value)}</span>
+        {/* Real input — transparent overlay that captures clicks and
+            opens the native picker reliably across browsers. */}
+        <input
+          ref={inputRef}
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={ariaLabel || label}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            opacity: 0,
+            cursor: "pointer",
+            direction: "ltr",
+            // Hide the native text/caret entirely so only our formatted
+            // label is visible — but the input still receives clicks &
+            // opens the OS date picker.
+            color: "transparent",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+          }}
+        />
+      </div>
     </div>
   );
 }
