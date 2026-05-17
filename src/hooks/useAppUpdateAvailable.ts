@@ -37,6 +37,7 @@ export function useAppUpdateAvailable() {
     if (host.includes("id-preview--") || host.includes("lovableproject.com")) return;
 
     baseSig.current = currentAssetSignature();
+    console.log("[AppUpdate] base signature:", baseSig.current);
 
     const check = async () => {
       if (checking.current) return;
@@ -49,12 +50,14 @@ export function useAppUpdateAvailable() {
         if (!res.ok) return;
         const html = await res.text();
         const newSig = extractAssetSignature(html);
+        console.log("[AppUpdate] fetched signature:", newSig, "match:", newSig === baseSig.current);
         if (!newSig || !baseSig.current) return;
         if (newSig !== baseSig.current) {
           try {
             const dismissed = localStorage.getItem(DISMISSED_KEY);
             if (dismissed === newSig) return;
           } catch {}
+          console.log("[AppUpdate] update detected, showing popup");
           setNewSignature(newSig);
           setUpdateAvailable(true);
         }
@@ -65,7 +68,7 @@ export function useAppUpdateAvailable() {
       }
     };
 
-    const initial = setTimeout(check, 15 * 1000);
+    const initial = setTimeout(check, 5 * 1000);
     const interval = setInterval(check, CHECK_INTERVAL);
     const onVisible = () => {
       if (document.visibilityState === "visible") check();
