@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
+declare const __APP_BUILD_TIME__: string;
+
 const CHECK_INTERVAL = 60 * 1000;
 const DISMISSED_KEY = "amwali_app_update_dismissed_sig";
+const CURRENT_BUILD = __APP_BUILD_TIME__;
+
+type AppVersion = { buildTime?: string };
 
 function extractAssetSignature(html: string): string {
   // Match Vite hashed assets: /assets/index-XXXX.js|css and any /assets/*-hash.js|css
@@ -17,6 +22,34 @@ function currentAssetSignature(): string {
     .map((l) => l.getAttribute("href") || "")
     .filter((s) => s.includes("/assets/"));
   return Array.from(new Set([...scripts, ...links])).sort().join("|");
+}
+
+async function fetchLatestSignature(): Promise<string> {
+  const versionRes = await fetch(`/app-version.json?__check=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+    },
+  });
+
+  if (versionRes.ok) {
+    const version = (await versionRes.json()) as AppVersion;
+    if (version.buildTime) return version.buildTime;
+  }
+
+  const res = await fetch(`/index.html?__check=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      Accept: "text/html",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+    },
+  });
+  if (!res.ok) return "";
+  const html = await res.text();
+  return extractAssetSignature(html);
 }
 
 export function useAppUpdateAvailable() {
@@ -36,20 +69,14 @@ export function useAppUpdateAvailable() {
     const host = window.location.hostname;
     if (host.includes("id-preview--") || host.includes("lovableproject.com")) return;
 
-    baseSig.current = currentAssetSignature();
+    baseSig.current = CURRENT_BUILD || currentAssetSignature();
     console.log("[AppUpdate] base signature:", baseSig.current);
 
     const check = async () => {
       if (checking.current) return;
       checking.current = true;
       try {
-        const res = await fetch(`/index.html?__check=${Date.now()}`, {
-          cache: "no-store",
-          headers: { Accept: "text/html" },
-        });
-        if (!res.ok) return;
-        const html = await res.text();
-        const newSig = extractAssetSignature(html);
+        const newSig = await fetchLatestSignature();
         console.log("[AppUpdate] fetched signature:", newSig, "match:", newSig === baseSig.current);
         if (!newSig || !baseSig.current) return;
         if (newSig !== baseSig.current) {
