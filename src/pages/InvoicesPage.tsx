@@ -49,8 +49,10 @@ interface InvoiceItem {
   description: string;
   productCode?: string;
   quantity: number;
+  bonusQuantity?: number;
   unitPrice: number;
   discount: number;
+  discountType?: "amount" | "percent";
   taxRate: number;
   taxCategory: TaxCategory;
   subtotal: number;
@@ -238,8 +240,10 @@ const InvoicesPage = () => {
           description: item.product_name || item.description || '',
           productCode: item.products?.sku || item.products?.barcode || undefined,
           quantity: Number(item.quantity) || 1,
+          bonusQuantity: Number(item.bonus_quantity) || 0,
           unitPrice: Number(item.unit_price) || 0,
           discount: Number(item.discount) || 0,
+          discountType: (item.discount_type === 'percent' ? 'percent' : 'amount'),
           taxRate: Number(item.tax_rate) || 0,
           subtotal: Number(item.total_amount) || 0,
         })),
