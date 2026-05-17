@@ -1126,7 +1126,10 @@ const InvoiceCreatePage = () => {
 
       const invoicePayload = {
         invoice_type: form.type === "sales" ? "sale" : "purchase",
-        invoice_number: isEditMode ? (originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber) : nextInvoiceNumber,
+        // In create mode, leave null so the BEFORE INSERT trigger (generate_invoice_number)
+        // assigns the number atomically from invoice_sequences. Client-side computation
+        // raced with cancelled/voided invoices and stale fetches → duplicate key errors.
+        invoice_number: isEditMode ? (originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber) : null,
         contact_name: form.contactName,
         contact_id: contactId,
         invoice_date: form.date,
