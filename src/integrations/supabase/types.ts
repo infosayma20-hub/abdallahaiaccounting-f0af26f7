@@ -12136,6 +12136,7 @@ export type Database = {
           auth_user_id: string | null
           cash_box_id: string | null
           collection_commission_rate: number
+          contact_id: string | null
           created_at: string
           default_warehouse_id: string | null
           email: string | null
@@ -12156,6 +12157,7 @@ export type Database = {
           auth_user_id?: string | null
           cash_box_id?: string | null
           collection_commission_rate?: number
+          contact_id?: string | null
           created_at?: string
           default_warehouse_id?: string | null
           email?: string | null
@@ -12176,6 +12178,7 @@ export type Database = {
           auth_user_id?: string | null
           cash_box_id?: string | null
           collection_commission_rate?: number
+          contact_id?: string | null
           created_at?: string
           default_warehouse_id?: string | null
           email?: string | null
@@ -12198,6 +12201,13 @@ export type Database = {
             columns: ["cash_box_id"]
             isOneToOne: false
             referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_representatives_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
@@ -13652,6 +13662,7 @@ export type Database = {
           reference: string | null
           return_id: string | null
           reversed_by_id: string | null
+          sales_rep_id: string | null
           transaction_date: string
           transaction_type: string
           updated_at: string
@@ -13681,6 +13692,7 @@ export type Database = {
           reference?: string | null
           return_id?: string | null
           reversed_by_id?: string | null
+          sales_rep_id?: string | null
           transaction_date?: string
           transaction_type?: string
           updated_at?: string
@@ -13710,6 +13722,7 @@ export type Database = {
           reference?: string | null
           return_id?: string | null
           reversed_by_id?: string | null
+          sales_rep_id?: string | null
           transaction_date?: string
           transaction_type?: string
           updated_at?: string
@@ -13764,6 +13777,13 @@ export type Database = {
             columns: ["reversed_by_id"]
             isOneToOne: false
             referencedRelation: "v_drift_tx_zero_amount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
             referencedColumns: ["id"]
           },
           {
@@ -16785,6 +16805,17 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      ensure_sales_rep_contact: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_is_active: boolean
+          p_phone: string
+          p_rep_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       ensure_travel_accounts: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -16818,6 +16849,10 @@ export type Database = {
           _return_type: Database["public"]["Enums"]["return_type_enum"]
           _user_id: string
         }
+        Returns: string
+      }
+      generate_sales_rep_account_code: {
+        Args: { p_user_id: string }
         Returns: string
       }
       get_accounting_center_snapshot: { Args: never; Returns: Json }
