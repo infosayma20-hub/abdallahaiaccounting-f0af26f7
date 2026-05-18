@@ -865,11 +865,11 @@ export default function WorkshopsPage() {
   }, [costs, costFilter]);
 
   const filteredCustomers = useMemo(() =>
-    contacts.filter(c => ["customer", "عميل", "both", "كلاهما"].includes(c.contact_type) && (!contactSearch || c.contact_name.toLowerCase().includes(contactSearch.toLowerCase())))
+    contacts.filter(c => ["عميل", "عميل ومورد"].includes(c.contact_type) && (!contactSearch || c.contact_name.toLowerCase().includes(contactSearch.toLowerCase())))
   , [contacts, contactSearch]);
 
   const filteredSuppliers = useMemo(() =>
-    contacts.filter(c => ["supplier", "مورد", "both", "كلاهما"].includes(c.contact_type) && (!supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase())))
+    contacts.filter(c => ["مورد", "عميل ومورد"].includes(c.contact_type) && (!supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase())))
   , [contacts, supplierSearch]);
 
   /* ════════════════════════════════════════════ */
