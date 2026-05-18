@@ -295,13 +295,21 @@ export default function RepNewOrderPage() {
         {paymentMethod === "credit" && (
           <div className="space-y-2">
             <Label>الزبون</Label>
-            <div className="flex gap-2">
-              <select value={contactId} onChange={(e) => setContactId(e.target.value)} className="flex-1 h-11 rounded-md border border-input bg-background px-3 text-sm">
+            <div className="flex gap-2 w-full min-w-0">
+              <select value={contactId} onChange={(e) => setContactId(e.target.value)} className="flex-1 min-w-0 h-11 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">اختر زبون...</option>
                 {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <Button type="button" variant="outline" className="h-11 shrink-0" onClick={() => setNewCustOpen(true)}>
-                <Plus className="w-4 h-4 ml-1" /> زبون جديد
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="زبون جديد"
+                title="زبون جديد"
+                className="h-11 w-11 shrink-0"
+                onClick={() => setNewCustOpen(true)}
+              >
+                <Plus className="w-5 h-5" />
               </Button>
             </div>
           </div>
