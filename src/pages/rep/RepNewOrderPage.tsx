@@ -118,7 +118,7 @@ export default function RepNewOrderPage() {
     (async () => {
       const { data: r } = await (supabase as any)
         .from("sales_representatives")
-        .select("id, user_id, default_warehouse_id")
+        .select("id, user_id, default_warehouse_id, cash_account_code")
         .eq("auth_user_id", user.id).maybeSingle();
       if (!r) { setLoading(false); return; }
       setRep(r);
@@ -270,6 +270,7 @@ export default function RepNewOrderPage() {
         idempotencyKey: invoiceNumber,
         discountType: discountAmount > 0 ? discountType : null,
         discountValue: discountAmount > 0 ? discountRaw : 0,
+        cashAccountCode: rep.cash_account_code ?? null,
       });
       if (!result.success) throw new Error(result.error || "فشل تنفيذ البيع");
       toast({
