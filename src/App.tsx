@@ -85,6 +85,8 @@ const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
 const RepCollectPage = lazy(() => import("./pages/rep/RepCollectPage"));
 const RepExpensePage = lazy(() => import("./pages/rep/RepExpensePage"));
 const RepSalesBySupplierPage = lazy(() => import("./pages/rep/RepSalesBySupplierPage"));
+const RepHomePage = lazy(() => import("./pages/rep/RepHomePage"));
+const RepPlaceholderPage = lazy(() => import("./pages/rep/RepPlaceholderPage"));
 const RepReportsPage = lazy(() => import("./pages/manager/RepReportsPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
@@ -321,14 +323,21 @@ const App = () => (
               <Route path="/employee/team-requests" element={<ProtectedRoute><RoleGuard allowedRoles={["employee", "branch_scheduler", "admin", "hr_manager"]} fallback="/auth" allowEmployeePerm="can_manage_attendance"><EmployeeApp initialTab="manager-requests" /></RoleGuard></ProtectedRoute>} />
               <Route path="/employee/shift-swaps" element={<ProtectedRoute><RoleGuard allowedRoles={["employee", "branch_scheduler", "admin", "hr_manager"]} fallback="/auth" allowEmployeePerm="can_manage_schedule"><EmployeeApp initialTab="manager-swaps" /></RoleGuard></ProtectedRoute>} />
               <Route path="/rep" element={<ProtectedRoute><RepLayout /></ProtectedRoute>}>
-                <Route index element={<RepDashboardPage />} />
+                <Route index element={<Navigate to="/rep/home" replace />} />
+                <Route path="home" element={<RepHomePage />} />
+                <Route path="dashboard" element={<RepDashboardPage />} />
                 <Route path="new-order" element={<RepNewOrderPage />} />
                 <Route path="collect" element={<RepCollectPage />} />
                 <Route path="expense" element={<RepExpensePage />} />
                 <Route path="orders" element={<RepOrdersPage />} />
                 <Route path="sales-by-supplier" element={<RepSalesBySupplierPage />} />
+                <Route path="customers" element={<RepPlaceholderPage title="الزبائن" />} />
+                <Route path="returns" element={<RepPlaceholderPage title="مردود مبيعات" />} />
+                <Route path="sales-order" element={<RepPlaceholderPage title="طلبية مبيعات" />} />
+                <Route path="reports" element={<RepPlaceholderPage title="تقارير المندوب" />} />
+                <Route path="settings" element={<RepPlaceholderPage title="إعدادات المندوب" />} />
                 {/* alias: إغلاق اليوم موجود ضمن لوحة /rep الرئيسية */}
-                <Route path="close-day" element={<Navigate to="/rep" replace />} />
+                <Route path="close-day" element={<Navigate to="/rep/dashboard" replace />} />
               </Route>
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
