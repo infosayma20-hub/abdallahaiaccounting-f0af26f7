@@ -16712,6 +16712,7 @@ export type Database = {
           }
         | {
             Args: {
+              p_cash_account_code?: string
               p_contact_id: string
               p_contact_name: string
               p_discount_type?: string
