@@ -270,6 +270,8 @@ const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesR
   const location = useLocation();
   if (loading || ((blockCashier || blockStoreTracker || blockSalesRep) && checking)) return <AuthCheckSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
+  // امنع وميض شاشة المندوب/الموظف قبل ما نتأكد إذا لازم يروح لاختيار workspace
+  if (checking && (location.pathname.startsWith("/rep") || location.pathname.startsWith("/employee"))) return <AuthCheckSpinner />;
   if (!checking && targetPath === "/choose-workspace" && location.pathname !== "/choose-workspace") return <Navigate to="/choose-workspace" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
   if (blockStoreTracker && targetPath === "/store-tracker") return <Navigate to="/store-tracker" replace />;
