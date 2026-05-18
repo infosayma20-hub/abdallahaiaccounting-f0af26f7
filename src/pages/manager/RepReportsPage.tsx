@@ -81,8 +81,8 @@ export default function RepReportsPage() {
     (async () => {
       const [{ data: r }, { data: c }, { data: s }, { data: p }] = await Promise.all([
         (supabase as any).from("sales_representatives").select("id, full_name, user_id, auth_user_id").eq("is_active", true).order("full_name"),
-        (supabase as any).from("contacts").select("id, contact_name, contact_type").in("contact_type", ["customer", "both"]).eq("is_archived", false).order("contact_name").limit(2000),
-        (supabase as any).from("contacts").select("id, contact_name").in("contact_type", ["supplier", "both"]).eq("is_archived", false).order("contact_name").limit(2000),
+        (supabase as any).from("contacts").select("id, contact_name, contact_type").in("contact_type", ["عميل", "عميل ومورد"]).eq("is_archived", false).order("contact_name").limit(2000),
+        (supabase as any).from("contacts").select("id, contact_name").in("contact_type", ["مورد", "عميل ومورد"]).eq("is_archived", false).order("contact_name").limit(2000),
         (supabase as any).from("products").select("id, name_ar, name").order("name_ar").limit(3000),
       ]);
       setReps(r || []);
