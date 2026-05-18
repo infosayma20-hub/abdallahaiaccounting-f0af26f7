@@ -287,6 +287,14 @@ export default function RepExpensePage() {
       });
       if (!result.success) throw new Error(result.error || "فشل حفظ المصروف");
 
+      // وسم الحركة المحاسبية بـ sales_rep_id (ربط نظيف بدل الاعتماد على JSON tag)
+      if (result.transaction_id) {
+        await (supabase as any)
+          .from("transactions")
+          .update({ sales_rep_id: rep.id })
+          .eq("id", result.transaction_id);
+      }
+
       // إنشاء سند صرف في جدول vouchers ليظهر في شاشة سندات الصرف
       if (!result.duplicate && result.transaction_id) {
         const { data: existingPV } = await (supabase as any)
