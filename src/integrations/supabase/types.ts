@@ -16873,6 +16873,23 @@ export type Database = {
         }
         Returns: Json
       }
+      get_contact_statement: {
+        Args: {
+          p_contact_id: string
+          p_from_date?: string
+          p_to_date?: string
+          p_user_id: string
+        }
+        Returns: {
+          balance_running: number
+          credit: number
+          debit: number
+          description: string
+          reference: string
+          transaction_date: string
+          transaction_id: string
+        }[]
+      }
       get_day_type_for_date: {
         Args: { p_date: string; p_user_id: string }
         Returns: string
@@ -16898,6 +16915,17 @@ export type Database = {
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
+      }
+      get_rep_customers_with_balances: {
+        Args: { p_sales_rep_id: string; p_user_id: string }
+        Returns: {
+          balance: number
+          contact_id: string
+          contact_name: string
+          last_tx_date: string
+          linked_account_code: string
+          phone: string
+        }[]
       }
       get_rep_owner_id: { Args: never; Returns: string }
       get_rep_suppliers: {
