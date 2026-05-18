@@ -248,6 +248,34 @@ export default function RepExpensePage() {
       toast({ title: "أدخل مبلغاً صحيحاً", variant: "destructive" });
       return;
     }
+    // Parent-account belt-and-suspender (DB also rejects)
+    if (!isSupplierMode && accountCode) {
+      const isParent = accounts.some((a) => a.parent_code === accountCode);
+      if (isParent) {
+        toast({ title: "حساب أب غير مسموح", description: "اختر حساباً فرعياً قابلاً للترحيل", variant: "destructive" });
+        return;
+      }
+    }
+    // Cash-balance warning: المصروف أكبر من رصيد العهدة الحالي
+    try {
+      const { data: cashTxs } = await (supabase as any)
+        .from("transactions")
+        .select("amount, debit_account_code, credit_account_code")
+        .eq("user_id", rep.user_id)
+        .eq("is_deleted", false)
+        .gte("created_at", openDay.opened_at)
+        .or(`debit_account_code.eq.${rep.cash_account_code},credit_account_code.eq.${rep.cash_account_code}`);
+      const rows = cashTxs || [];
+      const inflow = rows.filter((t: any) => t.debit_account_code === rep.cash_account_code).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const outflow = rows.filter((t: any) => t.credit_account_code === rep.cash_account_code).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const available = inflow - outflow; // منذ فتح اليوم (لا يشمل opening_cash المحوّل خارج النظام)
+      if (amt > available + 0.01) {
+        const ok = window.confirm(
+          `تحذير: المبلغ (${amt.toFixed(2)} ₪) أكبر من رصيد العهدة المتاح منذ فتح اليوم (${available.toFixed(2)} ₪). متابعة؟`
+        );
+        if (!ok) { setSaving(false); return; }
+      }
+    } catch (e) { console.warn("[RepExpense] cash check failed:", e); }
     setSaving(true);
     try {
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");

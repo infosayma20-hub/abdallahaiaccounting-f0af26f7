@@ -133,7 +133,7 @@ export default function RepNewOrderPage() {
         (supabase as any).from("products").select("id, name, sku, barcode, sell_price").eq("user_id", r.user_id).limit(500),
         (supabase as any)
           .from("contacts")
-          .select("id, contact_name, contact_type")
+          .select("id, contact_name, contact_type, credit_limit")
           .eq("user_id", r.user_id)
           .in("contact_type", ["عميل", "عميل ومورد"])
           .eq("is_active", true)
@@ -253,6 +253,34 @@ export default function RepNewOrderPage() {
       });
       focusFirstError();
       return;
+    }
+    // Credit-limit check (آجل فقط، ومع وجود سقف ائتماني > 0)
+    if (paymentMethod === "credit" && contactId) {
+      const sel = contacts.find((c) => c.id === contactId);
+      const limit = Number(sel?.credit_limit || 0);
+      if (limit > 0) {
+        try {
+          const { data: txs } = await (supabase as any)
+            .from("transactions")
+            .select("amount, debit_account_code, credit_account_code")
+            .eq("user_id", rep.user_id)
+            .eq("contact_id", contactId)
+            .eq("is_deleted", false);
+          const rows = txs || [];
+          const arRoots = ["113", "2115"];
+          const matches = (c: string | null | undefined) =>
+            !!c && arRoots.some((r) => c === r || c.startsWith(r));
+          const dr = rows.filter((t: any) => matches(t.debit_account_code)).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+          const cr = rows.filter((t: any) => matches(t.credit_account_code)).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+          const balance = dr - cr;
+          if (balance + total > limit) {
+            const ok = window.confirm(
+              `تحذير سقف ائتماني: رصيد العميل الحالي ${balance.toFixed(2)} ₪ + الفاتورة ${total.toFixed(2)} ₪ = ${(balance + total).toFixed(2)} ₪ ويتجاوز السقف ${limit.toFixed(2)} ₪. هل تريد المتابعة؟`
+            );
+            if (!ok) return;
+          }
+        } catch (e) { console.warn("[Rep] credit-limit check failed:", e); }
+      }
     }
     setSaving(true);
     try {
