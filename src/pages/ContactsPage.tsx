@@ -75,7 +75,7 @@ const classConfig: Record<string, { color: string; bg: string; label: string }> 
 const contactTypeOptions = [
   { value: "عميل", label: "زبون" },
   { value: "مورد", label: "مورد" },
-  { value: "زبون ومورد", label: "زبون ومورد" },
+  { value: "عميل ومورد", label: "زبون ومورد" },
 ];
 
 const alertConfig: Record<string, { icon: typeof AlertTriangle; color: string; bg: string; title: string }> = {
@@ -489,8 +489,8 @@ const ContactsPage = () => {
   }), [activeContacts, filterType, filterClass, searchQuery, dateFrom, dateTo]);
 
   const nonArchivedContacts = useMemo(() => contacts.filter(c => !c.is_archived), [contacts]);
-  const customerCount = nonArchivedContacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
-  const supplierCount = nonArchivedContacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
+  const customerCount = nonArchivedContacts.filter(c => ["عميل", "عميل ومورد"].includes(c.contact_type)).length;
+  const supplierCount = nonArchivedContacts.filter(c => ["مورد", "عميل ومورد"].includes(c.contact_type)).length;
   const archivedCount = contacts.filter(c => c.is_archived).length;
   
   const totalOverdue = nonArchivedContacts.reduce((s, c) => s + (c.overdue_amount || 0), 0);
@@ -743,7 +743,7 @@ const ContactsPage = () => {
                       <td className="p-3">
                         <Badge variant="secondary" className={`text-[10px] ${
                           contact.contact_type === "مورد" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40" : 
-                          contact.contact_type === "زبون ومورد" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40" : 
+                          contact.contact_type === "عميل ومورد" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40" : 
                           "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40"
                         }`}>
                           {contact.contact_type === "عميل" ? "زبون" : contact.contact_type}
