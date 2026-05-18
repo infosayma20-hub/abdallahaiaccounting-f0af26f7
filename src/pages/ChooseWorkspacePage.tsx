@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Briefcase, Truck, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
 
 export default function ChooseWorkspacePage() {
   const navigate = useNavigate();
@@ -11,8 +12,12 @@ export default function ChooseWorkspacePage() {
 
   const choose = (path: "/employee" | "/rep") => {
     try {
-      if (user?.id) sessionStorage.setItem(`workspace-choice:${user.id}`, path);
+      if (user?.id) {
+        sessionStorage.setItem(`workspace-choice:${user.id}`, path);
+        clearRoleRedirectCache(user.id);
+      }
     } catch {}
+    window.dispatchEvent(new Event("workspace-choice-changed"));
     navigate(path, { replace: true });
   };
 

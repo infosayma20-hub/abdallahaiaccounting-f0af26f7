@@ -272,7 +272,11 @@ const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesR
   if (!user) return <Navigate to="/auth" replace />;
   // امنع وميض شاشة المندوب/الموظف قبل ما نتأكد إذا لازم يروح لاختيار workspace
   if (checking && (location.pathname.startsWith("/rep") || location.pathname.startsWith("/employee"))) return <AuthCheckSpinner />;
-  if (!checking && targetPath === "/choose-workspace" && location.pathname !== "/choose-workspace") return <Navigate to="/choose-workspace" replace />;
+  const hasWorkspaceChoice = (() => {
+    try { return !!sessionStorage.getItem(`workspace-choice:${user.id}`); }
+    catch { return false; }
+  })();
+  if (!checking && targetPath === "/choose-workspace" && !hasWorkspaceChoice && location.pathname !== "/choose-workspace") return <Navigate to="/choose-workspace" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
   if (blockStoreTracker && targetPath === "/store-tracker") return <Navigate to="/store-tracker" replace />;
   if (blockSalesRep && targetPath === "/rep") return <Navigate to="/rep" replace />;

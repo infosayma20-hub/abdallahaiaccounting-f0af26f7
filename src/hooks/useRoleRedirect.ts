@@ -13,6 +13,13 @@ export function useRoleRedirect() {
   const { user, loading: authLoading } = useAuth();
   const [targetPath, setTargetPath] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
+  const [workspaceChoiceVersion, setWorkspaceChoiceVersion] = useState(0);
+
+  useEffect(() => {
+    const handleWorkspaceChoice = () => setWorkspaceChoiceVersion((version) => version + 1);
+    window.addEventListener("workspace-choice-changed", handleWorkspaceChoice);
+    return () => window.removeEventListener("workspace-choice-changed", handleWorkspaceChoice);
+  }, []);
 
   useEffect(() => {
     if (authLoading) {
@@ -169,7 +176,7 @@ export function useRoleRedirect() {
     return () => {
       isCancelled = true;
     };
-  }, [user, authLoading]);
+  }, [user, authLoading, workspaceChoiceVersion]);
 
   return { targetPath, checking, user };
 }
