@@ -128,8 +128,8 @@ export default function AdvancedEntitySearch({
     }
 
     // Hybrid type sets — include dual customer/supplier classifications
-    const CUSTOMER_TYPES = new Set(["عميل", "زبون", "customer", "both", "كلاهما", "customer_supplier", "زبون ومورد", "عميل ومورد"]);
-    const SUPPLIER_TYPES = new Set(["مورد", "supplier", "both", "كلاهما", "customer_supplier", "زبون ومورد", "عميل ومورد"]);
+    const CUSTOMER_TYPES = new Set(["عميل", "عميل ومورد"]);
+    const SUPPLIER_TYPES = new Set(["مورد", "عميل ومورد"]);
 
     // Customers (includes hybrid "زبون ومورد")
     const custs = allContacts.filter(c => CUSTOMER_TYPES.has(c.contact_type) && multiWordMatchAny(q, c.contact_name, c.phone));
