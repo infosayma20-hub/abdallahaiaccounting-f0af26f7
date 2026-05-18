@@ -6812,6 +6812,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_salesperson_fk"
+            columns: ["salesperson_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_warehouse_id_fkey"
             columns: ["warehouse_id"]
             isOneToOne: false
