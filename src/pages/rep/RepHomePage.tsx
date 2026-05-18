@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useCompany } from "@/hooks/useCompanyContext";
 import {
   LayoutDashboard,
   FileText,
@@ -37,7 +37,7 @@ const TILES: Tile[] = [
 export default function RepHomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { company } = useCompanyContext();
+  const { company } = useCompany();
   const [repName, setRepName] = useState<string>("");
 
   useEffect(() => {
