@@ -32,6 +32,8 @@ export interface RepSaleParams {
   idempotencyKey: string;
   discountType?: "percent" | "value" | null;
   discountValue?: number | null;
+  /** Rep's cash box GL code (e.g. 1112). Used as the Dr account for cash sales. */
+  cashAccountCode?: string | null;
 }
 
 export interface RepSaleResult {
@@ -68,6 +70,7 @@ export async function callCreateRepSaleAtomic(p: RepSaleParams): Promise<RepSale
     p_invoice_number: null,
     p_discount_type: p.discountType ?? null,
     p_discount_value: p.discountValue ?? 0,
+    p_cash_account_code: p.cashAccountCode ?? null,
   });
 
   if (error) return { success: false, error: error.message };
