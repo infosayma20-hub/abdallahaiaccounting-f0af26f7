@@ -909,7 +909,7 @@ const InvoiceCreatePage = () => {
     const typeFilter = form.type === "sales" ? "عميل" : "مورد";
     return contacts.filter(c =>
       c.contact_name.includes(contactSearch) &&
-      (c.contact_type === typeFilter || c.contact_type === "كلاهما" || !contactSearch)
+      (c.contact_type === typeFilter || c.contact_type === "عميل ومورد" || !contactSearch)
     );
   }, [contacts, contactSearch, form.type]);
   useEffect(() => { filteredContactsRef.current = filteredContacts; }, [filteredContacts]);
