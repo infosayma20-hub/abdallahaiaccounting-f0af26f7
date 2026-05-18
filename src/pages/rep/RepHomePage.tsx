@@ -14,6 +14,7 @@ import {
   BarChart3,
   Settings,
 } from "lucide-react";
+import RepHomeKPIHeader from "./components/RepHomeKPIHeader";
 
 interface Tile {
   label: string;
@@ -39,16 +40,22 @@ export default function RepHomePage() {
   const { user } = useAuth();
   const { company } = useCompany();
   const [repName, setRepName] = useState<string>("");
+  const [repId, setRepId] = useState<string | null>(null);
+  const [repUserId, setRepUserId] = useState<string | null>(null);
+  const [cashBoxId, setCashBoxId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const { data } = await (supabase as any)
         .from("sales_representatives")
-        .select("full_name")
+        .select("id, user_id, full_name, cash_box_id")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       if (data?.full_name) setRepName(data.full_name);
+      if (data?.id) setRepId(data.id);
+      if (data?.user_id) setRepUserId(data.user_id);
+      if (data?.cash_box_id) setCashBoxId(data.cash_box_id);
     })();
   }, [user?.id]);
 
@@ -62,6 +69,11 @@ export default function RepHomePage() {
           <div className="text-xs text-white/70 mt-1">{company.name}</div>
         )}
       </div>
+
+      {/* KPIs الحية */}
+      {repId && repUserId && (
+        <RepHomeKPIHeader repId={repId} userId={repUserId} cashBoxId={cashBoxId} />
+      )}
 
       {/* Tiles grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
