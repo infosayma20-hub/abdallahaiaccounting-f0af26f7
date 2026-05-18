@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Banknote, Wallet, Loader2 } from "lucide-react";
+import { FileText, Banknote, Lock, Loader2 } from "lucide-react";
 
 interface Props {
   repId: string;
@@ -136,11 +136,11 @@ export default function RepHomeKPIHeader({ repId, userId, cashBoxId }: Props) {
     },
     {
       label: "رصيد العهدة",
-      Icon: Wallet,
-      value: fmt(kpis.repBalance),
-      sub: "حالي",
-      tone: kpis.repBalance >= 0 ? "text-amber-300" : "text-rose-300",
-      bg: "bg-amber-500/15",
+      Icon: Lock,
+      value: "•••",
+      sub: "عدّ النقد عند الإغلاق",
+      tone: "text-white/70",
+      bg: "bg-white/10",
     },
   ];
 
