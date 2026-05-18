@@ -73,10 +73,10 @@ export default function RepHomePage() {
           </div>
           <div className="text-left shrink-0">
             <div className="text-[11px] text-white/60">
-              {new Date().toLocaleDateString("ar-EG-u-nu-latn", { weekday: "long" })}
+              {new Date().toLocaleDateString("ar-EG", { weekday: "long" })}
             </div>
-            <div className="text-sm font-semibold text-white/90 tabular-nums mt-0.5">
-              {new Date().toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "long", year: "numeric" })}
+            <div className="text-sm font-semibold text-white/90 mt-0.5">
+              {new Date().toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" })}
             </div>
           </div>
         </div>
