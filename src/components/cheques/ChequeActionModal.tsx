@@ -266,7 +266,7 @@ const ChequeActionModal = ({
                 }}>
                   <SelectTrigger className="h-9 mt-1 rounded-xl"><SelectValue placeholder="اختر المورد" /></SelectTrigger>
                   <SelectContent>
-                    {contacts.filter(c => c.contact_type === 'مورد' || c.contact_type === 'كلاهما').map(c => (
+                    {contacts.filter(c => c.contact_type === 'مورد' || c.contact_type === 'عميل ومورد').map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                     ))}
                   </SelectContent>
