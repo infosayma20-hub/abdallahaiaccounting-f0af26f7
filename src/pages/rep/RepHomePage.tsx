@@ -63,11 +63,23 @@ export default function RepHomePage() {
     <div dir="rtl" className="p-4 space-y-5">
       {/* Hero header */}
       <div className="rounded-2xl p-5 bg-gradient-to-br from-[#0D1B2E] via-[#13243d] to-[#0D1B2E] text-white shadow-lg ring-1 ring-white/10">
-        <div className="text-xs text-white/60">مرحباً بك</div>
-        <div className="text-lg font-bold mt-0.5">{repName || "—"}</div>
-        {company?.name && (
-          <div className="text-xs text-white/70 mt-1">{company.name}</div>
-        )}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs text-white/60">مرحباً بك</div>
+            <div className="text-lg font-bold mt-0.5 truncate">{repName || "—"}</div>
+            {company?.name && (
+              <div className="text-xs text-white/70 mt-1 truncate">{company.name}</div>
+            )}
+          </div>
+          <div className="text-left shrink-0">
+            <div className="text-[11px] text-white/60">
+              {new Date().toLocaleDateString("ar-EG-u-nu-latn", { weekday: "long" })}
+            </div>
+            <div className="text-sm font-semibold text-white/90 tabular-nums mt-0.5">
+              {new Date().toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "long", year: "numeric" })}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* KPIs الحية */}
