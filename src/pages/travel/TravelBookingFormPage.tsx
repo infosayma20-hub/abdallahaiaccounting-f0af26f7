@@ -269,8 +269,8 @@ export default function TravelBookingFormPage() {
     }
   }, [paxCount]);
 
-  const customers = contacts.filter(c => c.contact_type === "عميل" || c.contact_type === "both");
-  const suppliers = contacts.filter(c => c.contact_type === "مورد" || c.contact_type === "both");
+  const customers = contacts.filter(c => c.contact_type === "عميل" || c.contact_type === "عميل ومورد");
+  const suppliers = contacts.filter(c => c.contact_type === "مورد" || c.contact_type === "عميل ومورد");
   const filteredCustomers = customerSearch.trim() ? customers.filter(c => c.contact_name.includes(customerSearch)) : customers;
   const filteredSuppliers = supplierSearch.trim() ? suppliers.filter(c => c.contact_name.includes(supplierSearch)) : suppliers;
 
