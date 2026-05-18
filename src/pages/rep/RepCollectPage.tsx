@@ -125,6 +125,14 @@ export default function RepCollectPage() {
     if (!contactId) { toast({ title: "اختر عميلاً", variant: "destructive" }); return; }
     const amt = Number(amount);
     if (!amt || amt <= 0) { toast({ title: "أدخل مبلغاً صحيحاً", variant: "destructive" }); return; }
+    // Overpayment warning: تحصيل > رصيد العميل = دفعة مقدمة
+    if (balance !== null && amt > balance + 0.01) {
+      const prepay = amt - Math.max(0, balance);
+      const ok = window.confirm(
+        `المبلغ المُحصَّل (${amt.toFixed(2)} ₪) أكبر من الرصيد المستحق (${(balance ?? 0).toFixed(2)} ₪). سيتم تسجيل دفعة مقدمة بقيمة ${prepay.toFixed(2)} ₪. متابعة؟`
+      );
+      if (!ok) return;
+    }
     setSaving(true);
     try {
       const idempotencyKey = `REP-RCP-${Date.now()}`;
