@@ -142,6 +142,14 @@ export default function RepCollectPage() {
       });
       if (!result.success) throw new Error(result.error || "فشل التحصيل");
 
+      // وسم الحركة المحاسبية بـ sales_rep_id (ربط نظيف بدل JSON في notes)
+      if (result.transaction_id) {
+        await (supabase as any)
+          .from("transactions")
+          .update({ sales_rep_id: rep.id })
+          .eq("id", result.transaction_id);
+      }
+
       // إنشاء سجل سند قبض في receipt_vouchers ليظهر في شاشة سندات القبض
       // (مرتبط بالـ transaction عبر linked_transaction_id)
       if (!result.duplicate && result.transaction_id) {

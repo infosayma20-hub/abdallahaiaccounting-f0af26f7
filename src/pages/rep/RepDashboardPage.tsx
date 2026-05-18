@@ -92,7 +92,7 @@ export default function RepDashboardPage() {
       // فُتحت بنفس اليوم الميلادي لكن لم تُغلق إلا متأخراً.
       const { data: allTxs } = await (supabase as any)
         .from("transactions")
-        .select("amount, notes, payment_method, debit_account_code, credit_account_code, reversed_by_id, transaction_type")
+        .select("amount, notes, payment_method, debit_account_code, credit_account_code, reversed_by_id, transaction_type, sales_rep_id")
         .eq("user_id", rep.user_id)
         .eq("is_deleted", false)
         .gte("created_at", day.opened_at);
@@ -100,6 +100,8 @@ export default function RepDashboardPage() {
         // استبعاد المعاملات المعكوسة وقيود العكس نفسها
         if (t.reversed_by_id) return false;
         if (t.transaction_type === "reversal") return false;
+        // الربط الجديد عبر sales_rep_id (DB FK) — مع fallback للحركات القديمة عبر notes.rep_id
+        if (t.sales_rep_id === rep.id) return true;
         try { return JSON.parse(t.notes || "{}")?.rep_id === rep.id; } catch { return false; }
       });
 
