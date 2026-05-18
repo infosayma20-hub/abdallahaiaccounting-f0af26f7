@@ -33,6 +33,16 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/", allo
       // If user has no roles assigned, treat as admin (business owner)
       const effectiveRoles = userRoles.length === 0 ? ["admin"] : userRoles;
       let allowed = allowedRoles.some((role) => effectiveRoles.includes(role));
+      // Fallback: if route allows "employee" and user has an active employees row, grant access.
+      // هاد بيخلي المندوب اللي عنده سجل موظف يقدر يدخل شاشة الموظف من شاشة اختيار workspace.
+      if (!allowed && allowedRoles.includes("employee" as AllowedRole)) {
+        const { data: emp } = await supabase
+          .from("employees")
+          .select("id, is_active, is_terminated")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+        if (emp && (emp as any).is_active && !(emp as any).is_terminated) allowed = true;
+      }
       if (!allowed && allowEmployeePerm) {
         const { data: emp } = await supabase
           .from("employees")
