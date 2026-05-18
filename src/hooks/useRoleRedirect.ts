@@ -51,6 +51,22 @@ export function useRoleRedirect() {
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
         const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
 
+        // إذا المستخدم مندوب + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
+        // ما لم يكن قد اختار سابقاً في نفس الجلسة.
+        if (roles.includes("sales_rep") && isEmployee && !hasAdminAccess) {
+          let chosen: string | null = null;
+          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const nextPath = chosen === "/employee" ? "/employee"
+            : chosen === "/rep" ? "/rep/home"
+            : "/choose-workspace";
+          if (isCancelled) return;
+          // لا نخزّن /choose-workspace في cache لأنه قرار جلسة
+          if (nextPath !== "/choose-workspace") redirectCache.set(user.id, nextPath);
+          setTargetPath(nextPath);
+          setChecking(false);
+          return;
+        }
+
         // sales_rep أولوية أعلى من سجل الموظف: المستخدم اللي عنده دور
         // مندوب مبيعات يروح مباشرة لشاشة المندوب حتى لو كان مرتبط بسجل
         // employees.
