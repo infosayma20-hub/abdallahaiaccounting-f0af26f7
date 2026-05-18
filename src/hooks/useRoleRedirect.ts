@@ -55,7 +55,7 @@ export function useRoleRedirect() {
         // مندوب مبيعات يروح مباشرة لشاشة المندوب حتى لو كان مرتبط بسجل
         // employees.
         if (roles.includes("sales_rep") && !hasAdminAccess) {
-          const nextPath = "/rep";
+          const nextPath = "/rep/home";
           if (isCancelled) return;
           redirectCache.set(user.id, nextPath);
           setTargetPath(nextPath);
@@ -120,7 +120,7 @@ export function useRoleRedirect() {
         } else if (roles.includes("employee") && roles.length === 1) {
           nextPath = "/employee";
         } else if (roles.includes("sales_rep") && !roles.includes("admin")) {
-          nextPath = "/rep";
+          nextPath = "/rep/home";
         } else if (
           (roles.includes("accountant_senior") || roles.includes("accountant_sales") || roles.includes("accountant_purchases"))
           && !roles.includes("admin")
