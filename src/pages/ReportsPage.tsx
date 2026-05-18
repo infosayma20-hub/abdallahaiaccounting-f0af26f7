@@ -14,6 +14,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import ExecutiveKPIBar from "@/components/reports/ExecutiveKPIBar";
 import { useAuth } from "@/hooks/useAuth";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { getAllowedSections, type ReportSectionId } from "@/lib/reports/access-matrix";
 
 interface ReportItem {
   slug: string;
@@ -238,10 +240,25 @@ const saveFavorites = (favs: string[]) => localStorage.setItem(FAVORITES_KEY, JS
 
 const ReportsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   // All sections expanded by default
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(sections.map(s => s.id)));
   const [favorites, setFavorites] = useState<string[]>(loadFavorites);
+  const [allowedSectionIds, setAllowedSectionIds] = useState<Set<ReportSectionId> | null>(null);
+
+  // جلب أدوار المستخدم وحساب الأقسام المسموح بها
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const roles = (data || []).map((r: any) => r.role);
+      setAllowedSectionIds(getAllowedSections(roles));
+    })();
+  }, [user?.id]);
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => {
@@ -259,36 +276,40 @@ const ReportsPage = () => {
     });
   };
 
+  // فلترة الأقسام حسب صلاحيات المستخدم أولاً
+  const visibleSections = useMemo(() => {
+    if (!allowedSectionIds) return sections; // أثناء التحميل: لا تخفي شيء لتجنب الوميض
+    return sections.filter(s => allowedSectionIds.has(s.id as ReportSectionId));
+  }, [allowedSectionIds]);
+
   const allReports = useMemo(() =>
-    sections.flatMap(s => s.reports.map(r => ({ ...r, sectionLabel: s.label }))),
-    []
+    visibleSections.flatMap(s => s.reports.map(r => ({ ...r, sectionLabel: s.label }))),
+    [visibleSections]
   );
 
   const filteredSections = useMemo(() => {
-    if (!searchQuery.trim()) return sections;
-    return sections
+    if (!searchQuery.trim()) return visibleSections;
+    return visibleSections
       .map(s => ({
         ...s,
         reports: s.reports.filter(r => multiWordMatchAny(searchQuery, r.label, r.description)),
       }))
       .filter(s => s.reports.length > 0);
-  }, [searchQuery]);
+  }, [searchQuery, visibleSections]);
 
   const favoriteReports = useMemo(() =>
     allReports.filter(r => favorites.includes(r.slug)),
     [favorites, allReports]
   );
 
-  const totalReports = sections.reduce((s, sec) => s + sec.reports.length, 0);
-  const availableReports = sections.reduce((s, sec) => s + sec.reports.filter(r => r.available).length, 0);
+  const totalReports = visibleSections.reduce((s, sec) => s + sec.reports.length, 0);
+  const availableReports = visibleSections.reduce((s, sec) => s + sec.reports.filter(r => r.available).length, 0);
 
   useEffect(() => {
     if (searchQuery.trim()) {
-      setExpandedSections(new Set(sections.map(s => s.id)));
+      setExpandedSections(new Set(visibleSections.map(s => s.id)));
     }
-  }, [searchQuery]);
-
-  const { user } = useAuth();
+  }, [searchQuery, visibleSections]);
 
   // Default range: current calendar month (matches P&L "الشهر" preset).
   const monthRange = useMemo(() => {
