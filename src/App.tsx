@@ -87,6 +87,7 @@ const RepExpensePage = lazy(() => import("./pages/rep/RepExpensePage"));
 const RepSalesBySupplierPage = lazy(() => import("./pages/rep/RepSalesBySupplierPage"));
 const RepHomePage = lazy(() => import("./pages/rep/RepHomePage"));
 const RepPlaceholderPage = lazy(() => import("./pages/rep/RepPlaceholderPage"));
+const RepCustomersPage = lazy(() => import("./pages/rep/RepCustomersPage"));
 const RepReportsPage = lazy(() => import("./pages/manager/RepReportsPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
@@ -331,7 +332,7 @@ const App = () => (
                 <Route path="expense" element={<RepExpensePage />} />
                 <Route path="orders" element={<RepOrdersPage />} />
                 <Route path="sales-by-supplier" element={<RepSalesBySupplierPage />} />
-                <Route path="customers" element={<RepPlaceholderPage title="الزبائن" />} />
+                <Route path="customers" element={<RepCustomersPage />} />
                 <Route path="returns" element={<RepPlaceholderPage title="مردود مبيعات" />} />
                 <Route path="sales-order" element={<RepPlaceholderPage title="طلبية مبيعات" />} />
                 <Route path="reports" element={<RepPlaceholderPage title="تقارير المندوب" />} />
