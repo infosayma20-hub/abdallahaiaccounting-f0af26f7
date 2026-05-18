@@ -140,13 +140,14 @@ export default function RepExpensePage() {
       if (day) {
         const { data: txs } = await (supabase as any)
           .from("transactions")
-          .select("id, amount, description, debit_account_code, reference, transaction_date, notes, created_at")
+          .select("id, amount, description, debit_account_code, reference, transaction_date, notes, created_at, sales_rep_id")
           .eq("user_id", r.user_id)
           .eq("payment_method", "rep_expense")
           .eq("is_deleted", false)
           .gte("created_at", day.opened_at)
           .order("created_at", { ascending: false });
         const mine = ((txs as any[]) || []).filter((t) => {
+          if (t.sales_rep_id === r.id) return true;
           try {
             const n = JSON.parse(t.notes || "{}");
             return n?.rep_id === r.id;
