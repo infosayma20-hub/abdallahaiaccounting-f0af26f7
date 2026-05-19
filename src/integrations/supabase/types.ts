@@ -17436,6 +17436,7 @@ export type Database = {
         Args: { _payload: Json; _submitter: string }
         Returns: Json
       }
+      pos_order_branch_id: { Args: { _order_id: string }; Returns: string }
       post_import_shipment_atomic: {
         Args: { p_shipment_id: string; p_user_id: string }
         Returns: Json
