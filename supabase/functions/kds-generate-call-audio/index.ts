@@ -88,7 +88,22 @@ Deno.serve(async (req) => {
     );
     if (!ttsResp.ok) {
       const err = await ttsResp.text();
-      return jsonResp({ error: "tts_failed", message: err }, 502);
+      let reason = err;
+      try {
+        const j = JSON.parse(err);
+        if (j?.detail?.status === "detected_unusual_activity") {
+          reason = "ElevenLabs عطّل المفتاح المجاني (Unusual activity). يلزم اشتراك مدفوع. سيتم استخدام صوت المتصفح كبديل.";
+        } else if (j?.detail?.message) {
+          reason = j.detail.message;
+        }
+      } catch { /* keep raw */ }
+      // Return 200 with fallback signal so the client smoothly degrades to browser_tts
+      return jsonResp({
+        error: "tts_failed",
+        fallback: "browser_tts",
+        message: reason,
+        text,
+      }, 200);
     }
     const mp3 = await ttsResp.arrayBuffer();
 
