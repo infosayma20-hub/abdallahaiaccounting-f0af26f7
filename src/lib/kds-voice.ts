@@ -21,19 +21,29 @@ export interface VoiceResult {
 const cachedAudioElems = new Map<string, HTMLAudioElement>();
 
 async function playCachedArabicAudio(
-  token: string,
+  token: string | undefined,
   displayNumber: string | number,
   opts: SpeakOptions,
 ): Promise<VoiceResult> {
   try {
     const supaUrl = (import.meta.env.VITE_SUPABASE_URL as string) || "";
     if (!supaUrl) return { played: "none", reason: "VITE_SUPABASE_URL missing" };
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (opts.preview) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data } = await supabase.auth.getSession();
+        const at = data.session?.access_token;
+        if (at) headers.Authorization = `Bearer ${at}`;
+      } catch { /* ignore */ }
+    }
     const resp = await fetch(`${supaUrl}/functions/v1/kds-generate-call-audio`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         token, display_number: displayNumber,
         template: opts.template, language: opts.language,
+        preview: opts.preview ? true : undefined,
       }),
     });
     const data = await resp.json().catch(() => ({}));
@@ -95,6 +105,8 @@ export interface SpeakOptions {
   deviceToken?: string;
   /** Strategy: cached_arabic_audio | browser_tts | beep_only (default browser_tts) */
   mode?: "cached_arabic_audio" | "browser_tts" | "beep_only";
+  /** Admin preview from settings — uses JWT instead of device token */
+  preview?: boolean;
 }
 
 export async function speakOrderCall(displayNumber: string | number, opts: SpeakOptions = {}): Promise<VoiceResult> {
@@ -104,7 +116,7 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   const mode = opts.mode || "browser_tts";
 
   // 1) Cached Arabic MP3 path
-  if (mode === "cached_arabic_audio" && opts.deviceToken) {
+  if (mode === "cached_arabic_audio" && (opts.deviceToken || opts.preview)) {
     const r = await playCachedArabicAudio(opts.deviceToken, displayNumber, opts);
     if (r.played === "cached_arabic_audio") { lastVoiceError = null; return r; }
     // fall through to browser_tts
