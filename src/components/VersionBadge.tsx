@@ -19,8 +19,10 @@ function buildDate(value: string): Date | null {
 export default function VersionBadge() {
   const [copied, setCopied] = useState(false);
   const { pathname } = useLocation();
-  // ارفع الشارة فوق شريط التنقل السفلي في البورتالات الموبايل (مندوب/موظف/مالك/POS...)
-  const liftAboveBottomNav = /^\/(rep|employee|owner|portal|pos|driver)(\/|$)/.test(pathname);
+  // ارفع الشارة فوق شريط التنقل السفلي في البورتالات الموبايل (مندوب/موظف/مالك/سائق...)
+  const liftAboveBottomNav = /^\/(rep|employee|owner|portal|driver)(\/|$)/.test(pathname);
+  // داخل نقطة البيع: نزيح الشارة للأعلى حتى لا تغطّي زر الدفع (F2) أسفل الشاشة.
+  const isPos = /^\/pos(\/|$)/.test(pathname);
 
   let label = "v—";
   try {
@@ -57,7 +59,9 @@ export default function VersionBadge() {
       onClick={onClick}
       title={`إصدار النظام — اضغط للنسخ\n${label}\nإذا لم تظهر آخر التحديثات: Ctrl + Shift + R`}
       aria-label={`إصدار النظام ${label}`}
-      className={`fixed ${liftAboveBottomNav ? "bottom-[68px]" : "bottom-1"} left-1 z-[60] px-1.5 py-0.5 rounded text-[9px] leading-none font-mono tabular-nums text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 bg-background/40 backdrop-blur-sm border border-border/40 select-none print:hidden pointer-events-auto`}
+      className={`fixed ${
+        isPos ? "top-1 left-1" : liftAboveBottomNav ? "bottom-[68px] left-1" : "bottom-1 left-1"
+      } z-[60] px-1.5 py-0.5 rounded text-[9px] leading-none font-mono tabular-nums text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 bg-background/40 backdrop-blur-sm border border-border/40 select-none print:hidden pointer-events-auto`}
       dir="ltr"
     >
       {copied ? "✓ تم النسخ" : label}
