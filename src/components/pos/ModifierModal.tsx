@@ -147,14 +147,48 @@ export default function ModifierModal({
   const toggleOption = (group: ModifierGroup, optId: string) => {
     setSelected((prev) => {
       const current = prev[group.id] || [];
+      let nextForGroup: string[];
       if (group.selection_type === "single") {
-        return { ...prev, [group.id]: current.includes(optId) ? [] : [optId] };
+        nextForGroup = current.includes(optId) ? [] : [optId];
+      } else if (current.includes(optId)) {
+        nextForGroup = current.filter((id) => id !== optId);
+      } else {
+        if (current.length >= group.max_select) return prev;
+        nextForGroup = [...current, optId];
       }
-      if (current.includes(optId)) {
-        return { ...prev, [group.id]: current.filter((id) => id !== optId) };
+      const next = { ...prev, [group.id]: nextForGroup };
+
+      // Auto-confirm UX: if there is exactly one single-select group and the
+      // user picked an option, skip the extra "إضافة للطلب" tap.
+      if (
+        groups.length === 1 &&
+        group.selection_type === "single" &&
+        nextForGroup.length === 1 &&
+        note === "" &&
+        quantity === 1
+      ) {
+        const opt = group.options.find((o) => o.id === optId);
+        if (opt) {
+          const total = (product.sell_price + (opt.extra_price || 0)) * 1;
+          // Defer to next tick so React finishes the state commit before unmount.
+          setTimeout(() => {
+            onConfirm({
+              modifiers: [{
+                group_id: group.id,
+                group_name: group.name,
+                option_id: opt.id,
+                option_name: opt.name,
+                extra_price: opt.extra_price,
+              }],
+              note: "",
+              quantity: 1,
+              totalPrice: total,
+            });
+          }, 0);
+        }
       }
-      if (current.length >= group.max_select) return prev;
-      return { ...prev, [group.id]: [...current, optId] };
+
+      return next;
     });
   };
 
