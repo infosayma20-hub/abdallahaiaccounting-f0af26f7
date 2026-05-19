@@ -373,6 +373,8 @@ const POSPage = () => {
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
+  // Per-shift default-category guard (Malaky: default to "كرسبي فردي" on shift open)
+  const defaultCategoryAppliedRef = useRef<string | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
