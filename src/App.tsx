@@ -191,6 +191,7 @@ const FinanceJournalPage = lazy(() => import("./pages/FinanceJournalPage"));
 const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const CustomerOrderDisplayPage = lazy(() => import("./pages/CustomerOrderDisplayPage"));
+const KitchenDisplayPublicPage = lazy(() => import("./pages/KitchenDisplayPublicPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
@@ -372,6 +373,7 @@ const App = () => (
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModuleGuard><ModifierManagerPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/kitchen" element={<ProtectedRoute><ModuleGuard><KitchenDisplayPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/order-display" element={<CustomerOrderDisplayPage />} />
+              <Route path="/pos/kitchen-display" element={<KitchenDisplayPublicPage />} />
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
