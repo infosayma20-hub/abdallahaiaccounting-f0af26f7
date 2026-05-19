@@ -93,6 +93,16 @@ export interface CompanySettings {
   pos_return_policy_days: number;
   pos_kitchen_ticket_size: string;
   pos_kitchen_auto_print: boolean;
+  // POS — KDS & Customer Display
+  pos_kds_enabled: boolean;
+  pos_customer_display_enabled: boolean;
+  pos_voice_call_enabled: boolean;
+  pos_voice_language: string;
+  pos_voice_template: string;
+  pos_ready_auto_hide_seconds: number;
+  pos_call_repeat_seconds: number;
+  pos_call_number_strategy: string;
+  pos_kds_auto_preparing: boolean;
   // Print
   primary_color: string;
   invoice_font: string;
