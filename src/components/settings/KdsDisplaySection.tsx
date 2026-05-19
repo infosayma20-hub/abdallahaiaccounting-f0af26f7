@@ -120,7 +120,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     setVoiceTestMessage("جارٍ اختبار صوت Omar…");
     setVoiceTest(null);
     const result = await speakOrderCall("13", {
-      template: "طلب رقم ....{n}",
+      template: settings.pos_voice_template || "طلب رقم ....{n}",
       language: settings.pos_voice_language,
       mode: (settings.pos_kds_voice_mode || "browser_tts") as any,
       preview: true,
