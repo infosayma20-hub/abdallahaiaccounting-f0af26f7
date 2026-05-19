@@ -89,33 +89,6 @@ export default function RepCustomersPage() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* بطاقة العهدة الشخصية */}
-      {repContact && (
-        <Card className="p-4 space-y-2 bg-primary/5 border-primary/20">
-          <div className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-primary" />
-            <h3 className="font-bold text-foreground">عهدتي الشخصية</h3>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            الحساب: <span className="font-mono">{repContact.linked_account_code || "—"}</span>
-          </div>
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs text-muted-foreground">الرصيد الحالي</span>
-            <span className={`text-lg font-bold ${repBalance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-              {repBalance.toFixed(2)} ₪
-            </span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => navigate(`/rep/customer-statement?contact_id=${repContact.id}`)}
-          >
-            <ExternalLink className="w-3.5 h-3.5 ml-1" /> كشف الحساب
-          </Button>
-        </Card>
-      )}
-
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-primary" />
