@@ -47,7 +47,10 @@ export default function KitchenDisplayPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stations, setStations] = useState<Station[]>([]);
-  const [selectedStation, setSelectedStation] = useState<string>("all");
+  const [selectedStation, setSelectedStation] = useState<string>(
+    () => localStorage.getItem("kds-my-station") || "all"
+  );
+  useEffect(() => { localStorage.setItem("kds-my-station", selectedStation); }, [selectedStation]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -158,6 +161,17 @@ export default function KitchenDisplayPage() {
 
     // Note: order-level auto-call event is created by the DB trigger
     // once ALL stations of the order are ready (no manual call here).
+    if (newStatus === "ready") {
+      try {
+        const t = tickets.find(x => x.id === ticketId);
+        if (t) {
+          const { data: peers } = await (supabase as any)
+            .from("kitchen_tickets").select("id,status").eq("order_id", t.order_id);
+          const allReady = (peers || []).every((p: any) => p.id === ticketId || p.status === "ready");
+          if (allReady) toast.success("الطلب جاهز بالكامل — تم النداء على شاشة الزبائن", { duration: 4000 });
+        }
+      } catch {}
+    }
 
     toast.success(newStatus === "preparing" ? "تم قبول الطلب" : newStatus === "ready" ? "الطلب جاهز!" : "تم التحديث");
     loadTickets();
