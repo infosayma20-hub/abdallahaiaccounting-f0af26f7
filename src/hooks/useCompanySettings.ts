@@ -103,6 +103,9 @@ export interface CompanySettings {
   pos_call_repeat_seconds: number;
   pos_call_number_strategy: string;
   pos_kds_auto_preparing: boolean;
+  pos_kds_daily_number_start: number;
+  pos_kds_daily_number_reset: boolean;
+  pos_kds_display_number_source: string;
   // Print
   primary_color: string;
   invoice_font: string;
@@ -237,6 +240,9 @@ const defaultSettings: CompanySettings = {
   pos_call_repeat_seconds: 0,
   pos_call_number_strategy: "order_number",
   pos_kds_auto_preparing: true,
+  pos_kds_daily_number_start: 1,
+  pos_kds_daily_number_reset: true,
+  pos_kds_display_number_source: "short_daily_number",
   pos_kitchen_auto_print: true,
   primary_color: "#22C55E",
   invoice_font: "classic",
@@ -373,6 +379,7 @@ export function useCompanySettings() {
     "pos_kds_enabled","pos_customer_display_enabled","pos_voice_call_enabled",
     "pos_voice_language","pos_voice_template","pos_ready_auto_hide_seconds",
     "pos_call_repeat_seconds","pos_call_number_strategy","pos_kds_auto_preparing",
+    "pos_kds_daily_number_start","pos_kds_daily_number_reset","pos_kds_display_number_source",
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",

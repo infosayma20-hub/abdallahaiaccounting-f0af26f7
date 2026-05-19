@@ -2116,6 +2116,9 @@ export type Database = {
           pos_disable_cogs: boolean
           pos_disable_stock_deduction: boolean
           pos_kds_auto_preparing: boolean
+          pos_kds_daily_number_reset: boolean
+          pos_kds_daily_number_start: number
+          pos_kds_display_number_source: string
           pos_kds_enabled: boolean
           pos_kds_show_order_types: Json
           pos_kitchen_auto_print: boolean | null
@@ -2271,6 +2274,9 @@ export type Database = {
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
           pos_kds_auto_preparing?: boolean
+          pos_kds_daily_number_reset?: boolean
+          pos_kds_daily_number_start?: number
+          pos_kds_display_number_source?: string
           pos_kds_enabled?: boolean
           pos_kds_show_order_types?: Json
           pos_kitchen_auto_print?: boolean | null
@@ -2426,6 +2432,9 @@ export type Database = {
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
           pos_kds_auto_preparing?: boolean
+          pos_kds_daily_number_reset?: boolean
+          pos_kds_daily_number_start?: number
+          pos_kds_display_number_source?: string
           pos_kds_enabled?: boolean
           pos_kds_show_order_types?: Json
           pos_kitchen_auto_print?: boolean | null
@@ -7013,6 +7022,7 @@ export type Database = {
           display_number: string | null
           event_type: string
           id: string
+          order_id: string | null
           ticket_id: string
         }
         Insert: {
@@ -7023,6 +7033,7 @@ export type Database = {
           display_number?: string | null
           event_type?: string
           id?: string
+          order_id?: string | null
           ticket_id: string
         }
         Update: {
@@ -7033,9 +7044,17 @@ export type Database = {
           display_number?: string | null
           event_type?: string
           id?: string
+          order_id?: string | null
           ticket_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "kds_call_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "kds_call_events_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -9227,6 +9246,7 @@ export type Database = {
           customer_discount_pct: number | null
           customer_id: string | null
           customer_name: string | null
+          daily_display_number: number | null
           delivery_accepted_at: string | null
           delivery_address: string | null
           delivery_requested_at: string | null
@@ -9241,6 +9261,7 @@ export type Database = {
           ils_equivalent: number | null
           is_delivery: boolean | null
           is_return: boolean
+          kds_auto_called_at: string | null
           linked_transaction_id: string | null
           local_id: string | null
           notes: string | null
@@ -9300,6 +9321,7 @@ export type Database = {
           customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          daily_display_number?: number | null
           delivery_accepted_at?: string | null
           delivery_address?: string | null
           delivery_requested_at?: string | null
@@ -9314,6 +9336,7 @@ export type Database = {
           ils_equivalent?: number | null
           is_delivery?: boolean | null
           is_return?: boolean
+          kds_auto_called_at?: string | null
           linked_transaction_id?: string | null
           local_id?: string | null
           notes?: string | null
@@ -9373,6 +9396,7 @@ export type Database = {
           customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          daily_display_number?: number | null
           delivery_accepted_at?: string | null
           delivery_address?: string | null
           delivery_requested_at?: string | null
@@ -9387,6 +9411,7 @@ export type Database = {
           ils_equivalent?: number | null
           is_delivery?: boolean | null
           is_return?: boolean
+          kds_auto_called_at?: string | null
           linked_transaction_id?: string | null
           local_id?: string | null
           notes?: string | null
@@ -17106,6 +17131,24 @@ export type Database = {
         Args: { _data_owner_id: string; _user_id: string }
         Returns: boolean
       }
+      kds_business_date: { Args: { _at?: string }; Returns: string }
+      kds_create_tickets_for_order: {
+        Args: { _order_id: string }
+        Returns: number
+      }
+      kds_get_active_orders: {
+        Args: { _token: string }
+        Returns: {
+          call_count: number
+          created_at: string
+          display_number: string
+          last_called_at: string
+          order_id: string
+          order_number: string
+          ready_at: string
+          status: string
+        }[]
+      }
       kds_get_active_tickets: {
         Args: { _token: string }
         Returns: {
@@ -17120,6 +17163,7 @@ export type Database = {
           status: string
         }[]
       }
+      kds_recall_order: { Args: { _order_id: string }; Returns: undefined }
       log_sensitive_access: {
         Args: {
           _action: string

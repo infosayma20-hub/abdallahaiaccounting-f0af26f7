@@ -13,11 +13,11 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { speakOrderCall, playChime, ensureVoicesLoaded } from "@/lib/kds-voice";
 
-interface Ticket {
-  id: string;
+interface OrderRow {
+  order_id: string;
   display_number: string | null;
   order_number: string | null;
-  status: "pending" | "preparing" | "ready" | string;
+  status: "preparing" | "ready" | string;
   ready_at: string | null;
   last_called_at: string | null;
   call_count: number;
@@ -29,7 +29,7 @@ const POLL_MS = 4000;
 export default function CustomerOrderDisplayPage() {
   const [params] = useSearchParams();
   const token = params.get("token") || "";
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -44,22 +44,22 @@ export default function CustomerOrderDisplayPage() {
 
   const load = useCallback(async () => {
     if (!token) { setError("لا يوجد توكن جهاز. أضف ?token=... للرابط."); return; }
-    const { data, error } = await supabase.rpc("kds_get_active_tickets", { _token: token } as any);
+    const { data, error } = await supabase.rpc("kds_get_active_orders", { _token: token } as any);
     if (error) { setError(error.message); return; }
     setError(null);
-    setTickets((data as any[]) || []);
+    setOrders((data as any[]) || []);
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(load, POLL_MS); return () => clearInterval(t); }, [load]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
-  // Trigger voice call for newly-ready tickets
+  // Trigger voice call for newly-ready orders (one call per order)
   useEffect(() => {
     if (!audioUnlocked) return;
-    const fresh = tickets.filter(t => t.status === "ready" && !announcedRef.current.has(t.id));
+    const fresh = orders.filter(o => o.status === "ready" && !announcedRef.current.has(o.order_id));
     fresh.forEach((t, i) => {
-      announcedRef.current.add(t.id);
+      announcedRef.current.add(t.order_id);
       const num = t.display_number || t.order_number || "";
       if (!num) return;
       setTimeout(() => {
@@ -67,21 +67,21 @@ export default function CustomerOrderDisplayPage() {
         setTimeout(() => speakOrderCall(num), 450);
       }, i * 2500);
     });
-  }, [tickets, audioUnlocked]);
+  }, [orders, audioUnlocked]);
 
   const preparing = useMemo(
-    () => tickets.filter(t => t.status === "pending" || t.status === "preparing"),
-    [tickets]
+    () => orders.filter(o => o.status === "preparing"),
+    [orders]
   );
   const ready = useMemo(
-    () => tickets.filter(t => t.status === "ready")
+    () => orders.filter(o => o.status === "ready")
       .sort((a, b) => (b.ready_at || b.created_at).localeCompare(a.ready_at || a.created_at)),
-    [tickets]
+    [orders]
   );
   const lastReady = ready[0];
 
-  // Pulse the newest ready ticket for ~6s
-  const isNewest = (t: Ticket) => {
+  // Pulse the newest ready order for ~6s
+  const isNewest = (t: OrderRow) => {
     if (!t.ready_at) return false;
     return now - new Date(t.ready_at).getTime() < 6000;
   };
@@ -145,7 +145,7 @@ export default function CustomerOrderDisplayPage() {
         >
           {ready.map(t => (
             <NumberTile
-              key={t.id}
+              key={t.order_id}
               number={t.display_number || t.order_number || "—"}
               tone="ready"
               pulse={isNewest(t)}
@@ -162,7 +162,7 @@ export default function CustomerOrderDisplayPage() {
         >
           {preparing.map(t => (
             <NumberTile
-              key={t.id}
+              key={t.order_id}
               number={t.display_number || t.order_number || "—"}
               tone="preparing"
             />

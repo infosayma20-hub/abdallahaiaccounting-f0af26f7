@@ -135,10 +135,38 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="order_number">رقم الطلب</SelectItem>
-                <SelectItem value="daily_short">رقم يومي قصير (قريباً)</SelectItem>
+                <SelectItem value="daily_short">رقم يومي قصير</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label>الرقم الظاهر على شاشة الزبون</Label>
+            <Select
+              value={settings.pos_kds_display_number_source}
+              onValueChange={v => onChange({ pos_kds_display_number_source: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="short_daily_number">رقم يومي قصير (1، 2، 3…)</SelectItem>
+                <SelectItem value="order_number">رقم الطلب الطويل</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>بداية الرقم اليومي</Label>
+            <Input type="number" min={1} max={9999}
+              value={settings.pos_kds_daily_number_start}
+              onChange={e => onChange({ pos_kds_daily_number_start: Number(e.target.value) || 1 })} />
+          </div>
+
+          <ToggleRow
+            label="إعادة الترقيم يومياً"
+            hint="يبدأ العد من جديد عند بداية يوم العمل لكل فرع"
+            value={settings.pos_kds_daily_number_reset}
+            onChange={v => onChange({ pos_kds_daily_number_reset: v })}
+          />
 
           <div className="space-y-2 md:col-span-2">
             <Label>نص النداء</Label>
