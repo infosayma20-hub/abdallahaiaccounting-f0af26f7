@@ -2961,18 +2961,27 @@ const POSPage = () => {
 
       loadProducts();
 
-      // Fetch display_number and queue_number from the created order
+      // Fetch the unified order display number (KDS daily number = what's shown on
+      // the customer screen AND voice-called). The receipt must show the SAME
+      // number so customers wait for "their" number on the display.
       let displayNumber = '';
       let queueNumber: number | undefined;
       try {
         const { data: orderRow } = await supabase
           .from("pos_orders")
-          .select("display_number, queue_number")
+          .select("display_number, queue_number, daily_display_number")
           .eq("id", orderId)
           .single();
         if (orderRow) {
-          displayNumber = (orderRow as any).display_number || '';
-          queueNumber = (orderRow as any).queue_number;
+          const daily = (orderRow as any).daily_display_number;
+          displayNumber = daily != null
+            ? String(daily)
+            : ((orderRow as any).display_number || '');
+          // Use daily as the queue number so ReceiptTemplate prints the same
+          // value the KDS/customer display shows.
+          queueNumber = daily != null
+            ? Number(daily)
+            : (orderRow as any).queue_number;
         }
       } catch {}
 
