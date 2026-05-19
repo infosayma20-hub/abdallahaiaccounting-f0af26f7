@@ -2105,6 +2105,7 @@ export type Database = {
           pos_auto_update_stock: boolean | null
           pos_branch_id: string | null
           pos_call_center_enabled: boolean
+          pos_call_max_repeats: number
           pos_call_number_strategy: string
           pos_call_repeat_seconds: number
           pos_count: number | null
@@ -2263,6 +2264,7 @@ export type Database = {
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
           pos_call_center_enabled?: boolean
+          pos_call_max_repeats?: number
           pos_call_number_strategy?: string
           pos_call_repeat_seconds?: number
           pos_count?: number | null
@@ -2421,6 +2423,7 @@ export type Database = {
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
           pos_call_center_enabled?: boolean
+          pos_call_max_repeats?: number
           pos_call_number_strategy?: string
           pos_call_repeat_seconds?: number
           pos_count?: number | null
@@ -8993,6 +8996,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           device_role: string
+          device_type: string
           id: string
           is_active: boolean
           last_seen_at: string | null
@@ -9005,6 +9009,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           device_role?: string
+          device_type?: string
           id?: string
           is_active?: boolean
           last_seen_at?: string | null
@@ -9017,6 +9022,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           device_role?: string
+          device_type?: string
           id?: string
           is_active?: boolean
           last_seen_at?: string | null
@@ -17136,6 +17142,7 @@ export type Database = {
         Args: { _order_id: string }
         Returns: number
       }
+      kds_device_heartbeat: { Args: { _token: string }; Returns: boolean }
       kds_get_active_orders: {
         Args: { _token: string }
         Returns: {
@@ -17164,6 +17171,17 @@ export type Database = {
         }[]
       }
       kds_recall_order: { Args: { _order_id: string }; Returns: undefined }
+      kds_recent_call_events: {
+        Args: { _since?: string; _token: string }
+        Returns: {
+          created_at: string
+          display_number: string
+          event_type: string
+          id: string
+          order_id: string
+        }[]
+      }
+      kds_rotate_device_token: { Args: { _id: string }; Returns: string }
       log_sensitive_access: {
         Args: {
           _action: string

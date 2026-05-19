@@ -11,15 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Copy, Plus, Trash2, Volume2, Monitor } from "lucide-react";
+import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall } from "@/lib/kds-voice";
+import { Link } from "react-router-dom";
 
 interface Device {
   id: string;
   name: string;
   device_role: string;
+  device_type: string;
   token: string;
   branch_id: string | null;
   is_active: boolean;
@@ -39,6 +41,9 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [newName, setNewName] = useState("");
   const [newBranch, setNewBranch] = useState<string>("none");
+  const [newType, setNewType] = useState<string>("customer_display");
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
 
   const load = useCallback(async () => {
     if (!ownerId) return;
@@ -59,11 +64,12 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
       company_id: ownerId,
       branch_id: newBranch === "none" ? null : newBranch,
       name: newName.trim(),
-      device_role: "customer_display",
+      device_role: newType,
+      device_type: newType,
       token,
     } as any);
     if (error) { toast.error("تعذر إضافة الجهاز"); return; }
-    setNewName(""); setNewBranch("none");
+    setNewName(""); setNewBranch("none"); setNewType("customer_display");
     toast.success("تم إنشاء الجهاز");
     load();
   };
@@ -74,11 +80,29 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     load();
   };
 
-  const copyLink = (token: string) => {
-    const url = `${window.location.origin}/pos/order-display?token=${token}`;
+  const linkFor = (d: Device) => {
+    if (d.device_type === "kitchen_screen" || d.device_type === "heater_screen") {
+      return `${window.location.origin}/pos/kitchen`;
+    }
+    return `${window.location.origin}/pos/order-display?token=${d.token}`;
+  };
+
+  const copyLink = (d: Device) => {
+    const url = linkFor(d);
     navigator.clipboard.writeText(url);
     toast.success("تم نسخ الرابط");
   };
+
+  const rotateToken = async (d: Device) => {
+    if (!confirm("تدوير التوكن سيوقف الجهاز الحالي فوراً. متابعة؟")) return;
+    const { error } = await supabase.rpc("kds_rotate_device_token", { _id: d.id } as any);
+    if (error) { toast.error("فشل التدوير"); return; }
+    toast.success("تم إصدار توكن جديد");
+    load();
+  };
+
+  const isOnline = (d: Device) =>
+    !!d.last_seen_at && (now - new Date(d.last_seen_at).getTime()) < 60_000;
 
   return (
     <div className="space-y-5">
@@ -199,6 +223,13 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
               value={settings.pos_call_repeat_seconds}
               onChange={e => onChange({ pos_call_repeat_seconds: Number(e.target.value) || 0 })} />
           </div>
+
+          <div className="space-y-2">
+            <Label>أقصى عدد لإعادة النداء (0 = غير محدود)</Label>
+            <Input type="number" min={0} max={20}
+              value={settings.pos_call_max_repeats}
+              onChange={e => onChange({ pos_call_max_repeats: Number(e.target.value) || 0 })} />
+          </div>
         </div>
       </div>
 
@@ -206,16 +237,31 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
 
       {/* Display devices */}
       <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Monitor className="h-4 w-4 text-primary" />
-          أجهزة شاشة العرض للزبائن
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <Monitor className="h-4 w-4 text-primary" />
+            أجهزة الشاشات
+          </h3>
+          <Button asChild variant="outline" size="sm" className="gap-1">
+            <Link to="/pos/kds-control">
+              <ExternalLink className="h-3.5 w-3.5" /> لوحة التشغيل
+            </Link>
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground mb-3">
-          أضف جهازاً لكل شاشة كبيرة في المطعم. كل جهاز يحصل على رابط فريد افتحه في المتصفح على الشاشة.
+          أضف جهازاً لكل شاشة في المطعم (زبائن / مطبخ / سخان). كل شاشة زبائن لها رابط فريد بتوكن. شاشات المطبخ تحتاج تسجيل دخول.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_200px_auto] gap-2 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px_auto] gap-2 mb-4">
           <Input placeholder="اسم الجهاز (مثلاً: شاشة الصالة)" value={newName} onChange={e => setNewName(e.target.value)} />
+          <Select value={newType} onValueChange={setNewType}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="customer_display">شاشة الزبائن</SelectItem>
+              <SelectItem value="kitchen_screen">شاشة المطبخ</SelectItem>
+              <SelectItem value="heater_screen">شاشة السخان</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={newBranch} onValueChange={setNewBranch}>
             <SelectTrigger><SelectValue placeholder="الفرع (اختياري)" /></SelectTrigger>
             <SelectContent>
@@ -233,15 +279,35 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
           {devices.map(d => (
             <div key={d.id} className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30">
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{d.name}</div>
-                <div className="text-xs text-muted-foreground truncate">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{d.name}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                    {d.device_type === "kitchen_screen" ? "مطبخ"
+                      : d.device_type === "heater_screen" ? "سخان" : "زبائن"}
+                  </span>
+                  {isOnline(d) ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600">
+                      <Wifi className="h-3 w-3" /> متصل
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                      <WifiOff className="h-3 w-3" /> غير متصل
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground truncate mt-0.5">
                   {d.branch_id ? branches.find(b => b.id === d.branch_id)?.name || "فرع" : "كل الفروع"}
                   {d.last_seen_at && ` · آخر اتصال: ${new Date(d.last_seen_at).toLocaleString("ar-PS")}`}
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={() => copyLink(d.token)} className="gap-1">
+              <Button size="sm" variant="outline" onClick={() => copyLink(d)} className="gap-1">
                 <Copy className="h-3.5 w-3.5" /> نسخ الرابط
               </Button>
+              {d.device_type === "customer_display" && (
+                <Button size="icon" variant="ghost" onClick={() => rotateToken(d)} title="تدوير التوكن">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
               <Button size="icon" variant="ghost" onClick={() => removeDevice(d.id)} className="text-destructive">
                 <Trash2 className="h-4 w-4" />
               </Button>

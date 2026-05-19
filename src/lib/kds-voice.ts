@@ -9,6 +9,9 @@
 
 let cachedVoice: SpeechSynthesisVoice | null | undefined = undefined;
 
+let lastVoiceError: string | null = null;
+export function getLastVoiceError(): string | null { return lastVoiceError; }
+
 function pickArabicVoice(lang: string): SpeechSynthesisVoice | null {
   if (cachedVoice !== undefined) return cachedVoice;
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -48,27 +51,60 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   const lang = opts.language || "ar-PS";
   const text = tpl.replace(/\{n\}/g, String(displayNumber));
 
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    lastVoiceError = "speechSynthesis غير متوفر — استخدام صوت تنبيه فقط";
+    playFallbackAlert();
+    return;
+  }
 
   await ensureVoicesLoaded();
   cachedVoice = undefined; // refresh selection in case language changed
   const voice = pickArabicVoice(lang);
+  if (!voice) {
+    lastVoiceError = "لا يوجد صوت عربي مثبت على هذا الجهاز — تشغيل تنبيه فقط";
+    playFallbackAlert();
+    return;
+  }
 
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = lang;
-  if (voice) utter.voice = voice;
+  utter.voice = voice;
   utter.rate = opts.rate ?? 0.95;
   utter.pitch = opts.pitch ?? 1;
+  utter.onerror = (e: any) => { lastVoiceError = `خطأ في النطق: ${e?.error || "غير معروف"}`; };
 
   // Speak twice with a short gap, common practice for in-store calls.
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utter);
   const second = new SpeechSynthesisUtterance(text);
   second.lang = lang;
-  if (voice) second.voice = voice;
+  second.voice = voice;
   second.rate = utter.rate;
   second.pitch = utter.pitch;
   window.speechSynthesis.speak(second);
+  lastVoiceError = null;
+}
+
+/** Loud 3-tone fallback used when speech synthesis is unavailable. */
+export function playFallbackAlert() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const notes = [880, 1100, 880];
+    const start = ctx.currentTime;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = "sine";
+      const t0 = start + i * 0.35;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.4, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0); osc.stop(t0 + 0.34);
+    });
+    setTimeout(() => ctx.close().catch(() => {}), 2000);
+  } catch (e: any) { lastVoiceError = `تنبيه: ${e?.message}`; }
 }
 
 /** Quick chime to grab attention before the spoken call. */
