@@ -1,0 +1,2 @@
+UPDATE public.products SET sell_price = 2 WHERE id = '9a934195-76b7-4f67-a64a-40a174dc3ce7';
+UPDATE public.products SET sell_price = 4 WHERE id IN ('08dd554d-0c90-4b1e-a041-c1183bdd6d33','ae6fbea0-7f77-4a47-bb3d-1cc48c914ce7');
