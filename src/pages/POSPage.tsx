@@ -373,6 +373,8 @@ const POSPage = () => {
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
+  // Per-shift default-category guard (Malaky: default to "كرسبي فردي" on shift open)
+  const defaultCategoryAppliedRef = useRef<string | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -965,6 +967,23 @@ const POSPage = () => {
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [dataOwnerId, session]);
+
+  // ── Malaky-only default category on shift open ──
+  // For every cashier in the Malaky tenant, when a shift opens and the
+  // categories list is loaded, auto-select "كرسبي فردي" once per shift.
+  useEffect(() => {
+    if (!session?.id) {
+      defaultCategoryAppliedRef.current = null;
+      return;
+    }
+    if (defaultCategoryAppliedRef.current === session.id) return;
+    const companyName = (company?.name || "").toLowerCase();
+    const isMalaky = /malaky|ملكي/.test(companyName);
+    if (!isMalaky) return;
+    if (!posCategories.some((c) => c.name === "كرسبي فردي")) return;
+    setSelectedCategory("كرسبي فردي");
+    defaultCategoryAppliedRef.current = session.id;
+  }, [session?.id, company?.name, posCategories]);
 
   // Auto-load order from URL params (when coming from floor plan)
   useEffect(() => {
@@ -4161,29 +4180,6 @@ const POSPage = () => {
                 disabled={!isSortMode}
               >
                 <div className="flex flex-wrap gap-2 items-center">
-                  {/* All */}
-                  <button
-                    onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
-                    style={{
-                      minWidth: 80, height: 40, padding: "4px 14px",
-                      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
-                      border: selectedCategory === "الكل"
-                        ? `1.5px solid ${posDarkMode ? 'white' : '#0D1B2E'}`
-                        : `1.5px solid ${posDarkMode ? 'rgba(255,255,255,0.1)' : '#dbeafe'}`,
-                      background: selectedCategory === "الكل"
-                        ? (posDarkMode ? 'white' : '#0D1B2E')
-                        : (posDarkMode ? 'rgba(255,255,255,0.06)' : 'white'),
-                      color: selectedCategory === "الكل"
-                        ? (posDarkMode ? '#0D1B2E' : 'white')
-                        : (posDarkMode ? 'rgba(255,255,255,0.7)' : '#475569'),
-                      boxShadow: selectedCategory === "الكل" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
-                    }}
-                  >
-                    <span className="leading-tight">الكل</span>
-                    <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
-                  </button>
-
                   {categoriesWithCounts.categories.map((cat) => (
                      <SortableCategoryChip
                       key={cat.id}
@@ -4219,6 +4215,29 @@ const POSPage = () => {
                       <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.uncategorized})</span>
                     </button>
                   )}
+
+                  {/* All — moved to the end (after the last category) */}
+                  <button
+                    onClick={() => !isSortMode && setSelectedCategory("الكل")}
+                    className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
+                    style={{
+                      minWidth: 80, height: 40, padding: "4px 14px",
+                      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+                      border: selectedCategory === "الكل"
+                        ? `1.5px solid ${posDarkMode ? 'white' : '#0D1B2E'}`
+                        : `1.5px solid ${posDarkMode ? 'rgba(255,255,255,0.1)' : '#dbeafe'}`,
+                      background: selectedCategory === "الكل"
+                        ? (posDarkMode ? 'white' : '#0D1B2E')
+                        : (posDarkMode ? 'rgba(255,255,255,0.06)' : 'white'),
+                      color: selectedCategory === "الكل"
+                        ? (posDarkMode ? '#0D1B2E' : 'white')
+                        : (posDarkMode ? 'rgba(255,255,255,0.7)' : '#475569'),
+                      boxShadow: selectedCategory === "الكل" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
+                    }}
+                  >
+                    <span className="leading-tight">الكل</span>
+                    <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
+                  </button>
 
                   {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
                     <>
