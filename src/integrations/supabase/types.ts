@@ -7067,6 +7067,69 @@ export type Database = {
           },
         ]
       }
+      kds_pilot_issues: {
+        Row: {
+          actual_result: string | null
+          branch_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string
+          device_label: string | null
+          expected_result: string | null
+          id: string
+          internet_ok: boolean | null
+          notes: string | null
+          occurred_at: string
+          order_number: string | null
+          priority: string
+          resolved_at: string | null
+          status: string
+          updated_at: string
+          was_refreshed: boolean | null
+        }
+        Insert: {
+          actual_result?: string | null
+          branch_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string
+          description: string
+          device_label?: string | null
+          expected_result?: string | null
+          id?: string
+          internet_ok?: boolean | null
+          notes?: string | null
+          occurred_at?: string
+          order_number?: string | null
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+          was_refreshed?: boolean | null
+        }
+        Update: {
+          actual_result?: string | null
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          device_label?: string | null
+          expected_result?: string | null
+          id?: string
+          internet_ok?: boolean | null
+          notes?: string | null
+          occurred_at?: string
+          order_number?: string | null
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+          was_refreshed?: boolean | null
+        }
+        Relationships: []
+      }
       kitchen_stations: {
         Row: {
           branch_id: string | null
