@@ -88,6 +88,16 @@ Deno.serve(async (req) => {
     }
 
     const VOICE_ID = (Deno.env.get("ELEVENLABS_VOICE_ID") || DEFAULT_VOICE_ID).trim();
+    const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
+    console.log("kds audio request", {
+      preview: !!preview,
+      has_token: !!token,
+      display_number: String(display_number),
+      voice_id: VOICE_ID,
+      model_id: MODEL_ID,
+      elevenlabs_api_key_present: !!apiKey,
+      bucket: BUCKET,
+    });
     const tpl = template || "طلب رقم {n}، تفضل للاستلام";
     const text = tpl.replace(/\{n\}/g, String(display_number));
     const lang = language || "ar-PS";
@@ -100,16 +110,28 @@ Deno.serve(async (req) => {
     });
     if (head && head.length > 0) {
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      return jsonResp({ audio_url: pub.publicUrl, cached: true, text });
+      console.log("kds audio cache hit", { path, voice_id: VOICE_ID });
+      return jsonResp(diagnostic({
+        success: true,
+        error_message: null,
+        audio_url: pub.publicUrl,
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: !!apiKey,
+        cached: true,
+        text,
+      }));
     }
 
     // Need a TTS key
-    const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
     if (!apiKey) {
-      return jsonResp({
+      console.warn("kds audio missing ELEVENLABS_API_KEY", { voice_id: VOICE_ID });
+      return jsonResp(diagnostic({
         error: "tts_not_configured",
-        message: "ELEVENLABS_API_KEY غير مضبوط — أضف المفتاح لتفعيل الصوت العربي الثابت",
-      }, 503);
+        error_message: "فشل ElevenLabs: ELEVENLABS_API_KEY غير مضبوط",
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: false,
+        text,
+      }), 503);
     }
 
     const ttsResp = await fetch(
@@ -134,13 +156,14 @@ Deno.serve(async (req) => {
           reason = j.detail.message;
         }
       } catch { /* keep raw */ }
-      // Return 200 with fallback signal so the client smoothly degrades to browser_tts
-      return jsonResp({
+      console.warn("kds ElevenLabs TTS failed", { status: ttsResp.status, voice_id: VOICE_ID, reason });
+      return jsonResp(diagnostic({
         error: "tts_failed",
-        fallback: "browser_tts",
-        message: reason,
+        error_message: `فشل ElevenLabs: ${reason}`,
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: true,
         text,
-      }, 200);
+      }), 502);
     }
     const mp3 = await ttsResp.arrayBuffer();
 
