@@ -13,6 +13,8 @@ import {
   ClipboardList,
   BarChart3,
   Settings,
+  PlayCircle,
+  AlertCircle,
 } from "lucide-react";
 interface Tile {
   label: string;
@@ -38,16 +40,26 @@ export default function RepHomePage() {
   const { user } = useAuth();
   const { company } = useCompany();
   const [repName, setRepName] = useState<string>("");
+  const [hasOpenDay, setHasOpenDay] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await (supabase as any)
+      const { data: rep } = await (supabase as any)
         .from("sales_representatives")
-        .select("full_name")
+        .select("id, full_name")
         .eq("auth_user_id", user.id)
         .maybeSingle();
-      if (data?.full_name) setRepName(data.full_name);
+      if (rep?.full_name) setRepName(rep.full_name);
+      if (rep?.id) {
+        const { data: day } = await (supabase as any)
+          .from("van_sales_days")
+          .select("id")
+          .eq("sales_rep_id", rep.id)
+          .eq("status", "open")
+          .maybeSingle();
+        setHasOpenDay(!!day);
+      }
     })();
   }, [user?.id]);
 
@@ -80,6 +92,27 @@ export default function RepHomePage() {
           </div>
         </div>
       </div>
+
+      {/* Open Day banner — يظهر عند عدم وجود يوم مفتوح */}
+      {hasOpenDay === false && (
+        <button
+          onClick={() => navigate("/rep/dashboard")}
+          className="w-full rounded-2xl p-4 bg-gradient-to-br from-amber-500/20 to-amber-500/5 ring-1 ring-amber-500/40 flex items-center gap-3 text-right hover:scale-[1.01] active:scale-[0.99] transition-all"
+        >
+          <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+            <PlayCircle className="w-6 h-6 text-amber-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-foreground flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              ابدأ يوم عمل جديد
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              اضغط لفتح اليوم وإدخال قيمة العهدة الافتتاحية
+            </div>
+          </div>
+        </button>
+      )}
 
       {/* Tiles grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
