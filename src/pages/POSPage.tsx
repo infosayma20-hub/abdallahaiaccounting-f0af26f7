@@ -106,6 +106,11 @@ interface OrderTab {
   guestCount: number;
   guestName: string;
   orderType: "dine_in" | "takeaway" | "delivery";
+  /**
+   * هل اختار الكاشير نوع الطلب صراحة (استلام / توصيل / طاولة)؟
+   * يُستخدم كحارس قبل الطباعة والدفع لمنع الإرسال بدون تحديد النوع.
+   */
+  orderTypeChosen?: boolean;
   deliveryAddress: string;
   zoneCode: string;
   areaName: string;
@@ -160,6 +165,7 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   guestCount: guestCount || 1,
   guestName: guestName || "",
   orderType: tableId ? "dine_in" : "takeaway",
+  orderTypeChosen: tableId ? true : false,
   deliveryAddress: "",
   zoneCode: "",
   areaName: "",
@@ -664,8 +670,22 @@ const POSPage = () => {
 
   const openPaymentModal = useCallback(() => {
     if (!enforceDeviceGuard()) return;
+    if (!requireOrderTypeChosen()) return;
     setShowPayment(true);
-  }, [enforceDeviceGuard]);
+  }, [enforceDeviceGuard, activeOrder?.orderTypeChosen, activeOrder?.tableId]);
+
+  /**
+   * يمنع المتابعة (دفع/طباعة) قبل أن يختار الكاشير صراحةً نوع الطلب:
+   * استلام أو توصيل أو طاولة. يُظهر toast واضحاً إن لم يتم الاختيار.
+   */
+  const requireOrderTypeChosen = useCallback((): boolean => {
+    const ao = activeOrder;
+    if (!ao) return true;
+    if (ao.tableId) return true; // طاولة محسوبة كاختيار صريح
+    if (ao.orderTypeChosen) return true;
+    toast.error("⛔ حدد نوع الطلب أولاً: استلام أو توصيل");
+    return false;
+  }, [activeOrder]);
 
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
@@ -816,6 +836,7 @@ const POSPage = () => {
          updateActiveOrder(o => ({
            ...o,
            orderType: 'delivery',
+           orderTypeChosen: true,
            deliveryAddress: event.customer_address || '',
          }));
        }
@@ -2316,6 +2337,7 @@ const POSPage = () => {
   const handleSendToKitchen = async () => {
     if (cart.length === 0) return;
     if (!enforceDeviceGuard()) return;
+    if (!requireOrderTypeChosen()) return;
 
     const time = new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
     const tableName = activeOrder.tableName || activeOrder.customerName || "بدون طاولة";
@@ -2453,6 +2475,7 @@ const POSPage = () => {
         guestCount: (order as any).guest_count || 1,
         guestName: (order as any).guest_name || "",
         orderType: (order as any).order_type || "dine_in",
+        orderTypeChosen: true,
         deliveryAddress: (order as any).delivery_address || "",
         zoneCode: (order as any).zone_code || "",
         areaName: (order as any).area_name || "",
@@ -2481,6 +2504,7 @@ const POSPage = () => {
         guestCount: (order as any).guest_count || 1,
         guestName: (order as any).guest_name || "",
         orderType: (order as any).order_type || "dine_in",
+        orderTypeChosen: true,
         deliveryAddress: (order as any).delivery_address || "",
         zoneCode: (order as any).zone_code || "",
         areaName: (order as any).area_name || "",
@@ -3598,6 +3622,7 @@ const POSPage = () => {
       if (e.key === "F8" && cart.length > 0) {
         console.log("[frontend-print-click] F8");
         if (!enforceDeviceGuard()) { e.preventDefault(); return; }
+        if (!requireOrderTypeChosen()) { e.preventDefault(); return; }
         if (shouldThrottlePrint("F8")) { e.preventDefault(); return; }
         const cartHash = buildCartHash(cart as any);
         const f8Order: BridgePrintOrder = {
@@ -4495,7 +4520,9 @@ const POSPage = () => {
               ? (["takeaway", "delivery", "dine_in"] as const)
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
             ).map(type => {
-              const isActive = type === "dine_in" ? !!activeOrder.tableId : (activeOrder.orderType === type && !activeOrder.tableId);
+              const isActive = type === "dine_in"
+                ? !!activeOrder.tableId
+                : (activeOrder.orderType === type && !activeOrder.tableId && !!activeOrder.orderTypeChosen);
               const labels: Record<string, string> = { takeaway: "استلام", delivery: "توصيل", dine_in: "طاولة" };
               return (
                 <button
@@ -4504,7 +4531,7 @@ const POSPage = () => {
                     if (type === "dine_in") {
                       setShowTablePicker(!showTablePicker);
                     } else {
-                      updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }));
+                      updateActiveOrder(o => ({ ...o, orderType: type, orderTypeChosen: true, tableId: null, tableName: null }));
                     }
                   }}
                   className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
@@ -4538,7 +4565,7 @@ const POSPage = () => {
                 onClick={async () => {
                   const tId = activeOrder.tableId;
                   setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
-                  updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
+                  updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
                   if (tId) {
                     await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
                     setAvailableTables(prev => prev.map(t => t.id === tId ? { ...t, status: "available" } : t));
@@ -4760,7 +4787,7 @@ const POSPage = () => {
                 {activeOrder.tableId && (
                   <button
                     onClick={() => {
-                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", name: `طلب ${activeOrderIndex + 1}` }));
+                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: false, name: `طلب ${activeOrderIndex + 1}` }));
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
@@ -4779,7 +4806,7 @@ const POSPage = () => {
                         setShowTablePicker(false);
                         return;
                       }
-                      updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
+                      updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", orderTypeChosen: true, name: t.name }));
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2"
@@ -6152,7 +6179,7 @@ const POSPage = () => {
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
           setCustomerDataDiscount(null);
           setCustomerName("", null, "", null);
-          updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "" }));
+          updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "" }));
         }}
       />
 
