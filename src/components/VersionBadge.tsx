@@ -23,6 +23,8 @@ export default function VersionBadge() {
   const liftAboveBottomNav = /^\/(rep|employee|owner|portal|driver)(\/|$)/.test(pathname);
   // داخل نقطة البيع: نزيح الشارة للأعلى حتى لا تغطّي زر الدفع (F2) أسفل الشاشة.
   const isPos = /^\/pos(\/|$)/.test(pathname);
+  // إخفاء كامل لشارة الإصدار داخل نقطة البيع (لا تظهر للكاشير)
+  if (isPos) return null;
 
   let label = "v—";
   try {
