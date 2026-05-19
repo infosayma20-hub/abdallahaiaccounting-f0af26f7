@@ -261,7 +261,12 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
               />
               <Button
                 type="button" variant="outline" className="gap-1"
-                onClick={() => speakOrderCall(123, { template: settings.pos_voice_template, language: settings.pos_voice_language })}
+                onClick={() => speakOrderCall(123, {
+                  template: settings.pos_voice_template,
+                  language: settings.pos_voice_language,
+                  mode: "cached_arabic_audio",
+                  preview: true,
+                })}
               >
                 <Volume2 className="h-4 w-4" /> تجربة
               </Button>
