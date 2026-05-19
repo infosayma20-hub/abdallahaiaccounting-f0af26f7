@@ -44,7 +44,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     if (!ownerId) return;
     const [{ data: ds }, { data: bs }] = await Promise.all([
       supabase.from("pos_display_devices").select("*").eq("company_id", ownerId).order("created_at"),
-      supabase.from("pos_branches").select("id, name").eq("user_id", ownerId).order("name"),
+      supabase.from("branches").select("id, name").eq("user_id", ownerId).order("name"),
     ]);
     setDevices((ds as any[]) || []);
     setBranches((bs as any[]) || []);
