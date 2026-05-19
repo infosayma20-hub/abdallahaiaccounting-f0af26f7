@@ -389,6 +389,7 @@ export function useCompanySettings() {
     "pos_call_repeat_seconds","pos_call_number_strategy","pos_kds_auto_preparing",
     "pos_kds_daily_number_start","pos_kds_daily_number_reset","pos_kds_display_number_source",
     "pos_call_max_repeats",
+    "kds_public_base_url","pos_kds_voice_mode",
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
