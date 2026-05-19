@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       elevenlabs_api_key_present: !!apiKey,
       bucket: BUCKET,
     });
-    const tpl = template || "طلب رقم {n}، تفضل للاستلام";
+    const tpl = template || "طلب رقم ....{n}";
     const text = tpl.replace(/\{n\}/g, String(display_number));
     const lang = language || "ar-PS";
     const hash = await sha1(`${VOICE_ID}|${MODEL_ID}|${lang}|${text}`);

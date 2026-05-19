@@ -111,7 +111,7 @@ export function ensureVoicesLoaded(): Promise<void> {
 }
 
 export interface SpeakOptions {
-  template?: string;     // e.g. "طلب رقم {n}، تفضل للاستلام"
+  template?: string;     // e.g. "طلب رقم ....{n}"
   language?: string;     // e.g. "ar-PS"
   rate?: number;         // 0.8 - 1.2
   pitch?: number;        // 0.8 - 1.2
@@ -124,7 +124,7 @@ export interface SpeakOptions {
 }
 
 export async function speakOrderCall(displayNumber: string | number, opts: SpeakOptions = {}): Promise<VoiceResult> {
-  const tpl = opts.template || "طلب رقم {n}، تفضل للاستلام";
+  const tpl = opts.template || "طلب رقم ....{n}";
   const lang = opts.language || "ar-PS";
   const text = tpl.replace(/\{n\}/g, String(displayNumber));
   const mode = opts.mode || "browser_tts";

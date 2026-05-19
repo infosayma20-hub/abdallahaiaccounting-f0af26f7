@@ -120,7 +120,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
     setVoiceTestMessage("جارٍ اختبار صوت Omar…");
     setVoiceTest(null);
     const result = await speakOrderCall("13", {
-      template: "طلب رقم {n}، تفضل للاستلام",
+      template: "طلب رقم ....{n}",
       language: settings.pos_voice_language,
       mode: (settings.pos_kds_voice_mode || "browser_tts") as any,
       preview: true,
@@ -282,7 +282,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
               <Input
                 value={settings.pos_voice_template}
                 onChange={e => onChange({ pos_voice_template: e.target.value })}
-                placeholder="طلب رقم {n}، تفضل للاستلام"
+                placeholder="طلب رقم ....{n}"
               />
               <Button
                 type="button" variant="outline" className="gap-1"

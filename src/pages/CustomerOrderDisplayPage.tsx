@@ -37,7 +37,7 @@ export default function CustomerOrderDisplayPage() {
   const [now, setNow] = useState(Date.now());
   const [companyName, setCompanyName] = useState<string>("");
   const [logoUrl, setLogoUrl] = useState<string>("");
-  const [voiceTemplate, setVoiceTemplate] = useState<string>("طلب رقم {n}، تفضل للاستلام");
+  const [voiceTemplate, setVoiceTemplate] = useState<string>("طلب رقم ....{n}");
   const [voiceLang, setVoiceLang] = useState<string>("ar-PS");
   const [voiceMode, setVoiceMode] = useState<string>("browser_tts");
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
