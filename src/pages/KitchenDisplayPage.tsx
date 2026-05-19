@@ -28,6 +28,7 @@ interface Ticket {
   accepted_at: string | null;
   completed_at: string | null;
   order_number?: string;
+  daily_display_number?: number | null;
   table_name?: string;
 }
 
@@ -90,7 +91,7 @@ export default function KitchenDisplayPage() {
     if (orderIds.length > 0) {
       const { data: orders } = await supabase
         .from("pos_orders")
-        .select("id, order_number, table_id")
+        .select("id, order_number, table_id, daily_display_number")
         .in("id", orderIds);
 
       const orderMap = new Map((orders || []).map((o: any) => [o.id, o]));
@@ -110,6 +111,7 @@ export default function KitchenDisplayPage() {
         const order = orderMap.get(t.order_id);
         if (order) {
           t.order_number = (order as any).order_number;
+          t.daily_display_number = (order as any).daily_display_number;
           t.table_name = tableMap.get((order as any).table_id);
         }
       });
