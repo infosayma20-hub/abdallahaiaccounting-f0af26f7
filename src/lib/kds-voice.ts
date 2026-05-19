@@ -16,6 +16,19 @@ export function getLastVoiceError(): string | null { return lastVoiceError; }
 export interface VoiceResult {
   played: "cached_arabic_audio" | "browser_tts" | "beep_only" | "none";
   reason?: string;
+  diagnostics?: VoiceDiagnostics;
+}
+
+export interface VoiceDiagnostics {
+  mode_used: "cached_arabic_audio" | "browser_tts" | "beep_only";
+  success: boolean;
+  provider: "elevenlabs" | "browser" | "beep";
+  error_message: string | null;
+  audio_url: string | null;
+  voice_id: string | null;
+  elevenlabs_api_key_present: boolean | null;
+  text?: string;
+  cached?: boolean;
 }
 
 const cachedAudioElems = new Map<string, HTMLAudioElement>();
@@ -34,8 +47,13 @@ async function playCachedArabicAudio(
         preview: opts.preview ? true : undefined,
       },
     });
-    if (error || !data?.audio_url) {
-      return { played: "none", reason: data?.message || data?.error || error?.message || "tts_failed" };
+    const diagnostics = data as VoiceDiagnostics | undefined;
+    if (error || !data?.audio_url || data?.success === false) {
+      return {
+        played: "none",
+        reason: data?.error_message || data?.message || data?.error || error?.message || "tts_failed",
+        diagnostics,
+      };
     }
     const key = data.audio_url as string;
     let audio = cachedAudioElems.get(key);
@@ -48,9 +66,13 @@ async function playCachedArabicAudio(
     try {
       await audio.play();
     } catch (e: any) {
-      return { played: "none", reason: `autoplay blocked: ${e?.message || e}` };
+      return {
+        played: "none",
+        reason: `autoplay blocked: ${e?.message || e}`,
+        diagnostics: { ...diagnostics, success: false, error_message: `autoplay blocked: ${e?.message || e}` } as VoiceDiagnostics,
+      };
     }
-    return { played: "cached_arabic_audio" };
+    return { played: "cached_arabic_audio", diagnostics };
   } catch (e: any) {
     return { played: "none", reason: `mp3 load failed: ${e?.message || e}` };
   }
@@ -102,17 +124,30 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   const text = tpl.replace(/\{n\}/g, String(displayNumber));
   const mode = opts.mode || "browser_tts";
 
-  // 1) Cached Arabic MP3 path
+  // 1) Cached Arabic MP3 path. Do not silently downgrade this mode: callers need
+  // the real ElevenLabs/storage reason so beep is not presented as success.
   if (mode === "cached_arabic_audio" && (opts.deviceToken || opts.preview)) {
     const r = await playCachedArabicAudio(opts.deviceToken, displayNumber, opts);
     if (r.played === "cached_arabic_audio") { lastVoiceError = null; return r; }
-    // fall through to browser_tts
     lastVoiceError = r.reason || "cached audio unavailable";
+    return r;
   }
 
   if (mode === "beep_only") {
     playFallbackAlert();
-    return { played: "beep_only", reason: "configured beep_only" };
+    return {
+      played: "beep_only",
+      reason: "configured beep_only",
+      diagnostics: {
+        mode_used: "beep_only",
+        success: false,
+        provider: "beep",
+        error_message: "لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط.",
+        audio_url: null,
+        voice_id: null,
+        elevenlabs_api_key_present: null,
+      },
+    };
   }
 
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
