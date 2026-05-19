@@ -170,11 +170,33 @@ Deno.serve(async (req) => {
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, mp3, {
       contentType: "audio/mpeg", upsert: true, cacheControl: "public, max-age=31536000",
     });
-    if (upErr) return jsonResp({ error: "upload_failed", message: upErr.message }, 500);
+    if (upErr) {
+      console.warn("kds audio storage upload failed", { path, voice_id: VOICE_ID, message: upErr.message });
+      return jsonResp(diagnostic({
+        error: "upload_failed",
+        error_message: `فشل ElevenLabs: Storage upload failed - ${upErr.message}`,
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: true,
+        text,
+      }), 500);
+    }
 
     const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    return jsonResp({ audio_url: pub.publicUrl, cached: false, text });
+    console.log("kds audio generated", { path, voice_id: VOICE_ID, bytes: mp3.byteLength });
+    return jsonResp(diagnostic({
+      success: true,
+      error_message: null,
+      audio_url: pub.publicUrl,
+      voice_id: VOICE_ID,
+      elevenlabs_api_key_present: true,
+      cached: false,
+      text,
+    }));
   } catch (e: any) {
-    return jsonResp({ error: "internal_error", message: e?.message || String(e) }, 500);
+    console.error("kds audio internal error", { message: e?.message || String(e) });
+    return jsonResp(diagnostic({
+      error: "internal_error",
+      error_message: e?.message || String(e),
+    }), 500);
   }
 });
