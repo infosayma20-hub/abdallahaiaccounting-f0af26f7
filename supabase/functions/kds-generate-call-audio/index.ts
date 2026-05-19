@@ -12,7 +12,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — supports Arabic via multilingual_v2
+const DEFAULT_VOICE_ID = "xvhpbk8otnNHtT3fjCpr"; // Omar — Arabic KDS voice
 const MODEL_ID = "eleven_multilingual_v2";
 const BUCKET = "kds-audio-cache";
 
@@ -21,6 +21,31 @@ function jsonResp(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function diagnostic(overrides: Record<string, unknown>) {
+  return {
+    mode_used: "cached_arabic_audio",
+    success: false,
+    provider: "elevenlabs",
+    error_message: null,
+    audio_url: null,
+    voice_id: null,
+    elevenlabs_api_key_present: false,
+    ...overrides,
+  };
+}
+
+async function isValidPreviewJwt(jwt: string): Promise<boolean> {
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  if (!anonKey) return false;
+  const authClient = createClient(url, anonKey, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+  });
+  const { data, error } = await authClient.auth.getUser();
+  if (error) console.warn("kds preview auth failed", { message: error.message });
+  return !!data.user;
 }
 
 async function sha1(text: string): Promise<string> {
@@ -35,7 +60,7 @@ Deno.serve(async (req) => {
   try {
     const { token, display_number, template, language, preview } = await req.json();
     if (display_number == null) {
-      return jsonResp({ error: "display_number required" }, 400);
+      return jsonResp(diagnostic({ error: "display_number required", error_message: "display_number required" }), 400);
     }
 
     const supabase = createClient(
@@ -47,19 +72,32 @@ Deno.serve(async (req) => {
       // Preview from admin settings — require a valid logged-in user via JWT.
       const authHeader = req.headers.get("Authorization") || "";
       const jwt = authHeader.replace(/^Bearer\s+/i, "");
-      if (!jwt) return jsonResp({ error: "unauthorized_preview" }, 401);
-      const { data: u } = await supabase.auth.getUser(jwt);
-      if (!u?.user) return jsonResp({ error: "unauthorized_preview" }, 401);
+      if (!jwt || !(await isValidPreviewJwt(jwt))) {
+        return jsonResp(diagnostic({
+          error: "unauthorized_preview",
+          error_message: "فشل التحقق من جلسة المستخدم لتجربة الصوت. سجّل الدخول من جديد ثم جرّب.",
+        }), 401);
+      }
     } else {
-      if (!token) return jsonResp({ error: "token required" }, 400);
+      if (!token) return jsonResp(diagnostic({ error: "token required", error_message: "token required" }), 400);
       const { data: device } = await supabase
         .from("pos_display_devices")
         .select("id, device_type, is_active")
         .eq("token", token).eq("is_active", true).maybeSingle();
-      if (!device) return jsonResp({ error: "invalid_token" }, 401);
+      if (!device) return jsonResp(diagnostic({ error: "invalid_token", error_message: "invalid_token" }), 401);
     }
 
     const VOICE_ID = (Deno.env.get("ELEVENLABS_VOICE_ID") || DEFAULT_VOICE_ID).trim();
+    const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
+    console.log("kds audio request", {
+      preview: !!preview,
+      has_token: !!token,
+      display_number: String(display_number),
+      voice_id: VOICE_ID,
+      model_id: MODEL_ID,
+      elevenlabs_api_key_present: !!apiKey,
+      bucket: BUCKET,
+    });
     const tpl = template || "طلب رقم {n}، تفضل للاستلام";
     const text = tpl.replace(/\{n\}/g, String(display_number));
     const lang = language || "ar-PS";
@@ -72,16 +110,28 @@ Deno.serve(async (req) => {
     });
     if (head && head.length > 0) {
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      return jsonResp({ audio_url: pub.publicUrl, cached: true, text });
+      console.log("kds audio cache hit", { path, voice_id: VOICE_ID });
+      return jsonResp(diagnostic({
+        success: true,
+        error_message: null,
+        audio_url: pub.publicUrl,
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: !!apiKey,
+        cached: true,
+        text,
+      }));
     }
 
     // Need a TTS key
-    const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
     if (!apiKey) {
-      return jsonResp({
+      console.warn("kds audio missing ELEVENLABS_API_KEY", { voice_id: VOICE_ID });
+      return jsonResp(diagnostic({
         error: "tts_not_configured",
-        message: "ELEVENLABS_API_KEY غير مضبوط — أضف المفتاح لتفعيل الصوت العربي الثابت",
-      }, 503);
+        error_message: "فشل ElevenLabs: ELEVENLABS_API_KEY غير مضبوط",
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: false,
+        text,
+      }), 503);
     }
 
     const ttsResp = await fetch(
@@ -106,24 +156,47 @@ Deno.serve(async (req) => {
           reason = j.detail.message;
         }
       } catch { /* keep raw */ }
-      // Return 200 with fallback signal so the client smoothly degrades to browser_tts
-      return jsonResp({
+      console.warn("kds ElevenLabs TTS failed", { status: ttsResp.status, voice_id: VOICE_ID, reason });
+      return jsonResp(diagnostic({
         error: "tts_failed",
-        fallback: "browser_tts",
-        message: reason,
+        error_message: `فشل ElevenLabs: ${reason}`,
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: true,
         text,
-      }, 200);
+      }), 502);
     }
     const mp3 = await ttsResp.arrayBuffer();
 
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, mp3, {
       contentType: "audio/mpeg", upsert: true, cacheControl: "public, max-age=31536000",
     });
-    if (upErr) return jsonResp({ error: "upload_failed", message: upErr.message }, 500);
+    if (upErr) {
+      console.warn("kds audio storage upload failed", { path, voice_id: VOICE_ID, message: upErr.message });
+      return jsonResp(diagnostic({
+        error: "upload_failed",
+        error_message: `فشل ElevenLabs: Storage upload failed - ${upErr.message}`,
+        voice_id: VOICE_ID,
+        elevenlabs_api_key_present: true,
+        text,
+      }), 500);
+    }
 
     const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    return jsonResp({ audio_url: pub.publicUrl, cached: false, text });
+    console.log("kds audio generated", { path, voice_id: VOICE_ID, bytes: mp3.byteLength });
+    return jsonResp(diagnostic({
+      success: true,
+      error_message: null,
+      audio_url: pub.publicUrl,
+      voice_id: VOICE_ID,
+      elevenlabs_api_key_present: true,
+      cached: false,
+      text,
+    }));
   } catch (e: any) {
-    return jsonResp({ error: "internal_error", message: e?.message || String(e) }, 500);
+    console.error("kds audio internal error", { message: e?.message || String(e) });
+    return jsonResp(diagnostic({
+      error: "internal_error",
+      error_message: e?.message || String(e),
+    }), 500);
   }
 });

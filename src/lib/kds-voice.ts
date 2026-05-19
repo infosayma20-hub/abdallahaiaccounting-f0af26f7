@@ -16,6 +16,19 @@ export function getLastVoiceError(): string | null { return lastVoiceError; }
 export interface VoiceResult {
   played: "cached_arabic_audio" | "browser_tts" | "beep_only" | "none";
   reason?: string;
+  diagnostics?: VoiceDiagnostics;
+}
+
+export interface VoiceDiagnostics {
+  mode_used: "cached_arabic_audio" | "browser_tts" | "beep_only";
+  success: boolean;
+  provider: "elevenlabs" | "browser" | "beep";
+  error_message: string | null;
+  audio_url: string | null;
+  voice_id: string | null;
+  elevenlabs_api_key_present: boolean | null;
+  text?: string;
+  cached?: boolean;
 }
 
 const cachedAudioElems = new Map<string, HTMLAudioElement>();
@@ -34,10 +47,20 @@ async function playCachedArabicAudio(
         preview: opts.preview ? true : undefined,
       },
     });
-    if (error || !data?.audio_url) {
-      return { played: "none", reason: data?.message || data?.error || error?.message || "tts_failed" };
+    let responseData = data as (VoiceDiagnostics & { message?: string; error?: string }) | null;
+    const response = (error as any)?.context as Response | undefined;
+    if (error && response?.json) {
+      try { responseData = await response.json(); } catch { /* keep invoke error */ }
     }
-    const key = data.audio_url as string;
+    const diagnostics = responseData as VoiceDiagnostics | undefined;
+    if (error || !responseData?.audio_url || responseData?.success === false) {
+      return {
+        played: "none",
+        reason: responseData?.error_message || responseData?.message || responseData?.error || error?.message || "tts_failed",
+        diagnostics,
+      };
+    }
+    const key = responseData.audio_url as string;
     let audio = cachedAudioElems.get(key);
     if (!audio) {
       audio = new Audio(key);
@@ -48,9 +71,13 @@ async function playCachedArabicAudio(
     try {
       await audio.play();
     } catch (e: any) {
-      return { played: "none", reason: `autoplay blocked: ${e?.message || e}` };
+      return {
+        played: "none",
+        reason: `autoplay blocked: ${e?.message || e}`,
+        diagnostics: { ...diagnostics, success: false, error_message: `autoplay blocked: ${e?.message || e}` } as VoiceDiagnostics,
+      };
     }
-    return { played: "cached_arabic_audio" };
+    return { played: "cached_arabic_audio", diagnostics };
   } catch (e: any) {
     return { played: "none", reason: `mp3 load failed: ${e?.message || e}` };
   }
@@ -102,23 +129,48 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   const text = tpl.replace(/\{n\}/g, String(displayNumber));
   const mode = opts.mode || "browser_tts";
 
-  // 1) Cached Arabic MP3 path
+  // 1) Cached Arabic MP3 path. Do not silently downgrade this mode: callers need
+  // the real ElevenLabs/storage reason so beep is not presented as success.
   if (mode === "cached_arabic_audio" && (opts.deviceToken || opts.preview)) {
     const r = await playCachedArabicAudio(opts.deviceToken, displayNumber, opts);
     if (r.played === "cached_arabic_audio") { lastVoiceError = null; return r; }
-    // fall through to browser_tts
     lastVoiceError = r.reason || "cached audio unavailable";
+    return r;
   }
 
   if (mode === "beep_only") {
     playFallbackAlert();
-    return { played: "beep_only", reason: "configured beep_only" };
+    return {
+      played: "beep_only",
+      reason: "configured beep_only",
+      diagnostics: {
+        mode_used: "beep_only",
+        success: false,
+        provider: "beep",
+        error_message: "لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط.",
+        audio_url: null,
+        voice_id: null,
+        elevenlabs_api_key_present: null,
+      },
+    };
   }
 
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
     lastVoiceError = "speechSynthesis غير متوفر — استخدام صوت تنبيه فقط";
     playFallbackAlert();
-    return { played: "beep_only", reason: lastVoiceError };
+    return {
+      played: "beep_only",
+      reason: lastVoiceError,
+      diagnostics: {
+        mode_used: "browser_tts",
+        success: false,
+        provider: "beep",
+        error_message: `لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط. ${lastVoiceError}`,
+        audio_url: null,
+        voice_id: null,
+        elevenlabs_api_key_present: null,
+      },
+    };
   }
 
   await ensureVoicesLoaded();
@@ -127,7 +179,19 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   if (!voice) {
     lastVoiceError = "لا يوجد صوت عربي مثبت على هذا الجهاز";
     playFallbackAlert();
-    return { played: "beep_only", reason: lastVoiceError };
+    return {
+      played: "beep_only",
+      reason: lastVoiceError,
+      diagnostics: {
+        mode_used: "browser_tts",
+        success: false,
+        provider: "beep",
+        error_message: `لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط. ${lastVoiceError}`,
+        audio_url: null,
+        voice_id: null,
+        elevenlabs_api_key_present: null,
+      },
+    };
   }
 
   const utter = new SpeechSynthesisUtterance(text);
@@ -147,7 +211,19 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   second.pitch = utter.pitch;
   window.speechSynthesis.speak(second);
   lastVoiceError = null;
-  return { played: "browser_tts" };
+  return {
+    played: "browser_tts",
+    diagnostics: {
+      mode_used: "browser_tts",
+      success: true,
+      provider: "browser",
+      error_message: null,
+      audio_url: null,
+      voice_id: voice.name || null,
+      elevenlabs_api_key_present: null,
+      text,
+    },
+  };
 }
 
 /** Loud 3-tone fallback used when speech synthesis is unavailable. */

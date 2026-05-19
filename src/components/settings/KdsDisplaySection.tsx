@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
-import { speakOrderCall } from "@/lib/kds-voice";
+import { speakOrderCall, type VoiceDiagnostics, type VoiceResult } from "@/lib/kds-voice";
 import { Link } from "react-router-dom";
 import { getKdsPublicBaseUrl, isPreviewOrigin } from "@/lib/kds-public-url";
 import { AlertTriangle } from "lucide-react";
@@ -44,6 +44,8 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const [newName, setNewName] = useState("");
   const [newBranch, setNewBranch] = useState<string>("none");
   const [newType, setNewType] = useState<string>("customer_display");
+  const [voiceTest, setVoiceTest] = useState<VoiceDiagnostics | null>(null);
+  const [voiceTestMessage, setVoiceTestMessage] = useState("");
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
 
@@ -107,6 +109,29 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const isOnline = (d: Device) =>
     !!d.last_seen_at && (now - new Date(d.last_seen_at).getTime()) < 60_000;
 
+  const buildVoiceMessage = (result: VoiceResult) => {
+    if (result.played === "cached_arabic_audio") return "تم تشغيل صوت عربي ثابت";
+    if (result.played === "browser_tts") return "تم تشغيل صوت المتصفح";
+    if (result.played === "beep_only") return `لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط.${result.reason ? ` ${result.reason}` : ""}`;
+    return result.reason || "فشل تشغيل الصوت";
+  };
+
+  const testArabicVoice = async () => {
+    setVoiceTestMessage("جارٍ اختبار صوت Omar…");
+    setVoiceTest(null);
+    const result = await speakOrderCall("13", {
+      template: "طلب رقم {n}، تفضل للاستلام",
+      language: settings.pos_voice_language,
+      mode: (settings.pos_kds_voice_mode || "browser_tts") as any,
+      preview: true,
+    });
+    const message = buildVoiceMessage(result);
+    setVoiceTestMessage(message);
+    setVoiceTest(result.diagnostics || null);
+    if (result.played === "cached_arabic_audio" || result.played === "browser_tts") toast.success(message);
+    else toast.warning(message);
+  };
+
   const baseUrl = getKdsPublicBaseUrl(settings.kds_public_base_url);
   const previewWarning = isPreviewOrigin() && !settings.kds_public_base_url;
 
@@ -146,7 +171,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
         <div className="space-y-2">
           <Label>طريقة الصوت العربي</Label>
           <Select
-            value={settings.pos_kds_voice_mode || "browser_tts"}
+            value={settings.pos_kds_voice_mode || "cached_arabic_audio"}
             onValueChange={v => onChange({ pos_kds_voice_mode: v })}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -157,7 +182,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            الصوت العربي الثابت يحتاج مفتاح ElevenLabs مضبوطاً في الأسرار (ELEVENLABS_API_KEY). إن لم يتوفر سيرجع تلقائياً لصوت المتصفح.
+            الصوت العربي الثابت يستخدم ElevenLabs بصوت Omar ويحفظ الملفات في كاش الصوت.
           </p>
         </div>
       </div>
@@ -261,17 +286,28 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
               />
               <Button
                 type="button" variant="outline" className="gap-1"
-                onClick={() => speakOrderCall(123, {
-                  template: settings.pos_voice_template,
-                  language: settings.pos_voice_language,
-                  mode: "cached_arabic_audio",
-                  preview: true,
-                })}
+                onClick={testArabicVoice}
               >
                 <Volume2 className="h-4 w-4" /> تجربة
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">استخدم {"{n}"} لإدراج رقم الطلب.</p>
+            {voiceTestMessage && (
+              <div className="rounded-lg border bg-muted/20 p-3 text-xs space-y-2">
+                <p className="font-medium text-foreground">{voiceTestMessage}</p>
+                {voiceTest && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                    <span>mode_used: {voiceTest.mode_used}</span>
+                    <span>success: {String(voiceTest.success)}</span>
+                    <span>provider: {voiceTest.provider}</span>
+                    <span>voice_id: {voiceTest.voice_id || "—"}</span>
+                    <span>ELEVENLABS_API_KEY: {voiceTest.elevenlabs_api_key_present === null ? "—" : voiceTest.elevenlabs_api_key_present ? "موجود" : "غير موجود"}</span>
+                    <span>audio_url: {voiceTest.audio_url ? <a className="underline" href={voiceTest.audio_url} target="_blank" rel="noreferrer">فتح الملف</a> : "—"}</span>
+                    <span className="sm:col-span-2">error_message: {voiceTest.error_message || "—"}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
