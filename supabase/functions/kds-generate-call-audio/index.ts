@@ -12,7 +12,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — supports Arabic via multilingual_v2
+const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — supports Arabic via multilingual_v2
 const MODEL_ID = "eleven_multilingual_v2";
 const BUCKET = "kds-audio-cache";
 
@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
       .eq("token", token).eq("is_active", true).maybeSingle();
     if (!device) return jsonResp({ error: "invalid_token" }, 401);
 
+    const VOICE_ID = (Deno.env.get("ELEVENLABS_VOICE_ID") || DEFAULT_VOICE_ID).trim();
     const tpl = template || "طلب رقم {n}، تفضل للاستلام";
     const text = tpl.replace(/\{n\}/g, String(display_number));
     const lang = language || "ar-PS";
