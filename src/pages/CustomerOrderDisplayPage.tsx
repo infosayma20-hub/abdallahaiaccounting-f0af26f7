@@ -39,6 +39,7 @@ export default function CustomerOrderDisplayPage() {
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [voiceTemplate, setVoiceTemplate] = useState<string>("طلب رقم {n}، تفضل للاستلام");
   const [voiceLang, setVoiceLang] = useState<string>("ar-PS");
+  const [voiceMode, setVoiceMode] = useState<string>("browser_tts");
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const playedEventsRef = useRef<Set<string>>(new Set());
   const storageKey = `kds-played-events:${token}`;
@@ -129,7 +130,10 @@ export default function CustomerOrderDisplayPage() {
         if (!num) continue;
         setTimeout(() => {
           playChime();
-          setTimeout(() => speakOrderCall(num, { template: voiceTemplate, language: voiceLang }), 450);
+          setTimeout(() => speakOrderCall(num, {
+            template: voiceTemplate, language: voiceLang,
+            mode: voiceMode as any, deviceToken: token,
+          }), 450);
         }, i * 2500);
         i++;
       }
