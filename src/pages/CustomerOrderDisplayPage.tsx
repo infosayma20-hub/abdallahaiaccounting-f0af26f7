@@ -98,13 +98,14 @@ export default function CustomerOrderDisplayPage() {
           .select("company_id, branch_id").eq("token", token).maybeSingle();
         if (!dev) return;
         const { data: cs } = await (supabase as any).from("company_settings")
-          .select("company_name, logo_url, pos_voice_template, pos_voice_language")
+          .select("company_name, logo_url, pos_voice_template, pos_voice_language, pos_kds_voice_mode")
           .eq("user_id", dev.company_id).maybeSingle();
         if (cs) {
           setCompanyName(cs.company_name || "");
           setLogoUrl(cs.logo_url || "");
           if (cs.pos_voice_template) setVoiceTemplate(cs.pos_voice_template);
           if (cs.pos_voice_language) setVoiceLang(cs.pos_voice_language);
+          if (cs.pos_kds_voice_mode) setVoiceMode(cs.pos_kds_voice_mode);
         }
       } catch {}
     })();
