@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronDown, ChevronLeft, RefreshCw } from "lucide-react";
 import { SALES_INVOICE_TYPES } from "@/constants/invoice";
+import { supabase as sb } from "@/integrations/supabase/client";
 
 type Row = {
   supplier_id: string | null;
@@ -46,7 +47,8 @@ export default function RepSalesBySupplierPage() {
   const [dateFrom, setDateFrom] = useState(firstDay);
   const [dateTo, setDateTo] = useState(today);
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
-  const [repFilter, setRepFilter] = useState<string>("all");
+  const [repFilter, setRepFilter] = useState<string>("");
+  const [repReady, setRepReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [lines, setLines] = useState<LineDetail[]>([]);
@@ -57,6 +59,23 @@ export default function RepSalesBySupplierPage() {
 
   useEffect(() => {
     (async () => {
+      // auto-bind current rep — مندوب يشوف بياناته فقط
+      const { data: userRes } = await sb.auth.getUser();
+      if (userRes?.user) {
+        const { data: meRep } = await (sb as any)
+          .from("sales_representatives")
+          .select("id, full_name")
+          .eq("auth_user_id", userRes.user.id)
+          .maybeSingle();
+        if (meRep?.id) {
+          setRepFilter(meRep.id);
+          setReps([meRep]);
+          setRepReady(true);
+          const { data: supsData } = await (sb as any).rpc("get_rep_suppliers");
+          setSuppliers(supsData || []);
+          return;
+        }
+      }
       const [{ data: repsData }, { data: supsData }] = await Promise.all([
         (supabase as any)
           .from("sales_representatives")
@@ -67,6 +86,7 @@ export default function RepSalesBySupplierPage() {
       ]);
       setReps(repsData || []);
       setSuppliers(supsData || []);
+      setRepReady(true);
     })();
   }, []);
 
@@ -204,7 +224,7 @@ export default function RepSalesBySupplierPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { if (repReady && repFilter) load(); /* eslint-disable-next-line */ }, [repReady, repFilter]);
 
   const supplierOptions = useMemo(
     () => suppliers.map(s => [s.id, s.name] as const),
@@ -236,16 +256,6 @@ export default function RepSalesBySupplierPage() {
           <div>
             <Label className="text-xs">إلى</Label>
             <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 text-xs" />
-          </div>
-          <div>
-            <Label className="text-xs">المندوب</Label>
-            <Select value={repFilter} onValueChange={setRepFilter}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">كل المندوبين</SelectItem>
-                {reps.map(r => <SelectItem key={r.id} value={r.id}>{r.full_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
           </div>
           <div>
             <Label className="text-xs">المورد</Label>
