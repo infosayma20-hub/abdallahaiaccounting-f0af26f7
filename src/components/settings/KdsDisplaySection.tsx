@@ -172,10 +172,13 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="short_daily_number">رقم يومي قصير (1، 2، 3…)</SelectItem>
-                <SelectItem value="order_number">رقم الطلب الطويل</SelectItem>
+                <SelectItem value="short_daily_number">نفس رقم الطلب في الفاتورة (1، 2، 3…)</SelectItem>
+                <SelectItem value="order_number">رقم النظام الطويل</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              الرقم الذي يراه الزبون على الشاشة ويُنطق في النداء هو نفسه الذي يطبع على الفاتورة.
+            </p>
           </div>
 
           <div className="space-y-2">
