@@ -156,26 +156,8 @@ export default function KitchenDisplayPage() {
 
     await supabase.from("kitchen_tickets").update(updates).eq("id", ticketId);
 
-    // Log call event when ticket becomes ready (for customer display + analytics).
-    if (newStatus === "ready") {
-      try {
-        const ticket = tickets.find(t => t.id === ticketId);
-        const { data: { user: u } } = await supabase.auth.getUser();
-        const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: u?.id });
-        if (ownerId && ticket) {
-          await supabase.from("kds_call_events").insert({
-            ticket_id: ticketId,
-            company_id: ownerId,
-            display_number: ticket.order_number ?? null,
-            event_type: "call",
-            created_by: u?.id,
-          } as any);
-          await supabase.from("kitchen_tickets")
-            .update({ last_called_at: new Date().toISOString(), call_count: ((ticket as any).call_count || 0) + 1 } as any)
-            .eq("id", ticketId);
-        }
-      } catch (e) { console.warn("kds call event failed", e); }
-    }
+    // Note: order-level auto-call event is created by the DB trigger
+    // once ALL stations of the order are ready (no manual call here).
 
     toast.success(newStatus === "preparing" ? "تم قبول الطلب" : newStatus === "ready" ? "الطلب جاهز!" : "تم التحديث");
     loadTickets();
@@ -183,20 +165,9 @@ export default function KitchenDisplayPage() {
 
   const recall = async (ticket: Ticket) => {
     try {
-      const { data: { user: u } } = await supabase.auth.getUser();
-      const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: u?.id });
-      if (!ownerId) return;
-      await supabase.from("kds_call_events").insert({
-        ticket_id: ticket.id,
-        company_id: ownerId,
-        display_number: ticket.order_number ?? null,
-        event_type: "recall",
-        created_by: u?.id,
-      } as any);
-      await supabase.from("kitchen_tickets")
-        .update({ last_called_at: new Date().toISOString(), call_count: ((ticket as any).call_count || 0) + 1 } as any)
-        .eq("id", ticket.id);
-      toast.success("تمت إعادة النداء");
+      const { error } = await supabase.rpc("kds_recall_order", { _order_id: ticket.order_id } as any);
+      if (error) throw error;
+      toast.success("تمت إعادة النداء على الطلب");
       loadTickets();
     } catch (e) { toast.error("تعذر إعادة النداء"); }
   };
