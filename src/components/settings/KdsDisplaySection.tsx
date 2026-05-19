@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Copy, Plus, Trash2, Volume2, Monitor, ChefHat, RefreshCw, Wifi, WifiOff, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
-import { speakOrderCall } from "@/lib/kds-voice";
+import { speakOrderCall, type VoiceDiagnostics, type VoiceResult } from "@/lib/kds-voice";
 import { Link } from "react-router-dom";
 import { getKdsPublicBaseUrl, isPreviewOrigin } from "@/lib/kds-public-url";
 import { AlertTriangle } from "lucide-react";
@@ -44,6 +44,8 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const [newName, setNewName] = useState("");
   const [newBranch, setNewBranch] = useState<string>("none");
   const [newType, setNewType] = useState<string>("customer_display");
+  const [voiceTest, setVoiceTest] = useState<VoiceDiagnostics | null>(null);
+  const [voiceTestMessage, setVoiceTestMessage] = useState("");
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
 
