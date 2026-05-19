@@ -145,6 +145,66 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "reset_password") {
+      const email = String(body.email || "").toLowerCase().trim();
+      const newPassword = String(body.new_password || "");
+      if (!email || !newPassword || newPassword.length < 6) {
+        return new Response(JSON.stringify({ error: "البريد أو كلمة المرور غير صالحة (6 أحرف على الأقل)" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let targetUser = null;
+      for (let page = 1; page <= 20 && !targetUser; page++) {
+        const { data: listData, error: listError } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        if (listError) throw listError;
+        targetUser = listData.users.find((u) => u.email?.toLowerCase() === email) ?? null;
+        if (listData.users.length < 1000) break;
+      }
+      if (!targetUser) {
+        return new Response(JSON.stringify({ error: "لم يتم العثور على مستخدم بهذا البريد" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!hasSuperAdmin) {
+        const [{ data: adminProfile }, { data: targetProfile }, { data: targetIsAdmin }] = await Promise.all([
+          supabase.from("profiles").select("company_id").eq("user_id", adminUser.id).maybeSingle(),
+          supabase.from("profiles").select("user_id, invited_by, company_id").eq("user_id", targetUser.id).maybeSingle(),
+          supabase.rpc("has_role", { _user_id: targetUser.id, _role: "admin" }),
+        ]);
+
+        const sameCompany = !!adminProfile?.company_id && adminProfile.company_id === targetProfile?.company_id;
+        const invitedByAdmin = targetProfile?.invited_by === adminUser.id;
+        const isSelf = targetUser.id === adminUser.id;
+        if (!targetProfile || targetIsAdmin || (!isSelf && !invitedByAdmin && !sameCompany)) {
+          return new Response(JSON.stringify({ error: "ليس لديك صلاحية لتغيير كلمة مرور هذا المستخدم" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const { error } = await supabase.auth.admin.updateUserById(targetUser.id, { password: newPassword });
+      if (error) throw error;
+
+      await supabase.from("activity_log").insert({
+        user_id: adminUser.id,
+        actor_id: adminUser.id,
+        actor_name: adminUser.user_metadata?.full_name || adminUser.email || "",
+        action: "reset_password",
+        entity_type: "user",
+        entity_id: targetUser.id,
+        details: { email },
+      });
+
+      return new Response(JSON.stringify({ success: true, user_id: targetUser.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "change_role") {
       const { target_user_id, new_role } = body;
 
