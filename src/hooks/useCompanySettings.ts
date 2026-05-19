@@ -93,6 +93,16 @@ export interface CompanySettings {
   pos_return_policy_days: number;
   pos_kitchen_ticket_size: string;
   pos_kitchen_auto_print: boolean;
+  // POS — KDS & Customer Display
+  pos_kds_enabled: boolean;
+  pos_customer_display_enabled: boolean;
+  pos_voice_call_enabled: boolean;
+  pos_voice_language: string;
+  pos_voice_template: string;
+  pos_ready_auto_hide_seconds: number;
+  pos_call_repeat_seconds: number;
+  pos_call_number_strategy: string;
+  pos_kds_auto_preparing: boolean;
   // Print
   primary_color: string;
   invoice_font: string;
@@ -218,6 +228,15 @@ const defaultSettings: CompanySettings = {
   pos_show_return_policy: true,
   pos_return_policy_days: 7,
   pos_kitchen_ticket_size: "58mm",
+  pos_kds_enabled: false,
+  pos_customer_display_enabled: false,
+  pos_voice_call_enabled: true,
+  pos_voice_language: "ar-PS",
+  pos_voice_template: "طلب رقم {n}، تفضل للاستلام",
+  pos_ready_auto_hide_seconds: 300,
+  pos_call_repeat_seconds: 0,
+  pos_call_number_strategy: "order_number",
+  pos_kds_auto_preparing: true,
   pos_kitchen_auto_print: true,
   primary_color: "#22C55E",
   invoice_font: "classic",
@@ -351,6 +370,9 @@ export function useCompanySettings() {
      "pos_require_device_fingerprint","pos_allow_order_transfer","pos_require_cash_box",
     "pos_show_return_policy","pos_return_policy_days",
     "pos_kitchen_ticket_size","pos_kitchen_auto_print","print_decorative_ornaments",
+    "pos_kds_enabled","pos_customer_display_enabled","pos_voice_call_enabled",
+    "pos_voice_language","pos_voice_template","pos_ready_auto_hide_seconds",
+    "pos_call_repeat_seconds","pos_call_number_strategy","pos_kds_auto_preparing",
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",

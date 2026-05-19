@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2, ArrowRightFromLine } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2, ArrowRightFromLine, Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import { printStationTicketImage } from "@/lib/image-print-service";
@@ -155,8 +155,50 @@ export default function KitchenDisplayPage() {
     if (newStatus === "ready") updates.completed_at = new Date().toISOString();
 
     await supabase.from("kitchen_tickets").update(updates).eq("id", ticketId);
+
+    // Log call event when ticket becomes ready (for customer display + analytics).
+    if (newStatus === "ready") {
+      try {
+        const ticket = tickets.find(t => t.id === ticketId);
+        const { data: { user: u } } = await supabase.auth.getUser();
+        const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: u?.id });
+        if (ownerId && ticket) {
+          await supabase.from("kds_call_events").insert({
+            ticket_id: ticketId,
+            company_id: ownerId,
+            display_number: ticket.order_number ?? null,
+            event_type: "call",
+            created_by: u?.id,
+          } as any);
+          await supabase.from("kitchen_tickets")
+            .update({ last_called_at: new Date().toISOString(), call_count: ((ticket as any).call_count || 0) + 1 } as any)
+            .eq("id", ticketId);
+        }
+      } catch (e) { console.warn("kds call event failed", e); }
+    }
+
     toast.success(newStatus === "preparing" ? "تم قبول الطلب" : newStatus === "ready" ? "الطلب جاهز!" : "تم التحديث");
     loadTickets();
+  };
+
+  const recall = async (ticket: Ticket) => {
+    try {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: u?.id });
+      if (!ownerId) return;
+      await supabase.from("kds_call_events").insert({
+        ticket_id: ticket.id,
+        company_id: ownerId,
+        display_number: ticket.order_number ?? null,
+        event_type: "recall",
+        created_by: u?.id,
+      } as any);
+      await supabase.from("kitchen_tickets")
+        .update({ last_called_at: new Date().toISOString(), call_count: ((ticket as any).call_count || 0) + 1 } as any)
+        .eq("id", ticket.id);
+      toast.success("تمت إعادة النداء");
+      loadTickets();
+    } catch (e) { toast.error("تعذر إعادة النداء"); }
   };
 
   const printTicket = async (ticket: Ticket) => {
@@ -266,7 +308,7 @@ export default function KitchenDisplayPage() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {pendingTickets.map(t => (
-              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
+              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} onRecall={recall} />
             ))}
           </div>
         </div>
@@ -279,7 +321,7 @@ export default function KitchenDisplayPage() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {preparingTickets.map(t => (
-              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
+              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} onRecall={recall} />
             ))}
           </div>
         </div>
@@ -292,7 +334,7 @@ export default function KitchenDisplayPage() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {readyTickets.map(t => (
-              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
+              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} onRecall={recall} />
             ))}
           </div>
         </div>
@@ -311,12 +353,13 @@ export default function KitchenDisplayPage() {
   );
 }
 
-function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed }: {
+function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed, onRecall }: {
   ticket: Ticket;
   stations: Station[];
   onStatusChange: (id: string, status: string) => void;
   onPrint: (ticket: Ticket) => void;
   getElapsed: (created: string) => string;
+  onRecall?: (ticket: Ticket) => void;
 }) {
   const station = stations.find(s => s.id === ticket.station_id);
   const elapsed = getElapsed(ticket.created_at);
@@ -374,6 +417,11 @@ function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed }: {
           <Button className="flex-1 h-9 bg-white/10 hover:bg-white/20 text-white gap-1" onClick={() => onStatusChange(ticket.id, "served")}>
             <CheckCircle2 className="h-3.5 w-3.5" />
             تم التسليم
+          </Button>
+        )}
+        {ticket.status === "ready" && onRecall && (
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-emerald-300 hover:text-emerald-200" onClick={() => onRecall(ticket)} title="إعادة النداء">
+            <Megaphone className="h-4 w-4" />
           </Button>
         )}
         <Button variant="ghost" size="icon" className="h-9 w-9 text-white/50 hover:text-white" onClick={() => onPrint(ticket)}>

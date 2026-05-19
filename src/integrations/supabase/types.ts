@@ -2105,19 +2105,26 @@ export type Database = {
           pos_auto_update_stock: boolean | null
           pos_branch_id: string | null
           pos_call_center_enabled: boolean
+          pos_call_number_strategy: string
+          pos_call_repeat_seconds: number
           pos_count: number | null
+          pos_customer_display_enabled: boolean
           pos_day_cutoff_hour: number | null
           pos_default_opening_balance: number | null
           pos_deficit_alert: boolean | null
           pos_deficit_threshold: number | null
           pos_disable_cogs: boolean
           pos_disable_stock_deduction: boolean
+          pos_kds_auto_preparing: boolean
+          pos_kds_enabled: boolean
+          pos_kds_show_order_types: Json
           pos_kitchen_auto_print: boolean | null
           pos_kitchen_ticket_size: string | null
           pos_mode: string
           pos_name: string | null
           pos_payment_methods: Json | null
           pos_prevent_zero_stock: boolean | null
+          pos_ready_auto_hide_seconds: number
           pos_receipt_copies: number | null
           pos_receipt_size: string | null
           pos_require_cash_box: boolean | null
@@ -2126,6 +2133,9 @@ export type Database = {
           pos_return_policy_days: number | null
           pos_show_return_policy: boolean | null
           pos_show_tax: boolean | null
+          pos_voice_call_enabled: boolean
+          pos_voice_language: string
+          pos_voice_template: string
           pos_warn_out_of_stock: boolean | null
           primary_color: string | null
           print_decorative_ornaments: boolean | null
@@ -2250,19 +2260,26 @@ export type Database = {
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
           pos_call_center_enabled?: boolean
+          pos_call_number_strategy?: string
+          pos_call_repeat_seconds?: number
           pos_count?: number | null
+          pos_customer_display_enabled?: boolean
           pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_kds_auto_preparing?: boolean
+          pos_kds_enabled?: boolean
+          pos_kds_show_order_types?: Json
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
           pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
+          pos_ready_auto_hide_seconds?: number
           pos_receipt_copies?: number | null
           pos_receipt_size?: string | null
           pos_require_cash_box?: boolean | null
@@ -2271,6 +2288,9 @@ export type Database = {
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
+          pos_voice_call_enabled?: boolean
+          pos_voice_language?: string
+          pos_voice_template?: string
           pos_warn_out_of_stock?: boolean | null
           primary_color?: string | null
           print_decorative_ornaments?: boolean | null
@@ -2395,19 +2415,26 @@ export type Database = {
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
           pos_call_center_enabled?: boolean
+          pos_call_number_strategy?: string
+          pos_call_repeat_seconds?: number
           pos_count?: number | null
+          pos_customer_display_enabled?: boolean
           pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_kds_auto_preparing?: boolean
+          pos_kds_enabled?: boolean
+          pos_kds_show_order_types?: Json
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
           pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
+          pos_ready_auto_hide_seconds?: number
           pos_receipt_copies?: number | null
           pos_receipt_size?: string | null
           pos_require_cash_box?: boolean | null
@@ -2416,6 +2443,9 @@ export type Database = {
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
+          pos_voice_call_enabled?: boolean
+          pos_voice_language?: string
+          pos_voice_template?: string
           pos_warn_out_of_stock?: boolean | null
           primary_color?: string | null
           print_decorative_ornaments?: boolean | null
@@ -6974,6 +7004,47 @@ export type Database = {
         }
         Relationships: []
       }
+      kds_call_events: {
+        Row: {
+          branch_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          display_number: string | null
+          event_type: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          display_number?: string | null
+          event_type?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          display_number?: string | null
+          event_type?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kds_call_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kitchen_stations: {
         Row: {
           branch_id: string | null
@@ -7031,12 +7102,19 @@ export type Database = {
       kitchen_tickets: {
         Row: {
           accepted_at: string | null
+          branch_id: string | null
+          call_count: number
+          company_id: string | null
           completed_at: string | null
           created_at: string | null
+          delivered_at: string | null
+          display_number: string | null
           id: string
           items: Json
+          last_called_at: string | null
           order_id: string
           printed_at: string | null
+          ready_at: string | null
           station_id: string
           status: string
           updated_at: string | null
@@ -7044,12 +7122,19 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          branch_id?: string | null
+          call_count?: number
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string | null
+          delivered_at?: string | null
+          display_number?: string | null
           id?: string
           items?: Json
+          last_called_at?: string | null
           order_id: string
           printed_at?: string | null
+          ready_at?: string | null
           station_id: string
           status?: string
           updated_at?: string | null
@@ -7057,12 +7142,19 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          branch_id?: string | null
+          call_count?: number
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string | null
+          delivered_at?: string | null
+          display_number?: string | null
           id?: string
           items?: Json
+          last_called_at?: string | null
           order_id?: string
           printed_at?: string | null
+          ready_at?: string | null
           station_id?: string
           status?: string
           updated_at?: string | null
@@ -8874,6 +8966,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pos_display_devices: {
+        Row: {
+          branch_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          device_role: string
+          id: string
+          is_active: boolean
+          last_seen_at: string | null
+          name: string
+          token: string
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          device_role?: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          name: string
+          token: string
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          device_role?: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          name?: string
+          token?: string
+        }
+        Relationships: []
       }
       pos_expense_categories: {
         Row: {
@@ -16974,6 +17105,20 @@ export type Database = {
       is_team_member: {
         Args: { _data_owner_id: string; _user_id: string }
         Returns: boolean
+      }
+      kds_get_active_tickets: {
+        Args: { _token: string }
+        Returns: {
+          call_count: number
+          created_at: string
+          display_number: string
+          id: string
+          last_called_at: string
+          order_number: string
+          ready_at: string
+          station_id: string
+          status: string
+        }[]
       }
       log_sensitive_access: {
         Args: {

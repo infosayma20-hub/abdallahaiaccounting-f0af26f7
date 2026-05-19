@@ -8,6 +8,7 @@ import type { CompanySettings } from "@/hooks/useCompanySettings";
 import KitchenStationsManager from "./KitchenStationsManager";
 import NetworkPrintersManager from "./NetworkPrintersManager";
 import DeliveryAppsManager from "./DeliveryAppsManager";
+import KdsDisplaySection from "./KdsDisplaySection";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -323,6 +324,11 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
       {/* Delivery Apps */}
       {dataOwnerId && <DeliveryAppsManager userId={dataOwnerId} />}
+
+      <Separator />
+
+      {/* KDS & Customer Display */}
+      <KdsDisplaySection settings={settings} onChange={onChange} ownerId={dataOwnerId} />
     </div>
   );
 };
