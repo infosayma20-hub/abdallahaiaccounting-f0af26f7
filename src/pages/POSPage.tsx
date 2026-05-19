@@ -968,6 +968,23 @@ const POSPage = () => {
     return () => window.removeEventListener("focus", handleFocus);
   }, [dataOwnerId, session]);
 
+  // ── Malaky-only default category on shift open ──
+  // For every cashier in the Malaky tenant, when a shift opens and the
+  // categories list is loaded, auto-select "كرسبي فردي" once per shift.
+  useEffect(() => {
+    if (!session?.id) {
+      defaultCategoryAppliedRef.current = null;
+      return;
+    }
+    if (defaultCategoryAppliedRef.current === session.id) return;
+    const companyName = (company?.name || "").toLowerCase();
+    const isMalaky = /malaky|ملكي/.test(companyName);
+    if (!isMalaky) return;
+    if (!posCategories.some((c) => c.name === "كرسبي فردي")) return;
+    setSelectedCategory("كرسبي فردي");
+    defaultCategoryAppliedRef.current = session.id;
+  }, [session?.id, company?.name, posCategories]);
+
   // Auto-load order from URL params (when coming from floor plan)
   useEffect(() => {
     if (!urlTableId || !urlOrderId || loading || orderLoadedRef.current) return;
