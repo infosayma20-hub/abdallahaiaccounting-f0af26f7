@@ -117,6 +117,7 @@ const EmployeesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allowedBranchesMap, setAllowedBranchesMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -230,6 +231,19 @@ const EmployeesPage = () => {
       });
       setEmployees(sorted);
     }
+    // Bulk load allowed extra branches for all employees in this tenant
+    try {
+      const { data: ab } = await supabase
+        .from("employee_allowed_branches")
+        .select("employee_id, branch_id")
+        .eq("user_id", dataOwnerId);
+      const map: Record<string, string[]> = {};
+      ((ab as any[]) || []).forEach((r) => {
+        if (!map[r.employee_id]) map[r.employee_id] = [];
+        map[r.employee_id].push(r.branch_id);
+      });
+      setAllowedBranchesMap(map);
+    } catch (e) { console.error("allowed branches bulk load failed", e); }
     setLoading(false);
   };
 
@@ -580,7 +594,24 @@ const EmployeesPage = () => {
             </div>
           </div>
         </td>
-        <td className="px-3 py-3 text-xs text-muted-foreground">{getBranchName(emp)}</td>
+        <td className="px-3 py-3 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1">
+            <span>{getBranchName(emp)}</span>
+            {(allowedBranchesMap[emp.id]?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {allowedBranchesMap[emp.id].map((bId) => (
+                  <span
+                    key={bId}
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] bg-primary/10 text-primary border border-primary/20"
+                    title="فرع إضافي مسموح للحضور"
+                  >
+                    + {branchMap[bId] || "—"}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </td>
         <td className="px-3 py-3 text-xs text-muted-foreground">{displayJobTitle(emp)}</td>
         <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
         <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
