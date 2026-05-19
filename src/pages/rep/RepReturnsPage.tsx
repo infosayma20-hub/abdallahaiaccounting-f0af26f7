@@ -95,9 +95,6 @@ export default function RepReturnsPage() {
         <Undo2 className="w-5 h-5 text-rose-500" />
         <h1 className="text-xl font-bold text-foreground">مردود مبيعات</h1>
       </div>
-      <p className="text-xs text-muted-foreground">
-        يسجّل قيد محاسبي: مدين <b>مردودات المبيعات (4110)</b> / دائن <b>ذمم العملاء (1130)</b>.
-      </p>
 
       <Card className="p-4 space-y-3">
         <Label>العميل</Label>
