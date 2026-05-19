@@ -2087,6 +2087,7 @@ export type Database = {
           invoice_show_signature: boolean | null
           invoice_show_tax_summary: boolean | null
           journal_prefix: string | null
+          kds_public_base_url: string | null
           last_locked_period: string | null
           licensed_dealer_number: string | null
           logo_url: string | null
@@ -2122,6 +2123,7 @@ export type Database = {
           pos_kds_display_number_source: string
           pos_kds_enabled: boolean
           pos_kds_show_order_types: Json
+          pos_kds_voice_mode: string
           pos_kitchen_auto_print: boolean | null
           pos_kitchen_ticket_size: string | null
           pos_mode: string
@@ -2246,6 +2248,7 @@ export type Database = {
           invoice_show_signature?: boolean | null
           invoice_show_tax_summary?: boolean | null
           journal_prefix?: string | null
+          kds_public_base_url?: string | null
           last_locked_period?: string | null
           licensed_dealer_number?: string | null
           logo_url?: string | null
@@ -2281,6 +2284,7 @@ export type Database = {
           pos_kds_display_number_source?: string
           pos_kds_enabled?: boolean
           pos_kds_show_order_types?: Json
+          pos_kds_voice_mode?: string
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
           pos_mode?: string
@@ -2405,6 +2409,7 @@ export type Database = {
           invoice_show_signature?: boolean | null
           invoice_show_tax_summary?: boolean | null
           journal_prefix?: string | null
+          kds_public_base_url?: string | null
           last_locked_period?: string | null
           licensed_dealer_number?: string | null
           logo_url?: string | null
@@ -2440,6 +2445,7 @@ export type Database = {
           pos_kds_display_number_source?: string
           pos_kds_enabled?: boolean
           pos_kds_show_order_types?: Json
+          pos_kds_voice_mode?: string
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
           pos_mode?: string
@@ -17233,7 +17239,26 @@ export type Database = {
           status: string
         }[]
       }
+      kds_get_kitchen_tickets: {
+        Args: { _token: string }
+        Returns: {
+          created_at: string
+          daily_display_number: number
+          id: string
+          items: Json
+          order_id: string
+          order_number: string
+          ready_at: string
+          station_id: string
+          status: string
+          table_name: string
+        }[]
+      }
       kds_recall_order: { Args: { _order_id: string }; Returns: undefined }
+      kds_recall_order_by_token: {
+        Args: { _order_id: string; _token: string }
+        Returns: boolean
+      }
       kds_recent_call_events: {
         Args: { _since?: string; _token: string }
         Returns: {
@@ -17245,6 +17270,10 @@ export type Database = {
         }[]
       }
       kds_rotate_device_token: { Args: { _id: string }; Returns: string }
+      kds_update_ticket_status: {
+        Args: { _status: string; _ticket_id: string; _token: string }
+        Returns: boolean
+      }
       log_sensitive_access: {
         Args: {
           _action: string
