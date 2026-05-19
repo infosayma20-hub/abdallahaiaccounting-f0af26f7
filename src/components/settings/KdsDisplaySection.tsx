@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall } from "@/lib/kds-voice";
 import { Link } from "react-router-dom";
+import { getKdsPublicBaseUrl, isPreviewOrigin } from "@/lib/kds-public-url";
+import { AlertTriangle } from "lucide-react";
 
 interface Device {
   id: string;
@@ -81,10 +83,11 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   };
 
   const linkFor = (d: Device) => {
+    const base = getKdsPublicBaseUrl(settings.kds_public_base_url);
     if (d.device_type === "kitchen_screen" || d.device_type === "heater_screen") {
-      return `${window.location.origin}/pos/kitchen`;
+      return `${base}/pos/kitchen-display?token=${d.token}`;
     }
-    return `${window.location.origin}/pos/order-display?token=${d.token}`;
+    return `${base}/pos/order-display?token=${d.token}`;
   };
 
   const copyLink = (d: Device) => {
@@ -104,8 +107,61 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const isOnline = (d: Device) =>
     !!d.last_seen_at && (now - new Date(d.last_seen_at).getTime()) < 60_000;
 
+  const baseUrl = getKdsPublicBaseUrl(settings.kds_public_base_url);
+  const previewWarning = isPreviewOrigin() && !settings.kds_public_base_url;
+
   return (
     <div className="space-y-5">
+      {/* Production URL + Voice mode */}
+      <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+        <h3 className="text-base font-semibold flex items-center gap-2">
+          <ExternalLink className="h-4 w-4 text-primary" />
+          إعدادات النشر للأجهزة
+        </h3>
+
+        <div className="space-y-2">
+          <Label>رابط التطبيق الرسمي للأجهزة</Label>
+          <Input
+            placeholder="https://app.amwali.ps"
+            value={settings.kds_public_base_url || ""}
+            onChange={e => onChange({ kds_public_base_url: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">
+            رابط الإنتاج الذي ستفتح به الأجهزة شاشات الزبائن والمطبخ. لا تستخدم روابط معاينة Lovable.
+          </p>
+          <p className="text-xs">
+            <span className="text-muted-foreground">المعاينة الحالية: </span>
+            <code className="px-1 py-0.5 rounded bg-background border">{baseUrl || "—"}/pos/order-display?token=…</code>
+          </p>
+          {previewWarning && (
+            <div className="flex gap-2 items-start text-xs p-2 rounded bg-amber-50 text-amber-900 border border-amber-300">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                هذا رابط معاينة من Lovable. ضع رابط التطبيق الرسمي حتى تعمل أجهزة المطعم بدون تسجيل دخول Lovable.
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>طريقة الصوت العربي</Label>
+          <Select
+            value={settings.pos_kds_voice_mode || "browser_tts"}
+            onValueChange={v => onChange({ pos_kds_voice_mode: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cached_arabic_audio">صوت عربي ثابت (ElevenLabs، يُخزّن مؤقتاً)</SelectItem>
+              <SelectItem value="browser_tts">صوت المتصفح</SelectItem>
+              <SelectItem value="beep_only">تنبيه فقط (بدون نطق)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            الصوت العربي الثابت يحتاج مفتاح ElevenLabs مضبوطاً في الأسرار (ELEVENLABS_API_KEY). إن لم يتوفر سيرجع تلقائياً لصوت المتصفح.
+          </p>
+        </div>
+      </div>
+
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-primary rounded-full" />
