@@ -179,7 +179,7 @@ const ProfileDropdown = ({
 }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <button className="flex items-center gap-2 h-9 px-2.5 rounded-lg transition-all duration-150 cursor-pointer" style={{ background: "rgba(255,255,255,0.08)" }}
+      <button aria-label="الملف الشخصي" className="flex items-center gap-2 h-9 px-1.5 sm:px-2.5 rounded-lg transition-all duration-150 cursor-pointer flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}
         onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
       >
@@ -193,7 +193,7 @@ const ProfileDropdown = ({
         )}
       </button>
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="start" className="w-56 rounded-xl shadow-elevated z-50">
+    <DropdownMenuContent align="end" sideOffset={8} collisionPadding={12} className="w-[min(14rem,calc(100vw-1.5rem))] rounded-xl shadow-elevated z-[80]">
       <div className="px-3 py-2.5"><p className="text-sm font-semibold text-foreground">{displayName}</p><p className="text-xs text-muted-foreground">{email}</p></div>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><User className="h-4 w-4" strokeWidth={1.8} />الملف الشخصي</DropdownMenuItem>
@@ -339,7 +339,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
 
   return (
     <header className="sticky top-0 z-50" style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-      <div className="h-full flex items-center gap-4 px-4 sm:px-6">
+      <div className="h-full flex items-center gap-2 sm:gap-4 px-2 sm:px-6">
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={onMenuClick} className="lg:hidden flex items-center justify-center transition-colors" style={{ width: 36, height: 36, borderRadius: 8 }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
@@ -349,20 +349,20 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
         </Tooltip>
         <AppLogo />
-        <QuickAccessButton />
-        <div className="flex-1 flex justify-center px-4">
+        <div className="hidden sm:block"><QuickAccessButton /></div>
+        <div className="flex-1 flex justify-center px-1 sm:px-4 min-w-0">
           <div className="hidden md:block w-full max-w-[560px]"><GlobalSearchBar collapsed={false} onToggle={() => {}} /></div>
           <div className="md:hidden">
             {mobileSearchOpen ? <GlobalSearchBar collapsed={false} onToggle={() => setMobileSearchOpen(false)} /> : <IconButton icon={Search} onClick={() => setMobileSearchOpen(true)} title="بحث" />}
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <QuickCalculator />
-          <div className="relative">
+          <div className="hidden sm:block"><QuickCalculator /></div>
+          <div className="relative hidden sm:block">
             <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title="اختصارات لوحة المفاتيح (Ctrl+/)" />
             <ShortcutsTip visible={shortcutsTipOpen} onClose={() => setShortcutsTipOpen(false)} onShowShortcuts={() => { setShortcutsTipOpen(false); setShortcutsOpen(true); }} />
           </div>
-          <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} />
+          <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} className="hidden sm:flex" />
           <div className="relative">
             <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
             {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
