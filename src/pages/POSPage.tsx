@@ -165,6 +165,7 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   guestCount: guestCount || 1,
   guestName: guestName || "",
   orderType: tableId ? "dine_in" : "takeaway",
+  orderTypeChosen: tableId ? true : false,
   deliveryAddress: "",
   zoneCode: "",
   areaName: "",
