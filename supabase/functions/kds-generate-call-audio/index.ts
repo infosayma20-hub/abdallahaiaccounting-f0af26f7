@@ -12,7 +12,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel — supports Arabic via multilingual_v2
+const DEFAULT_VOICE_ID = "xvhpbk8otnNHtT3fjCpr"; // Omar — Arabic KDS voice
 const MODEL_ID = "eleven_multilingual_v2";
 const BUCKET = "kds-audio-cache";
 
@@ -21,6 +21,31 @@ function jsonResp(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function diagnostic(overrides: Record<string, unknown>) {
+  return {
+    mode_used: "cached_arabic_audio",
+    success: false,
+    provider: "elevenlabs",
+    error_message: null,
+    audio_url: null,
+    voice_id: null,
+    elevenlabs_api_key_present: false,
+    ...overrides,
+  };
+}
+
+async function isValidPreviewJwt(jwt: string): Promise<boolean> {
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  if (!anonKey) return false;
+  const authClient = createClient(url, anonKey, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+  });
+  const { data, error } = await authClient.auth.getUser();
+  if (error) console.warn("kds preview auth failed", { message: error.message });
+  return !!data.user;
 }
 
 async function sha1(text: string): Promise<string> {
@@ -35,7 +60,7 @@ Deno.serve(async (req) => {
   try {
     const { token, display_number, template, language, preview } = await req.json();
     if (display_number == null) {
-      return jsonResp({ error: "display_number required" }, 400);
+      return jsonResp(diagnostic({ error: "display_number required", error_message: "display_number required" }), 400);
     }
 
     const supabase = createClient(
@@ -47,16 +72,19 @@ Deno.serve(async (req) => {
       // Preview from admin settings — require a valid logged-in user via JWT.
       const authHeader = req.headers.get("Authorization") || "";
       const jwt = authHeader.replace(/^Bearer\s+/i, "");
-      if (!jwt) return jsonResp({ error: "unauthorized_preview" }, 401);
-      const { data: u } = await supabase.auth.getUser(jwt);
-      if (!u?.user) return jsonResp({ error: "unauthorized_preview" }, 401);
+      if (!jwt || !(await isValidPreviewJwt(jwt))) {
+        return jsonResp(diagnostic({
+          error: "unauthorized_preview",
+          error_message: "فشل التحقق من جلسة المستخدم لتجربة الصوت. سجّل الدخول من جديد ثم جرّب.",
+        }), 401);
+      }
     } else {
-      if (!token) return jsonResp({ error: "token required" }, 400);
+      if (!token) return jsonResp(diagnostic({ error: "token required", error_message: "token required" }), 400);
       const { data: device } = await supabase
         .from("pos_display_devices")
         .select("id, device_type, is_active")
         .eq("token", token).eq("is_active", true).maybeSingle();
-      if (!device) return jsonResp({ error: "invalid_token" }, 401);
+      if (!device) return jsonResp(diagnostic({ error: "invalid_token", error_message: "invalid_token" }), 401);
     }
 
     const VOICE_ID = (Deno.env.get("ELEVENLABS_VOICE_ID") || DEFAULT_VOICE_ID).trim();
