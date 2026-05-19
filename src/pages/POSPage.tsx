@@ -674,6 +674,19 @@ const POSPage = () => {
     setShowPayment(true);
   }, [enforceDeviceGuard, activeOrder?.orderTypeChosen, activeOrder?.tableId]);
 
+  /**
+   * يمنع المتابعة (دفع/طباعة) قبل أن يختار الكاشير صراحةً نوع الطلب:
+   * استلام أو توصيل أو طاولة. يُظهر toast واضحاً إن لم يتم الاختيار.
+   */
+  const requireOrderTypeChosen = useCallback((): boolean => {
+    const ao = activeOrderRef.current || activeOrder;
+    if (!ao) return true;
+    if (ao.tableId) return true; // طاولة محسوبة كاختيار صريح
+    if (ao.orderTypeChosen) return true;
+    toast.error("⛔ حدد نوع الطلب أولاً: استلام أو توصيل");
+    return false;
+  }, [activeOrder]);
+
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
 
