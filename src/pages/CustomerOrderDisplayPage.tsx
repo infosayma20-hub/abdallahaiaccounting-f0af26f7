@@ -139,7 +139,7 @@ export default function CustomerOrderDisplayPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [orders, audioUnlocked, token, voiceTemplate, voiceLang, remember]);
+  }, [orders, audioUnlocked, token, voiceTemplate, voiceLang, voiceMode, remember]);
 
   const preparing = useMemo(
     () => orders.filter(o => o.status === "preparing"),
