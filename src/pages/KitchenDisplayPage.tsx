@@ -356,7 +356,16 @@ function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed, onR
     <div className={`rounded-xl border overflow-hidden ${isUrgent && ticket.status === "pending" ? "border-red-500 animate-pulse" : "border-white/10"} bg-[#1e293b]`}>
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: station?.color || "#64748b" }}>
-        <span className="font-bold text-sm">{ticket.order_number || "---"}</span>
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className="font-black text-2xl leading-none tabular-nums">
+            {ticket.daily_display_number ?? ticket.order_number ?? "---"}
+          </span>
+          {ticket.daily_display_number != null && ticket.order_number && (
+            <span className="text-[10px] opacity-70 truncate" title={ticket.order_number}>
+              {ticket.order_number}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {ticket.table_name && (
             <Badge variant="secondary" className="bg-black/20 text-white text-xs">🪑 {ticket.table_name}</Badge>
