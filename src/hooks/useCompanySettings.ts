@@ -249,6 +249,8 @@ const defaultSettings: CompanySettings = {
   pos_kds_daily_number_reset: true,
   pos_kds_display_number_source: "short_daily_number",
   pos_call_max_repeats: 1,
+  kds_public_base_url: "",
+  pos_kds_voice_mode: "browser_tts",
   pos_kitchen_auto_print: true,
   primary_color: "#22C55E",
   invoice_font: "classic",
