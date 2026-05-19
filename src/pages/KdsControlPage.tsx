@@ -87,10 +87,15 @@ export default function KdsControlPage() {
     setVoiceDiag("جارٍ الاختبار…");
     playChime();
     const customerDevice = devices.find(d => d.device_type === "customer_display");
+    // Always try cached Arabic audio first in the test, regardless of the saved mode,
+    // so the operator can verify ElevenLabs end-to-end before changing settings.
+    const preferredMode = customerDevice
+      ? "cached_arabic_audio"
+      : ((settings as any).pos_kds_voice_mode || "browser_tts");
     const res = await speakOrderCall(123, {
       template: settings.pos_voice_template,
       language: settings.pos_voice_language,
-      mode: (settings as any).pos_kds_voice_mode || "browser_tts",
+      mode: preferredMode,
       deviceToken: customerDevice?.token,
     });
     let msg = "";
