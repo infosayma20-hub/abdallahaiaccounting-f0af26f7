@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, RefreshCw, Truck, Wallet, Warehouse as WarehouseIcon, Loader2 } from "lucide-react";
+import { UserPlus, RefreshCw, Truck, Wallet, Warehouse as WarehouseIcon, Loader2, Pencil, Lock } from "lucide-react";
 import PromoteEmployeeToRepDialog from "@/components/admin/PromoteEmployeeToRepDialog";
+import EditSalesRepDialog from "@/components/admin/EditSalesRepDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface RepRow {
   id: string;
@@ -13,6 +15,7 @@ interface RepRow {
   warehouse_name: string | null;
   cash_box_name: string | null;
   day_status: "open" | "closed" | null;
+  day_id: string | null;
   total_invoices: number;
   total_cash: number;
   total_credit: number;
@@ -26,7 +29,10 @@ export default function SalesRepsLivePage() {
   const [rows, setRows] = useState<RepRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [openPromote, setOpenPromote] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [closingId, setClosingId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { toast } = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,6 +123,7 @@ export default function SalesRepsLivePage() {
           warehouse_name: r.default_warehouse_id ? whMap.get(r.default_warehouse_id) || null : null,
           cash_box_name: r.cash_box_id ? cbMap.get(r.cash_box_id) || null : null,
           day_status: day?.status || null,
+          day_id: day?.id || null,
           total_invoices: k.count,
           total_cash: k.cash,
           total_credit: k.credit,
@@ -166,6 +173,29 @@ export default function SalesRepsLivePage() {
   const hasAnyActivity = rows.some(
     (r) => r.day_status === "open" || r.total_invoices > 0 || r.total_cash > 0 || r.total_credit > 0 || r.total_expenses > 0
   );
+
+  const handleForceClose = async (row: RepRow) => {
+    if (!row.day_id) return;
+    const ok = window.confirm(`إغلاق إجباري ليوم البيع للمندوب "${row.full_name}"؟\nسيُحتسب النقد الفعلي = إجمالي المبيعات النقدية - المصاريف.`);
+    if (!ok) return;
+    setClosingId(row.id);
+    try {
+      const actualCash = Number(row.total_cash || 0) - Number(row.total_expenses || 0);
+      const { data, error } = await (supabase as any).rpc("close_van_day", {
+        p_day_id: row.day_id,
+        p_actual_cash: actualCash > 0 ? actualCash : 0,
+        p_closing_notes: "إغلاق إجباري من الإدارة",
+      });
+      if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || "فشل الإغلاق");
+      toast({ title: "تم إغلاق اليوم", description: row.full_name });
+      load();
+    } catch (e: any) {
+      toast({ title: "فشل الإغلاق", description: e.message || "حاول مرة أخرى", variant: "destructive" });
+    } finally {
+      setClosingId(null);
+    }
+  };
 
   return (
     <div dir="rtl" className="p-4 md:p-6 max-w-6xl mx-auto space-y-4">
@@ -248,6 +278,17 @@ export default function SalesRepsLivePage() {
                     <div className="font-bold text-lg text-destructive">{fmt(r.total_expenses)}</div>
                   </div>
                 </div>
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                  <Button variant="outline" size="sm" onClick={() => setEditId(r.id)}>
+                    <Pencil className="w-3.5 h-3.5 ml-1" /> تعديل
+                  </Button>
+                  {r.day_status === "open" && (
+                    <Button variant="destructive" size="sm" onClick={() => handleForceClose(r)} disabled={closingId === r.id}>
+                      {closingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Lock className="w-3.5 h-3.5 ml-1" />}
+                      إغلاق إجباري
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -256,6 +297,7 @@ export default function SalesRepsLivePage() {
       )}
 
       <PromoteEmployeeToRepDialog open={openPromote} onOpenChange={setOpenPromote} onDone={load} />
+      <EditSalesRepDialog open={!!editId} onOpenChange={(v) => !v && setEditId(null)} repId={editId} onDone={load} />
     </div>
   );
 }
