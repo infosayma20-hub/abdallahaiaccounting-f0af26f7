@@ -17211,6 +17211,7 @@ export type Database = {
         Args: { _order_id: string }
         Returns: number
       }
+      kds_debug_device: { Args: { _token: string }; Returns: Json }
       kds_device_heartbeat: { Args: { _token: string }; Returns: boolean }
       kds_get_active_orders: {
         Args: { _token: string }
