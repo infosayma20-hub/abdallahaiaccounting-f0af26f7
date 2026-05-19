@@ -353,12 +353,13 @@ export default function KitchenDisplayPage() {
   );
 }
 
-function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed }: {
+function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed, onRecall }: {
   ticket: Ticket;
   stations: Station[];
   onStatusChange: (id: string, status: string) => void;
   onPrint: (ticket: Ticket) => void;
   getElapsed: (created: string) => string;
+  onRecall?: (ticket: Ticket) => void;
 }) {
   const station = stations.find(s => s.id === ticket.station_id);
   const elapsed = getElapsed(ticket.created_at);
