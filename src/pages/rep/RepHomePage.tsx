@@ -64,12 +64,19 @@ export default function RepHomePage() {
             )}
           </div>
           <div className="text-left shrink-0">
-            <div className="text-[11px] text-white/60">
-              {new Date().toLocaleDateString("ar-EG", { weekday: "long" })}
-            </div>
-            <div className="text-sm font-semibold text-white/90 mt-0.5">
-              {new Date().toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" })}
-            </div>
+            {(() => {
+              const days = ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+              const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+              const d = new Date();
+              return (
+                <>
+                  <div className="text-[11px] text-white/60">{days[d.getDay()]}</div>
+                  <div className="text-sm font-semibold text-white/90 mt-0.5">
+                    {d.getDate()} {months[d.getMonth()]} {d.getFullYear()}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
