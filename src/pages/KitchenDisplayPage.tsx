@@ -308,7 +308,7 @@ export default function KitchenDisplayPage() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {pendingTickets.map(t => (
-              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
+              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} onRecall={recall} />
             ))}
           </div>
         </div>
@@ -321,7 +321,7 @@ export default function KitchenDisplayPage() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {preparingTickets.map(t => (
-              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
+              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} onRecall={recall} />
             ))}
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function KitchenDisplayPage() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {readyTickets.map(t => (
-              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
+              <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} onRecall={recall} />
             ))}
           </div>
         </div>
