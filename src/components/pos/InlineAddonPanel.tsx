@@ -71,16 +71,52 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose }
   const toggleOption = useCallback((group: ModifierGroup, optId: string) => {
     setSelected((prev) => {
       const current = prev[group.id] || [];
+      let nextForGroup: string[];
       if (group.selection_type === "single") {
-        return { ...prev, [group.id]: current.includes(optId) ? [] : [optId] };
+        nextForGroup = current.includes(optId) ? [] : [optId];
+      } else if (current.includes(optId)) {
+        nextForGroup = current.filter((id) => id !== optId);
+      } else {
+        if (current.length >= group.max_select) return prev;
+        nextForGroup = [...current, optId];
       }
-      if (current.includes(optId)) {
-        return { ...prev, [group.id]: current.filter((id) => id !== optId) };
+      const next = { ...prev, [group.id]: nextForGroup };
+
+      // Auto-confirm UX: skip the "إضافة للطلب" tap when every group is
+      // single-select and all required groups are now satisfied (no note,
+      // quantity = 1).
+      const allSingle = groups.every((g) => g.selection_type === "single");
+      const allRequiredSatisfied = groups
+        .filter((g) => g.is_required)
+        .every((g) => ((next[g.id]?.length) || 0) >= Math.max(1, g.min_select));
+      const justPicked = nextForGroup.length === 1;
+
+      if (allSingle && allRequiredSatisfied && justPicked && note === "" && quantity === 1) {
+        const modifiers: SelectedModifier[] = [];
+        let extra = 0;
+        groups.forEach((g) => {
+          (next[g.id] || []).forEach((oid) => {
+            const opt = g.options.find((o) => o.id === oid);
+            if (!opt) return;
+            modifiers.push({
+              group_id: g.id,
+              group_name: g.name,
+              option_id: opt.id,
+              option_name: opt.name,
+              extra_price: opt.extra_price,
+            });
+            extra += opt.extra_price || 0;
+          });
+        });
+        const total = (product.sell_price + extra) * 1;
+        setTimeout(() => {
+          onConfirm({ modifiers, note: "", quantity: 1, totalPrice: total });
+        }, 0);
       }
-      if (current.length >= group.max_select) return prev;
-      return { ...prev, [group.id]: [...current, optId] };
+
+      return next;
     });
-  }, []);
+  }, [groups, note, quantity, product, onConfirm]);
 
   const extraPrice = useMemo(() => {
     return Object.entries(selected).reduce((sum, [groupId, optIds]) => {
