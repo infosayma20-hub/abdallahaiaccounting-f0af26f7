@@ -118,10 +118,20 @@ export default function RepNewOrderPage() {
     (async () => {
       const { data: r } = await (supabase as any)
         .from("sales_representatives")
-        .select("id, user_id, default_warehouse_id, cash_account_code")
+        .select("id, user_id, default_warehouse_id, cash_box_id")
         .eq("auth_user_id", user.id).maybeSingle();
       if (!r) { setLoading(false); return; }
-      setRep(r);
+
+      let cashAccountCode: string | null = null;
+      if (r.cash_box_id) {
+        const { data: cb } = await (supabase as any)
+          .from("cash_boxes")
+          .select("gl_account_code, is_active")
+          .eq("id", r.cash_box_id)
+          .maybeSingle();
+        if (cb?.is_active && cb.gl_account_code) cashAccountCode = cb.gl_account_code;
+      }
+      setRep({ ...r, cash_account_code: cashAccountCode });
 
       const { data: d } = await (supabase as any)
         .from("van_sales_days").select("*")
