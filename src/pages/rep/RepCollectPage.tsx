@@ -6,19 +6,43 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, DollarSign, Save, Search } from "lucide-react";
+import { Loader2, DollarSign, Save, Search, Banknote, FileText, Plus, Trash2, Camera } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { callCreateReceiptRpc } from "@/lib/voucher-rpc";
 
 /**
- * Rep Collect — Mobile-first تحصيل بسيط للمندوب.
- * - يختار العميل
- * - يعرض الرصيد المستحق
- * - يدخل المبلغ
- * - يحفظ سند قبض عبر RPC الموحد (create_receipt_with_entry)
- *   نقدي → 1110 (الصندوق)، عميل → 1130 (ذمم العملاء).
- * لا يفتح أي شاشة محاسبية معقدة — UI مبسط فقط.
+ * Rep Collect — تحصيل من العميل (نقدي / شيك).
+ * - نقدي: مدين صندوق المندوب 1110 / دائن 1130
+ * - شيك:  مدين 1150 (شيكات برسم التحصيل) / دائن 1130 + سجل في cheques
+ *   الإيداع لاحقاً يتم من شاشة الشيكات في Admin.
  */
+
+type ChequeRow = {
+  uid: string;
+  cheque_number: string;
+  bank_name: string;
+  branch: string;
+  drawer_name: string;
+  cheque_date: string; // YYYY-MM-DD (استحقاق)
+  amount: string;
+  notes: string;
+  image_file: File | null;
+};
+
+const newChequeRow = (): ChequeRow => ({
+  uid: crypto.randomUUID(),
+  cheque_number: "",
+  bank_name: "",
+  branch: "",
+  drawer_name: "",
+  cheque_date: "",
+  amount: "",
+  notes: "",
+  image_file: null,
+});
+
 export default function RepCollectPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -31,7 +55,11 @@ export default function RepCollectPage() {
   const [contactId, setContactId] = useState<string>("");
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
-  const [amount, setAmount] = useState<string>("");
+
+  const [method, setMethod] = useState<"cash" | "cheque">("cash");
+  const [amount, setAmount] = useState<string>(""); // للنقدي
+  const [cheques, setCheques] = useState<ChequeRow[]>([newChequeRow()]);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -90,9 +118,6 @@ export default function RepCollectPage() {
         .eq("is_deleted", false);
       if (txErr) throw txErr;
       const rows = data || [];
-      // ذمم عملاء: نقبل عائلة 113 كاملة (1130/1131/1135...) لأنها قد تُعرّف
-      // كحسابات فرعية محاسبياً بدون أن يكون رقمها بادئاً بـ 1130 نصياً.
-      // ونقبل أيضاً 2115 (دفعات مقدمة من العملاء) كدائن طبيعي.
       const arRoots = ["113", "2115"];
       const matchesAR = (code: string | null | undefined) =>
         !!code && arRoots.some((r) => code === r || code.startsWith(r));
@@ -116,16 +141,28 @@ export default function RepCollectPage() {
     loadBalance(id);
   };
 
-  const save = async () => {
-    if (!rep) return;
-    if (!rep.cash_account_code) {
-      toast({ title: "لا يوجد صندوق نقدي مرتبط", description: "يرجى ربط المندوب بصندوق نقدي من الإدارة قبل استخدام التحصيل أو المصاريف.", variant: "destructive" });
+  const updateCheque = (uid: string, patch: Partial<ChequeRow>) => {
+    setCheques((prev) => prev.map((c) => (c.uid === uid ? { ...c, ...patch } : c)));
+  };
+  const addCheque = () => setCheques((prev) => [...prev, newChequeRow()]);
+  const removeCheque = (uid: string) =>
+    setCheques((prev) => (prev.length === 1 ? prev : prev.filter((c) => c.uid !== uid)));
+
+  const chequesTotal = useMemo(
+    () => cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0),
+    [cheques]
+  );
+
+  const totalAmount = method === "cash" ? Number(amount || 0) : chequesTotal;
+
+  /* ---------- Cash save ---------- */
+  const saveCash = async () => {
+    if (!rep?.cash_account_code) {
+      toast({ title: "لا يوجد صندوق نقدي مرتبط", variant: "destructive" });
       return;
     }
-    if (!contactId) { toast({ title: "اختر عميلاً", variant: "destructive" }); return; }
     const amt = Number(amount);
     if (!amt || amt <= 0) { toast({ title: "أدخل مبلغاً صحيحاً", variant: "destructive" }); return; }
-    // Overpayment warning: تحصيل > رصيد العميل = دفعة مقدمة
     if (balance !== null && amt > balance + 0.01) {
       const prepay = amt - Math.max(0, balance);
       const ok = window.confirm(
@@ -133,62 +170,177 @@ export default function RepCollectPage() {
       );
       if (!ok) return;
     }
-    setSaving(true);
-    try {
-      const idempotencyKey = `REP-RCP-${Date.now()}`;
-      const result = await callCreateReceiptRpc({
-        userId: rep.user_id,
-        contactId,
-        contactName: selectedContact?.name ?? null,
-        amount: amt,
-        paymentMethod: "نقدي",
-        currency: "شيكل",
-        cashAccountCode: rep.cash_account_code,
-        contactAccountCode: "1130",
-        description: `تحصيل من ${selectedContact?.name ?? "عميل"} — مندوب`,
-        idempotencyKey,
-      });
-      if (!result.success) throw new Error(result.error || "فشل التحصيل");
 
-      // وسم الحركة المحاسبية بـ sales_rep_id (ربط نظيف بدل JSON في notes)
-      if (result.transaction_id) {
-        await (supabase as any)
-          .from("transactions")
-          .update({ sales_rep_id: rep.id })
-          .eq("id", result.transaction_id);
+    const idempotencyKey = `REP-RCP-${Date.now()}`;
+    const result = await callCreateReceiptRpc({
+      userId: rep.user_id,
+      contactId,
+      contactName: selectedContact?.name ?? null,
+      amount: amt,
+      paymentMethod: "نقدي",
+      currency: "شيكل",
+      cashAccountCode: rep.cash_account_code,
+      contactAccountCode: "1130",
+      description: `تحصيل نقدي من ${selectedContact?.name ?? "عميل"} — مندوب`,
+      idempotencyKey,
+    });
+    if (!result.success) throw new Error(result.error || "فشل التحصيل");
+
+    if (result.transaction_id) {
+      await (supabase as any).from("transactions").update({ sales_rep_id: rep.id }).eq("id", result.transaction_id);
+    }
+    if (!result.duplicate && result.transaction_id) {
+      const { data: existingRV } = await (supabase as any)
+        .from("receipt_vouchers").select("id")
+        .eq("user_id", rep.user_id).eq("linked_transaction_id", result.transaction_id).maybeSingle();
+      if (!existingRV) {
+        await (supabase as any).from("receipt_vouchers").insert({
+          user_id: rep.user_id,
+          contact_id: contactId,
+          contact_name: selectedContact?.name ?? null,
+          payment_date: new Date().toISOString().slice(0, 10),
+          amount: amt,
+          payment_method: "نقدي",
+          cash_box_id: rep.cash_box_id ?? null,
+          deposit_account_code: rep.cash_account_code,
+          notes: `تحصيل من بورتال المندوب — ${rep.full_name ?? ""}`.trim(),
+          status: "posted",
+          linked_transaction_id: result.transaction_id,
+        });
       }
+    }
+    toast({ title: result.duplicate ? "هذا التحصيل مسجّل مسبقاً" : "تم التحصيل بنجاح", description: `${amt.toFixed(2)} ₪` });
+  };
 
-      // إنشاء سجل سند قبض في receipt_vouchers ليظهر في شاشة سندات القبض
-      // (مرتبط بالـ transaction عبر linked_transaction_id)
-      if (!result.duplicate && result.transaction_id) {
-        const { data: existingRV } = await (supabase as any)
-          .from("receipt_vouchers")
-          .select("id")
-          .eq("user_id", rep.user_id)
-          .eq("linked_transaction_id", result.transaction_id)
-          .maybeSingle();
-        if (!existingRV) {
-          const { error: rvErr } = await (supabase as any)
-            .from("receipt_vouchers")
-            .insert({
-              user_id: rep.user_id,
-              contact_id: contactId,
-              contact_name: selectedContact?.name ?? null,
-              payment_date: new Date().toISOString().slice(0, 10),
-              amount: amt,
-              payment_method: "نقدي",
-              cash_box_id: rep.cash_box_id ?? null,
-              deposit_account_code: rep.cash_account_code,
-              notes: `تحصيل من بورتال المندوب — ${rep.full_name ?? ""}`.trim(),
-              status: "posted",
-              linked_transaction_id: result.transaction_id,
-            });
-          if (rvErr) console.error("[RepCollect] receipt_voucher insert failed:", rvErr);
+  /* ---------- Cheque save ---------- */
+  const saveCheques = async () => {
+    // Validate
+    for (const c of cheques) {
+      if (!c.cheque_number.trim()) throw new Error("أدخل رقم الشيك لكل شيك");
+      if (!c.bank_name.trim()) throw new Error("أدخل اسم البنك لكل شيك");
+      if (!c.cheque_date) throw new Error("أدخل تاريخ استحقاق لكل شيك");
+      const a = Number(c.amount);
+      if (!a || a <= 0) throw new Error("أدخل مبلغاً صحيحاً لكل شيك");
+    }
+    const total = chequesTotal;
+    if (total <= 0) throw new Error("المجموع غير صالح");
+    if (balance !== null && total > balance + 0.01) {
+      const prepay = total - Math.max(0, balance);
+      const ok = window.confirm(
+        `مجموع الشيكات (${total.toFixed(2)} ₪) أكبر من الرصيد المستحق (${(balance ?? 0).toFixed(2)} ₪). سيتم تسجيل دفعة مقدمة بقيمة ${prepay.toFixed(2)} ₪. متابعة؟`
+      );
+      if (!ok) return;
+    }
+
+    // 1) Receipt voucher (Dr 1150 / Cr 1130)
+    const idempotencyKey = `REP-CHQ-${Date.now()}`;
+    const partyName = selectedContact?.name ?? "عميل";
+    const result = await callCreateReceiptRpc({
+      userId: rep.user_id,
+      contactId,
+      contactName: partyName,
+      amount: total,
+      paymentMethod: "شيك",
+      currency: "شيكل",
+      cashAccountCode: "1150",
+      contactAccountCode: "1130",
+      description: `تحصيل بشيكات (${cheques.length}) من ${partyName} — مندوب`,
+      idempotencyKey,
+    });
+    if (!result.success) throw new Error(result.error || "فشل إنشاء سند القبض");
+    if (result.duplicate) {
+      toast({ title: "هذا التحصيل مسجّل مسبقاً" });
+      return;
+    }
+    const txId = result.transaction_id!;
+    await (supabase as any).from("transactions").update({ sales_rep_id: rep.id }).eq("id", txId);
+
+    // 2) Receipt voucher record
+    const { data: rvRow, error: rvErr } = await (supabase as any)
+      .from("receipt_vouchers")
+      .insert({
+        user_id: rep.user_id,
+        contact_id: contactId,
+        contact_name: partyName,
+        payment_date: new Date().toISOString().slice(0, 10),
+        amount: total,
+        payment_method: "شيك",
+        cash_box_id: null,
+        deposit_account_code: "1150",
+        notes: `تحصيل بشيكات من بورتال المندوب — ${rep.full_name ?? ""}`.trim(),
+        status: "posted",
+        linked_transaction_id: txId,
+      })
+      .select("id")
+      .single();
+    if (rvErr) console.warn("[RepCollect] receipt_voucher insert failed:", rvErr);
+    const rvId = rvRow?.id ?? null;
+
+    // 3) Per-cheque: upload image (if any) → insert cheque row
+    const failures: string[] = [];
+    for (const c of cheques) {
+      const chequeId = crypto.randomUUID();
+      let imageUrl: string | null = null;
+      if (c.image_file) {
+        try {
+          const ext = (c.image_file.name.split(".").pop() || "jpg").toLowerCase();
+          const path = `${user!.id}/${chequeId}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from("cheque-images")
+            .upload(path, c.image_file, { upsert: true, contentType: c.image_file.type });
+          if (upErr) throw upErr;
+          imageUrl = path; // نخزن المسار (نولّد signed URL لاحقاً عند العرض)
+        } catch (e: any) {
+          console.warn("[RepCollect] cheque image upload failed:", e.message);
         }
       }
 
-      toast({ title: result.duplicate ? "هذا التحصيل مسجّل مسبقاً" : "تم التحصيل بنجاح", description: `${amt.toFixed(2)} ₪` });
+      const { error: chqErr } = await (supabase as any).from("cheques").insert({
+        id: chequeId,
+        user_id: rep.user_id,
+        cheque_type: "وارد",
+        status: "مسجل",
+        cheque_number: c.cheque_number.trim(),
+        bank_name: c.bank_name.trim(),
+        account_number: c.branch.trim() || null,
+        cheque_date: c.cheque_date,
+        amount: Number(c.amount),
+        currency: "ILS",
+        party_name: c.drawer_name.trim() || partyName,
+        party_type: "عميل",
+        contact_id: contactId,
+        linked_account: "1130",
+        image_url: imageUrl,
+        notes: c.notes.trim() || null,
+        linked_transaction_id: txId,
+        receipt_voucher_id: rvId,
+      });
+      if (chqErr) {
+        console.error("[RepCollect] cheque insert failed:", chqErr);
+        failures.push(`${c.bank_name} #${c.cheque_number}: ${chqErr.message}`);
+      }
+    }
+
+    if (failures.length) {
+      toast({
+        title: `تم حفظ السند ولكن فشل ${failures.length} شيك`,
+        description: failures.join("\n"),
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "تم تسجيل التحصيل بنجاح", description: `${cheques.length} شيك — ${total.toFixed(2)} ₪` });
+    }
+  };
+
+  const save = async () => {
+    if (!rep) return;
+    if (!contactId) { toast({ title: "اختر عميلاً", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      if (method === "cash") await saveCash();
+      else await saveCheques();
       setAmount("");
+      setCheques([newChequeRow()]);
       await loadBalance(contactId);
       navigate("/rep");
     } catch (e: any) {
@@ -200,20 +352,14 @@ export default function RepCollectPage() {
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="w-6 h-6 animate-spin" /></div>;
 
-  if (rep && !rep.cash_account_code) {
-    return (
-      <div className="p-4">
-        <Card className="p-6 space-y-3 text-center">
-          <DollarSign className="w-10 h-10 text-destructive mx-auto" />
-          <h3 className="font-bold text-foreground">لا يوجد صندوق نقدي مرتبط</h3>
-          <p className="text-sm text-muted-foreground">
-            يرجى ربط المندوب بصندوق نقدي من الإدارة قبل استخدام التحصيل أو المصاريف.
-          </p>
-          <Button variant="outline" className="w-full" onClick={() => navigate("/rep")}>رجوع</Button>
-        </Card>
-      </div>
-    );
+  if (rep && method === "cash" && !rep.cash_account_code) {
+    // نسمح للمندوب بتسجيل شيكات حتى لو ما عنده صندوق نقدي مرتبط
   }
+
+  const canSave =
+    !!contactId &&
+    !saving &&
+    (method === "cash" ? Number(amount) > 0 && !!rep?.cash_account_code : chequesTotal > 0);
 
   return (
     <div className="p-4 space-y-4">
@@ -258,20 +404,141 @@ export default function RepCollectPage() {
         )}
       </Card>
 
-      <Card className="p-4 space-y-3">
-        <Label>المبلغ المُحصَّل (₪)</Label>
-        <Input
-          type="number"
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-          className="h-12 text-lg text-center font-bold"
-        />
-        <Button className="w-full h-12 text-base" onClick={save} disabled={saving || !contactId || !amount}>
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 ml-2" /> حفظ التحصيل</>}
-        </Button>
+      {/* Method toggle */}
+      <Card className="p-2">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setMethod("cash")}
+            className={cn(
+              "flex items-center justify-center gap-2 h-12 rounded-md text-sm font-medium transition",
+              method === "cash" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/70"
+            )}
+          >
+            <Banknote className="w-4 h-4" /> نقدي
+          </button>
+          <button
+            type="button"
+            onClick={() => setMethod("cheque")}
+            className={cn(
+              "flex items-center justify-center gap-2 h-12 rounded-md text-sm font-medium transition",
+              method === "cheque" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-muted/70"
+            )}
+          >
+            <FileText className="w-4 h-4" /> شيك
+          </button>
+        </div>
       </Card>
+
+      {method === "cash" ? (
+        <Card className="p-4 space-y-3">
+          {!rep?.cash_account_code && (
+            <div className="text-xs text-destructive p-2 bg-destructive/10 rounded">
+              لا يوجد صندوق نقدي مرتبط بالمندوب — لا يمكن التحصيل نقداً.
+            </div>
+          )}
+          <Label>المبلغ المُحصَّل (₪)</Label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+            className="h-12 text-lg text-center font-bold"
+          />
+        </Card>
+      ) : (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>الشيكات ({cheques.length})</Label>
+            <Button type="button" variant="outline" size="sm" onClick={addCheque}>
+              <Plus className="w-4 h-4 ml-1" /> إضافة شيك
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {cheques.map((c, idx) => (
+              <div key={c.uid} className="border border-border rounded-md p-3 space-y-2 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-foreground">شيك #{idx + 1}</div>
+                  {cheques.length > 1 && (
+                    <button type="button" onClick={() => removeCheque(c.uid)} className="text-destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">رقم الشيك *</Label>
+                    <Input className="h-10" value={c.cheque_number} onChange={(e) => updateCheque(c.uid, { cheque_number: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">البنك *</Label>
+                    <Input className="h-10" value={c.bank_name} onChange={(e) => updateCheque(c.uid, { bank_name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">تاريخ الاستحقاق *</Label>
+                    <Input type="date" className="h-10" value={c.cheque_date} onChange={(e) => updateCheque(c.uid, { cheque_date: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">المبلغ (₪) *</Label>
+                    <Input type="number" inputMode="decimal" className="h-10 font-bold" value={c.amount} onChange={(e) => updateCheque(c.uid, { amount: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">اسم الساحب</Label>
+                    <Input className="h-10" placeholder={selectedContact?.name ?? ""} value={c.drawer_name} onChange={(e) => updateCheque(c.uid, { drawer_name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">فرع البنك</Label>
+                    <Input className="h-10" value={c.branch} onChange={(e) => updateCheque(c.uid, { branch: e.target.value })} />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">ملاحظات</Label>
+                  <Textarea rows={2} value={c.notes} onChange={(e) => updateCheque(c.uid, { notes: e.target.value })} />
+                </div>
+
+                <div>
+                  <Label className="text-xs">صورة الشيك</Label>
+                  <label className="flex items-center gap-2 h-10 px-3 border border-dashed border-border rounded-md cursor-pointer hover:bg-muted/50">
+                    <Camera className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground truncate">
+                      {c.image_file ? c.image_file.name : "اضغط للتصوير أو اختيار صورة"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => updateCheque(c.uid, { image_file: e.target.files?.[0] ?? null })}
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-md bg-primary/10 border border-primary/30">
+            <div className="text-sm text-foreground">المجموع</div>
+            <div className="text-lg font-bold text-foreground">{chequesTotal.toFixed(2)} ₪</div>
+          </div>
+        </Card>
+      )}
+
+      <Button className="w-full h-12 text-base" onClick={save} disabled={!canSave}>
+        {saving ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <>
+            <Save className="w-4 h-4 ml-2" />
+            {method === "cash"
+              ? "حفظ التحصيل"
+              : `حفظ سند القبض (${cheques.length} شيك — ${chequesTotal.toFixed(2)} ₪)`}
+          </>
+        )}
+      </Button>
     </div>
   );
 }
