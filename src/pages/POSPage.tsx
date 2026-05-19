@@ -106,6 +106,11 @@ interface OrderTab {
   guestCount: number;
   guestName: string;
   orderType: "dine_in" | "takeaway" | "delivery";
+  /**
+   * هل اختار الكاشير نوع الطلب صراحة (استلام / توصيل / طاولة)؟
+   * يُستخدم كحارس قبل الطباعة والدفع لمنع الإرسال بدون تحديد النوع.
+   */
+  orderTypeChosen?: boolean;
   deliveryAddress: string;
   zoneCode: string;
   areaName: string;
