@@ -1771,11 +1771,13 @@ const POSPage = () => {
       if (!p.pos_category_id && p.category && hiddenCatNames.has(p.category)) return false;
       return true;
     });
-    if (selectedCategory === "__uncategorized__") {
+    // عند البحث: تجاهل التصنيف وابحث في كل المنتجات لتسهيل العثور على الصنف
+    const ignoreCategory = !!debouncedSearch;
+    if (!ignoreCategory && selectedCategory === "__uncategorized__") {
       filtered = filtered.filter(p => 
         !p.pos_category_id && !visiblePosCategories.some(c => c.name === p.category)
       );
-    } else if (selectedCategory !== "الكل") {
+    } else if (!ignoreCategory && selectedCategory !== "الكل") {
       const cat = visiblePosCategories.find(c => c.name === selectedCategory);
       filtered = filtered.filter((p) => 
         p.pos_category_id === cat?.id || p.category === selectedCategory
