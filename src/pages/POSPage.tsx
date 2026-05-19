@@ -3060,18 +3060,9 @@ const POSPage = () => {
             });
           });
 
-          // Create a ticket per station in DB
-          const ticketInserts = Object.entries(stationItems).map(([stationId, items]) => ({
-            user_id: dataOwnerId,
-            order_id: orderId,
-            station_id: stationId,
-            items,
-            status: "pending",
-          }));
-
-          if (ticketInserts.length > 0) {
-            await supabase.from("kitchen_tickets").insert(ticketInserts as any);
-          }
+          // NOTE: kitchen_tickets are created exclusively by the DB trigger
+          // (trg_pos_order_lines_kds_sync + kds_create_tickets_for_order) to
+          // avoid duplicates with different station_ids. Do NOT insert here.
 
           // Build filtered kitchen print jobs
           kitchenJobs = Object.entries(stationItems)
