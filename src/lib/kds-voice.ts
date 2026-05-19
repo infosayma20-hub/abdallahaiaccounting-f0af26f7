@@ -153,7 +153,19 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
     lastVoiceError = "speechSynthesis غير متوفر — استخدام صوت تنبيه فقط";
     playFallbackAlert();
-    return { played: "beep_only", reason: lastVoiceError };
+    return {
+      played: "beep_only",
+      reason: lastVoiceError,
+      diagnostics: {
+        mode_used: "browser_tts",
+        success: false,
+        provider: "beep",
+        error_message: `لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط. ${lastVoiceError}`,
+        audio_url: null,
+        voice_id: null,
+        elevenlabs_api_key_present: null,
+      },
+    };
   }
 
   await ensureVoicesLoaded();
@@ -162,7 +174,19 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   if (!voice) {
     lastVoiceError = "لا يوجد صوت عربي مثبت على هذا الجهاز";
     playFallbackAlert();
-    return { played: "beep_only", reason: lastVoiceError };
+    return {
+      played: "beep_only",
+      reason: lastVoiceError,
+      diagnostics: {
+        mode_used: "browser_tts",
+        success: false,
+        provider: "beep",
+        error_message: `لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط. ${lastVoiceError}`,
+        audio_url: null,
+        voice_id: null,
+        elevenlabs_api_key_present: null,
+      },
+    };
   }
 
   const utter = new SpeechSynthesisUtterance(text);
@@ -182,7 +206,19 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   second.pitch = utter.pitch;
   window.speechSynthesis.speak(second);
   lastVoiceError = null;
-  return { played: "browser_tts" };
+  return {
+    played: "browser_tts",
+    diagnostics: {
+      mode_used: "browser_tts",
+      success: true,
+      provider: "browser",
+      error_message: null,
+      audio_url: null,
+      voice_id: voice.name || null,
+      elevenlabs_api_key_present: null,
+      text,
+    },
+  };
 }
 
 /** Loud 3-tone fallback used when speech synthesis is unavailable. */
