@@ -83,7 +83,7 @@ export default function CustomerOrderDisplayPage() {
   // Heartbeat — keeps last_seen_at fresh in settings
   useEffect(() => {
     if (!token) return;
-    const ping = () => { supabase.rpc("kds_device_heartbeat", { _token: token } as any).catch(() => {}); };
+    const ping = () => { (supabase.rpc("kds_device_heartbeat", { _token: token } as any) as any).then?.(() => {}, () => {}); };
     ping();
     const t = setInterval(ping, HEARTBEAT_MS);
     return () => clearInterval(t);
