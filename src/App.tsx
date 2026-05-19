@@ -86,9 +86,11 @@ const RepCollectPage = lazy(() => import("./pages/rep/RepCollectPage"));
 const RepExpensePage = lazy(() => import("./pages/rep/RepExpensePage"));
 const RepSalesBySupplierPage = lazy(() => import("./pages/rep/RepSalesBySupplierPage"));
 const RepHomePage = lazy(() => import("./pages/rep/RepHomePage"));
-const RepPlaceholderPage = lazy(() => import("./pages/rep/RepPlaceholderPage"));
 const RepCustomersPage = lazy(() => import("./pages/rep/RepCustomersPage"));
 const RepCustomerStatementPage = lazy(() => import("./pages/rep/RepCustomerStatementPage"));
+const RepReturnsPage = lazy(() => import("./pages/rep/RepReturnsPage"));
+const RepSettingsPage = lazy(() => import("./pages/rep/RepSettingsPage"));
+const RepReportsHubPage = lazy(() => import("./pages/rep/RepReportsPage"));
 const RepReportsPage = lazy(() => import("./pages/manager/RepReportsPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
@@ -341,10 +343,10 @@ const App = () => (
                 <Route path="sales-by-supplier" element={<RepSalesBySupplierPage />} />
                 <Route path="customers" element={<RepCustomersPage />} />
                 <Route path="customer-statement" element={<RepCustomerStatementPage />} />
-                <Route path="returns" element={<RepPlaceholderPage title="مردود مبيعات" />} />
-                <Route path="sales-order" element={<RepPlaceholderPage title="طلبية مبيعات" />} />
-                <Route path="reports" element={<RepPlaceholderPage title="تقارير المندوب" />} />
-                <Route path="settings" element={<RepPlaceholderPage title="إعدادات المندوب" />} />
+                <Route path="returns" element={<RepReturnsPage />} />
+                <Route path="sales-order" element={<Navigate to="/rep/new-order" replace />} />
+                <Route path="reports" element={<RepReportsHubPage />} />
+                <Route path="settings" element={<RepSettingsPage />} />
                 {/* alias: إغلاق اليوم موجود ضمن لوحة /rep الرئيسية */}
                 <Route path="close-day" element={<Navigate to="/rep/dashboard" replace />} />
               </Route>
