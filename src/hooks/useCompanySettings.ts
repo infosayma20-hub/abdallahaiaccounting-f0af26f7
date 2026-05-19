@@ -240,7 +240,7 @@ const defaultSettings: CompanySettings = {
   pos_customer_display_enabled: false,
   pos_voice_call_enabled: true,
   pos_voice_language: "ar-PS",
-  pos_voice_template: "طلب رقم {n}، تفضل للاستلام",
+  pos_voice_template: "طلب رقم ....{n}",
   pos_ready_auto_hide_seconds: 300,
   pos_call_repeat_seconds: 0,
   pos_call_number_strategy: "order_number",
