@@ -17033,6 +17033,17 @@ export type Database = {
         }
         Returns: string
       }
+      open_van_day_with_entry: {
+        Args: {
+          p_load_transfer_id?: string
+          p_notes?: string
+          p_opening_cash?: number
+          p_opening_currency?: string
+          p_sales_rep_id: string
+          p_source_cash_box_id?: string
+        }
+        Returns: string
+      }
       payroll_approve_batch: {
         Args: {
           _approver: string

@@ -3,12 +3,17 @@ import { Home, ShoppingCart, ClipboardList, DollarSign, LogOut, Receipt } from "
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import RepOpenDayModal from "@/components/rep/RepOpenDayModal";
 
 export default function RepLayout() {
   const navigate = useNavigate();
   const { user, signOut, loading } = useAuth();
   const [repName, setRepName] = useState<string>("");
   const [checking, setChecking] = useState(true);
+  const [salesRepId, setSalesRepId] = useState<string | null>(null);
+  const [repCashBoxId, setRepCashBoxId] = useState<string | null>(null);
+  const [needsOpenDay, setNeedsOpenDay] = useState(false);
+  const [openDayChecking, setOpenDayChecking] = useState(true);
 
   useEffect(() => {
     if (loading) return;
@@ -19,7 +24,7 @@ export default function RepLayout() {
     (async () => {
       const { data } = await (supabase as any)
         .from("sales_representatives")
-        .select("full_name, is_active")
+        .select("id, full_name, is_active, cash_box_id")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       if (!data || !data.is_active) {
@@ -28,11 +33,23 @@ export default function RepLayout() {
         return;
       }
       setRepName(data.full_name);
+      setSalesRepId(data.id);
+      setRepCashBoxId(data.cash_box_id || null);
       setChecking(false);
+
+      // فحص يوم مفتوح
+      const { data: openDay } = await (supabase as any)
+        .from("van_sales_days")
+        .select("id")
+        .eq("sales_rep_id", data.id)
+        .eq("status", "open")
+        .maybeSingle();
+      setNeedsOpenDay(!openDay);
+      setOpenDayChecking(false);
     })();
   }, [user, loading]);
 
-  if (loading || checking) {
+  if (loading || checking || openDayChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-muted-foreground">جاري التحميل...</div>
@@ -42,6 +59,14 @@ export default function RepLayout() {
 
   return (
     <div dir="rtl" className="min-h-[100dvh] flex flex-col bg-background">
+      {salesRepId && (
+        <RepOpenDayModal
+          open={needsOpenDay}
+          salesRepId={salesRepId}
+          repCashBoxId={repCashBoxId}
+          onOpened={() => setNeedsOpenDay(false)}
+        />
+      )}
       <header className="sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div>
           <div className="text-xs text-muted-foreground">المندوب</div>
