@@ -39,6 +39,7 @@ export default function CustomerOrderDisplayPage() {
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [voiceTemplate, setVoiceTemplate] = useState<string>("طلب رقم {n}، تفضل للاستلام");
   const [voiceLang, setVoiceLang] = useState<string>("ar-PS");
+  const [voiceMode, setVoiceMode] = useState<string>("browser_tts");
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const playedEventsRef = useRef<Set<string>>(new Set());
   const storageKey = `kds-played-events:${token}`;
@@ -98,13 +99,14 @@ export default function CustomerOrderDisplayPage() {
           .select("company_id, branch_id").eq("token", token).maybeSingle();
         if (!dev) return;
         const { data: cs } = await (supabase as any).from("company_settings")
-          .select("company_name, logo_url, pos_voice_template, pos_voice_language")
+          .select("company_name, logo_url, pos_voice_template, pos_voice_language, pos_kds_voice_mode")
           .eq("user_id", dev.company_id).maybeSingle();
         if (cs) {
           setCompanyName(cs.company_name || "");
           setLogoUrl(cs.logo_url || "");
           if (cs.pos_voice_template) setVoiceTemplate(cs.pos_voice_template);
           if (cs.pos_voice_language) setVoiceLang(cs.pos_voice_language);
+          if (cs.pos_kds_voice_mode) setVoiceMode(cs.pos_kds_voice_mode);
         }
       } catch {}
     })();
@@ -128,13 +130,16 @@ export default function CustomerOrderDisplayPage() {
         if (!num) continue;
         setTimeout(() => {
           playChime();
-          setTimeout(() => speakOrderCall(num, { template: voiceTemplate, language: voiceLang }), 450);
+          setTimeout(() => speakOrderCall(num, {
+            template: voiceTemplate, language: voiceLang,
+            mode: voiceMode as any, deviceToken: token,
+          }), 450);
         }, i * 2500);
         i++;
       }
     })();
     return () => { cancelled = true; };
-  }, [orders, audioUnlocked, token, voiceTemplate, voiceLang, remember]);
+  }, [orders, audioUnlocked, token, voiceTemplate, voiceLang, voiceMode, remember]);
 
   const preparing = useMemo(
     () => orders.filter(o => o.status === "preparing"),

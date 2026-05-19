@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall, playChime, playFallbackAlert, getLastVoiceError } from "@/lib/kds-voice";
 import { Volume2, Wifi, WifiOff, Copy, ChefHat, Monitor, RefreshCw, ExternalLink, Bell, Sparkles } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { getKdsPublicBaseUrl, isPreviewOrigin } from "@/lib/kds-public-url";
 import { toast } from "sonner";
 import PilotIssuesPanel from "@/components/kds/PilotIssuesPanel";
 
@@ -58,10 +60,13 @@ export default function KdsControlPage() {
 
   const isOnline = (d: Device) => d.last_seen_at && (now - new Date(d.last_seen_at).getTime()) < 60_000;
 
+  const baseUrl = getKdsPublicBaseUrl((settings as any).kds_public_base_url);
+  const showPreviewWarning = isPreviewOrigin() && !(settings as any).kds_public_base_url;
+
   const linkFor = (d: Device) => {
     if (d.device_type === "kitchen_screen" || d.device_type === "heater_screen")
-      return `${window.location.origin}/pos/kitchen`;
-    return `${window.location.origin}/pos/order-display?token=${d.token}`;
+      return `${baseUrl}/pos/kitchen-display?token=${d.token}`;
+    return `${baseUrl}/pos/order-display?token=${d.token}`;
   };
 
   const copyLink = (d: Device) => {
@@ -77,16 +82,27 @@ export default function KdsControlPage() {
     load();
   };
 
-  const testVoice = () => {
+  const [voiceDiag, setVoiceDiag] = useState<string>("");
+  const testVoice = async () => {
+    setVoiceDiag("جارٍ الاختبار…");
     playChime();
-    setTimeout(() => speakOrderCall(123, {
+    const customerDevice = devices.find(d => d.device_type === "customer_display");
+    const res = await speakOrderCall(123, {
       template: settings.pos_voice_template,
       language: settings.pos_voice_language,
-    }), 400);
-    setTimeout(() => {
-      const err = getLastVoiceError();
-      if (err) toast.warning(err);
-    }, 1500);
+      mode: (settings as any).pos_kds_voice_mode || "browser_tts",
+      deviceToken: customerDevice?.token,
+    });
+    let msg = "";
+    switch (res.played) {
+      case "cached_arabic_audio": msg = "✅ تم تشغيل صوت عربي ثابت (mp3 من الكاش)"; break;
+      case "browser_tts": msg = "✅ تم تشغيل صوت المتصفح العربي"; break;
+      case "beep_only": msg = `⚠️ لا يوجد صوت عربي — تنبيه فقط${res.reason ? ` (${res.reason})` : ""}`; break;
+      default: msg = `❌ تعذّر تشغيل أي صوت${res.reason ? `: ${res.reason}` : ""}`;
+    }
+    setVoiceDiag(msg);
+    if (res.played === "beep_only" || res.played === "none") toast.warning(msg);
+    else toast.success(msg);
   };
 
   const applyRestaurantPreset = async () => {
@@ -152,6 +168,17 @@ export default function KdsControlPage() {
           </div>
         </div>
 
+        {showPreviewWarning && (
+          <Card className="p-4 border-amber-300 bg-amber-50 text-amber-900 flex gap-3">
+            <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-bold">هذا رابط معاينة Lovable</p>
+              <p>لا تستخدمه على أجهزة المطعم — ضع رابط التطبيق الرسمي في
+                <Link to="/settings" className="underline mx-1">إعدادات KDS</Link>
+                ("رابط التطبيق العام") ثم أعد توليد الروابط.</p>
+            </div>
+          </Card>
+        )}
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KpiCard label="قيد التحضير" value={stats.preparing} tone="amber" />
@@ -166,13 +193,21 @@ export default function KdsControlPage() {
           <div className="flex flex-wrap gap-2">
             <Button onClick={testVoice} variant="secondary"><Volume2 className="h-4 w-4 ml-1" /> اختبار الصوت</Button>
             <Button onClick={() => playFallbackAlert()} variant="outline">صوت تنبيه فقط (Beep)</Button>
-            <Button onClick={() => speakOrderCall(Math.floor(Math.random() * 99) + 1, {
-              template: settings.pos_voice_template, language: settings.pos_voice_language
-            })} variant="outline">نداء رقم وهمي</Button>
+            <Button onClick={() => {
+              const cd = devices.find(d => d.device_type === "customer_display");
+              speakOrderCall(Math.floor(Math.random() * 99) + 1, {
+                template: settings.pos_voice_template, language: settings.pos_voice_language,
+                mode: (settings as any).pos_kds_voice_mode || "browser_tts",
+                deviceToken: cd?.token,
+              });
+            }} variant="outline">نداء رقم وهمي</Button>
             <Button asChild variant="ghost">
               <Link to="/settings"><ExternalLink className="h-4 w-4 ml-1" /> إعدادات KDS</Link>
             </Button>
           </div>
+          {voiceDiag && (
+            <p className="text-xs mt-2 text-muted-foreground">{voiceDiag}</p>
+          )}
         </Card>
 
         {/* Devices */}
