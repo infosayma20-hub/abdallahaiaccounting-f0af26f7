@@ -670,8 +670,9 @@ const POSPage = () => {
 
   const openPaymentModal = useCallback(() => {
     if (!enforceDeviceGuard()) return;
+    if (!requireOrderTypeChosen()) return;
     setShowPayment(true);
-  }, [enforceDeviceGuard]);
+  }, [enforceDeviceGuard, activeOrder?.orderTypeChosen, activeOrder?.tableId]);
 
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
