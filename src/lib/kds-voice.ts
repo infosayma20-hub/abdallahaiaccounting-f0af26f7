@@ -12,6 +12,53 @@ let cachedVoice: SpeechSynthesisVoice | null | undefined = undefined;
 let lastVoiceError: string | null = null;
 export function getLastVoiceError(): string | null { return lastVoiceError; }
 
+/** Structured result for the diagnostics UI on /pos/kds-control */
+export interface VoiceResult {
+  played: "cached_arabic_audio" | "browser_tts" | "beep_only" | "none";
+  reason?: string;
+}
+
+const cachedAudioElems = new Map<string, HTMLAudioElement>();
+
+async function playCachedArabicAudio(
+  token: string,
+  displayNumber: string | number,
+  opts: SpeakOptions,
+): Promise<VoiceResult> {
+  try {
+    const supaUrl = (import.meta.env.VITE_SUPABASE_URL as string) || "";
+    if (!supaUrl) return { played: "none", reason: "VITE_SUPABASE_URL missing" };
+    const resp = await fetch(`${supaUrl}/functions/v1/kds-generate-call-audio`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token, display_number: displayNumber,
+        template: opts.template, language: opts.language,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data?.audio_url) {
+      return { played: "none", reason: data?.message || data?.error || `HTTP ${resp.status}` };
+    }
+    const key = data.audio_url as string;
+    let audio = cachedAudioElems.get(key);
+    if (!audio) {
+      audio = new Audio(key);
+      audio.preload = "auto";
+      cachedAudioElems.set(key, audio);
+    }
+    audio.currentTime = 0;
+    try {
+      await audio.play();
+    } catch (e: any) {
+      return { played: "none", reason: `autoplay blocked: ${e?.message || e}` };
+    }
+    return { played: "cached_arabic_audio" };
+  } catch (e: any) {
+    return { played: "none", reason: `mp3 load failed: ${e?.message || e}` };
+  }
+}
+
 function pickArabicVoice(lang: string): SpeechSynthesisVoice | null {
   if (cachedVoice !== undefined) return cachedVoice;
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -44,26 +91,44 @@ export interface SpeakOptions {
   language?: string;     // e.g. "ar-PS"
   rate?: number;         // 0.8 - 1.2
   pitch?: number;        // 0.8 - 1.2
+  /** Optional device token enables cached_arabic_audio mode */
+  deviceToken?: string;
+  /** Strategy: cached_arabic_audio | browser_tts | beep_only (default browser_tts) */
+  mode?: "cached_arabic_audio" | "browser_tts" | "beep_only";
 }
 
-export async function speakOrderCall(displayNumber: string | number, opts: SpeakOptions = {}) {
+export async function speakOrderCall(displayNumber: string | number, opts: SpeakOptions = {}): Promise<VoiceResult> {
   const tpl = opts.template || "طلب رقم {n}، تفضل للاستلام";
   const lang = opts.language || "ar-PS";
   const text = tpl.replace(/\{n\}/g, String(displayNumber));
+  const mode = opts.mode || "browser_tts";
+
+  // 1) Cached Arabic MP3 path
+  if (mode === "cached_arabic_audio" && opts.deviceToken) {
+    const r = await playCachedArabicAudio(opts.deviceToken, displayNumber, opts);
+    if (r.played === "cached_arabic_audio") { lastVoiceError = null; return r; }
+    // fall through to browser_tts
+    lastVoiceError = r.reason || "cached audio unavailable";
+  }
+
+  if (mode === "beep_only") {
+    playFallbackAlert();
+    return { played: "beep_only", reason: "configured beep_only" };
+  }
 
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
     lastVoiceError = "speechSynthesis غير متوفر — استخدام صوت تنبيه فقط";
     playFallbackAlert();
-    return;
+    return { played: "beep_only", reason: lastVoiceError };
   }
 
   await ensureVoicesLoaded();
   cachedVoice = undefined; // refresh selection in case language changed
   const voice = pickArabicVoice(lang);
   if (!voice) {
-    lastVoiceError = "لا يوجد صوت عربي مثبت على هذا الجهاز — تشغيل تنبيه فقط";
+    lastVoiceError = "لا يوجد صوت عربي مثبت على هذا الجهاز";
     playFallbackAlert();
-    return;
+    return { played: "beep_only", reason: lastVoiceError };
   }
 
   const utter = new SpeechSynthesisUtterance(text);
@@ -83,6 +148,7 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   second.pitch = utter.pitch;
   window.speechSynthesis.speak(second);
   lastVoiceError = null;
+  return { played: "browser_tts" };
 }
 
 /** Loud 3-tone fallback used when speech synthesis is unavailable. */
