@@ -4520,7 +4520,9 @@ const POSPage = () => {
               ? (["takeaway", "delivery", "dine_in"] as const)
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
             ).map(type => {
-              const isActive = type === "dine_in" ? !!activeOrder.tableId : (activeOrder.orderType === type && !activeOrder.tableId);
+              const isActive = type === "dine_in"
+                ? !!activeOrder.tableId
+                : (activeOrder.orderType === type && !activeOrder.tableId && !!activeOrder.orderTypeChosen);
               const labels: Record<string, string> = { takeaway: "استلام", delivery: "توصيل", dine_in: "طاولة" };
               return (
                 <button
