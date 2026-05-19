@@ -33,9 +33,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { token, display_number, template, language } = await req.json();
-    if (!token || display_number == null) {
-      return jsonResp({ error: "token and display_number required" }, 400);
+    const { token, display_number, template, language, preview } = await req.json();
+    if (display_number == null) {
+      return jsonResp({ error: "display_number required" }, 400);
     }
 
     const supabase = createClient(
@@ -43,12 +43,21 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Validate device token
-    const { data: device } = await supabase
-      .from("pos_display_devices")
-      .select("id, device_type, is_active")
-      .eq("token", token).eq("is_active", true).maybeSingle();
-    if (!device) return jsonResp({ error: "invalid_token" }, 401);
+    if (preview) {
+      // Preview from admin settings — require a valid logged-in user via JWT.
+      const authHeader = req.headers.get("Authorization") || "";
+      const jwt = authHeader.replace(/^Bearer\s+/i, "");
+      if (!jwt) return jsonResp({ error: "unauthorized_preview" }, 401);
+      const { data: u } = await supabase.auth.getUser(jwt);
+      if (!u?.user) return jsonResp({ error: "unauthorized_preview" }, 401);
+    } else {
+      if (!token) return jsonResp({ error: "token required" }, 400);
+      const { data: device } = await supabase
+        .from("pos_display_devices")
+        .select("id, device_type, is_active")
+        .eq("token", token).eq("is_active", true).maybeSingle();
+      if (!device) return jsonResp({ error: "invalid_token" }, 401);
+    }
 
     const VOICE_ID = (Deno.env.get("ELEVENLABS_VOICE_ID") || DEFAULT_VOICE_ID).trim();
     const tpl = template || "طلب رقم {n}، تفضل للاستلام";
