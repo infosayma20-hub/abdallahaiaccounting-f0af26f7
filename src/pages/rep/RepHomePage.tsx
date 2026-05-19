@@ -93,26 +93,24 @@ export default function RepHomePage() {
         </div>
       </div>
 
-      {/* Open Day banner — يظهر عند عدم وجود يوم مفتوح */}
-      {hasOpenDay === false && (
-        <button
-          onClick={() => navigate("/rep/dashboard")}
-          className="w-full rounded-2xl p-4 bg-gradient-to-br from-amber-500/20 to-amber-500/5 ring-1 ring-amber-500/40 flex items-center gap-3 text-right hover:scale-[1.01] active:scale-[0.99] transition-all"
-        >
-          <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-            <PlayCircle className="w-6 h-6 text-amber-600" />
+      {/* Shift action — يبقى ظاهرًا دائمًا لتسهيل فتح/إدارة الوردية */}
+      <button
+        onClick={() => navigate("/rep/dashboard")}
+        className="w-full rounded-2xl p-4 bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/25 flex items-center gap-3 text-right hover:scale-[1.01] active:scale-[0.99] transition-all"
+      >
+        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <PlayCircle className="w-6 h-6 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-foreground flex items-center gap-1.5">
+            {hasOpenDay === false && <AlertCircle className="w-4 h-4 text-primary" />}
+            {hasOpenDay === true ? "الوردية مفتوحة" : "ابدأ يوم عمل جديد"}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-bold text-foreground flex items-center gap-1.5">
-              <AlertCircle className="w-4 h-4 text-amber-600" />
-              ابدأ يوم عمل جديد
-            </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              اضغط لفتح اليوم وإدخال قيمة العهدة الافتتاحية
-            </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {hasOpenDay === true ? "اضغط لعرض ملخص اليوم أو إغلاق الوردية" : "اضغط لفتح اليوم وإدخال قيمة العهدة الافتتاحية"}
           </div>
-        </button>
-      )}
+        </div>
+      </button>
 
       {/* Tiles grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
