@@ -26,29 +26,16 @@ async function playCachedArabicAudio(
   opts: SpeakOptions,
 ): Promise<VoiceResult> {
   try {
-    const supaUrl = (import.meta.env.VITE_SUPABASE_URL as string) || "";
-    if (!supaUrl) return { played: "none", reason: "VITE_SUPABASE_URL missing" };
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (opts.preview) {
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data } = await supabase.auth.getSession();
-        const at = data.session?.access_token;
-        if (at) headers.Authorization = `Bearer ${at}`;
-      } catch { /* ignore */ }
-    }
-    const resp = await fetch(`${supaUrl}/functions/v1/kds-generate-call-audio`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await supabase.functions.invoke("kds-generate-call-audio", {
+      body: {
         token, display_number: displayNumber,
         template: opts.template, language: opts.language,
         preview: opts.preview ? true : undefined,
-      }),
+      },
     });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || !data?.audio_url) {
-      return { played: "none", reason: data?.message || data?.error || `HTTP ${resp.status}` };
+    if (error || !data?.audio_url) {
+      return { played: "none", reason: data?.message || data?.error || error?.message || "tts_failed" };
     }
     const key = data.audio_url as string;
     let audio = cachedAudioElems.get(key);
