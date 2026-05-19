@@ -171,7 +171,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
         <div className="space-y-2">
           <Label>طريقة الصوت العربي</Label>
           <Select
-            value={settings.pos_kds_voice_mode || "browser_tts"}
+            value={settings.pos_kds_voice_mode || "cached_arabic_audio"}
             onValueChange={v => onChange({ pos_kds_voice_mode: v })}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -182,7 +182,7 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            الصوت العربي الثابت يحتاج مفتاح ElevenLabs مضبوطاً في الأسرار (ELEVENLABS_API_KEY). إن لم يتوفر سيرجع تلقائياً لصوت المتصفح.
+            الصوت العربي الثابت يستخدم ElevenLabs بصوت Omar ويحفظ الملفات في كاش الصوت.
           </p>
         </div>
       </div>
@@ -286,17 +286,28 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
               />
               <Button
                 type="button" variant="outline" className="gap-1"
-                onClick={() => speakOrderCall(123, {
-                  template: settings.pos_voice_template,
-                  language: settings.pos_voice_language,
-                  mode: "cached_arabic_audio",
-                  preview: true,
-                })}
+                onClick={testArabicVoice}
               >
                 <Volume2 className="h-4 w-4" /> تجربة
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">استخدم {"{n}"} لإدراج رقم الطلب.</p>
+            {voiceTestMessage && (
+              <div className="rounded-lg border bg-muted/20 p-3 text-xs space-y-2">
+                <p className="font-medium text-foreground">{voiceTestMessage}</p>
+                {voiceTest && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                    <span>mode_used: {voiceTest.mode_used}</span>
+                    <span>success: {String(voiceTest.success)}</span>
+                    <span>provider: {voiceTest.provider}</span>
+                    <span>voice_id: {voiceTest.voice_id || "—"}</span>
+                    <span>ELEVENLABS_API_KEY: {voiceTest.elevenlabs_api_key_present === null ? "—" : voiceTest.elevenlabs_api_key_present ? "موجود" : "غير موجود"}</span>
+                    <span>audio_url: {voiceTest.audio_url ? <a className="underline" href={voiceTest.audio_url} target="_blank" rel="noreferrer">فتح الملف</a> : "—"}</span>
+                    <span className="sm:col-span-2">error_message: {voiceTest.error_message || "—"}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
