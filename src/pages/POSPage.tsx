@@ -2504,6 +2504,7 @@ const POSPage = () => {
         guestCount: (order as any).guest_count || 1,
         guestName: (order as any).guest_name || "",
         orderType: (order as any).order_type || "dine_in",
+        orderTypeChosen: true,
         deliveryAddress: (order as any).delivery_address || "",
         zoneCode: (order as any).zone_code || "",
         areaName: (order as any).area_name || "",
