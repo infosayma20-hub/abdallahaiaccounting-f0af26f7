@@ -23,6 +23,7 @@ interface ContactRow {
   phone: string | null;
   linked_account_code: string | null;
   user_id: string;
+  sales_rep_id: string | null;
 }
 
 function fmtDate(d: string) {
@@ -49,6 +50,7 @@ export default function RepCustomerStatementPage() {
 
   const [loading, setLoading] = useState(true);
   const [contact, setContact] = useState<ContactRow | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [fromDate, setFromDate] = useState<string>(ninetyAgo);
   const [toDate, setToDate] = useState<string>(today);
@@ -57,11 +59,24 @@ export default function RepCustomerStatementPage() {
     if (!user || !contactId) return;
     (async () => {
       setLoading(true);
+      setAccessDenied(false);
+      // ownership check: fetch current rep
+      const { data: rep } = await (supabase as any)
+        .from("sales_representatives")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
       const { data: c } = await (supabase as any)
         .from("contacts")
-        .select("id, contact_name, phone, linked_account_code, user_id")
+        .select("id, contact_name, phone, linked_account_code, user_id, sales_rep_id")
         .eq("id", contactId)
         .maybeSingle();
+      if (c && rep && (c as any).sales_rep_id && (c as any).sales_rep_id !== rep.id) {
+        setAccessDenied(true);
+        setContact(null);
+        setLoading(false);
+        return;
+      }
       setContact(c as ContactRow | null);
 
       if (c) {
@@ -107,6 +122,17 @@ export default function RepCustomerStatementPage() {
 
   if (loading) {
     return <div className="flex items-center justify-center p-12"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="p-4 space-y-3">
+        <Card className="p-6 text-center text-destructive">هذا العميل غير مرتبط بك — لا يمكنك عرض كشف حسابه.</Card>
+        <Button variant="outline" className="w-full" onClick={() => navigate("/rep/customers")}>
+          <ArrowRight className="w-4 h-4 ml-1" /> العودة لقائمة العملاء
+        </Button>
+      </div>
+    );
   }
 
   if (!contact) {

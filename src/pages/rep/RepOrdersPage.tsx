@@ -32,6 +32,19 @@ export default function RepOrdersPage() {
       if (repErr) throw repErr;
       if (!rep) { setOrders([]); setLoading(false); return; }
 
+      // unify "today" with dashboard: use van_sales_days.opened_at instead of midnight
+      let openedAt: string | null = null;
+      if (filter === "today") {
+        const { data: day } = await (supabase as any)
+          .from("van_sales_days")
+          .select("opened_at")
+          .eq("sales_rep_id", rep.id)
+          .eq("status", "open")
+          .order("opened_at", { ascending: false })
+          .maybeSingle();
+        openedAt = day?.opened_at || null;
+      }
+
       // المصدر الموحد: invoices حيث salesperson_id = هذا المندوب
       // (لا is_deleted على invoices — العمود غير موجود)
       let query = (supabase as any)
@@ -48,8 +61,9 @@ export default function RepOrdersPage() {
       }
 
       if (filter === "today") {
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        query = query.gte("created_at", today.toISOString());
+        // إن وُجد يوم بيع مفتوح: استعمل opened_at، وإلا fallback لمنتصف الليل
+        const cutoff = openedAt || (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })();
+        query = query.gte("created_at", cutoff);
       }
 
       const { data: invs, error: invErr } = await query;
