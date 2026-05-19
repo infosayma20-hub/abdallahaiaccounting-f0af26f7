@@ -306,6 +306,21 @@ const UsersSettingsSection = () => {
 
         {/* Users Tab */}
         <TabsContent value="users">
+          <div className="mb-5 rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <KeyRound className="h-4 w-4 text-primary" />
+              تغيير كلمة مرور مستخدم بالبريد
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2">
+              <Input value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="zahranyazeed33@gmail.com" dir="ltr" type="email" className="text-left" />
+              <Input value={resetPassword} onChange={e => setResetPassword(e.target.value)} placeholder="كلمة المرور الجديدة" dir="ltr" className="font-mono text-left" />
+              <Button type="button" variant="outline" onClick={() => setResetPassword(generatePassword())} disabled={resettingPassword}>توليد</Button>
+              <Button type="button" onClick={handleResetPasswordByEmail} disabled={resettingPassword} className="gap-2">
+                {resettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                تغيير
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold flex items-center gap-2">
               <span className="w-1 h-5 bg-primary rounded-full" />
