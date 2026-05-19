@@ -107,6 +107,10 @@ export interface CompanySettings {
   pos_kds_daily_number_reset: boolean;
   pos_kds_display_number_source: string;
   pos_call_max_repeats: number;
+  /** Public production URL used to generate device QR/links (no Lovable preview) */
+  kds_public_base_url: string;
+  /** cached_arabic_audio | browser_tts | beep_only */
+  pos_kds_voice_mode: string;
   // Print
   primary_color: string;
   invoice_font: string;
