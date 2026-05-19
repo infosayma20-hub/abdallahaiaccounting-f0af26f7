@@ -2336,6 +2336,7 @@ const POSPage = () => {
   const handleSendToKitchen = async () => {
     if (cart.length === 0) return;
     if (!enforceDeviceGuard()) return;
+    if (!requireOrderTypeChosen()) return;
 
     const time = new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
     const tableName = activeOrder.tableName || activeOrder.customerName || "بدون طاولة";
@@ -3618,6 +3619,7 @@ const POSPage = () => {
       if (e.key === "F8" && cart.length > 0) {
         console.log("[frontend-print-click] F8");
         if (!enforceDeviceGuard()) { e.preventDefault(); return; }
+        if (!requireOrderTypeChosen()) { e.preventDefault(); return; }
         if (shouldThrottlePrint("F8")) { e.preventDefault(); return; }
         const cartHash = buildCartHash(cart as any);
         const f8Order: BridgePrintOrder = {
@@ -4524,7 +4526,7 @@ const POSPage = () => {
                     if (type === "dine_in") {
                       setShowTablePicker(!showTablePicker);
                     } else {
-                      updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }));
+                      updateActiveOrder(o => ({ ...o, orderType: type, orderTypeChosen: true, tableId: null, tableName: null }));
                     }
                   }}
                   className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
@@ -4558,7 +4560,7 @@ const POSPage = () => {
                 onClick={async () => {
                   const tId = activeOrder.tableId;
                   setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
-                  updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
+                  updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
                   if (tId) {
                     await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
                     setAvailableTables(prev => prev.map(t => t.id === tId ? { ...t, status: "available" } : t));
@@ -4780,7 +4782,7 @@ const POSPage = () => {
                 {activeOrder.tableId && (
                   <button
                     onClick={() => {
-                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", name: `طلب ${activeOrderIndex + 1}` }));
+                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: false, name: `طلب ${activeOrderIndex + 1}` }));
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
@@ -4799,7 +4801,7 @@ const POSPage = () => {
                         setShowTablePicker(false);
                         return;
                       }
-                      updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
+                      updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", orderTypeChosen: true, name: t.name }));
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2"
