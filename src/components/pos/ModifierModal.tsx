@@ -158,34 +158,37 @@ export default function ModifierModal({
       }
       const next = { ...prev, [group.id]: nextForGroup };
 
-      // Auto-confirm UX: if there is exactly one single-select group and the
-      // user picked an option, skip the extra "إضافة للطلب" tap.
-      if (
-        groups.length === 1 &&
-        group.selection_type === "single" &&
-        nextForGroup.length === 1 &&
-        note === "" &&
-        quantity === 1
-      ) {
-        const opt = group.options.find((o) => o.id === optId);
-        if (opt) {
-          const total = (product.sell_price + (opt.extra_price || 0)) * 1;
-          // Defer to next tick so React finishes the state commit before unmount.
-          setTimeout(() => {
-            onConfirm({
-              modifiers: [{
-                group_id: group.id,
-                group_name: group.name,
-                option_id: opt.id,
-                option_name: opt.name,
-                extra_price: opt.extra_price,
-              }],
-              note: "",
-              quantity: 1,
-              totalPrice: total,
+      // Auto-confirm UX: skip the extra "إضافة للطلب" tap when every group is
+      // single-select and all required groups are satisfied (and the user
+      // hasn't typed a note or changed quantity).
+      const allSingle = groups.every((g) => g.selection_type === "single");
+      const allRequiredSatisfied = groups
+        .filter((g) => g.is_required)
+        .every((g) => ((next[g.id]?.length) || 0) >= Math.max(1, g.min_select));
+      const justPicked = nextForGroup.length === 1;
+
+      if (allSingle && allRequiredSatisfied && justPicked && note === "" && quantity === 1) {
+        const modifiers: SelectedModifier[] = [];
+        let extra = 0;
+        groups.forEach((g) => {
+          (next[g.id] || []).forEach((oid) => {
+            const opt = g.options.find((o) => o.id === oid);
+            if (!opt) return;
+            modifiers.push({
+              group_id: g.id,
+              group_name: g.name,
+              option_id: opt.id,
+              option_name: opt.name,
+              extra_price: opt.extra_price,
             });
-          }, 0);
-        }
+            extra += opt.extra_price || 0;
+          });
+        });
+        const total = (product.sell_price + extra) * 1;
+        // Defer to next tick so React finishes the state commit before unmount.
+        setTimeout(() => {
+          onConfirm({ modifiers, note: "", quantity: 1, totalPrice: total });
+        }, 0);
       }
 
       return next;
