@@ -6177,7 +6177,7 @@ const POSPage = () => {
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
           setCustomerDataDiscount(null);
           setCustomerName("", null, "", null);
-          updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "" }));
+          updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "" }));
         }}
       />
 
