@@ -31,7 +31,7 @@ const DEVICE_LABEL: Record<string, string> = {
 
 export default function KdsControlPage() {
   const { user } = useAuth();
-  const { settings, updateSettings } = useCompanySettings();
+  const { settings } = useCompanySettings();
   const [devices, setDevices] = useState<Device[]>([]);
   const [stats, setStats] = useState({ preparing: 0, ready: 0 });
   const [now, setNow] = useState(Date.now());
@@ -93,13 +93,18 @@ export default function KdsControlPage() {
     if (!user) return;
     if (!confirm("سيتم تفعيل KDS وشاشة الزبائن، وإنشاء جهازين (شاشة زبائن + شاشة سخان) إذا لم يوجدا. متابعة؟")) return;
     try {
-      await updateSettings({
-        pos_kds_enabled: true,
-        pos_customer_display_enabled: true,
-        pos_voice_call_enabled: true,
-      } as any);
       const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
       if (!ownerId) throw new Error("no owner");
+      // Persist the three toggles directly so we avoid races with the settings hook.
+      const { error: upErr } = await (supabase as any)
+        .from("company_settings")
+        .update({
+          pos_kds_enabled: true,
+          pos_customer_display_enabled: true,
+          pos_voice_call_enabled: true,
+        })
+        .eq("user_id", ownerId);
+      if (upErr) throw upErr;
       const existing = devices.map(d => d.device_type);
       const inserts: any[] = [];
       if (!existing.includes("customer_display")) {
