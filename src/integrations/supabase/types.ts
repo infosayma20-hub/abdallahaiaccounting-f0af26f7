@@ -17212,6 +17212,21 @@ export type Database = {
         Returns: number
       }
       kds_debug_device: { Args: { _token: string }; Returns: Json }
+      kds_debug_order_by_display_number: {
+        Args: { _display_number: string; _token: string }
+        Returns: {
+          created_at: string
+          daily_display_number: number
+          items: Json
+          order_id: string
+          order_number: string
+          station_id: string
+          station_name: string
+          status: string
+          ticket_count: number
+          ticket_id: string
+        }[]
+      }
       kds_device_heartbeat: { Args: { _token: string }; Returns: boolean }
       kds_get_active_orders: {
         Args: { _token: string }
