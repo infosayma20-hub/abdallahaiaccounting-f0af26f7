@@ -679,7 +679,7 @@ const POSPage = () => {
    * استلام أو توصيل أو طاولة. يُظهر toast واضحاً إن لم يتم الاختيار.
    */
   const requireOrderTypeChosen = useCallback((): boolean => {
-    const ao = activeOrderRef.current || activeOrder;
+    const ao = activeOrder;
     if (!ao) return true;
     if (ao.tableId) return true; // طاولة محسوبة كاختيار صريح
     if (ao.orderTypeChosen) return true;
