@@ -47,15 +47,20 @@ async function playCachedArabicAudio(
         preview: opts.preview ? true : undefined,
       },
     });
-    const diagnostics = data as VoiceDiagnostics | undefined;
-    if (error || !data?.audio_url || data?.success === false) {
+    let responseData = data as (VoiceDiagnostics & { message?: string; error?: string }) | null;
+    const response = (error as any)?.context as Response | undefined;
+    if (error && response?.json) {
+      try { responseData = await response.json(); } catch { /* keep invoke error */ }
+    }
+    const diagnostics = responseData as VoiceDiagnostics | undefined;
+    if (error || !responseData?.audio_url || responseData?.success === false) {
       return {
         played: "none",
-        reason: data?.error_message || data?.message || data?.error || error?.message || "tts_failed",
+        reason: responseData?.error_message || responseData?.message || responseData?.error || error?.message || "tts_failed",
         diagnostics,
       };
     }
-    const key = data.audio_url as string;
+    const key = responseData.audio_url as string;
     let audio = cachedAudioElems.get(key);
     if (!audio) {
       audio = new Audio(key);
