@@ -250,7 +250,7 @@ const defaultSettings: CompanySettings = {
   pos_kds_display_number_source: "short_daily_number",
   pos_call_max_repeats: 1,
   kds_public_base_url: "",
-  pos_kds_voice_mode: "browser_tts",
+  pos_kds_voice_mode: "cached_arabic_audio",
   pos_kitchen_auto_print: true,
   primary_color: "#22C55E",
   invoice_font: "classic",
