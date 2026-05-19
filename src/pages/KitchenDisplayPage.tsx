@@ -28,6 +28,7 @@ interface Ticket {
   accepted_at: string | null;
   completed_at: string | null;
   order_number?: string;
+  daily_display_number?: number | null;
   table_name?: string;
 }
 
@@ -90,7 +91,7 @@ export default function KitchenDisplayPage() {
     if (orderIds.length > 0) {
       const { data: orders } = await supabase
         .from("pos_orders")
-        .select("id, order_number, table_id")
+        .select("id, order_number, table_id, daily_display_number")
         .in("id", orderIds);
 
       const orderMap = new Map((orders || []).map((o: any) => [o.id, o]));
@@ -110,6 +111,7 @@ export default function KitchenDisplayPage() {
         const order = orderMap.get(t.order_id);
         if (order) {
           t.order_number = (order as any).order_number;
+          t.daily_display_number = (order as any).daily_display_number;
           t.table_name = tableMap.get((order as any).table_id);
         }
       });
@@ -354,7 +356,16 @@ function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed, onR
     <div className={`rounded-xl border overflow-hidden ${isUrgent && ticket.status === "pending" ? "border-red-500 animate-pulse" : "border-white/10"} bg-[#1e293b]`}>
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: station?.color || "#64748b" }}>
-        <span className="font-bold text-sm">{ticket.order_number || "---"}</span>
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className="font-black text-2xl leading-none tabular-nums">
+            {ticket.daily_display_number ?? ticket.order_number ?? "---"}
+          </span>
+          {ticket.daily_display_number != null && ticket.order_number && (
+            <span className="text-[10px] opacity-70 truncate" title={ticket.order_number}>
+              {ticket.order_number}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {ticket.table_name && (
             <Badge variant="secondary" className="bg-black/20 text-white text-xs">🪑 {ticket.table_name}</Badge>
