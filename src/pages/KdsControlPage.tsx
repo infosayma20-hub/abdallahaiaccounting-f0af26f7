@@ -13,8 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { speakOrderCall, playChime, playFallbackAlert, getLastVoiceError } from "@/lib/kds-voice";
-import { Volume2, Wifi, WifiOff, Copy, ChefHat, Monitor, RefreshCw, ExternalLink, Bell } from "lucide-react";
+import { Volume2, Wifi, WifiOff, Copy, ChefHat, Monitor, RefreshCw, ExternalLink, Bell, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import PilotIssuesPanel from "@/components/kds/PilotIssuesPanel";
 
 interface Device {
   id: string; name: string; device_type: string; device_role: string;
@@ -29,7 +30,7 @@ const DEVICE_LABEL: Record<string, string> = {
 
 export default function KdsControlPage() {
   const { user } = useAuth();
-  const { settings } = useCompanySettings();
+  const { settings, updateSettings } = useCompanySettings();
   const [devices, setDevices] = useState<Device[]>([]);
   const [stats, setStats] = useState({ preparing: 0, ready: 0 });
   const [now, setNow] = useState(Date.now());
@@ -87,6 +88,44 @@ export default function KdsControlPage() {
     }, 1500);
   };
 
+  const applyRestaurantPreset = async () => {
+    if (!user) return;
+    if (!confirm("سيتم تفعيل KDS وشاشة الزبائن، وإنشاء جهازين (شاشة زبائن + شاشة سخان) إذا لم يوجدا. متابعة؟")) return;
+    try {
+      await updateSettings({
+        pos_kds_enabled: true,
+        pos_customer_display_enabled: true,
+        pos_voice_call_enabled: true,
+      } as any);
+      const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      if (!ownerId) throw new Error("no owner");
+      const existing = devices.map(d => d.device_type);
+      const inserts: any[] = [];
+      if (!existing.includes("customer_display")) {
+        inserts.push({
+          company_id: ownerId, name: "شاشة الزبائن",
+          device_role: "customer_display", device_type: "customer_display",
+          token: crypto.randomUUID().replace(/-/g, ""),
+        });
+      }
+      if (!existing.includes("heater_screen") && !existing.includes("kitchen_screen")) {
+        inserts.push({
+          company_id: ownerId, name: "شاشة السخان",
+          device_role: "heater_screen", device_type: "heater_screen",
+          token: crypto.randomUUID().replace(/-/g, ""),
+        });
+      }
+      if (inserts.length) {
+        const { error } = await (supabase as any).from("pos_display_devices").insert(inserts);
+        if (error) throw error;
+      }
+      toast.success("تم تطبيق قالب: مطعم - شاشة مطبخ وشاشة أرقام");
+      load();
+    } catch (e: any) {
+      toast.error("تعذر تطبيق القالب: " + (e?.message || ""));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-6" dir="rtl">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -97,9 +136,14 @@ export default function KdsControlPage() {
               راقب الأجهزة، افحص الصوت، وافتح الشاشات.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={load}>
-            <RefreshCw className="h-4 w-4 ml-1" /> تحديث
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="default" size="sm" onClick={applyRestaurantPreset}>
+              <Sparkles className="h-4 w-4 ml-1" /> قالب مطعم سريع
+            </Button>
+            <Button variant="outline" size="sm" onClick={load}>
+              <RefreshCw className="h-4 w-4 ml-1" /> تحديث
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -202,7 +246,18 @@ export default function KdsControlPage() {
             <li>إذا انقطع الاتصال تظهر رسالة "جارٍ إعادة الاتصال…" تلقائياً.</li>
             <li>لاستبدال الرابط (مثلاً سُرّب التوكن) اضغط "تدوير التوكن".</li>
           </ol>
+          <Separator />
+          <h4 className="font-semibold mt-3 mb-1 text-sm">حل المشاكل الشائعة</h4>
+          <ul className="text-sm space-y-1 text-muted-foreground list-disc list-inside">
+            <li>الصوت لا يعمل: افتح الشاشة، اضغط "اضغط للبدء"، ثم جرّب "نداء رقم وهمي".</li>
+            <li>الجهاز يظهر غير متصل: تحقق من الإنترنت، أعد فتح الرابط، انتظر 60 ثانية.</li>
+            <li>الطلب لا يظهر: تأكد أن KDS مفعّل وأن الفرع مطابق بين الكاشير وجهاز العرض.</li>
+            <li>تكرار النداء بعد refresh: لن يحدث — الشاشة تتذكر آخر نداء عبر localStorage.</li>
+          </ul>
         </Card>
+
+        {/* Pilot issues log */}
+        <PilotIssuesPanel />
       </div>
     </div>
   );
