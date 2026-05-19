@@ -109,6 +109,29 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
   const isOnline = (d: Device) =>
     !!d.last_seen_at && (now - new Date(d.last_seen_at).getTime()) < 60_000;
 
+  const buildVoiceMessage = (result: VoiceResult) => {
+    if (result.played === "cached_arabic_audio") return "تم تشغيل صوت عربي ثابت";
+    if (result.played === "browser_tts") return "تم تشغيل صوت المتصفح";
+    if (result.played === "beep_only") return `لم يتم تشغيل الصوت العربي. تم تشغيل تنبيه فقط.${result.reason ? ` ${result.reason}` : ""}`;
+    return result.reason || "فشل تشغيل الصوت";
+  };
+
+  const testArabicVoice = async () => {
+    setVoiceTestMessage("جارٍ اختبار صوت Omar…");
+    setVoiceTest(null);
+    const result = await speakOrderCall("13", {
+      template: "طلب رقم {n}، تفضل للاستلام",
+      language: settings.pos_voice_language,
+      mode: (settings.pos_kds_voice_mode || "browser_tts") as any,
+      preview: true,
+    });
+    const message = buildVoiceMessage(result);
+    setVoiceTestMessage(message);
+    setVoiceTest(result.diagnostics || null);
+    if (result.played === "cached_arabic_audio" || result.played === "browser_tts") toast.success(message);
+    else toast.warning(message);
+  };
+
   const baseUrl = getKdsPublicBaseUrl(settings.kds_public_base_url);
   const previewWarning = isPreviewOrigin() && !settings.kds_public_base_url;
 
