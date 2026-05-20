@@ -205,6 +205,72 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "reset_password_by_id") {
+      const targetUserId = String(body.target_user_id || "");
+      const newPassword = String(body.new_password || "");
+      if (!targetUserId || !newPassword || newPassword.length < 6) {
+        return new Response(JSON.stringify({ error: "المعرف أو كلمة المرور غير صالحة (6 أحرف على الأقل)" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Cross-tenant verification (even super admin must pass the explicit check; super admin bypass kept for self-service paths only)
+      const [{ data: adminProfile }, { data: targetProfile }, { data: targetIsAdminRole }] = await Promise.all([
+        supabase.from("profiles").select("user_id, company_id").eq("user_id", adminUser.id).maybeSingle(),
+        supabase.from("profiles").select("user_id, invited_by, company_id, display_name").eq("user_id", targetUserId).maybeSingle(),
+        supabase.rpc("has_role", { _user_id: targetUserId, _role: "admin" }),
+      ]);
+
+      if (!targetProfile) {
+        await supabase.from("activity_log").insert({
+          user_id: adminUser.id, actor_id: adminUser.id,
+          actor_name: adminUser.user_metadata?.full_name || adminUser.email || "",
+          action: "reset_password_denied", entity_type: "user", entity_id: targetUserId,
+          details: { reason: "target_not_found" },
+        });
+        return new Response(JSON.stringify({ error: "المستخدم غير موجود" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const isSelf = targetUserId === adminUser.id;
+      const sameCompany = !!adminProfile?.company_id && adminProfile.company_id === targetProfile?.company_id;
+      const invitedByAdmin = targetProfile?.invited_by === adminUser.id;
+      const allowed = hasSuperAdmin || isSelf || invitedByAdmin || (sameCompany && !targetIsAdminRole);
+
+      if (!allowed) {
+        await supabase.from("activity_log").insert({
+          user_id: adminUser.id, actor_id: adminUser.id,
+          actor_name: adminUser.user_metadata?.full_name || adminUser.email || "",
+          action: "reset_password_denied", entity_type: "user", entity_id: targetUserId,
+          details: {
+            reason: "cross_tenant_forbidden",
+            actor_company_id: adminProfile?.company_id ?? null,
+            target_company_id: targetProfile?.company_id ?? null,
+          },
+        });
+        return new Response(JSON.stringify({ error: "403 Cross-tenant forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await supabase.auth.admin.updateUserById(targetUserId, { password: newPassword });
+      if (error) throw error;
+
+      await supabase.from("activity_log").insert({
+        user_id: adminUser.id, actor_id: adminUser.id,
+        actor_name: adminUser.user_metadata?.full_name || adminUser.email || "",
+        action: "reset_password", entity_type: "user", entity_id: targetUserId,
+        entity_label: targetProfile.display_name || null,
+        details: { method: "by_id", company_id: adminProfile?.company_id ?? null },
+      });
+
+      return new Response(JSON.stringify({ success: true, user_id: targetUserId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "change_role") {
       const { target_user_id, new_role } = body;
 
