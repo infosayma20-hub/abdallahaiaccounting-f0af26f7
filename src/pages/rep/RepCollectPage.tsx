@@ -83,7 +83,6 @@ export default function RepCollectPage() {
           cashBoxName = cb.name;
         }
       }
-      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName });
       // Resolve rep's AR sub-account under 1130 (e.g. 1130-REP-001 = ذمم — اسم المندوب)
       let arAccountCode: string | null = null;
       try {
@@ -96,7 +95,7 @@ export default function RepCollectPage() {
           .limit(1);
         if (arRows && arRows.length) arAccountCode = arRows[0].account_code;
       } catch (_) { /* ignore */ }
-      setRep((prev: any) => ({ ...(prev ?? { ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName }), ar_account_code: arAccountCode }));
+      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName, ar_account_code: arAccountCode });
       const { data: cts } = await (supabase as any)
         .from("contacts")
         .select("id, contact_name, contact_type")
