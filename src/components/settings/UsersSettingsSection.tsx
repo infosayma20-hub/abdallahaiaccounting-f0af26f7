@@ -377,6 +377,7 @@ const UsersSettingsSection = () => {
               <TableRow>
                 <TableHead>الاسم</TableHead>
                 <TableHead>الدور</TableHead>
+                <TableHead>التطبيقات المخصصة</TableHead>
                 <TableHead>آخر دخول</TableHead>
                 <TableHead>تاريخ الإنشاء</TableHead>
                 <TableHead>إجراءات</TableHead>
@@ -409,6 +410,24 @@ const UsersSettingsSection = () => {
                       </Select>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const c = overrideCounts[u.user_id] || { allow: 0, deny: 0 };
+                      if (!c.allow && !c.deny) {
+                        return <span className="text-xs text-muted-foreground">حسب الدور</span>;
+                      }
+                      return (
+                        <div className="flex gap-1">
+                          {c.allow > 0 && (
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 text-xs">✓ {c.allow}</Badge>
+                          )}
+                          {c.deny > 0 && (
+                            <Badge className="bg-red-100 text-red-700 border-red-300 text-xs">✗ {c.deny}</Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {formatDate(u.last_seen_at)}
                   </TableCell>
@@ -417,21 +436,32 @@ const UsersSettingsSection = () => {
                   </TableCell>
                   <TableCell>
                     {u.user_id !== user?.id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleActive(u.user_id, false)}
-                        className="text-xs"
-                      >
-                        تعليق
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setAppAccessTarget({ user_id: u.user_id, name: u.display_name })}
+                          className="text-xs"
+                        >
+                          <AppWindow className="h-3.5 w-3.5 ms-1" />
+                          إدارة التطبيقات
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleActive(u.user_id, false)}
+                          className="text-xs"
+                        >
+                          تعليق
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
               {teamUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     لا يوجد مستخدمون بعد
                   </TableCell>
                 </TableRow>
