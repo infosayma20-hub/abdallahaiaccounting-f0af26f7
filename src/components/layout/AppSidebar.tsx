@@ -20,6 +20,7 @@ const quickAddRoutes: Record<string, { label: string; path: string }> = {
 
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { navigationSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
+import { useMyAppOverrides } from "@/hooks/useMyAppOverrides";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -48,8 +49,13 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const hiddenApps: string[] = useMemo(() => {
     return (settings as any)?.hidden_apps || [];
   }, [settings]);
+  const { allow: allowOverrides, deny: denyOverrides } = useMyAppOverrides();
 
-  const isItemHidden = (item: NavItem) => hiddenApps.includes(item.id);
+  const isItemHidden = (item: NavItem) => {
+    if (denyOverrides.has(item.id)) return true;
+    if (allowOverrides.has(item.id)) return false;
+    return hiddenApps.includes(item.id);
+  };
 
   // Item is locked by super admin — show with lock
   const isItemDisabled = (item: NavItem) => {

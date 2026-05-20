@@ -6,6 +6,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
+import { useMyAppOverrides } from "@/hooks/useMyAppOverrides";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import UpgradePromptModal from "@/components/subscription/UpgradePromptModal";
@@ -42,6 +43,7 @@ const AppsLauncher = () => {
   const { settings, loading: settingsLoading } = useCompanySettings();
   const { subscription, loading: subLoading } = useSubscription();
   const { isTrial, isSuperAdmin, loading: guardLoading } = useSubscriptionGuard();
+  const { allow: allowOverrides, deny: denyOverrides } = useMyAppOverrides();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
@@ -161,6 +163,8 @@ const AppsLauncher = () => {
 
   // Item is locked by super admin
   const isAppDisabled = (app: NavItem) => {
+    if (denyOverrides.has(app.id)) return true;
+    if (allowOverrides.has(app.id)) return false;
     if (hiddenApps.includes(app.id)) return true;
     return false;
   };
@@ -181,12 +185,15 @@ const AppsLauncher = () => {
      ⚙️ ملاحظة: hidden_apps لم تعد تُخفي البطاقة — تُنقل لقسم Premium كـ "بانتظار التفعيل". */
   const allVisibleApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
+    // Per-user deny: hide entirely from launcher
+    allApps = allApps.filter(app => !denyOverrides.has(app.id));
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
       const allowed = ROLE_ALLOWED_APPS[restrictedRole];
-      allApps = allApps.filter(app => allowed.includes(app.id));
+      // explicit allow override unlocks an app even if role would block it
+      allApps = allApps.filter(app => allowed.includes(app.id) || allowOverrides.has(app.id));
     }
     return allApps;
-  }, [restrictedRole]);
+  }, [restrictedRole, allowOverrides, denyOverrides]);
 
   /* Filter apps by role + search + category; group by section.
      التطبيقات المعطّلة (hidden_apps) تُعرض ضمن قسم Premium كبطاقات

@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2 } from "lucide-react";
+import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import UserAppAccessDialog from "@/components/settings/UserAppAccessDialog";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "مدير عام",
@@ -104,6 +105,10 @@ const UsersSettingsSection = () => {
   const [resetTargetUserId, setResetTargetUserId] = useState("");
   const [resetPassword, setResetPassword] = useState(generatePassword());
 
+  // Per-user App Access dialog
+  const [appAccessTarget, setAppAccessTarget] = useState<{ user_id: string; name: string } | null>(null);
+  const [overrideCounts, setOverrideCounts] = useState<Record<string, { allow: number; deny: number }>>({});
+
   // Add user form
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -136,6 +141,23 @@ const UsersSettingsSection = () => {
           created_at: p.created_at || "",
         }));
         setTeamUsers(users);
+
+        // Load app-access override counts for these users (RLS will filter per-tenant)
+        const ids = users.map(u => u.user_id);
+        if (ids.length > 0) {
+          const { data: ov } = await supabase
+            .from("user_app_access_overrides" as any)
+            .select("target_user_id,access_state")
+            .in("target_user_id", ids);
+          const counts: Record<string, { allow: number; deny: number }> = {};
+          (ov || []).forEach((r: any) => {
+            const c = counts[r.target_user_id] || { allow: 0, deny: 0 };
+            if (r.access_state === "allow") c.allow++;
+            else if (r.access_state === "deny") c.deny++;
+            counts[r.target_user_id] = c;
+          });
+          setOverrideCounts(counts);
+        }
       }
 
       // Load permissions
@@ -355,6 +377,7 @@ const UsersSettingsSection = () => {
               <TableRow>
                 <TableHead>الاسم</TableHead>
                 <TableHead>الدور</TableHead>
+                <TableHead>التطبيقات المخصصة</TableHead>
                 <TableHead>آخر دخول</TableHead>
                 <TableHead>تاريخ الإنشاء</TableHead>
                 <TableHead>إجراءات</TableHead>
@@ -387,6 +410,24 @@ const UsersSettingsSection = () => {
                       </Select>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const c = overrideCounts[u.user_id] || { allow: 0, deny: 0 };
+                      if (!c.allow && !c.deny) {
+                        return <span className="text-xs text-muted-foreground">حسب الدور</span>;
+                      }
+                      return (
+                        <div className="flex gap-1">
+                          {c.allow > 0 && (
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 text-xs">✓ {c.allow}</Badge>
+                          )}
+                          {c.deny > 0 && (
+                            <Badge className="bg-red-100 text-red-700 border-red-300 text-xs">✗ {c.deny}</Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {formatDate(u.last_seen_at)}
                   </TableCell>
@@ -395,21 +436,32 @@ const UsersSettingsSection = () => {
                   </TableCell>
                   <TableCell>
                     {u.user_id !== user?.id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleActive(u.user_id, false)}
-                        className="text-xs"
-                      >
-                        تعليق
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setAppAccessTarget({ user_id: u.user_id, name: u.display_name })}
+                          className="text-xs"
+                        >
+                          <AppWindow className="h-3.5 w-3.5 ms-1" />
+                          إدارة التطبيقات
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleActive(u.user_id, false)}
+                          className="text-xs"
+                        >
+                          تعليق
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
               {teamUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     لا يوجد مستخدمون بعد
                   </TableCell>
                 </TableRow>
@@ -639,6 +691,15 @@ const UsersSettingsSection = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {appAccessTarget && (
+        <UserAppAccessDialog
+          open={!!appAccessTarget}
+          onOpenChange={(v) => { if (!v) { setAppAccessTarget(null); loadData(); } }}
+          targetUserId={appAccessTarget.user_id}
+          targetName={appAccessTarget.name}
+        />
+      )}
     </div>
   );
 };
