@@ -14738,6 +14738,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_app_access_overrides: {
+        Row: {
+          access_state: string
+          app_key: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          owner_id: string | null
+          target_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_state: string
+          app_key: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner_id?: string | null
+          target_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_state?: string
+          app_key?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner_id?: string | null
+          target_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_favorite_apps: {
         Row: {
           app_id: string
@@ -17489,6 +17525,10 @@ export type Database = {
         Returns: boolean
       }
       sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
+      uaao_can_admin_target: {
+        Args: { _admin: string; _target: string }
+        Returns: boolean
+      }
       update_last_seen: { Args: never; Returns: undefined }
       update_voucher_atomic: {
         Args: {
