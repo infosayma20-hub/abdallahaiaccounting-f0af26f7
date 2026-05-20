@@ -101,7 +101,7 @@ const UsersSettingsSection = () => {
   const [showAddUser, setShowAddUser] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
+  const [resetTargetUserId, setResetTargetUserId] = useState("");
   const [resetPassword, setResetPassword] = useState(generatePassword());
 
   // Add user form
@@ -112,7 +112,10 @@ const UsersSettingsSection = () => {
 
   useEffect(() => {
     if (user) loadData();
-  }, [user]);
+    // Reset password form on user/company context change to avoid stale state
+    setResetTargetUserId("");
+    setResetPassword(generatePassword());
+  }, [user?.id]);
 
   const loadData = async () => {
     setLoading(true);
@@ -212,21 +215,26 @@ const UsersSettingsSection = () => {
     }
   };
 
-  const handleResetPasswordByEmail = async () => {
-    if (!resetEmail.trim() || !resetPassword || resetPassword.length < 6) {
-      toast.error("أدخل البريد وكلمة مرور من 6 أحرف على الأقل");
+  const handleResetPasswordByUserId = async () => {
+    if (!resetTargetUserId || !resetPassword || resetPassword.length < 6) {
+      toast.error("اختر مستخدماً وكلمة مرور من 6 أحرف على الأقل");
+      return;
+    }
+    // Defense-in-depth: ensure target is in the visible same-company list
+    if (!teamUsers.some(u => u.user_id === resetTargetUserId)) {
+      toast.error("المستخدم غير تابع لشركتك");
       return;
     }
     setResettingPassword(true);
     try {
       const { data, error } = await supabase.functions.invoke("manage-team-user", {
-        body: { action: "reset_password", email: resetEmail.trim(), new_password: resetPassword },
+        body: { action: "reset_password_by_id", target_user_id: resetTargetUserId, new_password: resetPassword },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       await navigator.clipboard.writeText(resetPassword).catch(() => undefined);
       toast.success("تم تغيير كلمة المرور ونسخها للحافظة ✅");
-      setResetEmail("");
+      setResetTargetUserId("");
       setResetPassword(generatePassword());
     } catch (e: any) {
       toast.error(e.message || "فشل تغيير كلمة المرور");
@@ -309,13 +317,24 @@ const UsersSettingsSection = () => {
           <div className="mb-5 rounded-xl border border-border bg-muted/20 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <KeyRound className="h-4 w-4 text-primary" />
-              تغيير كلمة مرور مستخدم بالبريد
+              تغيير كلمة مرور مستخدم
             </div>
             <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2">
-              <Input value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="zahranyazeed33@gmail.com" dir="ltr" type="email" className="text-left" />
+              <Select value={resetTargetUserId} onValueChange={setResetTargetUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر مستخدماً من شركتك" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamUsers.map(u => (
+                    <SelectItem key={u.user_id} value={u.user_id}>
+                      {u.display_name || u.user_id} — {ROLE_LABELS[u.role] || u.role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input value={resetPassword} onChange={e => setResetPassword(e.target.value)} placeholder="كلمة المرور الجديدة" dir="ltr" className="font-mono text-left" />
               <Button type="button" variant="outline" onClick={() => setResetPassword(generatePassword())} disabled={resettingPassword}>توليد</Button>
-              <Button type="button" onClick={handleResetPasswordByEmail} disabled={resettingPassword} className="gap-2">
+              <Button type="button" onClick={handleResetPasswordByUserId} disabled={resettingPassword || !resetTargetUserId} className="gap-2">
                 {resettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                 تغيير
               </Button>
