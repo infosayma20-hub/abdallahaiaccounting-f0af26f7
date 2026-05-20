@@ -691,6 +691,15 @@ const UsersSettingsSection = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {appAccessTarget && (
+        <UserAppAccessDialog
+          open={!!appAccessTarget}
+          onOpenChange={(v) => { if (!v) { setAppAccessTarget(null); loadData(); } }}
+          targetUserId={appAccessTarget.user_id}
+          targetName={appAccessTarget.name}
+        />
+      )}
     </div>
   );
 };
