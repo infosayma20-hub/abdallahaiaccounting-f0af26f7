@@ -105,6 +105,10 @@ const UsersSettingsSection = () => {
   const [resetTargetUserId, setResetTargetUserId] = useState("");
   const [resetPassword, setResetPassword] = useState(generatePassword());
 
+  // Per-user App Access dialog
+  const [appAccessTarget, setAppAccessTarget] = useState<{ user_id: string; name: string } | null>(null);
+  const [overrideCounts, setOverrideCounts] = useState<Record<string, { allow: number; deny: number }>>({});
+
   // Add user form
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -137,6 +141,23 @@ const UsersSettingsSection = () => {
           created_at: p.created_at || "",
         }));
         setTeamUsers(users);
+
+        // Load app-access override counts for these users (RLS will filter per-tenant)
+        const ids = users.map(u => u.user_id);
+        if (ids.length > 0) {
+          const { data: ov } = await supabase
+            .from("user_app_access_overrides" as any)
+            .select("target_user_id,access_state")
+            .in("target_user_id", ids);
+          const counts: Record<string, { allow: number; deny: number }> = {};
+          (ov || []).forEach((r: any) => {
+            const c = counts[r.target_user_id] || { allow: 0, deny: 0 };
+            if (r.access_state === "allow") c.allow++;
+            else if (r.access_state === "deny") c.deny++;
+            counts[r.target_user_id] = c;
+          });
+          setOverrideCounts(counts);
+        }
       }
 
       // Load permissions
