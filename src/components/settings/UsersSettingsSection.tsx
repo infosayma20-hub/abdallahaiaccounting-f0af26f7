@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2 } from "lucide-react";
+import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import UserAppAccessDialog from "@/components/settings/UserAppAccessDialog";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "مدير عام",
