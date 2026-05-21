@@ -72,9 +72,13 @@ Deno.serve(async (req) => {
   const { data: roleRows } = await svc.from("user_roles").select("role").eq("user_id", actor.id);
   const roles = (roleRows || []).map((r: any) => r.role);
   const isSuperAdmin = roles.includes("super_admin");
+  const isAdmin = roles.includes("admin") || isSuperAdmin;
 
-  const canRead = isSelf || sameCompany || invitedByActor || isSuperAdmin;
-  const canWrite = !isSelf && (sameCompany || invitedByActor || isSuperAdmin);
+  // Reading own overrides: always allowed.
+  // Reading others / writing: must be admin or super_admin AND same-company/invited.
+  const canReadOthers = isAdmin && (sameCompany || invitedByActor || isSuperAdmin);
+  const canRead = isSelf || canReadOthers;
+  const canWrite = !isSelf && isAdmin && (sameCompany || invitedByActor || isSuperAdmin);
 
   if (!canRead) {
     await audit(svc, {
@@ -82,9 +86,13 @@ Deno.serve(async (req) => {
       action: "user_app_access_denied",
       entity_type: "user_app_access",
       entity_id: targetUserId,
-      details: { reason: "cross_tenant_forbidden", actor_company_id: actorProfile.company_id, target_company_id: targetProfile.company_id },
+      details: {
+        reason: isAdmin ? "cross_tenant_forbidden" : "not_admin",
+        actor_company_id: actorProfile.company_id,
+        target_company_id: targetProfile.company_id,
+      },
     });
-    return json({ error: "Cross-tenant forbidden" }, 403);
+    return json({ error: isAdmin ? "Cross-tenant forbidden" : "Forbidden: admin role required" }, 403);
   }
 
   if (action === "list") {
@@ -102,9 +110,14 @@ Deno.serve(async (req) => {
       action: "user_app_access_denied",
       entity_type: "user_app_access",
       entity_id: targetUserId,
-      details: { reason: "cross_tenant_forbidden", actor_company_id: actorProfile.company_id, target_company_id: targetProfile.company_id, attempted: action },
+      details: {
+        reason: isAdmin ? "cross_tenant_forbidden" : "not_admin",
+        actor_company_id: actorProfile.company_id,
+        target_company_id: targetProfile.company_id,
+        attempted: action,
+      },
     });
-    return json({ error: "Cross-tenant forbidden" }, 403);
+    return json({ error: isAdmin ? "Cross-tenant forbidden" : "Forbidden: admin role required" }, 403);
   }
 
   if (action === "upsert") {
