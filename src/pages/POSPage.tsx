@@ -454,10 +454,21 @@ const POSPage = () => {
   }, [updateActiveOrder]);
 
   const setOrderDiscount = useCallback((d: number) => {
+    // Safe setter — enforces pos.sell.discount permission (defense-in-depth).
+    // Allow d === 0 always (used for resetting after sales).
+    if (d !== 0 && !posFeatPerm.can("sell", "discount")) {
+      toast.error("لا تملك صلاحية تطبيق الخصم");
+      updateActiveOrder(o => ({ ...o, orderDiscount: 0 }));
+      return;
+    }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
   }, [updateActiveOrder]);
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent") => {
+    if (!posFeatPerm.can("sell", "discount")) {
+      toast.error("لا تملك صلاحية تطبيق الخصم");
+      return;
+    }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
   }, [updateActiveOrder]);
 
@@ -2028,7 +2039,11 @@ const POSPage = () => {
   const cartTotals = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
     const taxAmount = cart.reduce((sum, item) => sum + (item.total * item.tax_rate / 100), 0);
-    let discountAmt = orderDiscountType === "percent" ? subtotal * orderDiscount / 100 : orderDiscount;
+    // Enforce pos.sell.discount at calculation level — if user lacks permission,
+    // the order-level discount is ignored even if state somehow holds a value.
+    const canOrderDiscount = posFeatPerm.can("sell", "discount");
+    const effOrderDiscount = canOrderDiscount ? orderDiscount : 0;
+    let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
     const total = subtotal + taxAmount - discountAmt;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
@@ -2037,7 +2052,7 @@ const POSPage = () => {
       total: Math.round(total * 100) / 100,
       itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
     };
-  }, [cart, orderDiscount, orderDiscountType]);
+  }, [cart, orderDiscount, orderDiscountType, posFeatPerm]);
 
   // Open session
   const handleOpenShift = async () => {
@@ -2605,6 +2620,13 @@ const POSPage = () => {
     }
     if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
+      return;
+    }
+
+    // Defense-in-depth: block sale if an order-level discount is present but
+    // the user lacks pos.sell.discount.
+    if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount")) {
+      toast.error("لا تملك صلاحية تطبيق خصم");
       return;
     }
 
@@ -4141,7 +4163,7 @@ const POSPage = () => {
           </button>
 
           {/* Close shift */}
-          {(isAdmin || posPerms.can_close_register) && (
+          {(isAdmin || posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift") && (
             <button
               onClick={() => {
                 if (session?.cash_box_id === null) {
