@@ -2039,7 +2039,11 @@ const POSPage = () => {
   const cartTotals = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
     const taxAmount = cart.reduce((sum, item) => sum + (item.total * item.tax_rate / 100), 0);
-    let discountAmt = orderDiscountType === "percent" ? subtotal * orderDiscount / 100 : orderDiscount;
+    // Enforce pos.sell.discount at calculation level — if user lacks permission,
+    // the order-level discount is ignored even if state somehow holds a value.
+    const canOrderDiscount = posFeatPerm.can("sell", "discount");
+    const effOrderDiscount = canOrderDiscount ? orderDiscount : 0;
+    let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
     const total = subtotal + taxAmount - discountAmt;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
@@ -2048,7 +2052,7 @@ const POSPage = () => {
       total: Math.round(total * 100) / 100,
       itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
     };
-  }, [cart, orderDiscount, orderDiscountType]);
+  }, [cart, orderDiscount, orderDiscountType, posFeatPerm]);
 
   // Open session
   const handleOpenShift = async () => {
