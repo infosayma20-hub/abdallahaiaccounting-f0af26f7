@@ -836,6 +836,15 @@ const InvoicesPage = () => {
     // The "Mark as Paid" action no longer exists in the status dropdown.
     // To settle an invoice, users must create a Receipt Voucher (سند قبض) via the dedicated button.
     const dbStatus = status === 'sent' ? 'sent' : status === 'cancelled' ? 'cancelled' : 'draft';
+
+    // Feature-permission gate: cancelling = delete; reverting to draft = update.
+    if (dbStatus === 'cancelled' || dbStatus === 'draft') {
+      const inv = invoices.find(i => i.id === id);
+      const app = inv?.type === "purchase" ? "purchases" : "sales";
+      const feature = inv?.type === "purchase" ? "purchase_invoices" : "invoices";
+      const need = dbStatus === 'cancelled' ? 'delete' : 'update';
+      try { await assertPermission(app, feature, need); } catch { return; }
+    }
     
     // ✅ تقييد تحويل الفاتورة لمسودة بصلاحية admin أو accountant_senior فقط
     if (dbStatus === 'draft' && user) {
