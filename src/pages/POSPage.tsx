@@ -2004,10 +2004,14 @@ const POSPage = () => {
   }, [selectedCartIndex]);
 
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
-    // Enforce price editing permission
-    if (field === "unit_price" && !isAdmin && !posPerms.can_edit_prices) return;
+    // Enforce price editing permission (legacy posPerms + feature override)
+    if (field === "unit_price") {
+      if (!posFeatPerm.can("sell", "change_price")) { toast.error("لا تملك صلاحية تغيير السعر"); return; }
+      if (!isAdmin && !posPerms.can_edit_prices) return;
+    }
     // Enforce discount permission and max discount
     if (field === "discount_pct") {
+      if (!posFeatPerm.can("sell", "discount")) { toast.error("لا تملك صلاحية تطبيق الخصم"); return; }
       if (!isAdmin && !posPerms.can_apply_discount) { toast.error("ليس لديك صلاحية تطبيق الخصم"); return; }
       if (!isAdmin && value > posPerms.max_discount_percent) { toast.error(`الحد الأقصى للخصم ${posPerms.max_discount_percent}%`); value = posPerms.max_discount_percent; }
     }
@@ -2018,7 +2022,7 @@ const POSPage = () => {
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
     });
-  }, [isAdmin, posPerms]);
+  }, [isAdmin, posPerms, posFeatPerm]);
 
   // Totals
   const cartTotals = useMemo(() => {
@@ -3148,8 +3152,8 @@ const POSPage = () => {
         console.warn("Print bridge error:", printErr);
       }
 
-      // Auto-open cash drawer after successful payment
-      if (isAdmin || posPerms.open_cash_drawer) {
+      // Auto-open cash drawer after successful payment (legacy + feature override)
+      if ((isAdmin || posPerms.open_cash_drawer) && posFeatPerm.can("sell", "open_drawer")) {
         bridgeOpenDrawer();
       }
 
