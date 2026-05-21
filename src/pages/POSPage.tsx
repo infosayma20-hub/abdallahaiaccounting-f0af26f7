@@ -783,6 +783,8 @@ const POSPage = () => {
    const userId = user?.id;
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+    // Feature permission overrides (composed with posPerms below)
+    const posFeatPerm = usePermission("pos");
 
   // Load tables when picker opens
   useEffect(() => {
