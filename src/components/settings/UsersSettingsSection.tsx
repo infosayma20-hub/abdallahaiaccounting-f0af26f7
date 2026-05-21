@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink, KeyRound, Loader2, AppWindow } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import UserAppAccessDialog from "@/components/settings/UserAppAccessDialog";
+import { assertPermission } from "@/lib/permissions/assertPermission";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "مدير عام",
@@ -185,6 +186,7 @@ const UsersSettingsSection = () => {
       toast.error("جميع الحقول مطلوبة");
       return;
     }
+    try { await assertPermission("settings", "users", "manage"); } catch { return; }
     setSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("manage-team-user", {
@@ -212,6 +214,7 @@ const UsersSettingsSection = () => {
   };
 
   const handleToggleActive = async (targetUserId: string, activate: boolean) => {
+    try { await assertPermission("settings", "users", "manage"); } catch { return; }
     try {
       const { data, error } = await supabase.functions.invoke("manage-team-user", {
         body: { action: "toggle_active", target_user_id: targetUserId, is_active: activate },
@@ -225,6 +228,7 @@ const UsersSettingsSection = () => {
   };
 
   const handleChangeRole = async (targetUserId: string, newRoleValue: string) => {
+    try { await assertPermission("settings", "users", "manage"); } catch { return; }
     try {
       const { data, error } = await supabase.functions.invoke("manage-team-user", {
         body: { action: "change_role", target_user_id: targetUserId, new_role: newRoleValue },
@@ -242,6 +246,7 @@ const UsersSettingsSection = () => {
       toast.error("اختر مستخدماً وكلمة مرور من 6 أحرف على الأقل");
       return;
     }
+    try { await assertPermission("settings", "users", "manage"); } catch { return; }
     // Defense-in-depth: ensure target is in the visible same-company list
     if (!teamUsers.some(u => u.user_id === resetTargetUserId)) {
       toast.error("المستخدم غير تابع لشركتك");
@@ -266,6 +271,7 @@ const UsersSettingsSection = () => {
   };
 
   const handlePermissionChange = async (role: string, module: string, field: string, value: boolean) => {
+    try { await assertPermission("settings", "roles", "manage"); } catch { return; }
     // Optimistic update
     setPermissions(prev =>
       prev.map(p => (p.role === role && p.module === module ? { ...p, [field]: value } : p))
