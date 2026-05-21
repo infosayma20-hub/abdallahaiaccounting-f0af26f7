@@ -2623,6 +2623,13 @@ const POSPage = () => {
       return;
     }
 
+    // Defense-in-depth: block sale if an order-level discount is present but
+    // the user lacks pos.sell.discount.
+    if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount")) {
+      toast.error("لا تملك صلاحية تطبيق خصم");
+      return;
+    }
+
     setProcessing(true);
     try {
       let orderId: string;
