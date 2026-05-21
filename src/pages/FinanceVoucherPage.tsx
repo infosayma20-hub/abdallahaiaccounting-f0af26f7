@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Can } from "@/components/permissions/Can";
+import { assertPermission } from "@/lib/permissions/assertPermission";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { toast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -71,7 +72,8 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [editWarning, setEditWarning] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
 
-  const handleEdit = (v: any) => {
+  const handleEdit = async (v: any) => {
+    try { await assertPermission("finance", isReceipt ? "receipts" : "payments", "update"); } catch { return; }
     const isPosted = v.status === "posted" || v.status_label === "مرحّل";
     if (isPosted) {
       setEditTarget(v);
@@ -105,13 +107,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     navigateToEdit(editTarget);
   };
 
-  const handleDelete = (v: any) => {
+  const handleDelete = async (v: any) => {
+    try { await assertPermission("finance", isReceipt ? "receipts" : "payments", "delete"); } catch { return; }
     setDeleteTarget(v);
     setDeleteDialog(true);
   };
 
   const confirmDelete = async (reason: string) => {
     if (!deleteTarget || !user) return;
+    try { await assertPermission("finance", isReceipt ? "receipts" : "payments", "delete"); } catch { return; }
     try {
       const table = isReceipt ? "receipt_vouchers" : "vouchers";
       
