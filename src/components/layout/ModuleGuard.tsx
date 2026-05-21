@@ -31,7 +31,7 @@ const ModuleGuard = ({ children }: Props) => {
       "/finance": "finance", "/accounting": "finance", "/tax": "tax", "/crm": "crm",
       "/reports": "reports", "/dashboards": "dashboards", "/dashboard": "dashboard",
       "/print-templates": "print-templates", "/van-sales": "van-sales", "/travel": "travel",
-      "/contractor": "contractor",
+      "/contractor": "contractor", "/settings": "settings",
     };
     for (const [prefix, id] of Object.entries(ROUTE_TO_APP_ID)) {
       if (path.startsWith(prefix)) return id;
