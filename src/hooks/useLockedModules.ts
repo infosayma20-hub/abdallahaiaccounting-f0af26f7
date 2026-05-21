@@ -35,6 +35,7 @@ const ROUTE_TO_APP_ID: Record<string, string> = {
   "/van-sales": "van-sales",
   "/travel": "travel",
   "/contractor": "contractor",
+  "/settings": "settings",
 };
 
 const APP_NAMES_AR: Record<string, string> = {
