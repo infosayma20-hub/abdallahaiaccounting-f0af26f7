@@ -740,8 +740,11 @@ const InvoicesPage = () => {
     setContactDebtWarning(null);
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!selectedInvoice) return;
+    const app = selectedInvoice.type === "purchase" ? "purchases" : "sales";
+    const feature = selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices";
+    try { await assertPermission(app, feature, "print"); } catch { return; }
     const win = window.open("", "_blank");
     if (!win) return;
     
@@ -770,7 +773,10 @@ const InvoicesPage = () => {
   };
 
   // Direct print for a specific invoice
-  const handleDirectPrint = (inv: Invoice) => {
+  const handleDirectPrint = async (inv: Invoice) => {
+    const app = inv.type === "purchase" ? "purchases" : "sales";
+    const feature = inv.type === "purchase" ? "purchase_invoices" : "invoices";
+    try { await assertPermission(app, feature, "print"); } catch { return; }
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`<html dir="rtl"><head>
@@ -830,6 +836,15 @@ const InvoicesPage = () => {
     // The "Mark as Paid" action no longer exists in the status dropdown.
     // To settle an invoice, users must create a Receipt Voucher (سند قبض) via the dedicated button.
     const dbStatus = status === 'sent' ? 'sent' : status === 'cancelled' ? 'cancelled' : 'draft';
+
+    // Feature-permission gate: cancelling = delete; reverting to draft = update.
+    if (dbStatus === 'cancelled' || dbStatus === 'draft') {
+      const inv = invoices.find(i => i.id === id);
+      const app = inv?.type === "purchase" ? "purchases" : "sales";
+      const feature = inv?.type === "purchase" ? "purchase_invoices" : "invoices";
+      const need = dbStatus === 'cancelled' ? 'delete' : 'update';
+      try { await assertPermission(app, feature, need); } catch { return; }
+    }
     
     // ✅ تقييد تحويل الفاتورة لمسودة بصلاحية admin أو accountant_senior فقط
     if (dbStatus === 'draft' && user) {
@@ -876,6 +891,12 @@ const InvoicesPage = () => {
 
   const handleDeleteInvoice = async (id: string, reason: string) => {
     try {
+      // Determine app/feature from the invoice being deleted (defense-in-depth before RLS trigger).
+      const inv = invoices.find(i => i.id === id);
+      const app = inv?.type === "purchase" ? "purchases" : "sales";
+      const feature = inv?.type === "purchase" ? "purchase_invoices" : "invoices";
+      try { await assertPermission(app, feature, "delete"); } catch { return; }
+
       // Soft-delete: set status to cancelled — DB trigger will cascade to linked transaction
       const { error } = await supabase.from("invoices").update({ status: "cancelled" } as any).eq("id", id);
       if (error) throw error;
@@ -1564,13 +1585,16 @@ const InvoicesPage = () => {
           {selectedInvoice && (
             <div className="space-y-4">
               <div className="flex gap-2 flex-wrap">
-                <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
-                  <Printer className="h-4 w-4" /> طباعة
-                </Button>
+                <Can app={selectedInvoice.type === "purchase" ? "purchases" : "sales"} feature={selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices"} perm="print" disableInsteadOfHide>
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
+                    <Printer className="h-4 w-4" /> طباعة
+                  </Button>
+                </Can>
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => { setShowPreviewDialog(false); handleDuplicate(selectedInvoice); }}>
                   <Copy className="h-4 w-4" /> جديد مشابه
                 </Button>
                 {canEdit({ status: selectedInvoice.status }) && (
+                  <Can app={selectedInvoice.type === "purchase" ? "purchases" : "sales"} feature={selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices"} perm="update">
                   <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => {
                     if (selectedInvoice.status !== "draft") {
                       setShowEditWarning(true);
@@ -1581,11 +1605,14 @@ const InvoicesPage = () => {
                   }}>
                     <Pencil className="h-4 w-4" /> تعديل
                   </Button>
+                  </Can>
                 )}
                 {canDelete({ status: selectedInvoice.status }) && (
-                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => { setDeleteTargetInvoice(selectedInvoice); setShowDeleteDialog(true); }}>
-                    <Trash2 className="h-4 w-4" /> حذف
-                  </Button>
+                  <Can app={selectedInvoice.type === "purchase" ? "purchases" : "sales"} feature={selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices"} perm="delete">
+                    <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => { setDeleteTargetInvoice(selectedInvoice); setShowDeleteDialog(true); }}>
+                      <Trash2 className="h-4 w-4" /> حذف
+                    </Button>
+                  </Can>
                 )}
                 {selectedInvoice.status === 'sent' && selectedInvoice.paymentStatus !== 'paid' && (
                   <Button size="sm" className="gap-1.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground" onClick={() => recordPayment(selectedInvoice)}>

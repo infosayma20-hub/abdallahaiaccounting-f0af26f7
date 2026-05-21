@@ -15,6 +15,7 @@ import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
 import { multiWordMatchAny } from "@/lib/utils";
+import { assertPermission } from "@/lib/permissions/assertPermission";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import { printReceiptImage } from "@/lib/image-print-service";
@@ -478,7 +479,7 @@ export default function InvoiceHistoryDrawer({
   };
 
   // Open return dialog
-  const initiateReturn = (order: InvoiceOrder) => {
+  const initiateReturn = async (order: InvoiceOrder) => {
     if (order.state !== "paid") {
       toast.error("لا يمكن ارتجاع فاتورة غير مكتملة");
       return;
@@ -491,6 +492,7 @@ export default function InvoiceHistoryDrawer({
       toast.error("لا توجد وردية مفتوحة");
       return;
     }
+    try { await assertPermission("pos", "sell", "refund"); } catch { return; }
     setReturningOrder(order);
     setShowReturnDialog(true);
   };
