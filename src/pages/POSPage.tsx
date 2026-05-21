@@ -454,10 +454,21 @@ const POSPage = () => {
   }, [updateActiveOrder]);
 
   const setOrderDiscount = useCallback((d: number) => {
+    // Safe setter — enforces pos.sell.discount permission (defense-in-depth).
+    // Allow d === 0 always (used for resetting after sales).
+    if (d !== 0 && !posFeatPerm.can("sell", "discount")) {
+      toast.error("لا تملك صلاحية تطبيق الخصم");
+      updateActiveOrder(o => ({ ...o, orderDiscount: 0 }));
+      return;
+    }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
   }, [updateActiveOrder]);
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent") => {
+    if (!posFeatPerm.can("sell", "discount")) {
+      toast.error("لا تملك صلاحية تطبيق الخصم");
+      return;
+    }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
   }, [updateActiveOrder]);
 
