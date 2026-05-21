@@ -1,107 +1,279 @@
-# صلاحيات التطبيقات لكل مستخدم — User App Access Overrides
-
 ## الهدف
-السماح للأدمن بفتح/إغلاق تطبيقات معينة لكل مستخدم على حدة دون تغيير دوره، مع تطبيق الصلاحيات في كل من قائمة التطبيقات والقائمة الجانبية وحماية المسارات.
+تطوير الصلاحيات من "فتح/إغلاق تطبيق" إلى **صلاحيات داخل التطبيق** (view/create/update/delete/print/export/approve/cancel...) مع فرضها على ثلاث طبقات: **UI / Route / Backend**.
 
-## 1) قاعدة البيانات (Migration)
+---
 
-جدول جديد:
+## 1. البنية المعمارية (3 طبقات لا تتجاوز)
+
 ```text
-user_app_access_overrides
-  id              uuid PK
-  owner_id        uuid  -- صاحب الشركة (لتسريع RLS)
-  company_id      uuid  -- شركة المستخدم
-  target_user_id  uuid  -- المستخدم المتأثر
-  app_key         text  -- مثل: sales / pos / hr ...
-  access_state    text check in ('inherit','allow','deny')
-  created_by      uuid
-  created_at      timestamptz
-  updated_at      timestamptz
-  UNIQUE (target_user_id, app_key)
+┌──────────────────────────────────────────────────────────┐
+│ Layer 1: UI guard   → <Can/> + hook usePermission        │ ← يُخفي/يعطّل الأزرار
+│ Layer 2: Route      → ModuleGuard موسّع                  │ ← يمنع الدخول على صفحة كاملة
+│ Layer 3: Backend    → has_feature_permission() في DB     │ ← المصدر الحقيقي للحماية
+│                       + فحص داخل كل Edge Function حساس   │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**RLS:**
-- SELECT: للأدمن إذا `target_user_id` تابع لنفس company_id أو دعاه (`invited_by`)، وللمستخدم نفسه لقراءة overrides الخاصة به فقط.
-- INSERT/UPDATE/DELETE: للأدمن فقط، بشرط نفس الشركة/الدعوة. لا يمكن للمستخدم تعديل صلاحياته.
-- يتم التحقق من company_id/invited_by عبر دالة `public.is_same_company_user(_target uuid)` `SECURITY DEFINER` لتفادي recursion.
+القاعدة الذهبية: **الواجهة للتجربة، الـ Backend هو الحماية الفعلية.**
 
-**Trigger:**
-- `BEFORE INSERT/UPDATE`: يملأ company_id و owner_id تلقائياً من profile الـ target.
-- `AFTER INSERT/UPDATE/DELETE`: يكتب صفاً في `activity_log` بـ `action='update_user_app_access'` ويحتوي `target_user_id`, `app_key`, old/new state.
+---
 
-## 2) Edge Function (`manage-user-app-access`)
+## 2. قاعدة البيانات
 
-عمليات: `list`, `upsert`, `reset` (حذف override واحد أو الكل لمستخدم).
+**جدول جديد:** `user_feature_permissions`
 
-تحقق على السيرفر:
-- يقرأ profile الـ target.
-- يسمح فقط لو: super_admin، أو `target.company_id = admin.company_id`، أو `target.invited_by = admin.id`، أو `target = admin` (للقراءة فقط).
-- خلاف ذلك → **403 Cross-tenant forbidden** + سطر `reset_user_app_access_denied` في activity_log.
+| عمود | نوع | ملاحظة |
+|---|---|---|
+| id | uuid PK | |
+| owner_id | uuid | تعبئة تلقائية من target.invited_by/company_id |
+| company_id | uuid | denormalized من target.profiles |
+| target_user_id | uuid NOT NULL | |
+| app_key | text NOT NULL | يطابق app_key في user_app_access_overrides |
+| feature_key | text NOT NULL | مثل `invoices`, `sell`, `products` |
+| permission_key | text NOT NULL | مثل `view`, `create`, `discount` |
+| access_state | text CHECK IN ('allow','deny') | inherit = حذف الصف |
+| created_by, created_at, updated_at | | |
 
-> ملاحظة: الـ RLS كافٍ نظرياً لكن الـ edge function يوفّر رسالة 403 واضحة + audit موحّد + قراءة بدون تسريب.
+**UNIQUE:** `(target_user_id, app_key, feature_key, permission_key)`
 
-## 3) واجهة الإدارة
+**Triggers (نفس نمط uaao):**
+- `ufp_fill_meta` (BEFORE) — يعبّئ company_id/owner_id من target
+- `ufp_audit` (AFTER) — يكتب لـ `activity_log` بـ `action='update_user_feature_permission'`
 
-في `src/components/settings/UsersSettingsSection.tsx`:
-- زر جديد لكل صف: **"إدارة التطبيقات"** يفتح Dialog.
-- عمود ملخص: "مخصص: ✓3 مسموح • ✗1 ممنوع" (محسوب من overrides).
+**Helper DB Functions:**
+```sql
+-- يرجع التأثير الفعلي: 'allow' | 'deny' | 'inherit'
+public.get_feature_permission_state(_user uuid, _app text, _feature text, _perm text) RETURNS text
 
-Dialog جديد `UserAppAccessDialog.tsx`:
-- يقرأ القائمة الكاملة من `APPS_VISUAL_META` + `getAppSections()`.
-- لكل تطبيق: ثلاثة أزرار (RadioGroup) — حسب الدور / مسموح / ممنوع.
-- شريط بحث، "تحديد الكل = حسب الدور" (إعادة تعيين)، حفظ، Toast.
-- مجمعة حسب القسم (Core / Operations / Premium).
-
-## 4) Hook موحّد + تطبيق الحماية
-
-Hook جديد `src/hooks/useEffectiveAppAccess.ts`:
-```text
-effectiveAppAccess(appKey):
-  if super_admin or admin(owner)  → ALLOW
-  if override = deny              → DENY  (أقوى من allow)
-  if override = allow             → ALLOW
-  else                            → inherit (الدور + hidden_apps + ROLE_ALLOWED_APPS)
+-- shortcut: true/false (super_admin → true دائماً، deny → false، allow → true،
+-- inherit → role default من جدول role_default_feature_permissions)
+public.has_feature_permission(_user uuid, _app text, _feature text, _perm text) RETURNS boolean
 ```
 
-تعديلات:
-- `AppsLauncher.tsx`: فلترة `appSections` بـ `effectiveAppAccess`.
-- `AppSidebar.tsx` و `QuickAccessGrid.tsx`: إخفاء العناصر الممنوعة.
-- `ModuleGuard.tsx`: عند DENY على الـ appKey المرتبط بالـ route → عرض `LockedModulePage` (يمنع الفتح بالرابط المباشر).
-- `useLockedModules.ts`: تمديد `isRouteLocked` لاستخدام overrides أيضاً.
+**جدول مرافق:** `role_default_feature_permissions` — قيم inherit الافتراضية لكل دور (admin/accountant_senior/cashier...). يُزرَع بقيم منطقية: admin=ALL, accountant_senior=view+create+update+print على المبيعات/المشتريات/المالية لا حذف ولا اعتماد، cashier=POS فقط، إلخ.
 
-تحميل overrides مرة واحدة لكل مستخدم عبر hook مع cache (React Query/state)، ومستمع Realtime على `user_app_access_overrides` لمزامنة فورية عند تعديل الأدمن.
+**RLS** على `user_feature_permissions` (نسخة طبق الأصل من uaao المتشددة):
+- SELECT: `target=self OR (uaao_is_actor_admin AND uaao_can_admin_target)`
+- INSERT/UPDATE/DELETE: `target≠self AND uaao_is_actor_admin AND uaao_can_admin_target`
 
-## 5) Audit Log
+نُعيد استخدام `uaao_is_actor_admin` و `uaao_can_admin_target` الموجودة.
 
-trigger يكتب لكل تغيير:
-```text
-action          = 'update_user_app_access'
-entity_type     = 'user_app_access'
-entity_id       = target_user_id
-entity_label    = app_key
-details         = { app_key, old, new, company_id }
-actor_id/name   = من جلسة الـ Postgres (auth.uid())
+---
+
+## 3. السجل المركزي للصلاحيات
+
+**ملف جديد:** `src/config/appPermissions.ts`
+
+```ts
+export interface FeatureDef {
+  key: string;                  // 'invoices'
+  label: string;                // 'الفواتير'
+  permissions: PermissionDef[]; // [{key:'view',label:'مشاهدة'}, ...]
+}
+export interface AppPermissionsDef {
+  app_key: string;
+  features: FeatureDef[];
+}
+export const APP_PERMISSIONS: AppPermissionsDef[] = [
+  { app_key: 'sales',     features: [
+    { key:'invoices',  permissions: [view, create, update, delete, cancel, print, export_] },
+    { key:'customers', permissions: [view, create, update, delete] },
+  ]},
+  { app_key: 'purchases', features: [...] },
+  { app_key: 'pos',       features: [
+    { key:'sell', permissions: [view, create_order, discount, change_price, refund,
+                                open_drawer, close_shift, print_receipt] },
+    { key:'kds',  permissions: [manage] },
+  ]},
+  { app_key: 'inventory', features: [...] },
+  { app_key: 'finance',   features: [
+    { key:'receipts', permissions: [view, create, update, delete, print] },
+    { key:'payments', permissions: [view, create, update, delete, print] },
+    { key:'journal',  permissions: [view, create, update, delete, approve] },
+  ]},
+  { app_key: 'settings',  features: [
+    { key:'users',           permissions: [manage] },
+    { key:'roles',           permissions: [manage] },
+    { key:'company',         permissions: [update] },
+    { key:'pos_settings',    permissions: [update] },
+    { key:'app_permissions', permissions: [manage] },
+  ]},
+];
 ```
 
-## 6) اختبارات قبول
+نبدأ بـ: **sales, purchases, pos, finance, settings** (Phase 1).
+يبقى inventory/hr/reports... لمرحلة لاحقة دون كسر شيء (inherit يعني افتراضي الدور).
 
-1. أدمن Qamar Brand → يفتح إدارة تطبيقات لـ momen → يضع "المشتريات = مسموح" → تسجيل دخول momen → التطبيق يظهر ويفتح.
-2. وضع "المبيعات = ممنوع" لـ momen → التطبيق يختفي من Launcher/Sidebar، وفتح `/sales` يعرض LockedModulePage.
-3. محاولة الأدمن من شركة أخرى تعديل overrides لمستخدم من Qamar → الـ edge function ترجع 403، ولا insert في الجدول (RLS).
-4. سطر في `activity_log` لكل تغيير مع old/new.
+---
 
-## ملاحظات تقنية
+## 4. Hook الواجهة
 
-- لا نستخدم email في أي مكان — `target_user_id` فقط.
-- `access_state` = enum-style check؛ default = `inherit`.
-- لا نضع override = inherit في الجدول (نحذف الصف بدلاً من ذلك) لتبسيط الكويري.
-- super_admin و admin (صاحب الشركة) لا يمكن منعهما من شيء.
-- لا نُغيّر منطق الاشتراك/hidden_apps الموجود — فقط نضيف طبقة overrides فوقه.
+**ملف جديد:** `src/hooks/usePermission.ts`
 
-## الملفات المتأثرة
+```ts
+const perms = usePermission('sales');
+perms.can('invoices', 'create');         // boolean
+perms.canAny([['invoices','create'], ['invoices','update']]);
+perms.canAll([...]);
+perms.isAppAllowed();                    // يستدعي useMyAppOverrides + isModuleLocked
+perms.loading;                           // أثناء التحميل لا تظهر أزرار حساسة
+```
 
-- جديد: `supabase/migrations/<ts>_user_app_access_overrides.sql`
-- جديد: `supabase/functions/manage-user-app-access/index.ts`
-- جديد: `src/hooks/useEffectiveAppAccess.ts`
-- جديد: `src/components/settings/UserAppAccessDialog.tsx`
-- تعديل: `UsersSettingsSection.tsx`, `AppsLauncher.tsx`, `AppSidebar.tsx`, `QuickAccessGrid.tsx`, `ModuleGuard.tsx`, `useLockedModules.ts`
+داخلياً يقرأ:
+1. user_app_access_overrides (الموجود) — لتقرير isAppAllowed
+2. user_feature_permissions الخاص بالمستخدم (Realtime sub)
+3. role defaults من `role_default_feature_permissions` (cached)
+4. ترتيب: `super_admin > app_deny > feature_deny > feature_allow > role_default > false`
+
+**مكون مساعد:**
+```tsx
+<Can app="sales" feature="invoices" perm="create">
+  <Button>إنشاء فاتورة</Can>
+</Can>
+
+<Can app="sales" feature="invoices" perm="create" fallback={
+  <Button disabled title="لا تملك صلاحية">إنشاء فاتورة</Button>
+}>
+  <Button>إنشاء فاتورة</Button>
+</Can>
+```
+
+---
+
+## 5. ModuleGuard موسّع
+
+داخل `ModuleGuard.tsx` نضيف: إذا الصفحة لها metadata `requiredPermission`:
+```tsx
+<Route path="/sales/new" element={
+  <ModuleGuard requireFeature={{app:'sales', feature:'invoices', perm:'create'}}>
+    <NewInvoicePage/>
+  </ModuleGuard>
+} />
+```
+إذا الصلاحية مرفوضة → نفس `LockedModulePage` لكن برسالة "لا تملك صلاحية إنشاء فواتير".
+
+---
+
+## 6. واجهة الإدارة
+
+**في `UserAppAccessDialog.tsx`:** تحت كل تطبيق نضيف `<Accordion>` "صلاحيات داخل التطبيق" يَظهر فقط إذا app_state ≠ deny.
+
+لكل feature.permission سطر بـ 3 أزرار: **حسب الدور / مسموح / ممنوع** (نفس نمط STATE_CLASS الحالي).
+
+عداد في رأس المودال يضاف له: "صلاحيات داخلية مخصصة: N".
+
+الحفظ: نفس الـ Edge Function (مع action جديد `upsert_feature` و `reset_feature`).
+
+---
+
+## 7. Edge Function
+
+نوسّع `manage-user-app-access` (نفس endpoint لتجنّب التشظي) بإضافة actions:
+- `list_features` (target_user_id, app_key) → overrides + role defaults
+- `upsert_feature` (target, app_key, feature_key, permission_key, access_state)
+- `reset_feature` (target, app_key, feature_key?, permission_key?)
+
+كل المسارات تمر بنفس الفحص الموجود: `isAdmin && (sameCompany || invitedByActor || isSuperAdmin)`.
+
+---
+
+## 8. حماية Backend (Phase 1 — الأهم)
+
+**ندمج فحص الصلاحية داخل Edge Functions الحساسة الموجودة:**
+
+| Edge Function | فحص مطلوب |
+|---|---|
+| (أي RPC لإنشاء/تعديل/حذف فاتورة) | `has_feature_permission(uid,'sales','invoices','create'/'update'/'delete')` |
+| `process-pos-return` / refund | `pos.sell.refund` |
+| `close_pos_shift` | `pos.sell.close_shift` |
+| `manage-team-user` / `manage-user-app-access` | `settings.users.manage` (للأدمن العادي، super_admin يتجاوز) |
+| تعديل company_settings | `settings.company.update` |
+| Journal create/update/delete/approve | `finance.journal.*` |
+
+**نمط الفحص الموحّد (نضيفه في `_shared/auth.ts`):**
+```ts
+async function requireFeature(svc, actorId, app, feature, perm) {
+  const { data } = await svc.rpc('has_feature_permission', {
+    _user: actorId, _app: app, _feature: feature, _perm: perm
+  });
+  if (!data) throw new HttpError(403, `Forbidden: missing ${app}.${feature}.${perm}`);
+}
+```
+
+**للحذف/التعديل المباشر عبر Supabase client من الواجهة** (دون edge function): RLS الحالية تكفي للعزل بين الشركات، لكن لا تفرض feature-level. حلّان:
+- (موصى به) نقل العمليات الحساسة إلى RPC أو Edge Function بدل client.from('invoices').delete().
+- (مرحلي) إضافة سياسة RLS مكمّلة على invoices/journal_entries بشرط `has_feature_permission(auth.uid(), 'sales','invoices','delete')` للـ DELETE — يفرض الحماية حتى لو تجاوز المستخدم الواجهة.
+
+سنبدأ بنمط الـ RLS التكميلية على الجداول الحساسة فقط: `invoices`, `purchase_invoices`, `receipt_vouchers`, `payment_vouchers`, `transactions` (journal).
+
+---
+
+## 9. Audit Log
+
+`ufp_audit` trigger يكتب لكل تغيير في `user_feature_permissions`:
+```json
+{
+  "actor_id": auth.uid(),
+  "action": "update_user_feature_permission",
+  "entity_type": "user_feature_permission",
+  "entity_id": target_user_id,
+  "entity_label": "<app_key>.<feature_key>.<permission_key>",
+  "details": {"app_key","feature_key","permission_key","old","new","company_id"}
+}
+```
+محاولات الرفض في Edge Function تسجّل `feature_permission_denied` (نفس نمط uaao).
+
+---
+
+## 10. تطبيق UI الفعلي (Phase 1 — Smoke set)
+
+نطبّق فعلياً على الأزرار التالية فقط في هذه المرحلة (لإثبات النمط دون كسر):
+- **Sales/Invoices list:** زر "فاتورة جديدة" + أيقونات تعديل/حذف/طباعة في الجدول.
+- **POS:** حقل الخصم، تغيير السعر، زر "فتح الدرج"، زر "إغلاق الوردية".
+- **Settings/Users:** زر إدارة المستخدمين كاملاً يخضع لـ `settings.users.manage`.
+- **Finance/Journal:** زر "اعتماد" يخضع لـ `finance.journal.approve`.
+
+باقي التطبيقات (purchases, inventory ...) تُغذّى تلقائياً عبر `<Can>` بمجرد إضافة الأغطية، لكن لا نلمسها في هذا الـ PR.
+
+---
+
+## 11. اختبارات القبول
+
+| # | الاختبار | المتوقع |
+|---|---|---|
+| 1 | momen مع `sales.invoices.create=deny` يفتح /sales | يدخل، لكن زر "فاتورة جديدة" مخفي |
+| 2 | يفتح /sales/new مباشرة | LockedFeaturePage |
+| 3 | محاولة POST من console لإنشاء فاتورة | 403 من RLS/Edge |
+| 4 | POS: `sell.discount=deny` | حقل الخصم disabled مع tooltip |
+| 5 | POS: `sell.open_drawer=deny` | الزر مخفي + drawer لا يفتح |
+| 6 | settings: `users.manage=deny` | قسم المستخدمين مخفي، /settings#users لا يفتح |
+| 7 | admin Qamar يضع inherit | يرجع للسلوك الافتراضي للدور |
+| 8 | super_admin مع deny | يتجاوز |
+| 9 | محاسب يحاول الكتابة على user_feature_permissions مباشرة | RLS تمنع (uaao_is_actor_admin=false) |
+| 10 | logout/login | لا تبقى صلاحيات قديمة (Realtime + key=user.id) |
+
+---
+
+## مراحل التنفيذ (Pull-request واحد كبير لكنه مرتّب)
+
+1. **Migration:** الجدول + الـ helpers + RLS + role_default_feature_permissions seed (admin=all, accountant_senior, cashier).
+2. **Config:** `src/config/appPermissions.ts` (5 تطبيقات).
+3. **Hook + `<Can>`:** `usePermission.ts`, `Can.tsx`, `useMyFeaturePermissions.ts` (Realtime).
+4. **Edge:** توسيع `manage-user-app-access` بـ list/upsert/reset features.
+5. **UI Dialog:** Accordion داخل `UserAppAccessDialog`.
+6. **Smoke Apply:** أزرار Phase 1 (Invoices, POS, Settings/Users, Finance/Journal).
+7. **Backend Hardening:** `requireFeature()` helper + استدعاؤه في 4-5 edge functions حساسة + سياسة RLS تكميلية على invoices+vouchers+transactions للحذف.
+8. **Audit/Tests:** تشغيل اختبارات القبول الـ 10.
+
+تقدير الحجم: ~12 ملف جديد، 8 ملفات معدّلة، 1 migration.
+
+---
+
+## ملاحظات تصميم مهمة
+
+- **لا نكسر شيئاً موجوداً:** القيم الافتراضية في `role_default_feature_permissions` ستُختار بحيث كل مستخدم يحصل تماماً على ما لديه اليوم. أي تغيير ظاهر للمستخدم = override يدوي صريح فقط.
+- **app deny ما زال يقطع كل شيء قبل feature checks** → لا تعارض مع النظام الحالي.
+- **inherit + الدور غير محدد** = منع (deny-by-default) للأمان.
+- **التوسعة لتطبيقات أخرى لاحقاً** = مجرد إضافة سطور في `APP_PERMISSIONS` ولفّ الأزرار بـ `<Can>`، بدون migrations جديدة.
+
+هل أبدأ التنفيذ بهذا الترتيب، أم تفضّل تقسيمه لمرحلتين (DB + Hook + Dialog أولاً، ثم Smoke Apply لاحقاً)؟

@@ -12333,6 +12333,33 @@ export type Database = {
           },
         ]
       }
+      role_default_feature_permissions: {
+        Row: {
+          allowed: boolean
+          app_key: string
+          feature_key: string
+          id: string
+          permission_key: string
+          role: string
+        }
+        Insert: {
+          allowed?: boolean
+          app_key: string
+          feature_key: string
+          id?: string
+          permission_key: string
+          role: string
+        }
+        Update: {
+          allowed?: boolean
+          app_key?: string
+          feature_key?: string
+          id?: string
+          permission_key?: string
+          role?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           can_approve: boolean
@@ -14798,6 +14825,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feature_permissions: {
+        Row: {
+          access_state: string
+          app_key: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          feature_key: string
+          id: string
+          owner_id: string | null
+          permission_key: string
+          target_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_state: string
+          app_key: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          feature_key: string
+          id?: string
+          owner_id?: string | null
+          permission_key: string
+          target_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_state?: string
+          app_key?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          feature_key?: string
+          id?: string
+          owner_id?: string | null
+          permission_key?: string
+          target_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_onboarding: {
         Row: {
           created_at: string
@@ -17183,6 +17252,10 @@ export type Database = {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
       }
+      get_feature_permission_state: {
+        Args: { _app: string; _feature: string; _perm: string; _user: string }
+        Returns: string
+      }
       get_rep_customers_with_balances: {
         Args: { p_sales_rep_id: string; p_user_id: string }
         Returns: {
@@ -17204,6 +17277,10 @@ export type Database = {
       }
       get_rep_warehouse_id: { Args: never; Returns: string }
       get_team_owner_id: { Args: { _user_id: string }; Returns: string }
+      has_feature_permission: {
+        Args: { _app: string; _feature: string; _perm: string; _user: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

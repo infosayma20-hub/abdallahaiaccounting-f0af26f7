@@ -8,6 +8,8 @@ import { Search, RotateCcw, Save, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAppSections } from "@/config/navigationConfig";
 import { APPS_VISUAL_META, SECTION_LABELS, type AppSection } from "@/pages/Apps/data/appsRegistry";
+import FeaturePermissionsAccordion from "@/components/settings/FeaturePermissionsAccordion";
+import { getAppPermissions } from "@/config/appPermissions";
 
 export type AccessState = "inherit" | "allow" | "deny";
 
@@ -186,22 +188,31 @@ export default function UserAppAccessDialog({ open, onOpenChange, targetUserId, 
                   </h4>
                   <div className="space-y-1">
                     {rows.map(app => (
-                      <div key={app.id} className="flex items-center justify-between gap-3 p-2 rounded border bg-card">
-                        <span className="text-sm font-medium">{app.label}</span>
-                        <div className="inline-flex gap-1">
-                          {(["inherit", "allow", "deny"] as AccessState[]).map(s => (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() => setState(p => ({ ...p, [app.id]: s }))}
-                              className={`px-3 py-1 rounded text-xs font-medium transition ${
-                                state[app.id] === s ? STATE_CLASS[s] : "bg-background border text-muted-foreground hover:bg-muted"
-                              }`}
-                            >
+                      <div key={app.id} className="p-2 rounded border bg-card">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium">{app.label}</span>
+                          <div className="inline-flex gap-1">
+                            {(["inherit", "allow", "deny"] as AccessState[]).map(s => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => setState(p => ({ ...p, [app.id]: s }))}
+                                className={`px-3 py-1 rounded text-xs font-medium transition ${
+                                  state[app.id] === s ? STATE_CLASS[s] : "bg-background border text-muted-foreground hover:bg-muted"
+                                }`}
+                              >
                               {STATE_LABEL[s]}
                             </button>
                           ))}
                         </div>
+                        </div>
+                        {getAppPermissions(app.id) && (
+                          <FeaturePermissionsAccordion
+                            targetUserId={targetUserId}
+                            appKey={app.id}
+                            disabled={state[app.id] === "deny"}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
