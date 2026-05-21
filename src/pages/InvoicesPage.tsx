@@ -882,6 +882,12 @@ const InvoicesPage = () => {
 
   const handleDeleteInvoice = async (id: string, reason: string) => {
     try {
+      // Determine app/feature from the invoice being deleted (defense-in-depth before RLS trigger).
+      const inv = invoices.find(i => i.id === id);
+      const app = inv?.type === "purchase" ? "purchases" : "sales";
+      const feature = inv?.type === "purchase" ? "purchase_invoices" : "invoices";
+      try { await assertPermission(app, feature, "delete"); } catch { return; }
+
       // Soft-delete: set status to cancelled — DB trigger will cascade to linked transaction
       const { error } = await supabase.from("invoices").update({ status: "cancelled" } as any).eq("id", id);
       if (error) throw error;
