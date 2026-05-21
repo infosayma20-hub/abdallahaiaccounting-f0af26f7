@@ -742,6 +742,16 @@ const InvoicesPage = () => {
 
   const handlePrint = () => {
     if (!selectedInvoice) return;
+    const app = selectedInvoice.type === "purchase" ? "purchases" : "sales";
+    const feature = selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices";
+    void assertPermission(app, feature, "print").then((ok) => {
+      if (!ok) return;
+      doPrint();
+    });
+  };
+
+  const doPrint = () => {
+    if (!selectedInvoice) return;
     const win = window.open("", "_blank");
     if (!win) return;
     
@@ -770,7 +780,10 @@ const InvoicesPage = () => {
   };
 
   // Direct print for a specific invoice
-  const handleDirectPrint = (inv: Invoice) => {
+  const handleDirectPrint = async (inv: Invoice) => {
+    const app = inv.type === "purchase" ? "purchases" : "sales";
+    const feature = inv.type === "purchase" ? "purchase_invoices" : "invoices";
+    if (!(await assertPermission(app, feature, "print"))) return;
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`<html dir="rtl"><head>
