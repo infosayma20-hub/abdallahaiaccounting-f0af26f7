@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Can } from "@/components/permissions/Can";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { toast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -402,20 +403,26 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         <div className="flex items-center gap-2">
           {filtered.length > 0 && (
             <>
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handlePrint}>
-                <Printer className="h-3.5 w-3.5" /> طباعة
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={exportToExcel}>
-                <Download className="h-3.5 w-3.5" /> تصدير Excel
-              </Button>
+              <Can app="finance" feature={isReceipt ? "receipts" : "payments"} perm="print" disableInsteadOfHide>
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handlePrint}>
+                  <Printer className="h-3.5 w-3.5" /> طباعة
+                </Button>
+              </Can>
+              <Can app="finance" feature={isReceipt ? "receipts" : "payments"} perm="print" disableInsteadOfHide>
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={exportToExcel}>
+                  <Download className="h-3.5 w-3.5" /> تصدير Excel
+                </Button>
+              </Can>
             </>
           )}
-          <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
-            if (isReceipt) { navigate("/finance/receipt/new"); }
-            else { navigate("/finance/payment/new"); }
-          }}>
-            <Plus className="h-4 w-4" /> {newTitle}
-          </Button>
+          <Can app="finance" feature={isReceipt ? "receipts" : "payments"} perm="create">
+            <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
+              if (isReceipt) { navigate("/finance/receipt/new"); }
+              else { navigate("/finance/payment/new"); }
+            }}>
+              <Plus className="h-4 w-4" /> {newTitle}
+            </Button>
+          </Can>
         </div>
       </div>
 

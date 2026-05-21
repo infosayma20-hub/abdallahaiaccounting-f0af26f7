@@ -49,6 +49,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Defense-in-depth: even admins can be denied via feature-permission override.
+    // super_admin always bypasses (handled inside has_feature_permission).
+    const { data: featAllowed } = await supabase.rpc("has_feature_permission" as any, {
+      _user: adminUser.id,
+      _app: "settings",
+      _feature: "users",
+      _perm: "manage",
+    });
+    if (!hasSuperAdmin && featAllowed === false) {
+      // Log denial for audit trail.
+      await supabase.from("activity_log").insert({
+        user_id: adminUser.id,
+        actor_name: adminUser.email ?? adminUser.id,
+        action: "denied_manage_team_user",
+        entity_type: "feature_permission",
+        entity_label: "settings.users.manage",
+        details: { reason: "feature_permission_deny" },
+      });
+      return new Response(JSON.stringify({ error: "ممنوع: لا تملك صلاحية إدارة المستخدمين" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json();
     const { action } = body;
 

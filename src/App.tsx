@@ -22,6 +22,7 @@ import HRPermGuard from "./components/HRPermGuard";
 import HRShell from "./components/hr/HRShell";
 import InvoicesPage from "./pages/InvoicesPage";
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
+const FeatureGuard = lazy(() => import("./components/permissions/FeatureGuard"));
 
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
@@ -413,7 +414,7 @@ const App = () => (
                       <Route path="/smart-report" element={<SmartReportPage />} />
                       <Route path="/invoices" element={<InvoicesPage />} />
                       <Route path="/invoices/recurring" element={<RecurringInvoicesPage />} />
-                      <Route path="/invoices/new" element={<InvoiceCreatePageWrapper />} />
+                      <Route path="/invoices/new" element={<FeatureGuard app="sales" feature="invoices" perm="create" label="إنشاء فاتورة"><InvoiceCreatePageWrapper /></FeatureGuard>} />
                       <Route path="/credit-notes" element={<CreditDebitNotesPage noteType="credit" />} />
                       <Route path="/credit-notes/new" element={<CreditDebitNoteCreatePage noteType="credit" />} />
                       <Route path="/debit-notes" element={<CreditDebitNotesPage noteType="debit" />} />
@@ -444,11 +445,11 @@ const App = () => (
                       <Route path="/finance/receipts" element={<FinanceVoucherPage voucherType="receipt" />} />
                       <Route path="/finance/payments" element={<FinanceVoucherPage voucherType="payment" />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
-                      <Route path="/finance/journal/new" element={<JournalNewPage />} />
-                      <Route path="/finance/receipt/new" element={<VoucherFormPage voucherType="receipt" />} />
-                      <Route path="/finance/receipt/:id/edit" element={<VoucherFormPage voucherType="receipt" />} />
-                      <Route path="/finance/payment/new" element={<VoucherFormPage voucherType="payment" />} />
-                      <Route path="/finance/payment/:id/edit" element={<VoucherFormPage voucherType="payment" />} />
+                      <Route path="/finance/journal/new" element={<FeatureGuard app="finance" feature="journal" perm="create" label="إنشاء قيد"><JournalNewPage /></FeatureGuard>} />
+                      <Route path="/finance/receipt/new" element={<FeatureGuard app="finance" feature="receipts" perm="create" label="سند قبض جديد"><VoucherFormPage voucherType="receipt" /></FeatureGuard>} />
+                      <Route path="/finance/receipt/:id/edit" element={<FeatureGuard app="finance" feature="receipts" perm="update" label="تعديل سند قبض"><VoucherFormPage voucherType="receipt" /></FeatureGuard>} />
+                      <Route path="/finance/payment/new" element={<FeatureGuard app="finance" feature="payments" perm="create" label="سند صرف جديد"><VoucherFormPage voucherType="payment" /></FeatureGuard>} />
+                      <Route path="/finance/payment/:id/edit" element={<FeatureGuard app="finance" feature="payments" perm="update" label="تعديل سند صرف"><VoucherFormPage voucherType="payment" /></FeatureGuard>} />
                       <Route path="/finance/cheques" element={<ChequesPage />} />
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />
@@ -604,7 +605,7 @@ const App = () => (
                       <Route path="/support/tickets/:id" element={<TicketDetailPage />} />
                       <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
                       
-                      <Route path="/pos-users" element={<ModuleGuard><POSUserManagementPage /></ModuleGuard>} />
+                      <Route path="/pos-users" element={<ModuleGuard><FeatureGuard app="settings" feature="users" perm="manage" label="إدارة مستخدمي نقطة البيع"><POSUserManagementPage /></FeatureGuard></ModuleGuard>} />
                       <Route path="/pos-customers" element={<ModuleGuard><POSCustomerDatabasePage /></ModuleGuard>} />
                       <Route path="/pos-reports" element={<ModuleGuard><POSReportsPage /></ModuleGuard>} />
                       <Route path="/printer-settings" element={<PrinterSettingsPage />} />
@@ -637,7 +638,7 @@ const App = () => (
                       <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
                       <Route path="/procurement/orders/new" element={<PurchaseOrderCreatePage />} />
                       <Route path="/procurement/invoices" element={<ProcurementInvoicesPage />} />
-                      <Route path="/procurement/invoices/new" element={<ProcurementInvoiceCreatePage />} />
+                      <Route path="/procurement/invoices/new" element={<FeatureGuard app="purchases" feature="purchase_invoices" perm="create" label="فاتورة مشتريات جديدة"><ProcurementInvoiceCreatePage /></FeatureGuard>} />
                       <Route path="/procurement/supplier-statement" element={<SupplierStatementPage />} />
                       <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
                       <Route path="/procurement/settings" element={<ProcurementSettingsPage />} />

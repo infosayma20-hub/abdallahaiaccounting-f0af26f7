@@ -6,6 +6,8 @@ import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
+import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -781,6 +783,8 @@ const POSPage = () => {
    const userId = user?.id;
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+    // Feature permission overrides (composed with posPerms below)
+    const posFeatPerm = usePermission("pos");
 
   // Load tables when picker opens
   useEffect(() => {
@@ -2000,10 +2004,14 @@ const POSPage = () => {
   }, [selectedCartIndex]);
 
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
-    // Enforce price editing permission
-    if (field === "unit_price" && !isAdmin && !posPerms.can_edit_prices) return;
+    // Enforce price editing permission (legacy posPerms + feature override)
+    if (field === "unit_price") {
+      if (!posFeatPerm.can("sell", "change_price")) { toast.error("لا تملك صلاحية تغيير السعر"); return; }
+      if (!isAdmin && !posPerms.can_edit_prices) return;
+    }
     // Enforce discount permission and max discount
     if (field === "discount_pct") {
+      if (!posFeatPerm.can("sell", "discount")) { toast.error("لا تملك صلاحية تطبيق الخصم"); return; }
       if (!isAdmin && !posPerms.can_apply_discount) { toast.error("ليس لديك صلاحية تطبيق الخصم"); return; }
       if (!isAdmin && value > posPerms.max_discount_percent) { toast.error(`الحد الأقصى للخصم ${posPerms.max_discount_percent}%`); value = posPerms.max_discount_percent; }
     }
@@ -2014,7 +2022,7 @@ const POSPage = () => {
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
     });
-  }, [isAdmin, posPerms]);
+  }, [isAdmin, posPerms, posFeatPerm]);
 
   // Totals
   const cartTotals = useMemo(() => {
@@ -3144,8 +3152,8 @@ const POSPage = () => {
         console.warn("Print bridge error:", printErr);
       }
 
-      // Auto-open cash drawer after successful payment
-      if (isAdmin || posPerms.open_cash_drawer) {
+      // Auto-open cash drawer after successful payment (legacy + feature override)
+      if ((isAdmin || posPerms.open_cash_drawer) && posFeatPerm.can("sell", "open_drawer")) {
         bridgeOpenDrawer();
       }
 
@@ -3239,6 +3247,7 @@ const POSPage = () => {
     if (!session || !userId) return;
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
+    try { await assertPermission("pos", "sell", "close_shift"); } catch { return; }
     const cash = parseFloat(closingCash) || 0;
     const cashUSD = parseFloat(closingCashUSD) || 0;
     const cashJOD = parseFloat(closingCashJOD) || 0;

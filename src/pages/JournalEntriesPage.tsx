@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
+import { Can } from "@/components/permissions/Can";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -402,15 +403,19 @@ const JournalEntriesPage = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <p className="text-xs text-muted-foreground">{companyName} • {dateRangeLabel}</p>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setShowJournalEntry(true)} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> إنشاء قيد
-          </Button>
+          <Can app="finance" feature="journal" perm="create">
+            <Button size="sm" onClick={() => setShowJournalEntry(true)} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> إنشاء قيد
+            </Button>
+          </Can>
           <Button variant="outline" size="sm" onClick={fetchData} className="gap-1.5">
             <RefreshCw className="h-3.5 w-3.5" /> تحديث
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} className="gap-1.5">
-            <FileSpreadsheet className="h-3.5 w-3.5" /> تصدير Excel
-          </Button>
+          <Can app="finance" feature="journal" perm="view" disableInsteadOfHide>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} className="gap-1.5">
+              <FileSpreadsheet className="h-3.5 w-3.5" /> تصدير Excel
+            </Button>
+          </Can>
         </div>
       </div>
 

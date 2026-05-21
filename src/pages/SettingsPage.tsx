@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePermission } from "@/hooks/usePermission";
+import LockedModulePage from "@/components/layout/LockedModulePage";
 import CompanySettingsSection from "@/components/settings/CompanySettingsSection";
 import FinanceSettingsSection from "@/components/settings/FinanceSettingsSection";
 import InvoiceSettingsSection from "@/components/settings/InvoiceSettingsSection";
@@ -53,6 +55,7 @@ const SettingsPage = () => {
   const [search, setSearch] = useState("");
   const [taxOwnerId, setTaxOwnerId] = useState("");
   const { settings, loading, saving, hasChanges, updateSettings, saveSettings, resetToDefaults } = useCompanySettings();
+  const settingsPerm = usePermission("settings");
 
   useEffect(() => {
     if (!user) return;
@@ -65,9 +68,13 @@ const SettingsPage = () => {
   }, [searchParams]);
 
   const filteredSections = useMemo(() => {
-    if (!search) return sections;
-    return sections.filter(s => multiWordMatchAny(search, s.label, s.keywords));
-  }, [search]);
+    const base = sections.filter(s => {
+      if (s.id === "user") return settingsPerm.can("users", "manage");
+      return true;
+    });
+    if (!search) return base;
+    return base.filter(s => multiWordMatchAny(search, s.label, s.keywords));
+  }, [search, settingsPerm]);
 
   const renderContent = () => {
     if (loading) {
@@ -80,6 +87,9 @@ const SettingsPage = () => {
 
     switch (activeSection) {
       case "user":
+        if (!settingsPerm.can("users", "manage")) {
+          return <LockedModulePage moduleName="إدارة المستخدمين" />;
+        }
         return <UsersSettingsSection />;
       case "company":
         return <CompanySettingsSection settings={settings} onChange={updateSettings} />;
