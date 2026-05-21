@@ -10,13 +10,17 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-type Action = "list" | "upsert" | "reset";
+type Action =
+  | "list" | "upsert" | "reset"
+  | "list_features" | "upsert_feature" | "reset_feature";
 
 interface Body {
   action: Action;
   target_user_id: string;
   app_key?: string;
   access_state?: "allow" | "deny" | "inherit";
+  feature_key?: string;
+  permission_key?: string;
 }
 
 function json(body: unknown, status = 200) {
@@ -162,6 +166,75 @@ Deno.serve(async (req) => {
     const appKey = body?.app_key?.trim();
     const q = svc.from("user_app_access_overrides").delete().eq("target_user_id", targetUserId);
     const { error } = appKey ? await q.eq("app_key", appKey) : await q;
+    if (error) return json({ error: error.message }, 500);
+    return json({ ok: true });
+  }
+
+  // ───── Feature-level permissions ─────
+  if (action === "list_features") {
+    const appKey = body?.app_key?.trim();
+    let q = svc
+      .from("user_feature_permissions")
+      .select("app_key,feature_key,permission_key,access_state")
+      .eq("target_user_id", targetUserId);
+    if (appKey) q = q.eq("app_key", appKey);
+    const { data, error } = await q;
+    if (error) return json({ error: error.message }, 500);
+    return json({ overrides: data || [] });
+  }
+
+  if (action === "upsert_feature") {
+    const appKey = body?.app_key?.trim();
+    const feat = body?.feature_key?.trim();
+    const perm = body?.permission_key?.trim();
+    const state = body?.access_state;
+    if (!appKey || !feat || !perm || !state) {
+      return json({ error: "Missing app_key/feature_key/permission_key/access_state" }, 400);
+    }
+
+    if (state === "inherit") {
+      const { error } = await svc
+        .from("user_feature_permissions")
+        .delete()
+        .eq("target_user_id", targetUserId)
+        .eq("app_key", appKey)
+        .eq("feature_key", feat)
+        .eq("permission_key", perm);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, state: "inherit" });
+    }
+    if (state !== "allow" && state !== "deny") {
+      return json({ error: "Invalid access_state" }, 400);
+    }
+    const { error } = await svc
+      .from("user_feature_permissions")
+      .upsert(
+        {
+          target_user_id: targetUserId,
+          app_key: appKey,
+          feature_key: feat,
+          permission_key: perm,
+          access_state: state,
+          created_by: actor.id,
+          company_id: targetProfile.company_id,
+          owner_id: targetProfile.invited_by || targetProfile.company_id || targetProfile.user_id,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "target_user_id,app_key,feature_key,permission_key" }
+      );
+    if (error) return json({ error: error.message }, 500);
+    return json({ ok: true, state });
+  }
+
+  if (action === "reset_feature") {
+    const appKey = body?.app_key?.trim();
+    const feat = body?.feature_key?.trim();
+    const perm = body?.permission_key?.trim();
+    let q = svc.from("user_feature_permissions").delete().eq("target_user_id", targetUserId);
+    if (appKey) q = q.eq("app_key", appKey);
+    if (feat) q = q.eq("feature_key", feat);
+    if (perm) q = q.eq("permission_key", perm);
+    const { error } = await q;
     if (error) return json({ error: error.message }, 500);
     return json({ ok: true });
   }
