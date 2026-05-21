@@ -6,6 +6,8 @@ import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
+import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
