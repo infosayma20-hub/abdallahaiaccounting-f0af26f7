@@ -3247,6 +3247,7 @@ const POSPage = () => {
     if (!session || !userId) return;
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
+    try { await assertPermission("pos", "sell", "close_shift"); } catch { return; }
     const cash = parseFloat(closingCash) || 0;
     const cashUSD = parseFloat(closingCashUSD) || 0;
     const cashJOD = parseFloat(closingCashJOD) || 0;
