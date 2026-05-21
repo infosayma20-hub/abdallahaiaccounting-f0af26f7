@@ -608,22 +608,26 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-0.5">
                           {canEdit(v) && (
-                            <button
-                              onClick={e => { e.stopPropagation(); handleEdit(v); }}
-                              className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                              title="تعديل"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
+                            <Can app="finance" feature={isReceipt ? "receipts" : "payments"} perm="update">
+                              <button
+                                onClick={e => { e.stopPropagation(); handleEdit(v); }}
+                                className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                title="تعديل"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            </Can>
                           )}
                           {canDelete(v) && v.status !== "cancelled" && (
-                            <button
-                              onClick={e => { e.stopPropagation(); handleDelete(v); }}
-                              className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                              title="حذف"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <Can app="finance" feature={isReceipt ? "receipts" : "payments"} perm="delete">
+                              <button
+                                onClick={e => { e.stopPropagation(); handleDelete(v); }}
+                                className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                title="حذف"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </Can>
                           )}
                           <button
                             onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
