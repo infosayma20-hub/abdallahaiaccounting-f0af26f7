@@ -7,6 +7,7 @@ import {
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Can } from "@/components/permissions/Can";
+import { assertPermission } from "@/lib/permissions/assertPermission";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -338,13 +339,15 @@ const JournalEntriesPage = () => {
     }
   };
 
-  const handleEditNavigate = () => {
+  const handleEditNavigate = async () => {
     if (!editResolution) return;
     if (editResolution.kind === "voucher" && editResolution.voucherId) {
+      try { await assertPermission("finance", "journal", "update"); } catch { return; }
       navigate(`/finance/journals?edit=${editResolution.voucherId}`);
       setEditingTx(null);
       setEditResolution(null);
     } else if (editResolution.kind === "orphan") {
+      try { await assertPermission("finance", "journal", "create"); } catch { return; }
       // افتح محرر السند الموحّد لإنشاء قيد تسوية جديد
       setEditingTx(null);
       setEditResolution(null);
