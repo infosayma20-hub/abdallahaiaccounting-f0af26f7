@@ -1585,13 +1585,16 @@ const InvoicesPage = () => {
           {selectedInvoice && (
             <div className="space-y-4">
               <div className="flex gap-2 flex-wrap">
-                <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
-                  <Printer className="h-4 w-4" /> طباعة
-                </Button>
+                <Can app={selectedInvoice.type === "purchase" ? "purchases" : "sales"} feature={selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices"} perm="print" disableInsteadOfHide>
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
+                    <Printer className="h-4 w-4" /> طباعة
+                  </Button>
+                </Can>
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => { setShowPreviewDialog(false); handleDuplicate(selectedInvoice); }}>
                   <Copy className="h-4 w-4" /> جديد مشابه
                 </Button>
                 {canEdit({ status: selectedInvoice.status }) && (
+                  <Can app={selectedInvoice.type === "purchase" ? "purchases" : "sales"} feature={selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices"} perm="update">
                   <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => {
                     if (selectedInvoice.status !== "draft") {
                       setShowEditWarning(true);
@@ -1602,11 +1605,14 @@ const InvoicesPage = () => {
                   }}>
                     <Pencil className="h-4 w-4" /> تعديل
                   </Button>
+                  </Can>
                 )}
                 {canDelete({ status: selectedInvoice.status }) && (
-                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => { setDeleteTargetInvoice(selectedInvoice); setShowDeleteDialog(true); }}>
-                    <Trash2 className="h-4 w-4" /> حذف
-                  </Button>
+                  <Can app={selectedInvoice.type === "purchase" ? "purchases" : "sales"} feature={selectedInvoice.type === "purchase" ? "purchase_invoices" : "invoices"} perm="delete">
+                    <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => { setDeleteTargetInvoice(selectedInvoice); setShowDeleteDialog(true); }}>
+                      <Trash2 className="h-4 w-4" /> حذف
+                    </Button>
+                  </Can>
                 )}
                 {selectedInvoice.status === 'sent' && selectedInvoice.paymentStatus !== 'paid' && (
                   <Button size="sm" className="gap-1.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground" onClick={() => recordPayment(selectedInvoice)}>
