@@ -24,6 +24,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Can } from "@/components/permissions/Can";
+import { assertPermission } from "@/lib/permissions/assertPermission";
+import { usePermission } from "@/hooks/usePermission";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
@@ -611,6 +614,12 @@ const InvoicesPage = () => {
       toast({ title: "الفاتورة فارغة", variant: "destructive" });
       return;
     }
+    // Server-trusted feature-permission gate
+    try {
+      const app = form.type === 'purchase' ? 'purchases' : 'sales';
+      const feature = form.type === 'purchase' ? 'purchase_invoices' : 'invoices';
+      await assertPermission(app, feature, 'create');
+    } catch { return; }
     setCreating(true);
     if (isNewContact) await createContactInDB(form.contactName.trim());
 
