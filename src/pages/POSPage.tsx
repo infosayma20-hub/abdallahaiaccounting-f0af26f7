@@ -4163,7 +4163,7 @@ const POSPage = () => {
           </button>
 
           {/* Close shift */}
-          {(isAdmin || posPerms.can_close_register) && (
+          {(isAdmin || posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift") && (
             <button
               onClick={() => {
                 if (session?.cash_box_id === null) {
