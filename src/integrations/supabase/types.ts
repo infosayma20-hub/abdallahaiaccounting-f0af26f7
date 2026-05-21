@@ -17529,6 +17529,7 @@ export type Database = {
         Args: { _admin: string; _target: string }
         Returns: boolean
       }
+      uaao_is_actor_admin: { Args: { _actor: string }; Returns: boolean }
       update_last_seen: { Args: never; Returns: undefined }
       update_voucher_atomic: {
         Args: {
