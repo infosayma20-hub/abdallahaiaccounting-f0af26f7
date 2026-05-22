@@ -289,12 +289,16 @@ export default function NewDeviceOnboardingPage() {
   // ── Export / Import device.json ───────────────────────────
   const exportConfig = async () => {
     const cfg = getDeviceConfig();
-    const remote = await pullConfigFromBridge().catch(() => null);
+    const remoteRaw = await pullRawDeviceJsonFromBridge().catch(() => null);
+    const printersMap = buildBridgePrintersMap(filteredPrinters);
     const merged = {
-      ...(remote || {}),
+      ...(remoteRaw || {}),
       ...cfg,
-      label: cfg.label || remote?.label || "",
+      label: cfg.label || (remoteRaw?.label as string) || "",
       cashBoxId: cashBoxId || "",
+      printers: Object.keys(printersMap).length
+        ? printersMap
+        : (remoteRaw?.printers || {}),
       exported_at: new Date().toISOString(),
       _app: "amwali",
     };
@@ -315,7 +319,7 @@ export default function NewDeviceOnboardingPage() {
       try {
         const parsed = JSON.parse(String(reader.result || "{}"));
         if (!parsed || typeof parsed !== "object") throw new Error("ملف غير صالح");
-        if (!parsed.branchId && !parsed.terminalId && !parsed.bridgeUrl) {
+        if (!parsed.branchId && !parsed.terminalId && !parsed.bridgeUrl && !parsed.printers) {
           throw new Error("الملف لا يحتوي إعداد جهاز معروف");
         }
         if (parsed.bridgeUrl)  setBridgeUrl(normalizeBridgeUrl(parsed.bridgeUrl));
@@ -324,6 +328,11 @@ export default function NewDeviceOnboardingPage() {
         if (parsed.label)      { setDeviceLabel(parsed.label); setLabel(parsed.label); }
         if (parsed.cashBoxId)  { localStorage.setItem("pos-device:cash-box-id", parsed.cashBoxId); setCashBoxId(parsed.cashBoxId); }
         await pushConfigToBridge().catch(() => null);
+        if (parsed.printers && typeof parsed.printers === "object") {
+          const ok = await pushPrintersToBridge(parsed.printers).catch(() => false);
+          if (ok) toast.info("📡 تم استعادة طابعات device.json إلى برنامج الطباعة");
+        }
+        await reloadBridgeConfig().catch(() => null);
         setDeviceSaved(true);
         toast.success("✅ تم استيراد الإعداد بنجاح. الجهاز جاهز.");
       } catch (err: any) {
