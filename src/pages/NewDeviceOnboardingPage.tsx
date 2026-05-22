@@ -154,7 +154,13 @@ export default function NewDeviceOnboardingPage() {
   const recheckBridge = useCallback(async (opts?: { silent?: boolean }) => {
     setBridgeChecking(true);
     try {
-      const ok = await checkBridgeStatus();
+      // Try up to 2 times — first call after the bridge has been idle
+      // sometimes exceeds the 3s timeout (cold TCP / Windows service wake).
+      let ok = await checkBridgeStatus();
+      if (!ok) {
+        await new Promise((r) => setTimeout(r, 400));
+        ok = await checkBridgeStatus();
+      }
       setBridgeOnline(ok);
       if (ok) {
         // Re-pull remote config + refresh DB options so the UI reflects
