@@ -12,7 +12,9 @@
    C:\print-bridge
    ```
    يجب أن يحوي المجلد:
-   - `print-bridge-v6.3.2.js` (أو `print-bridge.js`)
+   - `print-bridge-v6.3.4-generic.js`
+   - `device-config-addon.js`
+   - `discover-printers-addon.js`
    - `install-bridge.bat`
    - باقي ملفات `start/stop/restart/health-check`
    - الشعار `logo.png` إن وُجد
@@ -63,7 +65,7 @@
   نزّل Node.js LTS من https://nodejs.org، أعد تشغيل الجهاز، ثم أعد تشغيل `install-bridge.bat`.
 
 - **الخدمة تعمل لكن الطابعات لا تطبع**
-  افتح أموالي ثم `/device-setup` (الإعدادات المتقدمة) وجرّب طباعة اختبار. تأكد من عناوين IP للطابعات في `print-bridge-v6.3.2.js`.
+  افتح أموالي → `/onboarding/new-device` → خطوة الطابعات، عدّل الـ IPات أو استخدم زر "البحث عن طابعات الشبكة"، ثم اضغط حفظ. التغييرات تُحفظ في `C:\print-bridge\device.json` وتُطبَّق فوراً (بدون تعديل JS).
 
 - **نقل الإعدادات لجهاز جديد**
   انسخ ملف `C:\print-bridge\device.json` إلى الجهاز الجديد بعد التثبيت. هذا يحفظ الفرع/المحطة/الـ bridge URL.
