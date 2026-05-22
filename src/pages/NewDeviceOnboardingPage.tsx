@@ -394,6 +394,75 @@ export default function NewDeviceOnboardingPage() {
     else    toast.error(`❌ ${p.name} — فشل الاتصال`);
   };
 
+  // ── Network discovery ─────────────────────────────────────
+  const runDiscovery = async () => {
+    if (!bridgeOnline) { toast.error("Print Bridge غير متصل"); return; }
+    setDiscovering(true);
+    setDiscovered(null);
+    setDiscoverMeta(null);
+    try {
+      const subnet = discoverSubnet.trim().replace(/\.+$/, "");
+      const result = await discoverNetworkPrinters(subnet ? { subnet } : {});
+      setDiscoverMeta({ subnet: result.subnet, elapsedMs: result.elapsedMs, error: result.error });
+      if (!result.ok) {
+        const msg = result.error === "subnet_not_private"
+          ? "الشبكة المُدخلة ليست شبكة محلية (يجب أن تكون 192.168.x.x أو 10.x.x.x أو 172.16-31.x.x)"
+          : result.error === "forbidden_remote"
+            ? "فحص الشبكة مسموح فقط من نفس الكمبيوتر الذي عليه برنامج الطباعة"
+            : result.error === "no_private_interface_found"
+              ? "تعذّر اكتشاف الشبكة المحلية تلقائياً — أدخل الـ subnet يدوياً (مثل 192.168.1)"
+              : result.error === "bridge_unreachable"
+                ? "Print Bridge لا يستجيب — تأكد أنه شغّال"
+                : "هذا الإصدار من Print Bridge لا يدعم فحص الشبكة. حدّث الجسر ثم أعد المحاولة.";
+        toast.error(msg);
+        setDiscovered([]);
+        return;
+      }
+      setDiscovered(result.found);
+      if (result.found.length === 0) {
+        toast.info("لم نجد أي طابعة على الشبكة");
+      } else {
+        toast.success(`✅ تم العثور على ${result.found.length} جهاز محتمل`);
+      }
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
+  const assignDiscoveredAsRole = async (d: DiscoveredPrinter, role: string) => {
+    if (!user) return;
+    setAssigningIp(d.ip);
+    try {
+      const roleLabel = PRINTER_ROLES.find(r => r.value === role)?.label || role;
+      const row: any = {
+        user_id: user.id,
+        name: `${roleLabel} (${d.ip})`,
+        ip_address: d.ip,
+        port: d.port || 9100,
+        printer_type: role === "receipt" ? "receipt" : "kitchen_ticket",
+        print_categories: [role],
+        branch_id: branchId || null,
+        is_active: true,
+        is_default: role === "receipt",
+        settings: role === "unified_kitchen" ? { image_mode: "unified_kitchen" } : {},
+      };
+      const { error } = await supabase.from("pos_printers").insert(row);
+      if (error) { toast.error("فشل الحفظ: " + error.message); return; }
+
+      const bridgeKey = roleToBridgeKey(role);
+      if (bridgeKey) {
+        await pushPrintersToBridge({
+          [bridgeKey]: { type: "network", name: row.name, ip: d.ip, port: d.port || 9100 },
+        }).catch(() => false);
+      }
+      await reloadBridgeConfig().catch(() => null);
+      toast.success(`✅ تم تعيين ${d.ip} كـ ${roleLabel}`);
+      await loadOptions();
+    } finally {
+      setAssigningIp(null);
+    }
+  };
+
   // ── Smoke test ────────────────────────────────────────────
   const receiptPrinter = filteredPrinters.find(p =>
     p.print_categories?.includes("receipt") || p.printer_type === "receipt",
