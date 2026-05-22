@@ -32,6 +32,7 @@ import {
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
   isDeviceFullyConfigured, pushPrintersToBridge, pullRawDeviceJsonFromBridge,
   reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
+  discoverNetworkPrinters, type DiscoveredPrinter,
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 
