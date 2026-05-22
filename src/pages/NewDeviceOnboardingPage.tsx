@@ -1114,7 +1114,7 @@ function AddPrinterDialog({
   open, onClose, userId, branchId, windowsPrinters, onFetchWindowsPrinters, onSaved, bridgeOnline,
 }: {
   open: boolean; onClose: () => void; userId: string; branchId: string;
-  windowsPrinters: string[]; onFetchWindowsPrinters: () => void;
+  windowsPrinters: WindowsPrinterInfo[]; onFetchWindowsPrinters: () => void;
   onSaved: () => void | Promise<void>; bridgeOnline: boolean;
 }) {
   const [mode, setMode] = useState<"network" | "usb">("network");
@@ -1134,10 +1134,16 @@ function AddPrinterDialog({
   const handleClose = () => { reset(); onClose(); };
 
   const handleTest = async () => {
-    if (mode !== "network") { toast.info("اختبار USB يتم عبر زر الاختبار في القائمة بعد الحفظ"); return; }
-    if (!ip) { toast.error("أدخل عنوان IP"); return; }
     setTesting(true);
     try {
+      if (mode === "usb") {
+        if (!winName.trim()) { toast.error("اختر طابعة Windows أولاً"); return; }
+        const r = await testWindowsPrinter(winName.trim());
+        if (r.success) toast.success("✅ تم إرسال صفحة اختبار للطابعة");
+        else           toast.error(`❌ ${r.error || "فشل الطباعة"}`);
+        return;
+      }
+      if (!ip) { toast.error("أدخل عنوان IP"); return; }
       const ok = await testPrinterConnection(ip, Number(port) || 9100);
       if (ok) toast.success("✅ الطابعة ردّت — جاهزة للاستخدام");
       else    toast.error("❌ لم ترد الطابعة. تأكد من الـ IP والشبكة");
@@ -1147,13 +1153,23 @@ function AddPrinterDialog({
   const handleSave = async () => {
     if (!name.trim()) { toast.error("أدخل اسم الطابعة"); return; }
     if (mode === "network" && !ip) { toast.error("أدخل عنوان IP"); return; }
-    if (mode === "usb" && !winName) { toast.error("اختر/أدخل اسم طابعة Windows"); return; }
+    if (mode === "usb" && !winName.trim()) { toast.error("اختر/أدخل اسم طابعة Windows"); return; }
+    if (mode === "usb" && role === "receipt") {
+      const info = windowsPrinters.find(w => w.name === winName.trim());
+      const kind = detectPrinterConnection(info?.portName, info?.driverName, info?.name || winName);
+      if (kind === "Virtual/PDF" || kind === "Remote/AnyDesk") {
+        const ok = window.confirm(
+          `هذه الطابعة من نوع "${kind}" — لن تطبع فواتير حقيقية. هل تريد المتابعة؟`,
+        );
+        if (!ok) return;
+      }
+    }
     setSaving(true);
     try {
       const row: any = {
         user_id: userId,
         name: name.trim(),
-        ip_address: mode === "network" ? ip.trim() : "usb",
+        ip_address: mode === "network" ? ip.trim() : "",
         port: mode === "network" ? (Number(port) || 9100) : 0,
         printer_type: role === "receipt" ? "receipt" : "kitchen_ticket",
         print_categories: [role],
@@ -1161,7 +1177,7 @@ function AddPrinterDialog({
         is_active: true,
         is_default: role === "receipt",
         settings: mode === "usb"
-          ? { connection: "usb", windows_printer_name: winName.trim() }
+          ? { connection: "windows", windows_printer_name: winName.trim() }
           : (role === "unified_kitchen" ? { image_mode: "unified_kitchen" } : {}),
       };
       const { error } = await supabase.from("pos_printers").insert(row);
@@ -1171,8 +1187,8 @@ function AddPrinterDialog({
       const bridgeKey = roleToBridgeKey(role);
       if (bridgeKey) {
         const printerForBridge: any = mode === "usb"
-          ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim() }
-          : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100 };
+          ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim(), width: 576 }
+          : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100, width: 576 };
         const pushed = await pushPrintersToBridge({ [bridgeKey]: printerForBridge }).catch(() => false);
         if (pushed) toast.success(`✅ تم إضافة "${name}" — تم حفظها محلياً على هذا الجهاز`);
         else        toast.success(`✅ تم إضافة "${name}" (لن تنطبق على الجسر حتى يعمل برنامج الطباعة)`);
@@ -1244,12 +1260,39 @@ function AddPrinterDialog({
                 </Button>
               </div>
               {windowsPrinters.length > 0 ? (
-                <Select value={winName} onValueChange={setWinName}>
-                  <SelectTrigger><SelectValue placeholder="اختر طابعة من القائمة" /></SelectTrigger>
-                  <SelectContent>
-                    {windowsPrinters.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <>
+                  <Select value={winName} onValueChange={setWinName}>
+                    <SelectTrigger><SelectValue placeholder="اختر طابعة من القائمة" /></SelectTrigger>
+                    <SelectContent>
+                      {windowsPrinters.map(w => {
+                        const kind = detectPrinterConnection(w.portName, w.driverName, w.name);
+                        return (
+                          <SelectItem key={w.name} value={w.name}>
+                            <span className="inline-flex items-center gap-2">
+                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${connectionBadgeClass(kind)}`}>
+                                {kind}
+                              </span>
+                              <span>{w.name}</span>
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {winName && (() => {
+                    const w = windowsPrinters.find(x => x.name === winName);
+                    if (!w) return null;
+                    const kind = detectPrinterConnection(w.portName, w.driverName, w.name);
+                    return (
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-2" dir="ltr">
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${connectionBadgeClass(kind)}`}>
+                          {kind}
+                        </span>
+                        <span>{w.portName || "—"}</span>
+                      </div>
+                    );
+                  })()}
+                </>
               ) : (
                 <Input value={winName} onChange={(e) => setWinName(e.target.value)} placeholder="اكتب الاسم كما يظهر في Windows" />
               )}
