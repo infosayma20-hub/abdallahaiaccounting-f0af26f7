@@ -873,8 +873,17 @@ app.post('/drawer', async (_req, res) => {
 });
 
 app.post('/test-printer', async (req, res) => {
-  const { ip, port } = req.body || {};
-  const payload = Buffer.concat([CMD.INIT, CMD.FEED_LINES(2), CMD.CUT]);
+  const { type, ip, port, windowsPrinterName } = req.body || {};
+  const payload = Buffer.concat([
+    CMD.INIT,
+    Buffer.from('AMWALI TEST\n\n\n', 'utf8'),
+    CMD.FEED_LINES(2),
+    CMD.CUT,
+  ]);
+  if (type === 'windows' || windowsPrinterName) {
+    const r = await sendToWindowsPrinter(windowsPrinterName, payload, 'test');
+    return res.json({ success: r.ok, error: r.err });
+  }
   const r = await sendToPrinter(ip, port || 9100, payload, 'test');
   res.json({ success: r.ok, error: r.err });
 });

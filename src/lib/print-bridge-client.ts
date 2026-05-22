@@ -107,6 +107,25 @@ export async function testPrinterConnection(ip: string, port: number): Promise<b
   }
 }
 
+/** Test a Windows / USB printer by its exact Windows printer name. */
+export async function testWindowsPrinter(
+  windowsPrinterName: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await bridgeFetch("/test-printer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "windows", windowsPrinterName }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { success: data?.success === true, error: data?.error };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { success: false, error: msg };
+  }
+}
+
 /** Check bridge health + printer statuses */
 export async function checkBridgeHealth(): Promise<{
   online: boolean;

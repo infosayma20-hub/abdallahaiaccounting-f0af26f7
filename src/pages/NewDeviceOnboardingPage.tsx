@@ -34,7 +34,11 @@ import {
   reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
   discoverNetworkPrinters, type DiscoveredPrinter,
 } from "@/lib/device-config";
-import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
+import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ────────────────────────────────────────────────────────────────
 // Types
@@ -46,6 +50,48 @@ interface Printer  {
   id: string; name: string; ip_address: string; port: number;
   printer_type: string; print_categories: string[]; branch_id: string | null;
   is_default: boolean; is_active: boolean; settings?: Record<string, unknown>;
+}
+
+export interface WindowsPrinterInfo {
+  name: string;
+  driverName?: string;
+  portName?: string;
+  printerStatus?: string | number;
+  workOffline?: boolean;
+  shared?: boolean;
+  default?: boolean;
+}
+
+export type ConnectionKind = "USB" | "Network/WiFi" | "Network/IP" | "Virtual/PDF" | "Remote/AnyDesk" | "Unknown";
+
+/** Detect connection kind from Windows portName + driver/name. */
+export function detectPrinterConnection(
+  portName?: string,
+  driverName?: string,
+  printerName?: string,
+): ConnectionKind {
+  const port = String(portName || "").trim();
+  const name = String(printerName || "").toLowerCase();
+  const drv  = String(driverName || "").toLowerCase();
+  if (name.includes("anydesk") || drv.includes("anydesk")) return "Remote/AnyDesk";
+  if (port === "PORTPROMPT:") return "Virtual/PDF";
+  if (/^USB/i.test(port)) return "USB";
+  if (/WSD/i.test(port)) return "Network/WiFi";
+  if (/^NPI/i.test(port)) return "Network/WiFi";
+  if (/^IP_/i.test(port)) return "Network/IP";
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(port)) return "Network/IP";
+  return "Unknown";
+}
+
+function connectionBadgeClass(k: ConnectionKind): string {
+  switch (k) {
+    case "USB":           return "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800";
+    case "Network/WiFi":  return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800";
+    case "Network/IP":    return "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/40 dark:text-teal-200 dark:border-teal-800";
+    case "Virtual/PDF":   return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800";
+    case "Remote/AnyDesk":return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800";
+    default:              return "bg-muted text-muted-foreground border-border";
+  }
 }
 
 type StepStatus = "idle" | "needs" | "ok" | "fail";
@@ -81,8 +127,8 @@ function buildBridgePrintersMap(rows: Printer[]): BridgePrintersMap {
     const key = roleToBridgeKey(role);
     if (!key) continue;
     const settings = (p.settings || {}) as Record<string, any>;
-    const isUsb = settings.connection === "usb" || settings.windows_printer_name;
-    if (isUsb) {
+    const isWindows = settings.connection === "usb" || settings.connection === "windows" || !!settings.windows_printer_name;
+    if (isWindows) {
       out[key] = {
         type: "windows",
         name: p.name,
@@ -134,7 +180,9 @@ export default function NewDeviceOnboardingPage() {
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [printerStatus, setPrinterStatus] = useState<Record<string, boolean | null>>({});
   const [showAddPrinter, setShowAddPrinter] = useState(false);
-  const [windowsPrinters, setWindowsPrinters] = useState<string[]>([]);
+  const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
+  const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Step 4b — Network discovery
   const [discoverSubnet, setDiscoverSubnet] = useState("");
@@ -407,17 +455,27 @@ export default function NewDeviceOnboardingPage() {
         : Array.isArray((data as { printers?: unknown[] })?.printers)
           ? (data as { printers: unknown[] }).printers
           : [];
-      const list: string[] = raw
-        .map((p) => {
-          if (typeof p === "string") return p;
+      const list: WindowsPrinterInfo[] = raw
+        .map((p): WindowsPrinterInfo | null => {
+          if (typeof p === "string") return { name: p };
           if (p && typeof p === "object") {
             const o = p as Record<string, unknown>;
             const n = o.name ?? o.Name ?? o.printerName ?? o.PrinterName;
-            return typeof n === "string" ? n : "";
+            const name = typeof n === "string" ? n : "";
+            if (!name) return null;
+            return {
+              name,
+              driverName:    typeof o.driverName    === "string" ? o.driverName    : undefined,
+              portName:      typeof o.portName      === "string" ? o.portName      : undefined,
+              printerStatus: (o.printerStatus as string | number | undefined),
+              workOffline:   Boolean(o.workOffline),
+              shared:        Boolean(o.shared),
+              default:       Boolean(o.default),
+            };
           }
-          return "";
+          return null;
         })
-        .filter((n) => n.length > 0);
+        .filter((x): x is WindowsPrinterInfo => !!x);
       setWindowsPrinters(list);
       if (list.length === 0) toast.info("لم يتم العثور على طابعات Windows");
     } catch (err) {
@@ -428,10 +486,41 @@ export default function NewDeviceOnboardingPage() {
 
   const handlePrinterTest = async (p: Printer) => {
     if (!bridgeOnline) { toast.error("Print Bridge غير متصل"); return; }
+    const settings = (p.settings || {}) as Record<string, unknown>;
+    const isUsb = settings.connection === "usb" || !!settings.windows_printer_name;
+    if (isUsb) {
+      const winName = String(settings.windows_printer_name || "");
+      if (!winName) { toast.error("اسم طابعة Windows مفقود"); return; }
+      const r = await testWindowsPrinter(winName);
+      setPrinterStatus(prev => ({ ...prev, [p.id]: r.success }));
+      if (r.success) toast.success(`✅ ${p.name} — الطباعة تعمل`);
+      else           toast.error(`❌ ${p.name} — ${r.error || "فشل الطباعة"}`);
+      return;
+    }
     const ok = await testPrinterConnection(p.ip_address, p.port);
     setPrinterStatus(prev => ({ ...prev, [p.id]: ok }));
     if (ok) toast.success(`✅ ${p.name} — الطباعة تعمل`);
     else    toast.error(`❌ ${p.name} — فشل الاتصال`);
+  };
+
+  const handlePrinterDelete = async (p: Printer) => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("pos_printers").delete().eq("id", p.id);
+      if (error) { toast.error("فشل الحذف: " + error.message); return; }
+      const role = p.print_categories?.[0] || p.printer_type;
+      const bridgeKey = roleToBridgeKey(role);
+      if (bridgeKey) {
+        // Pass null to remove from device.json on the bridge
+        await pushPrintersToBridge({ [bridgeKey]: null } as unknown as BridgePrintersMap).catch(() => false);
+        await reloadBridgeConfig().catch(() => null);
+      }
+      toast.success("تم حذف الطابعة");
+      setPrinterToDelete(null);
+      await loadOptions();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // ── Network discovery ─────────────────────────────────────
@@ -732,19 +821,33 @@ export default function NewDeviceOnboardingPage() {
                 const cat = p.print_categories?.[0] || p.printer_type;
                 const role = PRINTER_ROLES.find(r => r.value === cat) || { label: cat, emoji: "🖨️" };
                 const st = printerStatus[p.id];
+                const settings = (p.settings || {}) as Record<string, unknown>;
+                const isUsb = settings.connection === "usb" || !!settings.windows_printer_name;
+                const winName = String(settings.windows_printer_name || "");
+                const subtitle = isUsb
+                  ? `${role.label} · windows:${winName || "?"}`
+                  : `${role.label} · ${p.ip_address}:${p.port}`;
                 return (
                   <div key={p.id} className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm">
                     <span className="text-lg">{role.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{p.name}</div>
                       <div className="text-[11px] text-muted-foreground" dir="ltr">
-                        {role.label} · {p.ip_address}:{p.port}
+                        {subtitle}
                       </div>
                     </div>
                     {st === true  && <span className="text-success text-xs inline-flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> تعمل</span>}
                     {st === false && <span className="text-destructive text-xs inline-flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> فشل</span>}
                     <Button size="sm" variant="ghost" onClick={() => handlePrinterTest(p)} className="gap-1 h-7 px-2">
                       <TestTube className="h-3.5 w-3.5" /> اختبار
+                    </Button>
+                    <Button
+                      size="sm" variant="ghost"
+                      onClick={() => setPrinterToDelete(p)}
+                      className="gap-1 h-7 px-2 text-destructive hover:text-destructive"
+                      title="حذف"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 );
@@ -931,6 +1034,27 @@ export default function NewDeviceOnboardingPage() {
         onSaved={async () => { setShowAddPrinter(false); await loadOptions(); }}
         bridgeOnline={bridgeOnline === true}
       />
+
+      <AlertDialog open={!!printerToDelete} onOpenChange={(v) => !v && setPrinterToDelete(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل تريد حذف هذه الطابعة؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف <span className="font-semibold">{printerToDelete?.name}</span> من قائمة الطابعات ومن برنامج الطباعة المحلي.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => { e.preventDefault(); if (printerToDelete) void handlePrinterDelete(printerToDelete); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "جارٍ الحذف..." : "حذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -990,7 +1114,7 @@ function AddPrinterDialog({
   open, onClose, userId, branchId, windowsPrinters, onFetchWindowsPrinters, onSaved, bridgeOnline,
 }: {
   open: boolean; onClose: () => void; userId: string; branchId: string;
-  windowsPrinters: string[]; onFetchWindowsPrinters: () => void;
+  windowsPrinters: WindowsPrinterInfo[]; onFetchWindowsPrinters: () => void;
   onSaved: () => void | Promise<void>; bridgeOnline: boolean;
 }) {
   const [mode, setMode] = useState<"network" | "usb">("network");
@@ -1010,10 +1134,16 @@ function AddPrinterDialog({
   const handleClose = () => { reset(); onClose(); };
 
   const handleTest = async () => {
-    if (mode !== "network") { toast.info("اختبار USB يتم عبر زر الاختبار في القائمة بعد الحفظ"); return; }
-    if (!ip) { toast.error("أدخل عنوان IP"); return; }
     setTesting(true);
     try {
+      if (mode === "usb") {
+        if (!winName.trim()) { toast.error("اختر طابعة Windows أولاً"); return; }
+        const r = await testWindowsPrinter(winName.trim());
+        if (r.success) toast.success("✅ تم إرسال صفحة اختبار للطابعة");
+        else           toast.error(`❌ ${r.error || "فشل الطباعة"}`);
+        return;
+      }
+      if (!ip) { toast.error("أدخل عنوان IP"); return; }
       const ok = await testPrinterConnection(ip, Number(port) || 9100);
       if (ok) toast.success("✅ الطابعة ردّت — جاهزة للاستخدام");
       else    toast.error("❌ لم ترد الطابعة. تأكد من الـ IP والشبكة");
@@ -1023,13 +1153,23 @@ function AddPrinterDialog({
   const handleSave = async () => {
     if (!name.trim()) { toast.error("أدخل اسم الطابعة"); return; }
     if (mode === "network" && !ip) { toast.error("أدخل عنوان IP"); return; }
-    if (mode === "usb" && !winName) { toast.error("اختر/أدخل اسم طابعة Windows"); return; }
+    if (mode === "usb" && !winName.trim()) { toast.error("اختر/أدخل اسم طابعة Windows"); return; }
+    if (mode === "usb" && role === "receipt") {
+      const info = windowsPrinters.find(w => w.name === winName.trim());
+      const kind = detectPrinterConnection(info?.portName, info?.driverName, info?.name || winName);
+      if (kind === "Virtual/PDF" || kind === "Remote/AnyDesk") {
+        const ok = window.confirm(
+          `هذه الطابعة من نوع "${kind}" — لن تطبع فواتير حقيقية. هل تريد المتابعة؟`,
+        );
+        if (!ok) return;
+      }
+    }
     setSaving(true);
     try {
       const row: any = {
         user_id: userId,
         name: name.trim(),
-        ip_address: mode === "network" ? ip.trim() : "usb",
+        ip_address: mode === "network" ? ip.trim() : "",
         port: mode === "network" ? (Number(port) || 9100) : 0,
         printer_type: role === "receipt" ? "receipt" : "kitchen_ticket",
         print_categories: [role],
@@ -1037,7 +1177,7 @@ function AddPrinterDialog({
         is_active: true,
         is_default: role === "receipt",
         settings: mode === "usb"
-          ? { connection: "usb", windows_printer_name: winName.trim() }
+          ? { connection: "windows", windows_printer_name: winName.trim() }
           : (role === "unified_kitchen" ? { image_mode: "unified_kitchen" } : {}),
       };
       const { error } = await supabase.from("pos_printers").insert(row);
@@ -1047,8 +1187,8 @@ function AddPrinterDialog({
       const bridgeKey = roleToBridgeKey(role);
       if (bridgeKey) {
         const printerForBridge: any = mode === "usb"
-          ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim() }
-          : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100 };
+          ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim(), width: 576 }
+          : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100, width: 576 };
         const pushed = await pushPrintersToBridge({ [bridgeKey]: printerForBridge }).catch(() => false);
         if (pushed) toast.success(`✅ تم إضافة "${name}" — تم حفظها محلياً على هذا الجهاز`);
         else        toast.success(`✅ تم إضافة "${name}" (لن تنطبق على الجسر حتى يعمل برنامج الطباعة)`);
@@ -1120,12 +1260,39 @@ function AddPrinterDialog({
                 </Button>
               </div>
               {windowsPrinters.length > 0 ? (
-                <Select value={winName} onValueChange={setWinName}>
-                  <SelectTrigger><SelectValue placeholder="اختر طابعة من القائمة" /></SelectTrigger>
-                  <SelectContent>
-                    {windowsPrinters.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <>
+                  <Select value={winName} onValueChange={setWinName}>
+                    <SelectTrigger><SelectValue placeholder="اختر طابعة من القائمة" /></SelectTrigger>
+                    <SelectContent>
+                      {windowsPrinters.map(w => {
+                        const kind = detectPrinterConnection(w.portName, w.driverName, w.name);
+                        return (
+                          <SelectItem key={w.name} value={w.name}>
+                            <span className="inline-flex items-center gap-2">
+                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${connectionBadgeClass(kind)}`}>
+                                {kind}
+                              </span>
+                              <span>{w.name}</span>
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {winName && (() => {
+                    const w = windowsPrinters.find(x => x.name === winName);
+                    if (!w) return null;
+                    const kind = detectPrinterConnection(w.portName, w.driverName, w.name);
+                    return (
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-2" dir="ltr">
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${connectionBadgeClass(kind)}`}>
+                          {kind}
+                        </span>
+                        <span>{w.portName || "—"}</span>
+                      </div>
+                    );
+                  })()}
+                </>
               ) : (
                 <Input value={winName} onChange={(e) => setWinName(e.target.value)} placeholder="اكتب الاسم كما يظهر في Windows" />
               )}
