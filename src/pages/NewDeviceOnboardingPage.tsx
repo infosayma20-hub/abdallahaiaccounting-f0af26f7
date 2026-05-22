@@ -150,6 +150,7 @@ export default function NewDeviceOnboardingPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── Bridge check ──────────────────────────────────────────
+  const loadOptionsRef = useRef<() => Promise<void>>(async () => {});
   const recheckBridge = useCallback(async (opts?: { silent?: boolean }) => {
     setBridgeChecking(true);
     try {
@@ -166,7 +167,7 @@ export default function NewDeviceOnboardingPage() {
             if (remote.label)      setLabel(prev => prev || remote.label!);
           }
         } catch { /* ignore */ }
-        await loadOptions();
+        await loadOptionsRef.current();
         if (!opts?.silent) toast.success("برنامج الطباعة متصل ✓");
       } else if (!opts?.silent) {
         toast.error("برنامج الطباعة غير شغّال على هذا الجهاز");
@@ -174,7 +175,7 @@ export default function NewDeviceOnboardingPage() {
     } finally {
       setBridgeChecking(false);
     }
-  }, [loadOptions]);
+  }, []);
 
   useEffect(() => {
     void recheckBridge({ silent: true });
@@ -216,6 +217,7 @@ export default function NewDeviceOnboardingPage() {
     }
   }, [user]);
 
+  useEffect(() => { loadOptionsRef.current = loadOptions; }, [loadOptions]);
   useEffect(() => { if (!authLoading) void loadOptions(); }, [authLoading, loadOptions]);
 
   // Whenever the printer list changes, sync it into device.json on the bridge.
