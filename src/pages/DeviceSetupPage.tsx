@@ -386,6 +386,17 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
             </h1>
             <p className="text-sm text-muted-foreground">معالج إعداد سريع — أقل من 5 دقائق</p>
           </div>
+          {variant === "wizard" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/device-setup")}
+              className="gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0"
+              title="للدعم الفني فقط"
+            >
+              <Link2 className="h-3.5 w-3.5" /> فتح الإعدادات المتقدمة
+            </Button>
+          )}
         </div>
 
         {/* Stepper */}
