@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { Printer, Wifi, WifiOff, RefreshCw, CheckCircle2, XCircle, TestTube, Settings2 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { getBridgeUrl } from "@/lib/device-config";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 
 interface PrinterRecord {
   id: string;
@@ -40,6 +41,7 @@ const PRINTER_TYPE_LABELS: Record<string, { label: string; icon: string; color: 
 
 export default function PrinterSettingsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { checkBridge, getHealth, testPrinter: testPrinterConn } = usePrintBridge();
   const [bridgeOnline, setBridgeOnline] = useState<boolean | null>(null);
   const [printers, setPrinters] = useState<PrinterRecord[]>([]);
@@ -145,6 +147,22 @@ export default function PrinterSettingsPage() {
             <RefreshCw className="h-4 w-4 ml-1" /> تحديث
           </Button>
         </div>
+
+        {/* Onboarding shortcut */}
+        <button
+          type="button"
+          onClick={() => navigate("/onboarding/new-device")}
+          className="w-full rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center gap-3 text-right hover:bg-primary/10 transition-colors"
+        >
+          <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-foreground">معالج تجهيز جهاز نقطة بيع جديد</div>
+            <div className="text-[11px] text-muted-foreground">يأخذك خطوة بخطوة لربط الجهاز والطابعات في أقل من 10 دقائق.</div>
+          </div>
+          <span className="text-xs text-primary shrink-0">فتح المعالج ←</span>
+        </button>
 
         {/* Bridge Status */}
         <div className="flex items-center gap-3 p-3 rounded-lg border bg-card">
