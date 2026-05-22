@@ -36,6 +36,146 @@ const net         = require('net');
 const sharp       = require('sharp');
 const fs          = require('fs');
 const path        = require('path');
+const os          = require('os');
+const { spawn, execFile } = require('child_process');
+
+// ────────────────────────────────────────────────────────────────────────
+//  WINDOWS PRINTER SUPPORT
+//  - listWindowsPrinters() uses PowerShell Get-Printer
+//  - sendToWindowsPrinter() sends RAW ESC/POS bytes to a Windows printer
+//    using the WinSpool API exposed through Add-Type in PowerShell.
+// ────────────────────────────────────────────────────────────────────────
+const IS_WINDOWS = process.platform === 'win32';
+
+function runPowerShell(script, { input, timeoutMs = 15000 } = {}) {
+  return new Promise((resolve) => {
+    if (!IS_WINDOWS) return resolve({ ok: false, err: 'not_windows', stdout: '', stderr: '' });
+    const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script];
+    let child;
+    try {
+      child = spawn('powershell.exe', args, { windowsHide: true });
+    } catch (e) {
+      return resolve({ ok: false, err: e.message, stdout: '', stderr: '' });
+    }
+    let stdout = ''; let stderr = '';
+    const timer = setTimeout(() => { try { child.kill(); } catch {} }, timeoutMs);
+    child.stdout.on('data', (d) => { stdout += d.toString('utf8'); });
+    child.stderr.on('data', (d) => { stderr += d.toString('utf8'); });
+    child.on('error', (e) => { clearTimeout(timer); resolve({ ok: false, err: e.message, stdout, stderr }); });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({ ok: code === 0, code, stdout, stderr, err: code === 0 ? null : `exit_${code}` });
+    });
+    if (input) { try { child.stdin.write(input); } catch {} }
+    try { child.stdin.end(); } catch {}
+  });
+}
+
+async function listWindowsPrinters() {
+  if (!IS_WINDOWS) return { ok: false, err: 'not_windows', printers: [] };
+  const script = `
+    try {
+      $p = Get-Printer | Select-Object Name,DriverName,PortName,PrinterStatus,WorkOffline,Shared,Default
+      $p | ConvertTo-Json -Compress -Depth 3
+    } catch {
+      Write-Output "[]"
+    }
+  `;
+  const r = await runPowerShell(script);
+  if (!r.ok) return { ok: false, err: r.err || 'powershell_failed', printers: [] };
+  let raw = (r.stdout || '').trim();
+  if (!raw) return { ok: true, printers: [] };
+  try {
+    const parsed = JSON.parse(raw);
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    const printers = arr.map((p) => ({
+      name:          p.Name || '',
+      driverName:    p.DriverName || '',
+      portName:      p.PortName || '',
+      printerStatus: (typeof p.PrinterStatus === 'object' && p.PrinterStatus !== null) ? (p.PrinterStatus.Value || String(p.PrinterStatus)) : (p.PrinterStatus ?? null),
+      workOffline:   !!p.WorkOffline,
+      shared:        !!p.Shared,
+      default:       !!p.Default,
+    })).filter((p) => p.name);
+    return { ok: true, printers };
+  } catch (e) {
+    return { ok: false, err: 'parse_error: ' + e.message, printers: [], raw };
+  }
+}
+
+// Send raw bytes to a Windows printer via WinSpool RAW datatype.
+// Writes payload to a temp file, then runs a PowerShell script that
+// P/Invokes OpenPrinter / StartDocPrinter / WritePrinter / EndDocPrinter.
+async function sendToWindowsPrinter(printerName, payload, label) {
+  if (!IS_WINDOWS) return { ok: false, err: 'not_windows' };
+  if (!printerName) return { ok: false, err: 'missing_windowsPrinterName' };
+  const tmp = path.join(os.tmpdir(), `amwali-print-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.bin`);
+  try {
+    fs.writeFileSync(tmp, payload);
+  } catch (e) {
+    return { ok: false, err: 'tmp_write_failed: ' + e.message };
+  }
+  const psPrinter = String(printerName).replace(/'/g, "''");
+  const psFile    = tmp.replace(/'/g, "''");
+  const script = `
+$ErrorActionPreference = 'Stop'
+$code = @"
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+public class RawPrinter {
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+  public struct DOCINFOW { public string pDocName; public string pOutputFile; public string pDatatype; }
+  [DllImport("winspool.Drv", EntryPoint="OpenPrinterW", SetLastError=true, CharSet=CharSet.Unicode, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+  public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+  [DllImport("winspool.Drv", EntryPoint="ClosePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+  public static extern bool ClosePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="StartDocPrinterW", SetLastError=true, CharSet=CharSet.Unicode, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+  public static extern int StartDocPrinter(IntPtr hPrinter, int level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOW pDI);
+  [DllImport("winspool.Drv", EntryPoint="EndDocPrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+  public static extern bool EndDocPrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="StartPagePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+  public static extern bool StartPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="EndPagePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+  public static extern bool EndPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.Drv", EntryPoint="WritePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+  public static extern bool WritePrinter(IntPtr hPrinter, byte[] pBytes, int dwCount, out int dwWritten);
+
+  public static string SendBytesToPrinter(string printerName, byte[] bytes) {
+    IntPtr hPrinter;
+    if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero)) return "OpenPrinter_failed:" + Marshal.GetLastWin32Error();
+    try {
+      DOCINFOW di = new DOCINFOW();
+      di.pDocName = "AMWALI Receipt";
+      di.pDatatype = "RAW";
+      if (StartDocPrinter(hPrinter, 1, di) == 0) return "StartDocPrinter_failed:" + Marshal.GetLastWin32Error();
+      try {
+        if (!StartPagePrinter(hPrinter)) return "StartPagePrinter_failed:" + Marshal.GetLastWin32Error();
+        int written = 0;
+        if (!WritePrinter(hPrinter, bytes, bytes.Length, out written)) return "WritePrinter_failed:" + Marshal.GetLastWin32Error();
+        if (written != bytes.Length) return "WritePrinter_short:" + written + "/" + bytes.Length;
+        EndPagePrinter(hPrinter);
+      } finally { EndDocPrinter(hPrinter); }
+    } finally { ClosePrinter(hPrinter); }
+    return "OK";
+  }
+}
+"@
+Add-Type -TypeDefinition $code -Language CSharp | Out-Null
+$bytes = [System.IO.File]::ReadAllBytes('${psFile}')
+$result = [RawPrinter]::SendBytesToPrinter('${psPrinter}', $bytes)
+Write-Output $result
+if ($result -ne 'OK') { exit 1 }
+`;
+  const r = await runPowerShell(script, { timeoutMs: 20000 });
+  try { fs.unlinkSync(tmp); } catch {}
+  if (!r.ok) {
+    const msg = (r.stdout || '').trim() || (r.stderr || '').trim() || r.err || 'powershell_failed';
+    console.error(`[printer-error] ${label} → windows "${printerName}" → ${msg}`);
+    return { ok: false, err: msg };
+  }
+  return { ok: true };
+}
 
 // ─── Logo loading — load as raw PNG buffer (NOT base64) ─────────────────
 // sharp cannot reliably rasterize <image href="data:..."> inside SVG,
@@ -254,8 +394,10 @@ async function sendToPrinterDef(printer, payload, label) {
     return await sendToPrinter(printer.ip, printer.port || 9100, payload, label);
   }
   if (type === 'windows' || type === 'usb') {
-    console.warn(`[printer-skip] ${label} → windows printer "${printer.windowsPrinterName}" not handled by this bridge build`);
-    return { ok: false, err: `windows_printer_not_supported_in_this_build` };
+    const name = printer.windowsPrinterName || printer.name;
+    if (!name) return { ok: false, err: 'missing_windowsPrinterName' };
+    console.log(`[printer] ${label} → windows "${name}" (${payload.length} bytes RAW)`);
+    return await sendToWindowsPrinter(name, payload, label);
   }
   return { ok: false, err: `unsupported_type:${type}` };
 }
@@ -619,6 +761,7 @@ app.get('/health', async (_req, res) => {
     version: '6.3.4-generic',
     online: true,
     logo: !!LOGO_BUF,
+    windows_printers_supported: IS_WINDOWS,
     device: {
       label:      cfg.label      || null,
       branchId:   cfg.branchId   || null,
@@ -630,6 +773,19 @@ app.get('/health', async (_req, res) => {
     printers,
     timestamp: new Date().toISOString(),
   });
+});
+
+// ── /windows-printers — list installed Windows printers via PowerShell ──
+app.get('/windows-printers', async (_req, res) => {
+  try {
+    const r = await listWindowsPrinters();
+    if (!r.ok) {
+      return res.status(200).json({ ok: false, error: r.err || 'unknown_error', printers: [] });
+    }
+    res.json({ ok: true, printers: r.printers });
+  } catch (e) {
+    res.status(200).json({ ok: false, error: e.message, printers: [] });
+  }
 });
 
 app.post('/print-receipt', async (req, res) => {
