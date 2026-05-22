@@ -52,13 +52,13 @@ for /f "delims=" %%v in ('node -v') do set "NODE_VER=%%v"
 echo [OK] Node.js found - version: !NODE_VER!
 echo.
 
-if not exist "%BRIDGE_DIR%\package.json" (
-  echo [...] Initializing package.json
-  call npm init -y >nul 2>&1
+if exist "%BRIDGE_DIR%\package.json" (
+  echo [...] Installing dependencies from package.json...
+  call npm install --silent
+) else (
+  echo [...] Installing dependencies (express, cors, body-parser, sharp, node-windows)...
+  call npm install express cors body-parser sharp node-windows --silent
 )
-
-echo [...] Installing dependencies (express, sharp, node-windows)...
-call npm install express sharp node-windows --silent
 if %errorLevel% NEQ 0 (
   echo [ERROR] npm install failed. Check your internet connection and retry.
   pause
@@ -89,6 +89,12 @@ timeout /t 6 /nobreak >nul
 echo [...] Health check...
 powershell -Command "try { $r = Invoke-RestMethod -Uri 'http://127.0.0.1:3001/health' -TimeoutSec 5; if ($r.status -eq 'ok') { Write-Host '[OK] Bridge is running' } else { Write-Host '[WARN] Bridge responded but status is not ok' } } catch { Write-Host '[ERROR] Bridge did not respond - open http://127.0.0.1:3001/health manually' }"
 echo.
+
+if exist "%BRIDGE_DIR%\daemon\amwaliprintbridge.err.log" (
+  echo [...] Last lines of error log (for diagnostics):
+  powershell -Command "Get-Content -Path 'C:\print-bridge\daemon\amwaliprintbridge.err.log' -Tail 20"
+  echo.
+)
 
 echo ============================================================
 echo   Installation finished.
