@@ -558,7 +558,7 @@ export default function NewDeviceOnboardingPage() {
           n={1} title="فحص برنامج الطباعة" icon={Printer} status={step1Status}
           subtitle="نتأكد أن برنامج الطباعة Print Bridge شغّال على هذا الكمبيوتر."
         >
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {bridgeOnline === null && <span className="text-sm text-muted-foreground">جاري الفحص…</span>}
             {bridgeOnline === true && (
               <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success border border-success/30 px-3 py-1 text-sm font-medium">
@@ -574,6 +574,32 @@ export default function NewDeviceOnboardingPage() {
               <RefreshCw className={`h-3.5 w-3.5 ${bridgeChecking ? "animate-spin" : ""}`} /> إعادة الفحص
             </Button>
           </div>
+
+          {/* Always-visible download row */}
+          <div className="rounded-md border border-border bg-muted/30 p-3 text-sm space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild size="sm" className="gap-1 shrink-1">
+                <a href={PRINT_BRIDGE_DOWNLOAD_URL} download>
+                  <Download className="h-3.5 w-3.5" /> تحميل/تحديث برنامج الطباعة
+                </a>
+              </Button>
+              <Button
+                size="sm" variant="secondary"
+                onClick={() => {
+                  const absolute = `${window.location.origin}${PRINT_BRIDGE_DOWNLOAD_URL}`;
+                  navigator.clipboard.writeText(absolute);
+                  toast.success("تم نسخ الرابط");
+                }}
+                className="gap-1 shrink-1"
+              >
+                <Copy className="h-3.5 w-3.5" /> نسخ رابط التحميل
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              استخدمه عند أول تثبيت أو عند تحديث نسخة برنامج الطباعة.
+            </p>
+          </div>
+
           {bridgeOnline === false && (
             <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm space-y-2">
               <div className="font-medium text-amber-900 dark:text-amber-200 flex items-center gap-1">
@@ -584,25 +610,6 @@ export default function NewDeviceOnboardingPage() {
                 <li>افتح المجلد، شغّل ملف <code>install-bridge.bat</code> (يثبّت كخدمة Windows)</li>
                 <li>ارجع لهذه الصفحة واضغط "إعادة الفحص"</li>
               </ol>
-              <div className="flex items-center gap-2 pt-1">
-                <Input value={PRINT_BRIDGE_DOWNLOAD_URL} readOnly className="text-xs ltr-input" dir="ltr" />
-                <Button asChild size="sm" className="gap-1 shrink-0">
-                  <a href={PRINT_BRIDGE_DOWNLOAD_URL} download>
-                    <Download className="h-3.5 w-3.5" /> تحميل
-                  </a>
-                </Button>
-                <Button
-                  size="sm" variant="secondary"
-                  onClick={() => {
-                    const absolute = `${window.location.origin}${PRINT_BRIDGE_DOWNLOAD_URL}`;
-                    navigator.clipboard.writeText(absolute);
-                    toast.success("تم نسخ الرابط");
-                  }}
-                  className="gap-1 shrink-0"
-                >
-                  <Copy className="h-3.5 w-3.5" /> نسخ الرابط
-                </Button>
-              </div>
             </div>
           )}
         </Section>
