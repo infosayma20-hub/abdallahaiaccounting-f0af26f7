@@ -761,6 +761,7 @@ app.get('/health', async (_req, res) => {
     version: '6.3.4-generic',
     online: true,
     logo: !!LOGO_BUF,
+    windows_printers_supported: IS_WINDOWS,
     device: {
       label:      cfg.label      || null,
       branchId:   cfg.branchId   || null,
@@ -772,6 +773,19 @@ app.get('/health', async (_req, res) => {
     printers,
     timestamp: new Date().toISOString(),
   });
+});
+
+// ── /windows-printers — list installed Windows printers via PowerShell ──
+app.get('/windows-printers', async (_req, res) => {
+  try {
+    const r = await listWindowsPrinters();
+    if (!r.ok) {
+      return res.status(200).json({ ok: false, error: r.err || 'unknown_error', printers: [] });
+    }
+    res.json({ ok: true, printers: r.printers });
+  } catch (e) {
+    res.status(200).json({ ok: false, error: e.message, printers: [] });
+  }
 });
 
 app.post('/print-receipt', async (req, res) => {
