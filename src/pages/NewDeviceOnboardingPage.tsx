@@ -402,11 +402,27 @@ export default function NewDeviceOnboardingPage() {
       const res = await fetch(`${url}/windows-printers`, { signal: AbortSignal.timeout(4000) });
       if (!res.ok) throw new Error("endpoint غير متوفر");
       const data = await res.json();
-      const list: string[] = Array.isArray(data) ? data : Array.isArray(data?.printers) ? data.printers : [];
+      const raw: unknown[] = Array.isArray(data)
+        ? data
+        : Array.isArray((data as { printers?: unknown[] })?.printers)
+          ? (data as { printers: unknown[] }).printers
+          : [];
+      const list: string[] = raw
+        .map((p) => {
+          if (typeof p === "string") return p;
+          if (p && typeof p === "object") {
+            const o = p as Record<string, unknown>;
+            const n = o.name ?? o.Name ?? o.printerName ?? o.PrinterName;
+            return typeof n === "string" ? n : "";
+          }
+          return "";
+        })
+        .filter((n) => n.length > 0);
       setWindowsPrinters(list);
       if (list.length === 0) toast.info("لم يتم العثور على طابعات Windows");
-    } catch {
-      toast.error("Print Bridge لا يدعم قراءة طابعات Windows على هذا الإصدار");
+    } catch (err) {
+      console.error("fetchWindowsPrinters failed", err);
+      toast.error("تعذر قراءة طابعات Windows من Print Bridge");
     }
   };
 
