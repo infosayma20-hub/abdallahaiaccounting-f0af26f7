@@ -127,8 +127,8 @@ function buildBridgePrintersMap(rows: Printer[]): BridgePrintersMap {
     const key = roleToBridgeKey(role);
     if (!key) continue;
     const settings = (p.settings || {}) as Record<string, any>;
-    const isUsb = settings.connection === "usb" || settings.windows_printer_name;
-    if (isUsb) {
+    const isWindows = settings.connection === "usb" || settings.connection === "windows" || !!settings.windows_printer_name;
+    if (isWindows) {
       out[key] = {
         type: "windows",
         name: p.name,
