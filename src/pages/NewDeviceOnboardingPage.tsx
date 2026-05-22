@@ -194,6 +194,18 @@ export default function NewDeviceOnboardingPage() {
 
   useEffect(() => { if (!authLoading) void loadOptions(); }, [authLoading, loadOptions]);
 
+  // Whenever the printer list changes, sync it into device.json on the bridge.
+  // This guarantees the bridge always reflects what the POS sees, even if a
+  // printer was added/edited elsewhere (e.g. /printer-settings advanced page).
+  useEffect(() => {
+    if (!bridgeOnline) return;
+    if (printers.length === 0) return;
+    const map = buildBridgePrintersMap(filteredPrinters);
+    if (Object.keys(map).length === 0) return;
+    void pushPrintersToBridge(map).catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printers, bridgeOnline, branchId]);
+
   // ── Branch / terminal quick-create ────────────────────────
   const createBranch = async () => {
     if (!user) return;
@@ -794,7 +806,19 @@ function AddPrinterDialog({
       };
       const { error } = await supabase.from("pos_printers").insert(row);
       if (error) { toast.error("فشل الحفظ: " + error.message); return; }
-      toast.success(`✅ تم إضافة "${name}"`);
+      // Push the new printer to the bridge (device.json) immediately so the
+      // cashier doesn't have to restart anything.
+      const bridgeKey = roleToBridgeKey(role);
+      if (bridgeKey) {
+        const printerForBridge: any = mode === "usb"
+          ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim() }
+          : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100 };
+        const pushed = await pushPrintersToBridge({ [bridgeKey]: printerForBridge }).catch(() => false);
+        if (pushed) toast.success(`✅ تم إضافة "${name}" — تم حفظها محلياً على هذا الجهاز`);
+        else        toast.success(`✅ تم إضافة "${name}" (لن تنطبق على الجسر حتى يعمل برنامج الطباعة)`);
+      } else {
+        toast.success(`✅ تم إضافة "${name}"`);
+      }
       await onSaved();
       reset();
     } finally { setSaving(false); }
