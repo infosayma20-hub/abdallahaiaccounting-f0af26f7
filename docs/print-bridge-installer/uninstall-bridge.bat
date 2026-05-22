@@ -1,19 +1,18 @@
 @echo off
-chcp 65001 >nul
 title AMWALI Print Bridge - Uninstall Service
 net session >nul 2>&1
 if %errorLevel% NEQ 0 (
-  echo [خطأ] شغّل هذا الملف كمسؤول Administrator.
+  echo [ERROR] Please run this file as Administrator.
   pause
   exit /b 1
 )
 cd /d C:\print-bridge
 if not exist service-uninstall.js (
-  echo [خطأ] ملف service-uninstall.js غير موجود.
+  echo [ERROR] service-uninstall.js not found in C:\print-bridge.
   pause
   exit /b 1
 )
-echo [...] إزالة خدمة AmwaliPrintBridge ...
+echo [...] Removing AmwaliPrintBridge service...
 node service-uninstall.js
-echo [OK] تمت الإزالة.
+echo [OK] Service removed.
 pause
