@@ -150,19 +150,36 @@ export default function NewDeviceOnboardingPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── Bridge check ──────────────────────────────────────────
-  const recheckBridge = useCallback(async () => {
+  const loadOptionsRef = useRef<() => Promise<void>>(async () => {});
+  const recheckBridge = useCallback(async (opts?: { silent?: boolean }) => {
     setBridgeChecking(true);
     try {
       const ok = await checkBridgeStatus();
       setBridgeOnline(ok);
+      if (ok) {
+        // Re-pull remote config + refresh DB options so the UI reflects
+        // any printers/branch/terminal changes since last check.
+        try {
+          const remote = await pullConfigFromBridge();
+          if (remote) {
+            if (remote.branchId)   setBranchId(prev => prev || remote.branchId!);
+            if (remote.terminalId) setTerminalId(prev => prev || remote.terminalId!);
+            if (remote.label)      setLabel(prev => prev || remote.label!);
+          }
+        } catch { /* ignore */ }
+        await loadOptionsRef.current();
+        if (!opts?.silent) toast.success("برنامج الطباعة متصل ✓");
+      } else if (!opts?.silent) {
+        toast.error("برنامج الطباعة غير شغّال على هذا الجهاز");
+      }
     } finally {
       setBridgeChecking(false);
     }
   }, []);
 
   useEffect(() => {
-    void recheckBridge();
-    const t = setInterval(() => { void recheckBridge(); }, 10_000);
+    void recheckBridge({ silent: true });
+    const t = setInterval(() => { void recheckBridge({ silent: true }); }, 10_000);
     return () => clearInterval(t);
   }, [recheckBridge]);
 
@@ -200,6 +217,7 @@ export default function NewDeviceOnboardingPage() {
     }
   }, [user]);
 
+  useEffect(() => { loadOptionsRef.current = loadOptions; }, [loadOptions]);
   useEffect(() => { if (!authLoading) void loadOptions(); }, [authLoading, loadOptions]);
 
   // Whenever the printer list changes, sync it into device.json on the bridge.
@@ -552,7 +570,7 @@ export default function NewDeviceOnboardingPage() {
                 <WifiOff className="h-4 w-4" /> برنامج الطباعة غير شغال على هذا الجهاز
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={recheckBridge} disabled={bridgeChecking} className="gap-1">
+            <Button variant="outline" size="sm" onClick={() => { void recheckBridge(); }} disabled={bridgeChecking} className="gap-1">
               <RefreshCw className={`h-3.5 w-3.5 ${bridgeChecking ? "animate-spin" : ""}`} /> إعادة الفحص
             </Button>
           </div>

@@ -133,7 +133,8 @@ export async function checkBridgeHealth(): Promise<{
 
 export async function checkBridgeStatus(): Promise<boolean> {
   try {
-    const res = await bridgeFetch("/health", {
+    const res = await bridgeFetch(`/health?t=${Date.now()}`, {
+      cache: "no-store",
       signal: AbortSignal.timeout(3000),
     });
     return res.ok;
