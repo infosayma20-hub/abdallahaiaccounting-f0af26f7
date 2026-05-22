@@ -394,8 +394,10 @@ async function sendToPrinterDef(printer, payload, label) {
     return await sendToPrinter(printer.ip, printer.port || 9100, payload, label);
   }
   if (type === 'windows' || type === 'usb') {
-    console.warn(`[printer-skip] ${label} → windows printer "${printer.windowsPrinterName}" not handled by this bridge build`);
-    return { ok: false, err: `windows_printer_not_supported_in_this_build` };
+    const name = printer.windowsPrinterName || printer.name;
+    if (!name) return { ok: false, err: 'missing_windowsPrinterName' };
+    console.log(`[printer] ${label} → windows "${name}" (${payload.length} bytes RAW)`);
+    return await sendToWindowsPrinter(name, payload, label);
   }
   return { ok: false, err: `unsupported_type:${type}` };
 }
