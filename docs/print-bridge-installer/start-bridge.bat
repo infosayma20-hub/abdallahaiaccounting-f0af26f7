@@ -12,7 +12,11 @@ sc start AmwaliPrintBridge
 if %errorLevel% NEQ 0 (
   echo [تحذير] الخدمة غير موجودة. تشغيل مباشر بدلاً من الخدمة ...
   cd /d C:\print-bridge
-  if exist print-bridge-v6.3.2.js (
+  if exist print-bridge-v6.3.4-generic.js (
+    start "AMWALI Print Bridge" node print-bridge-v6.3.4-generic.js
+  ) else if exist print-bridge-v6.3.3.js (
+    start "AMWALI Print Bridge" node print-bridge-v6.3.3.js
+  ) else if exist print-bridge-v6.3.2.js (
     start "AMWALI Print Bridge" node print-bridge-v6.3.2.js
   ) else (
     start "AMWALI Print Bridge" node print-bridge.js

@@ -26,7 +26,7 @@ if %errorLevel% NEQ 0 (
 )
 
 set "BRIDGE_DIR=C:\print-bridge"
-set "BRIDGE_FILE=print-bridge-v6.3.2.js"
+set "BRIDGE_FILE=print-bridge-v6.3.4-generic.js"
 set "FALLBACK_FILE=print-bridge.js"
 set "SERVICE_NAME=AmwaliPrintBridge"
 
@@ -40,6 +40,8 @@ cd /d "%BRIDGE_DIR%"
 
 set "BRIDGE_SCRIPT="
 if exist "%BRIDGE_DIR%\%BRIDGE_FILE%" set "BRIDGE_SCRIPT=%BRIDGE_FILE%"
+if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.3.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.3.js"
+if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.2.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.2.js"
 if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\%FALLBACK_FILE%" set "BRIDGE_SCRIPT=%FALLBACK_FILE%"
 if "%BRIDGE_SCRIPT%"=="" (
   echo [خطأ] لم يتم العثور على ملف الجسر داخل %BRIDGE_DIR%.
