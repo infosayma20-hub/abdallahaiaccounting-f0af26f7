@@ -704,6 +704,109 @@ export default function NewDeviceOnboardingPage() {
               <Link2 className="h-3.5 w-3.5" /> إعدادات الطابعات المتقدمة
             </Button>
           </div>
+
+          {/* ── Network discovery panel ───────────────── */}
+          <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[140px] space-y-1">
+                <Label className="text-[11px] flex items-center gap-1">
+                  <Radar className="h-3.5 w-3.5" /> اكتشف طابعات الشبكة تلقائياً
+                </Label>
+                <Input
+                  value={discoverSubnet}
+                  onChange={(e) => setDiscoverSubnet(e.target.value)}
+                  placeholder="اتركه فارغاً ليُكتشف تلقائياً، أو اكتب 192.168.1"
+                  dir="ltr"
+                  className="text-xs"
+                />
+              </div>
+              <Button
+                onClick={runDiscovery}
+                disabled={!bridgeOnline || discovering}
+                className="gap-2"
+                size="sm"
+              >
+                {discovering
+                  ? <RefreshCw className="h-4 w-4 animate-spin" />
+                  : <Radar className="h-4 w-4" />}
+                {discovering ? "يتم فحص الشبكة..." : "البحث عن طابعات الشبكة"}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              يفحص جميع عناوين الشبكة (1–254) على port 9100. آمن ولا يطبع شيئاً.
+            </p>
+
+            {discovering && (
+              <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" /> يتم فحص الشبكة... (قد يستغرق حتى 30 ثانية)
+              </div>
+            )}
+
+            {!discovering && discovered && discovered.length === 0 && (
+              <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+                لم نجد طابعات على هذه الشبكة
+                {discoverMeta?.subnet ? <> (<span dir="ltr">{discoverMeta.subnet}.x</span>)</> : null}.
+                تأكد أن الطابعة شغّالة، وعلى نفس الشبكة، وأن IP ثابت، أو أدخل IP يدوياً.
+              </div>
+            )}
+
+            {!discovering && discovered && discovered.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[11px] text-muted-foreground">
+                  {discovered.length} جهاز محتمل
+                  {discoverMeta?.subnet ? <> على <span dir="ltr">{discoverMeta.subnet}.x</span></> : null}
+                  {discoverMeta?.elapsedMs ? <> · {(discoverMeta.elapsedMs / 1000).toFixed(1)}s</> : null}
+                </div>
+                {discovered.map((d) => {
+                  const already = filteredPrinters.find(p => p.ip_address === d.ip);
+                  return (
+                    <div
+                      key={d.ip}
+                      className="rounded-md border border-border bg-card p-3 space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Wifi className="h-4 w-4 text-success" />
+                        <span className="font-mono text-sm font-semibold" dir="ltr">
+                          {d.ip}:{d.port}
+                        </span>
+                        {already && (
+                          <span className="text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                            مُعرَّفة كـ {already.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PRINTER_ROLES.map(r => (
+                          <Button
+                            key={r.value}
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px] gap-1"
+                            disabled={assigningIp === d.ip}
+                            onClick={() => assignDiscoveredAsRole(d, r.value)}
+                          >
+                            <span>{r.emoji}</span> استخدام كـ{r.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[11px] gap-1"
+                          onClick={async () => {
+                            const ok = await testPrinterConnection(d.ip, d.port);
+                            if (ok) toast.success(`✅ ${d.ip} — متصل`);
+                            else    toast.error(`❌ ${d.ip} — لم يرد`);
+                          }}
+                        >
+                          <TestTube className="h-3.5 w-3.5" /> اختبار
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </Section>
 
         {/* ── Step 5: Smoke test ─────────────────────────── */}
