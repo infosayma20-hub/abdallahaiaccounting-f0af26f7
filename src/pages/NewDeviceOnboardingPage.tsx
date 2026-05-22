@@ -58,7 +58,7 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
   { value: "unified_kitchen",  label: "مطبخ موحّد",      emoji: "🧑‍🍳" },
 ];
 
-const PRINT_BRIDGE_DOWNLOAD_URL = "https://amwali.app/print-bridge.zip";
+const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip";
 
 // Map our pos_printers role → the bridge's printer key (in device.json)
 function roleToBridgeKey(role: string): BridgePrinterKey | null {
@@ -568,9 +568,18 @@ export default function NewDeviceOnboardingPage() {
               </ol>
               <div className="flex items-center gap-2 pt-1">
                 <Input value={PRINT_BRIDGE_DOWNLOAD_URL} readOnly className="text-xs ltr-input" dir="ltr" />
+                <Button asChild size="sm" className="gap-1 shrink-0">
+                  <a href={PRINT_BRIDGE_DOWNLOAD_URL} download>
+                    <Download className="h-3.5 w-3.5" /> تحميل
+                  </a>
+                </Button>
                 <Button
                   size="sm" variant="secondary"
-                  onClick={() => { navigator.clipboard.writeText(PRINT_BRIDGE_DOWNLOAD_URL); toast.success("تم نسخ الرابط"); }}
+                  onClick={() => {
+                    const absolute = `${window.location.origin}${PRINT_BRIDGE_DOWNLOAD_URL}`;
+                    navigator.clipboard.writeText(absolute);
+                    toast.success("تم نسخ الرابط");
+                  }}
                   className="gap-1 shrink-0"
                 >
                   <Copy className="h-3.5 w-3.5" /> نسخ الرابط
