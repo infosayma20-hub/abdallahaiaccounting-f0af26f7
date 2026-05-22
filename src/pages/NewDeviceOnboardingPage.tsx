@@ -34,7 +34,11 @@ import {
   reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
   discoverNetworkPrinters, type DiscoveredPrinter,
 } from "@/lib/device-config";
-import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
+import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ────────────────────────────────────────────────────────────────
 // Types
@@ -46,6 +50,48 @@ interface Printer  {
   id: string; name: string; ip_address: string; port: number;
   printer_type: string; print_categories: string[]; branch_id: string | null;
   is_default: boolean; is_active: boolean; settings?: Record<string, unknown>;
+}
+
+export interface WindowsPrinterInfo {
+  name: string;
+  driverName?: string;
+  portName?: string;
+  printerStatus?: string | number;
+  workOffline?: boolean;
+  shared?: boolean;
+  default?: boolean;
+}
+
+export type ConnectionKind = "USB" | "Network/WiFi" | "Network/IP" | "Virtual/PDF" | "Remote/AnyDesk" | "Unknown";
+
+/** Detect connection kind from Windows portName + driver/name. */
+export function detectPrinterConnection(
+  portName?: string,
+  driverName?: string,
+  printerName?: string,
+): ConnectionKind {
+  const port = String(portName || "").trim();
+  const name = String(printerName || "").toLowerCase();
+  const drv  = String(driverName || "").toLowerCase();
+  if (name.includes("anydesk") || drv.includes("anydesk")) return "Remote/AnyDesk";
+  if (port === "PORTPROMPT:") return "Virtual/PDF";
+  if (/^USB/i.test(port)) return "USB";
+  if (/WSD/i.test(port)) return "Network/WiFi";
+  if (/^NPI/i.test(port)) return "Network/WiFi";
+  if (/^IP_/i.test(port)) return "Network/IP";
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(port)) return "Network/IP";
+  return "Unknown";
+}
+
+function connectionBadgeClass(k: ConnectionKind): string {
+  switch (k) {
+    case "USB":           return "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800";
+    case "Network/WiFi":  return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800";
+    case "Network/IP":    return "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/40 dark:text-teal-200 dark:border-teal-800";
+    case "Virtual/PDF":   return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800";
+    case "Remote/AnyDesk":return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800";
+    default:              return "bg-muted text-muted-foreground border-border";
+  }
 }
 
 type StepStatus = "idle" | "needs" | "ok" | "fail";
@@ -134,7 +180,9 @@ export default function NewDeviceOnboardingPage() {
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [printerStatus, setPrinterStatus] = useState<Record<string, boolean | null>>({});
   const [showAddPrinter, setShowAddPrinter] = useState(false);
-  const [windowsPrinters, setWindowsPrinters] = useState<string[]>([]);
+  const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
+  const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Step 4b — Network discovery
   const [discoverSubnet, setDiscoverSubnet] = useState("");
@@ -407,17 +455,27 @@ export default function NewDeviceOnboardingPage() {
         : Array.isArray((data as { printers?: unknown[] })?.printers)
           ? (data as { printers: unknown[] }).printers
           : [];
-      const list: string[] = raw
-        .map((p) => {
-          if (typeof p === "string") return p;
+      const list: WindowsPrinterInfo[] = raw
+        .map((p): WindowsPrinterInfo | null => {
+          if (typeof p === "string") return { name: p };
           if (p && typeof p === "object") {
             const o = p as Record<string, unknown>;
             const n = o.name ?? o.Name ?? o.printerName ?? o.PrinterName;
-            return typeof n === "string" ? n : "";
+            const name = typeof n === "string" ? n : "";
+            if (!name) return null;
+            return {
+              name,
+              driverName:    typeof o.driverName    === "string" ? o.driverName    : undefined,
+              portName:      typeof o.portName      === "string" ? o.portName      : undefined,
+              printerStatus: (o.printerStatus as string | number | undefined),
+              workOffline:   Boolean(o.workOffline),
+              shared:        Boolean(o.shared),
+              default:       Boolean(o.default),
+            };
           }
-          return "";
+          return null;
         })
-        .filter((n) => n.length > 0);
+        .filter((x): x is WindowsPrinterInfo => !!x);
       setWindowsPrinters(list);
       if (list.length === 0) toast.info("لم يتم العثور على طابعات Windows");
     } catch (err) {
@@ -428,10 +486,41 @@ export default function NewDeviceOnboardingPage() {
 
   const handlePrinterTest = async (p: Printer) => {
     if (!bridgeOnline) { toast.error("Print Bridge غير متصل"); return; }
+    const settings = (p.settings || {}) as Record<string, unknown>;
+    const isUsb = settings.connection === "usb" || !!settings.windows_printer_name;
+    if (isUsb) {
+      const winName = String(settings.windows_printer_name || "");
+      if (!winName) { toast.error("اسم طابعة Windows مفقود"); return; }
+      const r = await testWindowsPrinter(winName);
+      setPrinterStatus(prev => ({ ...prev, [p.id]: r.success }));
+      if (r.success) toast.success(`✅ ${p.name} — الطباعة تعمل`);
+      else           toast.error(`❌ ${p.name} — ${r.error || "فشل الطباعة"}`);
+      return;
+    }
     const ok = await testPrinterConnection(p.ip_address, p.port);
     setPrinterStatus(prev => ({ ...prev, [p.id]: ok }));
     if (ok) toast.success(`✅ ${p.name} — الطباعة تعمل`);
     else    toast.error(`❌ ${p.name} — فشل الاتصال`);
+  };
+
+  const handlePrinterDelete = async (p: Printer) => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("pos_printers").delete().eq("id", p.id);
+      if (error) { toast.error("فشل الحذف: " + error.message); return; }
+      const role = p.print_categories?.[0] || p.printer_type;
+      const bridgeKey = roleToBridgeKey(role);
+      if (bridgeKey) {
+        // Pass null to remove from device.json on the bridge
+        await pushPrintersToBridge({ [bridgeKey]: null } as unknown as BridgePrintersMap).catch(() => false);
+        await reloadBridgeConfig().catch(() => null);
+      }
+      toast.success("تم حذف الطابعة");
+      setPrinterToDelete(null);
+      await loadOptions();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // ── Network discovery ─────────────────────────────────────
