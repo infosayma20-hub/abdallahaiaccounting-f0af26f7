@@ -285,15 +285,37 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
             <BackButton />
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Monitor className="h-6 w-6" /> إعدادات هذا الجهاز
+                <Monitor className="h-6 w-6" /> إعدادات الجهاز المتقدمة
               </h1>
               <p className="text-sm text-muted-foreground">
-                هذا الجهاز مُعدّ ومرتبط — يمكنك المتابعة إلى نقطة البيع مباشرة
+                للدعم الفني فقط — لإعداد جهاز جديد استخدم المعالج
               </p>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success border border-success/30 px-2.5 py-1 text-xs font-medium">
               <CheckCircle2 className="h-3.5 w-3.5" /> جاهز
             </span>
+          </div>
+
+          {/* Banner: redirect normal users to the new wizard */}
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-foreground">
+                لإعداد جهاز كاشير جديد استخدم معالج تجهيز الجهاز
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                المعالج الجديد يأخذك خطوة بخطوة لربط الفرع، المحطة، والطابعات.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => navigate("/onboarding/new-device")}
+              className="gap-1 shrink-0"
+            >
+              <Rocket className="h-4 w-4" /> فتح المعالج
+            </Button>
           </div>
 
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
