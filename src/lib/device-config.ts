@@ -135,6 +135,28 @@ export interface DeviceConfig {
   label: string;
 }
 
+// ── Printer config that lives on the bridge (device.json) ────
+export type BridgePrinterKey =
+  | "receipt" | "kitchen" | "grill" | "pizza" | "unified_kitchen";
+
+export interface BridgeNetworkPrinter {
+  type: "network";
+  name?: string;
+  ip: string;
+  port: number;
+  width?: number;
+  stationId?: string;
+}
+export interface BridgeWindowsPrinter {
+  type: "windows";
+  name?: string;
+  windowsPrinterName: string;
+  width?: number;
+  stationId?: string;
+}
+export type BridgePrinter = BridgeNetworkPrinter | BridgeWindowsPrinter;
+export type BridgePrintersMap = Partial<Record<BridgePrinterKey, BridgePrinter>>;
+
 export function getDeviceConfig(): DeviceConfig {
   return {
     bridgeUrl: getBridgeUrl(),
@@ -190,6 +212,57 @@ export async function pushConfigToBridge(): Promise<void> {
       /* try next */
     }
   }
+}
+
+/**
+ * Push printer settings to the bridge's device.json. Merges (does NOT delete)
+ * existing fields. Returns true if at least one bridge URL accepted the payload.
+ * Set a printer value to null to remove it from device.json.
+ */
+export async function pushPrintersToBridge(
+  printers: BridgePrintersMap,
+): Promise<boolean> {
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/device-config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ printers }),
+      }, 3000);
+      if (res.ok) {
+        // Trigger a hot-reload so the bridge picks up the new file immediately
+        await reloadBridgeConfig().catch(() => null);
+        return true;
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  return false;
+}
+
+/** Tell the bridge to re-read device.json from disk. Fire-and-forget. */
+export async function reloadBridgeConfig(): Promise<boolean> {
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/reload-config`, { method: "POST" }, 2000);
+      if (res.ok) return true;
+    } catch { /* try next */ }
+  }
+  return false;
+}
+
+/** Fetch the raw device.json from the bridge (incl. printers). null if no bridge. */
+export async function pullRawDeviceJsonFromBridge(): Promise<Record<string, any> | null> {
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/device-config`, { method: "GET" });
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (json && typeof json === "object") return json;
+    } catch { /* try next */ }
+  }
+  return null;
 }
 
 /**

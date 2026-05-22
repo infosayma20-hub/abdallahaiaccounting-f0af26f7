@@ -30,7 +30,8 @@ import BackButton from "@/components/BackButton";
 import {
   getDeviceConfig, setBridgeUrl, setDeviceBranchId, setDeviceTerminalId,
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
-  isDeviceFullyConfigured,
+  isDeviceFullyConfigured, pushPrintersToBridge, pullRawDeviceJsonFromBridge,
+  reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 
@@ -57,6 +58,46 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
 ];
 
 const PRINT_BRIDGE_DOWNLOAD_URL = "https://amwali.app/print-bridge.zip";
+
+// Map our pos_printers role → the bridge's printer key (in device.json)
+function roleToBridgeKey(role: string): BridgePrinterKey | null {
+  switch (role) {
+    case "receipt":          return "receipt";
+    case "kitchen_ticket":
+    case "kitchen":          return "kitchen";
+    case "grill":            return "grill";
+    case "pizza":            return "pizza";
+    case "unified_kitchen":  return "unified_kitchen";
+    default: return null;
+  }
+}
+
+/** Build the BridgePrintersMap from the current pos_printers list. */
+function buildBridgePrintersMap(rows: Printer[]): BridgePrintersMap {
+  const out: BridgePrintersMap = {};
+  for (const p of rows) {
+    const role = p.print_categories?.[0] || p.printer_type;
+    const key = roleToBridgeKey(role);
+    if (!key) continue;
+    const settings = (p.settings || {}) as Record<string, any>;
+    const isUsb = settings.connection === "usb" || settings.windows_printer_name;
+    if (isUsb) {
+      out[key] = {
+        type: "windows",
+        name: p.name,
+        windowsPrinterName: String(settings.windows_printer_name || ""),
+      };
+    } else if (p.ip_address && p.ip_address !== "usb") {
+      out[key] = {
+        type: "network",
+        name: p.name,
+        ip: p.ip_address,
+        port: Number(p.port) || 9100,
+      };
+    }
+  }
+  return out;
+}
 
 // ────────────────────────────────────────────────────────────────
 // Page
@@ -153,6 +194,18 @@ export default function NewDeviceOnboardingPage() {
 
   useEffect(() => { if (!authLoading) void loadOptions(); }, [authLoading, loadOptions]);
 
+  // Whenever the printer list changes, sync it into device.json on the bridge.
+  // This guarantees the bridge always reflects what the POS sees, even if a
+  // printer was added/edited elsewhere (e.g. /printer-settings advanced page).
+  useEffect(() => {
+    if (!bridgeOnline) return;
+    if (printers.length === 0) return;
+    const map = buildBridgePrintersMap(filteredPrinters);
+    if (Object.keys(map).length === 0) return;
+    void pushPrintersToBridge(map).catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printers, bridgeOnline, branchId]);
+
   // ── Branch / terminal quick-create ────────────────────────
   const createBranch = async () => {
     if (!user) return;
@@ -248,12 +301,16 @@ export default function NewDeviceOnboardingPage() {
   // ── Export / Import device.json ───────────────────────────
   const exportConfig = async () => {
     const cfg = getDeviceConfig();
-    const remote = await pullConfigFromBridge().catch(() => null);
+    const remoteRaw = await pullRawDeviceJsonFromBridge().catch(() => null);
+    const printersMap = buildBridgePrintersMap(filteredPrinters);
     const merged = {
-      ...(remote || {}),
+      ...(remoteRaw || {}),
       ...cfg,
-      label: cfg.label || remote?.label || "",
+      label: cfg.label || (remoteRaw?.label as string) || "",
       cashBoxId: cashBoxId || "",
+      printers: Object.keys(printersMap).length
+        ? printersMap
+        : (remoteRaw?.printers || {}),
       exported_at: new Date().toISOString(),
       _app: "amwali",
     };
@@ -274,7 +331,7 @@ export default function NewDeviceOnboardingPage() {
       try {
         const parsed = JSON.parse(String(reader.result || "{}"));
         if (!parsed || typeof parsed !== "object") throw new Error("ملف غير صالح");
-        if (!parsed.branchId && !parsed.terminalId && !parsed.bridgeUrl) {
+        if (!parsed.branchId && !parsed.terminalId && !parsed.bridgeUrl && !parsed.printers) {
           throw new Error("الملف لا يحتوي إعداد جهاز معروف");
         }
         if (parsed.bridgeUrl)  setBridgeUrl(normalizeBridgeUrl(parsed.bridgeUrl));
@@ -283,6 +340,11 @@ export default function NewDeviceOnboardingPage() {
         if (parsed.label)      { setDeviceLabel(parsed.label); setLabel(parsed.label); }
         if (parsed.cashBoxId)  { localStorage.setItem("pos-device:cash-box-id", parsed.cashBoxId); setCashBoxId(parsed.cashBoxId); }
         await pushConfigToBridge().catch(() => null);
+        if (parsed.printers && typeof parsed.printers === "object") {
+          const ok = await pushPrintersToBridge(parsed.printers).catch(() => false);
+          if (ok) toast.info("📡 تم استعادة طابعات device.json إلى برنامج الطباعة");
+        }
+        await reloadBridgeConfig().catch(() => null);
         setDeviceSaved(true);
         toast.success("✅ تم استيراد الإعداد بنجاح. الجهاز جاهز.");
       } catch (err: any) {
@@ -744,7 +806,19 @@ function AddPrinterDialog({
       };
       const { error } = await supabase.from("pos_printers").insert(row);
       if (error) { toast.error("فشل الحفظ: " + error.message); return; }
-      toast.success(`✅ تم إضافة "${name}"`);
+      // Push the new printer to the bridge (device.json) immediately so the
+      // cashier doesn't have to restart anything.
+      const bridgeKey = roleToBridgeKey(role);
+      if (bridgeKey) {
+        const printerForBridge: any = mode === "usb"
+          ? { type: "windows", name: name.trim(), windowsPrinterName: winName.trim() }
+          : { type: "network", name: name.trim(), ip: ip.trim(), port: Number(port) || 9100 };
+        const pushed = await pushPrintersToBridge({ [bridgeKey]: printerForBridge }).catch(() => false);
+        if (pushed) toast.success(`✅ تم إضافة "${name}" — تم حفظها محلياً على هذا الجهاز`);
+        else        toast.success(`✅ تم إضافة "${name}" (لن تنطبق على الجسر حتى يعمل برنامج الطباعة)`);
+      } else {
+        toast.success(`✅ تم إضافة "${name}"`);
+      }
       await onSaved();
       reset();
     } finally { setSaving(false); }

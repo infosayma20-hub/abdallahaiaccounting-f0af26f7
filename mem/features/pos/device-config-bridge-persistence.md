@@ -11,14 +11,34 @@ type: feature
 **Solution:** Print Bridge keeps a copy on disk and exposes it via HTTP.
 
 ## Bridge endpoints (added to print-bridge-v6.3.2.js)
-- `GET  http://127.0.0.1:3001/device-config` → returns `device.json`
-- `POST http://127.0.0.1:3001/device-config` → merges into `device.json` (non-empty fields only)
+- `GET  /device-config`     → returns full `device.json` (incl. `printers` map)
+- `POST /device-config`     → merges non-empty fields incl. `printers` (validated)
+- `POST /reload-config`     → re-reads `device.json` from disk (hot-reload)
+- `GET  /printers-active`   → currently effective printers + source (`device.json` | `fallback`)
 - File: `c:\print-bridge\device.json`
-- Patch doc: `docs/print-bridge-device-config-patch.md`
+- Addon: `docs/device-config-addon.js` (returns `{ getConfig, getPrinters, getSource, reload }`)
+- Patch doc: `docs/print-bridge-installer/PRINTERS-FROM-DEVICE-JSON.md`
+
+### device.json schema (Sprint 2.5)
+```
+{
+  bridgeUrl, branchId, terminalId, cashBoxId, label,
+  printers: {
+    receipt:         { type:"network", ip, port, name, width?, stationId? },
+    kitchen|grill|pizza|unified_kitchen: { ... same shape ... },
+    // OR for USB:   { type:"windows", windowsPrinterName, name }
+  }
+}
+```
+Bridge merges `DEFAULT_PRINTERS` (hardcoded fallback) ← with `printers` from device.json.
+If `printers` is empty/missing, bridge falls back to hardcoded constants — printing never breaks.
 
 ## Frontend flow (src/lib/device-config.ts)
 - `hydrateConfigFromBridge()` runs once at boot from `src/main.tsx` (after createRoot). Probes `http://127.0.0.1:3001` then `http://localhost:3001`. Restores any missing localStorage field from the bridge.
 - `pushConfigToBridge()` is called fire-and-forget from every `setBridgeUrl/setDeviceBranchId/setDeviceTerminalId/setDeviceLabel` so the disk copy stays in sync.
+- `pushPrintersToBridge(map)` POSTs a `{printers}` payload then calls `/reload-config`. Used by `/onboarding/new-device` after add/edit/delete printer, on import, and on every printer list refresh.
+- `pullRawDeviceJsonFromBridge()` returns the full file (used by Export so backup includes printers).
+- `reloadBridgeConfig()` POST `/reload-config` — hot-reload without restarting the Windows service.
 - Merge semantics: only non-empty incoming fields overwrite stored values. Never destructive.
 
 ## Result
