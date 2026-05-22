@@ -252,6 +252,19 @@ export async function reloadBridgeConfig(): Promise<boolean> {
   return false;
 }
 
+/** Fetch the raw device.json from the bridge (incl. printers). null if no bridge. */
+export async function pullRawDeviceJsonFromBridge(): Promise<Record<string, any> | null> {
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/device-config`, { method: "GET" });
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (json && typeof json === "object") return json;
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
 /**
  * Read the on-disk config from the bridge. Returns null if no bridge or no config.
  */
