@@ -568,7 +568,7 @@ export default function NewDeviceOnboardingPage() {
                 <WifiOff className="h-4 w-4" /> برنامج الطباعة غير شغال على هذا الجهاز
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={recheckBridge} disabled={bridgeChecking} className="gap-1">
+            <Button variant="outline" size="sm" onClick={() => { void recheckBridge(); }} disabled={bridgeChecking} className="gap-1">
               <RefreshCw className={`h-3.5 w-3.5 ${bridgeChecking ? "animate-spin" : ""}`} /> إعادة الفحص
             </Button>
           </div>
