@@ -27,7 +27,24 @@ echo [OK] Found bridge script: %BRIDGE_SCRIPT%
 echo.
 
 where node >nul 2>&1
+if %errorLevel% NEQ 0 goto :try_install_node
+goto :node_ok
+
+:try_install_node
+echo [...] Node.js not found. Looking for bundled MSI installer...
+set "NODE_MSI="
+for %%f in ("%BRIDGE_DIR%\node-v*-x64.msi") do set "NODE_MSI=%%f"
+if "%NODE_MSI%"=="" goto :no_node
+echo [OK] Found bundled installer: %NODE_MSI%
+echo [...] Installing Node.js silently. This may take 1-2 minutes...
+msiexec /i "%NODE_MSI%" /qn /norestart
+if %errorLevel% NEQ 0 echo [WARN] msiexec returned non-zero. Will re-check anyway.
+set "PATH=C:\Program Files\nodejs;%PATH%"
+where node >nul 2>&1
 if %errorLevel% NEQ 0 goto :no_node
+echo [OK] Node.js installed successfully.
+
+:node_ok
 for /f "delims=" %%v in ('node -v') do set "NODE_VER=%%v"
 echo [OK] Node.js found - version: !NODE_VER!
 echo.
@@ -105,9 +122,9 @@ pause
 exit /b 1
 
 :no_node
-echo [ERROR] Node.js is not installed.
-echo Download Node.js LTS from https://nodejs.org/en/download
-echo Then restart and run this installer again.
+echo [ERROR] Node.js is not installed and bundled MSI could not be installed.
+echo Ensure node-v*-x64.msi exists in %BRIDGE_DIR% or install Node.js manually
+echo from https://nodejs.org/en/download then re-run this installer.
 pause
 exit /b 1
 
