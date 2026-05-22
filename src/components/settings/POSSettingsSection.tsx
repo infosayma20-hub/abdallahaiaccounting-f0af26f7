@@ -12,6 +12,8 @@ import KdsDisplaySection from "./KdsDisplaySection";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 
 interface Props {
   settings: CompanySettings;
@@ -28,6 +30,7 @@ const paymentMethods = [
 
 const POSSettingsSection = ({ settings, onChange }: Props) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,6 +51,22 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
   return (
     <div className="p-6 space-y-8">
+      {/* Onboarding shortcut */}
+      <button
+        type="button"
+        onClick={() => navigate("/onboarding/new-device")}
+        className="w-full rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center gap-3 text-right hover:bg-primary/10 transition-colors"
+      >
+        <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+          <Sparkles className="h-4 w-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-foreground">معالج تجهيز جهاز نقطة بيع جديد</div>
+          <div className="text-[11px] text-muted-foreground">يربط الجهاز بفرع ومحطة وصندوق، ويعرّف الطابعات في أقل من 10 دقائق.</div>
+        </div>
+        <span className="text-xs text-primary shrink-0">فتح المعالج ←</span>
+      </button>
+
       {/* General */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
