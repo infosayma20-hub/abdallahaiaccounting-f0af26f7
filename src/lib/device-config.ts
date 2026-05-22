@@ -252,6 +252,68 @@ export async function reloadBridgeConfig(): Promise<boolean> {
   return false;
 }
 
+// ── Network printer discovery ───────────────────────────────
+export interface DiscoveredPrinter {
+  ip: string;
+  port: number;
+  status: "open";
+  label?: string;
+}
+export interface DiscoverResult {
+  ok: boolean;
+  subnet?: string;
+  port?: number;
+  scanned?: number;
+  elapsedMs?: number;
+  found: DiscoveredPrinter[];
+  error?: string;
+}
+
+/**
+ * Ask the local Print Bridge to scan the LAN for devices with the given
+ * TCP port open (defaults to 9100 — thermal printers). Subnet is the
+ * /24 prefix like "192.168.1"; when omitted the bridge auto-detects it.
+ */
+export async function discoverNetworkPrinters(opts: {
+  subnet?: string;
+  port?: number;
+  timeoutMs?: number;
+  from?: number;
+  to?: number;
+} = {}): Promise<DiscoverResult> {
+  const body: Record<string, unknown> = {};
+  if (opts.subnet)    body.subnet    = opts.subnet;
+  if (opts.port)      body.port      = opts.port;
+  if (opts.timeoutMs) body.timeoutMs = opts.timeoutMs;
+  if (opts.from)      body.from      = opts.from;
+  if (opts.to)        body.to        = opts.to;
+
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/discover-network-printers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }, 90_000);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { ok: false, found: [], error: err?.error || `http_${res.status}` };
+      }
+      const json = await res.json();
+      return {
+        ok: !!json?.ok,
+        subnet: json?.subnet,
+        port: json?.port,
+        scanned: json?.scanned,
+        elapsedMs: json?.elapsedMs,
+        found: Array.isArray(json?.found) ? json.found : [],
+        error: json?.error,
+      };
+    } catch { /* try next */ }
+  }
+  return { ok: false, found: [], error: "bridge_unreachable" };
+}
+
 /** Fetch the raw device.json from the bridge (incl. printers). null if no bridge. */
 export async function pullRawDeviceJsonFromBridge(): Promise<Record<string, any> | null> {
   for (const base of bridgeCandidates()) {

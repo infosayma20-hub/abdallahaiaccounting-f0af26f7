@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import {
   Monitor, Wifi, WifiOff, Building2, Boxes, Save, TestTube, RefreshCw,
   CheckCircle2, XCircle, Sparkles, Printer, Rocket, Plus, Download, Upload,
-  Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks,
+  Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import {
@@ -32,6 +32,7 @@ import {
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
   isDeviceFullyConfigured, pushPrintersToBridge, pullRawDeviceJsonFromBridge,
   reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
+  discoverNetworkPrinters, type DiscoveredPrinter,
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 
@@ -134,6 +135,13 @@ export default function NewDeviceOnboardingPage() {
   const [printerStatus, setPrinterStatus] = useState<Record<string, boolean | null>>({});
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<string[]>([]);
+
+  // Step 4b — Network discovery
+  const [discoverSubnet, setDiscoverSubnet] = useState("");
+  const [discovering, setDiscovering]       = useState(false);
+  const [discovered, setDiscovered]         = useState<DiscoveredPrinter[] | null>(null);
+  const [discoverMeta, setDiscoverMeta]     = useState<{ subnet?: string; elapsedMs?: number; error?: string } | null>(null);
+  const [assigningIp, setAssigningIp]       = useState<string | null>(null);
 
   // Step 5 — Smoke test
   const [lastReceiptTestOk, setLastReceiptTestOk] = useState<boolean | null>(null);
@@ -386,6 +394,75 @@ export default function NewDeviceOnboardingPage() {
     else    toast.error(`❌ ${p.name} — فشل الاتصال`);
   };
 
+  // ── Network discovery ─────────────────────────────────────
+  const runDiscovery = async () => {
+    if (!bridgeOnline) { toast.error("Print Bridge غير متصل"); return; }
+    setDiscovering(true);
+    setDiscovered(null);
+    setDiscoverMeta(null);
+    try {
+      const subnet = discoverSubnet.trim().replace(/\.+$/, "");
+      const result = await discoverNetworkPrinters(subnet ? { subnet } : {});
+      setDiscoverMeta({ subnet: result.subnet, elapsedMs: result.elapsedMs, error: result.error });
+      if (!result.ok) {
+        const msg = result.error === "subnet_not_private"
+          ? "الشبكة المُدخلة ليست شبكة محلية (يجب أن تكون 192.168.x.x أو 10.x.x.x أو 172.16-31.x.x)"
+          : result.error === "forbidden_remote"
+            ? "فحص الشبكة مسموح فقط من نفس الكمبيوتر الذي عليه برنامج الطباعة"
+            : result.error === "no_private_interface_found"
+              ? "تعذّر اكتشاف الشبكة المحلية تلقائياً — أدخل الـ subnet يدوياً (مثل 192.168.1)"
+              : result.error === "bridge_unreachable"
+                ? "Print Bridge لا يستجيب — تأكد أنه شغّال"
+                : "هذا الإصدار من Print Bridge لا يدعم فحص الشبكة. حدّث الجسر ثم أعد المحاولة.";
+        toast.error(msg);
+        setDiscovered([]);
+        return;
+      }
+      setDiscovered(result.found);
+      if (result.found.length === 0) {
+        toast.info("لم نجد أي طابعة على الشبكة");
+      } else {
+        toast.success(`✅ تم العثور على ${result.found.length} جهاز محتمل`);
+      }
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
+  const assignDiscoveredAsRole = async (d: DiscoveredPrinter, role: string) => {
+    if (!user) return;
+    setAssigningIp(d.ip);
+    try {
+      const roleLabel = PRINTER_ROLES.find(r => r.value === role)?.label || role;
+      const row: any = {
+        user_id: user.id,
+        name: `${roleLabel} (${d.ip})`,
+        ip_address: d.ip,
+        port: d.port || 9100,
+        printer_type: role === "receipt" ? "receipt" : "kitchen_ticket",
+        print_categories: [role],
+        branch_id: branchId || null,
+        is_active: true,
+        is_default: role === "receipt",
+        settings: role === "unified_kitchen" ? { image_mode: "unified_kitchen" } : {},
+      };
+      const { error } = await supabase.from("pos_printers").insert(row);
+      if (error) { toast.error("فشل الحفظ: " + error.message); return; }
+
+      const bridgeKey = roleToBridgeKey(role);
+      if (bridgeKey) {
+        await pushPrintersToBridge({
+          [bridgeKey]: { type: "network", name: row.name, ip: d.ip, port: d.port || 9100 },
+        }).catch(() => false);
+      }
+      await reloadBridgeConfig().catch(() => null);
+      toast.success(`✅ تم تعيين ${d.ip} كـ ${roleLabel}`);
+      await loadOptions();
+    } finally {
+      setAssigningIp(null);
+    }
+  };
+
   // ── Smoke test ────────────────────────────────────────────
   const receiptPrinter = filteredPrinters.find(p =>
     p.print_categories?.includes("receipt") || p.printer_type === "receipt",
@@ -626,6 +703,109 @@ export default function NewDeviceOnboardingPage() {
             <Button variant="ghost" onClick={() => navigate("/printer-settings")} className="gap-2 text-xs">
               <Link2 className="h-3.5 w-3.5" /> إعدادات الطابعات المتقدمة
             </Button>
+          </div>
+
+          {/* ── Network discovery panel ───────────────── */}
+          <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[140px] space-y-1">
+                <Label className="text-[11px] flex items-center gap-1">
+                  <Radar className="h-3.5 w-3.5" /> اكتشف طابعات الشبكة تلقائياً
+                </Label>
+                <Input
+                  value={discoverSubnet}
+                  onChange={(e) => setDiscoverSubnet(e.target.value)}
+                  placeholder="اتركه فارغاً ليُكتشف تلقائياً، أو اكتب 192.168.1"
+                  dir="ltr"
+                  className="text-xs"
+                />
+              </div>
+              <Button
+                onClick={runDiscovery}
+                disabled={!bridgeOnline || discovering}
+                className="gap-2"
+                size="sm"
+              >
+                {discovering
+                  ? <RefreshCw className="h-4 w-4 animate-spin" />
+                  : <Radar className="h-4 w-4" />}
+                {discovering ? "يتم فحص الشبكة..." : "البحث عن طابعات الشبكة"}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              يفحص جميع عناوين الشبكة (1–254) على port 9100. آمن ولا يطبع شيئاً.
+            </p>
+
+            {discovering && (
+              <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" /> يتم فحص الشبكة... (قد يستغرق حتى 30 ثانية)
+              </div>
+            )}
+
+            {!discovering && discovered && discovered.length === 0 && (
+              <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+                لم نجد طابعات على هذه الشبكة
+                {discoverMeta?.subnet ? <> (<span dir="ltr">{discoverMeta.subnet}.x</span>)</> : null}.
+                تأكد أن الطابعة شغّالة، وعلى نفس الشبكة، وأن IP ثابت، أو أدخل IP يدوياً.
+              </div>
+            )}
+
+            {!discovering && discovered && discovered.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[11px] text-muted-foreground">
+                  {discovered.length} جهاز محتمل
+                  {discoverMeta?.subnet ? <> على <span dir="ltr">{discoverMeta.subnet}.x</span></> : null}
+                  {discoverMeta?.elapsedMs ? <> · {(discoverMeta.elapsedMs / 1000).toFixed(1)}s</> : null}
+                </div>
+                {discovered.map((d) => {
+                  const already = filteredPrinters.find(p => p.ip_address === d.ip);
+                  return (
+                    <div
+                      key={d.ip}
+                      className="rounded-md border border-border bg-card p-3 space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Wifi className="h-4 w-4 text-success" />
+                        <span className="font-mono text-sm font-semibold" dir="ltr">
+                          {d.ip}:{d.port}
+                        </span>
+                        {already && (
+                          <span className="text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                            مُعرَّفة كـ {already.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PRINTER_ROLES.map(r => (
+                          <Button
+                            key={r.value}
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px] gap-1"
+                            disabled={assigningIp === d.ip}
+                            onClick={() => assignDiscoveredAsRole(d, r.value)}
+                          >
+                            <span>{r.emoji}</span> استخدام كـ{r.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[11px] gap-1"
+                          onClick={async () => {
+                            const ok = await testPrinterConnection(d.ip, d.port);
+                            if (ok) toast.success(`✅ ${d.ip} — متصل`);
+                            else    toast.error(`❌ ${d.ip} — لم يرد`);
+                          }}
+                        >
+                          <TestTube className="h-3.5 w-3.5" /> اختبار
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Section>
 
