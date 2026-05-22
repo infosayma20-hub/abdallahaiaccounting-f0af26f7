@@ -150,19 +150,35 @@ export default function NewDeviceOnboardingPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── Bridge check ──────────────────────────────────────────
-  const recheckBridge = useCallback(async () => {
+  const recheckBridge = useCallback(async (opts?: { silent?: boolean }) => {
     setBridgeChecking(true);
     try {
       const ok = await checkBridgeStatus();
       setBridgeOnline(ok);
+      if (ok) {
+        // Re-pull remote config + refresh DB options so the UI reflects
+        // any printers/branch/terminal changes since last check.
+        try {
+          const remote = await pullConfigFromBridge();
+          if (remote) {
+            if (remote.branchId)   setBranchId(prev => prev || remote.branchId!);
+            if (remote.terminalId) setTerminalId(prev => prev || remote.terminalId!);
+            if (remote.label)      setLabel(prev => prev || remote.label!);
+          }
+        } catch { /* ignore */ }
+        await loadOptions();
+        if (!opts?.silent) toast.success("برنامج الطباعة متصل ✓");
+      } else if (!opts?.silent) {
+        toast.error("برنامج الطباعة غير شغّال على هذا الجهاز");
+      }
     } finally {
       setBridgeChecking(false);
     }
-  }, []);
+  }, [loadOptions]);
 
   useEffect(() => {
-    void recheckBridge();
-    const t = setInterval(() => { void recheckBridge(); }, 10_000);
+    void recheckBridge({ silent: true });
+    const t = setInterval(() => { void recheckBridge({ silent: true }); }, 10_000);
     return () => clearInterval(t);
   }, [recheckBridge]);
 
