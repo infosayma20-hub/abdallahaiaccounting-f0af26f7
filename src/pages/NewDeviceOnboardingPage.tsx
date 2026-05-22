@@ -1034,6 +1034,27 @@ export default function NewDeviceOnboardingPage() {
         onSaved={async () => { setShowAddPrinter(false); await loadOptions(); }}
         bridgeOnline={bridgeOnline === true}
       />
+
+      <AlertDialog open={!!printerToDelete} onOpenChange={(v) => !v && setPrinterToDelete(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل تريد حذف هذه الطابعة؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف <span className="font-semibold">{printerToDelete?.name}</span> من قائمة الطابعات ومن برنامج الطباعة المحلي.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => { e.preventDefault(); if (printerToDelete) void handlePrinterDelete(printerToDelete); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "جارٍ الحذف..." : "حذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
