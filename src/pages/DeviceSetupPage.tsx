@@ -29,7 +29,17 @@ const STEPS: { id: StepId; title: string; icon: any }[] = [
   { id: "review",   title: "إنهاء",          icon: Rocket },
 ];
 
-export default function DeviceSetupPage() {
+interface DeviceSetupPageProps {
+  /**
+   * "advanced" (default) → الواجهة القديمة الكاملة (تستخدمها /device-setup)،
+   * مع Banner علوي يوجّه المستخدم للمعالج الجديد.
+   * "wizard" → نفس المكوّن لكن مثبّت على وضع المعالج التدريجي
+   *   (تستخدمه /onboarding/new-device).
+   */
+  variant?: "advanced" | "wizard";
+}
+
+export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPageProps = {}) {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -58,8 +68,8 @@ export default function DeviceSetupPage() {
   // Backward-compat: existing configured devices see a compact "manage" view
   // by default. They can opt into the wizard manually. New devices go straight
   // to the wizard from welcome.
-  const [forceWizard, setForceWizard] = useState(false);
-  const showWizard = !isDeviceFullyConfigured() || forceWizard;
+  const [forceWizard, setForceWizard] = useState(variant === "wizard");
+  const showWizard = variant === "wizard" || !isDeviceFullyConfigured() || forceWizard;
   // Inline create-terminal state
   const [showCreateTerminal, setShowCreateTerminal] = useState(false);
   const [newTerminalName, setNewTerminalName] = useState("نقطة بيع 1");
