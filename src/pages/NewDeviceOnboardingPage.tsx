@@ -30,7 +30,8 @@ import BackButton from "@/components/BackButton";
 import {
   getDeviceConfig, setBridgeUrl, setDeviceBranchId, setDeviceTerminalId,
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
-  isDeviceFullyConfigured,
+  isDeviceFullyConfigured, pushPrintersToBridge, pullRawDeviceJsonFromBridge,
+  reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection } from "@/lib/print-bridge-client";
 
@@ -57,6 +58,46 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
 ];
 
 const PRINT_BRIDGE_DOWNLOAD_URL = "https://amwali.app/print-bridge.zip";
+
+// Map our pos_printers role → the bridge's printer key (in device.json)
+function roleToBridgeKey(role: string): BridgePrinterKey | null {
+  switch (role) {
+    case "receipt":          return "receipt";
+    case "kitchen_ticket":
+    case "kitchen":          return "kitchen";
+    case "grill":            return "grill";
+    case "pizza":            return "pizza";
+    case "unified_kitchen":  return "unified_kitchen";
+    default: return null;
+  }
+}
+
+/** Build the BridgePrintersMap from the current pos_printers list. */
+function buildBridgePrintersMap(rows: Printer[]): BridgePrintersMap {
+  const out: BridgePrintersMap = {};
+  for (const p of rows) {
+    const role = p.print_categories?.[0] || p.printer_type;
+    const key = roleToBridgeKey(role);
+    if (!key) continue;
+    const settings = (p.settings || {}) as Record<string, any>;
+    const isUsb = settings.connection === "usb" || settings.windows_printer_name;
+    if (isUsb) {
+      out[key] = {
+        type: "windows",
+        name: p.name,
+        windowsPrinterName: String(settings.windows_printer_name || ""),
+      };
+    } else if (p.ip_address && p.ip_address !== "usb") {
+      out[key] = {
+        type: "network",
+        name: p.name,
+        ip: p.ip_address,
+        port: Number(p.port) || 9100,
+      };
+    }
+  }
+  return out;
+}
 
 // ────────────────────────────────────────────────────────────────
 // Page
