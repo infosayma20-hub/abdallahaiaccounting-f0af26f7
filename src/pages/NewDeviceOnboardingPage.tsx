@@ -821,19 +821,33 @@ export default function NewDeviceOnboardingPage() {
                 const cat = p.print_categories?.[0] || p.printer_type;
                 const role = PRINTER_ROLES.find(r => r.value === cat) || { label: cat, emoji: "🖨️" };
                 const st = printerStatus[p.id];
+                const settings = (p.settings || {}) as Record<string, unknown>;
+                const isUsb = settings.connection === "usb" || !!settings.windows_printer_name;
+                const winName = String(settings.windows_printer_name || "");
+                const subtitle = isUsb
+                  ? `${role.label} · windows:${winName || "?"}`
+                  : `${role.label} · ${p.ip_address}:${p.port}`;
                 return (
                   <div key={p.id} className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm">
                     <span className="text-lg">{role.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{p.name}</div>
                       <div className="text-[11px] text-muted-foreground" dir="ltr">
-                        {role.label} · {p.ip_address}:{p.port}
+                        {subtitle}
                       </div>
                     </div>
                     {st === true  && <span className="text-success text-xs inline-flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> تعمل</span>}
                     {st === false && <span className="text-destructive text-xs inline-flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> فشل</span>}
                     <Button size="sm" variant="ghost" onClick={() => handlePrinterTest(p)} className="gap-1 h-7 px-2">
                       <TestTube className="h-3.5 w-3.5" /> اختبار
+                    </Button>
+                    <Button
+                      size="sm" variant="ghost"
+                      onClick={() => setPrinterToDelete(p)}
+                      className="gap-1 h-7 px-2 text-destructive hover:text-destructive"
+                      title="حذف"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 );
