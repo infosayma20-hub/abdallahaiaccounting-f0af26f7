@@ -136,6 +136,13 @@ export default function NewDeviceOnboardingPage() {
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<string[]>([]);
 
+  // Step 4b — Network discovery
+  const [discoverSubnet, setDiscoverSubnet] = useState("");
+  const [discovering, setDiscovering]       = useState(false);
+  const [discovered, setDiscovered]         = useState<DiscoveredPrinter[] | null>(null);
+  const [discoverMeta, setDiscoverMeta]     = useState<{ subnet?: string; elapsedMs?: number; error?: string } | null>(null);
+  const [assigningIp, setAssigningIp]       = useState<string | null>(null);
+
   // Step 5 — Smoke test
   const [lastReceiptTestOk, setLastReceiptTestOk] = useState<boolean | null>(null);
   const [lastKitchenTestOk, setLastKitchenTestOk] = useState<boolean | null>(null);
