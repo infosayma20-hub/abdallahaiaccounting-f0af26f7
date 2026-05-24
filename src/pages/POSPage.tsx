@@ -3167,6 +3167,8 @@ const POSPage = () => {
           cashier: session.cashier_name,
           tableNumber: activeOrder.tableName || undefined,
           orderType: activeOrder.orderType,
+          customerName: activeOrder.customerName || undefined,
+          customerPhone: activeOrder.customerPhone || undefined,
           items: cart.map(item => ({
             id: item.product_id || item.id,
             name: item.name,
@@ -3724,6 +3726,8 @@ const POSPage = () => {
           cashier: session?.cashier_name || "",
           tableNumber: activeOrder.tableName || undefined,
           orderType: activeOrder.orderType,
+          customerName: activeOrder.customerName || undefined,
+          customerPhone: activeOrder.customerPhone || undefined,
           items: cart.map(item => ({
             id: item.product_id || item.id,
             name: item.name,
