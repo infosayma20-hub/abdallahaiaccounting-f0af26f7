@@ -61,6 +61,12 @@ export interface PrintOrder {
   cancelReason?: string;
   /** Who cancelled — printed on the ticket */
   cancelledBy?: string;
+  /** Customer name (for delivery / takeaway / call-center orders) */
+  customerName?: string;
+  /** Customer phone (for delivery / takeaway / call-center orders) */
+  customerPhone?: string;
+  /** Pickup note — e.g. "استلام من فيصل" */
+  pickupBy?: string;
 }
 
 export function usePrintBridge() {
