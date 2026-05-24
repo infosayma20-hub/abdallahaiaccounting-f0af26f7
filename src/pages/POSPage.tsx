@@ -52,7 +52,8 @@ import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
-import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady } from "@/lib/device-config";
+import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge } from "@/lib/device-config";
+import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
   closestCenter,
