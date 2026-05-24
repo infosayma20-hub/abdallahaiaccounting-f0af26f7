@@ -324,14 +324,24 @@ async function shouldUseUnifiedKitchenPrinter(order: PrintOrder): Promise<boolea
 
 function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
   const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
+  const totalQty = (items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  const dailyCounterRaw = order.queueNumber ?? order.orderNumber;
+  const dailyCounter = dailyCounterRaw !== undefined && dailyCounterRaw !== null
+    ? String(dailyCounterRaw).replace(/\D/g, '').padStart(6, '0').slice(-6) || String(dailyCounterRaw)
+    : undefined;
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
+    dailyCounter,
     branchName: order.branchName,
     cashierName: order.cashier,
     orderType: normalizedType,
     orderTypeLabel: orderTypeLabel(normalizedType),
     tableNumber: order.tableNumber,
+    customerName: order.customerName || undefined,
+    customerPhone: order.customerPhone || undefined,
+    pickupBy: order.pickupBy || undefined,
+    totalQty,
     items: items.map(item => ({
       name: item.name,
       quantity: item.quantity,
