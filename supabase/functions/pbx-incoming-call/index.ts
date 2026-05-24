@@ -62,6 +62,21 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // ── Shared-secret authentication ──
+  const expectedSecret = Deno.env.get("PBX_WEBHOOK_SECRET");
+  if (expectedSecret) {
+    const provided =
+      req.headers.get("x-webhook-secret") ||
+      req.headers.get("x-pbx-secret") ||
+      new URL(req.url).searchParams.get("secret");
+    if (!provided || provided !== expectedSecret) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+  } else {
+    console.warn("PBX webhook: PBX_WEBHOOK_SECRET not configured — rejecting request");
+    return jsonResponse({ error: "Webhook secret not configured" }, 503);
+  }
+
   try {
     const body = await parseRequestBody(req);
     console.log("PBX webhook received:", JSON.stringify(body));

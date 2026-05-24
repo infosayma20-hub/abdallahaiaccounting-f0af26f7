@@ -147,6 +147,22 @@ Deno.serve(async (req) => {
     if (action === "toggle_active") {
       const { target_user_id, is_active } = body;
 
+      // Tenant check: target must be same company or invited by caller (or self)
+      if (!hasSuperAdmin) {
+        const [{ data: adminProfile }, { data: targetProfile }] = await Promise.all([
+          supabase.from("profiles").select("company_id").eq("user_id", adminUser.id).maybeSingle(),
+          supabase.from("profiles").select("user_id, invited_by, company_id").eq("user_id", target_user_id).maybeSingle(),
+        ]);
+        const sameCompany = !!adminProfile?.company_id && adminProfile.company_id === targetProfile?.company_id;
+        const invitedByAdmin = targetProfile?.invited_by === adminUser.id;
+        const isSelf = target_user_id === adminUser.id;
+        if (!targetProfile || (!isSelf && !invitedByAdmin && !sameCompany)) {
+          return new Response(JSON.stringify({ error: "403 Cross-tenant forbidden" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       if (is_active) {
         // Unban user
         await supabase.auth.admin.updateUserById(target_user_id, { ban_duration: "none" });
@@ -297,6 +313,31 @@ Deno.serve(async (req) => {
 
     if (action === "change_role") {
       const { target_user_id, new_role } = body;
+
+      // Role allowlist: never allow non-super_admin to assign super_admin
+      const ALLOWED_ROLES = new Set([
+        "admin", "accountant_senior", "accountant", "cashier",
+        "viewer", "hr_manager", "portal", "owner", "store_tracker",
+      ]);
+      if (!hasSuperAdmin) {
+        if (new_role === "super_admin" || !ALLOWED_ROLES.has(new_role)) {
+          return new Response(JSON.stringify({ error: "دور غير مسموح" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Tenant check
+        const [{ data: adminProfile }, { data: targetProfile }] = await Promise.all([
+          supabase.from("profiles").select("company_id").eq("user_id", adminUser.id).maybeSingle(),
+          supabase.from("profiles").select("user_id, invited_by, company_id").eq("user_id", target_user_id).maybeSingle(),
+        ]);
+        const sameCompany = !!adminProfile?.company_id && adminProfile.company_id === targetProfile?.company_id;
+        const invitedByAdmin = targetProfile?.invited_by === adminUser.id;
+        if (!targetProfile || (!invitedByAdmin && !sameCompany)) {
+          return new Response(JSON.stringify({ error: "403 Cross-tenant forbidden" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
 
       await supabase.from("user_roles").delete().eq("user_id", target_user_id);
       await supabase.from("user_roles").insert({ user_id: target_user_id, role: new_role });
