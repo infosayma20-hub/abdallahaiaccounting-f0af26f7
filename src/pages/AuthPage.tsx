@@ -196,7 +196,17 @@ const AuthPage = () => {
       if (optErr || options?.error) throw new Error(options?.error || optErr?.message);
       const credential = await startAuthentication({ optionsJSON: options });
       const { data: result, error: verErr } = await supabase.functions.invoke("webauthn", {
-        body: { action: "auth-verify", credentialId: credential.id, email: biometricEmail },
+        body: {
+          action: "auth-verify",
+          credentialId: credential.id,
+          email: biometricEmail,
+          assertion: {
+            clientDataJSON: credential.response.clientDataJSON,
+            authenticatorData: credential.response.authenticatorData,
+            signature: credential.response.signature,
+            userHandle: credential.response.userHandle,
+          },
+        },
       });
       if (verErr || result?.error) throw new Error(result?.error || verErr?.message);
       if (result?.actionLink) {
