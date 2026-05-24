@@ -8239,6 +8239,7 @@ export type Database = {
           device_name: string | null
           id: string
           public_key: string
+          public_key_algorithm: number
           user_id: string
         }
         Insert: {
@@ -8248,6 +8249,7 @@ export type Database = {
           device_name?: string | null
           id?: string
           public_key: string
+          public_key_algorithm?: number
           user_id: string
         }
         Update: {
@@ -8257,6 +8259,7 @@ export type Database = {
           device_name?: string | null
           id?: string
           public_key?: string
+          public_key_algorithm?: number
           user_id?: string
         }
         Relationships: []
