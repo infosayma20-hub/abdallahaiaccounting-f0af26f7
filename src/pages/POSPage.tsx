@@ -624,6 +624,42 @@ const POSPage = () => {
     return off;
   }, []);
 
+  // ── Open-shift dialog readiness diagnostic ──
+  // Whenever the dialog opens, re-hydrate from the Print Bridge's
+  // device.json (in case localStorage was wiped), refresh bridge online
+  // status, and count configured printers for this device's branch.
+  useEffect(() => {
+    if (!showOpenShift) return;
+    let cancelled = false;
+    (async () => {
+      try { await hydrateConfigFromBridge(); } catch { /* ignore */ }
+      if (cancelled) return;
+      setDeviceConfig(getDeviceConfig());
+      try {
+        const ok = await checkBridgeStatus();
+        if (!cancelled) setBridgeOnlineDiag(ok);
+      } catch {
+        if (!cancelled) setBridgeOnlineDiag(false);
+      }
+      try {
+        const cfg = getDeviceConfig();
+        if (!user?.id) { setPrintersCountDiag(0); return; }
+        const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+        const ownerId = (ownerIdRaw as string | null) || user.id;
+        let q: any = (supabase.from("pos_printers") as any)
+          .select("id, branch_id, is_active", { count: "exact", head: true })
+          .eq("user_id", ownerId)
+          .eq("is_active", true);
+        if (cfg.branchId) q = q.or(`branch_id.eq.${cfg.branchId},branch_id.is.null`);
+        const { count } = await q;
+        if (!cancelled) setPrintersCountDiag(count ?? 0);
+      } catch {
+        if (!cancelled) setPrintersCountDiag(0);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showOpenShift, user?.id]);
+
   // Resolve terminal.branch_id from DB whenever the configured terminal changes.
   useEffect(() => {
     let cancelled = false;
