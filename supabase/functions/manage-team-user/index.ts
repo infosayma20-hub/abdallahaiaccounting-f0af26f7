@@ -316,8 +316,9 @@ Deno.serve(async (req) => {
 
       // Role allowlist: never allow non-super_admin to assign super_admin
       const ALLOWED_ROLES = new Set([
-        "admin", "accountant_senior", "accountant", "cashier",
-        "viewer", "hr_manager", "portal", "owner", "store_tracker",
+        "admin", "hr_manager", "employee",
+        "accountant_senior", "accountant_sales", "accountant_purchases",
+        "cashier", "worker", "supervisor", "portal", "sales_rep", "branch_scheduler",
       ]);
       if (!hasSuperAdmin) {
         if (new_role === "super_admin" || !ALLOWED_ROLES.has(new_role)) {
