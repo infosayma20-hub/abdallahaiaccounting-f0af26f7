@@ -592,6 +592,9 @@ const POSPage = () => {
   const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
+  // Diagnostic state for the open-shift dialog (per-line readiness)
+  const [bridgeOnlineDiag, setBridgeOnlineDiag] = useState<boolean | null>(null);
+  const [printersCountDiag, setPrintersCountDiag] = useState<number | null>(null);
 
   const selectedCashBox = useMemo(
     () => cashBoxes.find((box) => box.id === selectedCashBoxId) || null,
