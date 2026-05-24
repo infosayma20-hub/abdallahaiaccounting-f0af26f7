@@ -5159,7 +5159,11 @@ const POSPage = () => {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
+            <Button
+              onClick={handleOpenShift}
+              disabled={!deviceConfig.branchId || !deviceConfig.terminalId}
+              className="w-full h-12 text-base font-bold gap-2"
+            >
               <CheckCircle className="h-5 w-5" />
               فتح الوردية
             </Button>
