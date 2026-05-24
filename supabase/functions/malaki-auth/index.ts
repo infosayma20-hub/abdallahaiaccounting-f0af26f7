@@ -32,6 +32,52 @@ Deno.serve(async (req) => {
       return respond(data);
     }
 
+    // ── All other actions require an authenticated admin/super_admin caller ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return respond({ success: false, error: "غير مصرح" }, 401);
+    }
+    const { data: { user: caller }, error: authErr } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authErr || !caller) {
+      return respond({ success: false, error: "غير مصرح" }, 401);
+    }
+
+    const [{ data: hasAdmin }, { data: hasSuperAdmin }] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: caller.id, _role: "admin" }),
+      supabase.rpc("is_super_admin", { _user_id: caller.id }),
+    ]);
+    if (!hasAdmin && !hasSuperAdmin) {
+      return respond({ success: false, error: "ليس لديك صلاحية" }, 403);
+    }
+
+    // Tenant guard: force user_id / admin_user_id scoping to the caller's owner id.
+    const { data: callerOwnerId } = await supabase.rpc("get_team_owner_id", { _user_id: caller.id });
+    const ownerScope: string = callerOwnerId || caller.id;
+    if (!hasSuperAdmin) {
+      // For list_users, force the user_id filter to the caller's tenant
+      if (action === "list_users") {
+        body.user_id = ownerScope;
+      }
+      // For create / link, force admin_user_id / user_id to caller's tenant
+      if (action === "create_user" || action === "link_existing_user") {
+        body.user_id = ownerScope;
+        body.admin_user_id = ownerScope;
+      }
+      // For update/delete/reset_password, verify target portal user belongs to caller's tenant
+      if (action === "update_user" || action === "delete_user" || action === "reset_password") {
+        const { data: target } = await supabase
+          .from("malaki_portal_users")
+          .select("user_id")
+          .eq("id", body.user_id)
+          .maybeSingle();
+        if (!target || target.user_id !== ownerScope) {
+          return respond({ success: false, error: "ليس لديك صلاحية على هذا المستخدم" }, 403);
+        }
+      }
+    }
+
     if (action === "list_users") {
       let query = supabase
         .from("malaki_portal_users")

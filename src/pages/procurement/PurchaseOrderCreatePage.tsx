@@ -29,11 +29,14 @@ function loadCustomUnits(): string[] { try { return JSON.parse(localStorage.getI
 function saveCustomUnit(u: string) { const arr = loadCustomUnits(); if (!arr.includes(u)) { arr.push(u); localStorage.setItem(CUSTOM_UNITS_KEY, JSON.stringify(arr)); } }
 
 function highlightSearchWords(text: string, query: string): string {
-  if (!query.trim()) return text;
+  const escapeHtml = (s: string) =>
+    s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  const safe = escapeHtml(text ?? "");
+  if (!query.trim()) return safe;
   const words = query.trim().split(/\s+/).filter(Boolean);
-  let result = text;
+  let result = safe;
   words.forEach(w => {
-    const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escaped = escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     result = result.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-amber-200/70 dark:bg-amber-500/30 rounded-sm px-0.5">$1</mark>');
   });
   return result;

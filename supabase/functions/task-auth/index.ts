@@ -99,6 +99,20 @@ Deno.serve(async (req) => {
 
       const { task_user_id, new_password } = await req.json();
 
+      // Resolve caller's owner id (team owner) and verify the task_user belongs to it
+      const { data: ownerData } = await supabaseAdmin.rpc("get_team_owner_id", { _user_id: auth.userId });
+      const ownerUid = (ownerData as string) || auth.userId;
+
+      const { data: owned } = await supabaseAdmin.rpc("is_task_user_owned_by", {
+        _task_user_id: task_user_id,
+        _owner: ownerUid,
+      });
+      if (!owned) {
+        return new Response(JSON.stringify({ success: false, error: "ليس لديك صلاحية" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data } = await supabaseAdmin.rpc("set_task_user_password", {
         p_task_user_id: task_user_id,
         p_new_password: new_password,

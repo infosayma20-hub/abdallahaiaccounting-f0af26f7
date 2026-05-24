@@ -8239,6 +8239,7 @@ export type Database = {
           device_name: string | null
           id: string
           public_key: string
+          public_key_algorithm: number
           user_id: string
         }
         Insert: {
@@ -8248,6 +8249,7 @@ export type Database = {
           device_name?: string | null
           id?: string
           public_key: string
+          public_key_algorithm?: number
           user_id: string
         }
         Update: {
@@ -8257,6 +8259,7 @@ export type Database = {
           device_name?: string | null
           id?: string
           public_key?: string
+          public_key_algorithm?: number
           user_id?: string
         }
         Relationships: []
@@ -17315,6 +17318,10 @@ export type Database = {
       is_my_team_employee: { Args: { _employee_id: string }; Returns: boolean }
       is_sales_rep: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_task_user_owned_by: {
+        Args: { _owner: string; _task_user_id: string }
+        Returns: boolean
+      }
       is_team_member: {
         Args: { _data_owner_id: string; _user_id: string }
         Returns: boolean
