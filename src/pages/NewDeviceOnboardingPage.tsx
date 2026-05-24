@@ -618,11 +618,16 @@ export default function NewDeviceOnboardingPage() {
 
   // ── Step statuses (drives the progress bar) ───────────────
   const step1Status: StepStatus = bridgeOnline === null ? "idle" : bridgeOnline ? "ok" : "fail";
-  const step2Status: StepStatus = deviceSaved && branchId && terminalId ? "ok" : (branchId || terminalId || label) ? "needs" : "idle";
-  const step3Status: StepStatus = deviceSaved ? "ok" : "idle";
+  // Step 2 is considered complete whenever branch + terminal are bound — the
+  // values may have come from a previous save, from device.json hydration, or
+  // from POS settings. We no longer require an explicit re-save just to mark
+  // the step as OK.
+  const deviceConfigured = !!(branchId && terminalId);
+  const step2Status: StepStatus = deviceConfigured ? "ok" : (branchId || terminalId || label) ? "needs" : "idle";
+  const step3Status: StepStatus = deviceConfigured ? "ok" : "idle";
   const step4Status: StepStatus = filteredPrinters.length > 0 ? "ok" : "needs";
-  const smokeOk = bridgeOnline && deviceSaved && !!receiptPrinter && (lastReceiptTestOk === true);
-  const step5Status: StepStatus = smokeOk ? "ok" : (deviceSaved && receiptPrinter) ? "needs" : "idle";
+  const smokeOk = bridgeOnline && deviceConfigured && !!receiptPrinter && (lastReceiptTestOk === true);
+  const step5Status: StepStatus = smokeOk ? "ok" : (deviceConfigured && receiptPrinter) ? "needs" : "idle";
 
   const completed = [step1Status, step2Status, step3Status, step4Status, step5Status]
     .filter(s => s === "ok").length;

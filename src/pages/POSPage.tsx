@@ -52,7 +52,8 @@ import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
-import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady } from "@/lib/device-config";
+import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge } from "@/lib/device-config";
+import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
   closestCenter,
@@ -591,6 +592,9 @@ const POSPage = () => {
   const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
+  // Diagnostic state for the open-shift dialog (per-line readiness)
+  const [bridgeOnlineDiag, setBridgeOnlineDiag] = useState<boolean | null>(null);
+  const [printersCountDiag, setPrintersCountDiag] = useState<number | null>(null);
 
   const selectedCashBox = useMemo(
     () => cashBoxes.find((box) => box.id === selectedCashBoxId) || null,
@@ -619,6 +623,42 @@ const POSPage = () => {
     const off = onDeviceConfigChange(() => setDeviceConfig(getDeviceConfig()));
     return off;
   }, []);
+
+  // ── Open-shift dialog readiness diagnostic ──
+  // Whenever the dialog opens, re-hydrate from the Print Bridge's
+  // device.json (in case localStorage was wiped), refresh bridge online
+  // status, and count configured printers for this device's branch.
+  useEffect(() => {
+    if (!showOpenShift) return;
+    let cancelled = false;
+    (async () => {
+      try { await hydrateConfigFromBridge(); } catch { /* ignore */ }
+      if (cancelled) return;
+      setDeviceConfig(getDeviceConfig());
+      try {
+        const ok = await checkBridgeStatus();
+        if (!cancelled) setBridgeOnlineDiag(ok);
+      } catch {
+        if (!cancelled) setBridgeOnlineDiag(false);
+      }
+      try {
+        const cfg = getDeviceConfig();
+        if (!user?.id) { setPrintersCountDiag(0); return; }
+        const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+        const ownerId = (ownerIdRaw as string | null) || user.id;
+        let q: any = (supabase.from("pos_printers") as any)
+          .select("id, branch_id, is_active", { count: "exact", head: true })
+          .eq("user_id", ownerId)
+          .eq("is_active", true);
+        if (cfg.branchId) q = q.or(`branch_id.eq.${cfg.branchId},branch_id.is.null`);
+        const { count } = await q;
+        if (!cancelled) setPrintersCountDiag(count ?? 0);
+      } catch {
+        if (!cancelled) setPrintersCountDiag(0);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showOpenShift, user?.id]);
 
   // Resolve terminal.branch_id from DB whenever the configured terminal changes.
   useEffect(() => {
@@ -5028,22 +5068,52 @@ const POSPage = () => {
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {(!deviceConfig.branchId || !deviceConfig.terminalId) && (
-              <div className="rounded-md border border-warning/40 bg-warning/15 p-2.5 text-[12px] leading-tight text-foreground dark:text-warning space-y-2">
-                <div>⚠️ الجهاز غير مهيأ بالكامل — يجب ضبط الفرع والمحطة قبل فتح الوردية.</div>
-                {isAdmin && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="w-full h-9"
-                    onClick={() => { setShowOpenShift(false); navigate("/device-setup"); }}
-                  >
-                    🛠️ فتح إعداد الجهاز الآن
-                  </Button>
-                )}
-              </div>
-            )}
+            {(() => {
+              const branchOk = !!deviceConfig.branchId;
+              const terminalOk = !!deviceConfig.terminalId;
+              const bridgeOk = bridgeOnlineDiag === true;
+              const printersOk = (printersCountDiag ?? 0) > 0;
+              const blocking = !branchOk || !terminalOk;
+              const Row = ({ ok, label, value }: { ok: boolean | null; label: string; value: string }) => (
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className={`inline-flex items-center gap-1 font-medium ${
+                    ok === true ? "text-success" : ok === false ? "text-destructive" : "text-muted-foreground"
+                  }`}>
+                    {ok === true ? "✓" : ok === false ? "✗" : "…"} {value}
+                  </span>
+                </div>
+              );
+              return (
+                <div className={`rounded-md border p-3 space-y-1.5 ${
+                  blocking ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/30"
+                }`}>
+                  <div className="text-[12px] font-semibold mb-1">حالة الجهاز</div>
+                  <Row ok={bridgeOnlineDiag} label="برنامج الطباعة" value={bridgeOk ? "متصل" : bridgeOnlineDiag === false ? "غير متصل" : "جارٍ الفحص…"} />
+                  <Row ok={branchOk} label="الفرع" value={branchOk ? "معرف" : "غير معرف"} />
+                  <Row ok={terminalOk} label="محطة POS" value={terminalOk ? "معرفة" : "غير معرفة"} />
+                  <Row ok={null} label="الصندوق النقدي" value="اختياري" />
+                  <Row ok={printersCountDiag === null ? null : printersOk} label="الطابعات"
+                       value={printersCountDiag === null ? "جارٍ الفحص…" : printersOk ? `${printersCountDiag} معرفة` : "غير معرفة"} />
+                  {blocking && (
+                    <div className="pt-2 space-y-2">
+                      <div className="text-[12px] text-destructive">
+                        لا يمكن فتح الوردية حتى يتم ضبط {!branchOk ? "الفرع" : ""}{!branchOk && !terminalOk ? " و" : ""}{!terminalOk ? "محطة POS" : ""}.
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="w-full h-9"
+                        onClick={() => { setShowOpenShift(false); navigate("/onboarding/new-device"); }}
+                      >
+                        🛠️ فتح إعداد الجهاز
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             {/* Cash Box Selector */}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
@@ -5089,7 +5159,11 @@ const POSPage = () => {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
+            <Button
+              onClick={handleOpenShift}
+              disabled={!deviceConfig.branchId || !deviceConfig.terminalId}
+              className="w-full h-12 text-base font-bold gap-2"
+            >
               <CheckCircle className="h-5 w-5" />
               فتح الوردية
             </Button>
