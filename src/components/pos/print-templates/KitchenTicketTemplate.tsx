@@ -20,7 +20,8 @@ interface Props {
 const FONT = "'Tahoma', 'Arial', sans-serif";
 
 const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items, stationName }, ref) => {
-  const qNum = order.queueNumber || order.orderNumber || '---';
+  const rawCounter = order.queueNumber ?? order.orderNumber ?? '---';
+  const dailyCounter = String(rawCounter).replace(/\D/g, '').padStart(6, '0').slice(-6) || String(rawCounter);
 
   // Time string — HH:MM (24h, large for kitchen visibility)
   const now = new Date();
@@ -38,6 +39,18 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
   const orderTypeLabel = isDelivery ? 'توصيل'
     : isDineIn ? 'محلي'
     : 'استلام';
+
+  const totalQty = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  const infoRows: { label: string; value: string; ltr?: boolean }[] = [
+    { label: 'التاريخ', value: dateStr },
+    { label: 'الوقت', value: timeStr },
+    { label: 'نوع الفاتورة', value: orderTypeLabel },
+    { label: '# العداد اليومي', value: dailyCounter },
+  ];
+  if (order.customerName) infoRows.push({ label: 'بيانات المتصل', value: order.customerName });
+  if (order.customerPhone) infoRows.push({ label: '', value: order.customerPhone, ltr: true });
+  if (order.pickupBy) infoRows.push({ label: 'ملاحظة', value: `استلام من ${order.pickupBy}` });
+  infoRows.push({ label: 'مجموع الكميات', value: String(totalQty) });
 
   return (
     <div
@@ -85,23 +98,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         margin: '6px 0 2px',
         lineHeight: 1.0,
       }}>
-        # {qNum}
-      </div>
-
-      {/* TIME — moved directly BELOW order number, larger font (per Al-Malaky April 2026) */}
-      <div style={{
-        textAlign: 'center',
-        fontSize: '28px',
-        fontWeight: 900,
-        color: '#000',
-        padding: '5px 8px',
-        margin: '4px 0 8px',
-        lineHeight: 1.05,
-        letterSpacing: '0.5px',
-        border: '2px solid #000',
-        borderRadius: '4px',
-      }}>
-        🕐 {timeStr} • {dateStr}
+        # {dailyCounter}
       </div>
 
       {/* Order Type */}
@@ -124,21 +121,44 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         </div>
       )}
 
-      <div style={{ borderTop: '3px solid #000', margin: '6px 0' }} />
+      {/* ORDER INFO — two-column table */}
+      <div style={{ borderTop: '2px solid #000', margin: '8px 0 0' }} />
+      <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0', tableLayout: 'fixed' }}>
+        <tbody>
+          {infoRows.map((row, i) => (
+            <tr key={i}>
+              <td style={{ fontSize: '20px', fontWeight: 900, padding: '4px 6px', borderLeft: '1px solid #000', width: '45%', verticalAlign: 'top', textAlign: 'right', wordBreak: 'break-word' }}>
+                {row.label}
+              </td>
+              <td style={{ fontSize: '20px', fontWeight: 900, padding: '4px 6px', verticalAlign: 'top', textAlign: 'right', wordBreak: 'break-word', direction: row.ltr ? 'ltr' as const : undefined }}>
+                {row.value}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ borderTop: '2px solid #000', margin: '0 0 6px' }} />
+
+      {/* Items table header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '2px solid #000', marginBottom: '4px' }}>
+        <span style={{ fontSize: '22px', fontWeight: 900, width: '60px', textAlign: 'center' }}>الكمية</span>
+        <span style={{ fontSize: '22px', fontWeight: 900, flex: 1, textAlign: 'right' }}>الاسم</span>
+      </div>
 
       {/* Items */}
       {items.map((item, i) => {
         const qty = item.quantity || 1;
+        const isLast = i === items.length - 1;
         return (
-          <div key={i} style={{ padding: '4px 0', borderBottom: '1px dashed #666', lineHeight: 1.2 }}>
+          <div key={i} style={{ padding: '6px 0', borderBottom: isLast ? 'none' : '1px dashed #000', lineHeight: 1.2 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-              <span style={{ fontSize: '20px', fontWeight: 900, minWidth: '38px', lineHeight: 1.15, flexShrink: 0 }}>{qty}×</span>
-              <span style={{ fontSize: '21px', fontWeight: 900, textAlign: 'right', flex: 1, lineHeight: 1.25, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.name}</span>
+              <span style={{ fontSize: '26px', fontWeight: 900, width: '60px', textAlign: 'center', lineHeight: 1.15, flexShrink: 0 }}>{qty}</span>
+              <span style={{ fontSize: '24px', fontWeight: 900, textAlign: 'right', flex: 1, lineHeight: 1.25, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.name}</span>
             </div>
             {item.modifiers?.map((m, j) => (
               <div key={j} style={{
                 fontSize: '17px', color: '#000', fontWeight: 700,
-                textAlign: 'right', paddingRight: '42px', marginTop: '2px',
+                textAlign: 'right', paddingRight: '70px', marginTop: '2px',
                 lineHeight: 1.2, wordBreak: 'break-word',
               }}>
                 + {m.option_name}
@@ -147,7 +167,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
             {item.note && (
               <div style={{
                 fontSize: '17px', fontWeight: 900, color: '#000',
-                textAlign: 'right', paddingRight: '42px', marginTop: '2px',
+                textAlign: 'right', paddingRight: '70px', marginTop: '2px',
                 background: '#eee', padding: '3px 6px', borderRadius: '3px',
                 lineHeight: 1.2, wordBreak: 'break-word',
               }}>

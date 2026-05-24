@@ -545,6 +545,29 @@ function renderKitchenSVG(order, stationLabel) {
   const typeLabel = order.orderTypeLabel
     || (order.orderType === 'delivery' ? 'توصيل' : order.orderType === 'dine_in' ? 'محلي' : 'استلام');
 
+  // Daily counter — POS sends padded value; fall back to queue/order number locally.
+  const counterStr = order.dailyCounter
+    || String(order.queueNumber || order.orderNumber || '---').replace(/\D/g, '').padStart(6, '0').slice(-6)
+    || String(order.queueNumber || order.orderNumber || '---');
+
+  // Total quantity — POS sends it; recompute defensively if missing.
+  const totalQty = (typeof order.totalQty === 'number')
+    ? order.totalQty
+    : (order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+
+  // Order-info rows: only render rows whose value is non-empty.
+  // TODO: read visibility flags from device.json kitchen_ticket_options when settings UI ships.
+  const infoRows = [
+    { label: 'التاريخ', value: dateStr },
+    { label: 'الوقت', value: timeStr },
+    { label: 'نوع الفاتورة', value: typeLabel },
+    { label: '# العداد اليومي', value: counterStr },
+    order.customerName ? { label: 'بيانات المتصل', value: String(order.customerName) } : null,
+    order.customerPhone ? { label: '', value: String(order.customerPhone), ltrValue: true } : null,
+    order.pickupBy ? { label: 'ملاحظة', value: `استلام من ${order.pickupBy}` } : null,
+    { label: 'مجموع الكميات', value: String(totalQty) },
+  ].filter(Boolean);
+
   const rows = [];
   let y = topPad;
   const push = (h, fn) => { rows.push(fn(y)); y += h; };
@@ -553,33 +576,62 @@ function renderKitchenSVG(order, stationLabel) {
     <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="30" font-weight="900" font-family="Tahoma">${esc(stationLabel)}</text>
     <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="2"/>`);
 
-  push(62, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="52" font-weight="900" font-family="Tahoma"># ${esc(order.queueNumber || order.orderNumber || '---')}</text>`);
-  push(44, (cy) => `
-    <rect x="${padX}" y="${cy - 32}" width="${W - padX*2}" height="40" fill="none" stroke="#000" stroke-width="2"/>
-    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">🕐 ${timeStr} • ${dateStr}</text>`);
+  // ── HERO BLOCK: huge daily counter + type ──
+  push(62, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="52" font-weight="900" font-family="Tahoma"># ${esc(counterStr)}</text>`);
   push(52, (cy) => `
     <rect x="${padX}" y="${cy - 38}" width="${W - padX*2}" height="48" fill="none" stroke="#000" stroke-width="3"/>
     <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">${esc(typeLabel)}</text>`);
   if (order.tableNumber) push(32, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">طاولة: ${esc(order.tableNumber)}</text>`);
-  push(12, () => '');
+
+  // ── ORDER INFO BLOCK — two-column table (label right, value left), wrapped values ──
+  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
+  const infoFont = 20;
+  const infoLineH = 28;
+  const valueWrap = 16; // chars per line for the value column
+  for (const row of infoRows) {
+    const valueLines = wrapTextForSvg(String(row.value), valueWrap);
+    const rowH = Math.max(infoLineH, valueLines.length * infoLineH) + 4;
+    push(rowH, (cy) => {
+      const baseY = cy + infoFont - 4;
+      const labelSvg = row.label
+        ? `<text x="${W - padX}" y="${baseY}" text-anchor="end" font-size="${infoFont}" font-weight="900" font-family="Tahoma">${esc(row.label)}</text>`
+        : '';
+      const valueX = W / 2 - 8;
+      const dirAttr = row.ltrValue ? ' direction="ltr"' : '';
+      const valueSvg = valueLines.map((ln, i) =>
+        `<text x="${valueX}" y="${baseY + i * infoLineH}" text-anchor="end" font-size="${infoFont}" font-weight="900" font-family="Tahoma"${dirAttr}>${esc(ln)}</text>`
+      ).join('');
+      const sep = `<line x1="${W/2 - 4}" y1="${cy}" x2="${W/2 - 4}" y2="${cy + rowH - 2}" stroke="#000" stroke-width="1"/>`;
+      return `${sep}${labelSvg}${valueSvg}`;
+    });
+  }
+  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
+
+  // ── ITEMS TABLE HEADER ──
+  push(34, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="900" font-family="Tahoma">الاسم</text>
+    <text x="${padX + 30}" y="${cy}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">الكمية</text>
+    <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="2"/>`);
 
   for (const it of (order.items || [])) {
     const qty = it.quantity || 1;
     const nameLines = wrapTextForSvg(String(it.name || ''), 18);
-    const rowH = 34 + Math.max(0, nameLines.length - 1) * 30;
+    const noteLinesArr = it.notes ? wrapTextForSvg(String(it.notes), 22) : [];
+    const noteBlockH = noteLinesArr.length ? (noteLinesArr.length * 26 + 4) : 0;
+    const rowH = 34 + Math.max(0, nameLines.length - 1) * 30 + noteBlockH + 8; // +8 for separator breathing
     push(rowH, (cy) => {
       const firstY = cy;
       const nameSvg = nameLines.map((ln, i) =>
         `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="900" font-family="Tahoma">${esc(ln)}</text>`).join('');
-      return `${nameSvg}
-      <text x="${padX}" y="${firstY}" text-anchor="start" font-size="22" font-weight="900" font-family="Tahoma">${qty}×</text>`;
+      const qtySvg = `<text x="${padX + 30}" y="${firstY}" text-anchor="middle" font-size="26" font-weight="900" font-family="Tahoma">${qty}</text>`;
+      const noteY0 = firstY + nameLines.length * 30 + 2;
+      const notesSvg = noteLinesArr.map((ln, i) =>
+        `<text x="${W - padX - 12}" y="${noteY0 + i * 26}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">${esc(ln)}</text>`).join('');
+      // dashed separator between items
+      const sepY = cy + rowH - 4;
+      const sep = `<line x1="${padX}" y1="${sepY}" x2="${W - padX}" y2="${sepY}" stroke="#000" stroke-width="1" stroke-dasharray="4,4"/>`;
+      return `${nameSvg}${qtySvg}${notesSvg}${sep}`;
     });
-    if (it.notes) {
-      const noteLines = wrapTextForSvg(String(it.notes), 22);
-      const noteH = 28 + Math.max(0, noteLines.length - 1) * 26;
-      push(noteH, (cy) => noteLines.map((ln, i) =>
-        `<text x="${W - padX - 12}" y="${cy + i * 26}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">${esc(ln)}</text>`).join(''));
-    }
   }
 
   if (order.orderNote) {
