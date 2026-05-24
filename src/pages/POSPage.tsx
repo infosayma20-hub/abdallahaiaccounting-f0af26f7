@@ -5068,22 +5068,52 @@ const POSPage = () => {
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {(!deviceConfig.branchId || !deviceConfig.terminalId) && (
-              <div className="rounded-md border border-warning/40 bg-warning/15 p-2.5 text-[12px] leading-tight text-foreground dark:text-warning space-y-2">
-                <div>⚠️ الجهاز غير مهيأ بالكامل — يجب ضبط الفرع والمحطة قبل فتح الوردية.</div>
-                {isAdmin && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="w-full h-9"
-                    onClick={() => { setShowOpenShift(false); navigate("/device-setup"); }}
-                  >
-                    🛠️ فتح إعداد الجهاز الآن
-                  </Button>
-                )}
-              </div>
-            )}
+            {(() => {
+              const branchOk = !!deviceConfig.branchId;
+              const terminalOk = !!deviceConfig.terminalId;
+              const bridgeOk = bridgeOnlineDiag === true;
+              const printersOk = (printersCountDiag ?? 0) > 0;
+              const blocking = !branchOk || !terminalOk;
+              const Row = ({ ok, label, value }: { ok: boolean | null; label: string; value: string }) => (
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className={`inline-flex items-center gap-1 font-medium ${
+                    ok === true ? "text-success" : ok === false ? "text-destructive" : "text-muted-foreground"
+                  }`}>
+                    {ok === true ? "✓" : ok === false ? "✗" : "…"} {value}
+                  </span>
+                </div>
+              );
+              return (
+                <div className={`rounded-md border p-3 space-y-1.5 ${
+                  blocking ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/30"
+                }`}>
+                  <div className="text-[12px] font-semibold mb-1">حالة الجهاز</div>
+                  <Row ok={bridgeOnlineDiag} label="برنامج الطباعة" value={bridgeOk ? "متصل" : bridgeOnlineDiag === false ? "غير متصل" : "جارٍ الفحص…"} />
+                  <Row ok={branchOk} label="الفرع" value={branchOk ? "معرف" : "غير معرف"} />
+                  <Row ok={terminalOk} label="محطة POS" value={terminalOk ? "معرفة" : "غير معرفة"} />
+                  <Row ok={null} label="الصندوق النقدي" value="اختياري" />
+                  <Row ok={printersCountDiag === null ? null : printersOk} label="الطابعات"
+                       value={printersCountDiag === null ? "جارٍ الفحص…" : printersOk ? `${printersCountDiag} معرفة` : "غير معرفة"} />
+                  {blocking && (
+                    <div className="pt-2 space-y-2">
+                      <div className="text-[12px] text-destructive">
+                        لا يمكن فتح الوردية حتى يتم ضبط {!branchOk ? "الفرع" : ""}{!branchOk && !terminalOk ? " و" : ""}{!terminalOk ? "محطة POS" : ""}.
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="w-full h-9"
+                        onClick={() => { setShowOpenShift(false); navigate("/onboarding/new-device"); }}
+                      >
+                        🛠️ فتح إعداد الجهاز
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             {/* Cash Box Selector */}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
