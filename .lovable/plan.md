@@ -1,228 +1,231 @@
-# خطة تعريف جهاز زبون جديد على نقطة بيع أموالي (Onboarding مبسّط)
 
-الهدف: لما تروح عند زبون جديد (أو تفتح AnyDesk عن بُعد)، تقدر بأقل من 10 دقائق تعرّف:
-1. حساب الزبون الإداري (Admin) على أموالي.
-2. جهاز الكاشير (نقطة البيع) على هذا الحساب.
-3. الطابعات (USB أو شبكة) وتربطها بالأقسام.
+# تذكرة المطبخ — تحليل + خطة تعديل آمنة
 
-الخطة مبنية على أدوات موجودة فعلاً في النظام (`DeviceSetupPage`, `print-bridge`, `pos_terminals`, `pos_printers`, `device.json`). ما رح نبني أشياء جديدة — رح ننظّم العملية ونضيف شاشة "Onboarding موحّدة" تسهّل الخطوات.
+> ملاحظة مهمة: هذه خطة فقط. لا توجد تعديلات على الكود بعد.
 
 ---
 
-## الفكرة الأساسية بثلاث طبقات
+## 1) أين تُولَّد تذكرة المطبخ فعلياً اليوم؟
 
-```text
- ┌──────────────────────────────┐
- │ 1. الحساب (سحابي)            │  ← أموالي.app  (مرة واحدة لكل زبون)
- │    company + admin user      │
- ├──────────────────────────────┤
- │ 2. الجهاز (محلي على كل PC)   │  ← Print Bridge + device.json
- │    branch + terminal + label │
- ├──────────────────────────────┤
- │ 3. الطابعات (محلية بالشبكة)  │  ← pos_printers + اختبار IP/USB
- │    receipt / kitchen / …     │
- └──────────────────────────────┘
+في النظام يوجد **قالبان منفصلان** للمطبخ — وهذا أصلاً مصدر التشتيت:
+
+| # | الموقع | النوع | يُستخدم فعلياً؟ |
+|---|---|---|---|
+| A | `docs/print-bridge-installer/print-bridge-v6.3.4-generic.js` → دالة `renderKitchenSVG()` (سطر 538) | **SVG** على جهاز الكاشير ثم تحويل لـ PNG عبر `sharp` ثم ESC/POS raster | ✅ **هذا هو المسار الإنتاجي الحقيقي**. كل طباعة عبر `/print-kitchen` و `/print-routed` تستخدمه. |
+| B | `src/components/pos/print-templates/KitchenTicketTemplate.tsx` | React component (HTML+CSS) للـ html2canvas | ❌ مسار قديم/معاينة فقط. الـ bridge v6 لا يستقبل HTML. مفيد للمعاينة داخل المتصفح ولاختبار `PrintPreviewPage`. |
+
+**استنتاج:** أي تعديل على شكل تذكرة المطبخ الفعلية **يجب أن يكون في Print Bridge** (الملف A). لكن للحفاظ على معاينة داخل التطبيق سنحاول مزامنة الـ B مع A بصرياً.
+
+---
+
+## 2) إعدادات التذكرة الحالية (Bridge — المسار الإنتاجي)
+
+| البند | القيمة الحالية |
+|---|---|
+| العرض (W) | **384px** (≈ 58mm @ 203 DPI) — موحّد لكل المطابخ |
+| المحاذاة | RTL (نصوص `text-anchor="end"`) |
+| الخط | `Tahoma` فقط، Bold (700/900) في كل مكان |
+| Padding علوي | 56px (يحمي من قاطع الورق) |
+| اسم المحطة | 30px / 900 وزن، خط سفلي |
+| رقم الطلب | **52px** / 900 (الأبرز) |
+| الوقت/التاريخ | 28px داخل إطار |
+| نوع الطلب (استلام/توصيل/محلي) | 28px داخل إطار |
+| رقم الطاولة | 22px (شرطي) |
+| الكمية | 22px في يسار الصف |
+| اسم الصنف | 26px في يمين الصف |
+| ملاحظات الصنف (notes + modifiers مدمجة) | 20px وزن 700، تحت الصنف |
+| ملاحظة الفاتورة | 22px داخل إطار |
+| فواصل بين الأصناف | ❌ **غير موجودة** — هذا أهم نقص بصرياً |
+| التفاف اسم الصنف | ✅ عبر `wrapTextForSvg(name, 18)` (18 محرف) |
+| إطار خارجي | إطار أسود 4px للتذكرة كاملة |
+
+### Payload المُرسَل حالياً من التطبيق (`toBridgeKitchenOrder`)
+
+موجود: `orderNumber, queueNumber, branchName, cashierName, orderType, orderTypeLabel, tableNumber, items[name, quantity, unitPrice, notes], total, createdAt, orderNote`
+
+**ناقص مقارنة بالصورة المرجعية:**
+- ❌ اسم المتصل / العميل (`customerName`)
+- ❌ هاتف العميل (`customerPhone`)
+- ❌ ملاحظة الاستلام ("استلام من فيصل")
+- ❌ مجموع الكميات (`totalQty`) — يمكن حسابه في الـ bridge من `items` بدون تغيير payload
+- ❌ فاصل واضح بين كل صنف وآخر
+
+---
+
+## 3) المقارنة مع الصورة المرجعية
+
+| عنصر في الصورة | الحالة عندنا | حركة مطلوبة |
+|---|---|---|
+| التاريخ + الوقت | موجود | إعادة ترتيب: التاريخ/الوقت في عمود يسار، التسميات في يمين |
+| نوع الطلب (Take Away) | موجود | الحفاظ عليه |
+| العداد اليومي (000397) | موجود كـ `queueNumber/orderNumber` | تنسيق بصفر بادي (`String(n).padStart(6,'0')`) |
+| بيانات المتصل (اسم + هاتف) | ❌ غير مُرسَلة | إضافة `customerName`, `customerPhone` للـ payload + الـ SVG |
+| "استلام من فيصل" | ❌ | إضافة `pickupBy` (أو إعادة استخدام `orderNote` ذكياً) |
+| مجموع الكميات | ❌ | حساب داخل الـ bridge |
+| جدول قسمين (الكمية / الاسم) | شبه موجود | إضافة رأس جدول + خط سفلي + خط فاصل بين الصفوف |
+| خطوط فاصلة بين الأصناف | ❌ | إضافة `<line>` بعد كل صنف |
+| خط كبير وواضح | غالباً جيد | إبقاء الأحجام كما هي لكن مع تكثيف الفواصل |
+
+---
+
+## 4) الشكل المقترح (Layout)
+
+```
+┌────────────────────────────────────┐
+│            [اسم المحطة]            │  ← إذا توفّر
+├────────────────────────────────────┤
+│             # 000397               │  ← العداد بصفر بادي (52px)
+│   🕐 21:11   •   2026-05-21        │  ← داخل إطار
+│           [ Take Away ]            │  ← داخل إطار
+├────────────────────────────────────┤
+│ التاريخ          │  2026-05-21    │
+│ الوقت            │  21:11         │
+│ نوع الفاتورة     │  Take Away     │
+│ # العداد اليومي  │  000397        │
+│ بيانات المتصل    │  نايف          │
+│                  │  0594385253    │
+│ ملاحظة           │  استلام من فيصل│
+│ مجموع الكميات    │  17            │
+├────────────────────────────────────┤
+│  الكمية │ الاسم                    │  ← رأس جدول صغير
+├────────────────────────────────────┤
+│    1    │ وجبة 5 بروست + 6 كرسبي  │
+│         │   عادي                   │
+├ ─ ─ ─ ─ ┼ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤  ← فاصل dashed بين الأصناف
+│    1    │ وجبة اريزكو قطعتين بروست│
+│         │   عادي                   │
+├ ─ ─ ─ ─ ┼ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤
+│    1    │ L  بيتزا الملكي مع خضار │
+├────────────────────────────────────┤
+│  [ملاحظة الطلب العامة إن وجدت]    │
+└────────────────────────────────────┘
 ```
 
-كل طبقة عندها شاشة واحدة فقط. ما تخلط بينهم.
+---
+
+## 5) خطة تنفيذ على ثلاث مراحل (آمنة، قابلة للإلغاء)
+
+### المرحلة 1 — تحضير البيانات (تطبيق فقط، بدون لمس الـ bridge)
+
+ملف: `src/lib/image-print-service.ts` — دالة `toBridgeKitchenOrder`
+
+- إضافة الحقول التالية للـ payload فقط (الـ bridge القديم سيتجاهلها بدون أي ضرر):
+  - `customerName` ← `order.customerName` (موجود في `PrintOrder`? نتحقق)
+  - `customerPhone`
+  - `pickupBy` (اختياري)
+  - `totalQty` (مجموع `items[].quantity`)
+  - `dailyCounter` (`queueNumber` أو `orderNumber` بصفر بادي 6 خانات)
+
+**مخاطر:** صفر. حقول إضافية في JSON لا تكسر شيء.
+
+### المرحلة 2 — تطوير `renderKitchenSVG` داخل Print Bridge
+
+ملف: `docs/print-bridge-installer/print-bridge-v6.3.4-generic.js`
+
+- إعادة كتابة `renderKitchenSVG()` فقط — كل بقية الدوال (`renderReceiptSVG`, `renderShiftSVG`, `sendToPrinterDef`, `/print-receipt`, `/print-routed`, drawer, `/print`, `/print-image`, KDS event, Windows printers) **لا تُلمَس**.
+- إضافة كتلة "بيانات الطلب" بأسلوب جدول عمودين قبل قائمة الأصناف.
+- إضافة خط فاصل dashed بين كل صنف وآخر.
+- إضافة رأس جدول صغير "الكمية / الاسم".
+- حساب `totalQty` داخل الـ bridge من `order.items` (لا يعتمد على المرحلة 1).
+- إبقاء الـ wrap عند 18 محرف، إبقاء padding علوي 56px، إبقاء الخط Tahoma.
+
+ثم تحديث **`public/downloads/amwali-print-bridge.zip`** ليحتوي النسخة الجديدة → نشر للزبون.
+
+**يحتاج إعادة تثبيت الـ ZIP عند الزبون؟** نعم — لكن: تشغيل `install-bridge.bat` يحدّث الخدمة دون إعادة تعريف أي شيء (device.json يبقى).
+
+### المرحلة 3 — مزامنة المعاينة داخل التطبيق
+
+ملف: `src/components/pos/print-templates/KitchenTicketTemplate.tsx`
+
+- تحديث القالب ليطابق شكل SVG الجديد (لمعاينات `PrintPreviewPage` و"طباعة اختبار").
+- هذا تجميلي بحت، لا يؤثر على الطباعة الإنتاجية.
 
 ---
 
-## الخطوة 1 — تجهيز حساب الزبون (مرة وحدة، من أي مكان)
+## 6) إعدادات قابلة للتحكم (مرحلة لاحقة، ليس الآن)
 
-تعملها من لابتوبك قبل ما تروح عند الزبون، أو من عند الزبون من المتصفح.
+نقترح إضافتها في **`company_settings`** أو **`device.json` ضمن `kitchen_ticket_options`** (يفضّل الثاني لأنه يطبع بنفس البريدج):
 
-1. افتح `https://amwali.app` → **Super Admin Panel**.
-2. أنشئ **شركة جديدة** (اسم + إيميل + باسوورد مؤقت للأدمن).
-3. فعّل اشتراك (Trial أو مدفوع) من Super Admin → Subscription Agreements.
-4. ابعت الإيميل/الباسوورد للزبون أو احفظهم لحالك.
+```jsonc
+{
+  "kitchen_ticket_options": {
+    "paper_width": 384,         // 384 | 576
+    "font_scale": "medium",     // small | medium | large
+    "show_phone": true,
+    "show_daily_number": true,
+    "show_invoice_number": false,
+    "show_total_qty": true,
+    "item_separator": true,
+    "language_labels": "ar"     // ar | en | mixed
+  }
+}
+```
 
-✅ بعد هاي الخطوة: في حساب شغّال، عنده Admin user، وجاهز.
-
----
-
-## الخطوة 2 — تجهيز الجهاز (على كل PC كاشير، مرّة واحدة)
-
-هاي الخطوة بتعملها فيزيكال على جهاز الزبون أو عن بُعد بـ AnyDesk.
-
-### 2.أ — تثبيت Print Bridge (5 دقائق)
-
-1. حمّل ملف `print-bridge.zip` (موجود معك جاهز) وفُكّه في `C:\print-bridge`.
-2. شغّل **مرة وحدة** ملف `install-bridge.bat` (يُثبّت Node إذا ناقص + يضيف الـ bridge كخدمة Windows تعمل تلقائياً).
-3. تأكد من الشغل: افتح المتصفح على `http://127.0.0.1:3001/health` → لازم يرجع `{ ok: true }`.
-
-> ⚠️ بعد التثبيت: انسخ مجلد `C:\print-bridge` على USB كباك-أب. إذا فُرمت الجهاز، ترجع تنسخه بدل ما تعيد كل الإعداد.
-
-### 2.ب — تعريف الجهاز على حساب الزبون
-
-1. على نفس الـ PC، افتح `https://amwali.app` وسجّل دخول بحساب الأدمن.
-2. روح على `/device-setup` (أو اضغط زر "إعداد الجهاز" لما يطلع).
-3. الويزرد بيمشي معك خطوة خطوة:
-   - **اسم الجهاز** (مثلاً: "كاشير 1 - الواجهة")
-   - **الفرع** (إذا ما في، اضغط "إنشاء فرع جديد" من نفس الشاشة)
-   - **محطة POS** (نفس الشي — "إنشاء محطة جديدة")
-   - **Print Bridge URL** → اتركه `http://127.0.0.1:3001` (الافتراضي)
-   - **اختبر الاتصال** → ✅ أخضر
-   - **حفظ**
-
-✅ بعد هاي الخطوة:
-- ينحفظ الإعداد في المتصفح (`localStorage`).
-- يُنسخ أوتوماتيكياً في `C:\print-bridge\device.json` عبر الـ bridge.
-- لو الزبون مسح بيانات المتصفح، بيرجع الإعداد لحاله بعد ثانيتين.
+**في هذه الجولة لن نضيف Migrations.** سنستخدم ثوابت داخل `renderKitchenSVG` مع تعليق `// TODO: read from device.json kitchen_ticket_options when settings UI ships`.
 
 ---
 
-## الخطوة 3 — تعريف الطابعات (USB أو شبكة)
+## 7) ما لن يُلمَس (Safety Net)
 
-تعملها من شاشة واحدة: `/pos-settings/printers` (أو من زر "إعدادات الطابعات" داخل `/device-setup`).
-
-### 3.أ — طابعة شبكة (الأفضل دائماً)
-
-1. خلّي فني الشبكات يعطي الطابعة **IP ثابت** (مثلاً 192.168.1.50).
-2. في الشاشة اضغط "إضافة طابعة" واملأ:
-   - **الاسم**: "Receipt" / "Kitchen" / "Grill" / "Pizza"
-   - **النوع**: حدد القسم (إيصال زبون / مطبخ / مشاوي / بيتزا)
-   - **IP**: 192.168.1.50
-   - **Port**: 9100 (افتراضي لمعظم الطابعات الحرارية)
-   - **الفرع**: نفس فرع الجهاز
-3. اضغط **"اختبار الطباعة"** → يطلع ورقة test.
-4. ✅ احفظ.
-
-### 3.ب — طابعة USB مباشرة على نفس الـ PC
-
-1. ركّب الطابعة على Windows وتأكد إنها تطبع Test Page من Windows.
-2. في نفس الشاشة، اختار النوع **"USB / Windows Printer"** بدل IP.
-3. اختار اسم الطابعة من القائمة (الـ bridge بيقرأها من Windows).
-4. اختبار → ✅ احفظ.
-
-### 3.ج — ربط الأقسام بالطابعات
-
-- روح على **المنتجات** → افتح المنتج → اختار **"محطة الطباعة"** (مثلاً: مطبخ).
-- المنتج الواحد ممكن يطبع على أكثر من طابعة (شواية + مطبخ).
-- لو الزبون مطعم بسيط: استخدم **"Unified Kitchen"** = كل المنتجات تطبع على طابعة وحدة.
+- ❌ `renderReceiptSVG` (طباعة الفاتورة)
+- ❌ `renderShiftSVG` (إغلاق الوردية)
+- ❌ `/print-receipt`, `/print-shift`, `/print`, `/print-routed` (المنطق — فقط محتوى SVG المطبخ)
+- ❌ `sendToPrinterDef`, ESC/POS الخام، رؤوس النصوص الحرارية
+- ❌ درج الكاش (`cash drawer`, `/open-drawer`)
+- ❌ Windows/USB printer pipeline (`sendToWindowsPrinter`)
+- ❌ `printAllImage` (ترتيب الطلبات، فقط محتوى تذكرة المطبخ)
+- ❌ KDS realtime channel و `KitchenDisplayPage`
+- ❌ شاشة العميل (`Customer Display`)
+- ❌ device.json schema (سنقرأ منه فقط إذا أضفنا الإعدادات لاحقاً)
 
 ---
 
-## الخطوة 4 — تجربة سريعة (Smoke Test) قبل ما تمشي
+## 8) خطة اختبار قبل الإطلاق
 
-1. سجّل دخول كـ كاشير.
-2. افتح وردية.
-3. أضف منتج → ادفع كاش.
-4. تأكد:
-   - ✅ إيصال الزبون يطلع من Receipt printer.
-   - ✅ التذكرة تطلع من المطبخ (لو مطعم).
-   - ✅ الدرج يفتح.
-5. أغلق الوردية → تأكد التقرير صحيح.
+### A) معاينة داخل التطبيق
 
----
+- زر "طباعة اختبار تذكرة مطبخ" داخل `/onboarding/new-device` → خطوة 5 (موجودة بالفعل عبر `testKitchenPrint`).
+- نضيف بيانات اختبار غنية: عميل عربي + هاتف + 5 أصناف منها أسماء طويلة وفيها كلمات إنجليزية ومُعدِّلات وملاحظات.
 
-## ملف Cheat Sheet للجوال (تطبعه وتحطه بحقيبتك)
+### B) اختبار حالات الحافة
 
-| الموقف | الخطوة |
+| الحالة | البيانات المتوقعة |
 |---|---|
-| زبون جديد كلياً | Super Admin → أنشئ شركة → ابعت credentials |
-| PC جديد بنفس الزبون | شغّل `install-bridge.bat` → افتح `/device-setup` → ويزرد |
-| فُرمت الجهاز | انسخ `device.json` من الـ USB إلى `C:\print-bridge` → خلص |
-| طابعة جديدة | `/pos-settings/printers` → إضافة → IP + Port 9100 → اختبار |
-| الإيصال ما يطلع | افتح `http://127.0.0.1:3001/health` → لو offline أعد تشغيل الـ bridge |
-| AnyDesk عن بُعد | نفس الخطوات بالضبط — كل شي عبر المتصفح |
+| اسم صنف عربي طويل (40+ حرف) | يلتف على 2-3 أسطر بدون قصّ |
+| اسم فيه إنجليزي + عربي | يظهر صحيحاً RTL، الإنجليزي لا ينقلب |
+| 3 modifiers + ملاحظة | كلها تحت الصنف بخط أصغر |
+| Take Away + هاتف فلسطيني | يظهر الهاتف بأرقام إنجليزية ثابتة |
+| طلب فيه 20+ صنف | `totalQty` صحيح، لا قصّ |
+| ملاحظة فاتورة طويلة | تلتف داخل إطار |
+| طلب بدون اسم/هاتف | الصفوف تختفي بدلاً من إظهار "—" فارغ |
+
+### C) اختبار الأجهزة الفعلية
+
+- ✅ طابعة شبكة 80mm (الحالة الأكثر شيوعاً)
+- ✅ طابعة شبكة 58mm (إن وُجدت — العرض ثابت 384 لذا الأمر متوافق)
+- ✅ طابعة Windows/USB عبر `sendToWindowsPrinter` (نفس الـ PNG)
+- ✅ التحقق أن الفاتورة العادية + الدرج + KDS لا يزالون يعملون (smoke test يدوي)
 
 ---
 
-## شو رح نضيفه/نحسّنه في الكود (مهام تنفيذية)
+## 9) المخاطر والمعالجة
 
-هاي اللي بدها شغل من جانبي عشان تصير العملية فعلاً سلسة:
-
-1. **شاشة "Onboarding موحّدة" `/onboarding/new-device`** — شاشة واحدة تجمع: تثبيت bridge + إعداد device + إضافة طابعات + smoke test، مع progress bar وضّاح ("3 من 4").
-2. **`install-bridge.bat`** — سكربت Windows جاهز يثبّت Node ويسجّل الـ bridge كخدمة (NSSM) عشان يشتغل مع إقلاع الجهاز بدون CMD مفتوح.
-3. **زر "تصدير device.json كنسخة احتياطية"** داخل `/device-setup` — ينزّل الملف ليتم حفظه على USB.
-4. **زر "استيراد device.json"** — لو الجهاز فُرمت، ترفع الملف وتنتهي.
-5. **Discovery تلقائي للطابعات الشبكية** — زر "ابحث عن طابعات في الشبكة" يعمل scan على 192.168.x.1-254 port 9100 ويعرض اللي رد.
-6. **QR من حسابي إلى جهاز الزبون** — من حسابك تولّد QR فيه (companyId + adminEmail)، الزبون يمسحه من جهازه فيدخل مباشرة على `/device-setup` بدون باسوورد يدوي.
-
----
-
-## التسلسل الزمني للتنفيذ المقترح
-
-- **Sprint 1 (نفس الجلسة لو وافقت):** بنود 1 + 3 + 4 (شاشة Onboarding موحّدة + Export/Import للـ device.json).
-- **Sprint 2:** بند 2 (install-bridge.bat + NSSM service).
-- **Sprint 3:** بند 5 (Network printer discovery).
-- **Sprint 4:** بند 6 (QR onboarding).
-
-قلّي على أي Sprint تحب نبدأ، وأنا بنفّذ.
-## Phase 1 Smoke Apply — Feature Permissions
-
-Goal: enforce `user_feature_permissions` on real sensitive UI + handlers, with minimum file surface area. Build infrastructure first, then wrap.
+| الخطر | المعالجة |
+|---|---|
+| تحديث الـ bridge يكسر طابعة عند زبون لم يستلم التحديث | الـ payload الجديد متوافق مع النسخة القديمة (الحقول الإضافية تُتجاهل) — لا حاجة لتحديث متزامن. |
+| ارتفاع التذكرة يزيد بسبب الفواصل وكتلة بيانات الطلب | حساب `H` ديناميكي موجود أصلاً، لن يُقصّ. ممكن إخفاء كتلة بيانات الطلب إذا كل حقولها فارغة. |
+| اسم الصنف بالإنجليزي ينقلب RTL | استخدام `direction="ltr"` خاص للنصوص اللاتينية المكتشفة، أو ترك `text-anchor="end"` كما هو (يعمل بشكل جيد لأن SVG لا يطبّق bidi). |
+| نسيان تحديث ZIP بعد تعديل js | إضافة سطر في رسالة الـ commit للتذكير، والتحقق يدوياً قبل الإنتاج. |
+| الزبون لم يعد تثبيت | إصدار جديد للـ bridge `v6.3.5` — نضيف عرضه في `/health` وزر إشعار في `/onboarding/new-device` يطلب التحديث. |
 
 ---
 
-### A. Infrastructure (3 new files)
+## 10) قرارات تحتاج موافقتك قبل البدء
 
-1. **`src/components/permissions/FeatureGuard.tsx`**
-   Route wrapper. Props: `app`, `feature`, `perm`. Shows `LockedModulePage` (reuse existing) if denied. Uses `usePermission`. Loading-aware (no flicker). super_admin bypass via hook.
+1. **هل نضيف حقل `pickupBy` منفصل في الـ payload، أم نستخدم `orderNote` كما هو؟** (الأول أنظف، الثاني صفر تغييرات تطبيق.)
+2. **هل العداد اليومي `queueNumber` يبدأ يومياً من 1؟** إذا نعم سنستخدمه كـ daily counter، وإلا سنحتاج حقل مستقل.
+3. **هل تريد إصدار الـ bridge الجديد بترقيم `v6.3.5-kitchen-redesign` أم نُبقي `v6.3.4`؟** (يفضّل الأول للوضوح وللزر "تحديث" في صفحة الـ onboarding.)
+4. **اللغة:** عربي فقط، أم عربي + إنجليزي مختلط للتسميات (Date/Time)؟
 
-2. **`src/lib/permissions/assertPermission.ts`**
-   `await assertPermission(app, feature, perm, { silent? })` — calls `checkFeaturePermission`. On deny: toast `"لا تملك صلاحية تنفيذ هذه العملية"` + throws. Used inside handlers.
+أعطني إجاباتك على هذه الأربع وأبدأ التنفيذ على المراحل المتفق عليها فوراً.
 
-3. **Extend `src/components/permissions/Can.tsx`** (already exists)
-   Add `mode="disable"` variant with tooltip `"لا تملك صلاحية"` (default stays hidden).
-
----
-
-### B. Wiring — Buttons + Route Guards
-
-For each page below: import `usePermission` + `<Can>`, wrap actions; add `assertPermission` in the handler.
-
-| Page | Wrapped buttons | Handler asserts |
-|---|---|---|
-| `src/pages/InvoicesPage.tsx` | New / Edit row / Delete / Cancel / Print / Export | delete, cancel, export |
-| `src/pages/InvoiceCreatePage.tsx` | Save | save (create or update) |
-| `src/pages/PurchasePointPage.tsx` (purchase invoices list) | New / Edit / Delete / Print / Export | delete, export |
-| `src/pages/POSPage.tsx` + `src/components/pos/ReturnDialog.tsx` + relevant POS toolbar/cash-drawer/close-shift code | discount field, change-price, refund, open-drawer, close-shift, print-receipt | discount apply, refund submit, openDrawer, closeShift |
-| `src/pages/FinanceVoucherPage.tsx` / `VoucherFormPage.tsx` | New / Edit / Delete / Print (receipts + payments) | delete, save |
-| `src/pages/JournalEntriesPage.tsx` / `JournalNewPage.tsx` | New / Edit / Delete / Approve | delete, approve, save |
-| `src/pages/SettingsPage.tsx` | Hide `user` tab if `settings.users.manage` deny; hide `company` save if `company.update` deny; hide POS settings save; hide app-permissions button |
-| `src/components/settings/UsersSettingsSection.tsx` | "Manage Apps" + "Add user" + "Edit role" | gate `manage-team-user` invoke + UserAppAccessDialog open |
-
----
-
-### C. Route Guards (`src/App.tsx`)
-
-Wrap route elements:
-- `/invoices/new` and `/invoices/:id/edit` → `<FeatureGuard app="sales" feature="invoices" perm="create"|"update">`
-- `/procurement/invoices/new` → purchases.purchase_invoices.create
-- `/finance/vouchers/new`, `/finance/journal/new` → respective create
-- `/pos-users` → `pos.kds.manage` (closest match) — actually use `settings.users.manage` per spec
-- `/settings` already protected at app level; sub-tabs gated inside SettingsPage
-
----
-
-### D. Edge function hardening
-
-`supabase/functions/manage-team-user/index.ts`: at top after auth, call `has_feature_permission(actor, 'settings', 'users', 'manage')`. If false (and not super_admin) → 403 + audit log.
-
-`supabase/functions/manage-user-app-access/index.ts`: same with `settings.app_permissions.manage`.
-
----
-
-### E. UX rules
-- Destructive/hidden by default: create, delete, cancel, approve, refund, open_drawer, close_shift, manage users, manage app permissions, discount.
-- Disabled+tooltip: print, export, edit (so user sees the row but can't act).
-
----
-
-### F. Acceptance test pass (manual checklist documented in plan.md)
-
-10 cases listed in user message, plus super_admin bypass + Realtime allow-flip.
-
----
-
-### Files touched (estimate)
-**New (3):** FeatureGuard.tsx, assertPermission.ts, (extend Can.tsx)
-**Edited (~12):** InvoicesPage, InvoiceCreatePage, PurchasePointPage, POSPage, ReturnDialog, FinanceVoucherPage, VoucherFormPage, JournalEntriesPage, JournalNewPage, SettingsPage, UsersSettingsSection, App.tsx, manage-team-user/index.ts, manage-user-app-access/index.ts
-
-### Out-of-scope (Phase 2)
-- Per-row RLS for invoices/vouchers DELETE (server-side enforcement)
-- Cheques, HR, inventory adjust, recurring invoices
-- POS PIN-mode override workflows
-- Migration of role defaults beyond admin/accountant_senior/cashier
