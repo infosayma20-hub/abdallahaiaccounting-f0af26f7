@@ -39,8 +39,8 @@ import {
   discoverNetworkPrinters, type DiscoveredPrinter,
   posPrinterRoleToBridgeKey, buildBridgePrintersMapFromRows,
 } from "@/lib/device-config";
-import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
-import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
+import { checkBridgeStatus, checkBridgeHealth, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
+import PrinterRow from "@/components/pos/onboarding/PrinterRow";
 import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -156,6 +156,7 @@ export default function NewDeviceOnboardingPage() {
   // Step 4 — Printers
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [printerStatus, setPrinterStatus] = useState<Record<string, boolean | null>>({});
+  const [bridgePrinterHealth, setBridgePrinterHealth] = useState<Record<string, { connected: boolean; subnetMismatch: boolean }>>({});
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
@@ -168,6 +169,7 @@ export default function NewDeviceOnboardingPage() {
   const [discovered, setDiscovered]         = useState<DiscoveredPrinter[] | null>(null);
   const [discoverMeta, setDiscoverMeta]     = useState<{ subnet?: string; elapsedMs?: number; error?: string } | null>(null);
   const [assigningIp, setAssigningIp]       = useState<string | null>(null);
+  const [showDiscovery, setShowDiscovery]   = useState(false);
 
   // Step 5 — Smoke test
   const [lastReceiptTestOk, setLastReceiptTestOk] = useState<boolean | null>(null);
@@ -492,7 +494,26 @@ export default function NewDeviceOnboardingPage() {
       statusMap[p.id] = await testPrinterConnection(p.ip_address, p.port).catch(() => false);
     }));
     setPrinterStatus(statusMap);
+    // Also pull bridge /health so we get subnet_mismatch + connected flags
+    try {
+      const h = await checkBridgeHealth();
+      if (h.online) {
+        if (h.source) setBridgeSource(h.source);
+        const m: Record<string, { connected: boolean; subnetMismatch: boolean }> = {};
+        (h.printers || []).forEach(bp => {
+          if (bp.ip) m[bp.ip] = { connected: !!bp.connected, subnetMismatch: !!bp.subnetMismatch };
+        });
+        setBridgePrinterHealth(m);
+      }
+    } catch { /* ignore */ }
   }, [bridgeOnline, printers]);
+
+  // Auto-refresh bridge printer health once after bridge connects + printers load.
+  useEffect(() => {
+    if (!bridgeOnline || printers.length === 0) return;
+    void refreshPrinterStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeOnline, printers.length, branchId]);
 
   const fetchWindowsPrinters = async () => {
     try {
@@ -953,10 +974,14 @@ export default function NewDeviceOnboardingPage() {
           {filteredPrinters.length > 0 && bridgeSource === "fallback" && (
             <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 flex items-start gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5" />
-              <div>
-                <div className="font-medium">برنامج الطباعة يعرض قائمة افتراضية (FALLBACK) ولا يقرأ طابعات الفرع.</div>
-                <div className="opacity-80 mt-0.5">اضغط «مزامنة هذا الجهاز» في خطوة 2 لإرسال الطابعات الفعلية.</div>
+              <div className="flex-1">
+                <div className="font-medium">الطابعات غير متزامنة مع برنامج الطباعة.</div>
+                <div className="opacity-80 mt-0.5">برنامج الطباعة يستخدم قائمة افتراضية بدل طابعات هذا الفرع.</div>
               </div>
+              <Button size="sm" onClick={() => void handleSyncDevice()} disabled={syncing} className="gap-1 h-7 px-2 text-xs">
+                {syncing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Cloud className="h-3.5 w-3.5" />}
+                مزامنة الطابعات الآن
+              </Button>
             </div>
           )}
           {filteredPrinters.length === 0 ? (
@@ -968,57 +993,23 @@ export default function NewDeviceOnboardingPage() {
               {filteredPrinters.map(p => {
                 const cat = p.print_categories?.[0] || p.printer_type;
                 const role = PRINTER_ROLES.find(r => r.value === cat) || { label: cat, emoji: "🖨️" };
-                const st = printerStatus[p.id];
-                const settings = (p.settings || {}) as Record<string, unknown>;
-                const isUsb = settings.connection === "usb" || !!settings.windows_printer_name;
-                const winName = String(settings.windows_printer_name || "");
-                const subtitle = isUsb
-                  ? `${role.label} · windows:${winName || "?"}`
-                  : `${role.label} · ${p.ip_address}:${p.port}`;
+                const health = bridgePrinterHealth[p.ip_address || ""] || null;
                 return (
-                  <div key={p.id} className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm">
-                    <span className="text-lg">{role.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground" dir="ltr">
-                        {subtitle}
-                      </div>
-                    </div>
-                    {st === true  && <span className="text-success text-xs inline-flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> تعمل</span>}
-                    {st === false && <span className="text-destructive text-xs inline-flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> فشل</span>}
-                    {!isUsb && p.ip_address && (
-                      <PrinterProbeButton
-                        ip={p.ip_address}
-                        port={Number(p.port) || 9100}
-                        printerKey={posPrinterRoleToBridgeKey(cat) || undefined}
-                        printerName={p.name}
-                        allowForceAdd
-                        onAdded={() => { void refreshPrinterStatus(); }}
-                        size="xs"
-                      />
-                    )}
-                    {!isUsb && p.ip_address && st === false && (
-                      <Button
-                        size="sm" variant="outline"
-                        onClick={() => setConvertTarget(p)}
-                        className="gap-1 h-7 px-2 text-xs border-amber-400/60 text-amber-900 dark:text-amber-200"
-                        title="إذا الطابعة موصولة USB بجهاز الكاش، حوّلها إلى وضع Windows"
-                      >
-                        <Printer className="h-3.5 w-3.5" /> تحويل إلى USB / Windows
-                      </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => handlePrinterTest(p)} className="gap-1 h-7 px-2">
-                      <TestTube className="h-3.5 w-3.5" /> اختبار
-                    </Button>
-                    <Button
-                      size="sm" variant="ghost"
-                      onClick={() => setPrinterToDelete(p)}
-                      className="gap-1 h-7 px-2 text-destructive hover:text-destructive"
-                      title="حذف"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  <PrinterRow
+                    key={p.id}
+                    printer={p}
+                    roleLabel={role.label}
+                    roleEmoji={role.emoji}
+                    bridgeOnline={!!bridgeOnline}
+                    bridgeConnected={health?.connected ?? null}
+                    bridgeSubnetMismatch={health?.subnetMismatch}
+                    notSynced={bridgeSource === "fallback"}
+                    testStatus={printerStatus[p.id] ?? null}
+                    onTest={() => handlePrinterTest(p)}
+                    onConvertToWindows={() => setConvertTarget(p)}
+                    onDelete={() => setPrinterToDelete(p)}
+                    onResyncAll={() => handleSyncDevice()}
+                  />
                 );
               })}
             </div>
@@ -1033,7 +1024,17 @@ export default function NewDeviceOnboardingPage() {
             </Button>
           </div>
 
-          {/* ── Network discovery panel ───────────────── */}
+          {/* ── Network discovery panel (collapsible) ── */}
+          <Collapsible open={showDiscovery} onOpenChange={setShowDiscovery}>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full rounded-lg border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-right hover:bg-primary/10 flex items-center gap-2">
+                <Radar className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">اكتشاف طابعات الشبكة</span>
+                <span className="text-[11px] text-muted-foreground flex-1">يفحص الشبكة على المنفذ 9100 (آمن — بدون طباعة)</span>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showDiscovery ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
           <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex-1 min-w-[140px] space-y-1">
@@ -1135,6 +1136,8 @@ export default function NewDeviceOnboardingPage() {
               </div>
             )}
           </div>
+            </CollapsibleContent>
+          </Collapsible>
         </Section>
 
         {/* ── Step 4: Pre-handover summary ────────────────── */}
