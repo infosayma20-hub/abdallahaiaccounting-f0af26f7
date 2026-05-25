@@ -1296,22 +1296,44 @@ const POSPage = () => {
             return box.branch_id === deviceBranchId;
           });
           const boxList: CashBoxOption[] = [...branchSafeBoxes];
-          // Phase A: Call Center is opt-in via company_settings.pos_call_center_enabled.
-          // The hook falls back to the legacy Malaky email so existing tenants are
-          // not broken before they flip the new switch.
-          if (!callCenterHidden && callCenterEnabled) {
-            boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
-          }
-          setCashBoxes(boxList);
-          // Auto-select from device binding (localStorage)
-          const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
-          if (savedBoxId && boxList.some(b => b.id === savedBoxId)) {
-            setSelectedCashBoxId(savedBoxId);
-            setRememberCashBox(true);
-          } else if (boxList.length === 1) {
-            setSelectedCashBoxId(boxList[0].id);
+          // Check if this auth user is flagged as a call-center user in pos_users.
+          // Such users have no cash box / opening cash — they only dispatch orders.
+          const { data: posUserRow } = await supabase
+            .from("pos_users")
+            .select("is_call_center")
+            .eq("auth_user_id", userId)
+            .maybeSingle();
+          const userIsCallCenter = !!(posUserRow as any)?.is_call_center;
+
+          let finalBoxList: CashBoxOption[];
+          if (userIsCallCenter) {
+            // Call-center user: force the virtual call-center box only,
+            // bypassing the tenant-level callCenterEnabled / hidden_apps gates.
+            finalBoxList = [{ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any];
           } else {
-            setSelectedCashBoxId("");
+            // Phase A: Call Center option is opt-in via company_settings.pos_call_center_enabled.
+            if (!callCenterHidden && callCenterEnabled) {
+              boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
+            }
+            finalBoxList = boxList;
+          }
+          setCashBoxes(finalBoxList);
+
+          if (userIsCallCenter) {
+            // Auto-select the call-center virtual box and zero out opening cash.
+            setSelectedCashBoxId("__call_center__");
+            setOpeningCash("0");
+          } else {
+            // Auto-select from device binding (localStorage)
+            const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
+            if (savedBoxId && finalBoxList.some(b => b.id === savedBoxId)) {
+              setSelectedCashBoxId(savedBoxId);
+              setRememberCashBox(true);
+            } else if (finalBoxList.length === 1) {
+              setSelectedCashBoxId(finalBoxList[0].id);
+            } else {
+              setSelectedCashBoxId("");
+            }
           }
           setShowOpenShift(true);
         }
