@@ -76,8 +76,23 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     );
   }
 
-  // 3) Unauthorized cashier on a device that never had a Bridge → full-screen lock.
-  return <UnauthorizedDeviceScreen onRecheck={recheck} navigate={navigate} bridgeUrl={bridgeUrl} version={version} />;
+  // 3) Unauthorized cashier on a device that never had a Bridge.
+  //    Instead of slamming them with a full-screen lock, send them back to
+  //    /choose-workspace where the POS card is disabled with the same
+  //    explanation and the employee card stays available.
+  return <RedirectToChooseWorkspace />;
+}
+
+function RedirectToChooseWorkspace() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate("/choose-workspace", { replace: true });
+  }, [navigate]);
+  return (
+    <div dir="rtl" className="min-h-[100dvh] flex items-center justify-center bg-background">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
 }
 
 function ViewOnlyBanner({ onRecheck, bridgeUrl }: { onRecheck: () => void; bridgeUrl: string | null }) {
