@@ -1,6 +1,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const stopRefreshCoordinator = startAuthRefreshCoordinator();
+
     const logEvent = async (event_type: string, sess: Session | null) => {
       const u = sess?.user;
       if (!u) return;
@@ -79,7 +82,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      stopRefreshCoordinator();
+    };
   }, []);
 
   const signOut = async () => {
@@ -103,6 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       if (currentUser?.id) sessionStorage.removeItem(`workspace-choice:${currentUser.id}`);
     } catch {}
+    releaseAuthRefreshLeadership();
     await supabase.auth.signOut();
   };
 
