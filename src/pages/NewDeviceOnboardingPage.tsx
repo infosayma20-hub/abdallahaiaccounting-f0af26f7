@@ -40,6 +40,7 @@ import {
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
 import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
+import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
