@@ -40,6 +40,7 @@ import {
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
 import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
+import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -158,6 +159,7 @@ export default function NewDeviceOnboardingPage() {
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [convertTarget, setConvertTarget] = useState<Printer | null>(null);
 
   // Step 4b — Network discovery
   const [discoverSubnet, setDiscoverSubnet] = useState("");
@@ -912,6 +914,16 @@ export default function NewDeviceOnboardingPage() {
                         size="xs"
                       />
                     )}
+                    {!isUsb && p.ip_address && st === false && (
+                      <Button
+                        size="sm" variant="outline"
+                        onClick={() => setConvertTarget(p)}
+                        className="gap-1 h-7 px-2 text-xs border-amber-400/60 text-amber-900 dark:text-amber-200"
+                        title="إذا الطابعة موصولة USB بجهاز الكاش، حوّلها إلى وضع Windows"
+                      >
+                        <Printer className="h-3.5 w-3.5" /> تحويل إلى USB / Windows
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => handlePrinterTest(p)} className="gap-1 h-7 px-2">
                       <TestTube className="h-3.5 w-3.5" /> اختبار
                     </Button>
@@ -1129,6 +1141,15 @@ export default function NewDeviceOnboardingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ConvertToWindowsPrinterDialog
+        open={!!convertTarget}
+        onOpenChange={(v) => { if (!v) setConvertTarget(null); }}
+        posPrinterId={convertTarget?.id}
+        printerName={convertTarget?.name || ""}
+        width={576}
+        onConverted={async () => { setConvertTarget(null); await loadOptions(); await refreshPrinterStatus(); }}
+      />
     </div>
   );
 }
