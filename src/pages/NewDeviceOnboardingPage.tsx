@@ -494,7 +494,26 @@ export default function NewDeviceOnboardingPage() {
       statusMap[p.id] = await testPrinterConnection(p.ip_address, p.port).catch(() => false);
     }));
     setPrinterStatus(statusMap);
+    // Also pull bridge /health so we get subnet_mismatch + connected flags
+    try {
+      const h = await checkBridgeHealth();
+      if (h.online) {
+        if (h.source) setBridgeSource(h.source);
+        const m: Record<string, { connected: boolean; subnetMismatch: boolean }> = {};
+        (h.printers || []).forEach(bp => {
+          if (bp.ip) m[bp.ip] = { connected: !!bp.connected, subnetMismatch: !!bp.subnetMismatch };
+        });
+        setBridgePrinterHealth(m);
+      }
+    } catch { /* ignore */ }
   }, [bridgeOnline, printers]);
+
+  // Auto-refresh bridge printer health once after bridge connects + printers load.
+  useEffect(() => {
+    if (!bridgeOnline || printers.length === 0) return;
+    void refreshPrinterStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeOnline, printers.length, branchId]);
 
   const fetchWindowsPrinters = async () => {
     try {
