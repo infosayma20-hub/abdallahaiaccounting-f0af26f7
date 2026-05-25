@@ -25,9 +25,10 @@ import {
   Monitor, Wifi, WifiOff, Building2, Boxes, Save, TestTube, RefreshCw,
   CheckCircle2, XCircle, Sparkles, Printer, Rocket, Plus, Download, Upload,
   Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar,
-  Cloud,
+  Cloud, ChevronDown,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   getDeviceConfig, setBridgeUrl, setDeviceBranchId, setDeviceTerminalId,
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
