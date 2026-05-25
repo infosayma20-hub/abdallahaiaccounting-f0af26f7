@@ -179,6 +179,12 @@ export default function NewDeviceOnboardingPage() {
   const [lastSyncOk, setLastSyncOk] = useState<boolean | null>(null);
   const [lastSyncMsg, setLastSyncMsg] = useState<string>("");
 
+  // ── Phase 1: wizard / accordion state ───────────────────────
+  const [openStep, setOpenStep] = useState<number>(1);
+  const [bridgeVersion, setBridgeVersion] = useState<string | null>(null);
+  const [showOptional, setShowOptional] = useState(false);
+  const [showBackup, setShowBackup] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── Bridge check ──────────────────────────────────────────
