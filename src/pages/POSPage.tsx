@@ -2247,6 +2247,35 @@ const POSPage = () => {
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
 
+    // 💾 Offer to restore any cart that was auto-saved when a previous
+    // shift on this device was force-closed from elsewhere.
+    try {
+      const draft = loadBlockedCart(company?.id ?? null, userId ?? null);
+      if (draft && Array.isArray(draft.orders) && draft.orders.length > 0) {
+        toast("لديك سلة محفوظة من العهدة السابقة — هل تريد استعادتها؟", {
+          duration: 15000,
+          action: {
+            label: "استعادة",
+            onClick: () => {
+              try {
+                setOrders(draft.orders as any);
+                setActiveOrderIndex(0);
+                orderCounter.current = (draft.orders as any[]).length || 1;
+                clearBlockedCart(company?.id ?? null, userId ?? null);
+                toast.success("تمت استعادة السلة");
+              } catch {
+                toast.error("تعذّر استعادة السلة");
+              }
+            },
+          },
+          cancel: {
+            label: "تجاهل",
+            onClick: () => clearBlockedCart(company?.id ?? null, userId ?? null),
+          },
+        });
+      }
+    } catch { /* ignore */ }
+
     // Detect branch from cash box name
     if (selectedCashBoxId && dataOwnerId) {
       const selectedBox = cashBoxes.find(b => b.id === selectedCashBoxId);
