@@ -111,6 +111,10 @@ function cors(req, res) {
 }
 
 function readJsonBody(req, limit = 8 * 1024) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return Promise.resolve(req.body);
+  }
+  if (req.readableEnded || req.complete) return Promise.resolve({});
   return new Promise((resolve) => {
     let data = ''; let aborted = false;
     req.on('data', (chunk) => {

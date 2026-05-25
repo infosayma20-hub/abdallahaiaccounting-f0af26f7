@@ -260,6 +260,13 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 1500):
   }
 }
 
+function bridgeJsonHeaders(): HeadersInit {
+  // Use text/plain for add-on endpoints so older installed bridges do not have
+  // bodyParser.json() consume the stream before device-config-addon can read it.
+  // The add-on still parses the body as JSON text.
+  return { "Content-Type": "text/plain;charset=UTF-8" };
+}
+
 /** Try the configured bridge URL first, then well-known local URLs. */
 function bridgeCandidates(): string[] {
   const cfg = getBridgeUrl();
@@ -281,7 +288,7 @@ export async function pushConfigToBridge(): Promise<void> {
     try {
       const res = await fetchWithTimeout(`${base}/device-config`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: bridgeJsonHeaders(),
         body: JSON.stringify(cfg),
       });
       if (res.ok) return;
@@ -304,7 +311,7 @@ export async function pushPrintersToBridge(
     try {
       const res = await fetchWithTimeout(`${base}/device-config`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: bridgeJsonHeaders(),
         body: JSON.stringify({ printers, replacePrinters: opts.replace === true }),
       }, 3000);
       if (res.ok) {
@@ -370,7 +377,7 @@ export async function discoverNetworkPrinters(opts: {
     try {
       const res = await fetchWithTimeout(`${base}/discover-network-printers`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: bridgeJsonHeaders(),
         body: JSON.stringify(body),
       }, 90_000);
       if (!res.ok) {
