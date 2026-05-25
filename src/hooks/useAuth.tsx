@@ -1,7 +1,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import { releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
+import { normalizeAuthSessionExpiry, releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
 
 interface AuthContextType {
   user: User | null;
@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      normalizeAuthSessionExpiry(session);
       setSession(session);
       // Only update the user object when the identity actually changes.
       // Supabase fires INITIAL_SESSION, TOKEN_REFRESHED and (on tab focus) extra
@@ -73,6 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      normalizeAuthSessionExpiry(session);
       setSession(session);
       setUser((prev) => {
         const next = session?.user ?? null;

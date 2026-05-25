@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 type AuthLock = <R>(name: string, acquireTimeout: number, fn: () => Promise<R>) => Promise<R>;
 
@@ -10,6 +11,8 @@ const LOCK_HEARTBEAT_MS = 4_000;
 const LOCK_POLL_MS = 80;
 const REFRESH_LEASE_MS = 12_000;
 const REFRESH_HEARTBEAT_MS = 4_000;
+const EXPIRY_MARGIN_MS = 90_000;
+const MAX_CLOCK_SKEW_MS = 8 * 60 * 60 * 1000;
 
 interface LockRecord {
   owner: string;
@@ -58,6 +61,53 @@ const writeJson = (key: string, value: unknown) => {
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const decodeJwtPayload = (token?: string): { iat?: number; exp?: number } | null => {
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+};
+
+export const normalizeAuthSessionExpiry = <T extends Partial<Session> | null>(session: T): T => {
+  if (!session?.access_token || !session.expires_at || !session.expires_in) return session;
+
+  const now = Date.now();
+  const jwt = decodeJwtPayload(session.access_token);
+  const tokenExpiryMs = (jwt?.exp ?? session.expires_at) * 1000;
+  const clientRemainingMs = tokenExpiryMs - now;
+
+  // Some branch devices have the OS clock set to local time while the timezone is UTC.
+  // Supabase then returns a fresh token that the browser thinks is already expired,
+  // causing every getSession()/auto-refresh check to rotate the token again.
+  if (clientRemainingMs < EXPIRY_MARGIN_MS && Math.abs(clientRemainingMs) <= MAX_CLOCK_SKEW_MS) {
+    session.expires_at = Math.floor(now / 1000) + session.expires_in;
+  }
+
+  return session;
+};
+
+export const normalizeStoredAuthSession = () => {
+  try {
+    const auth = supabase.auth as unknown as { storageKey?: string };
+    const storageKey = auth.storageKey;
+    if (!storageKey) return;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return;
+    const stored = JSON.parse(raw) as Session;
+    const before = stored.expires_at;
+    normalizeAuthSessionExpiry(stored);
+    if (stored.expires_at !== before) writeJson(storageKey, stored);
+  } catch {
+    // Storage may be unavailable in restricted browser modes; auth must continue.
+  }
+};
 
 const createTimeoutError = (name: string, acquireTimeout: number) => {
   const error = new Error(`Auth lock "${name}" timed out after ${acquireTimeout}ms`);
@@ -114,12 +164,33 @@ export const installAuthCrossTabLock = () => {
     lock?: AuthLock;
     lockAcquireTimeout?: number;
     __amwaliCrossTabLockInstalled?: boolean;
+    __amwaliSessionStoragePatched?: boolean;
+    storage?: Storage;
+    storageKey?: string;
   };
 
-  if (auth.__amwaliCrossTabLockInstalled) return;
-  auth.lock = localStorageAuthLock;
-  auth.lockAcquireTimeout = Math.max(auth.lockAcquireTimeout ?? 0, LOCK_LEASE_MS);
-  auth.__amwaliCrossTabLockInstalled = true;
+  if (!auth.__amwaliCrossTabLockInstalled) {
+    auth.lock = localStorageAuthLock;
+    auth.lockAcquireTimeout = Math.max(auth.lockAcquireTimeout ?? 0, LOCK_LEASE_MS);
+    auth.__amwaliCrossTabLockInstalled = true;
+  }
+
+  if (!auth.__amwaliSessionStoragePatched && auth.storage && auth.storageKey) {
+    const originalSetItem = auth.storage.setItem.bind(auth.storage);
+    auth.storage.setItem = (key: string, value: string) => {
+      if (key === auth.storageKey) {
+        try {
+          const parsed = JSON.parse(value) as Session;
+          normalizeAuthSessionExpiry(parsed);
+          return originalSetItem(key, JSON.stringify(parsed));
+        } catch {
+          // Keep Supabase's original storage behavior if the value is not a session JSON payload.
+        }
+      }
+      return originalSetItem(key, value);
+    };
+    auth.__amwaliSessionStoragePatched = true;
+  }
 };
 
 const readLeader = () => readJson<LeaderRecord>(LEADER_KEY);
@@ -142,6 +213,7 @@ let coordinatorCleanup: (() => void) | null = null;
 
 export const startAuthRefreshCoordinator = () => {
   installAuthCrossTabLock();
+  normalizeStoredAuthSession();
   if (coordinatorCleanup) return coordinatorCleanup;
 
   const auth = supabase.auth as unknown as {
