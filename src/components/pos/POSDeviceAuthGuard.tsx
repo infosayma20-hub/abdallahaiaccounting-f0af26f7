@@ -33,6 +33,54 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     }
   }, [authorized]);
 
+  // ── Heartbeat ───────────────────────────────────────────────────
+  // Continuously re-probe the Bridge every 15s while /pos is mounted.
+  // The mount-time check alone is not enough: Bridge can die mid-shift
+  // (Windows update, sleep, crash, network blip) and we must catch it
+  // BEFORE the cashier confirms a sale that won't actually print.
+  //
+  // - Skips when the tab is hidden (save battery / avoid useless calls).
+  // - Always force=true so we bypass the 60s sessionStorage cache.
+  // - Pauses while a check is already in flight.
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const tick = () => {
+      if (cancelled) return;
+      if (document.visibilityState !== "visible") return;
+      // recheck() flips `checking` itself; if a previous tick is still
+      // pending we just skip this round — no overlapping probes.
+      try { recheck(); } catch { /* ignore */ }
+    };
+
+    const start = () => {
+      if (timer) return;
+      timer = setInterval(tick, 15_000);
+    };
+    const stop = () => {
+      if (timer) { clearInterval(timer); timer = null; }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // Came back to the tab — probe immediately, then resume interval.
+        tick();
+        start();
+      } else {
+        stop();
+      }
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [recheck]);
+
   // Keep the canSell store in sync with the current authorization state.
   // This is the SINGLE source of truth consumed by POSPage.enforceDeviceGuard.
   useEffect(() => {
