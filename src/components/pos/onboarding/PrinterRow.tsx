@@ -40,6 +40,53 @@ export interface PrinterRowPrinter {
   settings?: Record<string, unknown>;
 }
 
+/** Subset of Windows printer info from bridge /windows-printers. */
+export interface WindowsPrinterMeta {
+  name: string;
+  portName?: string;
+  driverName?: string;
+}
+
+type WinConnKind =
+  | "USB" | "WSD" | "NPI" | "IP" | "AnyDesk" | "Virtual" | "Unknown";
+
+function detectWinConn(meta?: WindowsPrinterMeta | null): WinConnKind {
+  if (!meta) return "Unknown";
+  const port = String(meta.portName || "").trim();
+  const name = String(meta.name || "").toLowerCase();
+  if (name.includes("anydesk")) return "AnyDesk";
+  if (port === "PORTPROMPT:") return "Virtual";
+  if (/^USB/i.test(port)) return "USB";
+  if (/WSD/i.test(port)) return "WSD";
+  if (/^NPI/i.test(port)) return "NPI";
+  if (/^IP_/i.test(port) || /^\d{1,3}(\.\d{1,3}){3}$/.test(port)) return "IP";
+  return "Unknown";
+}
+
+function winConnLabel(k: WinConnKind): string {
+  switch (k) {
+    case "USB":     return "USB";
+    case "WSD":     return "شبكة عبر Windows";
+    case "NPI":     return "شبكة عبر Windows";
+    case "IP":      return "شبكة IP عبر Windows";
+    case "AnyDesk": return "AnyDesk";
+    case "Virtual": return "افتراضية/PDF";
+    default:        return "Windows - غير معروف";
+  }
+}
+
+function winConnBadgeCls(k: WinConnKind): string {
+  switch (k) {
+    case "USB":     return "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800";
+    case "WSD":
+    case "NPI":     return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800";
+    case "IP":      return "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/40 dark:text-teal-200 dark:border-teal-800";
+    case "Virtual": return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800";
+    case "AnyDesk": return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800";
+    default:        return "bg-muted text-muted-foreground border-border";
+  }
+}
+
 export interface PrinterRowProps {
   printer: PrinterRowPrinter;
   roleLabel: string;
@@ -52,6 +99,8 @@ export interface PrinterRowProps {
   bridgeOnline: boolean;
   /** Latest tcp test result from the parent (refresh / test). */
   testStatus?: boolean | null;
+  /** Windows printers list from /windows-printers (only used for Windows printers). */
+  windowsPrinters?: WindowsPrinterMeta[];
 
   onTest: () => void | Promise<void>;
   onConvertToWindows: () => void;
@@ -61,7 +110,7 @@ export interface PrinterRowProps {
 }
 
 type State =
-  | "usb-ok" | "usb-missing-name"
+  | "win-tested-ok" | "win-tested-fail" | "win-untested" | "win-missing-name"
   | "net-online" | "net-offline" | "net-unknown"
   | "subnet-mismatch" | "not-synced";
 
