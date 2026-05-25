@@ -219,13 +219,10 @@ function completePrintersReplacementMap(map: BridgePrintersMap): BridgePrintersM
   return fullMap;
 }
 
-export async function syncBranchPrintersToBridge(userId: string, branchId: string): Promise<{ ok: boolean; count: number }> {
-  if (!userId || !branchId) return { ok: false, count: 0 };
-  const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
-  const ownerId = (ownerIdRaw as string | null) || userId;
+export async function syncBranchPrintersToBridge(branchId: string): Promise<{ ok: boolean; count: number }> {
+  if (!branchId) return { ok: false, count: 0 };
   const { data, error } = await (supabase.from("pos_printers") as any)
     .select("id, name, ip_address, port, printer_type, print_categories, branch_id, is_active, settings")
-    .eq("user_id", ownerId)
     .eq("is_active", true)
     .or(`branch_id.eq.${branchId},branch_id.is.null`)
     .order("is_default", { ascending: false });
