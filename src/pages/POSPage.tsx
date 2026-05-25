@@ -53,6 +53,7 @@ import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
 import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge } from "@/lib/device-config";
+import { getCanSell, subscribeCanSell } from "@/lib/pos-device-auth";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
@@ -713,6 +714,15 @@ const POSPage = () => {
    * Returns true ⇢ proceed. Returns false ⇢ caller MUST early-return.
    */
   const enforceDeviceGuard = useCallback((opts?: { silent?: boolean }) => {
+    // 🔒 Device authorization (Print Bridge reachable). Single source of truth
+    // lives in src/lib/pos-device-auth.ts and is kept in sync by POSDeviceAuthGuard.
+    // When the Bridge is unreachable we hard-block selling/printing/drawer/open-shift
+    // without unmounting POS — the cashier/admin can recover by clicking "إعادة الفحص"
+    // in the sticky banner once the Bridge is back.
+    if (!getCanSell()) {
+      if (!opts?.silent) toast.error("⛔ وضع عرض فقط — برنامج الطباعة غير متصل على هذا الجهاز");
+      return false;
+    }
     // Emergency POS access: allow selling while device setup is corrected later.
     return true;
     if (!terminalBranchChecked || !cashBoxBranchChecked) {
