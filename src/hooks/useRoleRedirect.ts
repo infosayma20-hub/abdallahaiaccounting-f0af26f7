@@ -154,7 +154,12 @@ export function useRoleRedirect() {
         } else if (roles.includes("worker") && roles.length === 1) {
           nextPath = "/worker/procurement";
         } else if (roles.includes("cashier") && !roles.includes("admin")) {
-          nextPath = "/pos";
+          // Send cashier to the workspace chooser instead of straight to /pos.
+          // The chooser renders the POS card (disabled with a clear message
+          // when the device isn't authorized — i.e., no local Print Bridge)
+          // alongside the employee card, so the cashier can still clock in
+          // from a phone or unauthorized device.
+          nextPath = "/choose-workspace";
         } else if (roles.includes("employee") && roles.length === 1) {
           nextPath = "/employee";
         } else if (roles.includes("sales_rep") && !roles.includes("admin")) {
