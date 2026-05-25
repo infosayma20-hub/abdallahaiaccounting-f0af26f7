@@ -164,12 +164,33 @@ export const installAuthCrossTabLock = () => {
     lock?: AuthLock;
     lockAcquireTimeout?: number;
     __amwaliCrossTabLockInstalled?: boolean;
+    __amwaliSessionStoragePatched?: boolean;
+    storage?: Storage;
+    storageKey?: string;
   };
 
-  if (auth.__amwaliCrossTabLockInstalled) return;
-  auth.lock = localStorageAuthLock;
-  auth.lockAcquireTimeout = Math.max(auth.lockAcquireTimeout ?? 0, LOCK_LEASE_MS);
-  auth.__amwaliCrossTabLockInstalled = true;
+  if (!auth.__amwaliCrossTabLockInstalled) {
+    auth.lock = localStorageAuthLock;
+    auth.lockAcquireTimeout = Math.max(auth.lockAcquireTimeout ?? 0, LOCK_LEASE_MS);
+    auth.__amwaliCrossTabLockInstalled = true;
+  }
+
+  if (!auth.__amwaliSessionStoragePatched && auth.storage && auth.storageKey) {
+    const originalSetItem = auth.storage.setItem.bind(auth.storage);
+    auth.storage.setItem = (key: string, value: string) => {
+      if (key === auth.storageKey) {
+        try {
+          const parsed = JSON.parse(value) as Session;
+          normalizeAuthSessionExpiry(parsed);
+          return originalSetItem(key, JSON.stringify(parsed));
+        } catch {
+          // Keep Supabase's original storage behavior if the value is not a session JSON payload.
+        }
+      }
+      return originalSetItem(key, value);
+    };
+    auth.__amwaliSessionStoragePatched = true;
+  }
 };
 
 const readLeader = () => readJson<LeaderRecord>(LEADER_KEY);
