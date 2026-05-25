@@ -153,7 +153,7 @@ export async function checkBridgeHealth(): Promise<{
       const branchId = getDeviceBranchId();
       const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } } as any));
       if (user?.id && branchId) {
-        const sync = await syncBranchPrintersToBridge(user.id, branchId).catch(() => ({ ok: false, count: 0 }));
+        const sync = await syncBranchPrintersToBridge(branchId).catch(() => ({ ok: false, count: 0 }));
         if (sync.ok) {
           const fresh = await bridgeFetch("/health", { signal: AbortSignal.timeout(5000) }).catch(() => null);
           if (fresh?.ok) {
