@@ -25,13 +25,15 @@ import {
   Monitor, Wifi, WifiOff, Building2, Boxes, Save, TestTube, RefreshCw,
   CheckCircle2, XCircle, Sparkles, Printer, Rocket, Plus, Download, Upload,
   Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar,
+  Cloud,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import {
   getDeviceConfig, setBridgeUrl, setDeviceBranchId, setDeviceTerminalId,
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
   isDeviceFullyConfigured, pushPrintersToBridge, pullRawDeviceJsonFromBridge,
-  reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
+  reloadBridgeConfig, syncThisDeviceToBridge,
+  type BridgePrintersMap, type BridgePrinterKey,
   type BridgePrinter,
   discoverNetworkPrinters, type DiscoveredPrinter,
   posPrinterRoleToBridgeKey, buildBridgePrintersMapFromRows,
@@ -166,6 +168,12 @@ export default function NewDeviceOnboardingPage() {
   // Step 5 — Smoke test
   const [lastReceiptTestOk, setLastReceiptTestOk] = useState<boolean | null>(null);
   const [lastKitchenTestOk, setLastKitchenTestOk] = useState<boolean | null>(null);
+
+  // Unified bridge sync ("مزامنة هذا الجهاز")
+  const [syncing, setSyncing] = useState(false);
+  const [bridgeSource, setBridgeSource] = useState<string | null>(null);
+  const [lastSyncOk, setLastSyncOk] = useState<boolean | null>(null);
+  const [lastSyncMsg, setLastSyncMsg] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -357,6 +365,35 @@ export default function NewDeviceOnboardingPage() {
     () => printers.filter(p => !branchId || !p.branch_id || p.branch_id === branchId),
     [printers, branchId],
   );
+
+  // ── Unified sync to the local Print Bridge ────────────────
+  const handleSyncDevice = useCallback(async () => {
+    if (!branchId || !terminalId) {
+      toast.error("اربط الفرع والمحطة أولاً ثم زامن");
+      return;
+    }
+    setSyncing(true);
+    try {
+      // Persist latest selections to localStorage first
+      setDeviceBranchId(branchId);
+      setDeviceTerminalId(terminalId);
+      setDeviceLabel(label.trim());
+      try {
+        if (cashBoxId) localStorage.setItem("pos-device:cash-box-id", cashBoxId);
+        else           localStorage.removeItem("pos-device:cash-box-id");
+      } catch { /* ignore */ }
+      if (!getDeviceConfig().bridgeUrl) setBridgeUrl("http://127.0.0.1:3001");
+
+      const r = await syncThisDeviceToBridge();
+      setBridgeSource(r.health.printersSource);
+      setLastSyncOk(r.ok);
+      setLastSyncMsg(r.message);
+      if (r.ok) toast.success(`✅ ${r.message}`);
+      else      toast.error(`⚠️ ${r.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  }, [branchId, terminalId, label, cashBoxId]);
 
   // ── Export / Import device.json ───────────────────────────
   const exportConfig = async () => {
@@ -605,7 +642,14 @@ export default function NewDeviceOnboardingPage() {
   const deviceConfigured = !!(branchId && terminalId);
   const step2Status: StepStatus = deviceConfigured ? "ok" : (branchId || terminalId || label) ? "needs" : "idle";
   const step3Status: StepStatus = deviceConfigured ? "ok" : "idle";
-  const step4Status: StepStatus = filteredPrinters.length > 0 ? "ok" : "needs";
+  // Step 4 (printers) is only "ok" when there is an active printer in DB AND
+  // the bridge is reading it (not from its hardcoded fallback list).
+  const printersOnBridgeOk =
+    filteredPrinters.length > 0 && bridgeSource !== null && bridgeSource !== "fallback";
+  const step4Status: StepStatus =
+    filteredPrinters.length === 0 ? "needs"
+    : printersOnBridgeOk ? "ok"
+    : "needs";
   const smokeOk = bridgeOnline && deviceConfigured && !!receiptPrinter && (lastReceiptTestOk === true);
   const step5Status: StepStatus = smokeOk ? "ok" : (deviceConfigured && receiptPrinter) ? "needs" : "idle";
 
@@ -762,6 +806,30 @@ export default function NewDeviceOnboardingPage() {
             {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             ربط هذا الجهاز
           </Button>
+          <Button
+            onClick={handleSyncDevice}
+            disabled={syncing || !branchId || !terminalId || !bridgeOnline}
+            className="gap-2 w-full md:w-auto"
+          >
+            {syncing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+            مزامنة هذا الجهاز (إرسال الإعدادات + الطابعات لبرنامج الطباعة)
+          </Button>
+          {lastSyncOk === true && (
+            <div className="rounded-md border border-success/30 bg-success/10 text-success text-sm px-3 py-2 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" /> {lastSyncMsg}
+            </div>
+          )}
+          {lastSyncOk === false && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-sm px-3 py-2 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5" />
+              <div>
+                <div className="font-medium">{lastSyncMsg}</div>
+                <div className="text-[11px] opacity-80 mt-0.5">
+                  تحقق أن برنامج الطباعة شغّال وأن نسخته تدعم <code dir="ltr">/device-config</code> و<code dir="ltr">/reload-config</code>.
+                </div>
+              </div>
+            </div>
+          )}
           {deviceSaved && (
             <div className="rounded-md border border-success/30 bg-success/10 text-success text-sm px-3 py-2 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" /> تم ربط هذا الجهاز بحساب الشركة والفرع
@@ -772,7 +840,7 @@ export default function NewDeviceOnboardingPage() {
         {/* ── Step 3: Backup ─────────────────────────────── */}
         <Section
           n={3} title="نسخة احتياطية للجهاز" icon={Download} status={step3Status}
-          subtitle="احفظ ملف device.json على USB. لو فُرمت الجهاز ترجع تستورده وخلص."
+          subtitle="نسخة احتياطية فقط — ليست خطوة أساسية. الاعتماد الرئيسي على زر «مزامنة هذا الجهاز» في خطوة 2."
         >
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={exportConfig} disabled={!deviceSaved} className="gap-2">
@@ -787,7 +855,7 @@ export default function NewDeviceOnboardingPage() {
             />
           </div>
           <p className="text-[11px] text-muted-foreground">
-            ينحفظ تلقائياً في <code dir="ltr">C:\print-bridge\device.json</code> لما برنامج الطباعة شغّال.
+            للنقل إلى كمبيوتر آخر بدون إنترنت. للتشغيل العادي استخدم «مزامنة هذا الجهاز».
           </p>
         </Section>
 
@@ -796,6 +864,15 @@ export default function NewDeviceOnboardingPage() {
           n={4} title="الطابعات" icon={Printer} status={step4Status}
           subtitle="حدّد طابعة الفاتورة وطابعات المطبخ/المشاوي/البيتزا."
         >
+          {filteredPrinters.length > 0 && bridgeSource === "fallback" && (
+            <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5" />
+              <div>
+                <div className="font-medium">برنامج الطباعة يعرض قائمة افتراضية (FALLBACK) ولا يقرأ طابعات الفرع.</div>
+                <div className="opacity-80 mt-0.5">اضغط «مزامنة هذا الجهاز» في خطوة 2 لإرسال الطابعات الفعلية.</div>
+              </div>
+            </div>
+          )}
           {filteredPrinters.length === 0 ? (
             <div className="rounded-md border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground text-center">
               لا توجد طابعات مرتبطة بهذا الفرع بعد

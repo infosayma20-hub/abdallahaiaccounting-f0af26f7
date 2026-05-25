@@ -18,6 +18,7 @@ const KEYS = {
   branchId: "pos-device:branch-id",
   terminalId: "pos-device:terminal-id",
   label: "pos-device:label",
+  cashBoxId: "pos-device:cash-box-id",
 } as const;
 
 const DEFAULT_BRIDGE_PORT = 3001;
@@ -135,6 +136,7 @@ export interface DeviceConfig {
   branchId: string;
   terminalId: string;
   label: string;
+  cashBoxId: string;
 }
 
 // ── Printer config that lives on the bridge (device.json) ────
@@ -240,6 +242,7 @@ export function getDeviceConfig(): DeviceConfig {
     branchId: getDeviceBranchId(),
     terminalId: getDeviceTerminalId(),
     label: getDeviceLabel(),
+    cashBoxId: safeGet(KEYS.cashBoxId),
   };
 }
 
@@ -283,7 +286,7 @@ function bridgeCandidates(): string[] {
 export async function pushConfigToBridge(): Promise<void> {
   const cfg = getDeviceConfig();
   // Only push if there is at least one meaningful field set
-  if (!cfg.branchId && !cfg.terminalId && !cfg.bridgeUrl && !cfg.label) return;
+  if (!cfg.branchId && !cfg.terminalId && !cfg.bridgeUrl && !cfg.label && !cfg.cashBoxId) return;
   for (const base of bridgeCandidates()) {
     try {
       const res = await fetchWithTimeout(`${base}/device-config`, {
@@ -296,6 +299,113 @@ export async function pushConfigToBridge(): Promise<void> {
       /* try next */
     }
   }
+}
+
+// ────────────────────────────────────────────────────────────
+// Unified one-shot device sync ("مزامنة هذا الجهاز")
+// ────────────────────────────────────────────────────────────
+export interface SyncDeviceResult {
+  ok: boolean;
+  configPushed: boolean;
+  printersPushed: boolean;
+  printerCount: number;
+  reloaded: boolean;
+  health: {
+    online: boolean;
+    branchId: string | null;
+    terminalId: string | null;
+    printersSource: string | null;
+  };
+  fallback: boolean;
+  message: string;
+}
+
+/**
+ * Push local device config + branch printers to the Print Bridge, reload it,
+ * then verify via /health that:
+ *   • device.branchId / device.terminalId are reflected on the bridge
+ *   • printers_source is NOT "fallback" whenever the branch has active printers
+ *
+ * Returns a structured result so the UI can show a precise success / warning.
+ */
+export async function syncThisDeviceToBridge(): Promise<SyncDeviceResult> {
+  const cfg = getDeviceConfig();
+  const result: SyncDeviceResult = {
+    ok: false,
+    configPushed: false,
+    printersPushed: false,
+    printerCount: 0,
+    reloaded: false,
+    health: { online: false, branchId: null, terminalId: null, printersSource: null },
+    fallback: true,
+    message: "",
+  };
+
+  // 1) POST /device-config with label / branchId / terminalId / cashBoxId / bridgeUrl
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/device-config`, {
+        method: "POST",
+        headers: bridgeJsonHeaders(),
+        body: JSON.stringify(cfg),
+      }, 3000);
+      if (res.ok) { result.configPushed = true; break; }
+    } catch { /* try next */ }
+  }
+  if (!result.configPushed) {
+    result.message = "تعذّر الوصول إلى برنامج الطباعة المحلي على هذا الجهاز";
+    return result;
+  }
+
+  // 2) Push active branch printers (network + windows) — full replace
+  if (cfg.branchId) {
+    try {
+      const sync = await syncBranchPrintersToBridge(cfg.branchId);
+      result.printersPushed = sync.ok;
+      result.printerCount = sync.count;
+    } catch {
+      result.printersPushed = false;
+    }
+  }
+
+  // 3) POST /reload-config
+  result.reloaded = await reloadBridgeConfig().catch(() => false);
+
+  // 4) GET /health and verify
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/health`, { method: "GET" }, 4000);
+      if (!res.ok) continue;
+      const data = await res.json().catch(() => ({} as any));
+      const device = (data?.device || {}) as Record<string, any>;
+      result.health = {
+        online: true,
+        branchId: device.branchId ?? null,
+        terminalId: device.terminalId ?? null,
+        printersSource: data?.printers_source ?? null,
+      };
+      break;
+    } catch { /* try next */ }
+  }
+
+  result.fallback = result.health.printersSource === "fallback";
+  const hasActivePrinters = result.printerCount > 0;
+  const deviceBound = !!(result.health.branchId && result.health.terminalId);
+
+  if (!result.health.online) {
+    result.message = "تم إرسال الإعدادات لكن /health لا يستجيب — تأكد أن برنامج الطباعة شغّال";
+  } else if (!deviceBound) {
+    result.message = "تم إرسال الإعدادات لكن لم تظهر بيانات الجهاز في /health — جرّب إعادة تشغيل برنامج الطباعة";
+  } else if (hasActivePrinters && result.fallback) {
+    result.message = "تم حفظ الإعدادات في أموالي لكن لم تصل إلى برنامج الطباعة المحلي";
+  } else {
+    result.ok = true;
+    result.message = hasActivePrinters
+      ? "تمت مزامنة الجهاز والطابعات بنجاح"
+      : "تمت مزامنة الجهاز (لا توجد طابعات فعّالة على هذا الفرع بعد)";
+  }
+
+  return result;
 }
 
 /**
@@ -428,6 +538,7 @@ export async function pullConfigFromBridge(): Promise<DeviceConfig | null> {
         branchId: json.branchId || "",
         terminalId: json.terminalId || "",
         label: json.label || "",
+        cashBoxId: (json as any).cashBoxId || "",
       };
       return out;
     } catch {

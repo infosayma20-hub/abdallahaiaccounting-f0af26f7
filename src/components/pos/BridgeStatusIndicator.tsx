@@ -6,10 +6,12 @@
  * Polls every 15s. Lightweight — no bundle/UI cost when bridge is offline.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Printer, Loader2, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Printer, Loader2, RefreshCw, CheckCircle2, XCircle, Cloud, AlertCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { checkBridgeHealth, getPrintBridgeUrl } from "@/lib/print-bridge-client";
+import { syncThisDeviceToBridge } from "@/lib/device-config";
+import { toast } from "sonner";
 
 type Printer = { key: string; name: string; ip: string; connected: boolean; source?: string };
 type Status = "checking" | "online" | "offline";
@@ -23,6 +25,9 @@ export default function BridgeStatusIndicator() {
   const [refreshing, setRefreshing] = useState(false);
   const [source, setSource] = useState<string | null>(null);
   const [synced, setSynced] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncMsg, setLastSyncMsg] = useState<string>("");
+  const [lastSyncOk, setLastSyncOk] = useState<boolean | null>(null);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -63,6 +68,21 @@ export default function BridgeStatusIndicator() {
 
   const connectedCount = printers.filter((p) => p.connected).length;
   const totalCount = printers.length;
+  const isFallback = source === "fallback";
+
+  const handleSync = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const r = await syncThisDeviceToBridge();
+      setLastSyncOk(r.ok);
+      setLastSyncMsg(r.message);
+      if (r.ok) toast.success(`✅ ${r.message}`);
+      else      toast.error(`⚠️ ${r.message}`);
+      await refresh();
+    } finally {
+      setSyncing(false);
+    }
+  }, [refresh]);
 
   return (
     <Popover>
@@ -195,6 +215,29 @@ export default function BridgeStatusIndicator() {
         </div>
 
         {/* Footer */}
+        <div className="px-3 py-2 border-t bg-muted/30 space-y-2">
+          <Button
+            onClick={handleSync}
+            disabled={syncing}
+            className="w-full gap-2 h-8 text-xs"
+            size="sm"
+          >
+            {syncing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Cloud className="h-3.5 w-3.5" />}
+            مزامنة هذا الجهاز
+          </Button>
+          {isFallback && (
+            <div className="text-[10.5px] text-amber-700 dark:text-amber-300 flex items-start gap-1 leading-snug">
+              <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+              <span>برنامج الطباعة يستخدم القائمة الافتراضية. اضغط «مزامنة» لإرسال طابعات الفرع.</span>
+            </div>
+          )}
+          {lastSyncOk === true && !isFallback && lastSyncMsg && (
+            <div className="text-[10.5px] text-success leading-snug">{lastSyncMsg}</div>
+          )}
+          {lastSyncOk === false && lastSyncMsg && (
+            <div className="text-[10.5px] text-destructive leading-snug">{lastSyncMsg}</div>
+          )}
+        </div>
         {lastCheck && (
           <div className="px-4 py-2 border-t bg-muted/40 text-[11px] text-muted-foreground text-center">
             آخر فحص: {lastCheck.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
