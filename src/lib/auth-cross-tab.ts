@@ -133,7 +133,9 @@ const removeLeaderIfOwned = () => {
 export const releaseAuthRefreshLeadership = () => {
   try {
     removeLeaderIfOwned();
-  } catch {}
+  } catch {
+    // Best effort: private browsing or storage restrictions must not block logout.
+  }
 };
 
 let coordinatorCleanup: (() => void) | null = null;

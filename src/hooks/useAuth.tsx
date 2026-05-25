@@ -100,7 +100,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             event_type: "logout",
           },
         });
-      } catch {}
+      } catch {
+        // Non-blocking audit log; logout must continue even if logging fails.
+      }
     }
     try {
       const prefix = `amwali_draft_${currentUser?.id || ""}`;
@@ -108,7 +110,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (key.startsWith(prefix)) localStorage.removeItem(key);
       }
       if (currentUser?.id) sessionStorage.removeItem(`workspace-choice:${currentUser.id}`);
-    } catch {}
+    } catch {
+      // Storage cleanup is best-effort only.
+    }
     releaseAuthRefreshLeadership();
     await supabase.auth.signOut();
   };
