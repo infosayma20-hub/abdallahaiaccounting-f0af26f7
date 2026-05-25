@@ -447,6 +447,123 @@ export async function reloadBridgeConfig(): Promise<boolean> {
   return false;
 }
 
+// ── Subnet probing (bridge v6.3.4+) ─────────────────────────
+export interface ProbePrinterResult {
+  ok: boolean;
+  reachable: boolean;
+  subnetMismatch: boolean;
+  hostSubnets: Array<{ iface: string; ip?: string; cidr: string }>;
+  ip: string;
+  port: number;
+  probeError?: string | null;
+  hint?: string | null;
+  bridgeUnreachable?: boolean;
+  raw?: any;
+}
+
+/**
+ * Probe a printer IP:port through the local bridge. Works across subnets
+ * (relies on OS routing). Returns subnet mismatch info from /probe-printer.
+ */
+export async function probePrinter(ip: string, port = 9100): Promise<ProbePrinterResult> {
+  const qs = `?ip=${encodeURIComponent(ip)}&port=${encodeURIComponent(String(port))}`;
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/probe-printer${qs}`, { method: "GET" }, 4000);
+      if (!res.ok) continue;
+      const j = await res.json().catch(() => ({} as any));
+      return {
+        ok: !!j?.ok,
+        reachable: !!j?.reachable,
+        subnetMismatch: !!j?.subnet_mismatch,
+        hostSubnets: Array.isArray(j?.host_subnets) ? j.host_subnets : [],
+        ip: j?.ip || ip,
+        port: Number(j?.port || port),
+        probeError: j?.probe_error ?? null,
+        hint: j?.hint ?? null,
+        raw: j,
+      };
+    } catch { /* try next */ }
+  }
+  return {
+    ok: false,
+    reachable: false,
+    subnetMismatch: false,
+    hostSubnets: [],
+    ip, port,
+    probeError: "bridge_unreachable",
+    bridgeUnreachable: true,
+  };
+}
+
+export interface AddPrinterToBridgeInput {
+  key: string;
+  name?: string;
+  ip: string;
+  port?: number;
+  width?: number;
+  stationId?: string;
+  force?: boolean;
+}
+export interface AddPrinterToBridgeResult {
+  ok: boolean;
+  status: number;
+  subnetMismatch?: boolean;
+  reachable?: boolean;
+  forced?: boolean;
+  error?: string;
+  hint?: string;
+  raw?: any;
+}
+
+/**
+ * Force-add (or normally add) a printer into the bridge's device.json via
+ * POST /add-printer. Returns 409-aware result so the UI can offer "force add".
+ */
+export async function addPrinterToBridge(input: AddPrinterToBridgeInput): Promise<AddPrinterToBridgeResult> {
+  const body = JSON.stringify({
+    key: input.key,
+    name: input.name,
+    ip: input.ip,
+    port: Number(input.port || 9100),
+    width: input.width,
+    stationId: input.stationId,
+    force: !!input.force,
+  });
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/add-printer`, {
+        method: "POST",
+        headers: bridgeJsonHeaders(),
+        body,
+      }, 4000);
+      const j = await res.json().catch(() => ({} as any));
+      if (res.status === 409) {
+        return {
+          ok: false,
+          status: 409,
+          subnetMismatch: true,
+          error: j?.error || "subnet_mismatch",
+          hint: j?.hint,
+          raw: j,
+        };
+      }
+      if (!res.ok) {
+        return { ok: false, status: res.status, error: j?.error || `http_${res.status}`, raw: j };
+      }
+      return {
+        ok: true,
+        status: res.status,
+        reachable: !!j?.reachable,
+        subnetMismatch: !!j?.subnet_mismatch,
+        forced: !!j?.forced,
+        raw: j,
+      };
+    } catch { /* try next */ }
+  }
+  return { ok: false, status: 0, error: "bridge_unreachable" };
+}
+
 // ── Network printer discovery ───────────────────────────────
 export interface DiscoveredPrinter {
   ip: string;
