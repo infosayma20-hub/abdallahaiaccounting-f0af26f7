@@ -11,7 +11,8 @@
  *      no "مطعم الملكي" default name, no C:\malaki-print logo path.
  *   2) Printers are loaded from c:\print-bridge\device.json via the
  *      device-config-addon. If the file is missing/empty, the bridge
- *      falls back to neutral DEFAULT_PRINTERS (printing never breaks).
+ *      falls back to neutral DEFAULT_PRINTERS. Once device.json has
+ *      printers, it becomes the source of truth — no stale default IPs.
  *   3) Adds network-printer auto-discovery via discover-printers-addon
  *      (POST /discover-network-printers).
  *   4) /health now reports `status, version, device, printers_source,
@@ -269,8 +270,10 @@ const DEFAULT_PRINTERS = {
 function getActivePrinters() {
   const fromFile = deviceCfg.getPrinters();
   if (fromFile && typeof fromFile === 'object' && Object.keys(fromFile).length) {
-    // Merge so missing roles still fall back to defaults.
-    const merged = { ...DEFAULT_PRINTERS };
+    // Important: do NOT merge missing keys with defaults here.
+    // If a branch uses only receipt + unified kitchen, fallback grill/pizza
+    // IPs (192.168.1.50-53) must not reappear in /health or actual routing.
+    const merged = {};
     for (const [k, v] of Object.entries(fromFile)) {
       if (!v) continue;
       merged[k] = {

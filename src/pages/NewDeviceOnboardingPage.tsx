@@ -287,11 +287,11 @@ export default function NewDeviceOnboardingPage() {
     // from device.json so old/default IPs (e.g. 192.168.1.50-53) don't linger
     // on the bridge after the branch has been reconfigured.
     const ALL_KEYS: BridgePrinterKey[] = ["receipt", "kitchen", "grill", "pizza", "unified_kitchen"];
-    const fullMap = { ...map } as Record<string, BridgePrinter | null>;
+    const fullMap: BridgePrintersMap = { ...map };
     for (const k of ALL_KEYS) {
       if (!(k in map)) fullMap[k] = null;
     }
-    void pushPrintersToBridge(fullMap as unknown as BridgePrintersMap).catch(() => null);
+    void pushPrintersToBridge(fullMap, { replace: true }).catch(() => null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printers, bridgeOnline, branchId]);
 
@@ -430,7 +430,7 @@ export default function NewDeviceOnboardingPage() {
         if (parsed.cashBoxId)  { localStorage.setItem("pos-device:cash-box-id", parsed.cashBoxId); setCashBoxId(parsed.cashBoxId); }
         await pushConfigToBridge().catch(() => null);
         if (parsed.printers && typeof parsed.printers === "object") {
-          const ok = await pushPrintersToBridge(parsed.printers).catch(() => false);
+          const ok = await pushPrintersToBridge(parsed.printers, { replace: true }).catch(() => false);
           if (ok) toast.info("📡 تم استعادة طابعات device.json إلى برنامج الطباعة");
         }
         await reloadBridgeConfig().catch(() => null);
@@ -521,7 +521,7 @@ export default function NewDeviceOnboardingPage() {
       const bridgeKey = roleToBridgeKey(role);
       if (bridgeKey) {
         // Pass null to remove from device.json on the bridge
-        await pushPrintersToBridge({ [bridgeKey]: null } as unknown as BridgePrintersMap).catch(() => false);
+        await pushPrintersToBridge({ [bridgeKey]: null }).catch(() => false);
         await reloadBridgeConfig().catch(() => null);
       }
       toast.success("تم حذف الطابعة");

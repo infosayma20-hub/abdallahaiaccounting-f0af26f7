@@ -155,7 +155,7 @@ export interface BridgeWindowsPrinter {
   stationId?: string;
 }
 export type BridgePrinter = BridgeNetworkPrinter | BridgeWindowsPrinter;
-export type BridgePrintersMap = Partial<Record<BridgePrinterKey, BridgePrinter>>;
+export type BridgePrintersMap = Partial<Record<BridgePrinterKey, BridgePrinter | null>>;
 
 export function getDeviceConfig(): DeviceConfig {
   return {
@@ -215,19 +215,20 @@ export async function pushConfigToBridge(): Promise<void> {
 }
 
 /**
- * Push printer settings to the bridge's device.json. Merges (does NOT delete)
- * existing fields. Returns true if at least one bridge URL accepted the payload.
+  * Push printer settings to the bridge's device.json. Merges existing fields;
+  * pass null for a key to delete it. Returns true if at least one bridge URL accepted the payload.
  * Set a printer value to null to remove it from device.json.
  */
 export async function pushPrintersToBridge(
   printers: BridgePrintersMap,
+  opts: { replace?: boolean } = {},
 ): Promise<boolean> {
   for (const base of bridgeCandidates()) {
     try {
       const res = await fetchWithTimeout(`${base}/device-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ printers }),
+        body: JSON.stringify({ printers, replacePrinters: opts.replace === true }),
       }, 3000);
       if (res.ok) {
         // Trigger a hot-reload so the bridge picks up the new file immediately
