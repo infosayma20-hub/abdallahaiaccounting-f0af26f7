@@ -538,6 +538,7 @@ export async function pullConfigFromBridge(): Promise<DeviceConfig | null> {
         branchId: json.branchId || "",
         terminalId: json.terminalId || "",
         label: json.label || "",
+        cashBoxId: (json as any).cashBoxId || "",
       };
       return out;
     } catch {
