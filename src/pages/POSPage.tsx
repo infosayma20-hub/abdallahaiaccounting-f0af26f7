@@ -654,7 +654,7 @@ const POSPage = () => {
         if (cfg.branchId) q = q.or(`branch_id.eq.${cfg.branchId},branch_id.is.null`);
         const { count } = await q;
         if (cfg.branchId && (count ?? 0) > 0) {
-          await syncBranchPrintersToBridge(user.id, cfg.branchId).catch(() => null);
+          await syncBranchPrintersToBridge(cfg.branchId).catch(() => null);
         }
         if (!cancelled) setPrintersCountDiag(count ?? 0);
       } catch {
