@@ -132,7 +132,7 @@ public class RawPrinter {
   [DllImport("winspool.Drv", EntryPoint="ClosePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
   public static extern bool ClosePrinter(IntPtr hPrinter);
   [DllImport("winspool.Drv", EntryPoint="StartDocPrinterW", SetLastError=true, CharSet=CharSet.Unicode, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
-  public static extern int StartDocPrinter(IntPtr hPrinter, int level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOW pDI);
+  public static extern int StartDocPrinter(IntPtr hPrinter, int level, [In] ref DOCINFOW pDI);
   [DllImport("winspool.Drv", EntryPoint="EndDocPrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
   public static extern bool EndDocPrinter(IntPtr hPrinter);
   [DllImport("winspool.Drv", EntryPoint="StartPagePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
@@ -140,7 +140,7 @@ public class RawPrinter {
   [DllImport("winspool.Drv", EntryPoint="EndPagePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
   public static extern bool EndPagePrinter(IntPtr hPrinter);
   [DllImport("winspool.Drv", EntryPoint="WritePrinter", SetLastError=true, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
-  public static extern bool WritePrinter(IntPtr hPrinter, byte[] pBytes, int dwCount, out int dwWritten);
+  public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
 
   public static string SendBytesToPrinter(string printerName, byte[] bytes) {
     IntPtr hPrinter;
@@ -149,12 +149,18 @@ public class RawPrinter {
       DOCINFOW di = new DOCINFOW();
       di.pDocName = "AMWALI Receipt";
       di.pDatatype = "RAW";
-      if (StartDocPrinter(hPrinter, 1, di) == 0) return "StartDocPrinter_failed:" + Marshal.GetLastWin32Error();
+      if (StartDocPrinter(hPrinter, 1, ref di) == 0) return "StartDocPrinter_failed:" + Marshal.GetLastWin32Error();
       try {
         if (!StartPagePrinter(hPrinter)) return "StartPagePrinter_failed:" + Marshal.GetLastWin32Error();
-        int written = 0;
-        if (!WritePrinter(hPrinter, bytes, bytes.Length, out written)) return "WritePrinter_failed:" + Marshal.GetLastWin32Error();
-        if (written != bytes.Length) return "WritePrinter_short:" + written + "/" + bytes.Length;
+        IntPtr pUnmanagedBytes = Marshal.AllocCoTaskMem(bytes.Length);
+        try {
+          Marshal.Copy(bytes, 0, pUnmanagedBytes, bytes.Length);
+          Int32 written = 0;
+          if (!WritePrinter(hPrinter, pUnmanagedBytes, bytes.Length, out written)) return "WritePrinter_failed:" + Marshal.GetLastWin32Error();
+          if (written != bytes.Length) return "WritePrinter_short:" + written + "/" + bytes.Length;
+        } finally {
+          Marshal.FreeCoTaskMem(pUnmanagedBytes);
+        }
         EndPagePrinter(hPrinter);
       } finally { EndDocPrinter(hPrinter); }
     } finally { ClosePrinter(hPrinter); }
@@ -817,6 +823,7 @@ app.get('/health', async (_req, res) => {
     online: true,
     logo: !!LOGO_BUF,
     windows_printers_supported: IS_WINDOWS,
+    usb_raw_print_fix: 'intptr-marshaling-v1',
     device: {
       label:      cfg.label      || null,
       branchId:   cfg.branchId   || null,
