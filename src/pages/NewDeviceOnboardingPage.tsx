@@ -1137,34 +1137,56 @@ export default function NewDeviceOnboardingPage() {
           </div>
         </Section>
 
-        {/* ── Step 5: Smoke test ─────────────────────────── */}
+        {/* ── Step 4: Pre-handover summary ────────────────── */}
         <Section
-          n={5} title="اختبار سريع قبل التسليم" icon={ListChecks} status={step5Status}
-          subtitle="مراجعة أخيرة قبل تسليم الجهاز للكاشير."
+          n={4} title="اختبار قبل التسليم" icon={Rocket} status={step4Status}
+          subtitle="ملخّص نهائي قبل تشغيل الكاشير."
+          open={openStep === 4} onToggle={() => setOpenStep(openStep === 4 ? 0 : 4)}
+          summary={
+            smokeOk
+              ? <SummarySimple ok text="جاهز للتشغيل" />
+              : <SummarySimple text={deviceConfigured ? "يحتاج اختبار طباعة" : "أكمل الخطوات السابقة"} />
+          }
         >
-          <ul className="space-y-1.5 text-sm">
-            <CheckItem ok={!!branchId}     label="الجهاز مربوط بفرع" />
-            <CheckItem ok={!!terminalId}   label="الجهاز مربوط بمحطة POS" />
-            <CheckItem ok={!!cashBoxId}    label="الجهاز مربوط بصندوق نقدي (اختياري)" optional />
-            <CheckItem ok={bridgeOnline === true} label="برنامج الطباعة متصل" />
-            <CheckItem ok={!!receiptPrinter} label="طابعة الفاتورة محددة" />
-            <CheckItem ok={lastReceiptTestOk === true} label="آخر اختبار طباعة فاتورة ناجح" />
-            <CheckItem ok={!!kitchenPrinter} label="طابعة المطبخ محددة (للمطاعم فقط)" optional />
-          </ul>
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button variant="outline" onClick={testReceiptPrint} disabled={!receiptPrinter || !bridgeOnline} className="gap-2">
-              <TestTube className="h-4 w-4" /> اختبار طباعة فاتورة
+          {/* Compact summary stats */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+            <SummaryStat label="الفرع"            value={branches.find(b => b.id === branchId)?.name || "—"} ok={!!branchId} />
+            <SummaryStat label="المحطة"           value={terminals.find(t => t.id === terminalId)?.name || "—"} ok={!!terminalId} />
+            <SummaryStat label="الصندوق"          value={cashBoxes.find(c => c.id === cashBoxId)?.name || "—"} optional />
+            <SummaryStat label="الطابعات النشطة"  value={String(filteredPrinters.length)} ok={filteredPrinters.length > 0} />
+            <SummaryStat
+              label="آخر اختبار فاتورة"
+              value={lastReceiptTestOk === true ? "✓ ناجح" : lastReceiptTestOk === false ? "✗ فشل" : "لم يتم"}
+              ok={lastReceiptTestOk === true ? true : lastReceiptTestOk === false ? false : undefined}
+            />
+            <SummaryStat label="برنامج الطباعة"   value={bridgeOnline ? "متصل" : "غير متصل"} ok={bridgeOnline === true} />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={testReceiptPrint} disabled={!receiptPrinter || !bridgeOnline} className="gap-1">
+              <TestTube className="h-4 w-4" /> اختبار فاتورة
             </Button>
-            <Button variant="outline" onClick={testKitchenPrint} disabled={!kitchenPrinter || !bridgeOnline} className="gap-2">
-              <TestTube className="h-4 w-4" /> اختبار طباعة مطبخ
+            <Button variant="outline" size="sm" onClick={testKitchenPrint} disabled={!kitchenPrinter || !bridgeOnline} className="gap-1">
+              <TestTube className="h-4 w-4" /> اختبار مطبخ
             </Button>
-            <Button variant="outline" onClick={() => navigate("/printer-settings")} className="gap-2">
-              <Printer className="h-4 w-4" /> إعدادات الطابعات
-            </Button>
-            <Button onClick={() => navigate("/pos")} disabled={!deviceSaved} className="gap-2">
-              <Rocket className="h-4 w-4" /> فتح نقطة البيع
+            <Button variant="ghost" size="sm" onClick={() => navigate("/printer-settings")} className="gap-1 text-xs text-muted-foreground">
+              <Printer className="h-3.5 w-3.5" /> إعدادات الطابعات
             </Button>
           </div>
+
+          <Button
+            onClick={() => navigate("/pos")}
+            disabled={!deviceConfigured}
+            className="w-full gap-2 h-12 text-base mt-2"
+            size="lg"
+          >
+            <Rocket className="h-5 w-5" /> فتح نقطة البيع
+          </Button>
+          {!deviceConfigured && (
+            <p className="text-[11px] text-muted-foreground text-center">
+              أكمل ربط الفرع والمحطة في خطوة 2 لتفعيل الزر.
+            </p>
+          )}
         </Section>
       </div>
 
