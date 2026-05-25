@@ -39,8 +39,8 @@ import {
   discoverNetworkPrinters, type DiscoveredPrinter,
   posPrinterRoleToBridgeKey, buildBridgePrintersMapFromRows,
 } from "@/lib/device-config";
-import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
-import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
+import { checkBridgeStatus, checkBridgeHealth, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
+import PrinterRow from "@/components/pos/onboarding/PrinterRow";
 import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -156,6 +156,7 @@ export default function NewDeviceOnboardingPage() {
   // Step 4 — Printers
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [printerStatus, setPrinterStatus] = useState<Record<string, boolean | null>>({});
+  const [bridgePrinterHealth, setBridgePrinterHealth] = useState<Record<string, { connected: boolean; subnetMismatch: boolean }>>({});
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
@@ -168,6 +169,7 @@ export default function NewDeviceOnboardingPage() {
   const [discovered, setDiscovered]         = useState<DiscoveredPrinter[] | null>(null);
   const [discoverMeta, setDiscoverMeta]     = useState<{ subnet?: string; elapsedMs?: number; error?: string } | null>(null);
   const [assigningIp, setAssigningIp]       = useState<string | null>(null);
+  const [showDiscovery, setShowDiscovery]   = useState(false);
 
   // Step 5 — Smoke test
   const [lastReceiptTestOk, setLastReceiptTestOk] = useState<boolean | null>(null);
