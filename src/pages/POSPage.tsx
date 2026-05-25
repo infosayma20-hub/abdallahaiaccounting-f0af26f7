@@ -710,6 +710,22 @@ const POSPage = () => {
     return () => { cancelled = true; };
   }, [session?.cash_box_id]);
 
+  // ── Concurrent-shift watcher ───────────────────────────────────────
+  // Detects when the SAME cashier's session was closed (or marked deleted)
+  // from another device. Uses Supabase Realtime + a 30s safety poll.
+  // We keep a ref alongside state so `enforceDeviceGuard` (which is read
+  // from inside event handlers and sync callbacks) sees the latest value
+  // without needing to be re-memoized.
+  const { closedFromElsewhere: shiftClosedElsewhere, closedAt: shiftClosedAt } =
+    usePOSShiftWatcher(session?.id ?? null);
+  const shiftClosedElsewhereRef = useRef(false);
+  useEffect(() => {
+    shiftClosedElsewhereRef.current = shiftClosedElsewhere;
+    if (shiftClosedElsewhere) {
+      toast.error("⛔ تم إغلاق العهدة من جهاز آخر — توقف البيع والطباعة");
+    }
+  }, [shiftClosedElsewhere]);
+
   /**
    * 🛡️ Central enforcement called at the START of every sensitive function:
    * open shift, save draft, send to kitchen, complete order, print, accept call-center order.
