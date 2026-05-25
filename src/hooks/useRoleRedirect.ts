@@ -154,7 +154,15 @@ export function useRoleRedirect() {
         } else if (roles.includes("worker") && roles.length === 1) {
           nextPath = "/worker/procurement";
         } else if (roles.includes("cashier") && !roles.includes("admin")) {
-          nextPath = "/pos";
+          // Pure cashier: show the workspace chooser once per session so they
+          // can pick between POS and the employee screen (clock-in works on
+          // any device, POS only on devices with the local Print Bridge).
+          // After their first pick the choice is sticky for the session.
+          let chosen: string | null = null;
+          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          nextPath = chosen === "/employee" ? "/employee"
+            : chosen === "/pos" ? "/pos"
+            : "/choose-workspace";
         } else if (roles.includes("employee") && roles.length === 1) {
           nextPath = "/employee";
         } else if (roles.includes("sales_rep") && !roles.includes("admin")) {
