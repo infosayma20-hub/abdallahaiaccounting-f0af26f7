@@ -2209,7 +2209,15 @@ const POSPage = () => {
 
     if (error) {
       console.error("[open-shift] insert failed:", error);
-      toast.error(`خطأ في فتح الوردية: ${error.message || "سبب غير معروف"}`);
+      // Friendly message for the "already open on another device" case.
+      // Our unique partial index pos_sessions_one_open_per_* raises 23505.
+      const code = (error as any).code;
+      const msg = (error.message || "").toLowerCase();
+      if (code === "23505" && (msg.includes("one_open_per_cashier") || msg.includes("one_open_per_auth_user"))) {
+        toast.error("⛔ لديك عهدة مفتوحة بالفعل على جهاز آخر — أغلقها أولاً ثم حاول مجدداً");
+      } else {
+        toast.error(`خطأ في فتح الوردية: ${error.message || "سبب غير معروف"}`);
+      }
       return;
     }
 
