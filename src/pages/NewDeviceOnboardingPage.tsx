@@ -1264,10 +1264,13 @@ export default function NewDeviceOnboardingPage() {
 // ────────────────────────────────────────────────────────────────
 function Section({
   n, title, subtitle, icon: Icon, status, children,
+  open = true, onToggle, summary,
 }: {
   n: number; title: string; subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
   status: StepStatus; children: React.ReactNode;
+  open?: boolean; onToggle?: () => void;
+  summary?: React.ReactNode;
 }) {
   const badge = {
     idle:  { label: "لم يبدأ",      cls: "bg-muted text-muted-foreground border-border" },
@@ -1275,21 +1278,31 @@ function Section({
     ok:    { label: "ناجح",         cls: "bg-success/10 text-success border-success/30" },
     fail:  { label: "فشل",          cls: "bg-destructive/10 text-destructive border-destructive/30" },
   }[status];
+  const collapsible = !!onToggle;
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={!collapsible}
+        className={`w-full flex items-center gap-3 px-4 py-3 ${open ? "border-b border-border" : ""} bg-muted/30 ${collapsible ? "hover:bg-muted/50 cursor-pointer" : ""} text-right`}
+      >
         <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">{n}</div>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-foreground flex items-center gap-2 text-sm">
             <Icon className="h-4 w-4 text-primary" /> {title}
           </div>
-          {subtitle && <div className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</div>}
+          {open && subtitle && <div className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</div>}
+          {!open && summary && <div className="mt-0.5">{summary}</div>}
         </div>
         <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${badge.cls}`}>
           {badge.label}
         </span>
-      </div>
-      <div className="p-4 space-y-3">{children}</div>
+        {collapsible && (
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        )}
+      </button>
+      {open && <div className="p-4 space-y-3">{children}</div>}
     </div>
   );
 }
@@ -1304,6 +1317,27 @@ function CheckItem({ ok, label, optional }: { ok: boolean; label: string; option
         {label}{optional && <span className="text-[10px] text-muted-foreground ml-1">(اختياري)</span>}
       </span>
     </li>
+  );
+}
+
+function SummarySimple({ ok, fail, text }: { ok?: boolean; fail?: boolean; text: string }) {
+  const color = ok ? "text-success" : fail ? "text-destructive" : "text-muted-foreground";
+  const Icon = ok ? CheckCircle2 : fail ? XCircle : null;
+  return (
+    <div className={`text-[11px] truncate inline-flex items-center gap-1 ${color}`}>
+      {Icon && <Icon className="h-3 w-3 shrink-0" />}
+      <span className="truncate">{text}</span>
+    </div>
+  );
+}
+
+function SummaryStat({ label, value, ok, optional }: { label: string; value: string; ok?: boolean; optional?: boolean }) {
+  const valueColor = ok === true ? "text-success" : ok === false ? "text-destructive" : optional ? "text-muted-foreground" : "text-foreground";
+  return (
+    <div className="space-y-0.5 min-w-0">
+      <div className="text-[10px] text-muted-foreground truncate">{label}</div>
+      <div className={`text-xs font-medium truncate ${valueColor}`}>{value}</div>
+    </div>
   );
 }
 
