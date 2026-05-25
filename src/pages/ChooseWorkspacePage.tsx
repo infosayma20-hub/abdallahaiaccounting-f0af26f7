@@ -1,7 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
@@ -9,8 +10,19 @@ import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
 export default function ChooseWorkspacePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [hasRep, setHasRep] = useState(false);
+  const [hasCashier, setHasCashier] = useState(false);
 
-  const choose = (path: "/employee" | "/rep") => {
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      const roles = (data || []).map((r: any) => r.role);
+      setHasRep(roles.includes("sales_rep"));
+      setHasCashier(roles.includes("cashier"));
+    });
+  }, [user?.id]);
+
+  const choose = (path: "/employee" | "/rep" | "/pos") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -38,6 +50,7 @@ export default function ChooseWorkspacePage() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
+          {hasRep && (
           <Card
             role="button"
             tabIndex={0}
@@ -54,6 +67,26 @@ export default function ChooseWorkspacePage() {
               دخول كمندوب
             </Button>
           </Card>
+          )}
+
+          {hasCashier && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/pos")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/pos")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <ShoppingCart className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold">شاشة نقطة البيع</h2>
+            <p className="text-sm text-muted-foreground">بيع، فواتير، إغلاق وردية</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/pos"); }}>
+              دخول كاشير
+            </Button>
+          </Card>
+          )}
 
           <Card
             role="button"
