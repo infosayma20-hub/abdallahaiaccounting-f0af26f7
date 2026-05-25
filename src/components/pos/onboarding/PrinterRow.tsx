@@ -118,13 +118,17 @@ export default function PrinterRow(props: PrinterRowProps) {
   const {
     printer: p, roleLabel, roleEmoji,
     bridgeConnected, bridgeSubnetMismatch, notSynced, bridgeOnline,
-    testStatus,
+    testStatus, windowsPrinters,
     onTest, onConvertToWindows, onDelete, onEdit, onResyncAll,
   } = props;
 
   const settings = (p.settings || {}) as Record<string, unknown>;
   const winName = String(settings.windows_printer_name || "");
-  const isUsb = settings.connection === "usb" || !!winName;
+  const isWindows = settings.connection === "usb" || settings.connection === "windows" || !!winName;
+  const winMeta = isWindows && winName
+    ? (windowsPrinters || []).find(w => w.name === winName) || null
+    : null;
+  const winKind: WinConnKind = isWindows ? detectWinConn(winMeta) : "Unknown";
 
   const [probing, setProbing] = useState(false);
   const [probe, setProbe] = useState<ProbePrinterResult | null>(null);
@@ -134,10 +138,16 @@ export default function PrinterRow(props: PrinterRowProps) {
   const netConnected: boolean | null = probe
     ? probe.reachable
     : (bridgeConnected ?? (testStatus ?? null));
-  const subnetMismatch = !!(probe?.subnetMismatch || bridgeSubnetMismatch);
+  // Subnet warnings only apply to direct network TCP printers, not Windows-backed.
+  const subnetMismatch = !isWindows && !!(probe?.subnetMismatch || bridgeSubnetMismatch);
 
   const state: State = (() => {
-    if (isUsb) return winName ? "usb-ok" : "usb-missing-name";
+    if (isWindows) {
+      if (!winName) return "win-missing-name";
+      if (testStatus === true)  return "win-tested-ok";
+      if (testStatus === false) return "win-tested-fail";
+      return "win-untested";
+    }
     if (notSynced) return "not-synced";
     if (subnetMismatch) return "subnet-mismatch";
     if (netConnected === false) return "net-offline";
@@ -145,7 +155,7 @@ export default function PrinterRow(props: PrinterRowProps) {
     return "net-unknown";
   })();
 
-  const target = isUsb
+  const target = isWindows
     ? `windows:${winName || "?"}`
     : `${p.ip_address || "?"}:${p.port || 9100}`;
 
