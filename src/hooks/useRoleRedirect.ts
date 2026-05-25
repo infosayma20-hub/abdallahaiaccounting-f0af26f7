@@ -74,6 +74,21 @@ export function useRoleRedirect() {
           return;
         }
 
+        // إذا المستخدم كاشير + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
+        // بين شاشة الموظف وشاشة نقطة البيع.
+        if (roles.includes("cashier") && isEmployee && !hasAdminAccess) {
+          let chosen: string | null = null;
+          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const nextPath = chosen === "/employee" ? "/employee"
+            : chosen === "/pos" ? "/pos"
+            : "/choose-workspace";
+          if (isCancelled) return;
+          if (nextPath !== "/choose-workspace") redirectCache.set(user.id, nextPath);
+          setTargetPath(nextPath);
+          setChecking(false);
+          return;
+        }
+
         // sales_rep أولوية أعلى من سجل الموظف: المستخدم اللي عنده دور
         // مندوب مبيعات يروح مباشرة لشاشة المندوب حتى لو كان مرتبط بسجل
         // employees.
