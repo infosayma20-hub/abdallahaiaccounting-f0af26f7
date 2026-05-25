@@ -840,7 +840,7 @@ export default function NewDeviceOnboardingPage() {
         {/* ── Step 3: Backup ─────────────────────────────── */}
         <Section
           n={3} title="نسخة احتياطية للجهاز" icon={Download} status={step3Status}
-          subtitle="احفظ ملف device.json على USB. لو فُرمت الجهاز ترجع تستورده وخلص."
+          subtitle="نسخة احتياطية فقط — ليست خطوة أساسية. الاعتماد الرئيسي على زر «مزامنة هذا الجهاز» في خطوة 2."
         >
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={exportConfig} disabled={!deviceSaved} className="gap-2">
@@ -855,7 +855,7 @@ export default function NewDeviceOnboardingPage() {
             />
           </div>
           <p className="text-[11px] text-muted-foreground">
-            ينحفظ تلقائياً في <code dir="ltr">C:\print-bridge\device.json</code> لما برنامج الطباعة شغّال.
+            للنقل إلى كمبيوتر آخر بدون إنترنت. للتشغيل العادي استخدم «مزامنة هذا الجهاز».
           </p>
         </Section>
 
@@ -864,6 +864,15 @@ export default function NewDeviceOnboardingPage() {
           n={4} title="الطابعات" icon={Printer} status={step4Status}
           subtitle="حدّد طابعة الفاتورة وطابعات المطبخ/المشاوي/البيتزا."
         >
+          {filteredPrinters.length > 0 && bridgeSource === "fallback" && (
+            <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5" />
+              <div>
+                <div className="font-medium">برنامج الطباعة يعرض قائمة افتراضية (FALLBACK) ولا يقرأ طابعات الفرع.</div>
+                <div className="opacity-80 mt-0.5">اضغط «مزامنة هذا الجهاز» في خطوة 2 لإرسال الطابعات الفعلية.</div>
+              </div>
+            </div>
+          )}
           {filteredPrinters.length === 0 ? (
             <div className="rounded-md border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground text-center">
               لا توجد طابعات مرتبطة بهذا الفرع بعد
