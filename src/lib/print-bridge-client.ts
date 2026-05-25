@@ -4,7 +4,8 @@
  */
 
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { getBridgeUrl } from "@/lib/device-config";
+import { getBridgeUrl, getDeviceBranchId, syncBranchPrintersToBridge } from "@/lib/device-config";
+import { supabase } from "@/integrations/supabase/client";
 
 type PrintType = "receipt" | "kitchen" | "both";
 
@@ -129,7 +130,9 @@ export async function testWindowsPrinter(
 /** Check bridge health + printer statuses */
 export async function checkBridgeHealth(): Promise<{
   online: boolean;
-  printers?: { name: string; ip: string; connected: boolean }[];
+  printers?: { key: string; name: string; ip: string; connected: boolean; source?: string }[];
+  source?: string;
+  synced?: boolean;
 }> {
   try {
     const res = await bridgeFetch("/health", {
@@ -138,13 +141,38 @@ export async function checkBridgeHealth(): Promise<{
     if (!res.ok) return { online: false };
     const data = await res.json();
     const printers = Array.isArray(data.printers)
-      ? data.printers.map((printer: { name?: string; ip?: string; connected?: boolean; status?: string }) => ({
+      ? data.printers.map((printer: { key?: string; name?: string; ip?: string; connected?: boolean; status?: string }) => ({
+          key: printer.key || printer.name || "printer",
           name: printer.name || "",
           ip: printer.ip || "",
           connected: printer.connected ?? printer.status === "online",
+          source: data.printers_source,
         }))
       : [];
-    return { online: true, printers };
+    if (data.printers_source === "fallback" || printers.some((p) => /^192\.168\.1\.5[0-3]$/.test(p.ip))) {
+      const branchId = getDeviceBranchId();
+      const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } } as any));
+      if (user?.id && branchId) {
+        const sync = await syncBranchPrintersToBridge(branchId).catch(() => ({ ok: false, count: 0 }));
+        if (sync.ok) {
+          const fresh = await bridgeFetch("/health", { signal: AbortSignal.timeout(5000) }).catch(() => null);
+          if (fresh?.ok) {
+            const freshData = await fresh.json();
+            const freshPrinters = Array.isArray(freshData.printers)
+              ? freshData.printers.map((printer: { key?: string; name?: string; ip?: string; connected?: boolean; status?: string }) => ({
+                  key: printer.key || printer.name || "printer",
+                  name: printer.name || "",
+                  ip: printer.ip || "",
+                  connected: printer.connected ?? printer.status === "online",
+                  source: freshData.printers_source,
+                }))
+              : [];
+            return { online: true, printers: freshPrinters, source: freshData.printers_source, synced: true };
+          }
+        }
+      }
+    }
+    return { online: true, printers, source: data.printers_source };
   } catch {
     return { online: false };
   }
