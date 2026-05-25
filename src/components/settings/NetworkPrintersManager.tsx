@@ -104,7 +104,7 @@ export default function NetworkPrintersManager() {
   };
 
   const syncPrinterSettingsToBridge = async (branchId?: string | null) => {
-    const targetBranchId = branchId || getDeviceBranchId() || (filterBranch !== "all" && filterBranch !== "none" ? filterBranch : "");
+    const targetBranchId = getDeviceBranchId() || branchId || (filterBranch !== "all" && filterBranch !== "none" ? filterBranch : "");
     if (!targetBranchId) return false;
     const result = await syncBranchPrintersToBridge(targetBranchId).catch(() => ({ ok: false }));
     if (result.ok) {
