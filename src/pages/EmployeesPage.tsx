@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import SalesRepToggleSection from "@/components/employees/SalesRepToggleSection";
+import CashierToggleSection from "@/components/employees/CashierToggleSection";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeFinancialMovementsTab from "@/components/hr/EmployeeFinancialMovementsTab";
@@ -944,6 +945,11 @@ const EmployeesPage = () => {
                   </label>
                 </div>
                 <SalesRepToggleSection
+                  employeeId={selectedEmployee.id}
+                  employeeName={selectedEmployee.full_name}
+                  authUserId={(selectedEmployee as any).auth_user_id || null}
+                />
+                <CashierToggleSection
                   employeeId={selectedEmployee.id}
                   employeeName={selectedEmployee.full_name}
                   authUserId={(selectedEmployee as any).auth_user_id || null}
