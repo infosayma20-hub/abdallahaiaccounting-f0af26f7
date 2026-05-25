@@ -52,7 +52,7 @@ import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
-import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge } from "@/lib/device-config";
+import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge } from "@/lib/device-config";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
@@ -653,6 +653,9 @@ const POSPage = () => {
           .eq("is_active", true);
         if (cfg.branchId) q = q.or(`branch_id.eq.${cfg.branchId},branch_id.is.null`);
         const { count } = await q;
+        if (cfg.branchId && (count ?? 0) > 0) {
+          await syncBranchPrintersToBridge(user.id, cfg.branchId).catch(() => null);
+        }
         if (!cancelled) setPrintersCountDiag(count ?? 0);
       } catch {
         if (!cancelled) setPrintersCountDiag(0);
