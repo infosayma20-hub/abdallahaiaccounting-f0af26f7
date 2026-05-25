@@ -144,6 +144,13 @@ module.exports = function attachDeviceConfig(app) {
 
   // Tiny inline JSON body parser (avoids requiring express.json globally)
   function readJsonBody(req, limit = 32 * 1024) {
+    // If the main bridge already registered bodyParser.json()/express.json(),
+    // the request stream is consumed before this route runs. In that case use
+    // req.body directly; otherwise fall back to our tiny parser for older bridges.
+    if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+      return Promise.resolve(req.body);
+    }
+    if (req.readableEnded || req.complete) return Promise.resolve({});
     return new Promise((resolve) => {
       let data = '';
       let aborted = false;
