@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { checkBridgeHealth, getPrintBridgeUrl } from "@/lib/print-bridge-client";
 
-type Printer = { name: string; ip: string; connected: boolean };
+type Printer = { key: string; name: string; ip: string; connected: boolean; source?: string };
 type Status = "checking" | "online" | "offline";
 
 const POLL_MS = 15_000;
@@ -21,6 +21,8 @@ export default function BridgeStatusIndicator() {
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [source, setSource] = useState<string | null>(null);
+  const [synced, setSynced] = useState(false);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -28,10 +30,14 @@ export default function BridgeStatusIndicator() {
       const health = await checkBridgeHealth();
       setStatus(health.online ? "online" : "offline");
       setPrinters(health.printers || []);
+      setSource(health.source || null);
+      setSynced(health.synced === true);
       setLastCheck(new Date());
     } catch {
       setStatus("offline");
       setPrinters([]);
+      setSource(null);
+      setSynced(false);
       setLastCheck(new Date());
     } finally {
       setRefreshing(false);
@@ -121,6 +127,11 @@ export default function BridgeStatusIndicator() {
               <div className="text-[11px] text-muted-foreground font-mono">
                 {getPrintBridgeUrl()}
               </div>
+              {synced && (
+                <div className="text-[10px] text-emerald-700">
+                  تم تحديث الطابعات من إعدادات الفرع
+                </div>
+              )}
             </div>
           </div>
           <Button
@@ -158,11 +169,11 @@ export default function BridgeStatusIndicator() {
           ) : (
             <div className="space-y-1.5">
               <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide px-1">
-                الطابعات ({connectedCount}/{totalCount})
+                الطابعات ({connectedCount}/{totalCount}){source ? ` — ${source}` : ""}
               </div>
               {printers.map((p) => (
                 <div
-                  key={p.ip}
+                  key={`${p.key}-${p.ip || p.name}`}
                   className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-2 min-w-0">
