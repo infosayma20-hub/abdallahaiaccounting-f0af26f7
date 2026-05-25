@@ -54,6 +54,8 @@ import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
 import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge } from "@/lib/device-config";
 import { getCanSell } from "@/lib/pos-device-auth";
+import { usePOSShiftWatcher } from "@/hooks/usePOSShiftWatcher";
+import { ShiftClosedElsewhereDialog } from "@/components/pos/ShiftClosedElsewhereDialog";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
