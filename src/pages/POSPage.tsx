@@ -3542,17 +3542,45 @@ const POSPage = () => {
     const recalcTotalSales = (ordersData || []).filter((o: any) => !o.is_return).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
     const recalcTotalOrders = (ordersData || []).filter((o: any) => !o.is_return).length;
 
+    // 🔒 Atomic close via RPC — CAS pattern guards against the race where two
+    // devices try to close the same shift at the same time. If `already_closed`
+    // comes back true, the other device beat us to it; we must NOT post a
+    // second variance row or re-write metric fields.
+    const { data: closeRes, error: closeErr } = await supabase.rpc(
+      "close_pos_session_atomic",
+      { p_session_id: session.id, p_closing_cash: cash },
+    );
+    if (closeErr) {
+      toast.error(`تعذّر إغلاق العهدة: ${closeErr.message}`);
+      return;
+    }
+    const closeRow = Array.isArray(closeRes) ? closeRes[0] : closeRes;
+    if (closeRow?.already_closed) {
+      toast.error("⛔ العهدة كانت مُغلقة مسبقاً من جهاز آخر — لا حاجة لتسجيل العجز/الفائض هنا");
+      // Tear down local UI without writing anything else.
+      setShowCloseShift(false);
+      setSession(null);
+      setOrders([createNewOrder(1)]);
+      setActiveOrderIndex(0);
+      orderCounter.current = 1;
+      if (isAdmin) {
+        navigate("/apps", { replace: true });
+      } else {
+        await supabase.auth.signOut();
+        navigate("/auth", { replace: true });
+      }
+      return;
+    }
+    // RPC handled state/closed_at/closing_cash atomically. Persist the
+    // remaining metric fields the RPC doesn't touch.
     await supabase
       .from("pos_sessions")
       .update({
-        state: "closed",
-        closing_cash: cash,
         expected_cash: expected,
         cash_variance: variance,
-        closed_at: closedAt,
         total_sales: recalcTotalSales,
         total_orders: recalcTotalOrders,
-      })
+      } as any)
       .eq("id", session.id);
 
     // Record variance as employee deduction/surplus in HR if employee exists
