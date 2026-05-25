@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut, ShoppingCart, Headphones } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
+import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
+import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 
 export default function ChooseWorkspacePage() {
   const navigate = useNavigate();
@@ -13,6 +15,12 @@ export default function ChooseWorkspacePage() {
   const [hasRep, setHasRep] = useState(false);
   const [hasCashier, setHasCashier] = useState(false);
   const [isCallCenter, setIsCallCenter] = useState(false);
+  const { authorized: bridgeAuthorized, checking: bridgeChecking, recheck } = useBridgeAuthorized();
+  const { isDeviceAdmin } = useIsDeviceAdmin();
+
+  // Cashier may enter /pos only when Bridge is reachable.
+  // Admins are allowed in (read-only mode is enforced inside POS).
+  const posBlocked = !bridgeChecking && !bridgeAuthorized && !isDeviceAdmin;
 
   useEffect(() => {
     if (!user?.id) return;
@@ -78,19 +86,47 @@ export default function ChooseWorkspacePage() {
           {hasCashier && (
           <Card
             role="button"
-            tabIndex={0}
-            onClick={() => choose("/pos")}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/pos")}
-            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+            tabIndex={posBlocked ? -1 : 0}
+            onClick={() => { if (!posBlocked) choose("/pos"); }}
+            onKeyDown={(e) => { if (!posBlocked && (e.key === "Enter" || e.key === " ")) choose("/pos"); }}
+            aria-disabled={posBlocked}
+            className={
+              "p-6 transition-all flex flex-col items-center text-center gap-3 " +
+              (posBlocked
+                ? "opacity-60 cursor-not-allowed border-dashed"
+                : "cursor-pointer hover:border-primary hover:shadow-lg")
+            }
           >
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              {isCallCenter ? <Headphones className="w-8 h-8 text-primary" /> : <ShoppingCart className="w-8 h-8 text-primary" />}
+              {posBlocked ? <Lock className="w-8 h-8 text-muted-foreground" /> :
+                isCallCenter ? <Headphones className="w-8 h-8 text-primary" /> : <ShoppingCart className="w-8 h-8 text-primary" />}
             </div>
             <h2 className="text-lg font-semibold">{isCallCenter ? "شاشة الكول سنتر" : "شاشة نقطة البيع"}</h2>
-            <p className="text-sm text-muted-foreground">{isCallCenter ? "استقبال الطلبات وتحويلها للفرع" : "بيع، فواتير، إغلاق وردية"}</p>
-            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/pos"); }}>
-              {isCallCenter ? "دخول كول سنتر" : "دخول كاشير"}
-            </Button>
+            {posBlocked ? (
+              <>
+                <p className="text-xs text-red-600 font-medium leading-relaxed">
+                  هذا الجهاز غير مصرح لاستخدام نقطة البيع
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  نقطة البيع تعمل فقط على أجهزة الفرع المثبت عليها برنامج الطباعة.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2 gap-1"
+                  onClick={(e) => { e.stopPropagation(); void recheck(); }}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> إعادة الفحص
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">{isCallCenter ? "استقبال الطلبات وتحويلها للفرع" : "بيع، فواتير، إغلاق وردية"}</p>
+                <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/pos"); }}>
+                  {isCallCenter ? "دخول كول سنتر" : "دخول كاشير"}
+                </Button>
+              </>
+            )}
           </Card>
           )}
 

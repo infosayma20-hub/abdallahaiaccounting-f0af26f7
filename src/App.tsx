@@ -23,6 +23,7 @@ import HRShell from "./components/hr/HRShell";
 import InvoicesPage from "./pages/InvoicesPage";
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
 const FeatureGuard = lazy(() => import("./components/permissions/FeatureGuard"));
+const POSDeviceAuthGuard = lazy(() => import("./components/pos/POSDeviceAuthGuard"));
 
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
@@ -370,7 +371,7 @@ const App = () => (
               <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
               <Route path="/device-setup" element={<ProtectedRoute><DeviceSetupGuard><DeviceSetupPage /></DeviceSetupGuard></ProtectedRoute>} />
               <Route path="/onboarding/new-device" element={<ProtectedRoute><DeviceSetupGuard><NewDeviceOnboardingPage /></DeviceSetupGuard></ProtectedRoute>} />
-              <Route path="/pos" element={<ProtectedRoute><ModuleGuard><POSPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos" element={<ProtectedRoute><ModuleGuard><POSDeviceAuthGuard><POSPage /></POSDeviceAuthGuard></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/floor-plan" element={<ProtectedRoute><ModuleGuard><FloorPlanPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><ModuleGuard><FloorPlanEditorPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModuleGuard><ModifierManagerPage /></ModuleGuard></ProtectedRoute>} />
