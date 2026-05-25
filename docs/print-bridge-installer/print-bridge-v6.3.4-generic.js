@@ -916,7 +916,7 @@ app.get('/health', async (_req, res) => {
     logo: !!LOGO_BUF,
     windows_printers_supported: IS_WINDOWS,
     usb_raw_print_fix: 'intptr-marshaling-v1',
-    subnet_check: 'v1',
+    subnet_check: 'subnet-mismatch-v1',
     host_subnets: localSubnets,
     subnet_warnings: subnetWarnings,
     device: {
