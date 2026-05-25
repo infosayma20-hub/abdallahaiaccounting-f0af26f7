@@ -203,22 +203,54 @@ export default function BridgeStatusIndicator() {
               {printers.map((p) => (
                 <div
                   key={`${p.key}-${p.ip || p.name}`}
-                  className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted/50"
+                  className="flex items-start justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span
                       className="h-2 w-2 rounded-full shrink-0"
                       style={{
-                        background: p.connected ? "#22c55e" : "#ef4444",
+                        background: p.connected ? "#22c55e" : p.subnetMismatch ? "#f59e0b" : "#ef4444",
                       }}
                     />
-                    <span className="text-sm font-medium truncate">{p.name}</span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{p.name}</div>
+                      <div className="text-[10.5px] font-mono text-muted-foreground" dir="ltr">{p.ip}</div>
+                    </div>
                   </div>
-                  <span className="text-[11px] font-mono text-muted-foreground shrink-0">
-                    {p.ip}
-                  </span>
+                  {p.ip && (
+                    <PrinterProbeButton
+                      ip={p.ip}
+                      port={p.port || 9100}
+                      printerKey={p.key}
+                      printerName={p.name}
+                      size="xs"
+                    />
+                  )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {subnetWarnings.length > 0 && (
+            <div className="mt-3 rounded-md border border-amber-300/50 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-2 text-[11px] text-amber-900 dark:text-amber-100 space-y-1.5">
+              <div className="flex items-center gap-1 font-bold">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                طابعات على شبكة مختلفة
+              </div>
+              {hostSubnets.length > 0 && (
+                <div className="font-mono text-[10px] opacity-80" dir="ltr">
+                  جهاز الكاش: {hostSubnets.map((s) => s.cidr).join(", ")}
+                </div>
+              )}
+              <ul className="space-y-0.5">
+                {subnetWarnings.map((w) => (
+                  <li key={w.key} className="leading-snug">
+                    <span className="font-medium">{w.name}</span>{" "}
+                    <span className="font-mono text-[10px]" dir="ltr">({w.ip})</span>
+                    <div className="opacity-80">{w.message}</div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
