@@ -32,6 +32,7 @@ import {
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
   isDeviceFullyConfigured, pushPrintersToBridge, pullRawDeviceJsonFromBridge,
   reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
+  type BridgePrinter,
   discoverNetworkPrinters, type DiscoveredPrinter,
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
@@ -282,7 +283,15 @@ export default function NewDeviceOnboardingPage() {
     if (printers.length === 0) return;
     const map = buildBridgePrintersMap(filteredPrinters);
     if (Object.keys(map).length === 0) return;
-    void pushPrintersToBridge(map).catch(() => null);
+    // Full sync: any role NOT present in the DB list is explicitly cleared
+    // from device.json so old/default IPs (e.g. 192.168.1.50-53) don't linger
+    // on the bridge after the branch has been reconfigured.
+    const ALL_KEYS: BridgePrinterKey[] = ["receipt", "kitchen", "grill", "pizza", "unified_kitchen"];
+    const fullMap = { ...map } as Record<string, BridgePrinter | null>;
+    for (const k of ALL_KEYS) {
+      if (!(k in map)) fullMap[k] = null;
+    }
+    void pushPrintersToBridge(fullMap as unknown as BridgePrintersMap).catch(() => null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printers, bridgeOnline, branchId]);
 
