@@ -908,7 +908,7 @@ export default function NewDeviceOnboardingPage() {
                         printerKey={posPrinterRoleToBridgeKey(cat) || undefined}
                         printerName={p.name}
                         allowForceAdd
-                        onAdded={() => { void refresh(); }}
+                        onAdded={() => { void refreshPrinterStatus(); }}
                         size="xs"
                       />
                     )}
