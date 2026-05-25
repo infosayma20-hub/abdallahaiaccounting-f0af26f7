@@ -188,7 +188,8 @@ module.exports = function attachDeviceConfig(app) {
     }
     let printerErrors = [];
     if (body.printers && typeof body.printers === 'object') {
-      const { merged: mergedPrinters, errors } = mergePrinters(current.printers, body.printers);
+      const basePrinters = body.replacePrinters === true ? {} : current.printers;
+      const { merged: mergedPrinters, errors } = mergePrinters(basePrinters, body.printers);
       merged.printers = mergedPrinters;
       printerErrors = errors;
     }
