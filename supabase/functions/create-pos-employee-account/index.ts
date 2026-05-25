@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       return json({ error: "ليس لديك صلاحية" }, 403);
     }
 
-    const { pos_user_id, email, password, send_invite } = await req.json();
+    const { pos_user_id, email, password, send_invite, pos_role } = await req.json();
 
     if (!pos_user_id || !email || !password) {
       return json({ error: "بيانات ناقصة" }, 400);
@@ -48,8 +48,12 @@ Deno.serve(async (req) => {
       return json({ error: "الموظف غير موجود" }, 404);
     }
 
-    // If already has account with same email, return success (idempotent)
+    // If already has account with same email, just sync role and exit (idempotent)
     if (posUser.has_account && posUser.auth_user_id && posUser.email?.toLowerCase() === email.toLowerCase()) {
+      await ensureCashierRole(supabase, posUser.auth_user_id);
+      if (pos_role) {
+        await supabase.from("pos_users").update({ role: pos_role }).eq("id", pos_user_id);
+      }
       return json({
         success: true,
         message: `${posUser.name} لديه حساب مفعّل بالفعل ✅`,
@@ -114,19 +118,17 @@ Deno.serve(async (req) => {
       newUserId = newUser.user.id;
     }
 
-    // ── CRITICAL: Clean up auto-assigned roles from triggers ──
-    // The handle_new_user trigger assigns 'employee' role and
-    // auto_assign_admin_role trigger assigns 'admin' role.
-    // A cashier should ONLY have the 'cashier' role.
+    // ── Role management ──
+    // Remove any auto-assigned 'admin' role (from auto_assign_admin_role trigger)
+    // but PRESERVE 'employee' role so the user can also access the employee portal.
     await supabase
       .from("user_roles")
       .delete()
-      .eq("user_id", newUserId);
+      .eq("user_id", newUserId)
+      .eq("role", "admin");
 
-    // Assign ONLY cashier role
-    await supabase
-      .from("user_roles")
-      .insert({ user_id: newUserId, role: "cashier" });
+    // Ensure cashier role exists (idempotent via unique constraint)
+    await ensureCashierRole(supabase, newUserId);
 
     // ── Ensure profile is correctly linked to admin's team ──
     await supabase
@@ -138,16 +140,15 @@ Deno.serve(async (req) => {
       })
       .eq("user_id", newUserId);
 
-    // Update POS user with account link
-    await supabase
-      .from("pos_users")
-      .update({
-        has_account: true,
-        auth_user_id: newUserId,
-        account_status: "active",
-        email,
-      })
-      .eq("id", pos_user_id);
+    // Update POS user with account link and selected POS role
+    const posUpdate: Record<string, unknown> = {
+      has_account: true,
+      auth_user_id: newUserId,
+      account_status: "active",
+      email,
+    };
+    if (pos_role) posUpdate.role = pos_role;
+    await supabase.from("pos_users").update(posUpdate).eq("id", pos_user_id);
 
     // Also create/link employee record if not exists
     const { data: existingEmp } = await supabase
@@ -182,4 +183,17 @@ function json(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// Idempotently ensure user has the 'cashier' role (preserves other roles)
+async function ensureCashierRole(supabase: any, userId: string) {
+  const { data: existing } = await supabase
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("role", "cashier")
+    .maybeSingle();
+  if (!existing) {
+    await supabase.from("user_roles").insert({ user_id: userId, role: "cashier" });
+  }
 }

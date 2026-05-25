@@ -322,6 +322,15 @@ export default function POSUserManagementPage() {
           );
         }
 
+        // Ensure the cashier role exists in user_roles (preserves employee role)
+        try {
+          await supabase.functions.invoke("sync-pos-user-role", {
+            body: { pos_user_id: editingUser.id },
+          });
+        } catch {
+          // Non-fatal: pos_users updated successfully even if role sync fails
+        }
+
         toast.success("تم تحديث المستخدم");
       } else {
         const tempId = crypto.randomUUID();
@@ -359,7 +368,12 @@ export default function POSUserManagementPage() {
         // Always create auth account for the employee
         try {
           const { data: acctData, error: acctErr } = await supabase.functions.invoke("create-pos-employee-account", {
-            body: { pos_user_id: newUser.id, email: userForm.email, password: accountPassword },
+            body: {
+              pos_user_id: newUser.id,
+              email: userForm.email,
+              password: accountPassword,
+              pos_role: userForm.role === "call_center" ? "cashier" : userForm.role,
+            },
           });
           if (acctErr) throw acctErr;
           if (acctData?.error) toast.error("تم إنشاء الموظف لكن فشل الحساب: " + acctData.error);
