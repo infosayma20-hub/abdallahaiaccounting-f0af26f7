@@ -512,6 +512,8 @@ export default function NewDeviceOnboardingPage() {
   useEffect(() => {
     if (!bridgeOnline || printers.length === 0) return;
     void refreshPrinterStatus();
+    // Also pull /windows-printers so rows can show real portName/driverName.
+    void fetchWindowsPrinters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridgeOnline, printers.length, branchId]);
 
@@ -1005,6 +1007,7 @@ export default function NewDeviceOnboardingPage() {
                     bridgeSubnetMismatch={health?.subnetMismatch}
                     notSynced={bridgeSource === "fallback"}
                     testStatus={printerStatus[p.id] ?? null}
+                    windowsPrinters={windowsPrinters}
                     onTest={() => handlePrinterTest(p)}
                     onConvertToWindows={() => setConvertTarget(p)}
                     onDelete={() => setPrinterToDelete(p)}
