@@ -1007,6 +1007,7 @@ export default function NewDeviceOnboardingPage() {
                     bridgeSubnetMismatch={health?.subnetMismatch}
                     notSynced={bridgeSource === "fallback"}
                     testStatus={printerStatus[p.id] ?? null}
+                    windowsPrinters={windowsPrinters}
                     onTest={() => handlePrinterTest(p)}
                     onConvertToWindows={() => setConvertTarget(p)}
                     onDelete={() => setPrinterToDelete(p)}
