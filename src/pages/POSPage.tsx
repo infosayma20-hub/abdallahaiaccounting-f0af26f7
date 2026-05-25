@@ -56,6 +56,7 @@ import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfig
 import { getCanSell } from "@/lib/pos-device-auth";
 import { usePOSShiftWatcher } from "@/hooks/usePOSShiftWatcher";
 import { ShiftClosedElsewhereDialog } from "@/components/pos/ShiftClosedElsewhereDialog";
+import { saveBlockedCart, loadBlockedCart, clearBlockedCart } from "@/lib/pos-blocked-cart-draft";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
