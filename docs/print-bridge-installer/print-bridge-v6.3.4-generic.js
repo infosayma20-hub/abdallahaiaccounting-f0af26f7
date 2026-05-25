@@ -273,6 +273,84 @@ const DEFAULT_PRINTERS = {
   pizza:   { type: 'network', ip: '192.168.1.53', port: 9100, name: 'طابعة البيتزا', width: 576 },
 };
 
+// ────────────────────────────────────────────────────────────────────────
+//  SUBNET-MISMATCH DETECTION
+//   Detects when a configured printer IP is on a different subnet than
+//   any of this host's network interfaces. Common cause: printer arrived
+//   from factory with default 192.168.1.x while the branch LAN is 10.x.
+// ────────────────────────────────────────────────────────────────────────
+function ipToInt(ip) {
+  const p = String(ip || '').split('.').map((n) => Number(n));
+  if (p.length !== 4 || p.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return null;
+  return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3];
+}
+function maskToBits(mask) {
+  const n = ipToInt(mask);
+  if (n === null) return null;
+  // count leading 1s
+  let bits = 0;
+  for (let i = 31; i >= 0; i--) {
+    if ((n >>> i) & 1) bits++; else break;
+  }
+  return bits;
+}
+function getLocalSubnets() {
+  const out = [];
+  try {
+    const ifs = os.networkInterfaces();
+    for (const [name, addrs] of Object.entries(ifs || {})) {
+      for (const a of addrs || []) {
+        if (a.family !== 'IPv4' || a.internal) continue;
+        const ipInt = ipToInt(a.address);
+        const maskInt = ipToInt(a.netmask);
+        if (ipInt === null || maskInt === null) continue;
+        const networkInt = (ipInt & maskInt) >>> 0;
+        out.push({
+          iface: name,
+          ip: a.address,
+          netmask: a.netmask,
+          cidr: a.cidr || `${a.address}/${maskToBits(a.netmask) ?? '?'}`,
+          networkInt,
+          maskInt,
+        });
+      }
+    }
+  } catch {}
+  return out;
+}
+function checkSubnetMismatch(printerIp) {
+  const ipInt = ipToInt(printerIp);
+  if (ipInt === null) return { mismatch: false, reason: 'invalid_ip' };
+  const subs = getLocalSubnets();
+  if (!subs.length) return { mismatch: false, reason: 'no_local_ipv4' };
+  const matching = subs.find((s) => ((ipInt & s.maskInt) >>> 0) === s.networkInt);
+  if (matching) {
+    return { mismatch: false, matchedInterface: matching.iface, matchedCidr: matching.cidr };
+  }
+  return {
+    mismatch: true,
+    reason: 'different_subnet',
+    localSubnets: subs.map((s) => ({ iface: s.iface, cidr: s.cidr })),
+  };
+}
+async function tcpProbe(ip, port, timeoutMs = 1500) {
+  return new Promise((resolve) => {
+    const s = new net.Socket();
+    let done = false;
+    const finish = (ok, err) => {
+      if (done) return;
+      done = true;
+      try { s.destroy(); } catch {}
+      resolve({ ok, err: err || null });
+    };
+    s.setTimeout(timeoutMs);
+    s.once('connect', () => finish(true));
+    s.once('timeout', () => finish(false, 'timeout'));
+    s.once('error',   (e) => finish(false, e.code || e.message || 'error'));
+    try { s.connect(port || 9100, ip); } catch (e) { finish(false, e.message); }
+  });
+}
+
 function getActivePrinters() {
   const fromFile = deviceCfg.getPrinters();
   if (fromFile && typeof fromFile === 'object' && Object.keys(fromFile).length) {
