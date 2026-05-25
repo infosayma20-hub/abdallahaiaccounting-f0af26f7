@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Printer, Wifi, WifiOff, TestTube, Settings2, Building2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { checkBridgeStatus, getPrintBridgeBlockedMessage, getPrintBridgeUrl, sendToBridge, PrintBridgeConnectionError } from "@/lib/print-bridge-client";
+import { getDeviceBranchId, syncBranchPrintersToBridge } from "@/lib/device-config";
 
 interface Branch {
   id: string;
@@ -102,6 +103,17 @@ export default function NetworkPrintersManager() {
     setLoading(false);
   };
 
+  const syncPrinterSettingsToBridge = async (branchId?: string | null) => {
+    const targetBranchId = branchId || getDeviceBranchId() || (filterBranch !== "all" && filterBranch !== "none" ? filterBranch : "");
+    if (!targetBranchId) return false;
+    const result = await syncBranchPrintersToBridge(targetBranchId).catch(() => ({ ok: false }));
+    if (result.ok) {
+      await refreshBridgeStatus();
+      return true;
+    }
+    return false;
+  };
+
   const resetForm = () => {
     setFormName("");
     setFormIp("");
@@ -163,6 +175,10 @@ export default function NetworkPrintersManager() {
       toast.success("تمت إضافة الطابعة");
     }
 
+    await syncPrinterSettingsToBridge(payload.branch_id).then((ok) => {
+      if (ok) toast.success("تم تحديث Print Bridge بنفس إعدادات الفرع");
+    });
+
     if (formIsDefault) {
       const otherIds = printers.filter(p => p.id !== editingPrinter?.id && p.is_default).map(p => p.id);
       if (otherIds.length > 0) {
@@ -176,13 +192,17 @@ export default function NetworkPrintersManager() {
   };
 
   const deletePrinter = async (id: string) => {
+    const printer = printers.find(p => p.id === id);
     await supabase.from("pos_printers").delete().eq("id", id);
+    await syncPrinterSettingsToBridge(printer?.branch_id).catch(() => false);
     toast.success("تم حذف الطابعة");
     void loadData();
   };
 
   const togglePrinter = async (id: string, isActive: boolean) => {
+    const printer = printers.find(p => p.id === id);
     await supabase.from("pos_printers").update({ is_active: isActive } as any).eq("id", id);
+    await syncPrinterSettingsToBridge(printer?.branch_id).catch(() => false);
     void loadData();
   };
 
@@ -203,6 +223,8 @@ export default function NetworkPrintersManager() {
       if (result.success) {
         toast.success(`✅ تم طباعة صفحة اختبار على ${printer.name}`);
         setBridgeOnline(true);
+        const synced = await syncPrinterSettingsToBridge(printer.branch_id).catch(() => false);
+        if (synced) toast.success("تم اعتماد IP الطابعة داخل Print Bridge");
       } else {
         toast.warning(`⚠️ تم الوصول إلى Bridge لكن الطابعة ${printer.name} لم تستجب: ${result.error || ""}`);
       }
