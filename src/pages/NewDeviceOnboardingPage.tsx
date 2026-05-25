@@ -642,7 +642,14 @@ export default function NewDeviceOnboardingPage() {
   const deviceConfigured = !!(branchId && terminalId);
   const step2Status: StepStatus = deviceConfigured ? "ok" : (branchId || terminalId || label) ? "needs" : "idle";
   const step3Status: StepStatus = deviceConfigured ? "ok" : "idle";
-  const step4Status: StepStatus = filteredPrinters.length > 0 ? "ok" : "needs";
+  // Step 4 (printers) is only "ok" when there is an active printer in DB AND
+  // the bridge is reading it (not from its hardcoded fallback list).
+  const printersOnBridgeOk =
+    filteredPrinters.length > 0 && bridgeSource !== null && bridgeSource !== "fallback";
+  const step4Status: StepStatus =
+    filteredPrinters.length === 0 ? "needs"
+    : printersOnBridgeOk ? "ok"
+    : "needs";
   const smokeOk = bridgeOnline && deviceConfigured && !!receiptPrinter && (lastReceiptTestOk === true);
   const step5Status: StepStatus = smokeOk ? "ok" : (deviceConfigured && receiptPrinter) ? "needs" : "idle";
 
@@ -799,6 +806,30 @@ export default function NewDeviceOnboardingPage() {
             {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             ربط هذا الجهاز
           </Button>
+          <Button
+            onClick={handleSyncDevice}
+            disabled={syncing || !branchId || !terminalId || !bridgeOnline}
+            className="gap-2 w-full md:w-auto"
+          >
+            {syncing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+            مزامنة هذا الجهاز (إرسال الإعدادات + الطابعات لبرنامج الطباعة)
+          </Button>
+          {lastSyncOk === true && (
+            <div className="rounded-md border border-success/30 bg-success/10 text-success text-sm px-3 py-2 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" /> {lastSyncMsg}
+            </div>
+          )}
+          {lastSyncOk === false && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-sm px-3 py-2 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5" />
+              <div>
+                <div className="font-medium">{lastSyncMsg}</div>
+                <div className="text-[11px] opacity-80 mt-0.5">
+                  تحقق أن برنامج الطباعة شغّال وأن نسخته تدعم <code dir="ltr">/device-config</code> و<code dir="ltr">/reload-config</code>.
+                </div>
+              </div>
+            </div>
+          )}
           {deviceSaved && (
             <div className="rounded-md border border-success/30 bg-success/10 text-success text-sm px-3 py-2 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" /> تم ربط هذا الجهاز بحساب الشركة والفرع
