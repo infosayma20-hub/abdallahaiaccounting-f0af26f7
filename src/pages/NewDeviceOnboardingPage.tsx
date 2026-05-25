@@ -39,6 +39,7 @@ import {
   posPrinterRoleToBridgeKey, buildBridgePrintersMapFromRows,
 } from "@/lib/device-config";
 import { checkBridgeStatus, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
+import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -900,6 +901,17 @@ export default function NewDeviceOnboardingPage() {
                     </div>
                     {st === true  && <span className="text-success text-xs inline-flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> تعمل</span>}
                     {st === false && <span className="text-destructive text-xs inline-flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> فشل</span>}
+                    {!isUsb && p.ip_address && (
+                      <PrinterProbeButton
+                        ip={p.ip_address}
+                        port={Number(p.port) || 9100}
+                        printerKey={posPrinterRoleToBridgeKey(cat) || undefined}
+                        printerName={p.name}
+                        allowForceAdd
+                        onAdded={() => { void refreshPrinterStatus(); }}
+                        size="xs"
+                      />
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => handlePrinterTest(p)} className="gap-1 h-7 px-2">
                       <TestTube className="h-3.5 w-3.5" /> اختبار
                     </Button>

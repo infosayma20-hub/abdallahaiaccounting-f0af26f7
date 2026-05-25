@@ -130,9 +130,12 @@ export async function testWindowsPrinter(
 /** Check bridge health + printer statuses */
 export async function checkBridgeHealth(): Promise<{
   online: boolean;
-  printers?: { key: string; name: string; ip: string; connected: boolean; source?: string }[];
+  printers?: { key: string; name: string; ip: string; connected: boolean; source?: string; subnetMismatch?: boolean; port?: number }[];
   source?: string;
   synced?: boolean;
+  subnetWarnings?: { key: string; name: string; ip: string; message: string }[];
+  hostSubnets?: { iface: string; ip?: string; cidr: string }[];
+  subnetCheckSupported?: boolean;
 }> {
   try {
     const res = await bridgeFetch("/health", {
@@ -141,12 +144,14 @@ export async function checkBridgeHealth(): Promise<{
     if (!res.ok) return { online: false };
     const data = await res.json();
     const printers = Array.isArray(data.printers)
-      ? data.printers.map((printer: { key?: string; name?: string; ip?: string; connected?: boolean; status?: string }) => ({
+      ? data.printers.map((printer: { key?: string; name?: string; ip?: string; port?: number; connected?: boolean; status?: string; subnet_mismatch?: boolean }) => ({
           key: printer.key || printer.name || "printer",
           name: printer.name || "",
           ip: printer.ip || "",
+          port: printer.port,
           connected: printer.connected ?? printer.status === "online",
           source: data.printers_source,
+          subnetMismatch: !!printer.subnet_mismatch,
         }))
       : [];
     if (data.printers_source === "fallback" || printers.some((p) => /^192\.168\.1\.5[0-3]$/.test(p.ip))) {
@@ -159,20 +164,37 @@ export async function checkBridgeHealth(): Promise<{
           if (fresh?.ok) {
             const freshData = await fresh.json();
             const freshPrinters = Array.isArray(freshData.printers)
-              ? freshData.printers.map((printer: { key?: string; name?: string; ip?: string; connected?: boolean; status?: string }) => ({
+              ? freshData.printers.map((printer: { key?: string; name?: string; ip?: string; port?: number; connected?: boolean; status?: string; subnet_mismatch?: boolean }) => ({
                   key: printer.key || printer.name || "printer",
                   name: printer.name || "",
                   ip: printer.ip || "",
+                  port: printer.port,
                   connected: printer.connected ?? printer.status === "online",
                   source: freshData.printers_source,
+                  subnetMismatch: !!printer.subnet_mismatch,
                 }))
               : [];
-            return { online: true, printers: freshPrinters, source: freshData.printers_source, synced: true };
+            return {
+              online: true,
+              printers: freshPrinters,
+              source: freshData.printers_source,
+              synced: true,
+              subnetWarnings: Array.isArray(freshData.subnet_warnings) ? freshData.subnet_warnings : [],
+              hostSubnets: Array.isArray(freshData.host_subnets) ? freshData.host_subnets : [],
+              subnetCheckSupported: !!freshData.subnet_check,
+            };
           }
         }
       }
     }
-    return { online: true, printers, source: data.printers_source };
+    return {
+      online: true,
+      printers,
+      source: data.printers_source,
+      subnetWarnings: Array.isArray(data.subnet_warnings) ? data.subnet_warnings : [],
+      hostSubnets: Array.isArray(data.host_subnets) ? data.host_subnets : [],
+      subnetCheckSupported: !!data.subnet_check,
+    };
   } catch {
     return { online: false };
   }
