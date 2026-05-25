@@ -699,15 +699,15 @@ export default function NewDeviceOnboardingPage() {
   // ────────────────────────────────────────────────────────────
   return (
     <div className="min-h-full bg-background pb-32" dir="rtl">
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
           <BackButton />
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" /> تجهيز جهاز نقطة بيع جديد
+            <h1 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
+              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" /> تجهيز جهاز نقطة بيع جديد
             </h1>
-            <p className="text-sm text-muted-foreground">معالج بسيط بـ 5 خطوات — يصلح للأشخاص غير التقنيين</p>
+            <p className="text-xs text-muted-foreground">معالج 4 خطوات بسيط — يصلح للأشخاص غير التقنيين</p>
           </div>
           <Button
             variant="ghost" size="sm"
@@ -719,85 +719,98 @@ export default function NewDeviceOnboardingPage() {
           </Button>
         </div>
 
-        {/* Progress */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between mb-2 text-sm">
-            <span className="font-semibold">التقدّم</span>
-            <span className="text-muted-foreground">{completed} من 5 مكتملة</span>
+        {/* Sticky Bridge strip */}
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 border-y border-border">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+              bridgeOnline === true ? "bg-success/10 text-success border-success/30"
+              : bridgeOnline === false ? "bg-destructive/10 text-destructive border-destructive/30"
+              : "bg-muted text-muted-foreground border-border"
+            }`}>
+              <span className="h-2 w-2 rounded-full" style={{
+                background: bridgeOnline === true ? "#22c55e" : bridgeOnline === false ? "#ef4444" : "#fbbf24",
+              }} />
+              {bridgeOnline === true ? "برنامج الطباعة متصل" : bridgeOnline === false ? "غير متصل" : "جارٍ الفحص"}
+            </span>
+            <span className="text-[11px] text-muted-foreground font-mono truncate min-w-0" dir="ltr">
+              {getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001"}
+              {bridgeVersion ? ` · v${bridgeVersion}` : ""}
+            </span>
+            <div className="flex-1" />
+            <Button variant="outline" size="sm" onClick={() => { void recheckBridge(); }} disabled={bridgeChecking} className="h-7 px-2 gap-1 text-xs">
+              <RefreshCw className={`h-3.5 w-3.5 ${bridgeChecking ? "animate-spin" : ""}`} /> فحص
+            </Button>
+            <Button asChild size="sm" variant="secondary" className="h-7 px-2 gap-1 text-xs">
+              <a href={PRINT_BRIDGE_DOWNLOAD_URL} download>
+                <Download className="h-3.5 w-3.5" /> تحديث برنامج الطباعة
+              </a>
+            </Button>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${(completed / 5) * 100}%` }}
-            />
+        </div>
+
+        {/* Progress */}
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="flex items-center justify-between mb-1.5 text-xs">
+            <span className="font-semibold">التقدّم</span>
+            <span className="text-muted-foreground">{completed} من 4 مكتملة</span>
+          </div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${(completed / 4) * 100}%` }} />
           </div>
         </div>
 
         {/* ── Step 1: Bridge ─────────────────────────────── */}
         <Section
           n={1} title="فحص برنامج الطباعة" icon={Printer} status={step1Status}
-          subtitle="نتأكد أن برنامج الطباعة Print Bridge شغّال على هذا الكمبيوتر."
+          subtitle="نتأكد أن برنامج الطباعة شغّال على هذا الكمبيوتر."
+          open={openStep === 1} onToggle={() => setOpenStep(openStep === 1 ? 0 : 1)}
+          summary={
+            bridgeOnline === true
+              ? <SummarySimple ok text={`متصل${bridgeVersion ? ` · v${bridgeVersion}` : ""}`} />
+              : bridgeOnline === false
+                ? <SummarySimple fail text="غير متصل — اضغط للعرض والتشغيل" />
+                : <SummarySimple text="جارٍ الفحص..." />
+          }
         >
-          <div className="flex flex-wrap items-center gap-3">
-            {bridgeOnline === null && <span className="text-sm text-muted-foreground">جاري الفحص…</span>}
-            {bridgeOnline === true && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success border border-success/30 px-3 py-1 text-sm font-medium">
-                <Wifi className="h-4 w-4" /> متصل
-              </span>
-            )}
-            {bridgeOnline === false && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive border border-destructive/30 px-3 py-1 text-sm font-medium">
-                <WifiOff className="h-4 w-4" /> برنامج الطباعة غير شغال على هذا الجهاز
-              </span>
-            )}
-            <Button variant="outline" size="sm" onClick={() => { void recheckBridge(); }} disabled={bridgeChecking} className="gap-1">
-              <RefreshCw className={`h-3.5 w-3.5 ${bridgeChecking ? "animate-spin" : ""}`} /> إعادة الفحص
-            </Button>
-          </div>
-
-          {/* Always-visible download row */}
-          <div className="rounded-md border border-border bg-muted/30 p-3 text-sm space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button asChild size="sm" className="gap-1 shrink-1">
-                <a href={PRINT_BRIDGE_DOWNLOAD_URL} download>
-                  <Download className="h-3.5 w-3.5" /> تحميل/تحديث برنامج الطباعة
-                </a>
-              </Button>
-              <Button
-                size="sm" variant="secondary"
-                onClick={() => {
-                  const absolute = `${window.location.origin}${PRINT_BRIDGE_DOWNLOAD_URL}`;
-                  navigator.clipboard.writeText(absolute);
-                  toast.success("تم نسخ الرابط");
-                }}
-                className="gap-1 shrink-1"
-              >
-                <Copy className="h-3.5 w-3.5" /> نسخ رابط التحميل
-              </Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              استخدمه عند أول تثبيت أو عند تحديث نسخة برنامج الطباعة.
-            </p>
-          </div>
-
-          {bridgeOnline === false && (
+          {bridgeOnline === false ? (
             <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm space-y-2">
               <div className="font-medium text-amber-900 dark:text-amber-200 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" /> خطوات سريعة للتثبيت
               </div>
               <ol className="list-decimal pr-5 space-y-1 text-amber-900/90 dark:text-amber-100/90 text-[13px]">
-                <li>حمّل برنامج الطباعة من الرابط، فك الضغط في <code dir="ltr">C:\print-bridge</code></li>
+                <li>حمّل برنامج الطباعة من زر «تحديث برنامج الطباعة» أعلاه، فك الضغط في <code dir="ltr">C:\print-bridge</code></li>
                 <li>افتح المجلد، شغّل ملف <code>install-bridge.bat</code> (يثبّت كخدمة Windows)</li>
-                <li>ارجع لهذه الصفحة واضغط "إعادة الفحص"</li>
+                <li>اضغط زر «فحص» في الشريط أعلاه</li>
               </ol>
+              <button
+                type="button"
+                onClick={() => {
+                  const absolute = `${window.location.origin}${PRINT_BRIDGE_DOWNLOAD_URL}`;
+                  navigator.clipboard.writeText(absolute);
+                  toast.success("تم نسخ الرابط");
+                }}
+                className="text-[11px] text-amber-900 dark:text-amber-200 hover:underline inline-flex items-center gap-1"
+              >
+                <Copy className="h-3 w-3" /> نسخ رابط التحميل
+              </button>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" /> برنامج الطباعة شغّال. لا حاجة لأي إجراء هنا.
             </div>
           )}
         </Section>
 
         {/* ── Step 2: Device binding ─────────────────────── */}
         <Section
-          n={2} title="تعريف الجهاز" icon={Monitor} status={step2Status}
-          subtitle="اربط هذا الكمبيوتر بفرع ومحطة بيع وصندوق نقدي."
+          n={2} title="ربط الجهاز" icon={Monitor} status={step2Status}
+          subtitle="اربط هذا الكمبيوتر بفرع ومحطة بيع."
+          open={openStep === 2} onToggle={() => setOpenStep(openStep === 2 ? 0 : 2)}
+          summary={
+            deviceConfigured
+              ? <SummarySimple ok text={[label || "—", branches.find(b => b.id === branchId)?.name, terminals.find(t => t.id === terminalId)?.name].filter(Boolean).join(" · ")} />
+              : <SummarySimple text="لم يُربط الجهاز بعد" />
+          }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -832,28 +845,50 @@ export default function NewDeviceOnboardingPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">الصندوق النقدي (اختياري)</Label>
-              <Select value={cashBoxId} onValueChange={setCashBoxId} disabled={!terminalId}>
-                <SelectTrigger><SelectValue placeholder={!terminalId ? "اختر المحطة أولاً" : (filteredCashBoxes.length ? "اختر الصندوق" : "لا يوجد صندوق مرتبط")} /></SelectTrigger>
-                <SelectContent>
-                  {filteredCashBoxes.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.currency ? ` (${c.currency})` : ""}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-          <Button onClick={saveDevice} disabled={saving || !branchId || !terminalId} className="gap-2 w-full md:w-auto">
-            {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            ربط هذا الجهاز
-          </Button>
-          <Button
-            onClick={handleSyncDevice}
-            disabled={syncing || !branchId || !terminalId || !bridgeOnline}
-            className="gap-2 w-full md:w-auto"
-          >
-            {syncing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
-            مزامنة هذا الجهاز (إرسال الإعدادات + الطابعات لبرنامج الطباعة)
-          </Button>
+
+          {/* Optional fields */}
+          <Collapsible open={showOptional} onOpenChange={setShowOptional}>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showOptional ? "rotate-180" : ""}`} />
+                حقول اختيارية (الصندوق النقدي)
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">الصندوق النقدي</Label>
+                <Select value={cashBoxId} onValueChange={setCashBoxId} disabled={!terminalId}>
+                  <SelectTrigger><SelectValue placeholder={!terminalId ? "اختر المحطة أولاً" : (filteredCashBoxes.length ? "اختر الصندوق" : "لا يوجد صندوق مرتبط")} /></SelectTrigger>
+                  <SelectContent>
+                    {filteredCashBoxes.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.currency ? ` (${c.currency})` : ""}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Primary + secondary actions */}
+          <div className="flex flex-col gap-1.5 pt-1">
+            <Button
+              onClick={saveAndSync}
+              disabled={saving || syncing || !branchId || !terminalId}
+              className="gap-2 w-full h-11 text-base"
+              size="lg"
+            >
+              {(saving || syncing) ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+              حفظ ومزامنة الجهاز
+            </Button>
+            <button
+              type="button"
+              onClick={saveDevice}
+              disabled={saving || !branchId || !terminalId}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline self-center disabled:opacity-40"
+            >
+              حفظ فقط بدون مزامنة
+            </button>
+          </div>
+
           {lastSyncOk === true && (
             <div className="rounded-md border border-success/30 bg-success/10 text-success text-sm px-3 py-2 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" /> {lastSyncMsg}
@@ -870,39 +905,50 @@ export default function NewDeviceOnboardingPage() {
               </div>
             </div>
           )}
-          {deviceSaved && (
+          {deviceSaved && lastSyncOk === null && (
             <div className="rounded-md border border-success/30 bg-success/10 text-success text-sm px-3 py-2 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" /> تم ربط هذا الجهاز بحساب الشركة والفرع
             </div>
           )}
+
+          {/* Advanced: backup / restore */}
+          <Collapsible open={showBackup} onOpenChange={setShowBackup}>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 pt-2 border-t border-border w-full mt-2 justify-center">
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showBackup ? "rotate-180" : ""}`} />
+                خيارات متقدمة: نسخة احتياطية device.json
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={exportConfig} disabled={!deviceSaved} className="gap-2">
+                  <Download className="h-4 w-4" /> تصدير device.json
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                  <Upload className="h-4 w-4" /> استيراد device.json
+                </Button>
+                <input
+                  ref={fileInputRef} type="file" accept="application/json,.json" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) importConfig(f); e.target.value = ""; }}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                للنقل إلى كمبيوتر آخر بدون إنترنت. للتشغيل العادي استخدم «حفظ ومزامنة الجهاز».
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
         </Section>
 
-        {/* ── Step 3: Backup ─────────────────────────────── */}
+        {/* ── Step 3: Printers ───────────────────────────── */}
         <Section
-          n={3} title="نسخة احتياطية للجهاز" icon={Download} status={step3Status}
-          subtitle="نسخة احتياطية فقط — ليست خطوة أساسية. الاعتماد الرئيسي على زر «مزامنة هذا الجهاز» في خطوة 2."
-        >
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={exportConfig} disabled={!deviceSaved} className="gap-2">
-              <Download className="h-4 w-4" /> تصدير device.json
-            </Button>
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
-              <Upload className="h-4 w-4" /> استيراد device.json
-            </Button>
-            <input
-              ref={fileInputRef} type="file" accept="application/json,.json" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) importConfig(f); e.target.value = ""; }}
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            للنقل إلى كمبيوتر آخر بدون إنترنت. للتشغيل العادي استخدم «مزامنة هذا الجهاز».
-          </p>
-        </Section>
-
-        {/* ── Step 4: Printers ───────────────────────────── */}
-        <Section
-          n={4} title="الطابعات" icon={Printer} status={step4Status}
+          n={3} title="الطابعات" icon={Printer} status={step3Status}
           subtitle="حدّد طابعة الفاتورة وطابعات المطبخ/المشاوي/البيتزا."
+          open={openStep === 3} onToggle={() => setOpenStep(openStep === 3 ? 0 : 3)}
+          summary={
+            filteredPrinters.length === 0
+              ? <SummarySimple text="لا توجد طابعات معرّفة" />
+              : <SummarySimple ok={step3Status === "ok"} text={`${filteredPrinters.length} طابعة${bridgeSource && bridgeSource !== "fallback" ? " · متزامنة" : " · غير متزامنة"}`} />
+          }
         >
           {filteredPrinters.length > 0 && bridgeSource === "fallback" && (
             <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-100 flex items-start gap-2">
