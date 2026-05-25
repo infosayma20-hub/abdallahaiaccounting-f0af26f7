@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut, ShoppingCart } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
@@ -12,14 +12,20 @@ export default function ChooseWorkspacePage() {
   const { user } = useAuth();
   const [hasRep, setHasRep] = useState(false);
   const [hasCashier, setHasCashier] = useState(false);
+  const [isCallCenter, setIsCallCenter] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
-      const roles = (data || []).map((r: any) => r.role);
+    (async () => {
+      const [{ data: rolesData }, { data: posUser }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase.from("pos_users").select("is_call_center").eq("auth_user_id", user.id).maybeSingle(),
+      ]);
+      const roles = (rolesData || []).map((r: any) => r.role);
       setHasRep(roles.includes("sales_rep"));
       setHasCashier(roles.includes("cashier"));
-    });
+      setIsCallCenter(!!(posUser as any)?.is_call_center);
+    })();
   }, [user?.id]);
 
   const choose = (path: "/employee" | "/rep" | "/pos") => {
@@ -78,12 +84,12 @@ export default function ChooseWorkspacePage() {
             className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
           >
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <ShoppingCart className="w-8 h-8 text-primary" />
+              {isCallCenter ? <Headphones className="w-8 h-8 text-primary" /> : <ShoppingCart className="w-8 h-8 text-primary" />}
             </div>
-            <h2 className="text-lg font-semibold">شاشة نقطة البيع</h2>
-            <p className="text-sm text-muted-foreground">بيع، فواتير، إغلاق وردية</p>
+            <h2 className="text-lg font-semibold">{isCallCenter ? "شاشة الكول سنتر" : "شاشة نقطة البيع"}</h2>
+            <p className="text-sm text-muted-foreground">{isCallCenter ? "استقبال الطلبات وتحويلها للفرع" : "بيع، فواتير، إغلاق وردية"}</p>
             <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/pos"); }}>
-              دخول كاشير
+              {isCallCenter ? "دخول كول سنتر" : "دخول كاشير"}
             </Button>
           </Card>
           )}
