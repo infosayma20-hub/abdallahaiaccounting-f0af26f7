@@ -125,12 +125,18 @@ export default function RepOrdersPage() {
         return;
       }
 
-      const { data, error } = await (supabase as any).rpc("void_rep_sale_atomic", {
+      const { data, error } = await (supabase as any).rpc("rep_cancel_owned_invoice", {
         p_invoice_id: o.id,
         p_reason: reason.trim(),
       });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "فشل الإلغاء");
+      if (error) {
+        const msg = String(error.message || "");
+        if (msg.includes("REP_CANCEL_FORBIDDEN") || error.code === "42501") {
+          throw new Error("لا يمكن إلغاء هذه الفاتورة من حساب المندوب. يرجى مراجعة المحاسب.");
+        }
+        throw error;
+      }
+      if (!data?.success) throw new Error(data?.error || "لا يمكن إلغاء هذه الفاتورة من حساب المندوب. يرجى مراجعة المحاسب.");
       toast({
         title: data.already_voided ? "الطلب ملغى مسبقاً" : "تم إلغاء الطلب",
         description: `قيد عكسي: ${data.reverse_transaction_id?.slice(0,8)}…`,
@@ -148,9 +154,14 @@ export default function RepOrdersPage() {
       await load();
     } catch (e: any) {
       const message = String(e?.message || "");
+      const description = message.includes("عُكس مسبقاً")
+        ? "تم العثور على قيد عكسي سابق، حدّثت القائمة حسب حالة الطلب الحالية."
+        : (message.includes("REP_CANCEL_FORBIDDEN") || message.includes("permission_denied"))
+          ? "لا يمكن إلغاء هذه الفاتورة من حساب المندوب. يرجى مراجعة المحاسب."
+          : message;
       toast({
         title: "فشل الإلغاء",
-        description: message.includes("عُكس مسبقاً") ? "تم العثور على قيد عكسي سابق، حدّثت القائمة حسب حالة الطلب الحالية." : message,
+        description,
         variant: "destructive",
       });
       await load();
