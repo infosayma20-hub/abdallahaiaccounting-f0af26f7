@@ -39,7 +39,7 @@ If `printers` is empty/missing, bridge falls back to hardcoded constants — pri
 - `pushPrintersToBridge(map)` POSTs a `{printers}` payload then calls `/reload-config`. Used by `/onboarding/new-device` after add/edit/delete printer, on import, and on every printer list refresh.
 - `pullRawDeviceJsonFromBridge()` returns the full file (used by Export so backup includes printers).
 - `reloadBridgeConfig()` POST `/reload-config` — hot-reload without restarting the Windows service.
-- Merge semantics: only non-empty incoming fields overwrite stored values. Never destructive.
+- Printer sync supports full replacement (`replacePrinters: true`): device.json printers become source of truth so stale fallback IPs (192.168.1.50-53) do not reappear. Use null to delete a printer key.
 
 ## Result
 After "Clear browsing data" or new browser install, opening POS auto-restores the device's branch + terminal + bridge URL within ~1.5s. Cashier sees no setup screen.
