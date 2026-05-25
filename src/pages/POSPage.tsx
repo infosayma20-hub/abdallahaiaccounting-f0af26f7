@@ -54,6 +54,8 @@ import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
 import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge } from "@/lib/device-config";
 import { getCanSell } from "@/lib/pos-device-auth";
+import { usePOSShiftWatcher } from "@/hooks/usePOSShiftWatcher";
+import { ShiftClosedElsewhereDialog } from "@/components/pos/ShiftClosedElsewhereDialog";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
@@ -708,6 +710,22 @@ const POSPage = () => {
     return () => { cancelled = true; };
   }, [session?.cash_box_id]);
 
+  // ── Concurrent-shift watcher ───────────────────────────────────────
+  // Detects when the SAME cashier's session was closed (or marked deleted)
+  // from another device. Uses Supabase Realtime + a 30s safety poll.
+  // We keep a ref alongside state so `enforceDeviceGuard` (which is read
+  // from inside event handlers and sync callbacks) sees the latest value
+  // without needing to be re-memoized.
+  const { closedFromElsewhere: shiftClosedElsewhere, closedAt: shiftClosedAt } =
+    usePOSShiftWatcher(session?.id ?? null);
+  const shiftClosedElsewhereRef = useRef(false);
+  useEffect(() => {
+    shiftClosedElsewhereRef.current = shiftClosedElsewhere;
+    if (shiftClosedElsewhere) {
+      toast.error("⛔ تم إغلاق العهدة من جهاز آخر — توقف البيع والطباعة");
+    }
+  }, [shiftClosedElsewhere]);
+
   /**
    * 🛡️ Central enforcement called at the START of every sensitive function:
    * open shift, save draft, send to kitchen, complete order, print, accept call-center order.
@@ -721,6 +739,13 @@ const POSPage = () => {
     // in the sticky banner once the Bridge is back.
     if (!getCanSell()) {
       if (!opts?.silent) toast.error("⛔ وضع عرض فقط — برنامج الطباعة غير متصل على هذا الجهاز");
+      return false;
+    }
+    // 🔒 Concurrent-shift safety: if this shift was closed from another
+    // device (Realtime UPDATE or 30s poll caught it), block every sensitive
+    // action. The ShiftClosedElsewhereDialog is already open at this point.
+    if (shiftClosedElsewhereRef.current) {
+      if (!opts?.silent) toast.error("⛔ تم إغلاق العهدة من جهاز آخر — لا يمكن إتمام البيع");
       return false;
     }
     // Emergency POS access: allow selling while device setup is corrected later.
@@ -2184,7 +2209,15 @@ const POSPage = () => {
 
     if (error) {
       console.error("[open-shift] insert failed:", error);
-      toast.error(`خطأ في فتح الوردية: ${error.message || "سبب غير معروف"}`);
+      // Friendly message for the "already open on another device" case.
+      // Our unique partial index pos_sessions_one_open_per_* raises 23505.
+      const code = (error as any).code;
+      const msg = (error.message || "").toLowerCase();
+      if (code === "23505" && (msg.includes("one_open_per_cashier") || msg.includes("one_open_per_auth_user"))) {
+        toast.error("⛔ لديك عهدة مفتوحة بالفعل على جهاز آخر — أغلقها أولاً ثم حاول مجدداً");
+      } else {
+        toast.error(`خطأ في فتح الوردية: ${error.message || "سبب غير معروف"}`);
+      }
       return;
     }
 
@@ -6389,6 +6422,25 @@ const POSPage = () => {
         open={showBarcodeScanner}
         onClose={() => setShowBarcodeScanner(false)}
         onScan={handleBarcodeScan}
+      />
+
+      {/* ── Concurrent-shift safeguard ── */}
+      {/* Pops the moment Realtime reports the session was closed from another */}
+      {/* device. Cart stays untouched; cashier can open a new shift or sign out. */}
+      <ShiftClosedElsewhereDialog
+        open={shiftClosedElsewhere && !!session}
+        closedAt={shiftClosedAt}
+        onOpenNewShift={() => {
+          // Drop the closed session locally so the OpenShift screen reappears.
+          setSession(null);
+          setOrders([createNewOrder(1)]);
+          setActiveOrderIndex(0);
+          orderCounter.current = 1;
+        }}
+        onSignOut={async () => {
+          await supabase.auth.signOut();
+          navigate("/auth", { replace: true });
+        }}
       />
     </div>
   );
