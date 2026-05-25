@@ -185,7 +185,7 @@ export default function PrinterRow(props: PrinterRowProps) {
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56" dir="rtl">
+          <DropdownMenuContent align="end" className="w-56">
             {onEdit && (
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onEdit(); }}>
                 <Pencil className="h-4 w-4 ml-2" /> تعديل
