@@ -723,6 +723,11 @@ const POSPage = () => {
   useEffect(() => {
     shiftClosedElsewhereRef.current = shiftClosedElsewhere;
     if (shiftClosedElsewhere) {
+      // 💾 Auto-save the current carts so the cashier doesn't lose work.
+      // We snapshot at the moment of detection — the dialog blocks further
+      // mutations from this point on, so this state matches what the user
+      // sees on screen.
+      saveBlockedCart(company?.id ?? null, userId ?? null, session?.id ?? null, orders);
       toast.error("⛔ تم إغلاق العهدة من جهاز آخر — توقف البيع والطباعة");
     }
   }, [shiftClosedElsewhere]);
