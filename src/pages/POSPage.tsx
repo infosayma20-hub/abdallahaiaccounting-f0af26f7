@@ -3733,11 +3733,15 @@ const POSPage = () => {
   // Call center quick close — no cash count needed, just logout
   const handleCallCenterCloseShift = async () => {
     if (!session || !userId) return;
-    const closedAt = new Date().toISOString();
-    await supabase
-      .from("pos_sessions")
-      .update({ state: "closed", closed_at: closedAt, closing_cash: 0 } as any)
-      .eq("id", session.id);
+    // 🔒 Atomic close — same CAS guard as cashier close.
+    const { error: ccErr } = await supabase.rpc("close_pos_session_atomic", {
+      p_session_id: session.id,
+      p_closing_cash: 0,
+    });
+    if (ccErr) {
+      toast.error(`تعذّر إغلاق الوردية: ${ccErr.message}`);
+      return;
+    }
     setSession(null);
     setOrders([createNewOrder(1)]);
     setActiveOrderIndex(0);
