@@ -273,6 +273,84 @@ const DEFAULT_PRINTERS = {
   pizza:   { type: 'network', ip: '192.168.1.53', port: 9100, name: 'طابعة البيتزا', width: 576 },
 };
 
+// ────────────────────────────────────────────────────────────────────────
+//  SUBNET-MISMATCH DETECTION
+//   Detects when a configured printer IP is on a different subnet than
+//   any of this host's network interfaces. Common cause: printer arrived
+//   from factory with default 192.168.1.x while the branch LAN is 10.x.
+// ────────────────────────────────────────────────────────────────────────
+function ipToInt(ip) {
+  const p = String(ip || '').split('.').map((n) => Number(n));
+  if (p.length !== 4 || p.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return null;
+  return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3];
+}
+function maskToBits(mask) {
+  const n = ipToInt(mask);
+  if (n === null) return null;
+  // count leading 1s
+  let bits = 0;
+  for (let i = 31; i >= 0; i--) {
+    if ((n >>> i) & 1) bits++; else break;
+  }
+  return bits;
+}
+function getLocalSubnets() {
+  const out = [];
+  try {
+    const ifs = os.networkInterfaces();
+    for (const [name, addrs] of Object.entries(ifs || {})) {
+      for (const a of addrs || []) {
+        if (a.family !== 'IPv4' || a.internal) continue;
+        const ipInt = ipToInt(a.address);
+        const maskInt = ipToInt(a.netmask);
+        if (ipInt === null || maskInt === null) continue;
+        const networkInt = (ipInt & maskInt) >>> 0;
+        out.push({
+          iface: name,
+          ip: a.address,
+          netmask: a.netmask,
+          cidr: a.cidr || `${a.address}/${maskToBits(a.netmask) ?? '?'}`,
+          networkInt,
+          maskInt,
+        });
+      }
+    }
+  } catch {}
+  return out;
+}
+function checkSubnetMismatch(printerIp) {
+  const ipInt = ipToInt(printerIp);
+  if (ipInt === null) return { mismatch: false, reason: 'invalid_ip' };
+  const subs = getLocalSubnets();
+  if (!subs.length) return { mismatch: false, reason: 'no_local_ipv4' };
+  const matching = subs.find((s) => ((ipInt & s.maskInt) >>> 0) === s.networkInt);
+  if (matching) {
+    return { mismatch: false, matchedInterface: matching.iface, matchedCidr: matching.cidr };
+  }
+  return {
+    mismatch: true,
+    reason: 'different_subnet',
+    localSubnets: subs.map((s) => ({ iface: s.iface, cidr: s.cidr })),
+  };
+}
+async function tcpProbe(ip, port, timeoutMs = 1500) {
+  return new Promise((resolve) => {
+    const s = new net.Socket();
+    let done = false;
+    const finish = (ok, err) => {
+      if (done) return;
+      done = true;
+      try { s.destroy(); } catch {}
+      resolve({ ok, err: err || null });
+    };
+    s.setTimeout(timeoutMs);
+    s.once('connect', () => finish(true));
+    s.once('timeout', () => finish(false, 'timeout'));
+    s.once('error',   (e) => finish(false, e.code || e.message || 'error'));
+    try { s.connect(port || 9100, ip); } catch (e) { finish(false, e.message); }
+  });
+}
+
 function getActivePrinters() {
   const fromFile = deviceCfg.getPrinters();
   if (fromFile && typeof fromFile === 'object' && Object.keys(fromFile).length) {
@@ -786,10 +864,13 @@ async function svgToPng(svg) {
 app.get('/health', async (_req, res) => {
   const active = getActivePrinters();
   const cfg = deviceCfg.getConfig() || {};
+  const localSubnets = getLocalSubnets().map((s) => ({ iface: s.iface, ip: s.ip, cidr: s.cidr }));
   const printers = await Promise.all(
     Object.entries(active).map(async ([key, p]) => {
       let status = 'n/a';
+      let subnetInfo = null;
       if ((p.type || 'network') === 'network' && p.ip) {
+        subnetInfo = checkSubnetMismatch(p.ip);
         try {
           const t = await new Promise((resolve) => {
             const s = new net.Socket();
@@ -814,9 +895,20 @@ app.get('/health', async (_req, res) => {
         width: p.width || 576,
         stationId: p.stationId || null,
         status,
+        subnet_mismatch: subnetInfo ? !!subnetInfo.mismatch : false,
+        subnet_info: subnetInfo,
       };
     })
   );
+  const subnetWarnings = printers
+    .filter((p) => p.subnet_mismatch)
+    .map((p) => ({
+      key: p.key,
+      name: p.name,
+      ip: p.ip,
+      status: p.status,
+      message: `الطابعة ${p.name} (${p.ip}) على Subnet مختلف عن الجهاز. شغّل DHCP عليها أو غيّر IP لنطاق الفرع.`,
+    }));
   res.json({
     status: 'ok',
     version: '6.3.4-generic',
@@ -824,6 +916,9 @@ app.get('/health', async (_req, res) => {
     logo: !!LOGO_BUF,
     windows_printers_supported: IS_WINDOWS,
     usb_raw_print_fix: 'intptr-marshaling-v1',
+    subnet_check: 'subnet-mismatch-v1',
+    host_subnets: localSubnets,
+    subnet_warnings: subnetWarnings,
     device: {
       label:      cfg.label      || null,
       branchId:   cfg.branchId   || null,
@@ -835,6 +930,81 @@ app.get('/health', async (_req, res) => {
     printers,
     timestamp: new Date().toISOString(),
   });
+});
+
+// ── /probe-printer — probe any IP:port and report subnet mismatch ──────
+// GET /probe-printer?ip=192.168.1.87&port=9100
+app.get('/probe-printer', async (req, res) => {
+  const ip = String(req.query.ip || '').trim();
+  const port = Number(req.query.port || 9100);
+  if (!ip) return res.status(400).json({ ok: false, error: 'ip_required' });
+  const subnet = checkSubnetMismatch(ip);
+  const probe = await tcpProbe(ip, port, 2000);
+  res.json({
+    ok: true,
+    ip,
+    port,
+    reachable: probe.ok,
+    probe_error: probe.err,
+    subnet_mismatch: !!subnet.mismatch,
+    subnet_info: subnet,
+    host_subnets: getLocalSubnets().map((s) => ({ iface: s.iface, ip: s.ip, cidr: s.cidr })),
+    hint: subnet.mismatch
+      ? 'الطابعة على Subnet مختلف. لو الراوتر بمررلها، الـ probe بنجح؛ غير هيك فعّل DHCP أو غيّر IP الطابعة.'
+      : null,
+  });
+});
+
+// ── /add-printer — force-add a printer even if subnet mismatches ───────
+// POST { key, name, ip, port, width, stationId, force }
+// Persists into device.json via the device-config addon.
+app.post('/add-printer', express.json(), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const key = String(body.key || '').trim();
+    const ip  = String(body.ip || '').trim();
+    if (!key || !ip) return res.status(400).json({ ok: false, error: 'key_and_ip_required' });
+    const port = Number(body.port || 9100);
+    const subnet = checkSubnetMismatch(ip);
+    if (subnet.mismatch && !body.force) {
+      return res.status(409).json({
+        ok: false,
+        error: 'subnet_mismatch',
+        subnet_info: subnet,
+        hint: 'أعد الطلب مع force:true لإضافتها رغم اختلاف الـ subnet.',
+      });
+    }
+    const probe = await tcpProbe(ip, port, 2000);
+    // Build merge payload for the device-config addon
+    const printerObj = {
+      type: 'network',
+      name: body.name || key,
+      ip, port,
+      width: Number(body.width || 576),
+    };
+    if (body.stationId) printerObj.stationId = String(body.stationId);
+    // Reuse the addon's internal flow by calling its own /device-config route
+    // through a local HTTP round-trip would be overkill — instead, write directly:
+    const cfg = deviceCfg.getConfig() || {};
+    const printers = { ...(cfg.printers || {}), [key]: printerObj };
+    const fsLocal = require('fs');
+    const pathLocal = require('path');
+    const FILE = pathLocal.join(__dirname, 'device.json');
+    const next = { ...cfg, printers };
+    try { fsLocal.writeFileSync(FILE, JSON.stringify(next, null, 2), 'utf8'); }
+    catch (e) { return res.status(500).json({ ok: false, error: 'write_failed', detail: e.message }); }
+    deviceCfg.reload();
+    res.json({
+      ok: true,
+      added: { key, ...printerObj },
+      reachable: probe.ok,
+      probe_error: probe.err,
+      subnet_mismatch: !!subnet.mismatch,
+      forced: !!body.force && subnet.mismatch,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ── /windows-printers — list installed Windows printers via PowerShell ──
