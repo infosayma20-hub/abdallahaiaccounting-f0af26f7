@@ -180,8 +180,11 @@ export default function PrinterRow(props: PrinterRowProps) {
       printer: {
         id: p.id, name: p.name, ip: p.ip_address, port: p.port,
         role: p.print_categories?.[0] || p.printer_type,
-        connection: isUsb ? "usb" : "network",
+        connection: isWindows ? "windows" : "network",
         windows_printer_name: winName || null,
+        windows_portName: winMeta?.portName || null,
+        windows_driverName: winMeta?.driverName || null,
+        windows_detected_kind: isWindows ? winKind : null,
       },
       state,
       bridge: { connected: bridgeConnected, subnetMismatch: bridgeSubnetMismatch, notSynced },
@@ -201,16 +204,34 @@ export default function PrinterRow(props: PrinterRowProps) {
         <span className="text-lg shrink-0">{roleEmoji}</span>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span className="font-medium truncate text-sm">{p.name}</span>
             <span className="text-[10px] rounded-full bg-muted text-muted-foreground px-1.5 py-0.5 border border-border shrink-0">
               {roleLabel}
             </span>
-            <ConnTypeBadge kind={isUsb ? "USB / Windows" : "Network IP"} />
+            {isWindows ? (
+              <>
+                <ConnTypeBadge kind={winKind === "USB" ? "USB" : "Windows"} />
+                {winMeta && (
+                  <span className={`text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 ${winConnBadgeCls(winKind)}`}>
+                    {winConnLabel(winKind)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <ConnTypeBadge kind="Network IP" />
+            )}
           </div>
           <div className="text-[11px] text-muted-foreground font-mono truncate" dir="ltr">
             {target}
           </div>
+          {isWindows && winMeta && (winMeta.portName || winMeta.driverName) && (
+            <div className="text-[10.5px] text-muted-foreground font-mono truncate" dir="ltr">
+              {winMeta.portName && <>port: {winMeta.portName}</>}
+              {winMeta.portName && winMeta.driverName && " · "}
+              {winMeta.driverName && <>driver: {winMeta.driverName}</>}
+            </div>
+          )}
         </div>
 
         <StateBadge state={state} />
@@ -226,7 +247,7 @@ export default function PrinterRow(props: PrinterRowProps) {
         />
 
         {/* Secondary: convert to USB/Windows when network can't reach */}
-        {!isUsb && (state === "net-offline" || state === "subnet-mismatch" || state === "net-unknown") && (
+        {!isWindows && (state === "net-offline" || state === "subnet-mismatch" || state === "net-unknown") && (
           <Button
             size="sm" variant="outline"
             onClick={onConvertToWindows}
@@ -250,12 +271,12 @@ export default function PrinterRow(props: PrinterRowProps) {
                 <Pencil className="h-4 w-4 ml-2" /> تعديل
               </DropdownMenuItem>
             )}
-            {!isUsb && (
+            {!isWindows && (
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); void runProbe(); }} disabled={probing || !bridgeOnline}>
                 <Activity className="h-4 w-4 ml-2" /> فحص متقدم
               </DropdownMenuItem>
             )}
-            {!isUsb && (state === "net-offline" || state === "subnet-mismatch" || state === "net-unknown") && (
+            {!isWindows && (state === "net-offline" || state === "subnet-mismatch" || state === "net-unknown") && (
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onConvertToWindows(); }} className="sm:hidden">
                 <Printer className="h-4 w-4 ml-2" /> تحويل إلى USB / Windows
               </DropdownMenuItem>
@@ -288,9 +309,19 @@ export default function PrinterRow(props: PrinterRowProps) {
           <strong>الطابعة لا ترد</strong> على {p.ip_address}:{p.port}. تحقق من الكابل والطاقة، أو حوّلها إلى USB / Windows.
         </HintBar>
       )}
-      {state === "usb-missing-name" && (
+      {state === "win-missing-name" && (
         <HintBar tone="error">
           <strong>اسم طابعة Windows غير موجود.</strong> حدّث الطابعة وحدّد اسم Windows الصحيح.
+        </HintBar>
+      )}
+      {isWindows && (winKind === "WSD" || winKind === "NPI" || winKind === "IP") && (
+        <HintBar tone="warn">
+          هذه الطابعة <strong>معرفة داخل Windows عبر الشبكة</strong>، وليست USB مباشرة.
+        </HintBar>
+      )}
+      {state === "win-tested-fail" && (
+        <HintBar tone="error">
+          <strong>فشل آخر اختبار طباعة.</strong> تأكد أن الطابعة تعمل في Windows ومشاركتها صحيحة.
         </HintBar>
       )}
       {state === "not-synced" && (
@@ -332,14 +363,14 @@ function PrimaryAction({
       </Button>
     );
   }
-  if (state === "usb-ok" || state === "net-online") {
+  if (state === "win-tested-ok" || state === "win-tested-fail" || state === "win-untested" || state === "net-online") {
     return (
       <Button size="sm" variant="secondary" onClick={() => void onTest()} disabled={!bridgeOnline} className="gap-1 h-7 px-2 text-xs">
         <TestTube className="h-3.5 w-3.5" /> اختبار
       </Button>
     );
   }
-  if (state === "usb-missing-name") {
+  if (state === "win-missing-name") {
     return null;
   }
   // net-offline / net-unknown / subnet-mismatch → probe
@@ -353,13 +384,15 @@ function PrimaryAction({
 
 function StateBadge({ state }: { state: State }) {
   const map: Record<State, { label: string; cls: string; Icon: any }> = {
-    "usb-ok":           { label: "تعمل (USB)",       cls: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800", Icon: CheckCircle2 },
+    "win-tested-ok":    { label: "آخر اختبار ناجح",   cls: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800", Icon: CheckCircle2 },
+    "win-tested-fail":  { label: "فشل آخر اختبار",    cls: "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800",                 Icon: XCircle },
+    "win-untested":     { label: "لم يتم اختبارها بعد", cls: "bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/40 dark:text-sky-200 dark:border-sky-800",                     Icon: Printer },
+    "win-missing-name": { label: "اسم Windows مفقود", cls: "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800",                 Icon: XCircle },
     "net-online":       { label: "تعمل",             cls: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800", Icon: CheckCircle2 },
     "net-offline":      { label: "لا ترد",           cls: "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800",                 Icon: XCircle },
     "net-unknown":      { label: "غير معروف",        cls: "bg-muted text-muted-foreground border-border",                                                                          Icon: Activity },
     "subnet-mismatch":  { label: "شبكة مختلفة",      cls: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800",           Icon: AlertTriangle },
     "not-synced":       { label: "غير متزامنة",      cls: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800",           Icon: AlertTriangle },
-    "usb-missing-name": { label: "اسم Windows مفقود", cls: "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800",                 Icon: XCircle },
   };
   const { label, cls, Icon } = map[state];
   return (
@@ -369,10 +402,12 @@ function StateBadge({ state }: { state: State }) {
   );
 }
 
-function ConnTypeBadge({ kind }: { kind: "USB / Windows" | "Network IP" }) {
-  const cls = kind === "USB / Windows"
+function ConnTypeBadge({ kind }: { kind: "USB" | "Windows" | "Network IP" }) {
+  const cls = kind === "Network IP"
+    ? "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/40 dark:text-teal-200 dark:border-teal-800"
+    : kind === "USB"
     ? "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800"
-    : "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/40 dark:text-teal-200 dark:border-teal-800";
+    : "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-200 dark:border-indigo-800";
   return (
     <span className={`text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 ${cls}`}>
       {kind}
