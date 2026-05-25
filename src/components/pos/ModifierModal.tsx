@@ -158,16 +158,14 @@ export default function ModifierModal({
       }
       const next = { ...prev, [group.id]: nextForGroup };
 
-      // Auto-confirm UX: skip the extra "إضافة للطلب" tap when every group is
-      // single-select and all required groups are satisfied (and the user
-      // hasn't typed a note or changed quantity).
-      const allSingle = groups.every((g) => g.selection_type === "single");
-      const allRequiredSatisfied = groups
-        .filter((g) => g.is_required)
-        .every((g) => ((next[g.id]?.length) || 0) >= Math.max(1, g.min_select));
+      // Auto-confirm UX: skip the extra "إضافة للطلب" tap only when there is
+      // exactly ONE single-select group. With 2+ groups the user must pick
+      // from each group (or press "إضافة للطلب") explicitly.
+      const onlyOneGroup = groups.length === 1;
+      const isSingleSelect = group.selection_type === "single";
       const justPicked = nextForGroup.length === 1;
 
-      if (allSingle && allRequiredSatisfied && justPicked && note === "" && quantity === 1) {
+      if (onlyOneGroup && isSingleSelect && justPicked && note === "" && quantity === 1) {
         const modifiers: SelectedModifier[] = [];
         let extra = 0;
         groups.forEach((g) => {
