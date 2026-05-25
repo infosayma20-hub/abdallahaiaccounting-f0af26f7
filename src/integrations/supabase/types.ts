@@ -17594,6 +17594,10 @@ export type Database = {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
         Returns: Json
       }
+      rep_cancel_owned_invoice: {
+        Args: { p_invoice_id: string; p_reason: string }
+        Returns: Json
+      }
       rep_invoice_post_now: { Args: { p_invoice_id: string }; Returns: Json }
       rep_invoice_void_legacy: {
         Args: { p_invoice_id: string; p_reason?: string }
