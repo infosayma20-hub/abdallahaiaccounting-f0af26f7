@@ -355,6 +355,24 @@ serve(async (req) => {
         });
       }
 
+      // FIDO2 §6.1: Verify authenticator signCount strictly increases (clone detection)
+      const signCount =
+        (authDataBytes[33] << 24) |
+        (authDataBytes[34] << 16) |
+        (authDataBytes[35] << 8) |
+        authDataBytes[36];
+      const storedCounter = cred.counter ?? 0;
+      if (signCount > 0 && signCount <= storedCounter) {
+        console.warn("WebAuthn possible cloned authenticator", {
+          credentialId: cred.id,
+          signCount,
+          storedCounter,
+        });
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // Generate a magic link token for sign-in
       const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
@@ -372,9 +390,9 @@ serve(async (req) => {
         .delete()
         .eq('user_id', user.id);
 
-      // Update counter
+      // Update counter to the authenticator's reported signCount (per FIDO2 spec)
       await supabaseAdmin.from('passkey_credentials')
-        .update({ counter: cred.counter + 1 })
+        .update({ counter: signCount > storedCounter ? signCount : storedCounter + 1 })
         .eq('id', cred.id);
 
       return new Response(JSON.stringify({

@@ -200,8 +200,8 @@ Deno.serve(async (req) => {
       const targetUserId = body.user_id;
       const newPassword = body.new_password;
 
-      if (!targetUserId || !newPassword || newPassword.length < 3) {
-        return new Response(JSON.stringify({ error: "كلمة مرور غير صالحة (3 أحرف على الأقل)" }), {
+      if (!targetUserId || !newPassword || newPassword.length < 8) {
+        return new Response(JSON.stringify({ error: "كلمة مرور غير صالحة (8 أحرف على الأقل)" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
