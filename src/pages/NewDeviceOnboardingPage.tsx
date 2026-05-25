@@ -674,20 +674,27 @@ export default function NewDeviceOnboardingPage() {
   // the step as OK.
   const deviceConfigured = !!(branchId && terminalId);
   const step2Status: StepStatus = deviceConfigured ? "ok" : (branchId || terminalId || label) ? "needs" : "idle";
-  const step3Status: StepStatus = deviceConfigured ? "ok" : "idle";
-  // Step 4 (printers) is only "ok" when there is an active printer in DB AND
+  // Step 3 (printers) is only "ok" when there is an active printer in DB AND
   // the bridge is reading it (not from its hardcoded fallback list).
   const printersOnBridgeOk =
     filteredPrinters.length > 0 && bridgeSource !== null && bridgeSource !== "fallback";
-  const step4Status: StepStatus =
+  const step3Status: StepStatus =
     filteredPrinters.length === 0 ? "needs"
     : printersOnBridgeOk ? "ok"
     : "needs";
   const smokeOk = bridgeOnline && deviceConfigured && !!receiptPrinter && (lastReceiptTestOk === true);
-  const step5Status: StepStatus = smokeOk ? "ok" : (deviceConfigured && receiptPrinter) ? "needs" : "idle";
+  const step4Status: StepStatus = smokeOk ? "ok" : (deviceConfigured && receiptPrinter) ? "needs" : "idle";
 
-  const completed = [step1Status, step2Status, step3Status, step4Status, step5Status]
+  const completed = [step1Status, step2Status, step3Status, step4Status]
     .filter(s => s === "ok").length;
+
+  // Auto-open the first step that needs the user's attention.
+  useEffect(() => {
+    if (bridgeOnline === false) { setOpenStep(1); return; }
+    if (!deviceConfigured)       { setOpenStep(2); return; }
+    if (step3Status !== "ok")    { setOpenStep(3); return; }
+    setOpenStep(4);
+  }, [bridgeOnline, deviceConfigured, step3Status]);
 
   // ────────────────────────────────────────────────────────────
   return (
