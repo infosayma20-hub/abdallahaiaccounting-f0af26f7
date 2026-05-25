@@ -1024,7 +1024,17 @@ export default function NewDeviceOnboardingPage() {
             </Button>
           </div>
 
-          {/* ── Network discovery panel ───────────────── */}
+          {/* ── Network discovery panel (collapsible) ── */}
+          <Collapsible open={showDiscovery} onOpenChange={setShowDiscovery}>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full rounded-lg border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-right hover:bg-primary/10 flex items-center gap-2">
+                <Radar className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">اكتشاف طابعات الشبكة</span>
+                <span className="text-[11px] text-muted-foreground flex-1">يفحص الشبكة على المنفذ 9100 (آمن — بدون طباعة)</span>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showDiscovery ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
           <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex-1 min-w-[140px] space-y-1">
@@ -1126,6 +1136,8 @@ export default function NewDeviceOnboardingPage() {
               </div>
             )}
           </div>
+            </CollapsibleContent>
+          </Collapsible>
         </Section>
 
         {/* ── Step 4: Pre-handover summary ────────────────── */}
