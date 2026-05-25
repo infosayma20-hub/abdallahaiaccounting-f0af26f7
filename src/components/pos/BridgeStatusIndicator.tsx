@@ -10,8 +10,9 @@ import { Printer, Loader2, RefreshCw, CheckCircle2, XCircle, Cloud, AlertCircle,
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { checkBridgeHealth, getPrintBridgeUrl } from "@/lib/print-bridge-client";
-import { syncThisDeviceToBridge } from "@/lib/device-config";
+import { syncThisDeviceToBridge, getDeviceConfig, type BridgePrinterKey } from "@/lib/device-config";
 import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
+import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import { toast } from "sonner";
 
 type Printer = { key: string; name: string; ip: string; port?: number; connected: boolean; source?: string; subnetMismatch?: boolean };
@@ -33,6 +34,7 @@ export default function BridgeStatusIndicator() {
   const [lastSyncOk, setLastSyncOk] = useState<boolean | null>(null);
   const [subnetWarnings, setSubnetWarnings] = useState<SubnetWarning[]>([]);
   const [hostSubnets, setHostSubnets] = useState<HostSubnet[]>([]);
+  const [convertTarget, setConvertTarget] = useState<{ key: BridgePrinterKey; name: string } | null>(null);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -203,8 +205,9 @@ export default function BridgeStatusIndicator() {
               {printers.map((p) => (
                 <div
                   key={`${p.key}-${p.ip || p.name}`}
-                  className="flex items-start justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50"
+                  className="flex flex-col gap-1 px-2 py-1.5 rounded-md hover:bg-muted/50"
                 >
+                  <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span
                       className="h-2 w-2 rounded-full shrink-0"
@@ -225,6 +228,17 @@ export default function BridgeStatusIndicator() {
                       printerName={p.name}
                       size="xs"
                     />
+                  )}
+                  </div>
+                  {p.ip && (!p.connected || p.subnetMismatch) && (
+                    <Button
+                      type="button" size="sm" variant="outline"
+                      onClick={() => setConvertTarget({ key: p.key as BridgePrinterKey, name: p.name })}
+                      className="h-6 px-2 text-[10.5px] gap-1 border-amber-400/60 text-amber-900 dark:text-amber-200 self-start"
+                      title="إذا الطابعة موصولة USB بجهاز الكاش"
+                    >
+                      <Printer className="h-3 w-3" /> تحويل إلى USB / Windows
+                    </Button>
                   )}
                 </div>
               ))}
@@ -285,6 +299,15 @@ export default function BridgeStatusIndicator() {
           </div>
         )}
       </PopoverContent>
+      <ConvertToWindowsPrinterDialog
+        open={!!convertTarget}
+        onOpenChange={(v) => { if (!v) setConvertTarget(null); }}
+        bridgeKey={convertTarget?.key}
+        branchId={getDeviceConfig().branchId}
+        printerName={convertTarget?.name || ""}
+        width={576}
+        onConverted={() => { setConvertTarget(null); void refresh(); }}
+      />
     </Popover>
   );
 }
