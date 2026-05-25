@@ -48,12 +48,15 @@ Deno.serve(async (req) => {
       return json({ error: "هذا الموظف لا يملك حساب دخول. أنشئ له حساباً أولاً." }, 400);
     }
 
-    // Resolve company_id from admin's profile
-    const { data: adminProfile } = await supabase
-      .from("profiles")
-      .select("company_id")
+    // Resolve pos_company_id (pos_users.company_id FKs to pos_companies, NOT companies)
+    const { data: posCompany } = await supabase
+      .from("pos_companies")
+      .select("id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
+    if (!posCompany?.id) {
+      return json({ error: "لا توجد شركة POS مرتبطة بحسابك. افتح نقطة البيع مرة واحدة لإنشائها." }, 400);
+    }
 
     // Find existing pos_users row for this auth account under same owner
     const { data: existing } = await supabase
@@ -92,7 +95,7 @@ Deno.serve(async (req) => {
         .from("pos_users")
         .insert({
           user_id: userId,
-          company_id: adminProfile?.company_id || null,
+          company_id: posCompany.id,
           name: emp.full_name,
           email: emp.email,
           phone: emp.phone,
