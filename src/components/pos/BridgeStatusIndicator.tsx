@@ -128,7 +128,7 @@ export default function BridgeStatusIndicator() {
                 {getPrintBridgeUrl()}
               </div>
               {synced && (
-                <div className="text-[10px] text-emerald-700">
+                <div className="text-[10px] text-success">
                   تم تحديث الطابعات من إعدادات الفرع
                 </div>
               )}
