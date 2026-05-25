@@ -6,14 +6,17 @@
  * Polls every 15s. Lightweight — no bundle/UI cost when bridge is offline.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Printer, Loader2, RefreshCw, CheckCircle2, XCircle, Cloud, AlertCircle } from "lucide-react";
+import { Printer, Loader2, RefreshCw, CheckCircle2, XCircle, Cloud, AlertCircle, ShieldAlert } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { checkBridgeHealth, getPrintBridgeUrl } from "@/lib/print-bridge-client";
 import { syncThisDeviceToBridge } from "@/lib/device-config";
+import PrinterProbeButton from "@/components/pos/PrinterProbeButton";
 import { toast } from "sonner";
 
-type Printer = { key: string; name: string; ip: string; connected: boolean; source?: string };
+type Printer = { key: string; name: string; ip: string; port?: number; connected: boolean; source?: string; subnetMismatch?: boolean };
+type SubnetWarning = { key: string; name: string; ip: string; message: string };
+type HostSubnet = { iface: string; ip?: string; cidr: string };
 type Status = "checking" | "online" | "offline";
 
 const POLL_MS = 15_000;
@@ -28,6 +31,8 @@ export default function BridgeStatusIndicator() {
   const [syncing, setSyncing] = useState(false);
   const [lastSyncMsg, setLastSyncMsg] = useState<string>("");
   const [lastSyncOk, setLastSyncOk] = useState<boolean | null>(null);
+  const [subnetWarnings, setSubnetWarnings] = useState<SubnetWarning[]>([]);
+  const [hostSubnets, setHostSubnets] = useState<HostSubnet[]>([]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -37,12 +42,16 @@ export default function BridgeStatusIndicator() {
       setPrinters(health.printers || []);
       setSource(health.source || null);
       setSynced(health.synced === true);
+      setSubnetWarnings(Array.isArray(health.subnetWarnings) ? health.subnetWarnings : []);
+      setHostSubnets(Array.isArray(health.hostSubnets) ? health.hostSubnets : []);
       setLastCheck(new Date());
     } catch {
       setStatus("offline");
       setPrinters([]);
       setSource(null);
       setSynced(false);
+      setSubnetWarnings([]);
+      setHostSubnets([]);
       setLastCheck(new Date());
     } finally {
       setRefreshing(false);
