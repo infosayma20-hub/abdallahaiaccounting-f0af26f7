@@ -215,8 +215,8 @@ export async function pushConfigToBridge(): Promise<void> {
 }
 
 /**
- * Push printer settings to the bridge's device.json. Merges (does NOT delete)
- * existing fields. Returns true if at least one bridge URL accepted the payload.
+  * Push printer settings to the bridge's device.json. Merges existing fields;
+  * pass null for a key to delete it. Returns true if at least one bridge URL accepted the payload.
  * Set a printer value to null to remove it from device.json.
  */
 export async function pushPrintersToBridge(
@@ -227,7 +227,7 @@ export async function pushPrintersToBridge(
       const res = await fetchWithTimeout(`${base}/device-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ printers }),
+        body: JSON.stringify({ printers, replacePrinters: true }),
       }, 3000);
       if (res.ok) {
         // Trigger a hot-reload so the bridge picks up the new file immediately
