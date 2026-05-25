@@ -159,6 +159,7 @@ export default function NewDeviceOnboardingPage() {
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [convertTarget, setConvertTarget] = useState<Printer | null>(null);
 
   // Step 4b — Network discovery
   const [discoverSubnet, setDiscoverSubnet] = useState("");
