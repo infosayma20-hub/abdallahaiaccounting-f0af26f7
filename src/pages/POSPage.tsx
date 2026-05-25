@@ -6423,6 +6423,25 @@ const POSPage = () => {
         onClose={() => setShowBarcodeScanner(false)}
         onScan={handleBarcodeScan}
       />
+
+      {/* ── Concurrent-shift safeguard ── */}
+      {/* Pops the moment Realtime reports the session was closed from another */}
+      {/* device. Cart stays untouched; cashier can open a new shift or sign out. */}
+      <ShiftClosedElsewhereDialog
+        open={shiftClosedElsewhere && !!session}
+        closedAt={shiftClosedAt}
+        onOpenNewShift={() => {
+          // Drop the closed session locally so the OpenShift screen reappears.
+          setSession(null);
+          setOrders([createNewOrder(1)]);
+          setActiveOrderIndex(0);
+          orderCounter.current = 1;
+        }}
+        onSignOut={async () => {
+          await supabase.auth.signOut();
+          navigate("/auth", { replace: true });
+        }}
+      />
     </div>
   );
 };
