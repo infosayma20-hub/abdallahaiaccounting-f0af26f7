@@ -914,6 +914,16 @@ export default function NewDeviceOnboardingPage() {
                         size="xs"
                       />
                     )}
+                    {!isUsb && p.ip_address && st === false && (
+                      <Button
+                        size="sm" variant="outline"
+                        onClick={() => setConvertTarget(p)}
+                        className="gap-1 h-7 px-2 text-xs border-amber-400/60 text-amber-900 dark:text-amber-200"
+                        title="إذا الطابعة موصولة USB بجهاز الكاش، حوّلها إلى وضع Windows"
+                      >
+                        <Printer className="h-3.5 w-3.5" /> تحويل إلى USB / Windows
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => handlePrinterTest(p)} className="gap-1 h-7 px-2">
                       <TestTube className="h-3.5 w-3.5" /> اختبار
                     </Button>
