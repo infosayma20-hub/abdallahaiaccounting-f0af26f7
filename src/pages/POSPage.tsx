@@ -725,6 +725,13 @@ const POSPage = () => {
       if (!opts?.silent) toast.error("⛔ وضع عرض فقط — برنامج الطباعة غير متصل على هذا الجهاز");
       return false;
     }
+    // 🔒 Concurrent-shift safety: if this shift was closed from another
+    // device (Realtime UPDATE or 30s poll caught it), block every sensitive
+    // action. The ShiftClosedElsewhereDialog is already open at this point.
+    if (shiftClosedElsewhereRef.current) {
+      if (!opts?.silent) toast.error("⛔ تم إغلاق العهدة من جهاز آخر — لا يمكن إتمام البيع");
+      return false;
+    }
     // Emergency POS access: allow selling while device setup is corrected later.
     return true;
     if (!terminalBranchChecked || !cashBoxBranchChecked) {
