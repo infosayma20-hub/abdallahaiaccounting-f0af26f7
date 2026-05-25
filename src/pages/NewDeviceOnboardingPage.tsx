@@ -1141,6 +1141,15 @@ export default function NewDeviceOnboardingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ConvertToWindowsPrinterDialog
+        open={!!convertTarget}
+        onOpenChange={(v) => { if (!v) setConvertTarget(null); }}
+        posPrinterId={convertTarget?.id}
+        printerName={convertTarget?.name || ""}
+        width={576}
+        onConverted={async () => { setConvertTarget(null); await loadOptions(); await refreshPrinterStatus(); }}
+      />
     </div>
   );
 }
