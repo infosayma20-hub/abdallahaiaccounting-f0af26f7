@@ -11,6 +11,8 @@
  *   pos-device:label        → optional friendly name (e.g. "كاشير 1 - رام الله")
  */
 
+import { supabase } from "@/integrations/supabase/client";
+
 const KEYS = {
   bridgeUrl: "pos-device:bridge-url",
   branchId: "pos-device:branch-id",
@@ -156,6 +158,84 @@ export interface BridgeWindowsPrinter {
 }
 export type BridgePrinter = BridgeNetworkPrinter | BridgeWindowsPrinter;
 export type BridgePrintersMap = Partial<Record<BridgePrinterKey, BridgePrinter | null>>;
+
+const ALL_BRIDGE_PRINTER_KEYS: BridgePrinterKey[] = ["receipt", "kitchen", "grill", "pizza", "unified_kitchen"];
+
+type PosPrinterRow = {
+  id?: string;
+  name: string;
+  ip_address: string | null;
+  port: number | null;
+  printer_type: string | null;
+  print_categories: string[] | null;
+  branch_id?: string | null;
+  is_active?: boolean | null;
+  settings?: Record<string, any> | null;
+};
+
+export function posPrinterRoleToBridgeKey(role: string | null | undefined): BridgePrinterKey | null {
+  switch (role) {
+    case "receipt": return "receipt";
+    case "kitchen_ticket":
+    case "kitchen": return "kitchen";
+    case "grill": return "grill";
+    case "pizza": return "pizza";
+    case "unified_kitchen": return "unified_kitchen";
+    default: return null;
+  }
+}
+
+export function buildBridgePrintersMapFromRows(rows: PosPrinterRow[]): BridgePrintersMap {
+  const out: BridgePrintersMap = {};
+  for (const p of rows) {
+    const role = p.print_categories?.[0] || p.printer_type;
+    const key = posPrinterRoleToBridgeKey(role);
+    if (!key) continue;
+    const settings = (p.settings || {}) as Record<string, any>;
+    const isWindows = settings.connection === "usb" || settings.connection === "windows" || !!settings.windows_printer_name;
+    if (isWindows) {
+      out[key] = {
+        type: "windows",
+        name: p.name,
+        windowsPrinterName: String(settings.windows_printer_name || ""),
+      };
+    } else if (p.ip_address && p.ip_address !== "usb") {
+      out[key] = {
+        type: "network",
+        name: p.name,
+        ip: p.ip_address,
+        port: Number(p.port) || 9100,
+      };
+    }
+  }
+  return out;
+}
+
+function completePrintersReplacementMap(map: BridgePrintersMap): BridgePrintersMap {
+  const fullMap: BridgePrintersMap = { ...map };
+  for (const key of ALL_BRIDGE_PRINTER_KEYS) {
+    if (!(key in map)) fullMap[key] = null;
+  }
+  return fullMap;
+}
+
+export async function syncBranchPrintersToBridge(userId: string, branchId: string): Promise<{ ok: boolean; count: number }> {
+  if (!userId || !branchId) return { ok: false, count: 0 };
+  const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
+  const ownerId = (ownerIdRaw as string | null) || userId;
+  const { data, error } = await (supabase.from("pos_printers") as any)
+    .select("id, name, ip_address, port, printer_type, print_categories, branch_id, is_active, settings")
+    .eq("user_id", ownerId)
+    .eq("is_active", true)
+    .or(`branch_id.eq.${branchId},branch_id.is.null`)
+    .order("is_default", { ascending: false });
+  if (error) throw error;
+  const map = buildBridgePrintersMapFromRows((data || []) as PosPrinterRow[]);
+  const count = Object.keys(map).length;
+  if (count === 0) return { ok: false, count: 0 };
+  const ok = await pushPrintersToBridge(completePrintersReplacementMap(map), { replace: true });
+  return { ok, count };
+}
 
 export function getDeviceConfig(): DeviceConfig {
   return {
