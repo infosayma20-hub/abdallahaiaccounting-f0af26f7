@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Eye, Loader2, Lock, RefreshCw, LogOut, ArrowRight } from "lucide-react";
+import { Eye, Loader2, RefreshCw } from "lucide-react";
 import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 import { setCanSell } from "@/lib/pos-device-auth";
-import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Gate around /pos that enforces:
@@ -19,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export default function POSDeviceAuthGuard({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const { checking, authorized, bridgeUrl, version, recheck } = useBridgeAuthorized();
+  const { checking, authorized, bridgeUrl, recheck } = useBridgeAuthorized();
   const { isDeviceAdmin, checking: checkingAdmin } = useIsDeviceAdmin();
 
   // Track whether this tab has EVER seen a working Bridge.
@@ -121,97 +120,4 @@ function ViewOnlyBanner({ onRecheck, bridgeUrl }: { onRecheck: () => void; bridg
   );
 }
 
-function UnauthorizedDeviceScreen({
-  onRecheck,
-  navigate,
-  bridgeUrl,
-  version,
-}: {
-  onRecheck: () => void;
-  navigate: ReturnType<typeof useNavigate>;
-  bridgeUrl: string | null;
-  version: string | null;
-}) {
-  const [busy, setBusy] = useState(false);
 
-  const handleRecheck = async () => {
-    if (busy) return;
-    setBusy(true);
-    try { await onRecheck(); } finally { setBusy(false); }
-  };
-
-  const signOut = async () => {
-    try { await supabase.auth.signOut(); } catch { /* ignore */ }
-    navigate("/auth", { replace: true });
-  };
-
-  return (
-    <div dir="rtl" className="min-h-[100dvh] flex items-center justify-center bg-background p-6">
-      <div className="w-full max-w-md text-center space-y-6">
-        <div className="mx-auto w-20 h-20 rounded-full bg-red-50 border border-red-200 flex items-center justify-center">
-          <Lock className="h-9 w-9 text-red-600" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold text-foreground">هذا الجهاز غير مصرح لاستخدام نقطة البيع</h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            نقطة البيع تعمل فقط على أجهزة الفرع المثبت عليها برنامج الطباعة (Print Bridge).
-            تأكد أن البرنامج شغّال على نفس الجهاز، أو استخدم جهاز الفرع.
-          </p>
-        </div>
-
-        <div className="rounded-lg border bg-muted/40 p-3 text-[12px] text-muted-foreground space-y-1">
-          <div className="flex items-center justify-between">
-            <span>حالة برنامج الطباعة</span>
-            <span className="inline-flex items-center gap-1 text-red-600 font-medium">
-              <AlertTriangle className="h-3.5 w-3.5" /> غير متصل
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>عنوان الفحص</span>
-            <span className="font-mono">127.0.0.1:3001</span>
-          </div>
-          {bridgeUrl && (
-            <div className="flex items-center justify-between">
-              <span>آخر عنوان معروف</span>
-              <span className="font-mono">{bridgeUrl}</span>
-            </div>
-          )}
-          {version && (
-            <div className="flex items-center justify-between">
-              <span>الإصدار</span>
-              <span className="font-mono">v{version}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={handleRecheck}
-            disabled={busy}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            إعادة الفحص
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/employee", { replace: true })}
-            className="inline-flex items-center justify-center gap-2 rounded-md border bg-background px-4 py-2.5 text-sm font-medium"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العودة لشاشة الموظف
-          </button>
-          <button
-            type="button"
-            onClick={signOut}
-            className="inline-flex items-center justify-center gap-2 text-xs text-muted-foreground py-2"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            تسجيل خروج
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
