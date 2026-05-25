@@ -5,6 +5,7 @@ import amwaliMarkWhiteNavy from "@/assets/amwali-mark-white-navy.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { normalizeAuthSessionExpiry, normalizeStoredAuthSession } from "@/lib/auth-cross-tab";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ScanFace, Mail, Lock, Eye, EyeOff, Check } from "lucide-react";
@@ -146,6 +147,8 @@ const AuthPage = () => {
           } catch {}
           throw error;
         }
+        normalizeAuthSessionExpiry(data.session);
+        normalizeStoredAuthSession();
         localStorage.removeItem("trial_banner_dismissed");
         if (data.user) {
           const dest = await resolveRedirect(data.user.id);
