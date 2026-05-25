@@ -53,7 +53,7 @@ import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
 import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge } from "@/lib/device-config";
-import { getCanSell, subscribeCanSell } from "@/lib/pos-device-auth";
+import { getCanSell } from "@/lib/pos-device-auth";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
   DndContext,
