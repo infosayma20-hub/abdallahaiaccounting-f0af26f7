@@ -25,13 +25,15 @@ import {
   Monitor, Wifi, WifiOff, Building2, Boxes, Save, TestTube, RefreshCw,
   CheckCircle2, XCircle, Sparkles, Printer, Rocket, Plus, Download, Upload,
   Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar,
+  Cloud,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import {
   getDeviceConfig, setBridgeUrl, setDeviceBranchId, setDeviceTerminalId,
   setDeviceLabel, normalizeBridgeUrl, pullConfigFromBridge, pushConfigToBridge,
   isDeviceFullyConfigured, pushPrintersToBridge, pullRawDeviceJsonFromBridge,
-  reloadBridgeConfig, type BridgePrintersMap, type BridgePrinterKey,
+  reloadBridgeConfig, syncThisDeviceToBridge,
+  type BridgePrintersMap, type BridgePrinterKey,
   type BridgePrinter,
   discoverNetworkPrinters, type DiscoveredPrinter,
   posPrinterRoleToBridgeKey, buildBridgePrintersMapFromRows,
@@ -166,6 +168,12 @@ export default function NewDeviceOnboardingPage() {
   // Step 5 — Smoke test
   const [lastReceiptTestOk, setLastReceiptTestOk] = useState<boolean | null>(null);
   const [lastKitchenTestOk, setLastKitchenTestOk] = useState<boolean | null>(null);
+
+  // Unified bridge sync ("مزامنة هذا الجهاز")
+  const [syncing, setSyncing] = useState(false);
+  const [bridgeSource, setBridgeSource] = useState<string | null>(null);
+  const [lastSyncOk, setLastSyncOk] = useState<boolean | null>(null);
+  const [lastSyncMsg, setLastSyncMsg] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -357,6 +365,35 @@ export default function NewDeviceOnboardingPage() {
     () => printers.filter(p => !branchId || !p.branch_id || p.branch_id === branchId),
     [printers, branchId],
   );
+
+  // ── Unified sync to the local Print Bridge ────────────────
+  const handleSyncDevice = useCallback(async () => {
+    if (!branchId || !terminalId) {
+      toast.error("اربط الفرع والمحطة أولاً ثم زامن");
+      return;
+    }
+    setSyncing(true);
+    try {
+      // Persist latest selections to localStorage first
+      setDeviceBranchId(branchId);
+      setDeviceTerminalId(terminalId);
+      setDeviceLabel(label.trim());
+      try {
+        if (cashBoxId) localStorage.setItem("pos-device:cash-box-id", cashBoxId);
+        else           localStorage.removeItem("pos-device:cash-box-id");
+      } catch { /* ignore */ }
+      if (!getDeviceConfig().bridgeUrl) setBridgeUrl("http://127.0.0.1:3001");
+
+      const r = await syncThisDeviceToBridge();
+      setBridgeSource(r.health.printersSource);
+      setLastSyncOk(r.ok);
+      setLastSyncMsg(r.message);
+      if (r.ok) toast.success(`✅ ${r.message}`);
+      else      toast.error(`⚠️ ${r.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  }, [branchId, terminalId, label, cashBoxId]);
 
   // ── Export / Import device.json ───────────────────────────
   const exportConfig = async () => {
