@@ -405,6 +405,29 @@ export default function NewDeviceOnboardingPage() {
     }
   }, [branchId, terminalId, label, cashBoxId]);
 
+  // Combined "حفظ ومزامنة الجهاز" — persists locally then pushes to bridge.
+  const saveAndSync = useCallback(async () => {
+    if (!branchId)   { toast.error("اختر الفرع"); return; }
+    if (!terminalId) { toast.error("اختر محطة POS"); return; }
+    await saveDevice();
+    if (bridgeOnline) await handleSyncDevice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId, terminalId, bridgeOnline, handleSyncDevice]);
+
+  // Fetch bridge version for the sticky header strip.
+  useEffect(() => {
+    if (bridgeOnline !== true) { setBridgeVersion(null); return; }
+    (async () => {
+      try {
+        const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
+        const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (j?.version) setBridgeVersion(String(j.version));
+      } catch { /* ignore */ }
+    })();
+  }, [bridgeOnline]);
+
   // ── Export / Import device.json ───────────────────────────
   const exportConfig = async () => {
     const cfg = getDeviceConfig();
