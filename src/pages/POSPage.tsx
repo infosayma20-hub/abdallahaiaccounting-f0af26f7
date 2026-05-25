@@ -168,7 +168,8 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   guestCount: guestCount || 1,
   guestName: guestName || "",
   orderType: tableId ? "dine_in" : "takeaway",
-  orderTypeChosen: tableId ? true : false,
+  // الافتراضي: الاستلام مختار تلقائياً لتسهيل العمل (طلبات بدون طاولة)
+  orderTypeChosen: true,
   deliveryAddress: "",
   zoneCode: "",
   areaName: "",
