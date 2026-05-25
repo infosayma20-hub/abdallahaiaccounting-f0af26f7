@@ -323,23 +323,12 @@ export default function PrintPreviewPage() {
 
         {isStationTab && (
           <div className="bg-background" style={{ width: 384 }}>
-            <div
-              ref={previewRef}
-              dir="rtl"
-              style={{
-                width: '384px',
-                backgroundColor: '#fff',
-                color: '#000',
-                fontFamily: "'Tahoma', 'Arial', sans-serif",
-                fontSize: '22px',
-                fontWeight: 700,
-                lineHeight: '1.4',
-                padding: '14px 16px',
-                position: 'relative',
-              }}
-            >
-              {/* Render kitchen ticket inline (not off-screen) */}
-              <KitchenTicketInline
+            {/* Wrapper neutralizes position:absolute from the real template
+                so the preview shows EXACTLY what gets printed. */}
+            <style>{`.kitchen-preview-wrap > div { position: relative !important; left: auto !important; top: auto !important; }`}</style>
+            <div className="kitchen-preview-wrap">
+              <KitchenTicketTemplate
+                ref={previewRef}
                 order={SAMPLE_ORDER}
                 items={SAMPLE_ORDER.items}
                 stationName={STATION_NAMES[activeTab]}
