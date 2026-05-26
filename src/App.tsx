@@ -385,6 +385,21 @@ const App = () => (
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />
               <Route path="/store-tracker/orders/:id" element={<ProtectedRoute><StoreTrackerOrderDetail /></ProtectedRoute>} />
+              {/* Feedback: standalone shell — no AppSidebar, no WebLayout, no tabs */}
+              <Route
+                path="/feedback"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <FeatureGuard app="call_center_feedback" feature="customers" perm="view" label="متابعة الزبائن">
+                        <FeedbackShell>
+                          <FeedbackPage />
+                        </FeedbackShell>
+                      </FeatureGuard>
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/*" element={
                 <ProtectedRoute blockCashier blockStoreTracker blockSalesRep>
                   <WebLayout>
