@@ -48,16 +48,6 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id]);
 
-  // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
-  useEffect(() => {
-    if (!rolesLoaded || feedbackPerms.loading) return;
-    const cards = [hasRep, hasCashier, hasEmployee, canFeedback].filter(Boolean).length;
-    if (cards === 1 && canFeedback && !hasRep && !hasCashier && !hasEmployee) {
-      choose("/feedback");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback]);
-
   const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback") => {
     try {
       if (user?.id) {
@@ -68,6 +58,15 @@ export default function ChooseWorkspacePage() {
     window.dispatchEvent(new Event("workspace-choice-changed"));
     navigate(path, { replace: true });
   };
+
+  // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
+  useEffect(() => {
+    if (!rolesLoaded || feedbackPerms.loading) return;
+    if (canFeedback && !hasRep && !hasCashier && !hasEmployee) {
+      choose("/feedback");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback]);
 
   const signOut = async () => {
     try {
