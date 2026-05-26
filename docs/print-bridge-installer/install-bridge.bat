@@ -34,8 +34,20 @@ goto :node_ok
 echo [...] Node.js not found. Looking for bundled MSI installer...
 set "NODE_MSI="
 for %%f in ("%BRIDGE_DIR%\node-v*-x64.msi") do set "NODE_MSI=%%f"
-if "%NODE_MSI%"=="" goto :no_node
+if "%NODE_MSI%"=="" goto :download_node
 echo [OK] Found bundled installer: %NODE_MSI%
+goto :run_msi
+
+:download_node
+echo [...] Bundled MSI not found. Downloading Node.js LTS from nodejs.org...
+set "NODE_MSI=%BRIDGE_DIR%\node-lts-x64.msi"
+set "NODE_URL=https://nodejs.org/dist/v20.18.1/node-v20.18.1-x64.msi"
+powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%NODE_URL%' -OutFile '%NODE_MSI%' -UseBasicParsing; exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
+if %errorLevel% NEQ 0 goto :no_node
+if not exist "%NODE_MSI%" goto :no_node
+echo [OK] Downloaded Node.js installer to %NODE_MSI%
+
+:run_msi
 echo [...] Installing Node.js silently. This may take 1-2 minutes...
 msiexec /i "%NODE_MSI%" /qn /norestart
 if %errorLevel% NEQ 0 echo [WARN] msiexec returned non-zero. Will re-check anyway.
@@ -122,9 +134,15 @@ pause
 exit /b 1
 
 :no_node
-echo [ERROR] Node.js is not installed and bundled MSI could not be installed.
-echo Ensure node-v*-x64.msi exists in %BRIDGE_DIR% or install Node.js manually
-echo from https://nodejs.org/en/download then re-run this installer.
+echo [ERROR] Node.js is not installed.
+echo The installer tried:
+echo   1) A bundled node-v*-x64.msi inside %BRIDGE_DIR% (not found).
+echo   2) Downloading Node.js LTS from https://nodejs.org (failed - no internet?).
+echo.
+echo Fix options:
+echo   - Connect this PC to the internet and re-run install-bridge.bat
+echo   - OR download node-v20.18.1-x64.msi from https://nodejs.org/en/download
+echo     copy it into %BRIDGE_DIR% and re-run install-bridge.bat
 pause
 exit /b 1
 
