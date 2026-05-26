@@ -16264,6 +16264,7 @@ export type Database = {
           base_salary: number | null
           branch_id: string | null
           created_at: string | null
+          date_of_birth: string | null
           department: string | null
           email: string | null
           emergency_contact: string | null
@@ -16296,6 +16297,7 @@ export type Database = {
           base_salary?: never
           branch_id?: string | null
           created_at?: string | null
+          date_of_birth?: never
           department?: string | null
           email?: string | null
           emergency_contact?: never
@@ -16328,6 +16330,7 @@ export type Database = {
           base_salary?: never
           branch_id?: string | null
           created_at?: string | null
+          date_of_birth?: never
           department?: string | null
           email?: string | null
           emergency_contact?: never
@@ -16433,6 +16436,83 @@ export type Database = {
             columns: ["sales_rep_id"]
             isOneToOne: false
             referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      travel_booking_passengers_safe: {
+        Row: {
+          booking_id: string | null
+          date_of_birth: string | null
+          email: string | null
+          full_name: string | null
+          full_name_en: string | null
+          gender: string | null
+          id: string | null
+          mahram_name: string | null
+          national_id: string | null
+          nationality: string | null
+          notes: string | null
+          passenger_index: number | null
+          passport_expiry: string | null
+          passport_image_url: string | null
+          passport_issue_date: string | null
+          passport_number: string | null
+          phone: string | null
+          room_type: string | null
+          ticket_number: string | null
+          user_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          date_of_birth?: never
+          email?: string | null
+          full_name?: string | null
+          full_name_en?: string | null
+          gender?: string | null
+          id?: string | null
+          mahram_name?: string | null
+          national_id?: never
+          nationality?: string | null
+          notes?: string | null
+          passenger_index?: number | null
+          passport_expiry?: never
+          passport_image_url?: never
+          passport_issue_date?: never
+          passport_number?: never
+          phone?: string | null
+          room_type?: string | null
+          ticket_number?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          date_of_birth?: never
+          email?: string | null
+          full_name?: string | null
+          full_name_en?: string | null
+          gender?: string | null
+          id?: string | null
+          mahram_name?: string | null
+          national_id?: never
+          nationality?: string | null
+          notes?: string | null
+          passenger_index?: number | null
+          passport_expiry?: never
+          passport_image_url?: never
+          passport_issue_date?: never
+          passport_number?: never
+          phone?: string | null
+          room_type?: string | null
+          ticket_number?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_booking_passengers_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "travel_bookings"
             referencedColumns: ["id"]
           },
         ]
