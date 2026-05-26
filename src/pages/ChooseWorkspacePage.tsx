@@ -16,6 +16,8 @@ export default function ChooseWorkspacePage() {
   const [hasRep, setHasRep] = useState(false);
   const [hasCashier, setHasCashier] = useState(false);
   const [isCallCenter, setIsCallCenter] = useState(false);
+  const [hasEmployee, setHasEmployee] = useState(false);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const { authorized: bridgeAuthorized, checking: bridgeChecking, recheck } = useBridgeAuthorized();
   const { isDeviceAdmin } = useIsDeviceAdmin();
   const feedbackPerms = usePermission("call_center_feedback");
@@ -28,14 +30,21 @@ export default function ChooseWorkspacePage() {
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const [{ data: rolesData }, { data: posUser }] = await Promise.all([
+      const [{ data: rolesData }, { data: posUser }, { data: empRow }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user.id),
         supabase.from("pos_users").select("is_call_center").eq("auth_user_id", user.id).maybeSingle(),
+        supabase
+          .from("employees")
+          .select("id, is_active, is_terminated")
+          .eq("auth_user_id", user.id)
+          .maybeSingle(),
       ]);
       const roles = (rolesData || []).map((r: any) => r.role);
       setHasRep(roles.includes("sales_rep"));
       setHasCashier(roles.includes("cashier"));
       setIsCallCenter(!!(posUser as any)?.is_call_center);
+      setHasEmployee(!!empRow && (empRow as any).is_active && !(empRow as any).is_terminated);
+      setRolesLoaded(true);
     })();
   }, [user?.id]);
 
@@ -49,6 +58,15 @@ export default function ChooseWorkspacePage() {
     window.dispatchEvent(new Event("workspace-choice-changed"));
     navigate(path, { replace: true });
   };
+
+  // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
+  useEffect(() => {
+    if (!rolesLoaded || feedbackPerms.loading) return;
+    if (canFeedback && !hasRep && !hasCashier && !hasEmployee) {
+      choose("/feedback");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback]);
 
   const signOut = async () => {
     try {
@@ -133,6 +151,7 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
+          {hasEmployee && (
           <Card
             role="button"
             tabIndex={0}
@@ -149,6 +168,7 @@ export default function ChooseWorkspacePage() {
               دخول كموظف
             </Button>
           </Card>
+          )}
 
           {canFeedback && (
           <Card

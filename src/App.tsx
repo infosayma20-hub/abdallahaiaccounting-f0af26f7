@@ -17,6 +17,7 @@ import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
+import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import HRPermGuard from "./components/HRPermGuard";
 import HRShell from "./components/hr/HRShell";
@@ -384,6 +385,21 @@ const App = () => (
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />
               <Route path="/store-tracker/orders/:id" element={<ProtectedRoute><StoreTrackerOrderDetail /></ProtectedRoute>} />
+              {/* Feedback: standalone shell — no AppSidebar, no WebLayout, no tabs */}
+              <Route
+                path="/feedback"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<AuthCheckSpinner />}>
+                      <FeatureGuard app="call_center_feedback" feature="customers" perm="view" label="متابعة الزبائن">
+                        <FeedbackShell>
+                          <FeedbackPage />
+                        </FeedbackShell>
+                      </FeatureGuard>
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/*" element={
                 <ProtectedRoute blockCashier blockStoreTracker blockSalesRep>
                   <WebLayout>
@@ -614,7 +630,6 @@ const App = () => (
                       <Route path="/pos-reports" element={<ModuleGuard><POSReportsPage /></ModuleGuard>} />
                       <Route path="/printer-settings" element={<PrinterSettingsPage />} />
                       <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
-                      <Route path="/feedback" element={<FeatureGuard app="call_center_feedback" feature="customers" perm="view" label="متابعة الزبائن"><FeedbackPage /></FeatureGuard>} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
                       <Route path="/workshops" element={<WorkshopsPage />} />
