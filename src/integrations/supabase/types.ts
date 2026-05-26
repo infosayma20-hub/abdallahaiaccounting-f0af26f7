@@ -1359,6 +1359,68 @@ export type Database = {
         }
         Relationships: []
       }
+      call_center_order_edits: {
+        Row: {
+          call_center_order_id: string
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decided_by_name: string | null
+          edit_note: string | null
+          id: string
+          proposed_changes: Json
+          reject_reason: string | null
+          status: string
+          target_branch_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          call_center_order_id: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string | null
+          edit_note?: string | null
+          id?: string
+          proposed_changes?: Json
+          reject_reason?: string | null
+          status?: string
+          target_branch_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          call_center_order_id?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string | null
+          edit_note?: string | null
+          id?: string
+          proposed_changes?: Json
+          reject_reason?: string | null
+          status?: string
+          target_branch_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_center_order_edits_call_center_order_id_fkey"
+            columns: ["call_center_order_id"]
+            isOneToOne: false
+            referencedRelation: "call_center_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_center_orders: {
         Row: {
           accepted_at: string | null
@@ -16752,6 +16814,10 @@ export type Database = {
       }
     }
     Functions: {
+      _apply_cco_edit_changes: {
+        Args: { p_changes: Json; p_order_id: string }
+        Returns: undefined
+      }
       _fc_validate_postable_account: {
         Args: { p_account_code: string; p_user_id: string }
         Returns: undefined
@@ -16787,6 +16853,7 @@ export type Database = {
         Returns: undefined
       }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
+      accept_order_edit: { Args: { p_edit_id: string }; Returns: boolean }
       ack_call_center_order: {
         Args: { p_device_tag: string; p_order_id: string }
         Returns: boolean
@@ -17692,6 +17759,10 @@ export type Database = {
       recreate_invoice_transaction: {
         Args: { p_invoice_id: string }
         Returns: string
+      }
+      reject_order_edit: {
+        Args: { p_edit_id: string; p_reason: string }
+        Returns: boolean
       }
       reject_procurement_request: {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
