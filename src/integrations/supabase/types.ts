@@ -16787,6 +16787,10 @@ export type Database = {
         Returns: undefined
       }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
+      ack_call_center_order: {
+        Args: { p_device_tag: string; p_order_id: string }
+        Returns: boolean
+      }
       allocate_voucher_to_invoices_atomic: {
         Args: {
           p_allocations: Json
