@@ -254,7 +254,7 @@ function SearchBar({
 }
 
 function ResultsList({
-  results, searched, searching, onSelect, canCreate, query, onSaveAsCustomer,
+  results, searched, searching, onSelect, canCreate, query, onSaveAsCustomer, branches,
 }: {
   results: CustomerRow[];
   searched: boolean;
@@ -263,70 +263,87 @@ function ResultsList({
   canCreate: boolean;
   query: string;
   onSaveAsCustomer: () => void;
+  branches: BranchOption[];
 }) {
+  const branchName = (id: string | null) =>
+    id ? (branches.find((b) => b.id === id)?.name || id) : null;
   if (searching) {
     return (
-      <Card><CardContent className="p-8 flex items-center justify-center text-muted-foreground">
+      <div className="py-10 flex items-center justify-center text-muted-foreground text-sm">
         <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ البحث...
-      </CardContent></Card>
+      </div>
     );
   }
   if (!searched) {
     return (
-      <Card><CardContent className="p-8 text-center text-muted-foreground">
+      <div className="py-8 text-center text-sm text-muted-foreground">
         ابدأ بكتابة رقم جوال أو اسم زبون للبحث
-      </CardContent></Card>
+      </div>
     );
   }
   if (results.length === 0) {
     return (
-      <Card><CardContent className="p-8 text-center space-y-3">
-        <div className="text-muted-foreground">لا يوجد زبون بهذا الرقم أو الاسم بعد</div>
+      <div className="py-8 text-center space-y-3">
+        <div className="text-sm text-muted-foreground">لا يوجد زبون بهذا الرقم أو الاسم بعد</div>
         {canCreate && /^\+?\d[\d\s-]{5,}$/.test(query.trim()) && (
-          <Button onClick={onSaveAsCustomer} size="sm">
+          <Button onClick={onSaveAsCustomer} size="sm" className="mx-auto">
             <UserPlus className="h-4 w-4 ml-1" /> حفظ "{query.trim()}" كزبون جديد
           </Button>
         )}
-      </CardContent></Card>
+      </div>
     );
   }
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">نتائج البحث ({results.length})</CardTitle></CardHeader>
-      <CardContent className="p-0 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>الاسم</TableHead>
-              <TableHead>الهاتف</TableHead>
-              <TableHead>عدد الطلبات</TableHead>
-              <TableHead>آخر طلب</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {results.map((c) => (
-              <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelect(c)}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {c.full_name || <span className="text-muted-foreground">بدون اسم</span>}
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground px-1">{results.length} نتيجة</p>
+      <div className="space-y-2">
+        {results.map((c) => {
+          const branch = branchName(c.last_known_branch_id);
+          return (
+            <button
+              type="button"
+              key={c.id}
+              onClick={() => onSelect(c)}
+              className="w-full text-right bg-card border rounded-lg p-3 active:bg-muted/60 hover:border-primary/40 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm text-foreground truncate">
+                      {c.full_name || <span className="text-muted-foreground font-normal">بدون اسم</span>}
+                    </span>
                     {c.do_not_call && (
-                      <Badge variant="destructive" className="gap-1">
-                        <PhoneOff className="h-3 w-3" /> لا يرغب بالاتصال
+                      <Badge variant="destructive" className="gap-1 text-[10px] h-5">
+                        <PhoneOff className="h-3 w-3" /> لا اتصال
                       </Badge>
                     )}
                   </div>
-                </TableCell>
-                <TableCell dir="ltr" className="text-right">{c.display_phone}</TableCell>
-                <TableCell>{c.total_orders_cached ?? 0}</TableCell>
-                <TableCell>{fmtDate(c.last_order_at_cached)}</TableCell>
-                <TableCell><ArrowRight className="h-4 w-4 text-muted-foreground" /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                  <div dir="ltr" className="text-xs text-muted-foreground font-mono text-right">
+                    {c.display_phone}
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                    {branch && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3 w-3" /> {branch}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <Receipt className="h-3 w-3" /> {c.total_orders_cached ?? 0} طلب
+                    </span>
+                    {c.last_order_at_cached && (
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {fmtDate(c.last_order_at_cached)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -345,12 +362,43 @@ function CustomerDetail({
   const branchName = (id: string | null) =>
     id ? (branches.find((b) => b.id === id)?.name || id) : "—";
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>← العودة لنتائج البحث</Button>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={onBack} className="-mr-2 gap-1">
+          <ChevronLeft className="h-4 w-4 rotate-180" /> رجوع
+        </Button>
         {canEdit && !customer.do_not_call && (
           <EnableDoNotCallDialog customerId={customer.id} onDone={onRefresh} />
         )}
+      </div>
+
+      {/* Customer header card */}
+      <div className="bg-card border rounded-lg p-4 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold text-foreground truncate">
+              {customer.full_name || <span className="text-muted-foreground font-normal">بدون اسم</span>}
+            </h2>
+            <a
+              href={`tel:${customer.display_phone}`}
+              dir="ltr"
+              className="text-sm text-primary font-mono inline-block mt-1"
+            >
+              {customer.display_phone}
+            </a>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3 w-3" /> {branchName(customer.last_known_branch_id)}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Receipt className="h-3 w-3" /> {customer.total_orders_cached ?? 0} طلب
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3 w-3" /> {fmtDate(customer.last_order_at_cached)}
+          </span>
+        </div>
       </div>
 
       {customer.do_not_call && (
@@ -364,62 +412,90 @@ function CustomerDetail({
         </Alert>
       )}
 
-      <Card>
-        <CardHeader><CardTitle>ملف الزبون</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-          <Info label="الاسم" value={customer.full_name || "—"} />
-          <Info label="الهاتف" value={<span dir="ltr">{customer.display_phone}</span>} />
-          <Info label="آخر فرع" value={branchName(customer.last_known_branch_id)} />
-          <Info label="عدد الطلبات" value={String(customer.total_orders_cached ?? 0)} />
-          <Info label="آخر طلب" value={fmtDate(customer.last_order_at_cached)} />
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 h-11">
+          <TabsTrigger value="orders" className="text-xs sm:text-sm">الطلبات</TabsTrigger>
+          <TabsTrigger value="call" className="text-xs sm:text-sm" disabled={!canCallCreate || customer.do_not_call}>
+            مكالمة
+          </TabsTrigger>
+          <TabsTrigger value="info" className="text-xs sm:text-sm" disabled={!canEdit}>
+            تعديل
+          </TabsTrigger>
+        </TabsList>
 
-      {canEdit && (
-        <EditCustomerCard customer={customer} branches={branches} onDone={onRefresh} />
-      )}
+        <TabsContent value="orders" className="mt-3">
+          <OrdersList orders={orders} loading={loading} branchName={branchName} />
+        </TabsContent>
 
-      {canCallCreate && !customer.do_not_call && (
-        <NewCallCard customer={customer} orders={orders} onDone={onRefresh} />
-      )}
-
-      <Card>
-        <CardHeader><CardTitle className="text-base">طلبات الزبون</CardTitle></CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          {loading ? (
-            <div className="p-6 flex items-center justify-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ التحميل...
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">لا توجد طلبات مسجلة</div>
+        <TabsContent value="call" className="mt-3">
+          {canCallCreate && !customer.do_not_call ? (
+            <NewCallCard customer={customer} orders={orders} onDone={onRefresh} />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>الفرع</TableHead>
-                  <TableHead>المبلغ</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>البنود</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((o) => (
-                  <TableRow key={`${o.source}-${o.order_id}`}>
-                    <TableCell>{fmtDate(o.created_at)}</TableCell>
-                    <TableCell>{branchName(o.branch_id)}</TableCell>
-                    <TableCell>{o.total ?? 0}</TableCell>
-                    <TableCell><Badge variant="outline">{o.status || "—"}</Badge></TableCell>
-                    <TableCell className="max-w-xs truncate" title={o.items_summary || ""}>
-                      {o.items_summary || "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              لا يمكن تسجيل مكالمة لهذا الزبون
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        <TabsContent value="info" className="mt-3">
+          {canEdit && (
+            <EditCustomerCard customer={customer} branches={branches} onDone={onRefresh} />
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function OrdersList({
+  orders, loading, branchName,
+}: {
+  orders: OrderRow[];
+  loading: boolean;
+  branchName: (id: string | null) => string;
+}) {
+  if (loading) {
+    return (
+      <div className="py-8 flex items-center justify-center text-muted-foreground text-sm">
+        <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ التحميل...
+      </div>
+    );
+  }
+  if (orders.length === 0) {
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        لا توجد طلبات مسجلة
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {orders.map((o) => (
+        <div
+          key={`${o.source}-${o.order_id}`}
+          className="bg-card border rounded-lg p-3 space-y-1.5"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-foreground">
+              {(o.total ?? 0).toLocaleString("en")} ₪
+            </span>
+            <Badge variant="outline" className="text-[10px] h-5">{o.status || "—"}</Badge>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> {fmtDate(o.created_at)}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> {branchName(o.branch_id)}
+            </span>
+          </div>
+          {o.items_summary && (
+            <p className="text-xs text-muted-foreground line-clamp-2 pt-1 border-t border-border/50">
+              {o.items_summary}
+            </p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
