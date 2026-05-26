@@ -298,6 +298,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                         إعادة إرسال للفرع
                       </Button>
                     )}
+                    {/* Edit proposal: only if not yet invoiced */}
+                    {!order.pos_order_id && (order.status === "pending" || order.status === "accepted") && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-7 text-[11px] gap-1.5 border-blue-500/40 text-blue-700 hover:bg-blue-500/10"
+                          onClick={() => setEditTarget(order)}
+                          disabled={(editsByOrder[order.id]?.pending || 0) > 0}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          {(editsByOrder[order.id]?.pending || 0) > 0 ? "تعديل قيد المراجعة" : "تعديل الطلبية"}
+                        </Button>
+                        {editsByOrder[order.id]?.lastStatus === "rejected" && (
+                          <Badge variant="outline" className="text-[9px] border-red-400/40 text-red-600">آخر تعديل: مرفوض</Badge>
+                        )}
+                        {editsByOrder[order.id]?.lastStatus === "accepted" && (
+                          <Badge variant="outline" className="text-[9px] border-green-400/40 text-green-600">آخر تعديل: مقبول</Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -306,6 +327,14 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
         </ScrollArea>
       </SheetContent>
     </Sheet>
+    <EditOrderDialog
+      open={!!editTarget}
+      onOpenChange={(v) => { if (!v) setEditTarget(null); }}
+      order={editTarget}
+      dataOwnerId={dataOwnerId}
+      onSubmitted={() => { loadOrders(); loadEdits(); }}
+    />
+    </>
   );
 }
 
