@@ -175,12 +175,32 @@ export function useRoleRedirect() {
         } else if (roles.includes("hr_manager") && !roles.includes("admin")) {
           nextPath = "/apps";
         } else {
-          const { count } = await supabase
-            .from("accounts")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id);
-
-          nextPath = !count || count === 0 ? "/setup" : "/apps";
+          // Feedback-only user: has call_center_feedback permission AND no
+          // other system roles AND no employee record — go straight to /feedback.
+          if (!isEmployee) {
+            const { data: fbPerms } = await supabase
+              .from("user_feature_permissions" as any)
+              .select("id")
+              .eq("target_user_id", user.id)
+              .eq("app_key", "call_center_feedback")
+              .eq("access_state", "allow")
+              .limit(1);
+            if (fbPerms && fbPerms.length > 0) {
+              nextPath = "/feedback";
+            } else {
+              const { count } = await supabase
+                .from("accounts")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", user.id);
+              nextPath = !count || count === 0 ? "/setup" : "/apps";
+            }
+          } else {
+            const { count } = await supabase
+              .from("accounts")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id);
+            nextPath = !count || count === 0 ? "/setup" : "/apps";
+          }
         }
 
         if (isCancelled) return;
