@@ -4,6 +4,7 @@ import { Eye, Loader2, RefreshCw } from "lucide-react";
 import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 import { setCanSell } from "@/lib/pos-device-auth";
+import { usePosMode } from "@/hooks/usePosMode";
 
 /**
  * Gate around /pos that enforces:
@@ -20,6 +21,13 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   const navigate = useNavigate();
   const { checking, authorized, bridgeUrl, recheck } = useBridgeAuthorized();
   const { isDeviceAdmin, checking: checkingAdmin } = useIsDeviceAdmin();
+  // Call-center users sell over the phone and do not need a Print Bridge
+  // or any local printers — only a branch + POS terminal. Treat them as
+  // fully authorized regardless of bridge state so they can open POS,
+  // open a shift, and sell without any local hardware.
+  const { callCenterEnabled, loading: posModeLoading } = usePosMode();
+  const bypassBridge = callCenterEnabled;
+  const effectiveAuthorized = authorized || bypassBridge;
 
   // Track whether this tab has EVER seen a working Bridge.
   // Once true, we never show the full-screen lock again — only the banner —
@@ -27,11 +35,11 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   const wasAuthorizedRef = useRef(false);
   const [wasAuthorized, setWasAuthorized] = useState(false);
   useEffect(() => {
-    if (authorized && !wasAuthorizedRef.current) {
+    if (effectiveAuthorized && !wasAuthorizedRef.current) {
       wasAuthorizedRef.current = true;
       setWasAuthorized(true);
     }
-  }, [authorized]);
+  }, [effectiveAuthorized]);
 
   // ── Heartbeat DISABLED ──────────────────────────────────────────
   // Background heartbeat was kicking cashiers out of POS in production.
@@ -44,10 +52,10 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   // Keep the canSell store in sync with the current authorization state.
   // This is the SINGLE source of truth consumed by POSPage.enforceDeviceGuard.
   useEffect(() => {
-    setCanSell(!!authorized);
+    setCanSell(!!effectiveAuthorized);
     // Helper flag for CSS/banner styling — never the source of truth.
     try {
-      if (authorized) document.body.removeAttribute("data-pos-view-only");
+      if (effectiveAuthorized) document.body.removeAttribute("data-pos-view-only");
       else document.body.setAttribute("data-pos-view-only", "true");
     } catch { /* ignore */ }
     return () => {
@@ -55,10 +63,10 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
       setCanSell(false);
       try { document.body.removeAttribute("data-pos-view-only"); } catch { /* ignore */ }
     };
-  }, [authorized]);
+  }, [effectiveAuthorized]);
 
   // 1) Still resolving — minimal spinner.
-  if (checking || checkingAdmin) {
+  if (checking || checkingAdmin || posModeLoading) {
     return (
       <div dir="rtl" className="min-h-[100dvh] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
@@ -71,8 +79,8 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
 
   // 2) Authorized OR (admin OR previously-authorized cashier) → render POS.
   //    In the non-authorized branches we render with canSell=false (view-only).
-  const showAsViewOnly = !authorized && (isDeviceAdmin || wasAuthorized);
-  if (authorized || showAsViewOnly) {
+  const showAsViewOnly = !effectiveAuthorized && (isDeviceAdmin || wasAuthorized);
+  if (effectiveAuthorized || showAsViewOnly) {
     return (
       <div className="flex flex-col min-h-[100dvh]">
         {showAsViewOnly && (
