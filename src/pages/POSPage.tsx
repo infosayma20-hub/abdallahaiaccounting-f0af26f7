@@ -717,8 +717,15 @@ const POSPage = () => {
   // We keep a ref alongside state so `enforceDeviceGuard` (which is read
   // from inside event handlers and sync callbacks) sees the latest value
   // without needing to be re-memoized.
+  // IDs of sessions THIS device closed locally. The watcher uses this to
+  // suppress the "closed from elsewhere" alert when we're the ones who closed.
+  const selfClosedSessionsRef = useRef<Set<string>>(new Set());
+  const isSelfClosed = useCallback(
+    (id: string) => selfClosedSessionsRef.current.has(id),
+    [],
+  );
   const { closedFromElsewhere: shiftClosedElsewhere, closedAt: shiftClosedAt } =
-    usePOSShiftWatcher(session?.id ?? null);
+    usePOSShiftWatcher(session?.id ?? null, isSelfClosed);
   const shiftClosedElsewhereRef = useRef(false);
   useEffect(() => {
     shiftClosedElsewhereRef.current = shiftClosedElsewhere;
