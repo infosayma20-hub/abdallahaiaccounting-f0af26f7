@@ -152,6 +152,7 @@ export default function ChooseWorkspacePage() {
           </Card>
           )}
 
+          {hasEmployee && (
           <Card
             role="button"
             tabIndex={0}
@@ -168,6 +169,7 @@ export default function ChooseWorkspacePage() {
               دخول كموظف
             </Button>
           </Card>
+          )}
 
           {canFeedback && (
           <Card
