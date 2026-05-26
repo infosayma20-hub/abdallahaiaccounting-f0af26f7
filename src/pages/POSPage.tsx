@@ -43,6 +43,7 @@ import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, STATION_TO_PRINTER, type KitchenJob } from "@/lib/image-print-service";
+import { printShiftSummaryImage } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
