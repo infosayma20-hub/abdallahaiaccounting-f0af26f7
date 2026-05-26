@@ -177,32 +177,15 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-4" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">متابعة الزبائن</h1>
-        <Badge variant="secondary">عرض فقط</Badge>
-      </div>
-
-      <Card>
-        <CardContent className="p-4">
-          <form
-            className="flex flex-col sm:flex-row gap-2"
-            onSubmit={(e) => { e.preventDefault(); runSearch(); }}
-          >
-            <Input
-              placeholder="رقم الجوال أو اسم الزبون"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1"
-              autoFocus
-            />
-            <Button type="submit" disabled={searching || !query.trim()}>
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              <span className="mr-2">بحث</span>
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="space-y-3" dir="rtl">
+      {!selected && (
+        <SearchBar
+          query={query}
+          onChange={setQuery}
+          onSubmit={runSearch}
+          searching={searching}
+        />
+      )}
 
       {selected ? (
         <CustomerDetail
@@ -224,9 +207,49 @@ export default function FeedbackPage() {
           canCreate={canCreate}
           query={query}
           onSaveAsCustomer={handleSaveAsCustomer}
+          branches={branches}
         />
       )}
     </div>
+  );
+}
+
+function SearchBar({
+  query, onChange, onSubmit, searching,
+}: {
+  query: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  searching: boolean;
+}) {
+  const isNumeric = /^[+\d\s-]+$/.test(query.trim()) && /\d/.test(query);
+  return (
+    <form
+      className="space-y-2"
+      onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+    >
+      <div className="relative">
+        <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="رقم الجوال أو اسم الزبون"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-12 text-base pr-10 pl-3"
+          inputMode={isNumeric ? "tel" : "text"}
+          enterKeyHint="search"
+          autoFocus
+          autoComplete="off"
+        />
+      </div>
+      <Button
+        type="submit"
+        disabled={searching || !query.trim()}
+        className="w-full h-11"
+      >
+        {searching ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Search className="h-4 w-4 ml-2" />}
+        بحث
+      </Button>
+    </form>
   );
 }
 
