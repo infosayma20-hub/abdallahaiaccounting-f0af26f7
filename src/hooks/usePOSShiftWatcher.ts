@@ -11,7 +11,15 @@ import { supabase } from "@/integrations/supabase/client";
  * Defensive design: also polls every 30s as a fallback in case Realtime is
  * down (bad Wi-Fi, proxy stripping WS). The poll is cheap (single row).
  */
-export function usePOSShiftWatcher(sessionId: string | null | undefined) {
+export function usePOSShiftWatcher(
+  sessionId: string | null | undefined,
+  /**
+   * Optional predicate. Return true if the given session id was closed
+   * locally on THIS device — in which case we must NOT fire the
+   * "closed from elsewhere" alert.
+   */
+  isSelfClosed?: (id: string) => boolean,
+) {
   const [closedFromElsewhere, setClosed] = useState(false);
   const [closedAt, setClosedAt] = useState<string | null>(null);
 
@@ -28,6 +36,8 @@ export function usePOSShiftWatcher(sessionId: string | null | undefined) {
       if (!row || cancelled) return;
       const isClosed = row.is_deleted === true || (row.state && row.state !== "open");
       if (isClosed) {
+        // Suppress when this device is the one that just closed the shift.
+        if (sessionId && isSelfClosed?.(sessionId)) return;
         setClosed(true);
         setClosedAt(row.closed_at ?? null);
       }
@@ -60,7 +70,7 @@ export function usePOSShiftWatcher(sessionId: string | null | undefined) {
       clearInterval(t);
       try { supabase.removeChannel(channel); } catch { /* ignore */ }
     };
-  }, [sessionId]);
+  }, [sessionId, isSelfClosed]);
 
   return { closedFromElsewhere, closedAt };
 }

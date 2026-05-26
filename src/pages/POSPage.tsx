@@ -717,8 +717,15 @@ const POSPage = () => {
   // We keep a ref alongside state so `enforceDeviceGuard` (which is read
   // from inside event handlers and sync callbacks) sees the latest value
   // without needing to be re-memoized.
+  // IDs of sessions THIS device closed locally. The watcher uses this to
+  // suppress the "closed from elsewhere" alert when we're the ones who closed.
+  const selfClosedSessionsRef = useRef<Set<string>>(new Set());
+  const isSelfClosed = useCallback(
+    (id: string) => selfClosedSessionsRef.current.has(id),
+    [],
+  );
   const { closedFromElsewhere: shiftClosedElsewhere, closedAt: shiftClosedAt } =
-    usePOSShiftWatcher(session?.id ?? null);
+    usePOSShiftWatcher(session?.id ?? null, isSelfClosed);
   const shiftClosedElsewhereRef = useRef(false);
   useEffect(() => {
     shiftClosedElsewhereRef.current = shiftClosedElsewhere;
@@ -3575,6 +3582,9 @@ const POSPage = () => {
     // devices try to close the same shift at the same time. If `already_closed`
     // comes back true, the other device beat us to it; we must NOT post a
     // second variance row or re-write metric fields.
+    // 🛡️ Mark BEFORE the RPC so the realtime UPDATE that fires moments later
+    // is recognised as our own close and never raises the "closed elsewhere" alert.
+    selfClosedSessionsRef.current.add(session.id);
     const { data: closeRes, error: closeErr } = await supabase.rpc(
       "close_pos_session_atomic",
       { p_session_id: session.id, p_closing_cash: cash },
@@ -3763,6 +3773,7 @@ const POSPage = () => {
   const handleCallCenterCloseShift = async () => {
     if (!session || !userId) return;
     // 🔒 Atomic close — same CAS guard as cashier close.
+    selfClosedSessionsRef.current.add(session.id);
     const { error: ccErr } = await supabase.rpc("close_pos_session_atomic", {
       p_session_id: session.id,
       p_closing_cash: 0,
@@ -6497,6 +6508,7 @@ const POSPage = () => {
       <ShiftClosedElsewhereDialog
         open={shiftClosedElsewhere && !!session}
         closedAt={shiftClosedAt}
+        signOutLabel={isAdmin ? "العودة لشاشة التطبيقات" : "العودة لشاشة الموظف"}
         onOpenNewShift={() => {
           // Drop the closed session locally so the OpenShift screen reappears.
           setSession(null);
@@ -6505,8 +6517,13 @@ const POSPage = () => {
           orderCounter.current = 1;
         }}
         onSignOut={async () => {
-          await supabase.auth.signOut();
-          navigate("/auth", { replace: true });
+          // Admins go back to the apps grid (NOT the employee/auth screen).
+          if (isAdmin) {
+            navigate("/apps", { replace: true });
+          } else {
+            await supabase.auth.signOut();
+            navigate("/auth", { replace: true });
+          }
         }}
       />
     </div>

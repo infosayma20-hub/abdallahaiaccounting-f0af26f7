@@ -12,11 +12,13 @@ export function ShiftClosedElsewhereDialog({
   closedAt,
   onOpenNewShift,
   onSignOut,
+  signOutLabel,
 }: {
   open: boolean;
   closedAt: string | null;
   onOpenNewShift: () => void;
   onSignOut: () => void;
+  signOutLabel?: string;
 }) {
   return (
     <Dialog open={open}>
@@ -39,7 +41,7 @@ export function ShiftClosedElsewhereDialog({
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
           <Button variant="outline" onClick={onSignOut} className="gap-2">
-            <LogOut className="h-4 w-4" /> العودة لشاشة الموظف
+            <LogOut className="h-4 w-4" /> {signOutLabel || "العودة لشاشة الموظف"}
           </Button>
           <Button onClick={onOpenNewShift} className="gap-2">
             <RotateCw className="h-4 w-4" /> فتح عهدة جديدة
