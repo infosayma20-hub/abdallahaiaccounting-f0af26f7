@@ -909,7 +909,7 @@ app.get('/health', async (_req, res) => {
     }));
   res.json({
     status: 'ok',
-    version: '6.3.4-generic',
+    version: '6.3.5-generic',
     online: true,
     logo: !!LOGO_BUF,
     windows_printers_supported: IS_WINDOWS,
