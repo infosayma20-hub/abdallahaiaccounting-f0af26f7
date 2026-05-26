@@ -17502,6 +17502,31 @@ export type Database = {
         }
       }
       expire_trials: { Args: never; Returns: Json }
+      feedback_get_customer_orders: {
+        Args: { p_customer_id: string; p_limit?: number }
+        Returns: {
+          branch_id: string
+          created_at: string
+          items_summary: string
+          order_id: string
+          source: string
+          status: string
+          total: number
+        }[]
+      }
+      feedback_search_customers: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          display_phone: string
+          do_not_call: boolean
+          full_name: string
+          id: string
+          last_known_branch_id: string
+          last_order_at_cached: string
+          normalized_phone: string
+          total_orders_cached: number
+        }[]
+      }
       generate_return_number: {
         Args: {
           _return_type: Database["public"]["Enums"]["return_type_enum"]
