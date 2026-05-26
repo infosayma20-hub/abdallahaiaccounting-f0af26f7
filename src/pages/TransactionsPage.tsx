@@ -710,10 +710,7 @@ const TransactionsPage = () => {
             <Info className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 text-xs text-foreground leading-relaxed">
-            <span className="font-semibold">📌 حماية النزاهة المحاسبية:</span>
-            {" "}القيود المرتبطة بمستندات (فواتير / سندات / شيكات) لا يمكن حذفها أو تعديلها من هنا.
-            اذهب للمستند الأصلي لإلغائه — سيقوم النظام بإنشاء قيد عكسي تلقائياً وفق معايير{" "}
-            <span className="font-semibold">IFRS</span>. القيود اليدوية فقط قابلة للحذف من دفتر اليومية.
+            القيود المرتبطة بمستندات تُلغى من المستند الأصلي فقط <span className="font-semibold">(حسب IFRS)</span>.
           </div>
           <button
             onClick={dismissIntegrityBanner}
