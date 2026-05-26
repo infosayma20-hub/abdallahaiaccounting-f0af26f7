@@ -24,17 +24,24 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data } = await supabase
+      // Self profile → display name only.
+      const { data: self } = await supabase
         .from("profiles")
-        .select("company_name, display_name, full_name")
+        .select("display_name, full_name")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data) {
-        setCompanyName((data as any).company_name || "");
-        setDisplayName((data as any).display_name || (data as any).full_name || user.email || "");
-      } else {
-        setDisplayName(user.email || "");
-      }
+      setDisplayName(((self as any)?.display_name) || ((self as any)?.full_name) || user.email || "");
+
+      // Tenant/team owner profile → company name (so team members see the
+      // parent company, not their own profile's company_name).
+      const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const tenantId = (ownerId as string | null) || user.id;
+      const { data: owner } = await supabase
+        .from("profiles")
+        .select("company_name")
+        .eq("user_id", tenantId)
+        .maybeSingle();
+      setCompanyName(((owner as any)?.company_name) || "");
     })();
   }, [user?.id, user?.email]);
 
