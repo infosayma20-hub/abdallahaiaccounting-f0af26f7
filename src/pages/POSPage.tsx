@@ -3773,6 +3773,7 @@ const POSPage = () => {
   const handleCallCenterCloseShift = async () => {
     if (!session || !userId) return;
     // 🔒 Atomic close — same CAS guard as cashier close.
+    selfClosedSessionsRef.current.add(session.id);
     const { error: ccErr } = await supabase.rpc("close_pos_session_atomic", {
       p_session_id: session.id,
       p_closing_cash: 0,
