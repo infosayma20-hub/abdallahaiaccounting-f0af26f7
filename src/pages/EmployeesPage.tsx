@@ -955,6 +955,10 @@ const EmployeesPage = () => {
                   employeeName={selectedEmployee.full_name}
                   authUserId={(selectedEmployee as any).auth_user_id || null}
                 />
+                <FeedbackToggleSection
+                  employeeName={selectedEmployee.full_name}
+                  authUserId={(selectedEmployee as any).auth_user_id || null}
+                />
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab}>
