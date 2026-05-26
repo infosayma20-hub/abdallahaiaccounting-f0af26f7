@@ -99,6 +99,14 @@ export const APP_PERMISSIONS: AppPermissionsDef[] = [
       { key: "app_permissions",  label: "صلاحيات التطبيقات",    permissions: [{ key: "manage", label: "إدارة" }] },
     ],
   },
+  {
+    app_key: "call_center_feedback",
+    label: "متابعة الزبائن (كول سنتر)",
+    features: [
+      { key: "customers", label: "الزبائن",   permissions: [view, create, update] },
+      { key: "calls",     label: "المكالمات", permissions: [view, create] },
+    ],
+  },
 ];
 
 export const getAppPermissions = (appKey: string): AppPermissionsDef | undefined =>
