@@ -19,19 +19,10 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState<string>("");
-  const [displayName, setDisplayName] = useState<string>("");
 
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      // Self profile → display name only.
-      const { data: self } = await supabase
-        .from("profiles")
-        .select("display_name, full_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setDisplayName(((self as any)?.display_name) || ((self as any)?.full_name) || user.email || "");
-
       // Tenant/team owner profile → company name (so team members see the
       // parent company, not their own profile's company_name).
       const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
@@ -79,15 +70,10 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-              <PhoneCall className="w-4.5 h-4.5 text-emerald-600" />
+              <PhoneCall className="w-[18px] h-[18px] text-emerald-600" />
             </div>
           </div>
         </div>
-        {displayName && (
-          <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pb-1.5 text-[11px] text-muted-foreground text-left truncate">
-            {displayName}
-          </div>
-        )}
       </header>
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
