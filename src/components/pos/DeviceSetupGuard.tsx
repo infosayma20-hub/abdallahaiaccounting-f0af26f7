@@ -1,6 +1,7 @@
 import { ShieldAlert, Monitor } from "lucide-react";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 import { getDeviceBranchId, getDeviceTerminalId } from "@/lib/device-config";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   children: React.ReactNode;
@@ -15,13 +16,14 @@ interface Props {
  */
 export default function DeviceSetupGuard({ children }: Props) {
   const { isDeviceAdmin, checking } = useIsDeviceAdmin();
+  const { user, loading: authLoading } = useAuth();
   // First-run bypass: if the device has never been configured (no branch +
   // no terminal stored locally and no copy restored from the Print Bridge),
   // allow ANY logged-in user to complete the initial setup. Otherwise a
   // cashier opening a brand-new PC would be locked out with no way in.
   const isUnconfigured = !getDeviceBranchId() && !getDeviceTerminalId();
 
-  if (checking) {
+  if (checking || authLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div
@@ -35,7 +37,14 @@ export default function DeviceSetupGuard({ children }: Props) {
     );
   }
 
-  if (!isDeviceAdmin && !isUnconfigured) {
+  // Per-device setup is bound to the physical PC, not to a global admin
+  // action: cashiers / call-center users must be able to (re)bind their own
+  // device when the saved branch/terminal becomes invalid (deleted, moved,
+  // or restored from a stale device.json). RLS on the branches/terminals
+  // tables already limits what each user can pick, so allow any
+  // authenticated user to open the wizard. The full-screen "no permission"
+  // shield is only shown when there is no logged-in user at all.
+  if (!user && !isDeviceAdmin && !isUnconfigured) {
     return (
       <div
         className="fixed inset-0 z-[9999] bg-background flex items-center justify-center p-4"
