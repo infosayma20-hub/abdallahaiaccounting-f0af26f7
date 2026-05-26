@@ -1366,6 +1366,8 @@ export type Database = {
           created_at: string | null
           customer_name: string | null
           customer_phone: string | null
+          delivered_at: string | null
+          delivered_to_device: string | null
           delivery_address: string | null
           delivery_type: string | null
           dispatched_by: string | null
@@ -1390,6 +1392,8 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
+          delivered_to_device?: string | null
           delivery_address?: string | null
           delivery_type?: string | null
           dispatched_by?: string | null
@@ -1414,6 +1418,8 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
+          delivered_to_device?: string | null
           delivery_address?: string | null
           delivery_type?: string | null
           dispatched_by?: string | null
