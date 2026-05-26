@@ -17,6 +17,7 @@ import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
+import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
 import HRPermGuard from "./components/HRPermGuard";
 import HRShell from "./components/hr/HRShell";
