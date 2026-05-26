@@ -103,7 +103,7 @@ export const APP_PERMISSIONS: AppPermissionsDef[] = [
     app_key: "call_center_feedback",
     label: "متابعة الزبائن (كول سنتر)",
     features: [
-      { key: "customers", label: "الزبائن",   permissions: [view, create, update] },
+      { key: "customers", label: "الزبائن",   permissions: [view, create, { key: "edit", label: "تعديل" }] },
       { key: "calls",     label: "المكالمات", permissions: [view, create] },
     ],
   },
