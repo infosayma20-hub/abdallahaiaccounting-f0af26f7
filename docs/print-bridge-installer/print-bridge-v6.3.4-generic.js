@@ -643,14 +643,12 @@ function renderKitchenSVG(order, stationLabel) {
     : (order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
 
   // Order-info rows: only render rows whose value is non-empty.
-  // TODO: read visibility flags from device.json kitchen_ticket_options when settings UI ships.
+  // Compact layout — counter and type are already shown big at the top,
+  // so do NOT duplicate them here. Date + time merged into one row.
   const infoRows = [
-    { label: 'التاريخ', value: dateStr },
-    { label: 'الوقت', value: timeStr },
-    { label: 'نوع الفاتورة', value: typeLabel },
-    { label: '# العداد اليومي', value: counterStr },
-    order.customerName ? { label: 'بيانات المتصل', value: String(order.customerName) } : null,
-    order.customerPhone ? { label: '', value: String(order.customerPhone), ltrValue: true } : null,
+    { label: 'التاريخ', value: `${timeStr} - ${dateStr}`, ltrValue: true },
+    order.customerName ? { label: 'الزبون', value: String(order.customerName) } : null,
+    order.customerPhone ? { label: 'الجوال', value: String(order.customerPhone), ltrValue: true } : null,
     order.pickupBy ? { label: 'ملاحظة', value: `استلام من ${order.pickupBy}` } : null,
     { label: 'مجموع الكميات', value: String(totalQty) },
   ].filter(Boolean);
@@ -911,7 +909,7 @@ app.get('/health', async (_req, res) => {
     }));
   res.json({
     status: 'ok',
-    version: '6.3.4-generic',
+    version: '6.3.5-generic',
     online: true,
     logo: !!LOGO_BUF,
     windows_printers_supported: IS_WINDOWS,
