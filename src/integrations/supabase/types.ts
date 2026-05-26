@@ -5641,6 +5641,147 @@ export type Database = {
           },
         ]
       }
+      feedback_calls: {
+        Row: {
+          called_at: string
+          called_by: string | null
+          called_by_name: string | null
+          complaint_text: string | null
+          created_at: string
+          customer_id: string
+          followup_due_at: string | null
+          followup_note: string | null
+          followup_status: string | null
+          id: string
+          needs_followup: boolean
+          note: string | null
+          outcome: string
+          rating: number | null
+          related_order_id: string | null
+          related_pos_order_id: string | null
+          sentiment: string | null
+          suggestion_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          called_at?: string
+          called_by?: string | null
+          called_by_name?: string | null
+          complaint_text?: string | null
+          created_at?: string
+          customer_id: string
+          followup_due_at?: string | null
+          followup_note?: string | null
+          followup_status?: string | null
+          id?: string
+          needs_followup?: boolean
+          note?: string | null
+          outcome: string
+          rating?: number | null
+          related_order_id?: string | null
+          related_pos_order_id?: string | null
+          sentiment?: string | null
+          suggestion_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          called_at?: string
+          called_by?: string | null
+          called_by_name?: string | null
+          complaint_text?: string | null
+          created_at?: string
+          customer_id?: string
+          followup_due_at?: string | null
+          followup_note?: string | null
+          followup_status?: string | null
+          id?: string
+          needs_followup?: boolean
+          note?: string | null
+          outcome?: string
+          rating?: number | null
+          related_order_id?: string | null
+          related_pos_order_id?: string | null
+          sentiment?: string | null
+          suggestion_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_calls_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_calls_related_order_id_fkey"
+            columns: ["related_order_id"]
+            isOneToOne: false
+            referencedRelation: "call_center_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_customers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_phone: string | null
+          do_not_call: boolean
+          do_not_call_at: string | null
+          do_not_call_by: string | null
+          do_not_call_reason: string | null
+          full_name: string | null
+          id: string
+          last_known_branch_id: string | null
+          last_order_at_cached: string | null
+          normalized_phone: string
+          notes: string | null
+          total_orders_cached: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_phone?: string | null
+          do_not_call?: boolean
+          do_not_call_at?: string | null
+          do_not_call_by?: string | null
+          do_not_call_reason?: string | null
+          full_name?: string | null
+          id?: string
+          last_known_branch_id?: string | null
+          last_order_at_cached?: string | null
+          normalized_phone: string
+          notes?: string | null
+          total_orders_cached?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_phone?: string | null
+          do_not_call?: boolean
+          do_not_call_at?: string | null
+          do_not_call_by?: string | null
+          do_not_call_reason?: string | null
+          full_name?: string | null
+          id?: string
+          last_known_branch_id?: string | null
+          last_order_at_cached?: string | null
+          normalized_phone?: string
+          notes?: string | null
+          total_orders_cached?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_claims: {
         Row: {
           amount: number
@@ -17628,6 +17769,7 @@ export type Database = {
         Args: { p_doc_type: string; p_user_id: string; p_year: number }
         Returns: number
       }
+      normalize_phone: { Args: { p_phone: string }; Returns: string }
       open_van_day: {
         Args: {
           p_load_transfer_id?: string
@@ -17790,6 +17932,8 @@ export type Database = {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
       uaao_can_admin_target: {
         Args: { _admin: string; _target: string }
