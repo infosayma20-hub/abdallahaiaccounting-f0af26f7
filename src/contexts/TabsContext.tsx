@@ -138,6 +138,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/reports/pos-peak-hours": { title: "ساعات الذروة POS", icon: "cart" },
   "/printer-settings": { title: "إعدادات الطابعة", icon: "settings" },
   "/call-center-reports": { title: "تقارير مركز الاتصال", icon: "chart" },
+  "/feedback": { title: "متابعة الزبائن", icon: "phone" },
   "/customer-reports": { title: "تقارير العملاء", icon: "chart" },
   "/contractor": { title: "المقاولات", icon: "briefcase" },
   "/workshops": { title: "الورش", icon: "settings" },
