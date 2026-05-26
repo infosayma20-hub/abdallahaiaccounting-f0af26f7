@@ -1,6 +1,5 @@
 import { ShieldAlert, Monitor } from "lucide-react";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
-import { getDeviceBranchId, getDeviceTerminalId } from "@/lib/device-config";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
@@ -16,12 +15,13 @@ interface Props {
  */
 export default function DeviceSetupGuard({ children }: Props) {
   const { isDeviceAdmin, checking } = useIsDeviceAdmin();
-  const { user, loading: authLoading } = useAuth();
-  // First-run bypass: if the device has never been configured (no branch +
-  // no terminal stored locally and no copy restored from the Print Bridge),
-  // allow ANY logged-in user to complete the initial setup. Otherwise a
-  // cashier opening a brand-new PC would be locked out with no way in.
-  const isUnconfigured = !getDeviceBranchId() && !getDeviceTerminalId();
+  const { loading: authLoading } = useAuth();
+  // SECURITY: Device setup is restricted to admin / device_admin ONLY.
+  // Previous "first-run bypass" + "any authenticated user" logic enabled
+  // employees to bind a terminal to the wrong branch (e.g. Ramallah
+  // terminal → Nablus cash box), bypassing the
+  // `enforce_pos_session_branch_match` trigger via misconfiguration.
+  // A brand-new PC MUST be configured by an admin.
 
   if (checking || authLoading) {
     return (
@@ -44,7 +44,7 @@ export default function DeviceSetupGuard({ children }: Props) {
   // tables already limits what each user can pick, so allow any
   // authenticated user to open the wizard. The full-screen "no permission"
   // shield is only shown when there is no logged-in user at all.
-  if (!user && !isDeviceAdmin && !isUnconfigured) {
+  if (!isDeviceAdmin) {
     return (
       <div
         className="fixed inset-0 z-[9999] bg-background flex items-center justify-center p-4"
@@ -79,14 +79,14 @@ export default function DeviceSetupGuard({ children }: Props) {
 
           <div className="p-3 border-t border-border bg-muted/20">
             <a
-              href="/pos"
+              href="/choose-workspace"
               onClick={(e) => {
                 e.preventDefault();
-                window.location.assign("/pos");
+                window.location.assign("/choose-workspace");
               }}
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <Monitor className="h-4 w-4" /> رجوع إلى نقطة البيع
+              <Monitor className="h-4 w-4" /> رجوع لاختيار التطبيق
             </a>
           </div>
         </div>
