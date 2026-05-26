@@ -540,31 +540,29 @@ function EditCustomerCard({
   };
 
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">تعديل بيانات الزبون</CardTitle></CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-        <div className="space-y-1">
-          <Label>الاسم</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم الزبون" />
-        </div>
-        <div className="space-y-1">
-          <Label>الفرع</Label>
-          <Select value={branchId || "__none"} onValueChange={(v) => setBranchId(v === "__none" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none">— بدون فرع —</SelectItem>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={save} disabled={!changed || saving}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          <span className="mr-2">حفظ</span>
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="bg-card border rounded-lg p-4 space-y-3">
+      <h3 className="text-sm font-semibold">تعديل بيانات الزبون</h3>
+      <div className="space-y-1">
+        <Label className="text-xs">الاسم</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم الزبون" className="h-11" />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">الفرع</Label>
+        <Select value={branchId || "__none"} onValueChange={(v) => setBranchId(v === "__none" ? "" : v)}>
+          <SelectTrigger className="h-11"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none">— بدون فرع —</SelectItem>
+            {branches.map((b) => (
+              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Button onClick={save} disabled={!changed || saving} className="w-full h-11">
+        {saving ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Save className="h-4 w-4 ml-2" />}
+        حفظ
+      </Button>
+    </div>
   );
 }
 
@@ -608,26 +606,24 @@ function NewCallCard({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <PhoneCall className="h-4 w-4" /> تسجيل مكالمة جديدة
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="bg-card border rounded-lg p-4 space-y-3">
+      <h3 className="text-sm font-semibold flex items-center gap-2">
+        <PhoneCall className="h-4 w-4" /> تسجيل مكالمة جديدة
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label>نتيجة المكالمة *</Label>
+          <Label className="text-xs">نتيجة المكالمة *</Label>
           <Select value={outcome} onValueChange={setOutcome}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
               {OUTCOMES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>التقييم العام</Label>
+          <Label className="text-xs">التقييم العام</Label>
           <Select value={sentiment || "__none"} onValueChange={(v) => setSentiment(v === "__none" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="اختياري" /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue placeholder="اختياري" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none">— بدون —</SelectItem>
               {SENTIMENTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -635,13 +631,13 @@ function NewCallCard({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>التقييم (1-5)</Label>
-          <Input type="number" min={1} max={5} value={rating} onChange={(e) => setRating(e.target.value)} />
+          <Label className="text-xs">التقييم (1-5)</Label>
+          <Input type="number" inputMode="numeric" min={1} max={5} value={rating} onChange={(e) => setRating(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1">
-          <Label>ربط بطلبية (اختياري)</Label>
+          <Label className="text-xs">ربط بطلبية</Label>
           <Select value={relatedOrderId || "__none"} onValueChange={(v) => setRelatedOrderId(v === "__none" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="بدون" /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue placeholder="بدون" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none">— بدون —</SelectItem>
               {ccOrders.map((o) => (
@@ -652,38 +648,41 @@ function NewCallCard({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1 md:col-span-2">
-          <Label>ملاحظة</Label>
-          <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
-        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">ملاحظة</Label>
+        <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label>شكوى</Label>
+          <Label className="text-xs">شكوى</Label>
           <Textarea value={complaint} onChange={(e) => setComplaint(e.target.value)} rows={2} />
         </div>
         <div className="space-y-1">
-          <Label>اقتراح</Label>
+          <Label className="text-xs">اقتراح</Label>
           <Textarea value={suggestion} onChange={(e) => setSuggestion(e.target.value)} rows={2} />
         </div>
-        <div className="md:col-span-2 flex items-center gap-2">
-          <Checkbox id="needs-fu" checked={needsFollowup} onCheckedChange={(v) => setNeedsFollowup(!!v)} />
-          <Label htmlFor="needs-fu" className="cursor-pointer">يحتاج متابعة</Label>
-          {needsFollowup && (
-            <Input
-              type="datetime-local"
-              value={followupDue}
-              onChange={(e) => setFollowupDue(e.target.value)}
-              className="max-w-xs"
-            />
-          )}
+      </div>
+      <div className="flex items-center gap-2 pt-1">
+        <Checkbox id="needs-fu" checked={needsFollowup} onCheckedChange={(v) => setNeedsFollowup(!!v)} className="h-5 w-5" />
+        <Label htmlFor="needs-fu" className="cursor-pointer text-sm">يحتاج متابعة</Label>
+      </div>
+      {needsFollowup && (
+        <div className="space-y-1">
+          <Label className="text-xs">تاريخ المتابعة *</Label>
+          <Input
+            type="datetime-local"
+            value={followupDue}
+            onChange={(e) => setFollowupDue(e.target.value)}
+            className="h-11 w-full"
+          />
         </div>
-        <div className="md:col-span-2 flex justify-end">
-          <Button onClick={submit} disabled={saving || (needsFollowup && !followupDue)}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneCall className="h-4 w-4" />}
-            <span className="mr-2">تسجيل المكالمة</span>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      )}
+      <Button onClick={submit} disabled={saving || (needsFollowup && !followupDue)} className="w-full h-11">
+        {saving ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <PhoneCall className="h-4 w-4 ml-2" />}
+        تسجيل المكالمة
+      </Button>
+    </div>
   );
 }
 
