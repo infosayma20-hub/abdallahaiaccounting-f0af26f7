@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
           email: emp.email,
           auth_user_id: authId,
           is_active: true,
-          salary_type: "monthly",
+          salary_type: "شهري",
         })
         .select("id")
         .single();
