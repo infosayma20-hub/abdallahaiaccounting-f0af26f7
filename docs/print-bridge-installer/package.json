@@ -4,7 +4,7 @@
   "description": "AMWALI Print Bridge - thermal printer service",
   "main": "print-bridge-v6.3.5-generic.js",
   "scripts": {
-    "start": "node print-bridge-v6.3.4-generic.js",
+    "start": "node print-bridge-v6.3.5-generic.js",
     "install-service": "node service-install.js",
     "uninstall-service": "node service-uninstall.js"
   },
