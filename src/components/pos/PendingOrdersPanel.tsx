@@ -149,8 +149,8 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
         },
         (payload) => {
           // ACK: if this order targets our branch and hasn't been delivered yet,
-          // stamp delivered_at immediately so the call-center sees "📨 وصلت للفرع".
-          // The .is("delivered_at", null) guard ensures only the first device wins.
+          // call the secure RPC which verifies the caller has an OPEN pos_session
+          // on the target branch and stamps delivered_at server-side (first-writer-wins).
           const newRow: any = payload.new;
           if (
             branchId &&
@@ -163,13 +163,10 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
               localStorage.getItem("pos_device_fingerprint") ||
               "unknown-device";
             supabase
-              .from("call_center_orders" as any)
-              .update({
-                delivered_at: new Date().toISOString(),
-                delivered_to_device: deviceTag,
-              } as any)
-              .eq("id", newRow.id)
-              .is("delivered_at", null)
+              .rpc("ack_call_center_order" as any, {
+                p_order_id: newRow.id,
+                p_device_tag: deviceTag,
+              })
               .then(() => { /* fire-and-forget */ });
           }
           loadPendingOrders();

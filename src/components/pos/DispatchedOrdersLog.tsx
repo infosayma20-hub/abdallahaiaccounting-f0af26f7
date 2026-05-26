@@ -231,19 +231,26 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                     {order.status === "pending" && (
                       <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
                         <Clock className="h-3 w-3 animate-pulse" />
-                        في انتظار قبول الفرع منذ {getTimeSince(order.created_at)}
+                        بانتظار قبول الفرع — منذ {getTimeSince(order.created_at)}
                       </div>
                     )}
                     {/* Delivery ACK indicator */}
                     {order.status === "pending" && (
                       order.delivered_at ? (
                         <div className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
-                          📨 وصلت لجهاز الفرع — {new Date(order.delivered_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                          <CheckCircle2 className="h-3 w-3" />
+                          وصلت لجهاز الفرع — {new Date(order.delivered_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       ) : (
-                        getSecondsSince(order.created_at) > 10 && (
+                        getSecondsSince(order.created_at) > 10 ? (
                           <div className="flex items-center gap-1 text-[10px] text-red-600 font-bold bg-red-500/10 rounded px-1.5 py-0.5">
-                            ⚠️ لم تصل بعد لأي جهاز كاشير في الفرع — تحقق من اتصال الفرع!
+                            <XCircle className="h-3 w-3" />
+                            لم تصل بعد — تحقق من اتصال الفرع
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            بانتظار وصول الفرع
                           </div>
                         )
                       )
