@@ -17502,6 +17502,10 @@ export type Database = {
         }
       }
       expire_trials: { Args: never; Returns: Json }
+      feedback_enable_do_not_call: {
+        Args: { p_customer_id: string; p_reason: string }
+        Returns: undefined
+      }
       feedback_get_customer_orders: {
         Args: { p_customer_id: string; p_limit?: number }
         Returns: {
@@ -17514,6 +17518,21 @@ export type Database = {
           total: number
         }[]
       }
+      feedback_log_call: {
+        Args: {
+          p_complaint_text?: string
+          p_customer_id: string
+          p_followup_due_at?: string
+          p_needs_followup?: boolean
+          p_note?: string
+          p_outcome: string
+          p_rating?: number
+          p_related_order_id?: string
+          p_sentiment?: string
+          p_suggestion_text?: string
+        }
+        Returns: string
+      }
       feedback_search_customers: {
         Args: { p_limit?: number; p_query: string }
         Returns: {
@@ -17525,6 +17544,18 @@ export type Database = {
           last_order_at_cached: string
           normalized_phone: string
           total_orders_cached: number
+        }[]
+      }
+      feedback_upsert_customer: {
+        Args: { p_branch_id?: string; p_full_name?: string; p_phone: string }
+        Returns: {
+          display_phone: string
+          do_not_call: boolean
+          full_name: string
+          id: string
+          last_known_branch_id: string
+          normalized_phone: string
+          was_created: boolean
         }[]
       }
       generate_return_number: {
