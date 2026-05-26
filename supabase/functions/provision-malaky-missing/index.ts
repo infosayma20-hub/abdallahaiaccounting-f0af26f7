@@ -9,16 +9,16 @@ const COMPANY_ID = "b4a221be-7b96-4952-8eb8-6ca749b46ca4";
 const OWNER_USER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
 
 const EMPLOYEES = [
-  { full_name: "امير الباشا", email: "ameeralbasha@malaky.com" },
-  { full_name: "دانية مقبول", email: "daniamaqbool@malaky.com" },
-  { full_name: "مالك كايد", email: "malekkayed@malaky.com" },
-  { full_name: "ايسر مرشد", email: "ayssarmurshid@malaky.com" },
-  { full_name: "اسلام ستيتيه", email: "islamstateih@malaky.com" },
-  { full_name: "محمد نوري", email: "mohammadnouri@malaky.com" },
-  { full_name: "بيدس عابد", email: "bedasabed@malaky.com" },
-  { full_name: "يمان دار حمد الله", email: "yamandarhamdallah@malaky.com" },
-  { full_name: "معتصم العبيات", email: "motasemobayat@malaky.com" },
-  { full_name: "محمود عبد القادر", email: "mahmoudabdelqader@malaky.com" },
+  { full_name: "امير الباشا", email: "ameeralbasha@malaky.com", existing_auth_id: "14db9133-484f-4fca-829c-780070410f2e" },
+  { full_name: "دانية مقبول", email: "daniamaqbool@malaky.com", existing_auth_id: "11bf92e6-d693-446c-9b36-1b66a67d1a23" },
+  { full_name: "مالك كايد", email: "malekkayed@malaky.com", existing_auth_id: "6b64352e-c197-4946-896a-6eb98a80d9e0" },
+  { full_name: "ايسر مرشد", email: "ayssarmurshid@malaky.com", existing_auth_id: "f3c1fa0a-f7b0-49ec-9f8b-03254957f965" },
+  { full_name: "اسلام ستيتيه", email: "islamstateih@malaky.com", existing_auth_id: "2e265737-a153-4f25-b3c8-b3eae2625f3f" },
+  { full_name: "محمد نوري", email: "mohammadnouri@malaky.com", existing_auth_id: "836b6a4f-b5cf-472e-bff2-d79260b551d8" },
+  { full_name: "بيدس عابد", email: "bedasabed@malaky.com", existing_auth_id: "cf4a61f1-fde3-4d8a-a216-0485157df7e5" },
+  { full_name: "يمان دار حمد الله", email: "yamandarhamdallah@malaky.com", existing_auth_id: "b0530fd3-1ffe-4f2e-8b70-b3fbafb2b872" },
+  { full_name: "معتصم العبيات", email: "motasemobayat@malaky.com", existing_auth_id: "73081326-8dd0-4d56-8359-17f632f21ef2" },
+  { full_name: "محمود عبد القادر", email: "mahmoudabdelqader@malaky.com", existing_auth_id: "78ea211b-d17b-4e2a-b8aa-d0f2ad11cf65" },
 ];
 
 Deno.serve(async (req) => {
@@ -33,35 +33,9 @@ Deno.serve(async (req) => {
 
   for (const emp of EMPLOYEES) {
     try {
-      // 1. Create or find auth user
-      let authId: string | null = null;
-      const { data: created, error: cErr } = await supabase.auth.admin.createUser({
-        email: emp.email,
-        password: "123456",
-        email_confirm: true,
-        user_metadata: {
-          full_name: emp.full_name,
-          role: "employee",
-          invited_by: OWNER_USER_ID,
-          company_name: "شركة مطاعم الدجاج الملكي",
-        },
-      });
-
-      if (created?.user) {
-        authId = created.user.id;
-      } else {
-        // Likely already exists — look up by email
-        const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-        const existing = list?.users?.find((u) => u.email?.toLowerCase() === emp.email.toLowerCase());
-        if (existing) {
-          authId = existing.id;
-          // Reset password to 123456 to be safe
-          await supabase.auth.admin.updateUserById(authId, { password: "123456" });
-        } else {
-          results.push({ name: emp.full_name, email: emp.email, ok: false, error: cErr?.message || "no user" });
-          continue;
-        }
-      }
+      // 1. Use known existing auth user (created in prior run)
+      const authId = emp.existing_auth_id;
+      await supabase.auth.admin.updateUserById(authId, { password: "123456" });
 
       // Skip if employee row already exists for this auth_user_id
       const { data: existingEmp } = await supabase
