@@ -77,14 +77,14 @@ export default function ChooseWorkspacePage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-6">
-      <div className="w-full max-w-2xl space-y-6">
+    <div dir="rtl" className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-4 sm:p-6">
+      <div className="w-full max-w-2xl space-y-5 sm:space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold text-foreground">اختر مساحة العمل</h1>
           <p className="text-muted-foreground text-sm">عندك صلاحية الدخول لأكثر من واجهة. اختر اللي تبغى تشتغل عليها الحين.</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {hasRep && (
           <Card
             role="button"

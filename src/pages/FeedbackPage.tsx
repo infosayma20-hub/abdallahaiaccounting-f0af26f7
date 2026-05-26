@@ -2,16 +2,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Search, PhoneOff, ArrowRight, UserPlus, Save, PhoneCall, Ban } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Search, PhoneOff, ChevronLeft, UserPlus, Save, PhoneCall, Ban, MapPin, Calendar, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
 
@@ -177,32 +176,15 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-4" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">متابعة الزبائن</h1>
-        <Badge variant="secondary">عرض فقط</Badge>
-      </div>
-
-      <Card>
-        <CardContent className="p-4">
-          <form
-            className="flex flex-col sm:flex-row gap-2"
-            onSubmit={(e) => { e.preventDefault(); runSearch(); }}
-          >
-            <Input
-              placeholder="رقم الجوال أو اسم الزبون"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1"
-              autoFocus
-            />
-            <Button type="submit" disabled={searching || !query.trim()}>
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              <span className="mr-2">بحث</span>
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="space-y-3" dir="rtl">
+      {!selected && (
+        <SearchBar
+          query={query}
+          onChange={setQuery}
+          onSubmit={runSearch}
+          searching={searching}
+        />
+      )}
 
       {selected ? (
         <CustomerDetail
@@ -224,14 +206,54 @@ export default function FeedbackPage() {
           canCreate={canCreate}
           query={query}
           onSaveAsCustomer={handleSaveAsCustomer}
+          branches={branches}
         />
       )}
     </div>
   );
 }
 
+function SearchBar({
+  query, onChange, onSubmit, searching,
+}: {
+  query: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  searching: boolean;
+}) {
+  const isNumeric = /^[+\d\s-]+$/.test(query.trim()) && /\d/.test(query);
+  return (
+    <form
+      className="space-y-2"
+      onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+    >
+      <div className="relative">
+        <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="رقم الجوال أو اسم الزبون"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-12 text-base pr-10 pl-3"
+          inputMode={isNumeric ? "tel" : "text"}
+          enterKeyHint="search"
+          autoFocus
+          autoComplete="off"
+        />
+      </div>
+      <Button
+        type="submit"
+        disabled={searching || !query.trim()}
+        className="w-full h-11"
+      >
+        {searching ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Search className="h-4 w-4 ml-2" />}
+        بحث
+      </Button>
+    </form>
+  );
+}
+
 function ResultsList({
-  results, searched, searching, onSelect, canCreate, query, onSaveAsCustomer,
+  results, searched, searching, onSelect, canCreate, query, onSaveAsCustomer, branches,
 }: {
   results: CustomerRow[];
   searched: boolean;
@@ -240,70 +262,87 @@ function ResultsList({
   canCreate: boolean;
   query: string;
   onSaveAsCustomer: () => void;
+  branches: BranchOption[];
 }) {
+  const branchName = (id: string | null) =>
+    id ? (branches.find((b) => b.id === id)?.name || id) : null;
   if (searching) {
     return (
-      <Card><CardContent className="p-8 flex items-center justify-center text-muted-foreground">
+      <div className="py-10 flex items-center justify-center text-muted-foreground text-sm">
         <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ البحث...
-      </CardContent></Card>
+      </div>
     );
   }
   if (!searched) {
     return (
-      <Card><CardContent className="p-8 text-center text-muted-foreground">
+      <div className="py-8 text-center text-sm text-muted-foreground">
         ابدأ بكتابة رقم جوال أو اسم زبون للبحث
-      </CardContent></Card>
+      </div>
     );
   }
   if (results.length === 0) {
     return (
-      <Card><CardContent className="p-8 text-center space-y-3">
-        <div className="text-muted-foreground">لا يوجد زبون بهذا الرقم أو الاسم بعد</div>
+      <div className="py-8 text-center space-y-3">
+        <div className="text-sm text-muted-foreground">لا يوجد زبون بهذا الرقم أو الاسم بعد</div>
         {canCreate && /^\+?\d[\d\s-]{5,}$/.test(query.trim()) && (
-          <Button onClick={onSaveAsCustomer} size="sm">
+          <Button onClick={onSaveAsCustomer} size="sm" className="mx-auto">
             <UserPlus className="h-4 w-4 ml-1" /> حفظ "{query.trim()}" كزبون جديد
           </Button>
         )}
-      </CardContent></Card>
+      </div>
     );
   }
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">نتائج البحث ({results.length})</CardTitle></CardHeader>
-      <CardContent className="p-0 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>الاسم</TableHead>
-              <TableHead>الهاتف</TableHead>
-              <TableHead>عدد الطلبات</TableHead>
-              <TableHead>آخر طلب</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {results.map((c) => (
-              <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelect(c)}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {c.full_name || <span className="text-muted-foreground">بدون اسم</span>}
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground px-1">{results.length} نتيجة</p>
+      <div className="space-y-2">
+        {results.map((c) => {
+          const branch = branchName(c.last_known_branch_id);
+          return (
+            <button
+              type="button"
+              key={c.id}
+              onClick={() => onSelect(c)}
+              className="w-full text-right bg-card border rounded-lg p-3 active:bg-muted/60 hover:border-primary/40 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm text-foreground truncate">
+                      {c.full_name || <span className="text-muted-foreground font-normal">بدون اسم</span>}
+                    </span>
                     {c.do_not_call && (
-                      <Badge variant="destructive" className="gap-1">
-                        <PhoneOff className="h-3 w-3" /> لا يرغب بالاتصال
+                      <Badge variant="destructive" className="gap-1 text-[10px] h-5">
+                        <PhoneOff className="h-3 w-3" /> لا اتصال
                       </Badge>
                     )}
                   </div>
-                </TableCell>
-                <TableCell dir="ltr" className="text-right">{c.display_phone}</TableCell>
-                <TableCell>{c.total_orders_cached ?? 0}</TableCell>
-                <TableCell>{fmtDate(c.last_order_at_cached)}</TableCell>
-                <TableCell><ArrowRight className="h-4 w-4 text-muted-foreground" /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                  <div dir="ltr" className="text-xs text-muted-foreground font-mono text-right">
+                    {c.display_phone}
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                    {branch && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3 w-3" /> {branch}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <Receipt className="h-3 w-3" /> {c.total_orders_cached ?? 0} طلب
+                    </span>
+                    {c.last_order_at_cached && (
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {fmtDate(c.last_order_at_cached)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -322,12 +361,43 @@ function CustomerDetail({
   const branchName = (id: string | null) =>
     id ? (branches.find((b) => b.id === id)?.name || id) : "—";
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>← العودة لنتائج البحث</Button>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={onBack} className="-mr-2 gap-1">
+          <ChevronLeft className="h-4 w-4 rotate-180" /> رجوع
+        </Button>
         {canEdit && !customer.do_not_call && (
           <EnableDoNotCallDialog customerId={customer.id} onDone={onRefresh} />
         )}
+      </div>
+
+      {/* Customer header card */}
+      <div className="bg-card border rounded-lg p-4 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold text-foreground truncate">
+              {customer.full_name || <span className="text-muted-foreground font-normal">بدون اسم</span>}
+            </h2>
+            <a
+              href={`tel:${customer.display_phone}`}
+              dir="ltr"
+              className="text-sm text-primary font-mono inline-block mt-1"
+            >
+              {customer.display_phone}
+            </a>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3 w-3" /> {branchName(customer.last_known_branch_id)}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Receipt className="h-3 w-3" /> {customer.total_orders_cached ?? 0} طلب
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3 w-3" /> {fmtDate(customer.last_order_at_cached)}
+          </span>
+        </div>
       </div>
 
       {customer.do_not_call && (
@@ -341,71 +411,90 @@ function CustomerDetail({
         </Alert>
       )}
 
-      <Card>
-        <CardHeader><CardTitle>ملف الزبون</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-          <Info label="الاسم" value={customer.full_name || "—"} />
-          <Info label="الهاتف" value={<span dir="ltr">{customer.display_phone}</span>} />
-          <Info label="آخر فرع" value={branchName(customer.last_known_branch_id)} />
-          <Info label="عدد الطلبات" value={String(customer.total_orders_cached ?? 0)} />
-          <Info label="آخر طلب" value={fmtDate(customer.last_order_at_cached)} />
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 h-11">
+          <TabsTrigger value="orders" className="text-xs sm:text-sm">الطلبات</TabsTrigger>
+          <TabsTrigger value="call" className="text-xs sm:text-sm" disabled={!canCallCreate || customer.do_not_call}>
+            مكالمة
+          </TabsTrigger>
+          <TabsTrigger value="info" className="text-xs sm:text-sm" disabled={!canEdit}>
+            تعديل
+          </TabsTrigger>
+        </TabsList>
 
-      {canEdit && (
-        <EditCustomerCard customer={customer} branches={branches} onDone={onRefresh} />
-      )}
+        <TabsContent value="orders" className="mt-3">
+          <OrdersList orders={orders} loading={loading} branchName={branchName} />
+        </TabsContent>
 
-      {canCallCreate && !customer.do_not_call && (
-        <NewCallCard customer={customer} orders={orders} onDone={onRefresh} />
-      )}
-
-      <Card>
-        <CardHeader><CardTitle className="text-base">طلبات الزبون</CardTitle></CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          {loading ? (
-            <div className="p-6 flex items-center justify-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ التحميل...
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">لا توجد طلبات مسجلة</div>
+        <TabsContent value="call" className="mt-3">
+          {canCallCreate && !customer.do_not_call ? (
+            <NewCallCard customer={customer} orders={orders} onDone={onRefresh} />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>الفرع</TableHead>
-                  <TableHead>المبلغ</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>البنود</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((o) => (
-                  <TableRow key={`${o.source}-${o.order_id}`}>
-                    <TableCell>{fmtDate(o.created_at)}</TableCell>
-                    <TableCell>{branchName(o.branch_id)}</TableCell>
-                    <TableCell>{o.total ?? 0}</TableCell>
-                    <TableCell><Badge variant="outline">{o.status || "—"}</Badge></TableCell>
-                    <TableCell className="max-w-xs truncate" title={o.items_summary || ""}>
-                      {o.items_summary || "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              لا يمكن تسجيل مكالمة لهذا الزبون
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        <TabsContent value="info" className="mt-3">
+          {canEdit && (
+            <EditCustomerCard customer={customer} branches={branches} onDone={onRefresh} />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
-function Info({ label, value }: { label: string; value: React.ReactNode }) {
+function OrdersList({
+  orders, loading, branchName,
+}: {
+  orders: OrderRow[];
+  loading: boolean;
+  branchName: (id: string | null) => string;
+}) {
+  if (loading) {
+    return (
+      <div className="py-8 flex items-center justify-center text-muted-foreground text-sm">
+        <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ التحميل...
+      </div>
+    );
+  }
+  if (orders.length === 0) {
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        لا توجد طلبات مسجلة
+      </div>
+    );
+  }
   return (
-    <div className="flex flex-col">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
+    <div className="space-y-2">
+      {orders.map((o) => (
+        <div
+          key={`${o.source}-${o.order_id}`}
+          className="bg-card border rounded-lg p-3 space-y-1.5"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-foreground">
+              {(o.total ?? 0).toLocaleString("en")} ₪
+            </span>
+            <Badge variant="outline" className="text-[10px] h-5">{o.status || "—"}</Badge>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> {fmtDate(o.created_at)}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> {branchName(o.branch_id)}
+            </span>
+          </div>
+          {o.items_summary && (
+            <p className="text-xs text-muted-foreground line-clamp-2 pt-1 border-t border-border/50">
+              {o.items_summary}
+            </p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -441,31 +530,29 @@ function EditCustomerCard({
   };
 
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">تعديل بيانات الزبون</CardTitle></CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-        <div className="space-y-1">
-          <Label>الاسم</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم الزبون" />
-        </div>
-        <div className="space-y-1">
-          <Label>الفرع</Label>
-          <Select value={branchId || "__none"} onValueChange={(v) => setBranchId(v === "__none" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none">— بدون فرع —</SelectItem>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={save} disabled={!changed || saving}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          <span className="mr-2">حفظ</span>
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="bg-card border rounded-lg p-4 space-y-3">
+      <h3 className="text-sm font-semibold">تعديل بيانات الزبون</h3>
+      <div className="space-y-1">
+        <Label className="text-xs">الاسم</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم الزبون" className="h-11" />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">الفرع</Label>
+        <Select value={branchId || "__none"} onValueChange={(v) => setBranchId(v === "__none" ? "" : v)}>
+          <SelectTrigger className="h-11"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none">— بدون فرع —</SelectItem>
+            {branches.map((b) => (
+              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Button onClick={save} disabled={!changed || saving} className="w-full h-11">
+        {saving ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Save className="h-4 w-4 ml-2" />}
+        حفظ
+      </Button>
+    </div>
   );
 }
 
@@ -509,26 +596,24 @@ function NewCallCard({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <PhoneCall className="h-4 w-4" /> تسجيل مكالمة جديدة
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="bg-card border rounded-lg p-4 space-y-3">
+      <h3 className="text-sm font-semibold flex items-center gap-2">
+        <PhoneCall className="h-4 w-4" /> تسجيل مكالمة جديدة
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label>نتيجة المكالمة *</Label>
+          <Label className="text-xs">نتيجة المكالمة *</Label>
           <Select value={outcome} onValueChange={setOutcome}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
               {OUTCOMES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>التقييم العام</Label>
+          <Label className="text-xs">التقييم العام</Label>
           <Select value={sentiment || "__none"} onValueChange={(v) => setSentiment(v === "__none" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="اختياري" /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue placeholder="اختياري" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none">— بدون —</SelectItem>
               {SENTIMENTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -536,13 +621,13 @@ function NewCallCard({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>التقييم (1-5)</Label>
-          <Input type="number" min={1} max={5} value={rating} onChange={(e) => setRating(e.target.value)} />
+          <Label className="text-xs">التقييم (1-5)</Label>
+          <Input type="number" inputMode="numeric" min={1} max={5} value={rating} onChange={(e) => setRating(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1">
-          <Label>ربط بطلبية (اختياري)</Label>
+          <Label className="text-xs">ربط بطلبية</Label>
           <Select value={relatedOrderId || "__none"} onValueChange={(v) => setRelatedOrderId(v === "__none" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="بدون" /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue placeholder="بدون" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none">— بدون —</SelectItem>
               {ccOrders.map((o) => (
@@ -553,38 +638,41 @@ function NewCallCard({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1 md:col-span-2">
-          <Label>ملاحظة</Label>
-          <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
-        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">ملاحظة</Label>
+        <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label>شكوى</Label>
+          <Label className="text-xs">شكوى</Label>
           <Textarea value={complaint} onChange={(e) => setComplaint(e.target.value)} rows={2} />
         </div>
         <div className="space-y-1">
-          <Label>اقتراح</Label>
+          <Label className="text-xs">اقتراح</Label>
           <Textarea value={suggestion} onChange={(e) => setSuggestion(e.target.value)} rows={2} />
         </div>
-        <div className="md:col-span-2 flex items-center gap-2">
-          <Checkbox id="needs-fu" checked={needsFollowup} onCheckedChange={(v) => setNeedsFollowup(!!v)} />
-          <Label htmlFor="needs-fu" className="cursor-pointer">يحتاج متابعة</Label>
-          {needsFollowup && (
-            <Input
-              type="datetime-local"
-              value={followupDue}
-              onChange={(e) => setFollowupDue(e.target.value)}
-              className="max-w-xs"
-            />
-          )}
+      </div>
+      <div className="flex items-center gap-2 pt-1">
+        <Checkbox id="needs-fu" checked={needsFollowup} onCheckedChange={(v) => setNeedsFollowup(!!v)} className="h-5 w-5" />
+        <Label htmlFor="needs-fu" className="cursor-pointer text-sm">يحتاج متابعة</Label>
+      </div>
+      {needsFollowup && (
+        <div className="space-y-1">
+          <Label className="text-xs">تاريخ المتابعة *</Label>
+          <Input
+            type="datetime-local"
+            value={followupDue}
+            onChange={(e) => setFollowupDue(e.target.value)}
+            className="h-11 w-full"
+          />
         </div>
-        <div className="md:col-span-2 flex justify-end">
-          <Button onClick={submit} disabled={saving || (needsFollowup && !followupDue)}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneCall className="h-4 w-4" />}
-            <span className="mr-2">تسجيل المكالمة</span>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      )}
+      <Button onClick={submit} disabled={saving || (needsFollowup && !followupDue)} className="w-full h-11">
+        {saving ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <PhoneCall className="h-4 w-4 ml-2" />}
+        تسجيل المكالمة
+      </Button>
+    </div>
   );
 }
 
