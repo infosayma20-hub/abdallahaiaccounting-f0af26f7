@@ -3582,6 +3582,9 @@ const POSPage = () => {
     // devices try to close the same shift at the same time. If `already_closed`
     // comes back true, the other device beat us to it; we must NOT post a
     // second variance row or re-write metric fields.
+    // 🛡️ Mark BEFORE the RPC so the realtime UPDATE that fires moments later
+    // is recognised as our own close and never raises the "closed elsewhere" alert.
+    selfClosedSessionsRef.current.add(session.id);
     const { data: closeRes, error: closeErr } = await supabase.rpc(
       "close_pos_session_atomic",
       { p_session_id: session.id, p_closing_cash: cash },
