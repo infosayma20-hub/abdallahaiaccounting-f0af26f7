@@ -49,9 +49,10 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
     const tick = () => {
       if (cancelled) return;
       if (document.visibilityState !== "visible") return;
-      // recheck() flips `checking` itself; if a previous tick is still
-      // pending we just skip this round — no overlapping probes.
-      try { recheck(); } catch { /* ignore */ }
+      // Silent revalidation — DO NOT blank POS with the full-screen
+      // "Checking…" spinner every 15s. If the bridge dropped, the
+      // ViewOnlyBanner will appear after the probe resolves.
+      try { recheck({ silent: true }); } catch { /* ignore */ }
     };
 
     const start = () => {
@@ -64,7 +65,7 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
 
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
-        // Came back to the tab — probe immediately, then resume interval.
+        // Came back to the tab — probe immediately (silent), then resume interval.
         tick();
         start();
       } else {

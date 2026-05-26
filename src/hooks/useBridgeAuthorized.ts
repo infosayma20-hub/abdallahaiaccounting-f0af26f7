@@ -23,8 +23,12 @@ export function useBridgeAuthorized() {
     version: null,
   });
 
-  const run = useCallback(async (force: boolean) => {
-    setState((prev) => ({ ...prev, checking: true }));
+  // `silent=true` performs a background revalidation WITHOUT flipping
+  // `checking` back to true. Critical for the heartbeat (every 15s) so
+  // it doesn't blank POS with a full-screen "Checking…" spinner every
+  // time it re-probes the bridge.
+  const run = useCallback(async (force: boolean, silent: boolean = false) => {
+    setState((prev) => (silent ? prev : { ...prev, checking: true }));
     let result: BridgeAuthResult;
     try {
       result = await checkBridgeAuthorized({ force });
@@ -43,7 +47,8 @@ export function useBridgeAuthorized() {
     void run(false);
   }, [run]);
 
-  const recheck = useCallback(() => run(true), [run]);
+  // Manual button → show feedback. Background heartbeat → silent.
+  const recheck = useCallback((opts?: { silent?: boolean }) => run(true, opts?.silent === true), [run]);
 
   return { ...state, recheck };
 }
