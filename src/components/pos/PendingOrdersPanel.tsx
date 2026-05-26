@@ -147,7 +147,31 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
           table: "call_center_orders",
           filter: `user_id=eq.${dataOwnerId}`,
         },
-        () => {
+        (payload) => {
+          // ACK: if this order targets our branch and hasn't been delivered yet,
+          // stamp delivered_at immediately so the call-center sees "📨 وصلت للفرع".
+          // The .is("delivered_at", null) guard ensures only the first device wins.
+          const newRow: any = payload.new;
+          if (
+            branchId &&
+            newRow?.target_branch_id === branchId &&
+            newRow?.status === "pending" &&
+            !newRow?.delivered_at
+          ) {
+            const deviceTag =
+              (typeof window !== "undefined" && (window as any).__deviceFingerprint) ||
+              localStorage.getItem("pos_device_fingerprint") ||
+              "unknown-device";
+            supabase
+              .from("call_center_orders" as any)
+              .update({
+                delivered_at: new Date().toISOString(),
+                delivered_to_device: deviceTag,
+              } as any)
+              .eq("id", newRow.id)
+              .is("delivered_at", null)
+              .then(() => { /* fire-and-forget */ });
+          }
           loadPendingOrders();
         }
       )

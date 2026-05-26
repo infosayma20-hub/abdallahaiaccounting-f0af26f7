@@ -23,6 +23,8 @@ interface DispatchedOrder {
   dispatched_by_name: string;
   created_at: string;
   accepted_at: string | null;
+  delivered_at: string | null;
+  delivered_to_device: string | null;
 }
 
 interface Props {
@@ -232,6 +234,20 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                         في انتظار قبول الفرع منذ {getTimeSince(order.created_at)}
                       </div>
                     )}
+                    {/* Delivery ACK indicator */}
+                    {order.status === "pending" && (
+                      order.delivered_at ? (
+                        <div className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
+                          📨 وصلت لجهاز الفرع — {new Date(order.delivered_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      ) : (
+                        getSecondsSince(order.created_at) > 10 && (
+                          <div className="flex items-center gap-1 text-[10px] text-red-600 font-bold bg-red-500/10 rounded px-1.5 py-0.5">
+                            ⚠️ لم تصل بعد لأي جهاز كاشير في الفرع — تحقق من اتصال الفرع!
+                          </div>
+                        )
+                      )
+                    )}
                     {order.accepted_at && (
                       <div className="text-[10px] text-muted-foreground">
                         تم القبول: {new Date(order.accepted_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
@@ -269,4 +285,8 @@ function getTimeSince(dateStr: string): string {
   if (mins < 60) return `${mins} دقيقة`;
   const hours = Math.floor(mins / 60);
   return `${hours} ساعة و ${mins % 60} دقيقة`;
+}
+
+function getSecondsSince(dateStr: string): number {
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
 }

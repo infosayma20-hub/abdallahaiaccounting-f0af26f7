@@ -3776,7 +3776,12 @@ const POSPage = () => {
     setActiveOrderIndex(0);
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
-    if (isAdmin) {
+    // Call center users sign out completely — they live on the auth screen
+    // between shifts. Admins go back to the apps grid; others to /employee.
+    if (isCallCenter) {
+      await supabase.auth.signOut();
+      navigate("/auth", { replace: true });
+    } else if (isAdmin) {
       navigate("/apps", { replace: true });
     } else {
       navigate("/employee", { replace: true });
@@ -5185,7 +5190,7 @@ const POSPage = () => {
                     className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
                     style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   >
-                    تحويل
+                    F12 تحويل
                   </button>
                 )}
               </div>
