@@ -7,6 +7,7 @@ import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
+import { usePermission } from "@/hooks/usePermission";
 
 /** Quick-add routes keyed by nav item id */
 const quickAddRoutes: Record<string, { label: string; path: string }> = {
