@@ -231,6 +231,12 @@ export const navigationSections: NavSection[] = [
         ],
       },
       {
+        id: "call-center-feedback", label: "متابعة الزبائن", description: "متابعة وملاحظات زبائن الكول سنتر", module: "pos", icon: PhoneCall,
+        color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/feedback", isDirect: true,
+        featurePermission: { app: "call_center_feedback", feature: "customers", perm: "view" },
+        keywords: ["كول سنتر", "زبائن", "متابعة", "فيدباك", "feedback"],
+      },
+      {
         id: "inventory", label: "المخزون", description: "منتجات، مستودعات، حركات، وتقييم", module: "inventory", icon: Package,
         color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
         enableSetting: "has_inventory",
