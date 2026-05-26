@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw } from "lucide-react";
+import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
 import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function ChooseWorkspacePage() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export default function ChooseWorkspacePage() {
   const [isCallCenter, setIsCallCenter] = useState(false);
   const { authorized: bridgeAuthorized, checking: bridgeChecking, recheck } = useBridgeAuthorized();
   const { isDeviceAdmin } = useIsDeviceAdmin();
+  const feedbackPerms = usePermission("call_center_feedback");
+  const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view");
 
   // Cashier may enter /pos only when Bridge is reachable.
   // Admins are allowed in (read-only mode is enforced inside POS).
@@ -36,7 +39,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -146,6 +149,25 @@ export default function ChooseWorkspacePage() {
               دخول كموظف
             </Button>
           </Card>
+
+          {canFeedback && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/feedback")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/feedback")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+              <PhoneCall className="w-8 h-8 text-emerald-500" />
+            </div>
+            <h2 className="text-lg font-semibold">متابعة الزبائن</h2>
+            <p className="text-sm text-muted-foreground">بحث الزبائن، عرض الطلبات، تسجيل المكالمات</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/feedback"); }}>
+              دخول متابعة الزبائن
+            </Button>
+          </Card>
+          )}
         </div>
 
         <div className="flex justify-center">
