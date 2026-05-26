@@ -264,10 +264,12 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 1500):
 }
 
 function bridgeJsonHeaders(): HeadersInit {
-  // Use text/plain for add-on endpoints so older installed bridges do not have
-  // bodyParser.json() consume the stream before device-config-addon can read it.
-  // The add-on still parses the body as JSON text.
-  return { "Content-Type": "text/plain;charset=UTF-8" };
+  // Bridge v6.3.4-generic registers `bodyParser.json()` BEFORE loading
+  // device-config-addon, and the addon reads `req.body` directly. So the
+  // body MUST be parsed as JSON or the addon receives `{}` and only the
+  // `updated_at` field ends up in device.json (branchId / terminalId /
+  // printers are all dropped). Send proper application/json.
+  return { "Content-Type": "application/json" };
 }
 
 /** Try the configured bridge URL first, then well-known local URLs. */
