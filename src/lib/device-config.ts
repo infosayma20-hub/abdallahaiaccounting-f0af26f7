@@ -189,10 +189,34 @@ export function posPrinterRoleToBridgeKey(role: string | null | undefined): Brid
 
 export function buildBridgePrintersMapFromRows(rows: PosPrinterRow[]): BridgePrintersMap {
   const out: BridgePrintersMap = {};
+  // Multiple kitchen_ticket printers must be spread across kitchen/grill/pizza
+  // instead of overwriting each other on the same key.
+  const kitchenFallbackKeys: BridgePrinterKey[] = ["kitchen", "grill", "pizza", "unified_kitchen"];
+  function pickKitchenKey(name: string): BridgePrinterKey | null {
+    const n = (name || "").toLowerCase();
+    // Name-based hints (Arabic + English)
+    if (!out.pizza && /(pizza|بيتزا)/i.test(n)) return "pizza";
+    if (!out.grill && /(grill|broast|بروست|مشاوي|شواية|سخان|فرن|oven)/i.test(n)) return "grill";
+    if (!out.kitchen && /(kitchen|مطبخ)/i.test(n)) return "kitchen";
+    // Otherwise first free slot
+    for (const k of kitchenFallbackKeys) if (!out[k]) return k;
+    return null;
+  }
   for (const p of rows) {
     const role = p.print_categories?.[0] || p.printer_type;
-    const key = posPrinterRoleToBridgeKey(role);
+    let key = posPrinterRoleToBridgeKey(role);
     if (!key) continue;
+    // If this slot is already taken and it's a kitchen-style role, pick next free
+    if (out[key] && (key === "kitchen" || key === "grill" || key === "pizza" || key === "unified_kitchen")) {
+      const alt = pickKitchenKey(p.name || "");
+      if (!alt) continue;
+      key = alt;
+    } else if (key === "kitchen") {
+      // First kitchen printer: still let name hints route correctly
+      // so "البيتزا" goes to pizza even if it's the first row processed.
+      const hinted = pickKitchenKey(p.name || "");
+      if (hinted) key = hinted;
+    }
     const settings = (p.settings || {}) as Record<string, any>;
     const isWindows = settings.connection === "usb" || settings.connection === "windows" || !!settings.windows_printer_name;
     if (isWindows) {
