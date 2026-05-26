@@ -27,9 +27,10 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
   const missing: string[] = [];
   if (!config.branchId) missing.push("الفرع");
   if (!config.terminalId) missing.push("محطة POS");
-  // First-run: if nothing is configured yet, allow ANY user to open the
-  // setup screen so a cashier on a brand-new PC isn't locked out.
-  const isFirstRun = !config.branchId && !config.terminalId;
+  // SECURITY: Device setup is restricted to admin / device_admin ONLY.
+  // A cashier on a brand-new PC MUST call an admin to configure it —
+  // letting employees pick branch/terminal themselves enables tampering
+  // (e.g. binding a Ramallah terminal to a Nablus cash box).
 
   // Conflict detection — only check when both sides are present.
   const conflicts: string[] = [];
@@ -69,7 +70,7 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
         <div className="font-semibold truncate">{title}</div>
         <div className="opacity-80 truncate">{subtitle}</div>
       </div>
-      {(isDeviceAdmin || isFirstRun) ? (
+      {isDeviceAdmin ? (
         <button
           type="button"
           onClick={() => window.location.assign("/device-setup")}
@@ -79,9 +80,19 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
           <Settings className="h-3.5 w-3.5" /> إعداد الجهاز
         </button>
       ) : (
-        <span className="inline-flex items-center gap-1 text-[11px] opacity-80 shrink-0">
-          <ShieldAlert className="h-3.5 w-3.5" /> راجع الإدارة
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="inline-flex items-center gap-1 text-[11px] opacity-80">
+            <ShieldAlert className="h-3.5 w-3.5" /> راجع الإدارة
+          </span>
+          <button
+            type="button"
+            onClick={() => window.location.assign("/choose-workspace")}
+            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium border"
+            style={{ borderColor: color, color }}
+          >
+            ← العودة
+          </button>
+        </div>
       )}
     </div>
   );
