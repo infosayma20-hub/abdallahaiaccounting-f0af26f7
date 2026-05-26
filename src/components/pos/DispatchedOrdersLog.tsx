@@ -155,6 +155,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
   const completedCount = orders.filter(o => o.status === "completed").length;
 
   return (
+    <>
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl lg:max-w-2xl p-0" dir="rtl">
         <SheetHeader className="p-3 border-b border-border">
