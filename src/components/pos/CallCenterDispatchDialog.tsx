@@ -416,9 +416,9 @@ const CallCenterDispatchDialog = ({
             </div>
             {/* Warning if selected branch has no cashier */}
             {selectedBranch && (branchSessions[selectedBranch.id] || 0) === 0 && (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-destructive/10 text-destructive text-xs font-medium">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-medium">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>تحذير: لا يوجد كاشير مفتوح وردية في هذا الفرع حالياً. الطلب سيبقى معلقاً.</span>
+                <span>📥 لا يوجد كاشير مفتوح وردية الآن — الطلب سيُحفظ في قائمة انتظار الفرع ويظهر فور فتح أول وردية.</span>
               </div>
             )}
           </div>
