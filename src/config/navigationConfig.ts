@@ -32,6 +32,8 @@ export interface NavItem {
   isDirect?: boolean;       // no expansion, just a link
   /** Setting key that must be truthy to consider this app "enabled". If undefined → always enabled */
   enableSetting?: string;
+  /** Feature permission required to show this nav item. Checked by AppSidebar. */
+  featurePermission?: { app: string; feature: string; perm: string };
 }
 
 export interface NavSection {
