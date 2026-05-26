@@ -178,7 +178,9 @@ export async function checkBridgeHealth(): Promise<{
               online: true,
               printers: freshPrinters,
               source: freshData.printers_source,
-              synced: true,
+              // Only flag "synced" when the bridge actually adopted our branch
+              // printers (i.e. dropped the baked-in fallback list).
+              synced: freshData.printers_source !== "fallback",
               subnetWarnings: Array.isArray(freshData.subnet_warnings) ? freshData.subnet_warnings : [],
               hostSubnets: Array.isArray(freshData.host_subnets) ? freshData.host_subnets : [],
               subnetCheckSupported: !!freshData.subnet_check,
