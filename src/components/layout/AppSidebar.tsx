@@ -413,7 +413,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
         {/* Disabled/locked items at the very end */}
         {(() => {
-          const disabledItems = navigationSections.flatMap(s => s.items).filter(item => isItemDisabled(item));
+          const disabledItems = navigationSections.flatMap(s => s.items).filter(item => isItemDisabled(item) && hasNavPermission(item));
           if (disabledItems.length === 0) return null;
           return (
             <div>
