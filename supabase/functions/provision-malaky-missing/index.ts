@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
 
   for (const emp of EMPLOYEES) {
     try {
-      // 1. Create auth user
+      // 1. Create or find auth user
+      let authId: string | null = null;
       const { data: created, error: cErr } = await supabase.auth.admin.createUser({
         email: emp.email,
         password: "123456",
@@ -46,12 +47,32 @@ Deno.serve(async (req) => {
         },
       });
 
-      if (cErr || !created?.user) {
-        results.push({ name: emp.full_name, email: emp.email, ok: false, error: cErr?.message });
-        continue;
+      if (created?.user) {
+        authId = created.user.id;
+      } else {
+        // Likely already exists — look up by email
+        const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
+        const existing = list?.users?.find((u) => u.email?.toLowerCase() === emp.email.toLowerCase());
+        if (existing) {
+          authId = existing.id;
+          // Reset password to 123456 to be safe
+          await supabase.auth.admin.updateUserById(authId, { password: "123456" });
+        } else {
+          results.push({ name: emp.full_name, email: emp.email, ok: false, error: cErr?.message || "no user" });
+          continue;
+        }
       }
 
-      const authId = created.user.id;
+      // Skip if employee row already exists for this auth_user_id
+      const { data: existingEmp } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("auth_user_id", authId)
+        .maybeSingle();
+      if (existingEmp) {
+        results.push({ name: emp.full_name, email: emp.email, ok: true, employee_id: existingEmp.id, auth_id: authId, note: "already linked" });
+        continue;
+      }
 
       // 2. Create employee row
       const { data: empRow, error: eErr } = await supabase
