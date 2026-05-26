@@ -508,14 +508,14 @@ export default function NewDeviceOnboardingPage() {
     } catch { /* ignore */ }
   }, [bridgeOnline, printers]);
 
-  // Auto-refresh bridge printer health once after bridge connects + printers load.
+  // ⚠️ Do NOT auto-test printers on page open — the user wants to test each
+  // printer manually (so they can identify which device is which). We only
+  // fetch the list of Windows printers so the row selector is populated.
   useEffect(() => {
-    if (!bridgeOnline || printers.length === 0) return;
-    void refreshPrinterStatus();
-    // Also pull /windows-printers so rows can show real portName/driverName.
+    if (!bridgeOnline) return;
     void fetchWindowsPrinters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bridgeOnline, printers.length, branchId]);
+  }, [bridgeOnline]);
 
   const fetchWindowsPrinters = async () => {
     try {
