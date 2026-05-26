@@ -630,7 +630,6 @@ const App = () => (
                       <Route path="/pos-reports" element={<ModuleGuard><POSReportsPage /></ModuleGuard>} />
                       <Route path="/printer-settings" element={<PrinterSettingsPage />} />
                       <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
-                      <Route path="/feedback" element={<FeatureGuard app="call_center_feedback" feature="customers" perm="view" label="متابعة الزبائن"><FeedbackPage /></FeatureGuard>} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
                       <Route path="/workshops" element={<WorkshopsPage />} />
