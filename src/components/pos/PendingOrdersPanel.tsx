@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   Bell, Phone, MapPin, Truck, ShoppingBag, CreditCard, Banknote,
-  CheckCircle, Clock, User, X, ChevronDown,
+  CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle,
 } from "lucide-react";
 
 interface CallCenterOrder {
@@ -29,6 +29,16 @@ interface CallCenterOrder {
   status: string;
   dispatched_by_name: string;
   created_at: string;
+}
+
+interface OrderEdit {
+  id: string;
+  call_center_order_id: string;
+  proposed_changes: Record<string, any>;
+  edit_note: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  status: string;
 }
 
 interface Props {
@@ -83,6 +93,9 @@ const playNotificationSound = () => {
 
 const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAcceptOrder }: Props) => {
   const [orders, setOrders] = useState<CallCenterOrder[]>([]);
+  const [edits, setEdits] = useState<OrderEdit[]>([]);
+  const [editsOrderMap, setEditsOrderMap] = useState<Record<string, CallCenterOrder>>({});
+  const [deciding, setDeciding] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
   const prevCountRef = useRef(0);
@@ -127,6 +140,31 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
     prevCountRef.current = newOrders.length;
     setOrders(newOrders);
   }, [dataOwnerId, branchId, enabled]);
+
+  // Load pending edit proposals for this branch (with their parent order snapshot for the diff UI).
+  const loadEdits = useCallback(async () => {
+    if (!dataOwnerId || !enabled || !branchId) { setEdits([]); setEditsOrderMap({}); return; }
+    const { data: editRows } = await supabase
+      .from("call_center_order_edits" as any)
+      .select("id, call_center_order_id, proposed_changes, edit_note, created_by_name, created_at, status")
+      .eq("user_id", dataOwnerId)
+      .eq("target_branch_id", branchId)
+      .eq("status", "pending_review")
+      .order("created_at", { ascending: false });
+    const list = ((editRows as any) || []) as OrderEdit[];
+    setEdits(list);
+    if (list.length === 0) { setEditsOrderMap({}); return; }
+    const ids = list.map(e => e.call_center_order_id);
+    const { data: orderRows } = await supabase
+      .from("call_center_orders" as any)
+      .select("*")
+      .in("id", ids);
+    const map: Record<string, CallCenterOrder> = {};
+    for (const o of ((orderRows as any[]) || [])) map[o.id] = o as CallCenterOrder;
+    setEditsOrderMap(map);
+  }, [dataOwnerId, branchId, enabled]);
+
+  useEffect(() => { if (enabled) loadEdits(); }, [enabled, loadEdits]);
 
   // Initial load
   useEffect(() => {
@@ -191,6 +229,32 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
     };
   }, [dataOwnerId, enabled, loadPendingOrders]);
 
+  // Realtime for edit proposals on this branch
+  useEffect(() => {
+    if (!dataOwnerId || !enabled) return;
+    const channel = supabase
+      .channel("call-center-order-edits")
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "call_center_order_edits",
+        filter: `user_id=eq.${dataOwnerId}`,
+      }, (payload) => {
+        const row: any = payload.new || payload.old;
+        if (row?.target_branch_id === branchId) {
+          if (payload.eventType === "INSERT") {
+            playNotificationSound();
+            toast.info(`✏️ طلب تعديل من الكول سنتر`, {
+              description: row.edit_note || "تعديل على طلبية محوّلة",
+              action: { label: "عرض", onClick: () => setOpen(true) },
+              duration: 10000,
+            });
+          }
+          loadEdits();
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [dataOwnerId, enabled, branchId, loadEdits]);
+
   const handleAccept = async (order: CallCenterOrder) => {
     setAccepting(order.id);
     try {
@@ -231,6 +295,52 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
   };
 
   const pendingCount = orders.length;
+  const pendingEditsCount = edits.length;
+  const totalBadge = pendingCount + pendingEditsCount;
+
+  const handleAcceptEdit = async (edit: OrderEdit) => {
+    setDeciding(edit.id);
+    const { data, error } = await supabase.rpc("accept_order_edit" as any, { p_edit_id: edit.id });
+    if (error || !data) {
+      const msg = error?.message || "";
+      if (msg.includes("cashier_session_required")) toast.error("يجب فتح وردية على هذا الفرع لقبول التعديل");
+      else if (msg.includes("order_already_invoiced")) toast.error("لا يمكن تعديل طلبية بعد إصدار الفاتورة");
+      else if (msg.includes("edit_already_decided")) toast.warning("التعديل عُولج مسبقاً");
+      else toast.error("فشل قبول التعديل: " + msg);
+    } else {
+      toast.success("✅ تم تطبيق التعديل على الطلبية");
+    }
+    setDeciding(null);
+    loadEdits();
+    loadPendingOrders();
+  };
+
+  const handleRejectEdit = async (edit: OrderEdit) => {
+    const reason = window.prompt("سبب الرفض (يُسجَّل للكول سنتر):", "");
+    if (reason === null) return;
+    setDeciding(edit.id);
+    const { error } = await supabase.rpc("reject_order_edit" as any, { p_edit_id: edit.id, p_reason: reason || "" });
+    if (error) {
+      const msg = error.message || "";
+      if (msg.includes("cashier_session_required")) toast.error("يجب فتح وردية على هذا الفرع لرفض التعديل");
+      else toast.error("فشل رفض التعديل: " + msg);
+    } else {
+      toast.success("تم رفض التعديل");
+    }
+    setDeciding(null);
+    loadEdits();
+  };
+
+  const fieldLabels: Record<string, string> = {
+    customer_name: "اسم الزبون",
+    customer_phone: "رقم الهاتف",
+    delivery_type: "نوع الطلب",
+    delivery_address: "العنوان",
+    payment_method: "طريقة الدفع",
+    order_note: "ملاحظة الطلب",
+    items: "الأصناف",
+    total: "المجموع",
+  };
 
   return (
     <>
@@ -241,14 +351,14 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
         style={{ border: "1px solid rgba(255,255,255,0.15)" }}
         title="فواتير معلقة"
       >
-        <Bell className={`h-4 w-4 ${pendingCount > 0 ? "text-amber-400 animate-pulse" : "text-white/70 group-hover:text-white"}`} />
-        {pendingCount > 0 && (
+        <Bell className={`h-4 w-4 ${totalBadge > 0 ? "text-amber-400 animate-pulse" : "text-white/70 group-hover:text-white"}`} />
+        {totalBadge > 0 && (
           <span className="absolute -top-1 -left-1 w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center shadow-lg z-50 animate-pulse">
-            {pendingCount}
+            {totalBadge}
           </span>
         )}
         <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-          فواتير معلقة ({pendingCount})
+          فواتير وتعديلات معلّقة ({totalBadge})
         </span>
       </button>
 
