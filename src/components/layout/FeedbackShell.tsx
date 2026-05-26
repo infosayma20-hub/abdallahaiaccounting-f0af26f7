@@ -19,19 +19,10 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState<string>("");
-  const [displayName, setDisplayName] = useState<string>("");
 
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      // Self profile → display name only.
-      const { data: self } = await supabase
-        .from("profiles")
-        .select("display_name, full_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setDisplayName(((self as any)?.display_name) || ((self as any)?.full_name) || user.email || "");
-
       // Tenant/team owner profile → company name (so team members see the
       // parent company, not their own profile's company_name).
       const { data: ownerId } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
