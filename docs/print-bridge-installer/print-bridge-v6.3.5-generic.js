@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- *  AMWALI Print Bridge v6.3.4-generic
+ *  AMWALI Print Bridge v6.3.5-generic
  *
  *  Based on v6.3.3 (kitchen-delivery fix + /print + /print-routed +
  *  logo composite + duplicate guard + drawer + shift print) with all
@@ -19,13 +19,13 @@
  *      printers[]`.
  *
  *  ── Files in c:\print-bridge\ ──────────────────────────────────────
- *    print-bridge-v6.3.4-generic.js    (this file)
+ *    print-bridge-v6.3.5-generic.js    (this file)
  *    device-config-addon.js            (device.json persistence)
  *    discover-printers-addon.js        (network printer discovery)
  *    logo.png                          (optional, 240px target width)
  *    device.json                       (auto-created on first POS save)
  *
- *  Run:     node print-bridge-v6.3.4-generic.js
+ *  Run:     node print-bridge-v6.3.5-generic.js
  *  Health:  GET http://127.0.0.1:3001/health
  * ═══════════════════════════════════════════════════════════════════════
  */
@@ -1279,7 +1279,7 @@ app.listen(PORT, () => {
   const A = getActivePrinters();
   const fmt = (p) => p ? (p.type === 'network' ? `${p.ip}:${p.port}` : `windows:${p.windowsPrinterName}`) : '—';
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('  AMWALI Print Bridge v6.3.4-generic');
+  console.log('  AMWALI Print Bridge v6.3.5-generic');
   console.log(`  Printers source: ${deviceCfg.getSource()}`);
   console.log(`  Receipt: ${fmt(A.receipt)}`);
   console.log(`  Kitchen: ${fmt(A.kitchen)}`);
