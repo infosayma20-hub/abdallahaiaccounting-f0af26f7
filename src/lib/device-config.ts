@@ -232,39 +232,8 @@ export async function syncBranchPrintersToBridge(branchId: string): Promise<{ ok
   const map = buildBridgePrintersMapFromRows((data || []) as PosPrinterRow[]);
   const count = Object.keys(map).length;
   if (count === 0) return { ok: false, count: 0 };
-  // 1) Try bulk replace via /device-config (newer bridges)
-  const bulkOk = await pushPrintersToBridge(completePrintersReplacementMap(map), { replace: true });
-
-  // 2) Verify /health — if bridge is still on fallback, force per-printer add
-  //    (compatible with ALL bridge versions via /add-printer).
-  let stillFallback = false;
-  try {
-    for (const base of bridgeCandidates()) {
-      const res = await fetchWithTimeout(`${base}/health`, { method: "GET" }, 3000).catch(() => null);
-      if (!res || !res.ok) continue;
-      const j = await res.json().catch(() => ({} as any));
-      stillFallback = j?.printers_source === "fallback";
-      break;
-    }
-  } catch { /* ignore */ }
-
-  if (stillFallback) {
-    for (const [key, p] of Object.entries(map)) {
-      if (!p || p.type !== "network") continue;
-      await addPrinterToBridge({
-        key,
-        name: p.name,
-        ip: p.ip,
-        port: p.port || 9100,
-        width: (p as BridgeNetworkPrinter).width,
-        stationId: (p as BridgeNetworkPrinter).stationId,
-        force: true,
-      }).catch(() => null);
-    }
-    await reloadBridgeConfig().catch(() => false);
-  }
-
-  return { ok: bulkOk || stillFallback, count };
+  const ok = await pushPrintersToBridge(completePrintersReplacementMap(map), { replace: true });
+  return { ok, count };
 }
 
 export function getDeviceConfig(): DeviceConfig {
