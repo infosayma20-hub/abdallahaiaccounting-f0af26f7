@@ -18,6 +18,7 @@ import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, 
 import { Switch } from "@/components/ui/switch";
 import SalesRepToggleSection from "@/components/employees/SalesRepToggleSection";
 import CashierToggleSection from "@/components/employees/CashierToggleSection";
+import FeedbackToggleSection from "@/components/employees/FeedbackToggleSection";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeFinancialMovementsTab from "@/components/hr/EmployeeFinancialMovementsTab";
