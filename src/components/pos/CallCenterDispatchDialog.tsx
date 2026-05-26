@@ -245,14 +245,10 @@ const CallCenterDispatchDialog = ({
       return;
     }
 
-    // Warn if no active session on the target branch
-    const activeCashiers = branchSessions[selectedBranch!.id] || 0;
-    if (activeCashiers === 0) {
-      const confirmed = window.confirm(
-        `⚠️ لا يوجد كاشير مفتوح وردية حالياً في فرع ${selectedBranch!.name}!\n\nهل تريد المتابعة بإرسال الطلب؟ سيبقى معلقاً حتى يفتح أحد الكاشيرية وردية.`
-      );
-      if (!confirmed) return;
-    }
+    // No blocking confirm anymore — if no cashier is online on the target
+    // branch the order is queued and surfaces the moment a cashier opens a
+    // shift on that branch (see PendingOrdersPanel). The red banner below
+    // the branch grid already makes this visible to the call center agent.
 
     setSending(true);
     try {
