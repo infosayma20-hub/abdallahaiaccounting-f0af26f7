@@ -5245,6 +5245,9 @@ const POSPage = () => {
               const bridgeOk = bridgeOnlineDiag === true;
               const printersOk = (printersCountDiag ?? 0) > 0;
               const blocking = !branchOk || !terminalOk;
+              // الكول سنتر ما بلزمه Bridge ولا طابعات — فقط فرع + محطة.
+              const callCenterBox = selectedCashBoxId === "__call_center__";
+              const hideHardwareRows = callCenterEnabled && callCenterBox;
               const Row = ({ ok, label, value }: { ok: boolean | null; label: string; value: string }) => (
                 <div className="flex items-center justify-between text-[12px]">
                   <span className="text-muted-foreground">{label}</span>
@@ -5260,12 +5263,16 @@ const POSPage = () => {
                   blocking ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/30"
                 }`}>
                   <div className="text-[12px] font-semibold mb-1">حالة الجهاز</div>
-                  <Row ok={bridgeOnlineDiag} label="برنامج الطباعة" value={bridgeOk ? "متصل" : bridgeOnlineDiag === false ? "غير متصل" : "جارٍ الفحص…"} />
+                  {!hideHardwareRows && (
+                    <Row ok={bridgeOnlineDiag} label="برنامج الطباعة" value={bridgeOk ? "متصل" : bridgeOnlineDiag === false ? "غير متصل" : "جارٍ الفحص…"} />
+                  )}
                   <Row ok={branchOk} label="الفرع" value={branchOk ? "معرف" : "غير معرف"} />
                   <Row ok={terminalOk} label="محطة POS" value={terminalOk ? "معرفة" : "غير معرفة"} />
                   <Row ok={null} label="الصندوق النقدي" value="اختياري" />
-                  <Row ok={printersCountDiag === null ? null : printersOk} label="الطابعات"
-                       value={printersCountDiag === null ? "جارٍ الفحص…" : printersOk ? `${printersCountDiag} معرفة` : "غير معرفة"} />
+                  {!hideHardwareRows && (
+                    <Row ok={printersCountDiag === null ? null : printersOk} label="الطابعات"
+                         value={printersCountDiag === null ? "جارٍ الفحص…" : printersOk ? `${printersCountDiag} معرفة` : "غير معرفة"} />
+                  )}
                   {blocking && (
                     <div className="pt-2 space-y-2">
                       <div className="text-[12px] text-destructive">
