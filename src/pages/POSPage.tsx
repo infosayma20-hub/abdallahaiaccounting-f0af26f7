@@ -3731,7 +3731,7 @@ const POSPage = () => {
     }
 
     // Prepare shift summary data
-    setShiftSummaryData({
+    const summaryPayload = {
       companyName: company?.name || "شركتي",
       logoUrl: company?.logo_url || "",
       terminalName: posDisplayName,
@@ -3757,6 +3757,14 @@ const POSPage = () => {
       currencyBreakdown,
       paymentMethodBreakdown,
       exchangeRates,
+    };
+    setShiftSummaryData(summaryPayload);
+
+    // 🖨️ Fire print immediately — don't depend on the dialog's auto-print timer
+    // (the dialog can be dismissed before 600ms, or the bridge call can race
+    // with navigation). This guarantees the shift summary always prints on close.
+    printShiftSummaryImage(summaryPayload as any).catch((err) => {
+      console.warn("[shift-close-print] bridge unavailable", err);
     });
 
     setShowCloseShift(false);
