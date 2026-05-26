@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
@@ -496,15 +495,6 @@ function OrdersList({
           )}
         </div>
       ))}
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex flex-col">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
     </div>
   );
 }
