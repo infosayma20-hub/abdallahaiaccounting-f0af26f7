@@ -2,7 +2,7 @@ import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
   Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
-  Activity, PieChart, Scale, LayoutDashboard,
+  Activity, PieChart, Scale, LayoutDashboard, PhoneCall,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -32,6 +32,8 @@ export interface NavItem {
   isDirect?: boolean;       // no expansion, just a link
   /** Setting key that must be truthy to consider this app "enabled". If undefined → always enabled */
   enableSetting?: string;
+  /** Feature permission required to show this nav item. Checked by AppSidebar. */
+  featurePermission?: { app: string; feature: string; perm: string };
 }
 
 export interface NavSection {
@@ -227,6 +229,12 @@ export const navigationSections: NavSection[] = [
             ],
           },
         ],
+      },
+      {
+        id: "call-center-feedback", label: "متابعة الزبائن", description: "متابعة وملاحظات زبائن الكول سنتر", module: "pos", icon: PhoneCall,
+        color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/feedback", isDirect: true,
+        featurePermission: { app: "call_center_feedback", feature: "customers", perm: "view" },
+        keywords: ["كول سنتر", "زبائن", "متابعة", "فيدباك", "feedback"],
       },
       {
         id: "inventory", label: "المخزون", description: "منتجات، مستودعات، حركات، وتقييم", module: "inventory", icon: Package,

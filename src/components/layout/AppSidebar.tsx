@@ -7,6 +7,7 @@ import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
+import { usePermission } from "@/hooks/usePermission";
 
 /** Quick-add routes keyed by nav item id */
 const quickAddRoutes: Record<string, { label: string; path: string }> = {
@@ -50,6 +51,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     return (settings as any)?.hidden_apps || [];
   }, [settings]);
   const { allow: allowOverrides, deny: denyOverrides } = useMyAppOverrides();
+  const feedbackPerms = usePermission("call_center_feedback");
 
   const isItemHidden = (item: NavItem) => {
     if (denyOverrides.has(item.id)) return true;
@@ -57,9 +59,19 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     return hiddenApps.includes(item.id);
   };
 
+  const hasNavPermission = (item: NavItem) => {
+    if (!item.featurePermission) return true;
+    if (item.featurePermission.app === "call_center_feedback") {
+      if (feedbackPerms.loading) return false;
+      return feedbackPerms.can(item.featurePermission.feature, item.featurePermission.perm);
+    }
+    return true;
+  };
+
   // Item is locked by super admin — show with lock
   const isItemDisabled = (item: NavItem) => {
     if (isItemHidden(item)) return true;
+    if (!hasNavPermission(item)) return true;
     return false;
   };
 
@@ -401,7 +413,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
         {/* Disabled/locked items at the very end */}
         {(() => {
-          const disabledItems = navigationSections.flatMap(s => s.items).filter(item => isItemDisabled(item));
+          const disabledItems = navigationSections.flatMap(s => s.items).filter(item => isItemDisabled(item) && hasNavPermission(item));
           if (disabledItems.length === 0) return null;
           return (
             <div>
