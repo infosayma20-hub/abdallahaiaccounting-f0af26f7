@@ -6508,6 +6508,7 @@ const POSPage = () => {
       <ShiftClosedElsewhereDialog
         open={shiftClosedElsewhere && !!session}
         closedAt={shiftClosedAt}
+        signOutLabel={isAdmin ? "العودة لشاشة التطبيقات" : "العودة لشاشة الموظف"}
         onOpenNewShift={() => {
           // Drop the closed session locally so the OpenShift screen reappears.
           setSession(null);
