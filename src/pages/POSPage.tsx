@@ -1339,15 +1339,13 @@ const POSPage = () => {
           const hiddenApps: string[] = (csHidden as any)?.hidden_apps || [];
           const callCenterHidden = hiddenApps.includes("call_center") || hiddenApps.includes("callcenter");
           
-          const deviceBranchId = getDeviceConfig().branchId;
-          const branchSafeBoxes = (boxes || []).filter((box: any) => {
-            // Allow generic boxes (no branch link) + boxes that match this device's branch.
-            // Block only boxes explicitly bound to a DIFFERENT branch.
-            if (!box.branch_id) return true;
-            if (!deviceBranchId) return true;
-            return box.branch_id === deviceBranchId;
-          });
-          const boxList: CashBoxOption[] = [...branchSafeBoxes];
+          // Emergency POS access: do NOT silently hide cash boxes by branch.
+          // The previous filter caused boxes to "disappear" whenever a device
+          // was bound to a branch with no matching cash box. Admins setting up
+          // multiple branches expect to see every active POS cash box and pick
+          // the right one themselves. Selection-side guard remains permissive
+          // (see guardCashBoxBranchId), so this is consistent.
+          const boxList: CashBoxOption[] = [...(boxes || [])] as CashBoxOption[];
           // Check if this auth user is flagged as a call-center user in pos_users.
           // Such users have no cash box / opening cash — they only dispatch orders.
           const { data: posUserRow } = await supabase
