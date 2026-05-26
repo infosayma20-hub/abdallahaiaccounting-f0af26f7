@@ -111,7 +111,7 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
   { value: "unified_kitchen",  label: "مطبخ موحّد",      emoji: "🧑‍🍳" },
 ];
 
-const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip?v=20260525-device-config-bodyfix";
+const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip?v=20260526-with-node-msi";
 
 // Map our pos_printers role → the bridge's printer key (in device.json)
 function roleToBridgeKey(role: string): BridgePrinterKey | null {
