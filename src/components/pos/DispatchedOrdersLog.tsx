@@ -3,13 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import EditOrderDialog from "./EditOrderDialog";
 
 interface DispatchedOrder {
   id: string;
   source_app: string;
+  target_branch_id: string | null;
   target_branch_name: string;
   customer_name: string;
   customer_phone: string;
@@ -25,6 +27,7 @@ interface DispatchedOrder {
   accepted_at: string | null;
   delivered_at: string | null;
   delivered_to_device: string | null;
+  pos_order_id: string | null;
 }
 
 interface Props {
@@ -58,6 +61,8 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<DispatchedOrder | null>(null);
+  const [editsByOrder, setEditsByOrder] = useState<Record<string, { pending: number; lastStatus?: string }>>({});
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -84,6 +89,25 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
   useEffect(() => {
     if (open) loadOrders();
   }, [open, loadOrders]);
+
+  // Load edit proposals for these orders so we can show status badges.
+  const loadEdits = useCallback(async () => {
+    if (!dataOwnerId || orders.length === 0) { setEditsByOrder({}); return; }
+    const ids = orders.map(o => o.id);
+    const { data } = await supabase
+      .from("call_center_order_edits" as any)
+      .select("call_center_order_id, status")
+      .in("call_center_order_id", ids);
+    const map: Record<string, { pending: number; lastStatus?: string }> = {};
+    for (const e of ((data as any[]) || [])) {
+      const k = e.call_center_order_id;
+      if (!map[k]) map[k] = { pending: 0 };
+      if (e.status === "pending_review") map[k].pending += 1;
+      map[k].lastStatus = e.status;
+    }
+    setEditsByOrder(map);
+  }, [dataOwnerId, orders]);
+  useEffect(() => { loadEdits(); }, [loadEdits]);
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
