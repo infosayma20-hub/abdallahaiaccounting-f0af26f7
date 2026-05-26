@@ -47,35 +47,43 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] bg-background flex flex-col">
-      <header className="border-b bg-card">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-              <PhoneCall className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-base font-bold text-foreground leading-tight truncate">متابعة الزبائن</h1>
+    <div dir="rtl" className="min-h-[100dvh] bg-background flex flex-col w-full">
+      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+        <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            aria-label="تسجيل خروج"
+            className="shrink-0 -mr-2"
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
+
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-end">
+            <div className="min-w-0 text-right">
+              <h1 className="text-sm sm:text-base font-bold text-foreground leading-tight truncate">
+                متابعة الزبائن
+              </h1>
               {companyName && (
-                <p className="text-xs text-muted-foreground truncate">{companyName}</p>
+                <p className="text-[11px] text-muted-foreground truncate leading-tight">
+                  {companyName}
+                </p>
               )}
             </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {displayName && (
-              <span className="text-sm text-muted-foreground hidden sm:inline truncate max-w-[160px]">
-                {displayName}
-              </span>
-            )}
-            <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">تسجيل خروج</span>
-            </Button>
+            <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <PhoneCall className="w-4.5 h-4.5 text-emerald-600" />
+            </div>
           </div>
         </div>
+        {displayName && (
+          <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pb-1.5 text-[11px] text-muted-foreground text-left truncate">
+            {displayName}
+          </div>
+        )}
       </header>
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-4">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {children}
       </main>
     </div>
