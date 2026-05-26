@@ -5231,7 +5231,7 @@ const POSPage = () => {
       {/* ══════ MODALS ══════ */}
 
       {/* Open Shift Dialog */}
-      <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate("/apps", { replace: true }); setShowOpenShift(v); }}>
+      <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate("/choose-workspace", { replace: true }); setShowOpenShift(v); }}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
@@ -5276,15 +5276,32 @@ const POSPage = () => {
                       <div className="text-[12px] text-destructive">
                         لا يمكن فتح الوردية حتى يتم ضبط {!branchOk ? "الفرع" : ""}{!branchOk && !terminalOk ? " و" : ""}{!terminalOk ? "محطة POS" : ""}.
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="w-full h-9"
-                        onClick={() => { setShowOpenShift(false); navigate("/onboarding/new-device"); }}
-                      >
-                        🛠️ فتح إعداد الجهاز
-                      </Button>
+                      {isAdmin ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="w-full h-9"
+                          onClick={() => { setShowOpenShift(false); navigate("/onboarding/new-device"); }}
+                        >
+                          🛠️ فتح إعداد الجهاز
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="text-[11px] text-muted-foreground bg-muted/50 rounded p-2 text-center">
+                            ⚠️ إعداد الجهاز يحتاج صلاحية الإدارة. راجع المسؤول.
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="w-full h-9"
+                            onClick={() => { setShowOpenShift(false); navigate("/choose-workspace", { replace: true }); }}
+                          >
+                            ← العودة لاختيار التطبيق
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
