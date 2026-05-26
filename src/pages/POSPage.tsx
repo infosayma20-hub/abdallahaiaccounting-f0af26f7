@@ -3226,20 +3226,34 @@ const POSPage = () => {
             .in("id", productIds);
 
           const stationMap = new Map((productsWithStations || []).map((p: any) => [p.id, p.kitchen_station_id]));
-          const defaultStationId = (stationsData as any[])[0].id;
+          // Detect if ANY product in the cart has an explicit station assignment.
+          // If none do, we BROADCAST the full order to all stations (handled
+          // downstream when kitchenJobs is empty) instead of funneling everything
+          // to an arbitrary default station — which previously caused only one
+          // printer (e.g. pizza) to fire while kitchen/grill stayed silent.
+          const hasAnyAssignment = cart.some(i => stationMap.get(i.product_id));
 
-          // Group items by station
+          // Group items by station only when assignments exist; items without
+          // an explicit assignment are sent to ALL stations so the kitchen
+          // crew never misses an item.
           const stationItems: Record<string, any[]> = {};
-          cart.forEach(item => {
-            const stationId = stationMap.get(item.product_id) || defaultStationId;
-            if (!stationItems[stationId]) stationItems[stationId] = [];
-            stationItems[stationId].push({
-              name: item.name,
-              qty: item.qty,
-              note: item.note,
-              modifiers: item.modifiers || [],
+          if (hasAnyAssignment) {
+            cart.forEach(item => {
+              const assigned = stationMap.get(item.product_id);
+              const targets: string[] = assigned
+                ? [assigned as string]
+                : (stationsData as any[]).map((s: any) => s.id); // broadcast unassigned
+              for (const stationId of targets) {
+                if (!stationItems[stationId]) stationItems[stationId] = [];
+                stationItems[stationId].push({
+                  name: item.name,
+                  qty: item.qty,
+                  note: item.note,
+                  modifiers: item.modifiers || [],
+                });
+              }
             });
-          });
+          }
 
           // NOTE: kitchen_tickets are created exclusively by the DB trigger
           // (trg_pos_order_lines_kds_sync + kds_create_tickets_for_order) to
