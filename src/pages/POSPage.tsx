@@ -6516,8 +6516,13 @@ const POSPage = () => {
           orderCounter.current = 1;
         }}
         onSignOut={async () => {
-          await supabase.auth.signOut();
-          navigate("/auth", { replace: true });
+          // Admins go back to the apps grid (NOT the employee/auth screen).
+          if (isAdmin) {
+            navigate("/apps", { replace: true });
+          } else {
+            await supabase.auth.signOut();
+            navigate("/auth", { replace: true });
+          }
         }}
       />
     </div>
