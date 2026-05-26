@@ -377,10 +377,87 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
 
           <ScrollArea className="h-[calc(100vh-56px)]">
             <div className="p-3 space-y-2">
+              {/* Pending edit proposals — shown above pending orders */}
+              {edits.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-blue-700">
+                    <Pencil className="h-3.5 w-3.5" />
+                    تعديلات مقترحة على طلبيات محوّلة ({edits.length})
+                  </div>
+                  {edits.map(edit => {
+                    const original = editsOrderMap[edit.call_center_order_id];
+                    const changes = edit.proposed_changes || {};
+                    return (
+                      <div key={edit.id} className="rounded-lg border-2 border-blue-500/40 bg-blue-500/5 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge className="bg-blue-600 text-[10px]"><Pencil className="h-2.5 w-2.5 ml-0.5" /> طلب تعديل</Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(edit.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        {original && (
+                          <div className="text-[11px] font-bold">
+                            على طلبية: {original.customer_name} — ₪{original.total.toFixed(2)}
+                          </div>
+                        )}
+                        <div className="bg-background/70 rounded p-2 space-y-1">
+                          {Object.entries(changes).map(([key, newVal]) => {
+                            const oldVal = (original as any)?.[key];
+                            const label = fieldLabels[key] || key;
+                            const fmt = (v: any) => {
+                              if (v === null || v === undefined || v === "") return "—";
+                              if (typeof v === "object") return JSON.stringify(v);
+                              return String(v);
+                            };
+                            return (
+                              <div key={key} className="text-[11px] grid grid-cols-[80px_1fr] gap-2 items-start">
+                                <span className="font-semibold text-muted-foreground">{label}</span>
+                                <div className="flex flex-wrap gap-1.5 items-center">
+                                  <span className="line-through text-red-600/80 bg-red-500/10 px-1.5 rounded">{fmt(oldVal)}</span>
+                                  <span className="text-muted-foreground">→</span>
+                                  <span className="text-green-700 font-bold bg-green-500/10 px-1.5 rounded">{fmt(newVal)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {edit.edit_note && (
+                          <div className="text-[10px] text-amber-800 bg-amber-500/10 rounded p-1.5">
+                            📝 سبب التعديل: {edit.edit_note}
+                          </div>
+                        )}
+                        <div className="text-[10px] text-muted-foreground">
+                          من: {edit.created_by_name || "كول سنتر"}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleAcceptEdit(edit)}
+                            disabled={deciding === edit.id}
+                            className="flex-1 h-8 text-[11px] font-bold gap-1"
+                            style={{ backgroundColor: "#16A34A" }}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" /> قبول التعديل
+                          </Button>
+                          <Button
+                            onClick={() => handleRejectEdit(edit)}
+                            disabled={deciding === edit.id}
+                            variant="outline"
+                            className="flex-1 h-8 text-[11px] gap-1 border-red-500/40 text-red-700 hover:bg-red-500/10"
+                          >
+                            <XCircle className="h-3.5 w-3.5" /> رفض
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {orders.length > 0 && <div className="border-t border-border my-2" />}
+                </div>
+              )}
+
               {orders.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Bell className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">لا توجد فواتير معلقة</p>
+                  <p className="text-sm">{edits.length > 0 ? "لا توجد طلبيات جديدة" : "لا توجد فواتير معلقة"}</p>
                 </div>
               ) : (
                 <AnimatePresence>
