@@ -185,15 +185,14 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         </>
       )}
 
-      {/* ═══ TOTAL VARIANCE — single bottom rule, no heavy box ═══ */}
-      <div style={{ borderTop: '1px solid #000', margin: '10px 0 6px' }} />
+      {/* ═══ TOTAL VARIANCE — no rule, no box ═══ */}
       <div style={{
         textAlign: 'center',
-        padding: '6px 4px',
-        margin: '4px 0',
+        padding: '10px 4px 4px',
+        margin: '8px 0 0',
         fontWeight: 900,
         fontSize: '22px',
-        lineHeight: 1.25,
+        lineHeight: 1.4,
         color: '#000',
         wordBreak: 'break-word',
       }}>
