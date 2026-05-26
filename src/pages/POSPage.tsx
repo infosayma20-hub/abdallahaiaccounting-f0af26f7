@@ -3605,8 +3605,7 @@ const POSPage = () => {
       if (isAdmin) {
         navigate("/apps", { replace: true });
       } else {
-        await supabase.auth.signOut();
-        navigate("/auth", { replace: true });
+        navigate("/employee", { replace: true });
       }
       return;
     }
@@ -3759,8 +3758,7 @@ const POSPage = () => {
     if (isAdmin) {
       navigate("/apps", { replace: true });
     } else {
-      await supabase.auth.signOut();
-      navigate("/auth", { replace: true });
+      navigate("/employee", { replace: true });
     }
   };
 
@@ -3790,8 +3788,7 @@ const POSPage = () => {
     if (isAdmin) {
       navigate("/apps", { replace: true });
     } else {
-      await supabase.auth.signOut();
-      navigate("/auth", { replace: true });
+      navigate("/employee", { replace: true });
     }
   };
 
@@ -6521,8 +6518,8 @@ const POSPage = () => {
           if (isAdmin) {
             navigate("/apps", { replace: true });
           } else {
-            await supabase.auth.signOut();
-            navigate("/auth", { replace: true });
+            // الكاشير يرجع لشاشة الموظف بدون تسجيل خروج.
+            navigate("/employee", { replace: true });
           }
         }}
       />
