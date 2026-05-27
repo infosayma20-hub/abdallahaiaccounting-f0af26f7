@@ -681,6 +681,16 @@ const JournalEntriesPage = () => {
                       onFilter={(v, op) => upsertColumnFilter("currency", v, op)}
                       onClear={() => clearColumnFilter("currency")}
                       currentFilterValue={currentColumnFilter("currency")}
+                      direction={sortKey === "currency" ? sortDir : null}
+                    />
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="مركز التكلفة"
+                      onSort={(d) => handleColumnSort("cost_center_name", d)}
+                      onFilter={(v, op) => upsertColumnFilter("cost_center_name", v, op)}
+                      onClear={() => clearColumnFilter("cost_center_name")}
+                      currentFilterValue={currentColumnFilter("cost_center_name")}
+                      direction={sortKey === "cost_center_name" ? sortDir : null}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
@@ -689,6 +699,7 @@ const JournalEntriesPage = () => {
                       onFilter={(v, op) => upsertColumnFilter("is_deleted", v, op)}
                       onClear={() => clearColumnFilter("is_deleted")}
                       currentFilterValue={currentColumnFilter("is_deleted")}
+                      direction={sortKey === "is_deleted" ? sortDir : null}
                     />
                   </th>
                   <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">
