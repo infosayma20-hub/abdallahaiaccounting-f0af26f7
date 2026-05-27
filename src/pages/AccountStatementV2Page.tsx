@@ -437,6 +437,13 @@ const AccountStatementV2Page = () => {
     return entry ? entry.label.replace("عرض بال", "").replace(" (افتراضي)", "") : "شيكل ₪";
   }, [displayCurrency]);
 
+  const ccMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of costCenters) m.set(c.id, `${c.code} - ${c.name_ar || c.name}`);
+    return m;
+  }, [costCenters]);
+  const ccLabel = useCallback((id?: string | null) => id ? (ccMap.get(id) || "—") : "بدون مركز تكلفة", [ccMap]);
+
   const filteredRows = useMemo(() => {
     let r = rows;
     if (txTypeFilter !== "all") r = r.filter(x => x.transaction_type.includes(txTypeFilter));
