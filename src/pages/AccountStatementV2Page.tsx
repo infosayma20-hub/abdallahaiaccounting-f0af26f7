@@ -3,7 +3,7 @@ import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   Printer, ChevronLeft, ChevronDown, ChevronUp,
   Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
-  Filter, Download, AlertTriangle, Zap,
+  Filter, Download, AlertTriangle, Zap, Calculator,
   ArrowLeft,
 } from "lucide-react";
 import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
@@ -28,14 +28,17 @@ import AdvancedEntitySearch from "@/components/account-statement/AdvancedEntityS
 import { setNextExportBranding } from "@/lib/excel-export";
 import RtlDateField from "@/components/account-statement/RtlDateField";
 import StatementViewOptionsPanel, { loadViewOptions, type StatementViewOptions } from "@/components/account-statement/StatementViewOptions";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import { useCostCenters } from "@/hooks/useCostCenters";
+import { SmartTextCell } from "@/components/ui/smart-text-cell";
 
 // ─── TYPES ───
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
 interface Account { id: string; account_code: string; account_name: string; account_type: string; }
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
-interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; }
+interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; cost_center_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; cost_center_id?: string | null; cost_center_name?: string; }
 interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
 interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
 interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; chequeStatus?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
