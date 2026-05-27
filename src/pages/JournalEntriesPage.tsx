@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
-  FileText, ChevronLeft, ChevronRight, FileSpreadsheet,
+  FileText, ChevronLeft, ChevronRight, FileSpreadsheet, Printer, Trash2,
+  ArrowUp, ArrowDown, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
