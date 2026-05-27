@@ -686,6 +686,16 @@ const JournalNewPage = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-6">
+              <Label className="text-xs mb-1.5 block">مركز التكلفة (عام للسند — اختياري)</Label>
+              <CostCenterCombobox value={formCostCenterId} onChange={setFormCostCenterId} />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
+              </p>
+            </div>
+          </div>
+
           <div>
             <Label className="text-xs mb-1.5 block font-semibold">الوصف *</Label>
             <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="مثال: سلفة راتب - رهام حسون" />
