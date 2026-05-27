@@ -1355,6 +1355,17 @@ const AccountStatementV2Page = () => {
                           if (c.key === "type") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280", fontWeight: 400 }}>{getTypeBadge(row.transaction_type)}</td>
                           );
+                          if (c.key === "cost_center") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10 }}>
+                              {row.cost_center_id ? (
+                                <span className="inline-block bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[10px] font-medium">
+                                  {ccLabel(row.cost_center_id)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/60 text-[10px]">بدون مركز</span>
+                              )}
+                            </td>
+                          );
                           if (c.key === "debit") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
