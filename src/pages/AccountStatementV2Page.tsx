@@ -1629,7 +1629,8 @@ const AccountStatementV2Page = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
