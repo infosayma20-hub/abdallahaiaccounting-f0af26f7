@@ -130,6 +130,7 @@ const TrialBalancePage = () => {
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
   const companyInfo = useCompanyInfo();
+  const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
 
   const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
   const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
@@ -146,6 +147,21 @@ const TrialBalancePage = () => {
   const [showDetailedAccounts, setShowDetailedAccounts] = useState(false);
   const [reportLevel, setReportLevel] = useState(4);
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
+  const [parentFilter, setParentFilter] = useState<string>("all");
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+
+  // Sync FiltersPanel conditions → internal state
+  useEffect(() => {
+    const get = (k: string) => shellFilters.find((c) => c.fieldKey === k);
+    const df = get("date_from"); if (df?.value) setDateFrom(df.value);
+    const dt = get("date_to"); if (dt?.value) setDateTo(dt.value);
+    const cc = get("cost_center"); setCostCenterFilter(cc?.value || "all");
+    const tp = get("account_type"); setTypeFilter(tp?.value || "all");
+    const pc = get("parent_code"); setParentFilter(pc?.value || "all");
+    const sz = get("show_zero"); setShowZeroAccounts(sz?.value === "yes");
+    if (df?.value || dt?.value) setActivePeriod("custom");
+  }, [shellFilters]);
 
   const fetchData = async () => {
     if (!user || !dataOwnerId) return;
