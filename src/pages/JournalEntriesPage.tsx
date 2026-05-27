@@ -753,7 +753,7 @@ const JournalEntriesPage = () => {
                   const idx = (currentPage - 1) * PAGE_SIZE + i + 1;
                   const displayType = getDisplayType(tx.transaction_type);
                   return (
-                    <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
+                    <tr key={tx.id} className={`border-b border-border/30 hover:bg-muted/20 transition-colors group ${i % 2 === 1 ? "bg-muted/10 print:bg-transparent" : ""}`}>
                       <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px]">
