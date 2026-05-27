@@ -740,10 +740,11 @@ const JournalNewPage = () => {
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-2.5 text-white font-medium w-10">#</th>
                   <th className="p-2.5 text-white font-medium w-24">رقم الحساب</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "30%" }}>الحساب / الجهة</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "26%" }}>الحساب / الجهة</th>
                   <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
                   <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "18%" }}>تعليق</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "16%" }}>تعليق</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "16%" }}>مركز التكلفة</th>
                   <th className="p-2.5 w-10"></th>
                 </tr>
               </thead>
@@ -995,6 +996,19 @@ const JournalNewPage = () => {
                       />
                     </td>
                     <td className="p-2.5">
+                      <CostCenterCombobox
+                        value={line.cost_center_id || null}
+                        onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
+                        placeholder={formCostCenterId ? "موروث من الرأس" : "بدون"}
+                        className="h-9 text-[11px]"
+                      />
+                      {!line.cost_center_id && formCostCenterId && (
+                        <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
+                          ↪ يرث مركز الرأس
+                        </p>
+                      )}
+                    </td>
+                    <td className="p-2.5">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1009,7 +1023,7 @@ const JournalNewPage = () => {
                   <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
                   <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
                   <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
-                  <td colSpan={2}></td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             </table>

@@ -49,6 +49,7 @@ import {
 } from "@/lib/voucher-allocation";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 import { calculateStatementBalanceFromTransactions, fetchContactStatementBalance } from "@/lib/contact-balance";
+import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
 interface Contact {
   id: string;
@@ -1271,6 +1272,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               exchange_rate: currency !== "ILS" ? exchangeRate : null,
               workshop_id: selectedWorkshop?.id || null,
               cost_center_name: selectedWorkshop?.name || null,
+              cost_center_id: costCenterId,
               reference: refNumber || null,
             } as any).select("id").single();
 
@@ -1381,6 +1383,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
               cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
               workshop_id: selectedWorkshop?.id || null,
+              cost_center_id: costCenterId,
             } as any)
             .eq("id", editId)
             .eq("user_id", user.id);
@@ -1420,6 +1423,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               expense_category: isEmployeePaymentEdit ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
               workshop_id: selectedWorkshop?.id || null,
               cost_center_name: selectedWorkshop?.name || null,
+              cost_center_id: costCenterId,
               reference: refNumber || null,
             } as any).select("id").single();
 
@@ -1536,6 +1540,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             cashAccountCode: depositAccountCode,
             notes: notes || null,
             workshopId: selectedWorkshop?.id || null,
+            costCenterId: costCenterId,
           });
           txId = result?.transaction_id || null;
         } else {
@@ -1558,6 +1563,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const txUpdates: any = {};
             if (depositAccountCode !== "1110") txUpdates.debit_account_code = depositAccountCode;
             if (selectedWorkshop) { txUpdates.workshop_id = selectedWorkshop.id; txUpdates.cost_center_name = selectedWorkshop.name; }
+            if (costCenterId) txUpdates.cost_center_id = costCenterId;
             if (Object.keys(txUpdates).length > 0) await supabase.from("transactions").update(txUpdates).eq("id", txId);
           }
         }
@@ -1581,6 +1587,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
           workshop_id: selectedWorkshop?.id || null,
           cost_center_name: selectedWorkshop?.name || null,
+          cost_center_id: costCenterId,
         } as any).select("id").single();
         txId = txData?.id || null;
       }
@@ -1657,6 +1664,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             cashAccountCode: depositAccountCode,
             notes: notes || null,
             workshopId: selectedWorkshop?.id || null,
+            costCenterId: costCenterId,
           });
           txId = result?.transaction_id || null;
         } else {
@@ -1677,6 +1685,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           expense_category: isEmployeePayment ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
           workshop_id: selectedWorkshop?.id || null,
           cost_center_name: selectedWorkshop?.name || null,
+          cost_center_id: costCenterId,
         } as any).select("id").single();
         txId = txData?.id || null;
         }
@@ -1816,6 +1825,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             employee_id: isEmpPay ? selectedEmployee.id : null,
             attachments: attachments.length > 0 ? attachments : [],
             workshop_id: selectedWorkshop?.id || null,
+            cost_center_id: costCenterId,
           } as any)
           .select("id, ref_number")
           .single();
@@ -2784,6 +2794,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           )}
         </div>
       )}
+
+      {/* Cost Center (Financial Dimension) — optional, independent of workshop */}
+      <div>
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-[13px] text-muted-foreground" style={{ fontFamily: "Cairo" }}>
+            مركز التكلفة (اختياري)
+          </span>
+        </div>
+        <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
+        <p className="text-[10px] text-muted-foreground mt-1">
+          يُرحَّل إلى القيد المحاسبي ويظهر في التقارير حسب مركز التكلفة.
+          {/* TODO: cost_center_rules — إلزام مراكز التكلفة على المصاريف مؤجل للمرحلة القادمة. */}
+        </p>
+      </div>
 
       {/* ───── Payment + Allocation — flow continuously inside the
           col-span-8 left column so the sticky summary on the right
