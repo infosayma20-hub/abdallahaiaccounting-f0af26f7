@@ -60,6 +60,8 @@ const JournalNewPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { company } = useCompany();
+  const { settings } = useCompanySettings();
+  const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
   const { save: saveJournalVoucher } = useSaveJournalVoucher();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
