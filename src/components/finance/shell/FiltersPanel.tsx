@@ -337,6 +337,8 @@ export function applyFilters<T extends Record<string, any>>(
 ): T[] {
   if (!conditions.length) return rows;
   const getValue = fieldAccessor || ((r: T, k: string) => r[k]);
+  const isDateLike = (s: any) =>
+    typeof s === "string" && /^\d{4}-\d{2}-\d{2}/.test(s);
   return rows.filter((row) =>
     conditions.every((c) => {
       const raw = getValue(row, c.fieldKey);
@@ -348,14 +350,18 @@ export function applyFilters<T extends Record<string, any>>(
         case "contains":
           return strVal.includes(cmp);
         case "equals":
-          return strVal === cmp;
+          return isDateLike(c.value) ? String(raw).slice(0, 10) === c.value : strVal === cmp;
         case "not_equals":
-          return strVal !== cmp;
+          return isDateLike(c.value) ? String(raw).slice(0, 10) !== c.value : strVal !== cmp;
         case "greater_than":
-          return Number(raw) > Number(c.value);
+          return isDateLike(c.value) ? String(raw) > c.value : Number(raw) > Number(c.value);
         case "less_than":
-          return Number(raw) < Number(c.value);
+          return isDateLike(c.value) ? String(raw) < c.value : Number(raw) < Number(c.value);
         case "between":
+          if (isDateLike(c.value) || isDateLike(c.valueTo)) {
+            const s = String(raw);
+            return s >= (c.value || "") && s <= (c.valueTo || "9999-12-31");
+          }
           return Number(raw) >= Number(c.value) && Number(raw) <= Number(c.valueTo);
         case "is_empty":
           return raw == null || raw === "";
