@@ -555,8 +555,12 @@ const JournalEntriesPage = () => {
         </div>
         <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
           <p className="text-[11px] text-muted-foreground">الميزان</p>
-          <p className={`text-xl font-bold tabular-nums ${totalDebit === totalCredit ? "text-primary" : "text-destructive"}`}>
-            {totalDebit === totalCredit ? "✅ متوازن" : "⚠️ غير متوازن"}
+          <p className={`text-xl font-bold tabular-nums flex items-center gap-1.5 ${totalDebit === totalCredit ? "text-primary" : "text-destructive"}`}>
+            {totalDebit === totalCredit ? (
+              <><CheckCircle2 className="h-4 w-4" /> متوازن</>
+            ) : (
+              <><AlertTriangle className="h-4 w-4" /> غير متوازن</>
+            )}
           </p>
         </div>
       </div>
