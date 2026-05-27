@@ -242,6 +242,7 @@ const linkGroups: {
       { to: "/general-ledger", label: "دفتر الأستاذ" },
       { to: "/trial-balance", label: "ميزان المراجعة" },
       { to: "/account-statement", label: "كشف حساب" },
+      { to: "/finance/cost-centers", label: "مراكز التكلفة" },
     ],
   },
   {
