@@ -118,6 +118,7 @@ const AccountStatementV2Page = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
+  const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
 
   const urlContactId = searchParams.get("contact_id") || "";
   const urlContactType = searchParams.get("contact_type") || "";
@@ -144,6 +145,7 @@ const AccountStatementV2Page = () => {
   const [displayCurrency, setDisplayCurrency] = useState("ILS");
   const [currentExchangeRate, setCurrentExchangeRate] = useState<Record<string, number>>({});
   const [txTypeFilter, setTxTypeFilter] = useState("all");
+  const [txCostCenter, setTxCostCenter] = useState("all");
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [chequesOpen, setChequesOpen] = useState(false);
   const [agingOpen, setAgingOpen] = useState(false);
@@ -166,7 +168,7 @@ const AccountStatementV2Page = () => {
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
         // ✅ Reversal-aware: include both active rows AND soft-deleted rows that were reversed
         // (so the original entry shows alongside its reversal, keeping the statement balanced)
-        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id").eq("user_id", dataOwnerId).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
+        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id").eq("user_id", dataOwnerId).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", user.id).maybeSingle(),
         supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
