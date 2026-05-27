@@ -79,13 +79,14 @@ export const navigationSections: NavSection[] = [
         keywords: ["مالية", "حسابات", "قيود", "ميزان"],
         groups: [
           {
-            // قائمة سريعة جداً — الوصول الكامل من مركز المالية
-            groupLabel: "إجراءات سريعة",
+            // روابط مختصرة — التفاصيل الكاملة داخل مركز المالية
+            groupLabel: "روابط سريعة",
             children: [
-              { label: "قيد جديد", path: "/finance/journal/new" },
               { label: "سند قبض", path: "/finance/receipt/new" },
               { label: "سند صرف", path: "/finance/payment/new" },
-              { label: "مركز المالية", path: "/accounting-center" },
+              { label: "سند قيد", path: "/finance/journal/new" },
+              { label: "دفتر اليومية", path: "/transactions" },
+              { label: "التقارير", path: "/reports" },
             ],
           },
         ],
