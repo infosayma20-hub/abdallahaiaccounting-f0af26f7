@@ -17,6 +17,7 @@ export interface SupabaseTransaction {
   contact_id: string | null;
   foreign_amount: number | null;
   exchange_rate: number | null;
+  cost_center_id?: string | null;
 }
 
 export interface SupabaseAccount {
@@ -32,7 +33,7 @@ export interface SupabaseAccount {
 export async function fetchTransactions(userId: string) {
   const { data, error } = await supabase
     .from("transactions")
-    .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate, reversed_by_id")
+    .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
     .eq("user_id", userId)
     .is("reversed_by_id", null)
     .neq("transaction_type", "reversal")
