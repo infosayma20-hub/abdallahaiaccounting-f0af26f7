@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { usePermission } from "@/hooks/usePermission";
 import { supabase } from "@/integrations/supabase/client";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
@@ -178,7 +179,14 @@ const JournalEntriesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [sortKey, setSortKey] = useState<"transaction_date" | "amount">("transaction_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  // ─── Visual permission gating (UI hides what backend already blocks) ───
+  const perms = usePermission("finance");
+  const canCreateJournal = perms.can("journal", "create");
+  const canUpdateJournal = perms.can("journal", "update");
+  const canDeleteJournal = perms.can("journal", "delete");
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
   const [editResolution, setEditResolution] = useState<{
