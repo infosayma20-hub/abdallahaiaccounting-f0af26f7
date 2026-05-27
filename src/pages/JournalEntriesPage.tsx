@@ -258,6 +258,7 @@ const JournalEntriesPage = () => {
     result = applyFilters(result, shellFilters, (row, key) => {
       if (key === "displayType") return getDisplayType(row.transaction_type);
       if (key === "is_deleted") return row.is_deleted ? "true" : "false";
+      if (key === "cost_center_name") return row.cost_center_name || "بدون مركز تكلفة";
       return (row as any)[key];
     });
 
