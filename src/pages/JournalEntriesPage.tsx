@@ -272,10 +272,15 @@ const JournalEntriesPage = () => {
     }
 
     return result.sort((a, b) => {
-      const cmp = (a.transaction_date || "").localeCompare(b.transaction_date || "");
+      let cmp = 0;
+      if (sortKey === "amount") {
+        cmp = (a.amount || 0) - (b.amount || 0);
+      } else {
+        cmp = (a.transaction_date || "").localeCompare(b.transaction_date || "");
+      }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [transactions, shellFilters, searchQuery, accountMap, sortDir]);
+  }, [transactions, shellFilters, searchQuery, accountMap, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -301,10 +306,15 @@ const JournalEntriesPage = () => {
     setShellFilters((prev) => prev.filter((c) => c.fieldKey !== fieldKey));
   const currentColumnFilter = (fieldKey: string) =>
     shellFilters.find((c) => c.fieldKey === fieldKey)?.value || "";
-  // Generic column sorter (uses transaction_date as the only true sort key for now,
- // for text columns we just keep date ordering and surface a quick filter).
+  // Generic column sorter: real ordering for date/amount; other columns surface
+  // a quick filter only (table is then implicitly ordered by current sort key).
   const handleColumnSort = (fieldKey: string, dir: "asc" | "desc") => {
-    if (fieldKey === "transaction_date") setSortDir(dir);
+    if (fieldKey === "transaction_date" || fieldKey === "amount") {
+      setSortKey(fieldKey);
+      setSortDir(dir);
+    } else {
+      setSortDir(dir);
+    }
   };
 
   /**
