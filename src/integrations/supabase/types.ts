@@ -3006,6 +3006,74 @@ export type Database = {
           },
         ]
       }
+      cost_centers: {
+        Row: {
+          branch_id: string | null
+          center_type: string
+          code: string
+          created_at: string
+          description: string | null
+          display_order: number
+          gl_account_code: string | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          manager_employee_id: string | null
+          metadata: Json | null
+          name: string
+          name_ar: string | null
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          center_type?: string
+          code: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          gl_account_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          manager_employee_id?: string | null
+          metadata?: Json | null
+          name: string
+          name_ar?: string | null
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          center_type?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          gl_account_code?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          manager_employee_id?: string | null
+          metadata?: Json | null
+          name?: string
+          name_ar?: string | null
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           activity_type: Database["public"]["Enums"]["crm_activity_type"] | null
@@ -5843,6 +5911,117 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financial_dimension_values: {
+        Row: {
+          code: string
+          created_at: string
+          dimension_id: string
+          display_order: number
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          name: string
+          name_ar: string | null
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          dimension_id: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          name: string
+          name_ar?: string | null
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          dimension_id?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          name?: string
+          name_ar?: string | null
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_dimension_values_dimension_id_fkey"
+            columns: ["dimension_id"]
+            isOneToOne: false
+            referencedRelation: "financial_dimensions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_dimension_values_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "financial_dimension_values"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_dimensions: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_required: boolean
+          is_system: boolean
+          metadata: Json | null
+          name: string
+          name_ar: string | null
+          source_table: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          is_system?: boolean
+          metadata?: Json | null
+          name: string
+          name_ar?: string | null
+          source_table?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          is_system?: boolean
+          metadata?: Json | null
+          name?: string
+          name_ar?: string | null
+          source_table?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       fiscal_periods: {
         Row: {
@@ -14115,6 +14294,47 @@ export type Database = {
           },
         ]
       }
+      transaction_dimensions: {
+        Row: {
+          created_at: string
+          dimension_id: string
+          id: string
+          transaction_id: string
+          user_id: string
+          value_id: string | null
+          value_ref_id: string | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          dimension_id: string
+          id?: string
+          transaction_id: string
+          user_id: string
+          value_id?: string | null
+          value_ref_id?: string | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          dimension_id?: string
+          id?: string
+          transaction_id?: string
+          user_id?: string
+          value_id?: string | null
+          value_ref_id?: string | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_dimensions_dimension_id_fkey"
+            columns: ["dimension_id"]
+            isOneToOne: false
+            referencedRelation: "financial_dimensions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           account_id_credit: string | null
@@ -17984,6 +18204,10 @@ export type Database = {
         Returns: string
       }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
+      seed_default_financial_dimensions: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
