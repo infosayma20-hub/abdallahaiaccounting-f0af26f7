@@ -750,15 +750,23 @@ const JournalEntriesPage = () => {
                     <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                       <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
-                      <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.description || "—"}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px]">
+                        <SmartTextCell value={tx.description} title="الوصف" />
+                      </td>
                       <td className="px-3 py-1.5">
                         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap inline-block ${typeStyle[displayType] || "bg-muted text-muted-foreground"}`}>
                           {displayType}
                         </span>
                       </td>
-                      <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "—"}</td>
-                      <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
-                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground font-mono whitespace-nowrap">{tx.reference || "—"}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground max-w-[200px]">
+                        <SmartTextCell value={accountMap[tx.debit_account_code || ""] || tx.debit_account_code} title="الحساب المدين" />
+                      </td>
+                      <td className="px-3 py-1.5 text-xs text-foreground max-w-[200px]">
+                        <SmartTextCell value={accountMap[tx.credit_account_code || ""] || tx.credit_account_code} title="الحساب الدائن" />
+                      </td>
+                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground max-w-[140px]">
+                        <SmartTextCell value={tx.reference} title="المرجع" mono />
+                      </td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground whitespace-nowrap">{tx.cost_center_name || "—"}</td>
                       <td className="px-3 py-1.5">
