@@ -32,6 +32,7 @@ import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import AccountingShell from "@/components/layout/AccountingShell";
+import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
 interface JournalLine {
   id: string;
@@ -42,6 +43,7 @@ interface JournalLine {
   contact_id?: string;
   contact_name?: string;
   line_comment?: string;
+  cost_center_id?: string | null;
 }
 
 interface Contact {
@@ -69,6 +71,7 @@ const JournalNewPage = () => {
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formContactId, setFormContactId] = useState("");
+  const [formCostCenterId, setFormCostCenterId] = useState<string | null>(null);
   const [contactSearch, setContactSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -411,6 +414,7 @@ const JournalNewPage = () => {
         description: formDescription,
         notes: formNotes || null,
         contact_id: formContactId || null,
+        cost_center_id: formCostCenterId || null,
         lines: validLines.map((l) => ({
           account_code: l.account_code,
           account_name: l.account_name,
@@ -419,6 +423,7 @@ const JournalNewPage = () => {
           contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
           contact_name: l.contact_name || null,
           line_comment: l.line_comment || null,
+          cost_center_id: l.cost_center_id || null,
         })),
         mode,
         attachments,
@@ -678,6 +683,16 @@ const JournalNewPage = () => {
               <div className="h-10 px-3 inline-flex items-center rounded-md border border-input bg-muted/40 text-xs font-semibold text-foreground w-full">
                 {subtypeLabels[formSubtype]}
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-6">
+              <Label className="text-xs mb-1.5 block">مركز التكلفة (عام للسند — اختياري)</Label>
+              <CostCenterCombobox value={formCostCenterId} onChange={setFormCostCenterId} />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
+              </p>
             </div>
           </div>
 

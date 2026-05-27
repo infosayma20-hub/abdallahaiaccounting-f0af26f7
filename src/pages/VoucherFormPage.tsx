@@ -292,6 +292,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [showWorkshopDropdown, setShowWorkshopDropdown] = useState(false);
   const workshopDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Cost center (Financial Dimension) — independent of legacy workshop_id
+  const [costCenterId, setCostCenterId] = useState<string | null>(null);
+
   // ─── Auto-Draft (السندات) ───
   const draftFormId = `voucher_${voucherType}_new`;
   const draftRoutePath = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
@@ -680,6 +683,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: ws } = await supabase.from("workshops").select("id, name, customer_name").eq("id", (data as any).workshop_id).single();
               if (ws) setSelectedWorkshop(ws);
             }
+            if ((data as any).cost_center_id) setCostCenterId((data as any).cost_center_id);
           }
         } else {
           const { data } = await supabase
@@ -750,6 +754,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: ws } = await supabase.from("workshops").select("id, name, customer_name").eq("id", (data as any).workshop_id).single();
               if (ws) setSelectedWorkshop(ws);
             }
+            if ((data as any).cost_center_id) setCostCenterId((data as any).cost_center_id);
           }
         }
       } catch (e) { /* ignore */ }

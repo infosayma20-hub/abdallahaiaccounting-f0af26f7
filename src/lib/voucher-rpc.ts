@@ -72,6 +72,7 @@ export interface ReceiptRpcParams {
   employeeId?: string | null;
   workshopId?: string | null;
   allocations?: VoucherAllocation[] | null;
+  costCenterId?: string | null;
 }
 
 export async function callCreateReceiptRpc(
@@ -95,6 +96,7 @@ export async function callCreateReceiptRpc(
     p_employee_id: p.employeeId ?? null,
     p_workshop_id: p.workshopId ?? null,
     p_allocations: (p.allocations ?? null) as any,
+    p_cost_center_id: p.costCenterId ?? null,
   });
   if (error) throw error;
   return data as unknown as VoucherRpcResult;
@@ -125,6 +127,7 @@ export async function callCreatePaymentRpc(
     p_employee_id: p.employeeId ?? null,
     p_workshop_id: p.workshopId ?? null,
     p_allocations: (p.allocations ?? null) as any,
+    p_cost_center_id: p.costCenterId ?? null,
   });
   if (error) throw error;
   return data as unknown as VoucherRpcResult;
@@ -141,6 +144,7 @@ export interface JournalLine {
   workshop_id?: string | null;
   payment_method?: string | null;
   notes?: string | null;
+  cost_center_id?: string | null;
 }
 
 export interface JournalRpcParams {
@@ -154,6 +158,7 @@ export interface JournalRpcParams {
   source?: string;
   exchangeRate?: number | null;
   notes?: string | null;
+  costCenterId?: string | null;
 }
 
 export async function callCreateJournalMultiPartyRpc(
@@ -172,6 +177,7 @@ export async function callCreateJournalMultiPartyRpc(
       p_source: p.source ?? "manual",
       p_exchange_rate: p.exchangeRate ?? null,
       p_notes: p.notes ?? null,
+      p_cost_center_id: p.costCenterId ?? null,
     },
   );
   if (error) throw error;
@@ -201,6 +207,7 @@ export interface UpdateVoucherRpcParams {
   allocations?: VoucherAllocation[] | null;
   employeeId?: string | null;
   workshopId?: string | null;
+  costCenterId?: string | null;
 }
 
 export async function callUpdateVoucherRpc(
@@ -227,6 +234,7 @@ export async function callUpdateVoucherRpc(
     p_allocations: (p.allocations ?? null) as any,
     p_employee_id: p.employeeId ?? null,
     p_workshop_id: p.workshopId ?? null,
+    p_cost_center_id: p.costCenterId ?? null,
   });
   if (error) throw error;
   return data as unknown as VoucherRpcResult;
