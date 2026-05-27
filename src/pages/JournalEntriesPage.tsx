@@ -620,13 +620,31 @@ const JournalEntriesPage = () => {
           <p className="text-sm text-muted-foreground">لا توجد قيود للفترة المحددة</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden print:shadow-none print:border-0">
+        <div data-print-area className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden print:shadow-none print:border-0">
+          {/* Print-only header (hidden on screen) */}
+          <div className="hidden print:block px-4 py-3 border-b border-border/60">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-base font-bold text-foreground">دفتر اليومية</h1>
+                {companyName && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{companyName}</p>
+                )}
+              </div>
+              <div className="text-[10px] text-muted-foreground text-left">
+                <p>تاريخ الطباعة: {new Date().toLocaleDateString("ar-EG")}</p>
+                <p>عدد القيود: {filtered.length}</p>
+                {shellFilters.length > 0 && (
+                  <p>نطاق الفلترة: {shellFilters.map(f => `${f.fieldKey}=${f.value}${f.valueTo ? `→${f.valueTo}` : ""}`).join(" • ")}</p>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm" dir="rtl">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground w-10">#</th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                <tr className="border-b border-border/60 bg-primary text-primary-foreground print:bg-muted print:text-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold w-10">#</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="التاريخ"
                       direction={sortKey === "transaction_date" ? sortDir : null}
                       onSort={(d) => handleColumnSort("transaction_date", d)}
@@ -635,7 +653,7 @@ const JournalEntriesPage = () => {
                       currentFilterValue={currentColumnFilter("transaction_date")}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground min-w-[200px]">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold min-w-[200px]">
                     <ColumnHeaderMenu label="الوصف"
                       onSort={(d) => handleColumnSort("description", d)}
                       onFilter={(v, op) => upsertColumnFilter("description", v, op)}
@@ -644,7 +662,7 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "description" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="النوع"
                       onSort={(d) => handleColumnSort("displayType", d)}
                       onFilter={(v, op) => upsertColumnFilter("displayType", v, op)}
@@ -653,7 +671,7 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "displayType" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="الحساب المدين"
                       onSort={(d) => handleColumnSort("debit_account_code", d)}
                       onFilter={(v, op) => upsertColumnFilter("debit_account_code", v, op)}
@@ -662,7 +680,7 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "debit_account_code" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="الحساب الدائن"
                       onSort={(d) => handleColumnSort("credit_account_code", d)}
                       onFilter={(v, op) => upsertColumnFilter("credit_account_code", v, op)}
@@ -671,7 +689,7 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "credit_account_code" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="المرجع"
                       onSort={(d) => handleColumnSort("reference", d)}
                       onFilter={(v, op) => upsertColumnFilter("reference", v, op)}
@@ -680,7 +698,7 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "reference" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="العملة"
                       onSort={(d) => handleColumnSort("currency", d)}
                       onFilter={(v, op) => upsertColumnFilter("currency", v, op)}
@@ -689,7 +707,7 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "currency" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="مركز التكلفة"
                       onSort={(d) => handleColumnSort("cost_center_name", d)}
                       onFilter={(v, op) => upsertColumnFilter("cost_center_name", v, op)}
@@ -698,7 +716,7 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "cost_center_name" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="الحالة"
                       onSort={(d) => handleColumnSort("is_deleted", d)}
                       onFilter={(v, op) => upsertColumnFilter("is_deleted", v, op)}
@@ -707,13 +725,13 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "is_deleted" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="مدين"
                       direction={sortKey === "amount" ? sortDir : null}
                       onSort={(d) => handleColumnSort("amount", d)}
                     />
                   </th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="دائن"
                       direction={sortKey === "amount" ? sortDir : null}
                       onSort={(d) => handleColumnSort("amount", d)}
