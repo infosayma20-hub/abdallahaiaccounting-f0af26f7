@@ -1080,6 +1080,18 @@ const AccountStatementV2Page = () => {
                   <SelectContent>{TX_TYPE_FILTERS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
                 </Select>
 
+                {/* Cost center filter */}
+                <Select value={txCostCenter} onValueChange={setTxCostCenter}>
+                  <SelectTrigger className="h-7 w-44 text-[11px] border-gray-200"><SelectValue placeholder="مركز التكلفة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل مراكز التكلفة</SelectItem>
+                    <SelectItem value="__none__">بدون مركز تكلفة</SelectItem>
+                    {costCenters.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.code} - {c.name_ar || c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 {/* Search */}
                 <div className="relative flex-1 min-w-[180px]">
                   <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "#9CA3AF" }} />
