@@ -580,9 +580,18 @@ const JournalNewPage = () => {
   // Note: Removed full-screen success page — replaced with non-blocking toast + inline reset.
 
   return (
-    <AccountingShell>
+    <FinanceShell
+      title="سند القيد"
+      subtitle="إنشاء وتعديل القيود المحاسبية اليدوية"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "سندات القيد", href: "/finance/journals" },
+        { label: "قيد جديد" },
+      ]}
+      actionTabs={actionTabs}
+    >
     <SmartFormScope
-      className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-32 space-y-5"
+      className="max-w-[1600px] w-full mx-auto pb-32 space-y-5"
       firstFieldSelector="[data-smart-first]"
     >
     <div dir="rtl" className="contents">
@@ -599,51 +608,22 @@ const JournalNewPage = () => {
         />
       )}
 
-      <PageHeader title="سند قيد جديد" breadcrumb={["المحاسبة", "القيود", "سند قيد جديد"]} />
+      {/* Print-only header (hidden on screen) */}
+      <div className="hidden print:block mb-4 pb-3 border-b border-border">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-bold">سند قيد محاسبي</h1>
+            {settings.company_name && <p className="text-xs text-muted-foreground mt-0.5">{settings.company_name}</p>}
+          </div>
+          <div className="text-[10px] text-muted-foreground text-left space-y-0.5">
+            <p>رقم السند: <span className="font-mono">{formRefNumber}</span></p>
+            <p>التاريخ: <span className="font-mono">{formDate}</span></p>
+            <p>النوع: {subtypeLabels[formSubtype]}</p>
+          </div>
+        </div>
+      </div>
 
-      {/* Navigation Toolbar */}
-      <VoucherNavToolbar
-        voucherType="journal"
-        currentRef={formRefNumber}
-        onPrint={handlePrint}
-        onSaveDraft={() => handleSave("draft")}
-        onSavePost={() => handleSave("posted")}
-        saving={saving}
-        saveDraftDisabled={saving}
-        savePostDisabled={saving || !isBalanced}
-        savePostDisabledReason={!isBalanced ? "القيد غير متوازن — تحقق من المدين والدائن" : undefined}
-        onNew={() => {
-          setSaved(false);
-          setFormDescription("");
-          setFormNotes("");
-          setFormContactId("");
-          setAttachments([]);
-          setLines([
-            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
-            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
-          ]);
-        }}
-        onNewSimilar={saved ? () => {
-          const draftData = {
-            _sourceRef: formRefNumber,
-            description: formDescription,
-            notes: formNotes,
-            subtype: formSubtype,
-            contactId: formContactId,
-            lines: lines.map(l => ({
-              account_code: l.account_code,
-              account_name: l.account_name,
-              debit: l.debit,
-              credit: l.credit,
-              contact_id: l.contact_id,
-              contact_name: l.contact_name,
-            })),
-          };
-          localStorage.setItem("draft_journal_new", JSON.stringify(draftData));
-          navigate("/finance/journal/new?from_duplicate=true");
-        } : undefined}
-      />
-
+      <div data-print-area>
       {/* ═══════════════════════════════════════════════════════════════
           12-COLUMN MASTER GRID — Odoo / QuickBooks Journal style
           Left  (col-span-8): Header → Lines → Notes/Attachments
