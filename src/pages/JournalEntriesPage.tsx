@@ -484,6 +484,14 @@ const JournalEntriesPage = () => {
           ],
         },
         {
+          key: "print",
+          label: "طباعة",
+          items: [
+            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint,
+              disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" },
+          ],
+        },
+        {
           key: "export",
           label: "تصدير",
           items: [
