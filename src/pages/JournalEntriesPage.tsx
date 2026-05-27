@@ -672,7 +672,8 @@ const JournalEntriesPage = () => {
         onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
         accounts={accounts.map(a => ({ id: a.id, name: a.account_name, type: a.account_type }))}
       />
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
