@@ -32,7 +32,7 @@ const SmartAccountantPage = lazy(() => import("./pages/SmartAccountantPage"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
 const VoiceInput = lazy(() => import("./pages/VoiceInput"));
 const ProfitLoss = lazy(() => import("./pages/ProfitLoss"));
-const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
+// TransactionsPage replaced by JournalEntriesPage on /transactions route
 const AccountsPage = lazy(() => import("./pages/AccountsPage"));
 const AccountFormPage = lazy(() => import("./pages/AccountFormPage"));
 const ContactsPage = lazy(() => import("./pages/ContactsPage"));
@@ -412,7 +412,7 @@ const App = () => (
                       <Route path="/menu" element={<MenuPage />} />
                       <Route path="/voice" element={<VoiceInput />} />
                       <Route path="/profit-loss" element={<ProfitLoss />} />
-                      <Route path="/transactions" element={<TransactionsPage />} />
+                      <Route path="/transactions" element={<JournalEntriesPage />} />
                       <Route path="/accounts" element={<AccountsPage />} />
                       <Route path="/accounts/new" element={<AccountFormPage mode="create" />} />
                       <Route path="/accounts/:accountId/edit" element={<AccountFormPage mode="edit" />} />
