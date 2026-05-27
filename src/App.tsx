@@ -412,7 +412,7 @@ const App = () => (
                       <Route path="/menu" element={<MenuPage />} />
                       <Route path="/voice" element={<VoiceInput />} />
                       <Route path="/profit-loss" element={<ProfitLoss />} />
-                      <Route path="/transactions" element={<TransactionsPage />} />
+                      <Route path="/transactions" element={<JournalEntriesPage />} />
                       <Route path="/accounts" element={<AccountsPage />} />
                       <Route path="/accounts/new" element={<AccountFormPage mode="create" />} />
                       <Route path="/accounts/:accountId/edit" element={<AccountFormPage mode="edit" />} />
