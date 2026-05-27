@@ -790,7 +790,6 @@ const AccountsPage = () => {
             </div>
           </div>
         )}
-      </div>
 
       {/* Move Account Modal */}
       {user && (
