@@ -204,7 +204,33 @@ const TrialBalancePage = () => {
 
   // Build trial balance with hierarchy
   const { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
-    const allTx = transactions.filter(tx => !tx.is_deleted);
+    let allTx = transactions.filter(tx => !tx.is_deleted);
+
+    // Cost center filter (applied to all date ranges, including opening)
+    if (costCenterFilter !== "all") {
+      allTx = costCenterFilter === "__none__"
+        ? allTx.filter(tx => !tx.cost_center_id)
+        : allTx.filter(tx => tx.cost_center_id === costCenterFilter);
+    }
+
+    // Parent / root account filter: restrict to descendants of the chosen code
+    if (parentFilter !== "all") {
+      const allowed = new Set<string>([parentFilter]);
+      const stack = [parentFilter];
+      while (stack.length) {
+        const code = stack.pop()!;
+        for (const acc of accounts) {
+          if (acc.parent_code === code && !allowed.has(acc.account_code)) {
+            allowed.add(acc.account_code);
+            stack.push(acc.account_code);
+          }
+        }
+      }
+      allTx = allTx.filter(tx =>
+        (tx.debit_account_code && allowed.has(tx.debit_account_code)) ||
+        (tx.credit_account_code && allowed.has(tx.credit_account_code))
+      );
+    }
 
     // Opening balance: all transactions BEFORE dateFrom
     const openingDebitMap: Record<string, number> = {};
@@ -382,7 +408,7 @@ const TrialBalancePage = () => {
     const grandClosingCredit = leafRows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
 
     return { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
-  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod]);
+  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod, costCenterFilter, parentFilter]);
 
   // Toggle expand/collapse for a parent account
   const toggleExpand = (code: string) => {
