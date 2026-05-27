@@ -186,6 +186,7 @@ const AccountsPage = () => {
   const [addSubParentCode, setAddSubParentCode] = useState<string | null>(null);
   const [moveModalAccount, setMoveModalAccount] = useState<Account | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
   const fetchAccounts = async () => {
     if (!user) return;
