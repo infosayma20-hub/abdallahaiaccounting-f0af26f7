@@ -576,20 +576,32 @@ const JournalEntriesPage = () => {
           <p className="text-sm text-muted-foreground">لا توجد قيود للفترة المحددة</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden print:shadow-none print:border-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" dir="rtl">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground w-10">#</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">التاريخ</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground min-w-[200px]">الوصف</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">النوع</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">الحساب المدين</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">الحساب الدائن</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-primary">مدين</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-destructive">دائن</th>
-                  <th className="px-4 py-3 w-10"></th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground w-10">#</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      title="فرز حسب التاريخ"
+                    >
+                      التاريخ
+                      {sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                    </button>
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground min-w-[200px]">الوصف</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">النوع</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">الحساب المدين</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">الحساب الدائن</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">المرجع</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">العملة</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">مدين</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">دائن</th>
+                  <th className="px-3 py-2 w-20 print:hidden"></th>
                 </tr>
               </thead>
               <tbody>
@@ -598,30 +610,43 @@ const JournalEntriesPage = () => {
                   const displayType = getDisplayType(tx.transaction_type);
                   return (
                     <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
-                      <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">{idx}</td>
-                      <td className="px-4 py-3 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.description || "—"}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.description || "—"}</td>
+                      <td className="px-3 py-1.5">
                         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap inline-block ${typeStyle[displayType] || "bg-muted text-muted-foreground"}`}>
                           {displayType}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-foreground">{accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-foreground">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
-                      <td className="px-4 py-3 text-xs font-bold text-primary tabular-nums text-left">
+                      <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "—"}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
+                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground font-mono whitespace-nowrap">{tx.reference || "—"}</td>
+                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
+                      <td className="px-3 py-1.5 text-xs font-bold text-primary tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-xs font-bold text-destructive tabular-nums text-left">
+                      <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => openEdit(tx)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 transition-all"
-                          title="تعديل القيد"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-primary" />
-                        </button>
+                      <td className="px-3 py-1.5 print:hidden">
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEdit(tx, "edit")}
+                            className="p-1.5 rounded-lg hover:bg-primary/10"
+                            title="تعديل القيد"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-primary" />
+                          </button>
+                          {!tx.is_deleted && (
+                            <button
+                              onClick={() => openEdit(tx, "delete")}
+                              className="p-1.5 rounded-lg hover:bg-destructive/10"
+                              title="إلغاء / حذف القيد"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -629,10 +654,10 @@ const JournalEntriesPage = () => {
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
-                  <td colSpan={6} className="px-4 py-3 text-xs font-bold text-foreground text-right">الإجمالي</td>
-                  <td className="px-4 py-3 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
-                  <td></td>
+                  <td colSpan={8} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
+                  <td className="px-3 py-2 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
+                  <td className="print:hidden"></td>
                 </tr>
               </tfoot>
             </table>
