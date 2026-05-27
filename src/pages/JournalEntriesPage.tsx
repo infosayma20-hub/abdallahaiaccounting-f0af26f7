@@ -25,6 +25,7 @@ import {
   type FilterField,
 } from "@/components/finance/shell";
 import { ColumnHeaderMenu } from "@/components/finance/shell/ColumnHeaderMenu";
+import { SmartTextCell } from "@/components/ui/smart-text-cell";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface TransactionRow {
