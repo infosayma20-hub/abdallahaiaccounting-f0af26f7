@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
@@ -18,10 +18,38 @@ interface WebLayoutProps {
   children: React.ReactNode;
 }
 
+const AUTO_COLLAPSE_MS = 5000;
+
 const WebLayout = ({ children }: WebLayoutProps) => {
   const { pathname } = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Sidebar starts collapsed and auto-collapses 5s after being expanded
+  // (desktop only). Hovering the sidebar keeps it open.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const autoCollapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearAutoCollapse = () => {
+    if (autoCollapseTimer.current) {
+      clearTimeout(autoCollapseTimer.current);
+      autoCollapseTimer.current = null;
+    }
+  };
+  const scheduleAutoCollapse = () => {
+    clearAutoCollapse();
+    // Skip on small screens — mobile uses the off-canvas drawer
+    if (typeof window !== "undefined" && window.innerWidth < 1024) return;
+    autoCollapseTimer.current = setTimeout(() => {
+      setSidebarCollapsed(true);
+    }, AUTO_COLLAPSE_MS);
+  };
+
+  // Start/refresh the timer whenever the sidebar becomes expanded
+  useEffect(() => {
+    if (!sidebarCollapsed) scheduleAutoCollapse();
+    else clearAutoCollapse();
+    return clearAutoCollapse;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sidebarCollapsed]);
   const { subscription } = useSubscription();
   const isHRRoute = ["/hr", "/employees", "/employee-forms-management", "/hr-attendance", "/attendance/roster", "/manager/roster", "/leaves", "/loans", "/advances", "/hr-deductions", "/payroll", "/payroll-settings"].some((p) => pathname === p || pathname.startsWith(p + "/"));
 
@@ -31,13 +59,20 @@ const WebLayout = ({ children }: WebLayoutProps) => {
   return (
     <TabsProvider>
     <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-      {/* Sidebar — always visible */}
-      <AppSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        mobileOpen={mobileSidebarOpen}
-        onMobileClose={() => setMobileSidebarOpen(false)}
-      />
+      {/* Sidebar — always visible. Auto-collapses 5s after expand */}
+      <div
+        onMouseEnter={clearAutoCollapse}
+        onMouseLeave={() => { if (!sidebarCollapsed) scheduleAutoCollapse(); }}
+        onClickCapture={() => { if (!sidebarCollapsed) scheduleAutoCollapse(); }}
+        className="flex"
+      >
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
+      </div>
 
       {/* Main area */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
