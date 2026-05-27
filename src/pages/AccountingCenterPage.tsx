@@ -95,66 +95,83 @@ function KpiCard({
   );
 }
 
-/* ── Unified finance tile — used for vouchers and grouped links alike ── */
-function FinanceTile({
+/* ── Voucher tile — vertical: icon top center, title, description ── */
+function VoucherTile({
   to,
   title,
   description,
   icon: Icon,
   accent,
   shortcut,
-  emphasis,
-  comingSoon,
 }: {
-  to?: string;
+  to: string;
   title: string;
   description: string;
   icon: LucideIcon;
-  accent: string; // tailwind classes for icon square
+  accent: string;
   shortcut?: string;
-  emphasis?: boolean; // voucher-style highlight
-  comingSoon?: boolean;
 }) {
-  const base =
-    "group relative flex min-h-[104px] items-start gap-3 rounded-xl border bg-card p-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40";
-  const interactive =
-    "border-border/60 hover:border-primary/50 hover:shadow-md hover:bg-muted/20";
-  const emphasised =
-    "border-primary/30 bg-gradient-to-bl from-primary/[0.04] to-card hover:border-primary/60";
-  const disabled =
-    "border-dashed border-border/60 bg-muted/20 opacity-70 cursor-not-allowed";
-
-  const body = (
-    <>
-      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${accent}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold leading-snug text-foreground">{title}</h3>
-          {shortcut && (
-            <span className="rounded border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground">
-              {shortcut}
-            </span>
-          )}
-        </div>
-        <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-        {comingSoon && (
-          <p className="mt-1 text-[10px] font-medium text-muted-foreground/80">قريباً</p>
-        )}
-      </div>
-    </>
-  );
-
-  if (comingSoon || !to) {
-    return <div className={`${base} ${disabled}`}>{body}</div>;
-  }
   return (
-    <Link to={to} className={`${base} ${emphasis ? emphasised : interactive}`}>
-      {body}
+    <Link
+      to={to}
+      className="group relative flex min-h-[180px] flex-col items-center rounded-xl border border-border/60 bg-card p-5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40"
+    >
+      {shortcut && (
+        <span className="absolute left-3 top-3 rounded border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground">
+          {shortcut}
+        </span>
+      )}
+      <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-xl ${accent}`}>
+        <Icon className="h-7 w-7" />
+      </div>
+      <h3 className="text-sm font-bold text-foreground">{title}</h3>
+      <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{description}</p>
     </Link>
+  );
+}
+
+/* ── Group card — icon top center, group title, list of sub-links ── */
+function GroupCard({
+  title,
+  icon: Icon,
+  accent,
+  links,
+}: {
+  title: string;
+  icon: LucideIcon;
+  accent: string;
+  links: { to?: string; label: string; comingSoon?: boolean }[];
+}) {
+  return (
+    <div className="flex flex-col rounded-xl border border-border/60 bg-card p-5 transition-shadow hover:shadow-md">
+      <div className="mb-3 flex flex-col items-center text-center">
+        <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-xl ${accent}`}>
+          <Icon className="h-7 w-7" />
+        </div>
+        <h3 className="text-base font-bold text-foreground">{title}</h3>
+      </div>
+      <ul className="flex flex-col gap-0.5">
+        {links.map((l) =>
+          l.comingSoon || !l.to ? (
+            <li
+              key={l.label}
+              className="rounded-md px-3 py-2 text-center text-[13px] text-muted-foreground/70"
+            >
+              {l.label} <span className="text-[10px]">(قريباً)</span>
+            </li>
+          ) : (
+            <li key={l.label}>
+              <Link
+                to={l.to}
+                className="block rounded-md px-3 py-2 text-center text-[13px] text-foreground transition-colors hover:bg-muted/60 hover:text-primary"
+              >
+                {l.label}
+              </Link>
+            </li>
+          )
+        )}
+      </ul>
+    </div>
   );
 }
 
@@ -205,50 +222,56 @@ const voucherTiles: {
   },
 ];
 
-/* ── Grouped finance links ── */
-const linkSections: {
+/* ── Grouped finance links (one card per group, vertical layout) ── */
+const linkGroups: {
   title: string;
+  icon: LucideIcon;
   accent: string;
-  tiles: { to?: string; title: string; description: string; icon: LucideIcon; comingSoon?: boolean }[];
+  links: { to?: string; label: string; comingSoon?: boolean }[];
 }[] = [
   {
     title: "الدفاتر والحسابات",
+    icon: BookOpen,
     accent: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-    tiles: [
-      { to: "/accounts", title: "شجرة الحسابات", description: "إدارة دليل الحسابات الهرمي وضبط الحسابات الفرعية.", icon: Network },
-      { to: "/transactions", title: "دفتر اليومية", description: "جميع القيود المحاسبية الموحّدة بفلاتر وعرض كثيف.", icon: BookOpen },
-      { to: "/general-ledger", title: "دفتر الأستاذ", description: "حركات كل حساب على حدة مع الأرصدة التراكمية.", icon: BookText },
-      { to: "/trial-balance", title: "ميزان المراجعة", description: "ميزان مراجعة فوري للتحقق من توازن الحسابات.", icon: Scale },
+    links: [
+      { to: "/accounts", label: "شجرة الحسابات" },
+      { to: "/transactions", label: "دفتر اليومية" },
+      { to: "/general-ledger", label: "دفتر الأستاذ" },
+      { to: "/trial-balance", label: "ميزان المراجعة" },
+      { to: "/account-statement", label: "كشف حساب" },
     ],
   },
   {
     title: "النقد والبنوك",
+    icon: Wallet,
     accent: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    tiles: [
-      { to: "/finance/cash-boxes", title: "الصناديق", description: "إدارة الصناديق النقدية وأرصدتها وتحويلاتها.", icon: Wallet },
-      { to: "/finance/bank-accounts", title: "البنوك", description: "الحسابات البنكية وكشوفاتها وتسوياتها.", icon: Landmark },
-      { to: "/finance/cheques", title: "الشيكات", description: "متابعة الشيكات الواردة والصادرة ودورة تحصيلها.", icon: FileCheck2 },
-      { to: "/currency-management", title: "العملات", description: "أسعار الصرف وإدارة العملات الأجنبية.", icon: Coins },
+    links: [
+      { to: "/finance/cash-boxes", label: "الصناديق" },
+      { to: "/finance/bank-accounts", label: "البنوك" },
+      { to: "/finance/cheques", label: "الشيكات" },
+      { to: "/currency-management", label: "العملات" },
     ],
   },
   {
     title: "الذمم",
+    icon: Users,
     accent: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    tiles: [
-      { to: "/contacts?type=customer", title: "الزبائن", description: "ملفات الزبائن وأرصدتهم وتاريخ تعاملاتهم.", icon: Users },
-      { to: "/contacts?type=supplier", title: "الموردين", description: "ملفات الموردين والمستحقات والمدفوعات.", icon: Truck },
-      { to: "/finance/receipts", title: "سندات القبض", description: "جميع سندات القبض المسجلة مع إمكانية البحث والتصدير.", icon: ArrowDownLeft },
-      { to: "/finance/payments", title: "سندات الصرف", description: "جميع سندات الصرف المسجلة مع إمكانية البحث والتصدير.", icon: ArrowUpRight },
+    links: [
+      { to: "/contacts?type=customer", label: "الزبائن" },
+      { to: "/contacts?type=supplier", label: "الموردين" },
+      { to: "/finance/receipts", label: "سندات القبض" },
+      { to: "/finance/payments", label: "سندات الصرف" },
     ],
   },
   {
     title: "التقارير والامتثال",
+    icon: BarChart3,
     accent: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    tiles: [
-      { to: "/reports", title: "التقارير", description: "تقارير مالية مالية مفصّلة وقابلة للتصدير والطباعة.", icon: BarChart3 },
-      { to: "/tax", title: "الضريبة", description: "ضريبة القيمة المضافة والتقارير الضريبية الفلسطينية.", icon: Receipt },
-      { to: "/fixed-assets", title: "الأصول الثابتة", description: "إدارة الأصول الثابتة والاستهلاك ودورة حياتها.", icon: Landmark },
-      { title: "إغلاق الفترات", description: "إغلاق الفترات المالية ومنع التعديل عليها.", icon: ScrollText, comingSoon: true },
+    links: [
+      { to: "/reports", label: "التقارير" },
+      { to: "/tax", label: "الضريبة" },
+      { to: "/fixed-assets", label: "الأصول الثابتة" },
+      { label: "إغلاق الفترات", comingSoon: true },
     ],
   },
 ];
@@ -308,35 +331,21 @@ export default function AccountingCenterPage() {
       {/* ── السندات (Quick voucher actions — emphasised tiles) ── */}
       <section>
         <h2 className="mb-3 text-sm font-semibold text-muted-foreground">السندات</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {voucherTiles.map((t) => (
-            <FinanceTile key={t.to} {...t} emphasis />
+            <VoucherTile key={t.to} {...t} />
           ))}
         </div>
       </section>
 
-      {/* ── روابط المالية (grouped tiles, same component) ── */}
-      <section className="space-y-5">
-        {linkSections.map((section) => (
-          <div key={section.title}>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {section.title}
-            </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {section.tiles.map((tile) => (
-                <FinanceTile
-                  key={tile.title}
-                  to={tile.to}
-                  title={tile.title}
-                  description={tile.description}
-                  icon={tile.icon}
-                  accent={section.accent}
-                  comingSoon={tile.comingSoon}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+      {/* ── روابط المالية (one card per group, vertical layout) ── */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">الروابط المالية</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {linkGroups.map((g) => (
+            <GroupCard key={g.title} title={g.title} icon={g.icon} accent={g.accent} links={g.links} />
+          ))}
+        </div>
       </section>
 
       {/* Recent activity */}
