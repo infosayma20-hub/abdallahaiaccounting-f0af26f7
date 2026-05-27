@@ -416,7 +416,7 @@ const AccountStatementV2Page = () => {
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
       const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted };
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, cost_center_id: tx.cost_center_id || null };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
@@ -440,9 +440,14 @@ const AccountStatementV2Page = () => {
   const filteredRows = useMemo(() => {
     let r = rows;
     if (txTypeFilter !== "all") r = r.filter(x => x.transaction_type.includes(txTypeFilter));
+    if (txCostCenter !== "all") {
+      r = txCostCenter === "__none__"
+        ? r.filter(x => !x.cost_center_id)
+        : r.filter(x => x.cost_center_id === txCostCenter);
+    }
     if (txSearch.trim()) r = r.filter(x => multiWordMatchAny(txSearch, x.description, x.reference));
     return r;
-  }, [rows, txSearch, txTypeFilter]);
+  }, [rows, txSearch, txTypeFilter, txCostCenter]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
