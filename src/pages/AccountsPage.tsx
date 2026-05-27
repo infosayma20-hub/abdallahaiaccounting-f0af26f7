@@ -814,7 +814,9 @@ const AccountsPage = () => {
           userId={user.id}
         />
       )}
-    </div>
+          </div>
+        </FinanceShell>
+      </div>
     </TooltipProvider>
   );
 };
