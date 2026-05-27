@@ -21,7 +21,7 @@ export interface AccountOption {
   id: string;
   account_code: string;
   account_name: string;
-  account_type?: string | null;
+  account_type: string;
   is_active?: boolean | null;
 }
 
