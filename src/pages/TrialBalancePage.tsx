@@ -1069,7 +1069,8 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
