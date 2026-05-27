@@ -16,6 +16,15 @@ import {
   PlusCircle,
   Wallet,
   ArrowRightLeft,
+  BookOpen,
+  Network,
+  Scale,
+  Users,
+  Truck,
+  Landmark,
+  FileCheck2,
+  Coins,
+  BarChart3,
 } from "lucide-react";
 
 /**
@@ -143,6 +152,42 @@ export default function AccountingCenterPage() {
           <Link to="/contacts"><Wallet className="h-4 w-4" /> كشف حساب</Link>
         </Button>
       </div>
+
+      {/* روابط المالية الكاملة — وحدة الوصول الموحّدة بدل المنسدلة الطويلة في التطبيقات */}
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">روابط المالية</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {[
+            { to: "/finance/receipts",   label: "سندات القبض",    icon: Receipt },
+            { to: "/finance/payments",   label: "سندات الصرف",    icon: FileText },
+            { to: "/finance/journals",   label: "سندات القيد",    icon: BookOpen },
+            { to: "/accounts",           label: "شجرة الحسابات",  icon: Network },
+            { to: "/transactions",       label: "دفتر اليومية",   icon: BookOpen },
+            { to: "/general-ledger",     label: "دفتر الأستاذ",   icon: BookOpen },
+            { to: "/account-statement",  label: "كشف الحساب",     icon: FileCheck2 },
+            { to: "/trial-balance",      label: "ميزان المراجعة", icon: Scale },
+            { to: "/contacts?type=customer", label: "الزبائن",    icon: Users },
+            { to: "/contacts?type=supplier", label: "الموردين",   icon: Truck },
+            { to: "/finance/cash-boxes", label: "الصناديق",       icon: Wallet },
+            { to: "/finance/bank-accounts", label: "البنوك",      icon: Landmark },
+            { to: "/finance/cheques",    label: "الشيكات",        icon: FileCheck2 },
+            { to: "/currency-management", label: "العملات",       icon: Coins },
+            { to: "/reports",            label: "التقارير",        icon: BarChart3 },
+          ].map(({ to, label, icon: Icon }) => (
+            <Button
+              key={to}
+              asChild
+              variant="outline"
+              className="justify-start gap-2 h-9"
+            >
+              <Link to={to}>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-[13px]">{label}</span>
+              </Link>
+            </Button>
+          ))}
+        </div>
+      </section>
 
       {err && (
         <Card className="border-destructive">

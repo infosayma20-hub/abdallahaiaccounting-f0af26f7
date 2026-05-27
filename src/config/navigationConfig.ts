@@ -74,42 +74,18 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", module: "accounting", icon: DollarSign,
-        color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/finance/receipts",
+        color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/accounting-center",
+        isDirect: true,
         keywords: ["مالية", "حسابات", "قيود", "ميزان"],
         groups: [
           {
-            groupLabel: "السندات",
+            // قائمة سريعة جداً — الوصول الكامل من مركز المالية
+            groupLabel: "إجراءات سريعة",
             children: [
-              { label: "سند القبض", path: "/finance/receipts" },
-              { label: "سند الصرف", path: "/finance/payments" },
-              { label: "سند القيد", path: "/finance/journals" },
-            ],
-          },
-          {
-            groupLabel: "الدفاتر والحسابات",
-            children: [
-              { label: "شجرة الحسابات", path: "/accounts" },
-              { label: "دفتر اليومية", path: "/transactions" },
-              { label: "دفتر الأستاذ", path: "/general-ledger" },
-              { label: "كشف حساب", path: "/account-statement" },
-              { label: "ميزان المراجعة", path: "/trial-balance" },
-              { label: "الزبائن", path: "/contacts?type=customer" },
-              { label: "الموردين", path: "/contacts?type=supplier" },
-              { label: "المندوبين", path: "/sales-reps" },
-            ],
-          },
-          {
-            groupLabel: "الصناديق والبنوك",
-            children: [
-              { label: "الصناديق", path: "/finance/cash-boxes" },
-              { label: "الحسابات البنكية", path: "/finance/bank-accounts" },
-              { label: "الشيكات", path: "/finance/cheques" },
-            ],
-          },
-          {
-            groupLabel: "العملات",
-            children: [
-              { label: "إدارة العملات", path: "/currency-management" },
+              { label: "قيد جديد", path: "/finance/journal/new" },
+              { label: "سند قبض", path: "/finance/receipt/new" },
+              { label: "سند صرف", path: "/finance/payment/new" },
+              { label: "مركز المالية", path: "/accounting-center" },
             ],
           },
         ],
