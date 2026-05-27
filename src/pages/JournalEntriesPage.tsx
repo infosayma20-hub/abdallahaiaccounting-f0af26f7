@@ -642,7 +642,7 @@ const JournalEntriesPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm" dir="rtl">
               <thead>
-                <tr className="border-b border-border/60 bg-primary text-primary-foreground print:bg-muted print:text-foreground">
+                <tr className="border-b border-border/60 bg-primary text-primary-foreground print:bg-muted print:text-foreground [&_th_button]:!text-primary-foreground [&_th_button:hover]:!text-primary-foreground/80 print:[&_th_button]:!text-foreground">
                   <th className="text-right px-3 py-2 text-[11px] font-semibold w-10">#</th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="التاريخ"
