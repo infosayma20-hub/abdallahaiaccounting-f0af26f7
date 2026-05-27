@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { usePermission } from "@/hooks/usePermission";
 import { supabase } from "@/integrations/supabase/client";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
@@ -178,7 +179,14 @@ const JournalEntriesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [sortKey, setSortKey] = useState<"transaction_date" | "amount">("transaction_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  // ─── Visual permission gating (UI hides what backend already blocks) ───
+  const perms = usePermission("finance");
+  const canCreateJournal = perms.can("journal", "create");
+  const canUpdateJournal = perms.can("journal", "update");
+  const canDeleteJournal = perms.can("journal", "delete");
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
   const [editResolution, setEditResolution] = useState<{
@@ -264,10 +272,15 @@ const JournalEntriesPage = () => {
     }
 
     return result.sort((a, b) => {
-      const cmp = (a.transaction_date || "").localeCompare(b.transaction_date || "");
+      let cmp = 0;
+      if (sortKey === "amount") {
+        cmp = (a.amount || 0) - (b.amount || 0);
+      } else {
+        cmp = (a.transaction_date || "").localeCompare(b.transaction_date || "");
+      }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [transactions, shellFilters, searchQuery, accountMap, sortDir]);
+  }, [transactions, shellFilters, searchQuery, accountMap, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -293,10 +306,15 @@ const JournalEntriesPage = () => {
     setShellFilters((prev) => prev.filter((c) => c.fieldKey !== fieldKey));
   const currentColumnFilter = (fieldKey: string) =>
     shellFilters.find((c) => c.fieldKey === fieldKey)?.value || "";
-  // Generic column sorter (uses transaction_date as the only true sort key for now,
- // for text columns we just keep date ordering and surface a quick filter).
+  // Generic column sorter: real ordering for date/amount; other columns surface
+  // a quick filter only (table is then implicitly ordered by current sort key).
   const handleColumnSort = (fieldKey: string, dir: "asc" | "desc") => {
-    if (fieldKey === "transaction_date") setSortDir(dir);
+    if (fieldKey === "transaction_date" || fieldKey === "amount") {
+      setSortKey(fieldKey);
+      setSortDir(dir);
+    } else {
+      setSortDir(dir);
+    }
   };
 
   /**
@@ -487,45 +505,32 @@ const JournalEntriesPage = () => {
     ]},
   ]), [typeOptionsForFilter, currencyOptions]);
 
-  const actionTabs: ActionTab[] = useMemo(() => ([
-    {
-      key: "general",
-      label: "عام",
-      groups: [
-        {
-          key: "new",
-          label: "جديد",
-          items: [
-            { key: "new-entry", label: "قيد جديد", icon: Plus, variant: "primary",
-              onClick: () => setShowJournalEntry(true), shortcut: "Alt+J" },
-          ],
-        },
-        {
-          key: "actions",
-          label: "إجراءات",
-          items: [
-            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
-          ],
-        },
-        {
-          key: "print",
-          label: "طباعة",
-          items: [
-            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint,
-              disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" },
-          ],
-        },
-        {
-          key: "export",
-          label: "تصدير",
-          items: [
-            { key: "excel", label: "Excel", icon: FileSpreadsheet,
-              onClick: handleExport, disabled: filtered.length === 0 },
-          ],
-        },
-      ],
-    },
-  ]), [filtered.length]);
+  const actionTabs: ActionTab[] = useMemo(() => {
+    const newGroupItems = [];
+    if (canCreateJournal) {
+      newGroupItems.push({
+        key: "new-entry", label: "قيد جديد", icon: Plus, variant: "primary" as const,
+        onClick: () => setShowJournalEntry(true), shortcut: "Alt+J",
+      });
+    }
+    const groups = [];
+    if (newGroupItems.length) groups.push({ key: "new", label: "جديد", items: newGroupItems });
+    groups.push({
+      key: "actions", label: "إجراءات",
+      items: [{ key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData }],
+    });
+    groups.push({
+      key: "print", label: "طباعة",
+      items: [{ key: "print", label: "طباعة", icon: Printer, onClick: handlePrint,
+               disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" }],
+    });
+    groups.push({
+      key: "export", label: "تصدير",
+      items: [{ key: "excel", label: "Excel", icon: FileSpreadsheet,
+               onClick: handleExport, disabled: filtered.length === 0 }],
+    });
+    return [{ key: "general", label: "عام", groups }];
+  }, [filtered.length, canCreateJournal]);
 
   // Alt+J shortcut to open journal entry
   useEffect(() => {
@@ -607,15 +612,13 @@ const JournalEntriesPage = () => {
                 <tr className="border-b border-border/60 bg-muted/30">
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground w-10">#</th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
-                    <button
-                      type="button"
-                      onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-                      className="inline-flex items-center gap-1 hover:text-foreground"
-                      title="فرز حسب التاريخ"
-                    >
-                      التاريخ
-                      {sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                    </button>
+                    <ColumnHeaderMenu label="التاريخ"
+                      direction={sortKey === "transaction_date" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("transaction_date", d)}
+                      onFilter={(v, op) => upsertColumnFilter("transaction_date", v, op)}
+                      onClear={() => clearColumnFilter("transaction_date")}
+                      currentFilterValue={currentColumnFilter("transaction_date")}
+                    />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground min-w-[200px]">
                     <ColumnHeaderMenu label="الوصف"
@@ -665,9 +668,29 @@ const JournalEntriesPage = () => {
                       currentFilterValue={currentColumnFilter("currency")}
                     />
                   </th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">مدين</th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">دائن</th>
-                  <th className="px-3 py-2 w-20 print:hidden"></th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="الحالة"
+                      onSort={(d) => handleColumnSort("is_deleted", d)}
+                      onFilter={(v, op) => upsertColumnFilter("is_deleted", v, op)}
+                      onClear={() => clearColumnFilter("is_deleted")}
+                      currentFilterValue={currentColumnFilter("is_deleted")}
+                    />
+                  </th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">
+                    <ColumnHeaderMenu label="مدين"
+                      direction={sortKey === "amount" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("amount", d)}
+                    />
+                  </th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">
+                    <ColumnHeaderMenu label="دائن"
+                      direction={sortKey === "amount" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("amount", d)}
+                    />
+                  </th>
+                  {(canUpdateJournal || canDeleteJournal) && (
+                    <th className="px-3 py-2 w-20 print:hidden"></th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -688,42 +711,55 @@ const JournalEntriesPage = () => {
                       <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground font-mono whitespace-nowrap">{tx.reference || "—"}</td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
+                      <td className="px-3 py-1.5">
+                        {tx.is_deleted ? (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-destructive/10 text-destructive">ملغي</span>
+                        ) : (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">نشط</span>
+                        )}
+                      </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-primary tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
-                      <td className="px-3 py-1.5 print:hidden">
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => openEdit(tx, "edit")}
-                            className="p-1.5 rounded-lg hover:bg-primary/10"
-                            title="تعديل القيد"
-                          >
-                            <Pencil className="h-3.5 w-3.5 text-primary" />
-                          </button>
-                          {!tx.is_deleted && (
-                            <button
-                              onClick={() => openEdit(tx, "delete")}
-                              className="p-1.5 rounded-lg hover:bg-destructive/10"
-                              title="إلغاء / حذف القيد"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                      {(canUpdateJournal || canDeleteJournal) && (
+                        <td className="px-3 py-1.5 print:hidden">
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {canUpdateJournal && (
+                              <button
+                                onClick={() => openEdit(tx, "edit")}
+                                className="p-1.5 rounded-lg hover:bg-primary/10"
+                                title="تعديل القيد"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-primary" />
+                              </button>
+                            )}
+                            {canDeleteJournal && !tx.is_deleted && (
+                              <button
+                                onClick={() => openEdit(tx, "delete")}
+                                className="p-1.5 rounded-lg hover:bg-destructive/10"
+                                title="إلغاء / حذف القيد"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
-                  <td colSpan={8} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
+                  <td colSpan={9} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
                   <td className="px-3 py-2 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
                   <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
-                  <td className="print:hidden"></td>
+                  {(canUpdateJournal || canDeleteJournal) && (
+                    <td className="print:hidden"></td>
+                  )}
                 </tr>
               </tfoot>
             </table>
