@@ -189,6 +189,7 @@ const voucherTiles: {
     description: "تسجيل المقبوضات من العملاء على الحسابات أو الفواتير.",
     icon: ArrowDownLeft,
     accent: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    shortcut: "Alt+R",
   },
   {
     to: "/finance/payment/new",
@@ -196,6 +197,7 @@ const voucherTiles: {
     description: "تسجيل المدفوعات للموردين والمصاريف بكل العملات.",
     icon: ArrowUpRight,
     accent: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    shortcut: "Alt+E",
   },
   {
     to: "/finance/journal/new",
@@ -211,6 +213,7 @@ const voucherTiles: {
     description: "إنشاء فاتورة مبيعات أو مشتريات وربطها بالمخزون والذمم.",
     icon: FilePlus2,
     accent: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    shortcut: "Alt+I",
   },
   {
     to: "/account-statement",
@@ -218,6 +221,7 @@ const voucherTiles: {
     description: "عرض حركة عميل أو مورد مع إمكانية المشاركة والطباعة.",
     icon: FileCheck2,
     accent: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    shortcut: "Alt+K",
   },
 ];
 
