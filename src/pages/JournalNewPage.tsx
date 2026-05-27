@@ -32,6 +32,7 @@ import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import AccountingShell from "@/components/layout/AccountingShell";
+import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
 interface JournalLine {
   id: string;
@@ -42,6 +43,7 @@ interface JournalLine {
   contact_id?: string;
   contact_name?: string;
   line_comment?: string;
+  cost_center_id?: string | null;
 }
 
 interface Contact {
@@ -69,6 +71,7 @@ const JournalNewPage = () => {
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formContactId, setFormContactId] = useState("");
+  const [formCostCenterId, setFormCostCenterId] = useState<string | null>(null);
   const [contactSearch, setContactSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -411,6 +414,7 @@ const JournalNewPage = () => {
         description: formDescription,
         notes: formNotes || null,
         contact_id: formContactId || null,
+        cost_center_id: formCostCenterId || null,
         lines: validLines.map((l) => ({
           account_code: l.account_code,
           account_name: l.account_name,
@@ -419,6 +423,7 @@ const JournalNewPage = () => {
           contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
           contact_name: l.contact_name || null,
           line_comment: l.line_comment || null,
+          cost_center_id: l.cost_center_id || null,
         })),
         mode,
         attachments,
