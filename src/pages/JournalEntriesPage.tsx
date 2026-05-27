@@ -641,6 +641,7 @@ const JournalEntriesPage = () => {
                       onFilter={(v, op) => upsertColumnFilter("description", v, op)}
                       onClear={() => clearColumnFilter("description")}
                       currentFilterValue={currentColumnFilter("description")}
+                      direction={sortKey === "description" ? sortDir : null}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
@@ -649,6 +650,7 @@ const JournalEntriesPage = () => {
                       onFilter={(v, op) => upsertColumnFilter("displayType", v, op)}
                       onClear={() => clearColumnFilter("displayType")}
                       currentFilterValue={currentColumnFilter("displayType")}
+                      direction={sortKey === "displayType" ? sortDir : null}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
@@ -657,6 +659,7 @@ const JournalEntriesPage = () => {
                       onFilter={(v, op) => upsertColumnFilter("debit_account_code", v, op)}
                       onClear={() => clearColumnFilter("debit_account_code")}
                       currentFilterValue={currentColumnFilter("debit_account_code")}
+                      direction={sortKey === "debit_account_code" ? sortDir : null}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
@@ -665,6 +668,7 @@ const JournalEntriesPage = () => {
                       onFilter={(v, op) => upsertColumnFilter("credit_account_code", v, op)}
                       onClear={() => clearColumnFilter("credit_account_code")}
                       currentFilterValue={currentColumnFilter("credit_account_code")}
+                      direction={sortKey === "credit_account_code" ? sortDir : null}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
@@ -673,6 +677,7 @@ const JournalEntriesPage = () => {
                       onFilter={(v, op) => upsertColumnFilter("reference", v, op)}
                       onClear={() => clearColumnFilter("reference")}
                       currentFilterValue={currentColumnFilter("reference")}
+                      direction={sortKey === "reference" ? sortDir : null}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
@@ -737,6 +742,7 @@ const JournalEntriesPage = () => {
                       <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground font-mono whitespace-nowrap">{tx.reference || "—"}</td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
+                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground whitespace-nowrap">{tx.cost_center_name || "—"}</td>
                       <td className="px-3 py-1.5">
                         {tx.is_deleted ? (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-destructive/10 text-destructive">ملغي</span>
@@ -780,7 +786,7 @@ const JournalEntriesPage = () => {
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
-                  <td colSpan={9} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
+                  <td colSpan={10} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
                   <td className="px-3 py-2 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
                   <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
                   {(canUpdateJournal || canDeleteJournal) && (
