@@ -1,19 +1,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Trash2, FileSpreadsheet, Lock, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown, FileText, Network, Settings2 } from "lucide-react";
 import { MoveAccountModal } from "@/components/accounting/MoveAccountModal";
 import { ImportAccountsModal } from "@/components/accounting/ImportAccountsModal";
 import { exportAccountsToExcel } from "@/lib/accountsExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-
 import { cn, multiWordMatchAny } from "@/lib/utils";
+import { FinanceShell, type ActionTab, type FilterField, type FilterCondition, applyFilters } from "@/components/finance/shell";
 
 interface Account {
   id: string;
