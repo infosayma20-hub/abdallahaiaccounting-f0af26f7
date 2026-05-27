@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
-  FileText, ChevronLeft, ChevronRight, FileSpreadsheet,
+  FileText, ChevronLeft, ChevronRight, FileSpreadsheet, Printer, Trash2,
+  ArrowUp, ArrowDown, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -176,16 +177,19 @@ const JournalEntriesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
   const [editResolution, setEditResolution] = useState<{
     kind: "voucher" | "invoice" | "orphan";
+    mode?: "edit" | "delete";
     voucherId?: string;
     voucherRef?: string;
     invoiceHint?: string;
     message: string;
   } | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
 
   // Build account code → name map
@@ -258,10 +262,11 @@ const JournalEntriesPage = () => {
       );
     }
 
-    return result.sort((a, b) =>
-      (b.transaction_date || "").localeCompare(a.transaction_date || ""),
-    );
-  }, [transactions, shellFilters, searchQuery, accountMap]);
+    return result.sort((a, b) => {
+      const cmp = (a.transaction_date || "").localeCompare(b.transaction_date || "");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [transactions, shellFilters, searchQuery, accountMap, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -278,7 +283,7 @@ const JournalEntriesPage = () => {
    *  - invoice / payment / receipt / cheque ...: عرض رسالة + رابط للمستند الأصلي
    *  - يتيم بدون مرجع: عرض رسالة "لا يمكن التعديل" مع تفسير
    */
-  const openEdit = async (tx: TransactionRow) => {
+  const openEdit = async (tx: TransactionRow, mode: "edit" | "delete" = "edit") => {
     if (!user) return;
     setEditingTx(tx);
     setEditResolution(null);
@@ -301,9 +306,12 @@ const JournalEntriesPage = () => {
         if (v) {
           setEditResolution({
             kind: "voucher",
+            mode,
             voucherId: v.id,
             voucherRef: v.ref_number,
-            message: `هذا القيد مرتبط بسند يومية (${v.ref_number}). أي تعديل يجب أن يتم من خلال محرر السند الموحّد لضمان تزامن الرأس والأسطر مع كشف الحساب والتقارير.`,
+            message: mode === "delete"
+              ? `هذا القيد مرتبط بسند يومية (${v.ref_number}). الإلغاء/الحذف يجب أن يتم من محرر السند الموحّد حتى تنعكس التغييرات على دفتر الأستاذ وكشوف الحسابات.`
+              : `هذا القيد مرتبط بسند يومية (${v.ref_number}). أي تعديل يجب أن يتم من خلال محرر السند الموحّد لضمان تزامن الرأس والأسطر مع كشف الحساب والتقارير.`,
           });
           return;
         }
@@ -330,8 +338,11 @@ const JournalEntriesPage = () => {
       if (hint) {
         setEditResolution({
           kind: "invoice",
+          mode,
           invoiceHint: hint,
-          message: `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.`,
+          message: mode === "delete"
+            ? `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن حذفه من هنا — الإلغاء يجب أن يتم من المستند الأصلي (أو عبر إصدار إشعار دائن) ليبقى تسلسل المخزون والذمم سليماً.`
+            : `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.`,
         });
         return;
       }
@@ -339,9 +350,14 @@ const JournalEntriesPage = () => {
       // (3) سجل يتيم بدون مرجع — لا يمكن تعديله من هذه الشاشة
       setEditResolution({
         kind: "orphan",
+        mode,
         message: ref
-          ? `قيد بمرجع "${ref}" غير مرتبط بسند معروف في النظام. لا يمكن تعديله من شاشة تقرير القيود؛ هذا التقرير للعرض والتدقيق فقط. للتعديل أنشئ سند قيد تسوية جديد.`
-          : `هذا القيد لا يحمل أي مرجع لمستند مصدر. شاشة "تقرير القيود المحاسبية" للعرض والتدقيق فقط — أي تعديل محاسبي يجب أن يمر عبر إنشاء سند قيد تسوية جديد.`,
+          ? (mode === "delete"
+              ? `قيد بمرجع "${ref}" غير مرتبط بسند معروف. يمكن إلغاؤه فقط كقيد يتيم (سيتم تعليمه كملغي مع الإبقاء عليه في السجل للمراجعة).`
+              : `قيد بمرجع "${ref}" غير مرتبط بسند معروف في النظام. لا يمكن تعديله من شاشة تقرير القيود؛ هذا التقرير للعرض والتدقيق فقط. للتعديل أنشئ سند قيد تسوية جديد.`)
+          : (mode === "delete"
+              ? `هذا القيد لا يحمل أي مرجع لمستند مصدر. سيتم تعليمه كملغي مع الإبقاء عليه في السجل للمراجعة المحاسبية (Soft delete).`
+              : `هذا القيد لا يحمل أي مرجع لمستند مصدر. شاشة "تقرير القيود المحاسبية" للعرض والتدقيق فقط — أي تعديل محاسبي يجب أن يمر عبر إنشاء سند قيد تسوية جديد.`),
       });
     } finally {
       setResolving(false);
@@ -356,12 +372,36 @@ const JournalEntriesPage = () => {
       setEditingTx(null);
       setEditResolution(null);
     } else if (editResolution.kind === "orphan") {
-      try { await assertPermission("finance", "journal", "create"); } catch { return; }
-      // افتح محرر السند الموحّد لإنشاء قيد تسوية جديد
-      setEditingTx(null);
-      setEditResolution(null);
-      setShowJournalEntry(true);
+      if (editResolution.mode === "delete" && editingTx) {
+        try { await assertPermission("finance", "journal", "delete"); } catch { return; }
+        setDeleting(true);
+        try {
+          const { error } = await supabase
+            .from("transactions")
+            .update({ is_deleted: true })
+            .eq("id", editingTx.id)
+            .eq("user_id", user!.id);
+          if (error) throw error;
+          toast({ title: "تم الإلغاء", description: "تم تعليم القيد كملغي." });
+          setEditingTx(null);
+          setEditResolution(null);
+          await fetchData();
+        } catch (err: any) {
+          toast({ title: "خطأ في الإلغاء", description: err.message, variant: "destructive" });
+        } finally {
+          setDeleting(false);
+        }
+      } else {
+        try { await assertPermission("finance", "journal", "create"); } catch { return; }
+        setEditingTx(null);
+        setEditResolution(null);
+        setShowJournalEntry(true);
+      }
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleExport = () => {
@@ -444,6 +484,14 @@ const JournalEntriesPage = () => {
           ],
         },
         {
+          key: "print",
+          label: "طباعة",
+          items: [
+            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint,
+              disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" },
+          ],
+        },
+        {
           key: "export",
           label: "تصدير",
           items: [
@@ -507,8 +555,12 @@ const JournalEntriesPage = () => {
         </div>
         <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
           <p className="text-[11px] text-muted-foreground">الميزان</p>
-          <p className={`text-xl font-bold tabular-nums ${totalDebit === totalCredit ? "text-primary" : "text-destructive"}`}>
-            {totalDebit === totalCredit ? "✅ متوازن" : "⚠️ غير متوازن"}
+          <p className={`text-xl font-bold tabular-nums flex items-center gap-1.5 ${totalDebit === totalCredit ? "text-primary" : "text-destructive"}`}>
+            {totalDebit === totalCredit ? (
+              <><CheckCircle2 className="h-4 w-4" /> متوازن</>
+            ) : (
+              <><AlertTriangle className="h-4 w-4" /> غير متوازن</>
+            )}
           </p>
         </div>
       </div>
@@ -524,20 +576,32 @@ const JournalEntriesPage = () => {
           <p className="text-sm text-muted-foreground">لا توجد قيود للفترة المحددة</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden print:shadow-none print:border-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" dir="rtl">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground w-10">#</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">التاريخ</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground min-w-[200px]">الوصف</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">النوع</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">الحساب المدين</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">الحساب الدائن</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-primary">مدين</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-destructive">دائن</th>
-                  <th className="px-4 py-3 w-10"></th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground w-10">#</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      title="فرز حسب التاريخ"
+                    >
+                      التاريخ
+                      {sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                    </button>
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground min-w-[200px]">الوصف</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">النوع</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">الحساب المدين</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">الحساب الدائن</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">المرجع</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">العملة</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">مدين</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">دائن</th>
+                  <th className="px-3 py-2 w-20 print:hidden"></th>
                 </tr>
               </thead>
               <tbody>
@@ -546,30 +610,43 @@ const JournalEntriesPage = () => {
                   const displayType = getDisplayType(tx.transaction_type);
                   return (
                     <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
-                      <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">{idx}</td>
-                      <td className="px-4 py-3 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.description || "—"}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.description || "—"}</td>
+                      <td className="px-3 py-1.5">
                         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap inline-block ${typeStyle[displayType] || "bg-muted text-muted-foreground"}`}>
                           {displayType}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-foreground">{accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-foreground">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
-                      <td className="px-4 py-3 text-xs font-bold text-primary tabular-nums text-left">
+                      <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "—"}</td>
+                      <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
+                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground font-mono whitespace-nowrap">{tx.reference || "—"}</td>
+                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
+                      <td className="px-3 py-1.5 text-xs font-bold text-primary tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-xs font-bold text-destructive tabular-nums text-left">
+                      <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => openEdit(tx)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 transition-all"
-                          title="تعديل القيد"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-primary" />
-                        </button>
+                      <td className="px-3 py-1.5 print:hidden">
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEdit(tx, "edit")}
+                            className="p-1.5 rounded-lg hover:bg-primary/10"
+                            title="تعديل القيد"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-primary" />
+                          </button>
+                          {!tx.is_deleted && (
+                            <button
+                              onClick={() => openEdit(tx, "delete")}
+                              className="p-1.5 rounded-lg hover:bg-destructive/10"
+                              title="إلغاء / حذف القيد"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -577,10 +654,10 @@ const JournalEntriesPage = () => {
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
-                  <td colSpan={6} className="px-4 py-3 text-xs font-bold text-foreground text-right">الإجمالي</td>
-                  <td className="px-4 py-3 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
-                  <td></td>
+                  <td colSpan={8} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
+                  <td className="px-3 py-2 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
+                  <td className="print:hidden"></td>
                 </tr>
               </tfoot>
             </table>
@@ -612,11 +689,14 @@ const JournalEntriesPage = () => {
         <DialogContent className="max-w-lg rounded-2xl" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Lock className="h-4 w-4 text-primary" />
-              تعديل القيد المحاسبي
+              {editResolution?.mode === "delete" ? (
+                <><Trash2 className="h-4 w-4 text-destructive" /> إلغاء / حذف القيد المحاسبي</>
+              ) : (
+                <><Lock className="h-4 w-4 text-primary" /> تعديل القيد المحاسبي</>
+              )}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-muted-foreground pt-1">
-              يفرض النظام مرور كل تعديل عبر المحرر الموحّد لضمان تزامن السندات والقيود وكشف الحساب.
+              يفرض النظام مرور كل تعديل أو حذف عبر المحرر الموحّد / المستند الأصلي لضمان تزامن السندات والقيود وكشف الحساب.
             </DialogDescription>
           </DialogHeader>
 
@@ -649,15 +729,21 @@ const JournalEntriesPage = () => {
 
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="outline" onClick={() => { setEditingTx(null); setEditResolution(null); }} className="rounded-xl">
-                  إلغاء
+                  رجوع
                 </Button>
                 {editResolution.kind === "voucher" && (
                   <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
                     <ExternalLink className="h-3.5 w-3.5" />
-                    فتح محرر السند
+                    {editResolution.mode === "delete" ? "فتح السند للحذف" : "فتح محرر السند"}
                   </Button>
                 )}
-                {editResolution.kind === "orphan" && (
+                {editResolution.kind === "orphan" && editResolution.mode === "delete" && (
+                  <Button onClick={handleEditNavigate} disabled={deleting} variant="destructive" className="gap-2 rounded-xl">
+                    {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    تأكيد الإلغاء
+                  </Button>
+                )}
+                {editResolution.kind === "orphan" && editResolution.mode !== "delete" && (
                   <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
                     <Plus className="h-3.5 w-3.5" />
                     إنشاء قيد تسوية
