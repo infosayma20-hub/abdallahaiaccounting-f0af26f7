@@ -1,15 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
-  FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
+  FileText, ChevronLeft, ChevronRight, FileSpreadsheet,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +15,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
+import {
+  FinanceShell,
+  applyFilters,
+  type ActionTab,
+  type FilterCondition,
+  type FilterField,
+} from "@/components/finance/shell";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface TransactionRow {
