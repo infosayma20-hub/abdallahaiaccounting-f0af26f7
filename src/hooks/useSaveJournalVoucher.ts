@@ -94,8 +94,9 @@ function buildTransactionsFromLines(args: {
   reference: string;
   voucherId: string;
   voucherContactId?: string | null;
+  voucherCostCenterId?: string | null;
 }): { txns: any[]; usedClearing: boolean } {
-  const { userId, date, description, lines, txType, reference, voucherId, voucherContactId } = args;
+  const { userId, date, description, lines, txType, reference, voucherId, voucherContactId, voucherCostCenterId } = args;
 
   const cleanContact = (c?: string | null) =>
     c && c !== "__none__" ? c : null;
@@ -120,6 +121,8 @@ function buildTransactionsFromLines(args: {
     if (amount > 0) {
       const dContact = cleanContact(dl.contact_id);
       const cContact = cleanContact(cl.contact_id);
+      const dCC = (dl as any).cost_center_id || voucherCostCenterId || null;
+      const cCC = (cl as any).cost_center_id || voucherCostCenterId || null;
       const sameAccount = dl.account_code === cl.account_code;
       const differentContacts =
         !!dContact && !!cContact && dContact !== cContact;
@@ -140,6 +143,7 @@ function buildTransactionsFromLines(args: {
           transaction_type: txType,
           reference,
           contact_id: dContact,
+          cost_center_id: dCC,
           idempotency_key: `VOUCHER-${voucherId}-${pairIdx}D`,
         });
         txns.push({
@@ -155,6 +159,7 @@ function buildTransactionsFromLines(args: {
           transaction_type: txType,
           reference,
           contact_id: cContact,
+          cost_center_id: cCC,
           idempotency_key: `VOUCHER-${voucherId}-${pairIdx}C`,
         });
       } else {
@@ -171,6 +176,7 @@ function buildTransactionsFromLines(args: {
           transaction_type: txType,
           reference,
           contact_id: lineContactId,
+          cost_center_id: dCC || cCC,
           idempotency_key: `VOUCHER-${voucherId}-${pairIdx}`,
         });
       }
@@ -375,6 +381,7 @@ export function useSaveJournalVoucher() {
           reference: voucher.ref_number,
           voucherId: voucher.id,
           voucherContactId: input.contact_id,
+          voucherCostCenterId: input.cost_center_id || null,
         });
         if (usedClearing) {
           await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
@@ -392,6 +399,7 @@ export function useSaveJournalVoucher() {
             amount: t.amount,
             description: t.description,
             contact_id: t.contact_id,
+            cost_center_id: t.cost_center_id,
           }));
           const result = await callCreateJournalMultiPartyRpc({
             userId: user.id,
@@ -403,6 +411,7 @@ export function useSaveJournalVoucher() {
             idempotencyKey: `VOUCHER-${voucher.id}`,
             source: "journal_voucher",
             notes: input.notes || null,
+            costCenterId: input.cost_center_id || null,
           });
           const firstTxId = result?.transaction_id || null;
           if (firstTxId) {
@@ -503,6 +512,7 @@ export function useSaveJournalVoucher() {
           subtype: input.subtype,
           date: input.date,
           contact_id: input.contact_id || null,
+          cost_center_id: input.cost_center_id || null,
           amount: totalDebit,
           amount_ils: totalDebit,
           description: input.description.trim(),
@@ -527,6 +537,7 @@ export function useSaveJournalVoucher() {
           contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
           contact_name: l.contact_name || null,
           line_comment: l.line_comment || null,
+          cost_center_id: l.cost_center_id || input.cost_center_id || null,
         }))
       );
       if (lErr) throw lErr;
@@ -543,6 +554,7 @@ export function useSaveJournalVoucher() {
           reference: existing.ref_number,
           voucherId,
           voucherContactId: input.contact_id,
+          voucherCostCenterId: input.cost_center_id || null,
         });
         if (usedClearing) {
           await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
@@ -561,6 +573,7 @@ export function useSaveJournalVoucher() {
             amount: t.amount,
             description: t.description,
             contact_id: t.contact_id,
+            cost_center_id: t.cost_center_id,
           }));
           const result = await callCreateJournalMultiPartyRpc({
             userId: user.id,
@@ -572,6 +585,7 @@ export function useSaveJournalVoucher() {
             idempotencyKey: `VOUCHER-${voucherId}-${Date.now()}`,
             source: "journal_voucher_edit",
             notes: input.notes || null,
+            costCenterId: input.cost_center_id || null,
           });
           const firstTxId = result?.transaction_id || null;
           if (firstTxId) {
