@@ -372,12 +372,36 @@ const JournalEntriesPage = () => {
       setEditingTx(null);
       setEditResolution(null);
     } else if (editResolution.kind === "orphan") {
-      try { await assertPermission("finance", "journal", "create"); } catch { return; }
-      // افتح محرر السند الموحّد لإنشاء قيد تسوية جديد
-      setEditingTx(null);
-      setEditResolution(null);
-      setShowJournalEntry(true);
+      if (editResolution.mode === "delete" && editingTx) {
+        try { await assertPermission("finance", "journal", "delete"); } catch { return; }
+        setDeleting(true);
+        try {
+          const { error } = await supabase
+            .from("transactions")
+            .update({ is_deleted: true })
+            .eq("id", editingTx.id)
+            .eq("user_id", user!.id);
+          if (error) throw error;
+          toast({ title: "تم الإلغاء", description: "تم تعليم القيد كملغي." });
+          setEditingTx(null);
+          setEditResolution(null);
+          await fetchData();
+        } catch (err: any) {
+          toast({ title: "خطأ في الإلغاء", description: err.message, variant: "destructive" });
+        } finally {
+          setDeleting(false);
+        }
+      } else {
+        try { await assertPermission("finance", "journal", "create"); } catch { return; }
+        setEditingTx(null);
+        setEditResolution(null);
+        setShowJournalEntry(true);
+      }
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleExport = () => {
