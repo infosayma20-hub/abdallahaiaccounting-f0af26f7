@@ -649,6 +649,81 @@ table td, table th, .tabular-nums {
   }
 }
 
+/* ── Report Print Mode ──
+   When any [data-print-area] exists on the page, hide the app chrome
+   (sidebar, topbar, tabs, action pane, filter chips, floating widgets…)
+   and print only the report area. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* When a report area is present, hide everything that isn't in it */
+  body:has([data-print-area]) [data-app-sidebar],
+  body:has([data-print-area]) [data-app-topbar],
+  body:has([data-print-area]) [data-app-tabs],
+  body:has([data-print-area]) [data-finance-action-pane],
+  body:has([data-print-area]) [data-finance-filters],
+  body:has([data-print-area]) [data-finance-shell-header],
+  body:has([data-print-area]) [data-floating-widget],
+  body:has([data-print-area]) header,
+  body:has([data-print-area]) nav,
+  body:has([data-print-area]) aside,
+  body:has([data-print-area]) .no-print {
+    display: none !important;
+  }
+
+  body:has([data-print-area]) main,
+  body:has([data-print-area]) [role="main"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Show only the print-area subtree */
+  body:has([data-print-area]) [data-print-area] {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    overflow: visible !important;
+    page-break-inside: auto;
+  }
+
+  /* Avoid scrollbars / clipped columns inside print area */
+  [data-print-area] * {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  [data-print-area] table {
+    width: 100% !important;
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+  [data-print-area] thead {
+    display: table-header-group; /* repeat header on each page */
+  }
+  [data-print-area] tfoot {
+    display: table-footer-group;
+  }
+  [data-print-area] tr,
+  [data-print-area] td,
+  [data-print-area] th {
+    page-break-inside: avoid;
+  }
+}
+
 /* ═══════════════════════════════════════
    CUSTOM SCROLLBAR — FINIX BRAND
    ═══════════════════════════════════════ */
