@@ -32,6 +32,7 @@ export interface JournalSaveLine {
   contact_id?: string | null;
   contact_name?: string | null;
   line_comment?: string | null;
+  cost_center_id?: string | null;
 }
 
 export interface JournalSaveInput {
@@ -45,6 +46,8 @@ export interface JournalSaveInput {
   notes?: string | null;
   /** جهة اتصال على مستوى السند ككل (اختياري) */
   contact_id?: string | null;
+  /** مركز تكلفة عام على مستوى السند (اختياري) — يُستخدم للسطور التي لا تحدد مركزها */
+  cost_center_id?: string | null;
   lines: JournalSaveLine[];
   /** posted = ينعكس في دفتر اليومية، draft = لا ينعكس، deferred = موقّت */
   mode?: "draft" | "posted" | "deferred";
@@ -326,6 +329,7 @@ export function useSaveJournalVoucher() {
           ref_number: refNumber,
           date: input.date,
           contact_id: input.contact_id || null,
+          cost_center_id: input.cost_center_id || null,
           amount: totalDebit,
           amount_ils: totalDebit,
           description: input.description.trim(),
@@ -354,6 +358,7 @@ export function useSaveJournalVoucher() {
           contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
           contact_name: l.contact_name || null,
           line_comment: l.line_comment || null,
+          cost_center_id: l.cost_center_id || input.cost_center_id || null,
         }))
       );
       if (lErr) throw lErr;
