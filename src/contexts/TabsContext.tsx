@@ -109,6 +109,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/finance/receipt/new": { title: "سند قبض جديد", icon: "landmark" },
   "/finance/payment/new": { title: "سند صرف جديد", icon: "banknote" },
   "/finance/journal/new": { title: "قيد جديد", icon: "clipboard" },
+  "/finance/cost-centers": { title: "مراكز التكلفة", icon: "briefcase" },
   "/tax": { title: "المحاسبة الضريبية", icon: "calculator" },
   "/menu": { title: "القائمة", icon: "layers" },
   "/voice": { title: "الإدخال الصوتي", icon: "file" },
