@@ -612,15 +612,13 @@ const JournalEntriesPage = () => {
                 <tr className="border-b border-border/60 bg-muted/30">
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground w-10">#</th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
-                    <button
-                      type="button"
-                      onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-                      className="inline-flex items-center gap-1 hover:text-foreground"
-                      title="فرز حسب التاريخ"
-                    >
-                      التاريخ
-                      {sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                    </button>
+                    <ColumnHeaderMenu label="التاريخ"
+                      direction={sortKey === "transaction_date" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("transaction_date", d)}
+                      onFilter={(v, op) => upsertColumnFilter("transaction_date", v, op)}
+                      onClear={() => clearColumnFilter("transaction_date")}
+                      currentFilterValue={currentColumnFilter("transaction_date")}
+                    />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground min-w-[200px]">
                     <ColumnHeaderMenu label="الوصف"
@@ -670,9 +668,29 @@ const JournalEntriesPage = () => {
                       currentFilterValue={currentColumnFilter("currency")}
                     />
                   </th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">مدين</th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">دائن</th>
-                  <th className="px-3 py-2 w-20 print:hidden"></th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="الحالة"
+                      onSort={(d) => handleColumnSort("is_deleted", d)}
+                      onFilter={(v, op) => upsertColumnFilter("is_deleted", v, op)}
+                      onClear={() => clearColumnFilter("is_deleted")}
+                      currentFilterValue={currentColumnFilter("is_deleted")}
+                    />
+                  </th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">
+                    <ColumnHeaderMenu label="مدين"
+                      direction={sortKey === "amount" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("amount", d)}
+                    />
+                  </th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">
+                    <ColumnHeaderMenu label="دائن"
+                      direction={sortKey === "amount" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("amount", d)}
+                    />
+                  </th>
+                  {(canUpdateJournal || canDeleteJournal) && (
+                    <th className="px-3 py-2 w-20 print:hidden"></th>
+                  )}
                 </tr>
               </thead>
               <tbody>
