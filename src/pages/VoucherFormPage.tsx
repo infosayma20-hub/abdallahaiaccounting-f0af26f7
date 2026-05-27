@@ -684,7 +684,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: ws } = await supabase.from("workshops").select("id, name, customer_name").eq("id", (data as any).workshop_id).single();
               if (ws) setSelectedWorkshop(ws);
             }
-            if ((data as any).cost_center_id) setCostCenterId((data as any).cost_center_id);
+            // receipt_vouchers لا يحمل cost_center_id — نجلبه من القيد المرتبط
+            if ((data as any).linked_transaction_id) {
+              const { data: tx } = await supabase
+                .from("transactions")
+                .select("cost_center_id")
+                .eq("id", (data as any).linked_transaction_id)
+                .maybeSingle();
+              if (tx && (tx as any).cost_center_id) setCostCenterId((tx as any).cost_center_id);
+            }
           }
         } else {
           const { data } = await supabase
