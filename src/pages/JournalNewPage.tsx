@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
-  CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
+  CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2, Eye, Calculator,
   BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock,
   FileText, Scale, AlertTriangle
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompanyContext";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useCostCenters } from "@/hooks/useCostCenters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker"
 import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
-import AccountingShell from "@/components/layout/AccountingShell";
+import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
 interface JournalLine {
