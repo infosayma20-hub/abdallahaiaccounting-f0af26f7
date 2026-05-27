@@ -191,6 +191,7 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const SetupPage = lazy(() => import("./pages/SetupPage"));
 const FinanceHomePage = lazy(() => import("./pages/FinanceHomePage"));
 const FinanceVoucherPage = lazy(() => import("./pages/FinanceVoucherPage"));
+const FinanceReceiptsPage = lazy(() => import("./pages/FinanceReceiptsPage"));
 const FinanceJournalPage = lazy(() => import("./pages/FinanceJournalPage"));
 const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
