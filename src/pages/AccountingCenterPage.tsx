@@ -24,7 +24,6 @@ import {
   FileCheck2,
   Coins,
   BarChart3,
-  ScrollText,
   ArrowDownLeft,
   ArrowUpRight,
   FileEdit,
