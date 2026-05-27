@@ -1,15 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import {
-  ArrowRight, Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
-  FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
+  Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
+  FileText, ChevronLeft, ChevronRight, FileSpreadsheet,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +15,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
+import {
+  FinanceShell,
+  applyFilters,
+  type ActionTab,
+  type FilterCondition,
+  type FilterField,
+} from "@/components/finance/shell";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface TransactionRow {
@@ -168,12 +173,9 @@ const JournalEntriesPage = () => {
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
 
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
   const [editResolution, setEditResolution] = useState<{
@@ -234,30 +236,37 @@ const JournalEntriesPage = () => {
   };
 
   const filtered = useMemo(() => {
-    let result = transactions.filter(tx => {
-      if (statusFilter === "active") return !tx.is_deleted;
-      if (statusFilter === "deleted") return tx.is_deleted;
-      return true; // "all"
+    // Default: hide soft-deleted unless user added a status condition
+    const hasStatusCond = shellFilters.some((c) => c.fieldKey === "is_deleted");
+    let result = hasStatusCond ? transactions : transactions.filter((tx) => !tx.is_deleted);
+
+    result = applyFilters(result, shellFilters, (row, key) => {
+      if (key === "displayType") return getDisplayType(row.transaction_type);
+      if (key === "is_deleted") return row.is_deleted ? "true" : "false";
+      return (row as any)[key];
     });
 
-    if (dateFrom) result = result.filter(tx => (tx.transaction_date || "") >= dateFrom);
-    if (dateTo) result = result.filter(tx => (tx.transaction_date || "") <= dateTo);
-
-    if (typeFilter !== "all") {
-      result = result.filter(tx => getDisplayType(tx.transaction_type) === typeFilter);
-    }
-
     if (searchQuery.trim()) {
-      result = result.filter(tx => multiWordMatchAny(searchQuery, tx.description, accountMap[tx.debit_account_code || ""], accountMap[tx.credit_account_code || ""], tx.reference));
+      result = result.filter((tx) =>
+        multiWordMatchAny(
+          searchQuery,
+          tx.description,
+          accountMap[tx.debit_account_code || ""],
+          accountMap[tx.credit_account_code || ""],
+          tx.reference,
+        ),
+      );
     }
 
-    return result.sort((a, b) => (b.transaction_date || "").localeCompare(a.transaction_date || ""));
-  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter, statusFilter, accountMap]);
+    return result.sort((a, b) =>
+      (b.transaction_date || "").localeCompare(a.transaction_date || ""),
+    );
+  }, [transactions, shellFilters, searchQuery, accountMap]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [dateFrom, dateTo, searchQuery, typeFilter, statusFilter]);
+  useEffect(() => { setCurrentPage(1); }, [shellFilters, searchQuery]);
 
   const totalDebit = filtered.reduce((s, tx) => s + (tx.amount || 0), 0);
   const totalCredit = totalDebit;
@@ -356,6 +365,13 @@ const JournalEntriesPage = () => {
   };
 
   const handleExport = () => {
+    // Derive date range from active shell filters (transaction_date)
+    const dateCond = shellFilters.find((c) => c.fieldKey === "transaction_date");
+    const dateFrom = dateCond?.operator === "between" ? (dateCond.value || "") :
+                     dateCond?.operator === "greater_than" ? (dateCond.value || "") :
+                     dateCond?.operator === "equals" ? (dateCond.value || "") : "";
+    const dateTo = dateCond?.operator === "between" ? (dateCond.valueTo || "") :
+                   dateCond?.operator === "less_than" ? (dateCond.value || "") : "";
     const data = filtered.map(tx => ({
       "التاريخ": fmtDateDisplay(tx.transaction_date) || "",
       "الوصف": tx.description || "",
@@ -379,48 +395,101 @@ const JournalEntriesPage = () => {
     XLSX.writeFile(wb, `قيود_يومية_${dateFrom || "all"}_${dateTo || "all"}.xlsx`);
   };
 
-  const dateRangeLabel = dateFrom && dateTo
-    ? `${dateFrom} — ${dateTo}`
-    : dateFrom ? `من ${dateFrom}` : dateTo ? `حتى ${dateTo}` : "جميع الفترات";
+  // Distinct currencies present in data for the currency filter
+  const currencyOptions = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((t) => { if (t.currency) set.add(t.currency); });
+    const arr = Array.from(set).sort();
+    return (arr.length ? arr : ["ILS"]).map((c) => ({ value: c, label: c }));
+  }, [transactions]);
 
-  const transactionTypes = [
-    { value: "all", label: "جميع الأنواع" },
-    { value: "سند صرف", label: "سند صرف" },
-    { value: "سند قبض", label: "سند قبض" },
-    { value: "قيد يومية", label: "قيد يومية" },
-    { value: "فاتورة مشتريات", label: "فاتورة مشتريات" },
-    { value: "فاتورة مبيعات", label: "فاتورة مبيعات" },
-    { value: "راتب", label: "راتب" },
-    { value: "تحصيل شيك", label: "تحصيل شيك" },
-  ];
+  const typeOptionsForFilter = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((t) => { set.add(getDisplayType(t.transaction_type)); });
+    return Array.from(set).filter((v) => v && v !== "—").sort().map((v) => ({ value: v, label: v }));
+  }, [transactions]);
 
-  const accountCodes = useMemo(() =>
-    accounts.map(a => ({ code: a.account_code, label: `${a.account_code} - ${a.account_name}` })).sort((a, b) => a.code.localeCompare(b.code)),
-    [accounts]
-  );
+  const filterFields: FilterField[] = useMemo(() => ([
+    { key: "transaction_date", label: "التاريخ", type: "date" },
+    { key: "displayType", label: "نوع العملية", type: "option", options: typeOptionsForFilter },
+    { key: "debit_account_code", label: "الحساب المدين", type: "text" },
+    { key: "credit_account_code", label: "الحساب الدائن", type: "text" },
+    { key: "reference", label: "المرجع", type: "text" },
+    { key: "currency", label: "العملة", type: "option", options: currencyOptions },
+    { key: "description", label: "الوصف", type: "text" },
+    { key: "is_deleted", label: "الحالة", type: "option", options: [
+      { value: "false", label: "نشط" },
+      { value: "true", label: "ملغي" },
+    ]},
+  ]), [typeOptionsForFilter, currencyOptions]);
+
+  const actionTabs: ActionTab[] = useMemo(() => ([
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        {
+          key: "new",
+          label: "جديد",
+          items: [
+            { key: "new-entry", label: "قيد جديد", icon: Plus, variant: "primary",
+              onClick: () => setShowJournalEntry(true), shortcut: "Alt+J" },
+          ],
+        },
+        {
+          key: "actions",
+          label: "إجراءات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
+          ],
+        },
+        {
+          key: "export",
+          label: "تصدير",
+          items: [
+            { key: "excel", label: "Excel", icon: FileSpreadsheet,
+              onClick: handleExport, disabled: filtered.length === 0 },
+          ],
+        },
+      ],
+    },
+  ]), [filtered.length]);
+
+  // Alt+J shortcut to open journal entry
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        setShowJournalEntry(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto" dir="rtl">
-      {/* Header */}
-      <PageHeader title="تقرير القيود المحاسبية" breadcrumb={["المحاسبة", "القيود المحاسبية"]} />
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-xs text-muted-foreground">{companyName} • {dateRangeLabel}</p>
-        <div className="flex items-center gap-2">
-          <Can app="finance" feature="journal" perm="create">
-            <Button size="sm" onClick={() => setShowJournalEntry(true)} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> إنشاء قيد
-            </Button>
-          </Can>
-          <Button variant="outline" size="sm" onClick={fetchData} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" /> تحديث
-          </Button>
-          <Can app="finance" feature="journal" perm="view" disableInsteadOfHide>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} className="gap-1.5">
-              <FileSpreadsheet className="h-3.5 w-3.5" /> تصدير Excel
-            </Button>
-          </Can>
+    <FinanceShell
+      title="دفتر اليومية"
+      subtitle={companyName ? `${companyName} • قيود محاسبية موحّدة` : "قيود محاسبية موحّدة"}
+      breadcrumb={[{ label: "المحاسبة", href: "/accounting-center" }, { label: "دفتر اليومية" }]}
+      actionTabs={actionTabs}
+      filterFields={filterFields}
+      filters={shellFilters}
+      onFiltersChange={setShellFilters}
+      storageKey="journal-entries-page"
+      rightSlot={
+        <div className="relative">
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="بحث سريع..."
+            className="h-8 w-56 pr-8 text-xs"
+          />
         </div>
-      </div>
+      }
+    >
+      <div className="space-y-4 max-w-[1600px] mx-auto" dir="rtl">
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -441,61 +510,6 @@ const JournalEntriesPage = () => {
           <p className={`text-xl font-bold tabular-nums ${totalDebit === totalCredit ? "text-primary" : "text-destructive"}`}>
             {totalDebit === totalCredit ? "✅ متوازن" : "⚠️ غير متوازن"}
           </p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-        <div className="flex items-center gap-2 mb-3">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">فلاتر البحث</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">من تاريخ</label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">إلى تاريخ</label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">نوع العملية</label>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-9 rounded-lg bg-secondary/50 border-0 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {transactionTypes.map(t => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">الحالة</label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-9 rounded-lg bg-secondary/50 border-0 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">بدون الملغية</SelectItem>
-                <SelectItem value="all">جميع الحالات</SelectItem>
-                <SelectItem value="deleted">ملغي فقط</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">بحث</label>
-            <div className="relative">
-              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث في الوصف أو الحسابات..."
-                className="h-9 pr-8 rounded-lg bg-secondary/50 border-0 text-sm" />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -661,7 +675,8 @@ const JournalEntriesPage = () => {
         onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
         accounts={accounts.map(a => ({ id: a.id, name: a.account_name, type: a.account_type }))}
       />
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
