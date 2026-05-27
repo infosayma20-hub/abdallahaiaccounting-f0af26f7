@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/layout/PageHeader";
 import { multiWordMatchAny } from "@/lib/utils";
 import { broadcastChange } from "@/lib/crossTabSync";
 import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
