@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ArrowRight, Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
+  Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
   FileText, ChevronLeft, ChevronRight, FileSpreadsheet,
 } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -173,11 +173,7 @@ const JournalEntriesPage = () => {
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
 
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
