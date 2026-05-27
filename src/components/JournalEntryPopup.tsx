@@ -19,6 +19,7 @@ import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker";
 import type { JournalTemplate as SavedJournalTemplate } from "@/hooks/useJournalTemplates";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
+import AccountCombobox from "@/components/finance/AccountCombobox";
 
 /* ── Types ── */
 interface AccountRow {
@@ -776,9 +777,9 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
             {lines.map((line, idx) => (
               <div key={line.id} data-journal-line-id={line.id} className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 px-2 py-1.5 border-t border-border/20 items-center hover:bg-muted/10">
                 <span className="text-[10px] text-muted-foreground text-center">{idx + 1}</span>
-                <AccountSearchDropdown
+                <AccountCombobox
                   accounts={accounts}
-                  value={line.account_code ? `${line.account_code} ${line.account_name}` : ""}
+                  value={line.account_code}
                   onSelect={(acc) => handleAccountSelect(idx, acc)}
                   onAddAccount={() => { setActiveLineIdx(idx); setShowAddAccount(true); }}
                   onAddContact={(t) => { setActiveLineIdx(idx); setAddContactType(t); setShowAddContact(true); }}
