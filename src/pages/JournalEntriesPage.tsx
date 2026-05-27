@@ -502,7 +502,11 @@ const JournalEntriesPage = () => {
   const costCenterOptions = useMemo(() => {
     const set = new Set<string>();
     transactions.forEach((t) => { if (t.cost_center_name) set.add(t.cost_center_name); });
-    return Array.from(set).sort().map((v) => ({ value: v, label: v }));
+    const opts = Array.from(set).sort().map((v) => ({ value: v, label: v }));
+    if (transactions.some((t) => !t.cost_center_name)) {
+      opts.unshift({ value: "بدون مركز تكلفة", label: "بدون مركز تكلفة" });
+    }
+    return opts;
   }, [transactions]);
 
   const filterFields: FilterField[] = useMemo(() => ([
