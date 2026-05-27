@@ -262,10 +262,11 @@ const JournalEntriesPage = () => {
       );
     }
 
-    return result.sort((a, b) =>
-      (b.transaction_date || "").localeCompare(a.transaction_date || ""),
-    );
-  }, [transactions, shellFilters, searchQuery, accountMap]);
+    return result.sort((a, b) => {
+      const cmp = (a.transaction_date || "").localeCompare(b.transaction_date || "");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [transactions, shellFilters, searchQuery, accountMap, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
