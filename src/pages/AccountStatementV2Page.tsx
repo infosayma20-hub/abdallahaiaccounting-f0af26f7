@@ -3,7 +3,7 @@ import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   Printer, ChevronLeft, ChevronDown, ChevronUp,
   Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
-  Filter, Download, AlertTriangle, Zap,
+  Filter, Download, AlertTriangle, Zap, Calculator,
   ArrowLeft,
 } from "lucide-react";
 import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
@@ -28,14 +28,17 @@ import AdvancedEntitySearch from "@/components/account-statement/AdvancedEntityS
 import { setNextExportBranding } from "@/lib/excel-export";
 import RtlDateField from "@/components/account-statement/RtlDateField";
 import StatementViewOptionsPanel, { loadViewOptions, type StatementViewOptions } from "@/components/account-statement/StatementViewOptions";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import { useCostCenters } from "@/hooks/useCostCenters";
+import { SmartTextCell } from "@/components/ui/smart-text-cell";
 
 // ─── TYPES ───
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
 interface Account { id: string; account_code: string; account_name: string; account_type: string; }
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
-interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; }
+interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; cost_center_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; cost_center_id?: string | null; cost_center_name?: string; }
 interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
 interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
 interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; chequeStatus?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
@@ -115,6 +118,7 @@ const AccountStatementV2Page = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
+  const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
 
   const urlContactId = searchParams.get("contact_id") || "";
   const urlContactType = searchParams.get("contact_type") || "";
@@ -141,6 +145,7 @@ const AccountStatementV2Page = () => {
   const [displayCurrency, setDisplayCurrency] = useState("ILS");
   const [currentExchangeRate, setCurrentExchangeRate] = useState<Record<string, number>>({});
   const [txTypeFilter, setTxTypeFilter] = useState("all");
+  const [txCostCenter, setTxCostCenter] = useState("all");
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [chequesOpen, setChequesOpen] = useState(false);
   const [agingOpen, setAgingOpen] = useState(false);
@@ -163,7 +168,7 @@ const AccountStatementV2Page = () => {
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
         // ✅ Reversal-aware: include both active rows AND soft-deleted rows that were reversed
         // (so the original entry shows alongside its reversal, keeping the statement balanced)
-        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id").eq("user_id", dataOwnerId).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
+        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id").eq("user_id", dataOwnerId).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", user.id).maybeSingle(),
         supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
@@ -411,7 +416,7 @@ const AccountStatementV2Page = () => {
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
       const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted };
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, cost_center_id: tx.cost_center_id || null };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
@@ -432,12 +437,24 @@ const AccountStatementV2Page = () => {
     return entry ? entry.label.replace("عرض بال", "").replace(" (افتراضي)", "") : "شيكل ₪";
   }, [displayCurrency]);
 
+  const ccMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of costCenters) m.set(c.id, `${c.code} - ${c.name_ar || c.name}`);
+    return m;
+  }, [costCenters]);
+  const ccLabel = useCallback((id?: string | null) => id ? (ccMap.get(id) || "—") : "بدون مركز تكلفة", [ccMap]);
+
   const filteredRows = useMemo(() => {
     let r = rows;
     if (txTypeFilter !== "all") r = r.filter(x => x.transaction_type.includes(txTypeFilter));
+    if (txCostCenter !== "all") {
+      r = txCostCenter === "__none__"
+        ? r.filter(x => !x.cost_center_id)
+        : r.filter(x => x.cost_center_id === txCostCenter);
+    }
     if (txSearch.trim()) r = r.filter(x => multiWordMatchAny(txSearch, x.description, x.reference));
     return r;
-  }, [rows, txSearch, txTypeFilter]);
+  }, [rows, txSearch, txTypeFilter, txCostCenter]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
@@ -873,91 +890,57 @@ const AccountStatementV2Page = () => {
   };
 
   // ─── RENDER ───
+  const actionTabs: ActionTab[] = ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "actions", label: "إجراءات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchData() },
+        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+      ]},
+      { key: "print", label: "طباعة", items: [
+        { key: "preview", label: "معاينة PDF", icon: Eye, onClick: handlePreviewPDF, disabled: !selectedEntityId || rows.length === 0 || pdfGenerating },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrintStatement, disabled: !selectedEntityId || rows.length === 0 },
+      ]},
+      { key: "export", label: "تصدير", items: [
+        { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: !selectedEntityId || filteredRows.length === 0 },
+      ]},
+      { key: "send", label: "إرسال", items: [
+        { key: "wa", label: "واتساب", icon: MessageSquare, onClick: () => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(closingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }, disabled: !selectedContact?.phone },
+        { key: "mail", label: "إيميل", icon: Mail, onClick: () => { if (selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(`كشف حساب - ${selectedEntityName}`)}`); }, disabled: !selectedContact?.email },
+      ]},
+    ],
+  }]);
+
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 52px)", overflow: "hidden" }} dir="rtl">
-      {/* ═══ TOOLBAR ═══ */}
-      <div className="shrink-0 border-b" style={{ borderColor: "#E5E7EB", padding: "10px 24px", background: "white" }}>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          {/* LEFT: breadcrumb + entity */}
-            <div className="flex items-center gap-3">
-            {(() => {
-              const fromCode = new URLSearchParams(window.location.search).get("code");
-              const backTo = fromCode ? "/trial-balance" : "/apps";
-              return (
-                <button onClick={() => navigate(backTo)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <ArrowRight className="w-5 h-5" style={{ color: "#374151" }} />
-                </button>
-              );
-            })()}
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "#6B7280" }}>
-              {new URLSearchParams(window.location.search).get("code") ? (
-                <>
-                  <button onClick={() => navigate("/apps")} className="hover:underline cursor-pointer">المحاسبة</button>
-                  <ChevronLeft className="w-3 h-3" />
-                  <button onClick={() => navigate("/trial-balance")} className="hover:underline cursor-pointer">ميزان المراجعة</button>
-                  <ChevronLeft className="w-3 h-3" />
-                  <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
-                </>
-              ) : (
-                <>
-                  <span>المحاسبة</span>
-                  <ChevronLeft className="w-3 h-3" />
-                  <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
-                </>
-              )}
-            </div>
-            {selectedEntityId && (
-              <div className="flex items-center gap-2 mr-3 px-3 py-1.5 rounded-lg" style={{ background: "#F3F4F6" }}>
-                <span className="text-sm">{selectedEntityEmoji}</span>
-                <span className="text-sm font-semibold" style={{ color: "#111827" }}>{selectedEntityName}</span>
-                {selectedEntityCode && <span className="text-xs" style={{ color: "#6B7280" }}>— {selectedEntityCode}</span>}
-                {displayCurrency !== "ILS" && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "#DBEAFE", color: "#1E40AF", fontWeight: 600 }}>— {displayCurrencyLabel}</span>}
-                <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1" style={{ color: "#1E40AF" }}>تغيير</button>
-              </div>
-            )}
+    <FinanceShell
+      title="كشف الحساب"
+      subtitle="حركة حساب أو جهة خلال فترة محددة"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "كشف الحساب" },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={
+        <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+          <div className="flex items-center gap-2 rounded-lg px-2 py-1 bg-muted/40 border border-border/40">
+            <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
+            <div className="w-px h-4 bg-border" />
+            <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
           </div>
-
-          {/* RIGHT: dates + actions */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-2 rounded-lg px-2 py-1" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-              <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
-              <div className="w-px h-4" style={{ background: "#D1D5DB" }} />
-              <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
+          <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
+          {selectedEntityId && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/40">
+              <span className="text-sm">{selectedEntityEmoji}</span>
+              <span className="text-sm font-semibold text-foreground">{selectedEntityName}</span>
+              {selectedEntityCode && <span className="text-xs text-muted-foreground">— {selectedEntityCode}</span>}
+              <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
             </div>
-            <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
-            <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
-              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={!selectedEntityId || rows.length === 0 || pdfGenerating} className="h-8 gap-1.5 text-xs">
-              {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-              معاينة PDF
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePrintStatement} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
-              <Printer className="w-3.5 h-3.5" /> طباعة
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
-              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
-                  <Send className="w-3.5 h-3.5" /> إرسال <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(closingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }} disabled={!selectedContact?.phone}>
-                  <MessageSquare className="w-4 h-4 ml-2 text-emerald-500" /> واتساب
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { if (selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(`كشف حساب - ${selectedEntityName}`)}`); }} disabled={!selectedContact?.email}>
-                  <Mail className="w-4 h-4 ml-2 text-blue-500" /> إيميل
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          )}
         </div>
-      </div>
-
-      {/* ═══ SCROLLABLE CONTENT ═══ */}
+      }
+    >
+      <div data-print-area className="flex flex-col" dir="rtl">
       <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "24px" }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
@@ -1063,6 +1046,18 @@ const AccountStatementV2Page = () => {
                   <SelectContent>{TX_TYPE_FILTERS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
                 </Select>
 
+                {/* Cost center filter */}
+                <Select value={txCostCenter} onValueChange={setTxCostCenter}>
+                  <SelectTrigger className="h-7 w-44 text-[11px] border-gray-200"><SelectValue placeholder="مركز التكلفة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل مراكز التكلفة</SelectItem>
+                    <SelectItem value="__none__">بدون مركز تكلفة</SelectItem>
+                    {costCenters.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.code} - {c.name_ar || c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 {/* Search */}
                 <div className="relative flex-1 min-w-[180px]">
                   <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "#9CA3AF" }} />
@@ -1089,9 +1084,10 @@ const AccountStatementV2Page = () => {
                 const screenCols: Array<{ key: string; label: string; width: string }> = [
                   { key: "date", label: "التاريخ", width: "10%" },
                   ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
-                  { key: "description", label: "البيان", width: statementOptions.showReference ? "25%" : "38%" },
+                  { key: "description", label: "البيان", width: statementOptions.showReference ? "22%" : "32%" },
                   ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
                   ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
+                  { key: "cost_center", label: "مركز التكلفة", width: "11%" },
                   { key: "debit", label: "مدين (عليه)", width: "11%" },
                   { key: "credit", label: "دائن (له)", width: "11%" },
                   { key: "balance", label: "الرصيد", width: "12%" },
@@ -1336,6 +1332,17 @@ const AccountStatementV2Page = () => {
                           );
                           if (c.key === "type") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280", fontWeight: 400 }}>{getTypeBadge(row.transaction_type)}</td>
+                          );
+                          if (c.key === "cost_center") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10 }}>
+                              {row.cost_center_id ? (
+                                <span className="inline-block bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[10px] font-medium">
+                                  {ccLabel(row.cost_center_id)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/60 text-[10px]">بدون مركز</span>
+                              )}
+                            </td>
                           );
                           if (c.key === "debit") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
@@ -1622,7 +1629,8 @@ const AccountStatementV2Page = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
