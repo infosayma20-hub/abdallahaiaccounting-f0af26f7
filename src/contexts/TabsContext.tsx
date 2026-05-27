@@ -192,6 +192,10 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/crm/pipeline": { title: "خط سير المبيعات", icon: "trending" },
   "/crm/activities": { title: "متابعات العملاء", icon: "clipboard" },
   "/crm/customers": { title: "ملف العميل 360", icon: "users" },
+  "/sales/returns": { title: "مردودات المبيعات", icon: "file" },
+  "/sales/returns/new": { title: "مردود مبيعات جديد", icon: "file" },
+  "/purchases/returns": { title: "مردودات المشتريات", icon: "file" },
+  "/purchases/returns/new": { title: "مردود مشتريات جديد", icon: "file" },
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
