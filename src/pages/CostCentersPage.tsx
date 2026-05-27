@@ -146,11 +146,13 @@ export default function CostCentersPage() {
   return (
     <AccountingShell>
       <div dir="rtl" className="space-y-4">
-        <PageHeader
-          title="مراكز التكلفة"
-          subtitle="إدارة مراكز التكلفة كأبعاد مالية تنتقل تلقائياً إلى القيود والتقارير"
-          leftActions={<BackButton />}
-        />
+        <div className="flex items-center justify-between">
+          <PageHeader title="مراكز التكلفة" breadcrumb={["الرئيسية", "المحاسبة", "مراكز التكلفة"]} />
+          <BackButton />
+        </div>
+        <p className="text-xs text-muted-foreground -mt-2">
+          إدارة مراكز التكلفة كأبعاد مالية تنتقل تلقائياً إلى القيود والتقارير
+        </p>
 
         {/* Filters + Actions */}
         <Card>
