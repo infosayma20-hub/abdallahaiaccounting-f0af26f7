@@ -114,7 +114,11 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     const groupActive = !disabled && isGroupActive(item);
     const isHighlighted = active || groupActive;
     const expanded = openItem === item.label;
-    const hasChildren = !item.isDirect && item.groups && item.groups.length > 0;
+    // `isDirect` only affects the Apps launcher card behavior. In the sidebar we
+    // still want to expose sub-links underneath when groups are defined, while
+    // letting the parent row itself navigate to its primary path.
+    const hasChildren = !!(item.groups && item.groups.length > 0);
+    const hasDirectPath = !!item.isDirect && !!item.path;
     const quickAdd = quickAddRoutes[item.id];
 
     const navButton = (
@@ -122,7 +126,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         onClick={(e) => {
           e.stopPropagation();
           if (disabled) return;
-          if (hasChildren) {
+          if (hasDirectPath && hasChildren) {
+            // Navigate to the workspace AND expand the quick-links list.
+            navigate(item.path);
+            onMobileClose();
+            setOpenItem(item.label);
+          } else if (hasChildren) {
             if (collapsed) {
               onToggle();
               setOpenItem(item.label);
