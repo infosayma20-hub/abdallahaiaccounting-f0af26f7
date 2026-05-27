@@ -299,60 +299,6 @@ const AppsLauncher = () => {
           </div>
         </div>
 
-        {/* Search + Ctrl+K hint */}
-        <div className="flex justify-center mb-5">
-          <div className="relative" style={{ width: 460 }}>
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#94a3b8" }} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن تطبيق..."
-              style={{
-                width: "100%",
-                height: 44,
-                paddingRight: 40,
-                paddingLeft: 76,
-                borderRadius: 10,
-                background: "#ffffff",
-                border: "1.5px solid #dbeafe",
-                fontSize: 14,
-                color: "#0D1B2E",
-                outline: "none",
-                transition: "all 0.15s ease",
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.boxShadow = "0 0 0 3px #eff6ff"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "#dbeafe"; e.currentTarget.style.boxShadow = "none"; }}
-            />
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1 transition-colors"
-              title="فتح لوحة الأوامر"
-              style={{
-                height: 28,
-                padding: "0 8px",
-                borderRadius: 6,
-                background: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                color: "#64748b",
-                fontSize: 11,
-                fontWeight: 600,
-                fontFamily: "monospace",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#e2e8f0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#f1f5f9"; }}
-            >
-              <Command size={11} strokeWidth={2.4} />K
-            </button>
-          </div>
-        </div>
-
-        {/* Category pills */}
-        {isReady && (
-          <CategoryPills active={categoryFilter} onChange={setCategoryFilter} counts={pillCounts} />
-        )}
-
         {/* Apps Grid — gated on unified loading state to prevent flicker */}
         {!isReady ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
