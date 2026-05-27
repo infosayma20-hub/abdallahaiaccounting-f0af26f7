@@ -258,6 +258,7 @@ const JournalEntriesPage = () => {
     result = applyFilters(result, shellFilters, (row, key) => {
       if (key === "displayType") return getDisplayType(row.transaction_type);
       if (key === "is_deleted") return row.is_deleted ? "true" : "false";
+      if (key === "cost_center_name") return row.cost_center_name || "بدون مركز تكلفة";
       return (row as any)[key];
     });
 
@@ -502,7 +503,11 @@ const JournalEntriesPage = () => {
   const costCenterOptions = useMemo(() => {
     const set = new Set<string>();
     transactions.forEach((t) => { if (t.cost_center_name) set.add(t.cost_center_name); });
-    return Array.from(set).sort().map((v) => ({ value: v, label: v }));
+    const opts = Array.from(set).sort().map((v) => ({ value: v, label: v }));
+    if (transactions.some((t) => !t.cost_center_name)) {
+      opts.unshift({ value: "بدون مركز تكلفة", label: "بدون مركز تكلفة" });
+    }
+    return opts;
   }, [transactions]);
 
   const filterFields: FilterField[] = useMemo(() => ([
@@ -592,7 +597,7 @@ const JournalEntriesPage = () => {
         </div>
         <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
           <p className="text-[11px] text-muted-foreground">إجمالي المدين</p>
-          <p className="text-xl font-bold text-primary tabular-nums">₪{totalDebit.toLocaleString()}</p>
+          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">₪{totalDebit.toLocaleString()}</p>
         </div>
         <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
           <p className="text-[11px] text-muted-foreground">إجمالي الدائن</p>
@@ -748,7 +753,7 @@ const JournalEntriesPage = () => {
                   const idx = (currentPage - 1) * PAGE_SIZE + i + 1;
                   const displayType = getDisplayType(tx.transaction_type);
                   return (
-                    <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
+                    <tr key={tx.id} className={`border-b border-border/30 hover:bg-muted/20 transition-colors group ${i % 2 === 1 ? "bg-muted/10 print:bg-transparent" : ""}`}>
                       <td className="px-3 py-1.5 text-xs text-muted-foreground tabular-nums">{idx}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
                       <td className="px-3 py-1.5 text-xs text-foreground font-medium max-w-[250px]">
@@ -769,7 +774,15 @@ const JournalEntriesPage = () => {
                         <SmartTextCell value={tx.reference} title="المرجع" mono />
                       </td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
-                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground whitespace-nowrap">{tx.cost_center_name || "—"}</td>
+                      <td className="px-3 py-1.5 text-[11px] whitespace-nowrap">
+                        {tx.cost_center_name ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
+                            {tx.cost_center_name}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/60 text-[10px]">بدون مركز</span>
+                        )}
+                      </td>
                       <td className="px-3 py-1.5">
                         {tx.is_deleted ? (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-destructive/10 text-destructive">ملغي</span>
@@ -777,7 +790,7 @@ const JournalEntriesPage = () => {
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">نشط</span>
                         )}
                       </td>
-                      <td className="px-3 py-1.5 text-xs font-bold text-primary tabular-nums text-left whitespace-nowrap">
+                      <td className="px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
@@ -814,7 +827,7 @@ const JournalEntriesPage = () => {
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
                   <td colSpan={10} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
-                  <td className="px-3 py-2 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
                   <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
                   {(canUpdateJournal || canDeleteJournal) && (
                     <td className="print:hidden"></td>
