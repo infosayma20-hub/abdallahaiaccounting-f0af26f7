@@ -277,6 +277,28 @@ const JournalEntriesPage = () => {
   const totalDebit = filtered.reduce((s, tx) => s + (tx.amount || 0), 0);
   const totalCredit = totalDebit;
 
+  // ---- Column header menu helpers (per-column quick filter + sort) ----
+  const upsertColumnFilter = (
+    fieldKey: string,
+    value: string,
+    operator: "begins_with" | "contains" | "equals",
+  ) => {
+    setShellFilters((prev) => {
+      const others = prev.filter((c) => c.fieldKey !== fieldKey);
+      if (!value) return others;
+      return [...others, { id: crypto.randomUUID(), fieldKey, operator, value }];
+    });
+  };
+  const clearColumnFilter = (fieldKey: string) =>
+    setShellFilters((prev) => prev.filter((c) => c.fieldKey !== fieldKey));
+  const currentColumnFilter = (fieldKey: string) =>
+    shellFilters.find((c) => c.fieldKey === fieldKey)?.value || "";
+  // Generic column sorter (uses transaction_date as the only true sort key for now,
+ // for text columns we just keep date ordering and surface a quick filter).
+  const handleColumnSort = (fieldKey: string, dir: "asc" | "desc") => {
+    if (fieldKey === "transaction_date") setSortDir(dir);
+  };
+
   /**
    * ✅ Source of Truth: لا نعدّل صف transaction مباشرة هنا.
    * نحدد مصدر القيد ونوجّه المستخدم للمحرر الموحّد المناسب:
