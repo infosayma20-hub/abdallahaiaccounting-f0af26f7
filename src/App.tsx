@@ -198,6 +198,7 @@ const CustomerOrderDisplayPage = lazy(() => import("./pages/CustomerOrderDisplay
 const KitchenDisplayPublicPage = lazy(() => import("./pages/KitchenDisplayPublicPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
+const CostCentersPage = lazy(() => import("./pages/CostCentersPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
 const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
 const CashLiquidityPage = lazy(() => import("./pages/CashLiquidityPage"));
@@ -474,6 +475,7 @@ const App = () => (
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />
                       <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
+                      <Route path="/finance/cost-centers" element={<CostCentersPage />} />
                       <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
