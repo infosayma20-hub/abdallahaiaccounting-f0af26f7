@@ -62,8 +62,12 @@ const WebLayout = ({ children }: WebLayoutProps) => {
       {/* Sidebar — always visible. Auto-collapses 5s after expand */}
       <div
         onMouseEnter={clearAutoCollapse}
+        onMouseMove={clearAutoCollapse}
+        onWheel={clearAutoCollapse}
+        onScroll={clearAutoCollapse}
+        onTouchStart={clearAutoCollapse}
+        onTouchMove={clearAutoCollapse}
         onMouseLeave={() => { if (!sidebarCollapsed) scheduleAutoCollapse(); }}
-        onClickCapture={() => { if (!sidebarCollapsed) scheduleAutoCollapse(); }}
         className="flex"
       >
         <AppSidebar
