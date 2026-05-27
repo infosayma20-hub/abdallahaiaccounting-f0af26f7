@@ -432,47 +432,90 @@ const AccountsPage = () => {
     return counts;
   }, [accounts]);
 
+  const actionTabs: ActionTab[] = useMemo(() => [
+    {
+      key: "home",
+      label: "الرئيسي",
+      groups: [
+        {
+          key: "new",
+          label: "جديد",
+          items: [
+            { key: "add", label: "حساب جديد", icon: Plus, variant: "primary", onClick: () => navigate("/accounts/new"), shortcut: "Alt+N" },
+            { key: "add-sub", label: "حساب فرعي", icon: PlusCircle, onClick: () => navigate("/accounts/new") },
+          ],
+        },
+        {
+          key: "actions",
+          label: "إجراءات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchAccounts, disabled: loading },
+            { key: "expand", label: expanded.size > 0 ? "ضم الكل" : "توسيع الكل", icon: expanded.size > 0 ? ChevronsDownUp : ChevronsUpDown, onClick: () => (expanded.size > 0 ? collapseAll() : expandAll()) },
+          ],
+        },
+        {
+          key: "transfer",
+          label: "ترحيل",
+          items: [
+            { key: "import", label: "استيراد", icon: Upload, onClick: () => setShowImportModal(true) },
+            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: () => exportAccountsToExcel(accounts) },
+          ],
+        },
+      ],
+    },
+    {
+      key: "reports",
+      label: "تقارير",
+      groups: [
+        {
+          key: "ledger",
+          label: "الأستاذ",
+          items: [
+            { key: "gl", label: "الأستاذ العام", icon: FileText, onClick: () => navigate("/general-ledger") },
+            { key: "tb", label: "ميزان المراجعة", icon: Network, onClick: () => navigate("/reports/trial-balance") },
+          ],
+        },
+      ],
+    },
+    {
+      key: "setup",
+      label: "إعداد",
+      groups: [
+        {
+          key: "config",
+          label: "إعدادات الحسابات",
+          items: [
+            { key: "init", label: "إعادة بناء افتراضي", icon: Settings2, onClick: () => setupDefaultAccounts(false), disabled: settingUp },
+          ],
+        },
+      ],
+    },
+  ], [navigate, loading, accounts, expanded.size, collapseAll, expandAll, settingUp]);
+
+  const filterFields: FilterField[] = useMemo(() => [
+    { key: "account_code", label: "رمز الحساب", type: "text" },
+    { key: "account_name", label: "اسم الحساب", type: "text" },
+    { key: "type", label: "نوع الحساب", type: "option", options: typeOrder.map(t => ({ value: t, label: typeLabels[t] || t })) },
+    { key: "nature", label: "طبيعة الحساب", type: "option", options: [{ value: "debit", label: "مدين" }, { value: "credit", label: "دائن" }] },
+    { key: "parent_code", label: "الحساب الأب", type: "text" },
+    { key: "is_protected", label: "حساب محمي", type: "option", options: [{ value: "yes", label: "نعم" }, { value: "no", label: "لا" }] },
+    { key: "description_ar", label: "الوصف", type: "text" },
+  ], []);
+
   return (
     <TooltipProvider>
-    <div className="min-h-screen bg-[hsl(210,20%,98%)] dark:bg-background" dir="rtl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
-        <PageHeader title="شجرة الحسابات" breadcrumb={["المحاسبة", "شجرة الحسابات"]} />
-
-        {/* Action buttons toolbar */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => navigate("/accounts/new")} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold">
-            <Plus className="h-3.5 w-3.5" />
-            إضافة حساب
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5"
-            onClick={() => exportAccountsToExcel(accounts)}>
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            تصدير الحسابات
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5"
-            onClick={() => setShowImportModal(true)}>
-            <Upload className="h-3.5 w-3.5" />
-            استيراد الحسابات
-          </Button>
-          <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-9 w-9">
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-          </Button>
-          <div className="h-5 w-px bg-border mx-1" />
-          {expanded.size > 0 ? (
-            <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={collapseAll}>
-              <ChevronsDownUp className="h-3.5 w-3.5" />
-              ضم الكل
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={expandAll}>
-              <ChevronsUpDown className="h-3.5 w-3.5" />
-              توسيع الكل
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+      <div className="h-[calc(100dvh-3.5rem)] bg-background" dir="rtl">
+        <FinanceShell
+          title="شجرة الحسابات"
+          subtitle="الدليل المحاسبي الموحّد — Asset / Liability / Equity / Revenue / Expense"
+          breadcrumb={[{ label: "المحاسبة", href: "/accounting-center" }, { label: "شجرة الحسابات" }]}
+          actionTabs={actionTabs}
+          filterFields={filterFields}
+          filters={shellFilters}
+          onFiltersChange={setShellFilters}
+          storageKey="accounts-page"
+        >
+          <div className="space-y-4 max-w-[1600px] mx-auto">
         {/* Summary Cards */}
         {!loading && accounts.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
