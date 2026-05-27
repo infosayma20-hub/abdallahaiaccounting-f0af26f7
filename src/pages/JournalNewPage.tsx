@@ -1,17 +1,16 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
-  CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
+  CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2, Eye, Calculator,
   BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock,
   FileText, Scale, AlertTriangle
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompanyContext";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +30,7 @@ import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker"
 import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
-import AccountingShell from "@/components/layout/AccountingShell";
+import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
 interface JournalLine {
@@ -60,6 +59,7 @@ const JournalNewPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { company } = useCompany();
+  const { settings } = useCompanySettings();
   const { save: saveJournalVoucher } = useSaveJournalVoucher();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
@@ -515,14 +515,81 @@ const JournalNewPage = () => {
     }
   };
 
-  const handlePrint = () => { /* no browser print */ };
+  const handlePrint = () => window.print();
+
+  // Reset form to a blank entry (used by "قيد جديد" action)
+  const resetForm = useCallback(() => {
+    setSaved(false);
+    setFormDescription("");
+    setFormNotes("");
+    setFormContactId("");
+    setFormCostCenterId(null);
+    setAttachments([]);
+    setLines([
+      { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+      { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+    ]);
+    setAccountSearches({});
+    setLineContactSearches({});
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>("[data-smart-first]")?.focus();
+    });
+  }, []);
+
+  const doBrowserPrint = () => window.print();
+  const doPreview = () => {
+    document.querySelector<HTMLElement>("[data-journal-summary]")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const openCenter = () => navigate("/accounting-center");
+
+  const actionTabs: ActionTab[] = useMemo(() => ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "new", label: "قيد جديد", icon: Plus, variant: "primary", onClick: resetForm },
+      ]},
+      { key: "save", label: "حفظ", items: [
+        { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSave("draft"), disabled: saving },
+        { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary",
+          onClick: () => handleSave("posted"), disabled: saving || !isBalanced,
+          tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
+      ]},
+      { key: "view", label: "عرض", items: [
+        { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
+        { key: "print", label: "طباعة", icon: Printer, onClick: doBrowserPrint },
+      ]},
+      { key: "nav", label: "تنقل", items: [
+        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
+      ]},
+    ],
+  }]), [saving, isBalanced, resetForm]);
+
+  // ── FastTabs sections (collapsible body) ──
+  const headerSummary = `${subtypeLabels[formSubtype]} • ${formDate}${formRefNumber ? ` • ${formRefNumber}` : ""}`;
+  const linesSummary = `${lines.length} سطر • مدين ₪${formatAmount(totalDebit)} • دائن ₪${formatAmount(totalCredit)}`;
+  const summarySummary = isBalanced && totalDebit > 0
+    ? "متوازن ✓"
+    : totalDebit > 0
+      ? `فرق ₪${formatAmount(diff)}`
+      : "لم تُدخل مبالغ بعد";
+  const notesSummary = `${attachments.length} مرفق${formNotes ? " • ملاحظات" : ""}`;
 
   // Note: Removed full-screen success page — replaced with non-blocking toast + inline reset.
 
   return (
-    <AccountingShell>
+    <FinanceShell
+      title="سند القيد"
+      subtitle="إنشاء وتعديل القيود المحاسبية اليدوية"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "سندات القيد", href: "/finance/journals" },
+        { label: "قيد جديد" },
+      ]}
+      actionTabs={actionTabs}
+    >
     <SmartFormScope
-      className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-32 space-y-5"
+      className="max-w-[1600px] w-full mx-auto pb-32 space-y-5"
       firstFieldSelector="[data-smart-first]"
     >
     <div dir="rtl" className="contents">
@@ -539,51 +606,22 @@ const JournalNewPage = () => {
         />
       )}
 
-      <PageHeader title="سند قيد جديد" breadcrumb={["المحاسبة", "القيود", "سند قيد جديد"]} />
+      {/* Print-only header (hidden on screen) */}
+      <div className="hidden print:block mb-4 pb-3 border-b border-border">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-bold">سند قيد محاسبي</h1>
+            {settings.company_name && <p className="text-xs text-muted-foreground mt-0.5">{settings.company_name}</p>}
+          </div>
+          <div className="text-[10px] text-muted-foreground text-left space-y-0.5">
+            <p>رقم السند: <span className="font-mono">{formRefNumber}</span></p>
+            <p>التاريخ: <span className="font-mono">{formDate}</span></p>
+            <p>النوع: {subtypeLabels[formSubtype]}</p>
+          </div>
+        </div>
+      </div>
 
-      {/* Navigation Toolbar */}
-      <VoucherNavToolbar
-        voucherType="journal"
-        currentRef={formRefNumber}
-        onPrint={handlePrint}
-        onSaveDraft={() => handleSave("draft")}
-        onSavePost={() => handleSave("posted")}
-        saving={saving}
-        saveDraftDisabled={saving}
-        savePostDisabled={saving || !isBalanced}
-        savePostDisabledReason={!isBalanced ? "القيد غير متوازن — تحقق من المدين والدائن" : undefined}
-        onNew={() => {
-          setSaved(false);
-          setFormDescription("");
-          setFormNotes("");
-          setFormContactId("");
-          setAttachments([]);
-          setLines([
-            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
-            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
-          ]);
-        }}
-        onNewSimilar={saved ? () => {
-          const draftData = {
-            _sourceRef: formRefNumber,
-            description: formDescription,
-            notes: formNotes,
-            subtype: formSubtype,
-            contactId: formContactId,
-            lines: lines.map(l => ({
-              account_code: l.account_code,
-              account_name: l.account_name,
-              debit: l.debit,
-              credit: l.credit,
-              contact_id: l.contact_id,
-              contact_name: l.contact_name,
-            })),
-          };
-          localStorage.setItem("draft_journal_new", JSON.stringify(draftData));
-          navigate("/finance/journal/new?from_duplicate=true");
-        } : undefined}
-      />
-
+      <div data-print-area>
       {/* ═══════════════════════════════════════════════════════════════
           12-COLUMN MASTER GRID — Odoo / QuickBooks Journal style
           Left  (col-span-8): Header → Lines → Notes/Attachments
@@ -1185,6 +1223,8 @@ const JournalNewPage = () => {
 
       {/* ═══ END MASTER GRID ═══ */}
       </div>
+      </div>
+      {/* ═══ END data-print-area ═══ */}
 
       {/* ═══ Sticky Bottom Action Bar ═══ */}
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
@@ -1295,7 +1335,7 @@ const JournalNewPage = () => {
       />
     </div>
     </SmartFormScope>
-    </AccountingShell>
+    </FinanceShell>
   );
 };
 
