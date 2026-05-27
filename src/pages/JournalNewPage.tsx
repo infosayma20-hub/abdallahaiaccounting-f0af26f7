@@ -517,7 +517,7 @@ const JournalNewPage = () => {
     }
   };
 
-  const handlePrint = () => { /* no browser print */ };
+  const handlePrint = () => window.print();
 
   // Reset form to a blank entry (used by "قيد جديد" action)
   const resetForm = useCallback(() => {
