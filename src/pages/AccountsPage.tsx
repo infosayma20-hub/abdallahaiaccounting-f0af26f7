@@ -320,14 +320,24 @@ const AccountsPage = () => {
   const collapseAll = useCallback(() => setExpanded(new Set()), []);
 
   const filteredAccounts = useMemo(() => {
-    return accounts.filter(a => {
+    const base = accounts.filter(a => {
       if (typeFilter !== "all" && normalizeType(a.account_type) !== typeFilter) return false;
       if (searchQuery.trim()) {
         if (!multiWordMatchAny(searchQuery, a.account_name, a.account_code)) return false;
       }
       return true;
     }).sort((a, b) => a.account_code.localeCompare(b.account_code));
-  }, [accounts, searchQuery, typeFilter]);
+    return applyFilters(base, shellFilters, (row, key) => {
+      switch (key) {
+        case "type": return normalizeType(row.account_type);
+        case "nature":
+          return row.nature || (naturalBalance[normalizeType(row.account_type)] === "مدين" ? "debit" : "credit");
+        case "is_protected": return row.is_system_protected ? "yes" : "no";
+        case "parent_code": return row.parent_code || "";
+        default: return (row as any)[key];
+      }
+    });
+  }, [accounts, searchQuery, typeFilter, shellFilters]);
 
   type TreeRow = 
     | { type: 'account'; account: Account; level: number; isGroup: boolean; hasChildren: boolean; isCollapsed: boolean }
