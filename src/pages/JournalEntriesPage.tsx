@@ -505,45 +505,32 @@ const JournalEntriesPage = () => {
     ]},
   ]), [typeOptionsForFilter, currencyOptions]);
 
-  const actionTabs: ActionTab[] = useMemo(() => ([
-    {
-      key: "general",
-      label: "عام",
-      groups: [
-        {
-          key: "new",
-          label: "جديد",
-          items: [
-            { key: "new-entry", label: "قيد جديد", icon: Plus, variant: "primary",
-              onClick: () => setShowJournalEntry(true), shortcut: "Alt+J" },
-          ],
-        },
-        {
-          key: "actions",
-          label: "إجراءات",
-          items: [
-            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
-          ],
-        },
-        {
-          key: "print",
-          label: "طباعة",
-          items: [
-            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint,
-              disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" },
-          ],
-        },
-        {
-          key: "export",
-          label: "تصدير",
-          items: [
-            { key: "excel", label: "Excel", icon: FileSpreadsheet,
-              onClick: handleExport, disabled: filtered.length === 0 },
-          ],
-        },
-      ],
-    },
-  ]), [filtered.length]);
+  const actionTabs: ActionTab[] = useMemo(() => {
+    const newGroupItems = [];
+    if (canCreateJournal) {
+      newGroupItems.push({
+        key: "new-entry", label: "قيد جديد", icon: Plus, variant: "primary" as const,
+        onClick: () => setShowJournalEntry(true), shortcut: "Alt+J",
+      });
+    }
+    const groups = [];
+    if (newGroupItems.length) groups.push({ key: "new", label: "جديد", items: newGroupItems });
+    groups.push({
+      key: "actions", label: "إجراءات",
+      items: [{ key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData }],
+    });
+    groups.push({
+      key: "print", label: "طباعة",
+      items: [{ key: "print", label: "طباعة", icon: Printer, onClick: handlePrint,
+               disabled: filtered.length === 0, tooltip: "طباعة قائمة القيود الحالية" }],
+    });
+    groups.push({
+      key: "export", label: "تصدير",
+      items: [{ key: "excel", label: "Excel", icon: FileSpreadsheet,
+               onClick: handleExport, disabled: filtered.length === 0 }],
+    });
+    return [{ key: "general", label: "عام", groups }];
+  }, [filtered.length, canCreateJournal]);
 
   // Alt+J shortcut to open journal entry
   useEffect(() => {
