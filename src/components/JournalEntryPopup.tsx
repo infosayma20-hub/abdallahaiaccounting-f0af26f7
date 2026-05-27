@@ -19,6 +19,7 @@ import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker";
 import type { JournalTemplate as SavedJournalTemplate } from "@/hooks/useJournalTemplates";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
+import AccountCombobox from "@/components/finance/AccountCombobox";
 
 /* ── Types ── */
 interface AccountRow {
