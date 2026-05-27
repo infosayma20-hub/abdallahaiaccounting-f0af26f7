@@ -689,11 +689,14 @@ const JournalEntriesPage = () => {
         <DialogContent className="max-w-lg rounded-2xl" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Lock className="h-4 w-4 text-primary" />
-              تعديل القيد المحاسبي
+              {editResolution?.mode === "delete" ? (
+                <><Trash2 className="h-4 w-4 text-destructive" /> إلغاء / حذف القيد المحاسبي</>
+              ) : (
+                <><Lock className="h-4 w-4 text-primary" /> تعديل القيد المحاسبي</>
+              )}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-muted-foreground pt-1">
-              يفرض النظام مرور كل تعديل عبر المحرر الموحّد لضمان تزامن السندات والقيود وكشف الحساب.
+              يفرض النظام مرور كل تعديل أو حذف عبر المحرر الموحّد / المستند الأصلي لضمان تزامن السندات والقيود وكشف الحساب.
             </DialogDescription>
           </DialogHeader>
 
@@ -726,15 +729,21 @@ const JournalEntriesPage = () => {
 
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="outline" onClick={() => { setEditingTx(null); setEditResolution(null); }} className="rounded-xl">
-                  إلغاء
+                  رجوع
                 </Button>
                 {editResolution.kind === "voucher" && (
                   <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
                     <ExternalLink className="h-3.5 w-3.5" />
-                    فتح محرر السند
+                    {editResolution.mode === "delete" ? "فتح السند للحذف" : "فتح محرر السند"}
                   </Button>
                 )}
-                {editResolution.kind === "orphan" && (
+                {editResolution.kind === "orphan" && editResolution.mode === "delete" && (
+                  <Button onClick={handleEditNavigate} disabled={deleting} variant="destructive" className="gap-2 rounded-xl">
+                    {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    تأكيد الإلغاء
+                  </Button>
+                )}
+                {editResolution.kind === "orphan" && editResolution.mode !== "delete" && (
                   <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
                     <Plus className="h-3.5 w-3.5" />
                     إنشاء قيد تسوية
