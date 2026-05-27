@@ -464,7 +464,7 @@ const App = () => (
                       <Route path="/payments" element={<Navigate to="/finance/payments" replace />} />
                       <Route path="/finance" element={<Navigate to="/finance/receipts" replace />} />
                       <Route path="/accounting-center" element={<AccountingCenterPage />} />
-                      <Route path="/finance/receipts" element={<FinanceVoucherPage voucherType="receipt" />} />
+                     <Route path="/finance/receipts" element={<FinanceReceiptsPage />} />
                       <Route path="/finance/payments" element={<FinanceVoucherPage voucherType="payment" />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
                       <Route path="/finance/journal/new" element={<FeatureGuard app="finance" feature="journal" perm="create" label="إنشاء قيد"><JournalNewPage /></FeatureGuard>} />
