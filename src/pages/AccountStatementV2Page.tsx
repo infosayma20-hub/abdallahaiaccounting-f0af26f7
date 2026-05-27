@@ -890,91 +890,57 @@ const AccountStatementV2Page = () => {
   };
 
   // ─── RENDER ───
+  const actionTabs: ActionTab[] = ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "actions", label: "إجراءات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchData() },
+        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+      ]},
+      { key: "print", label: "طباعة", items: [
+        { key: "preview", label: "معاينة PDF", icon: Eye, onClick: handlePreviewPDF, disabled: !selectedEntityId || rows.length === 0 || pdfGenerating },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrintStatement, disabled: !selectedEntityId || rows.length === 0 },
+      ]},
+      { key: "export", label: "تصدير", items: [
+        { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: !selectedEntityId || filteredRows.length === 0 },
+      ]},
+      { key: "send", label: "إرسال", items: [
+        { key: "wa", label: "واتساب", icon: MessageSquare, onClick: () => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(closingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }, disabled: !selectedContact?.phone },
+        { key: "mail", label: "إيميل", icon: Mail, onClick: () => { if (selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(`كشف حساب - ${selectedEntityName}`)}`); }, disabled: !selectedContact?.email },
+      ]},
+    ],
+  }]);
+
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 52px)", overflow: "hidden" }} dir="rtl">
-      {/* ═══ TOOLBAR ═══ */}
-      <div className="shrink-0 border-b" style={{ borderColor: "#E5E7EB", padding: "10px 24px", background: "white" }}>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          {/* LEFT: breadcrumb + entity */}
-            <div className="flex items-center gap-3">
-            {(() => {
-              const fromCode = new URLSearchParams(window.location.search).get("code");
-              const backTo = fromCode ? "/trial-balance" : "/apps";
-              return (
-                <button onClick={() => navigate(backTo)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <ArrowRight className="w-5 h-5" style={{ color: "#374151" }} />
-                </button>
-              );
-            })()}
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "#6B7280" }}>
-              {new URLSearchParams(window.location.search).get("code") ? (
-                <>
-                  <button onClick={() => navigate("/apps")} className="hover:underline cursor-pointer">المحاسبة</button>
-                  <ChevronLeft className="w-3 h-3" />
-                  <button onClick={() => navigate("/trial-balance")} className="hover:underline cursor-pointer">ميزان المراجعة</button>
-                  <ChevronLeft className="w-3 h-3" />
-                  <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
-                </>
-              ) : (
-                <>
-                  <span>المحاسبة</span>
-                  <ChevronLeft className="w-3 h-3" />
-                  <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
-                </>
-              )}
-            </div>
-            {selectedEntityId && (
-              <div className="flex items-center gap-2 mr-3 px-3 py-1.5 rounded-lg" style={{ background: "#F3F4F6" }}>
-                <span className="text-sm">{selectedEntityEmoji}</span>
-                <span className="text-sm font-semibold" style={{ color: "#111827" }}>{selectedEntityName}</span>
-                {selectedEntityCode && <span className="text-xs" style={{ color: "#6B7280" }}>— {selectedEntityCode}</span>}
-                {displayCurrency !== "ILS" && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "#DBEAFE", color: "#1E40AF", fontWeight: 600 }}>— {displayCurrencyLabel}</span>}
-                <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1" style={{ color: "#1E40AF" }}>تغيير</button>
-              </div>
-            )}
+    <FinanceShell
+      title="كشف الحساب"
+      subtitle="حركة حساب أو جهة خلال فترة محددة"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "كشف الحساب" },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={
+        <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+          <div className="flex items-center gap-2 rounded-lg px-2 py-1 bg-muted/40 border border-border/40">
+            <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
+            <div className="w-px h-4 bg-border" />
+            <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
           </div>
-
-          {/* RIGHT: dates + actions */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-2 rounded-lg px-2 py-1" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-              <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
-              <div className="w-px h-4" style={{ background: "#D1D5DB" }} />
-              <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
+          <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
+          {selectedEntityId && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/40">
+              <span className="text-sm">{selectedEntityEmoji}</span>
+              <span className="text-sm font-semibold text-foreground">{selectedEntityName}</span>
+              {selectedEntityCode && <span className="text-xs text-muted-foreground">— {selectedEntityCode}</span>}
+              <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
             </div>
-            <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
-            <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
-              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={!selectedEntityId || rows.length === 0 || pdfGenerating} className="h-8 gap-1.5 text-xs">
-              {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-              معاينة PDF
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePrintStatement} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
-              <Printer className="w-3.5 h-3.5" /> طباعة
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
-              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
-                  <Send className="w-3.5 h-3.5" /> إرسال <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(closingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }} disabled={!selectedContact?.phone}>
-                  <MessageSquare className="w-4 h-4 ml-2 text-emerald-500" /> واتساب
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { if (selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(`كشف حساب - ${selectedEntityName}`)}`); }} disabled={!selectedContact?.email}>
-                  <Mail className="w-4 h-4 ml-2 text-blue-500" /> إيميل
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          )}
         </div>
-      </div>
-
-      {/* ═══ SCROLLABLE CONTENT ═══ */}
+      }
+    >
+      <div data-print-area className="flex flex-col" dir="rtl">
       <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "24px" }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
