@@ -519,6 +519,64 @@ const JournalNewPage = () => {
 
   const handlePrint = () => { /* no browser print */ };
 
+  // Reset form to a blank entry (used by "قيد جديد" action)
+  const resetForm = useCallback(() => {
+    setSaved(false);
+    setFormDescription("");
+    setFormNotes("");
+    setFormContactId("");
+    setFormCostCenterId(null);
+    setAttachments([]);
+    setLines([
+      { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+      { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+    ]);
+    setAccountSearches({});
+    setLineContactSearches({});
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>("[data-smart-first]")?.focus();
+    });
+  }, []);
+
+  const doBrowserPrint = () => window.print();
+  const doPreview = () => {
+    document.querySelector<HTMLElement>("[data-journal-summary]")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const openCenter = () => navigate("/accounting-center");
+
+  const actionTabs: ActionTab[] = useMemo(() => ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "new", label: "قيد جديد", icon: Plus, variant: "primary", onClick: resetForm },
+      ]},
+      { key: "save", label: "حفظ", items: [
+        { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSave("draft"), disabled: saving },
+        { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary",
+          onClick: () => handleSave("posted"), disabled: saving || !isBalanced,
+          tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
+      ]},
+      { key: "view", label: "عرض", items: [
+        { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
+        { key: "print", label: "طباعة", icon: Printer, onClick: doBrowserPrint },
+      ]},
+      { key: "nav", label: "تنقل", items: [
+        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
+      ]},
+    ],
+  }]), [saving, isBalanced, resetForm]);
+
+  // ── FastTabs sections (collapsible body) ──
+  const headerSummary = `${subtypeLabels[formSubtype]} • ${formDate}${formRefNumber ? ` • ${formRefNumber}` : ""}`;
+  const linesSummary = `${lines.length} سطر • مدين ₪${formatAmount(totalDebit)} • دائن ₪${formatAmount(totalCredit)}`;
+  const summarySummary = isBalanced && totalDebit > 0
+    ? "متوازن ✓"
+    : totalDebit > 0
+      ? `فرق ₪${formatAmount(diff)}`
+      : "لم تُدخل مبالغ بعد";
+  const notesSummary = `${attachments.length} مرفق${formNotes ? " • ملاحظات" : ""}`;
+
   // Note: Removed full-screen success page — replaced with non-blocking toast + inline reset.
 
   return (
