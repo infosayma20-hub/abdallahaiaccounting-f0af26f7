@@ -2431,16 +2431,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <BackButton />
-        <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Landmark className="h-5 w-5 text-primary" />
-            {pageTitle}
-          </h1>
-          <p className="text-xs text-muted-foreground">{pageDesc}</p>
-        </div>
-      </div>
+      <PageHeader
+        title={pageTitle}
+        breadcrumb={["المالية", isReceipt ? "سندات القبض" : "سندات الصرف", pageTitle]}
+      />
 
       {/* Mobile Summary Bar (collapsible — lg: hidden) */}
       <MobileSummaryBar
