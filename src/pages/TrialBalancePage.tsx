@@ -710,83 +710,115 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
     ? `${dateFrom} — ${dateTo}`
     : dateFrom ? `من ${dateFrom}` : dateTo ? `حتى ${dateTo}` : "جميع الفترات";
 
-  return (
-    <div className="space-y-5 max-w-[1400px] mx-auto px-4 pt-6 pb-8" dir="rtl">
-      {/* Header */}
-      <PageHeader title="ميزان المراجعة" breadcrumb={["المحاسبة", "التقارير", "ميزان المراجعة"]} />
+  // FinanceShell: action tabs
+  const actionTabs: ActionTab[] = useMemo(() => ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "actions", label: "إجراءات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
+        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+      ]},
+      { key: "print", label: "طباعة", items: [
+        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: filteredRows.length === 0 },
+        { key: "pdf", label: "PDF", icon: Download, onClick: handleExportPDF, disabled: filteredRows.length === 0 },
+      ]},
+      { key: "export", label: "تصدير", items: [
+        { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filteredRows.length === 0 },
+      ]},
+    ],
+  }]), [filteredRows.length, fetchData, navigate]);
 
-      {/* Controls Card - matching Income Statement */}
-      <Card className="border-0 shadow-sm rounded-2xl p-4 space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod("custom"); }} className="w-[140px] h-8 text-xs" />
-            <span className="text-xs text-muted-foreground">—</span>
-            <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod("custom"); }} className="w-[140px] h-8 text-xs" />
+  // FinanceShell: filter field definitions
+  const parentAccountOptions = useMemo(() => (
+    accounts
+      .filter(a => !a.parent_code)
+      .sort((a, b) => a.account_code.localeCompare(b.account_code))
+      .map(a => ({ value: a.account_code, label: `${a.account_code} — ${a.account_name}` }))
+  ), [accounts]);
+
+  const ccOptions = useMemo(() => [
+    { value: "__none__", label: "بدون مركز تكلفة" },
+    ...costCenters.map((c: any) => ({ value: c.id, label: c.name })),
+  ], [costCenters]);
+
+  const filterFields: FilterField[] = useMemo(() => ([
+    { key: "date_from", label: "التاريخ من", type: "date" },
+    { key: "date_to", label: "التاريخ إلى", type: "date" },
+    { key: "cost_center", label: "مركز التكلفة", type: "option", options: ccOptions },
+    { key: "account_type", label: "نوع الحساب", type: "option", options: accountTypeOptions.filter(o => o.value !== "all").map(o => ({ value: o.label, label: o.label })) },
+    { key: "parent_code", label: "الحساب الرئيسي", type: "option", options: parentAccountOptions },
+    { key: "show_zero", label: "إظهار الحسابات الصفرية", type: "option", options: [
+      { value: "yes", label: "نعم" },
+      { value: "no", label: "لا" },
+    ]},
+  ]), [ccOptions, parentAccountOptions]);
+
+  return (
+    <FinanceShell
+      title="ميزان المراجعة"
+      subtitle="أرصدة الحسابات المدينة والدائنة خلال فترة محددة"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "ميزان المراجعة" },
+      ]}
+      actionTabs={actionTabs}
+      filterFields={filterFields}
+      filters={shellFilters}
+      onFiltersChange={setShellFilters}
+      storageKey="finance-trial-balance-page"
+      rightSlot={
+        <div className="flex items-center gap-1.5">
+          <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod("custom"); }} className="w-[140px] h-8 text-xs" />
+          <span className="text-xs text-muted-foreground">—</span>
+          <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod("custom"); }} className="w-[140px] h-8 text-xs" />
+        </div>
+      }
+    >
+      <div data-print-area className="space-y-4 max-w-[1500px] mx-auto" dir="rtl">
+        {/* Print-only header */}
+        <div className="hidden print:block mb-4 border-b pb-2">
+          <h1 className="text-lg font-bold">{companyName}</h1>
+          <p className="text-sm">ميزان المراجعة — {dateRangeLabel}</p>
+          {costCenterFilter !== "all" && (
+            <p className="text-xs">مركز التكلفة: {costCenterFilter === "__none__" ? "بدون مركز تكلفة" : (costCenters.find((c: any) => c.id === costCenterFilter)?.name || "—")}</p>
+          )}
+        </div>
+
+        {/* Inline controls (no-print) */}
+        <Card className="border-0 shadow-sm rounded-2xl p-3 space-y-2 print:hidden no-print">
+          <div className="flex gap-1.5 flex-wrap">
+            {quickPeriods.map(p => (
+              <button key={p.key} onClick={() => handleQuickPeriod(p.key)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${activePeriod === p.key ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/60 text-muted-foreground hover:bg-muted"}`}>
+                {p.label}
+              </button>
+            ))}
           </div>
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {quickPeriods.map(p => (
-            <button key={p.key} onClick={() => handleQuickPeriod(p.key)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${activePeriod === p.key ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/60 text-muted-foreground hover:bg-muted"}`}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        {/* Report Level Filter */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground font-medium">مستوى التقرير:</span>
-        </div>
-        <div className="flex items-center gap-4 flex-wrap text-xs">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <Checkbox checked={showComparison} onCheckedChange={(v) => setShowComparison(!!v)} />
-            <span className="text-muted-foreground">مقارنة الفترة السابقة</span>
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
-            <span className="text-muted-foreground">الحسابات الصفرية</span>
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <Checkbox checked={showDetailedAccounts} onCheckedChange={(v) => setShowDetailedAccounts(!!v)} />
-            <span className="text-muted-foreground">إظهار الحسابات التفصيلية</span>
-          </label>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-[10px]">نوع الحساب:</span>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="h-7 rounded-lg bg-muted/60 border-0 text-[11px] px-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              {accountTypeOptions.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+          <div className="flex items-center gap-4 flex-wrap text-xs">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox checked={showComparison} onCheckedChange={(v) => setShowComparison(!!v)} />
+              <span className="text-muted-foreground">مقارنة الفترة السابقة</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
+              <span className="text-muted-foreground">الحسابات الصفرية</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Checkbox checked={showDetailedAccounts} onCheckedChange={(v) => setShowDetailedAccounts(!!v)} />
+              <span className="text-muted-foreground">إظهار الحسابات التفصيلية</span>
+            </label>
+            <div className="relative mr-auto">
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث بالاسم أو الكود..."
+                className="h-7 pr-7 w-[180px] rounded-lg text-[11px]"
+              />
+            </div>
           </div>
-          <div className="relative mr-auto">
-            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث بالاسم أو الكود..."
-              className="h-7 pr-7 w-[180px] rounded-lg text-[11px]"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExport} disabled={loading || filteredRows.length === 0}>
-            <FileSpreadsheet className="h-3 w-3" /> Excel
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading || filteredRows.length === 0}>
-            <Download className="h-3 w-3" /> PDF
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading || filteredRows.length === 0}>
-            <Printer className="h-3 w-3" /> طباعة PDF
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 mr-auto" onClick={fetchData}>
-            <RefreshCw className="h-3 w-3" /> تحديث
-          </Button>
-        </div>
-      </Card>
+        </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
