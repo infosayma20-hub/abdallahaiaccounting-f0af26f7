@@ -1225,6 +1225,8 @@ const JournalNewPage = () => {
 
       {/* ═══ END MASTER GRID ═══ */}
       </div>
+      </div>
+      {/* ═══ END data-print-area ═══ */}
 
       {/* ═══ Sticky Bottom Action Bar ═══ */}
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
@@ -1335,7 +1337,7 @@ const JournalNewPage = () => {
       />
     </div>
     </SmartFormScope>
-    </AccountingShell>
+    </FinanceShell>
   );
 };
 
