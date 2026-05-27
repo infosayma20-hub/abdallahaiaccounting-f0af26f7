@@ -711,42 +711,55 @@ const JournalEntriesPage = () => {
                       <td className="px-3 py-1.5 text-xs text-foreground whitespace-nowrap">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground font-mono whitespace-nowrap">{tx.reference || "—"}</td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
+                      <td className="px-3 py-1.5">
+                        {tx.is_deleted ? (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-destructive/10 text-destructive">ملغي</span>
+                        ) : (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">نشط</span>
+                        )}
+                      </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-primary tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
-                      <td className="px-3 py-1.5 print:hidden">
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => openEdit(tx, "edit")}
-                            className="p-1.5 rounded-lg hover:bg-primary/10"
-                            title="تعديل القيد"
-                          >
-                            <Pencil className="h-3.5 w-3.5 text-primary" />
-                          </button>
-                          {!tx.is_deleted && (
-                            <button
-                              onClick={() => openEdit(tx, "delete")}
-                              className="p-1.5 rounded-lg hover:bg-destructive/10"
-                              title="إلغاء / حذف القيد"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                      {(canUpdateJournal || canDeleteJournal) && (
+                        <td className="px-3 py-1.5 print:hidden">
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {canUpdateJournal && (
+                              <button
+                                onClick={() => openEdit(tx, "edit")}
+                                className="p-1.5 rounded-lg hover:bg-primary/10"
+                                title="تعديل القيد"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-primary" />
+                              </button>
+                            )}
+                            {canDeleteJournal && !tx.is_deleted && (
+                              <button
+                                onClick={() => openEdit(tx, "delete")}
+                                className="p-1.5 rounded-lg hover:bg-destructive/10"
+                                title="إلغاء / حذف القيد"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
-                  <td colSpan={8} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
+                  <td colSpan={9} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
                   <td className="px-3 py-2 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
                   <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
-                  <td className="print:hidden"></td>
+                  {(canUpdateJournal || canDeleteJournal) && (
+                    <td className="print:hidden"></td>
+                  )}
                 </tr>
               </tfoot>
             </table>
