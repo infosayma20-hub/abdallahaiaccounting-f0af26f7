@@ -177,16 +177,19 @@ const JournalEntriesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
   const [editResolution, setEditResolution] = useState<{
     kind: "voucher" | "invoice" | "orphan";
+    mode?: "edit" | "delete";
     voucherId?: string;
     voucherRef?: string;
     invoiceHint?: string;
     message: string;
   } | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
 
   // Build account code → name map
