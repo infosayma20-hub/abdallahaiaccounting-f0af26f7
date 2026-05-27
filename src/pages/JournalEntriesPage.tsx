@@ -179,6 +179,7 @@ const JournalEntriesPage = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
   const [editResolution, setEditResolution] = useState<{
@@ -239,30 +240,37 @@ const JournalEntriesPage = () => {
   };
 
   const filtered = useMemo(() => {
-    let result = transactions.filter(tx => {
-      if (statusFilter === "active") return !tx.is_deleted;
-      if (statusFilter === "deleted") return tx.is_deleted;
-      return true; // "all"
+    // Default: hide soft-deleted unless user added a status condition
+    const hasStatusCond = shellFilters.some((c) => c.fieldKey === "is_deleted");
+    let result = hasStatusCond ? transactions : transactions.filter((tx) => !tx.is_deleted);
+
+    result = applyFilters(result, shellFilters, (row, key) => {
+      if (key === "displayType") return getDisplayType(row.transaction_type);
+      if (key === "is_deleted") return row.is_deleted ? "true" : "false";
+      return (row as any)[key];
     });
 
-    if (dateFrom) result = result.filter(tx => (tx.transaction_date || "") >= dateFrom);
-    if (dateTo) result = result.filter(tx => (tx.transaction_date || "") <= dateTo);
-
-    if (typeFilter !== "all") {
-      result = result.filter(tx => getDisplayType(tx.transaction_type) === typeFilter);
-    }
-
     if (searchQuery.trim()) {
-      result = result.filter(tx => multiWordMatchAny(searchQuery, tx.description, accountMap[tx.debit_account_code || ""], accountMap[tx.credit_account_code || ""], tx.reference));
+      result = result.filter((tx) =>
+        multiWordMatchAny(
+          searchQuery,
+          tx.description,
+          accountMap[tx.debit_account_code || ""],
+          accountMap[tx.credit_account_code || ""],
+          tx.reference,
+        ),
+      );
     }
 
-    return result.sort((a, b) => (b.transaction_date || "").localeCompare(a.transaction_date || ""));
-  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter, statusFilter, accountMap]);
+    return result.sort((a, b) =>
+      (b.transaction_date || "").localeCompare(a.transaction_date || ""),
+    );
+  }, [transactions, shellFilters, searchQuery, accountMap]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [dateFrom, dateTo, searchQuery, typeFilter, statusFilter]);
+  useEffect(() => { setCurrentPage(1); }, [shellFilters, searchQuery]);
 
   const totalDebit = filtered.reduce((s, tx) => s + (tx.amount || 0), 0);
   const totalCredit = totalDebit;
