@@ -365,6 +365,13 @@ const JournalEntriesPage = () => {
   };
 
   const handleExport = () => {
+    // Derive date range from active shell filters (transaction_date)
+    const dateCond = shellFilters.find((c) => c.fieldKey === "transaction_date");
+    const dateFrom = dateCond?.operator === "between" ? (dateCond.value || "") :
+                     dateCond?.operator === "greater_than" ? (dateCond.value || "") :
+                     dateCond?.operator === "equals" ? (dateCond.value || "") : "";
+    const dateTo = dateCond?.operator === "between" ? (dateCond.valueTo || "") :
+                   dateCond?.operator === "less_than" ? (dateCond.value || "") : "";
     const data = filtered.map(tx => ({
       "التاريخ": fmtDateDisplay(tx.transaction_date) || "",
       "الوصف": tx.description || "",
