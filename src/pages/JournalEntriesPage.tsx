@@ -38,6 +38,7 @@ interface TransactionRow {
   currency: string | null;
   reference: string | null;
   payment_method: string | null;
+  cost_center_name: string | null;
   is_deleted: boolean | null;
 }
 
@@ -179,7 +180,7 @@ const JournalEntriesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
-  const [sortKey, setSortKey] = useState<"transaction_date" | "amount">("transaction_date");
+  const [sortKey, setSortKey] = useState<string>("transaction_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // ─── Visual permission gating (UI hides what backend already blocks) ───
@@ -214,7 +215,7 @@ const JournalEntriesPage = () => {
     try {
       const [txRes, accRes, profileRes] = await Promise.all([
         supabase.from("transactions")
-          .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted")
+          .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, cost_center_name, is_deleted")
           .eq("user_id", user.id)
           .order("transaction_date", { ascending: false })
           .limit(1000),
@@ -271,12 +272,23 @@ const JournalEntriesPage = () => {
       );
     }
 
+    const getSortValue = (row: TransactionRow, key: string): string | number => {
+      if (key === "amount") return row.amount || 0;
+      if (key === "displayType") return getDisplayType(row.transaction_type) || "";
+      if (key === "debit_account_code") return accountMap[row.debit_account_code || ""] || row.debit_account_code || "";
+      if (key === "credit_account_code") return accountMap[row.credit_account_code || ""] || row.credit_account_code || "";
+      if (key === "is_deleted") return row.is_deleted ? 1 : 0;
+      const v = (row as any)[key];
+      return v == null ? "" : v;
+    };
     return result.sort((a, b) => {
+      const va = getSortValue(a, sortKey);
+      const vb = getSortValue(b, sortKey);
       let cmp = 0;
-      if (sortKey === "amount") {
-        cmp = (a.amount || 0) - (b.amount || 0);
+      if (typeof va === "number" && typeof vb === "number") {
+        cmp = va - vb;
       } else {
-        cmp = (a.transaction_date || "").localeCompare(b.transaction_date || "");
+        cmp = String(va).localeCompare(String(vb), "ar");
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -306,15 +318,10 @@ const JournalEntriesPage = () => {
     setShellFilters((prev) => prev.filter((c) => c.fieldKey !== fieldKey));
   const currentColumnFilter = (fieldKey: string) =>
     shellFilters.find((c) => c.fieldKey === fieldKey)?.value || "";
-  // Generic column sorter: real ordering for date/amount; other columns surface
-  // a quick filter only (table is then implicitly ordered by current sort key).
+  // Generic column sorter — يدعم كل الأعمدة الظاهرة في الجدول.
   const handleColumnSort = (fieldKey: string, dir: "asc" | "desc") => {
-    if (fieldKey === "transaction_date" || fieldKey === "amount") {
-      setSortKey(fieldKey);
-      setSortDir(dir);
-    } else {
-      setSortDir(dir);
-    }
+    setSortKey(fieldKey);
+    setSortDir(dir);
   };
 
   /**
@@ -462,9 +469,10 @@ const JournalEntriesPage = () => {
       "مدين": tx.amount || 0,
       "دائن": tx.amount || 0,
       "العملة": tx.currency || "شيكل",
+      "مركز التكلفة": tx.cost_center_name || "",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
-    ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
+    ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 18 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "القيود المحاسبية");
     setNextExportBranding({
@@ -490,6 +498,12 @@ const JournalEntriesPage = () => {
     return Array.from(set).filter((v) => v && v !== "—").sort().map((v) => ({ value: v, label: v }));
   }, [transactions]);
 
+  const costCenterOptions = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((t) => { if (t.cost_center_name) set.add(t.cost_center_name); });
+    return Array.from(set).sort().map((v) => ({ value: v, label: v }));
+  }, [transactions]);
+
   const filterFields: FilterField[] = useMemo(() => ([
     { key: "transaction_date", label: "التاريخ", type: "date" },
     { key: "displayType", label: "نوع العملية", type: "option", options: typeOptionsForFilter },
@@ -499,11 +513,12 @@ const JournalEntriesPage = () => {
     { key: "currency", label: "العملة", type: "option", options: currencyOptions },
     { key: "description", label: "الوصف", type: "text" },
     { key: "payment_method", label: "طريقة الدفع", type: "text" },
+    { key: "cost_center_name", label: "مركز التكلفة", type: costCenterOptions.length ? "option" : "text", options: costCenterOptions },
     { key: "is_deleted", label: "الحالة", type: "option", options: [
       { value: "false", label: "نشط" },
       { value: "true", label: "ملغي" },
     ]},
-  ]), [typeOptionsForFilter, currencyOptions]);
+  ]), [typeOptionsForFilter, currencyOptions, costCenterOptions]);
 
   const actionTabs: ActionTab[] = useMemo(() => {
     const newGroupItems = [];
