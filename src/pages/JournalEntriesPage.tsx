@@ -617,12 +617,54 @@ const JournalEntriesPage = () => {
                       {sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
                     </button>
                   </th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground min-w-[200px]">الوصف</th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">النوع</th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">الحساب المدين</th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">الحساب الدائن</th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">المرجع</th>
-                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">العملة</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground min-w-[200px]">
+                    <ColumnHeaderMenu label="الوصف"
+                      onSort={(d) => handleColumnSort("description", d)}
+                      onFilter={(v, op) => upsertColumnFilter("description", v, op)}
+                      onClear={() => clearColumnFilter("description")}
+                      currentFilterValue={currentColumnFilter("description")}
+                    />
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="النوع"
+                      onSort={(d) => handleColumnSort("displayType", d)}
+                      onFilter={(v, op) => upsertColumnFilter("displayType", v, op)}
+                      onClear={() => clearColumnFilter("displayType")}
+                      currentFilterValue={currentColumnFilter("displayType")}
+                    />
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="الحساب المدين"
+                      onSort={(d) => handleColumnSort("debit_account_code", d)}
+                      onFilter={(v, op) => upsertColumnFilter("debit_account_code", v, op)}
+                      onClear={() => clearColumnFilter("debit_account_code")}
+                      currentFilterValue={currentColumnFilter("debit_account_code")}
+                    />
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="الحساب الدائن"
+                      onSort={(d) => handleColumnSort("credit_account_code", d)}
+                      onFilter={(v, op) => upsertColumnFilter("credit_account_code", v, op)}
+                      onClear={() => clearColumnFilter("credit_account_code")}
+                      currentFilterValue={currentColumnFilter("credit_account_code")}
+                    />
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="المرجع"
+                      onSort={(d) => handleColumnSort("reference", d)}
+                      onFilter={(v, op) => upsertColumnFilter("reference", v, op)}
+                      onClear={() => clearColumnFilter("reference")}
+                      currentFilterValue={currentColumnFilter("reference")}
+                    />
+                  </th>
+                  <th className="text-right px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                    <ColumnHeaderMenu label="العملة"
+                      onSort={(d) => handleColumnSort("currency", d)}
+                      onFilter={(v, op) => upsertColumnFilter("currency", v, op)}
+                      onClear={() => clearColumnFilter("currency")}
+                      currentFilterValue={currentColumnFilter("currency")}
+                    />
+                  </th>
                   <th className="text-left px-3 py-2 text-[11px] font-semibold text-primary">مدين</th>
                   <th className="text-left px-3 py-2 text-[11px] font-semibold text-destructive">دائن</th>
                   <th className="px-3 py-2 w-20 print:hidden"></th>
