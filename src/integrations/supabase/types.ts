@@ -3022,6 +3022,7 @@ export type Database = {
           metadata: Json | null
           name: string
           name_ar: string | null
+          notes: string | null
           parent_id: string | null
           updated_at: string
           user_id: string
@@ -3041,6 +3042,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           name_ar?: string | null
+          notes?: string | null
           parent_id?: string | null
           updated_at?: string
           user_id: string
@@ -3060,6 +3062,7 @@ export type Database = {
           metadata?: Json | null
           name?: string
           name_ar?: string | null
+          notes?: string | null
           parent_id?: string | null
           updated_at?: string
           user_id?: string
@@ -6960,6 +6963,7 @@ export type Database = {
       invoice_items: {
         Row: {
           bonus_quantity: number
+          cost_center_id: string | null
           cost_price: number | null
           created_at: string | null
           delivered_quantity: number | null
@@ -6982,6 +6986,7 @@ export type Database = {
         }
         Insert: {
           bonus_quantity?: number
+          cost_center_id?: string | null
           cost_price?: number | null
           created_at?: string | null
           delivered_quantity?: number | null
@@ -7004,6 +7009,7 @@ export type Database = {
         }
         Update: {
           bonus_quantity?: number
+          cost_center_id?: string | null
           cost_price?: number | null
           created_at?: string | null
           delivered_quantity?: number | null
@@ -7025,6 +7031,13 @@ export type Database = {
           workshop_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoice_items_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoice_items_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -7097,6 +7110,7 @@ export type Database = {
           contact_id: string | null
           contact_name: string | null
           correction_reason: string | null
+          cost_center_id: string | null
           created_at: string
           currency: string | null
           discount_amount: number | null
@@ -7142,6 +7156,7 @@ export type Database = {
           contact_id?: string | null
           contact_name?: string | null
           correction_reason?: string | null
+          cost_center_id?: string | null
           created_at?: string
           currency?: string | null
           discount_amount?: number | null
@@ -7187,6 +7202,7 @@ export type Database = {
           contact_id?: string | null
           contact_name?: string | null
           correction_reason?: string | null
+          cost_center_id?: string | null
           created_at?: string
           currency?: string | null
           discount_amount?: number | null
@@ -7231,6 +7247,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
           {
@@ -14341,6 +14364,7 @@ export type Database = {
           account_id_debit: string | null
           amount: number
           contact_id: string | null
+          cost_center_id: string | null
           cost_center_name: string | null
           created_at: string
           credit_account_code: string
@@ -14371,6 +14395,7 @@ export type Database = {
           account_id_debit?: string | null
           amount?: number
           contact_id?: string | null
+          cost_center_id?: string | null
           cost_center_name?: string | null
           created_at?: string
           credit_account_code: string
@@ -14401,6 +14426,7 @@ export type Database = {
           account_id_debit?: string | null
           amount?: number
           contact_id?: string | null
+          cost_center_id?: string | null
           cost_center_name?: string | null
           created_at?: string
           credit_account_code?: string
@@ -14432,6 +14458,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
           {
@@ -15553,6 +15586,7 @@ export type Database = {
           account_name: string | null
           contact_id: string | null
           contact_name: string | null
+          cost_center_id: string | null
           created_at: string | null
           credit: number | null
           debit: number | null
@@ -15567,6 +15601,7 @@ export type Database = {
           account_name?: string | null
           contact_id?: string | null
           contact_name?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
@@ -15581,6 +15616,7 @@ export type Database = {
           account_name?: string | null
           contact_id?: string | null
           contact_name?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
@@ -15591,6 +15627,13 @@ export type Database = {
           voucher_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "voucher_lines_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "voucher_lines_voucher_id_fkey"
             columns: ["voucher_id"]
@@ -15610,6 +15653,7 @@ export type Database = {
           cheque_due_date: string | null
           cheque_number: string | null
           contact_id: string | null
+          cost_center_id: string | null
           created_at: string | null
           currency: string | null
           date: string
@@ -15640,6 +15684,7 @@ export type Database = {
           cheque_due_date?: string | null
           cheque_number?: string | null
           contact_id?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           currency?: string | null
           date?: string
@@ -15670,6 +15715,7 @@ export type Database = {
           cheque_due_date?: string | null
           cheque_number?: string | null
           contact_id?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           currency?: string | null
           date?: string
@@ -15697,6 +15743,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
           {
@@ -17464,6 +17517,7 @@ export type Database = {
       }
       create_journal_entry_multi_party_atomic: {
         Args: {
+          p_cost_center_id?: string
           p_currency?: string
           p_description: string
           p_entry_date: string
@@ -17501,6 +17555,7 @@ export type Database = {
           p_contact_account_code?: string
           p_contact_id: string
           p_contact_name: string
+          p_cost_center_id?: string
           p_currency?: string
           p_description?: string
           p_employee_id?: string
@@ -17536,6 +17591,7 @@ export type Database = {
           p_contact_account_code?: string
           p_contact_id: string
           p_contact_name: string
+          p_cost_center_id?: string
           p_currency?: string
           p_description?: string
           p_employee_id?: string
@@ -18229,6 +18285,7 @@ export type Database = {
           p_contact_account_code?: string
           p_contact_id?: string
           p_contact_name?: string
+          p_cost_center_id?: string
           p_currency: string
           p_description: string
           p_employee_id?: string
