@@ -597,7 +597,7 @@ const JournalEntriesPage = () => {
         </div>
         <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
           <p className="text-[11px] text-muted-foreground">إجمالي المدين</p>
-          <p className="text-xl font-bold text-primary tabular-nums">₪{totalDebit.toLocaleString()}</p>
+          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">₪{totalDebit.toLocaleString()}</p>
         </div>
         <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
           <p className="text-[11px] text-muted-foreground">إجمالي الدائن</p>
@@ -774,7 +774,15 @@ const JournalEntriesPage = () => {
                         <SmartTextCell value={tx.reference} title="المرجع" mono />
                       </td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{tx.currency || "ILS"}</td>
-                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground whitespace-nowrap">{tx.cost_center_name || "—"}</td>
+                      <td className="px-3 py-1.5 text-[11px] whitespace-nowrap">
+                        {tx.cost_center_name ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
+                            {tx.cost_center_name}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/60 text-[10px]">بدون مركز</span>
+                        )}
+                      </td>
                       <td className="px-3 py-1.5">
                         {tx.is_deleted ? (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-destructive/10 text-destructive">ملغي</span>
@@ -782,7 +790,7 @@ const JournalEntriesPage = () => {
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">نشط</span>
                         )}
                       </td>
-                      <td className="px-3 py-1.5 text-xs font-bold text-primary tabular-nums text-left whitespace-nowrap">
+                      <td className="px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left whitespace-nowrap">
                         ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
@@ -819,7 +827,7 @@ const JournalEntriesPage = () => {
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
                   <td colSpan={10} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
-                  <td className="px-3 py-2 text-sm font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
                   <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
                   {(canUpdateJournal || canDeleteJournal) && (
                     <td className="print:hidden"></td>
