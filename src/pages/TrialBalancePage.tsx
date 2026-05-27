@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Loader2, RefreshCw, Search, Scale,
-  AlertTriangle, CheckCircle2, FileSpreadsheet, Printer, Calendar, Download,
+  AlertTriangle, CheckCircle2, FileSpreadsheet, Printer, Calendar, Download, Calculator,
   TrendingUp, TrendingDown,
 } from "lucide-react";
-import PageHeader from "@/components/layout/PageHeader";
 import * as XLSX from "xlsx";
 import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
+import { useCostCenters } from "@/hooks/useCostCenters";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
@@ -23,6 +23,9 @@ import {
 } from "@/lib/supabase-data";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
+import {
+  FinanceShell, type ActionTab, type FilterCondition, type FilterField,
+} from "@/components/finance/shell";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface TrialBalanceRow {
