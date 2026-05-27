@@ -23,6 +23,7 @@ import {
   type FilterCondition,
   type FilterField,
 } from "@/components/finance/shell";
+import { ColumnHeaderMenu } from "@/components/finance/shell/ColumnHeaderMenu";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface TransactionRow {
@@ -457,6 +458,7 @@ const JournalEntriesPage = () => {
     { key: "reference", label: "المرجع", type: "text" },
     { key: "currency", label: "العملة", type: "option", options: currencyOptions },
     { key: "description", label: "الوصف", type: "text" },
+    { key: "payment_method", label: "طريقة الدفع", type: "text" },
     { key: "is_deleted", label: "الحالة", type: "option", options: [
       { value: "false", label: "نشط" },
       { value: "true", label: "ملغي" },
