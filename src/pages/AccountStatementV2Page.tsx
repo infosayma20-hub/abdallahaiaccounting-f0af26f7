@@ -1106,9 +1106,10 @@ const AccountStatementV2Page = () => {
                 const screenCols: Array<{ key: string; label: string; width: string }> = [
                   { key: "date", label: "التاريخ", width: "10%" },
                   ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
-                  { key: "description", label: "البيان", width: statementOptions.showReference ? "25%" : "38%" },
+                  { key: "description", label: "البيان", width: statementOptions.showReference ? "22%" : "32%" },
                   ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
                   ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
+                  { key: "cost_center", label: "مركز التكلفة", width: "11%" },
                   { key: "debit", label: "مدين (عليه)", width: "11%" },
                   { key: "credit", label: "دائن (له)", width: "11%" },
                   { key: "balance", label: "الرصيد", width: "12%" },
