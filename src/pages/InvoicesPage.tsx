@@ -1418,30 +1418,31 @@ const InvoicesPage = () => {
                       className={`hover:bg-muted/20 cursor-pointer transition-all duration-500 ${isFocused ? "bg-primary/10 ring-2 ring-primary/60" : ""}`}
                       onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}
                     >
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
-                      <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground font-mono">{inv.invoiceNumber}</TableCell>
-                      <TableCell>
+                      {show("date") && <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>}
+                      {show("contact") && <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>}
+                      {show("invoiceNumber") && <TableCell className="text-xs text-muted-foreground font-mono">{inv.invoiceNumber}</TableCell>}
+                      {show("type") && <TableCell>
                         <Badge variant="secondary" className={`text-[10px] ${
                           inv.type === "sales" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
                         }`}>
                           {inv.type === "sales" ? "مبيعات" : "مشتريات"}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
+                      </TableCell>}
+                      {show("status") && <TableCell>
                         <Badge variant="secondary" className={`text-[10px] ${st.color}`}>{st.label}</Badge>
                         {inv.status !== 'cancelled' && (
                           <Badge variant="secondary" className={`text-[10px] mr-1 ${paymentStatusConfig[inv.paymentStatus]?.color || ''}`}>
                             {paymentStatusConfig[inv.paymentStatus]?.label}
                           </Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>
-                      <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
-                      <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                      </TableCell>}
+                      {show("paymentMethod") && <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>}
+                      {show("notes") && <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={inv.notes || ""}>{inv.notes || "—"}</TableCell>}
+                      {show("total") && <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>}
+                      {show("remaining") && <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
-                      </TableCell>
-                      <TableCell onClick={e => e.stopPropagation()}>
+                      </TableCell>}
+                      {show("actions") && <TableCell onClick={e => e.stopPropagation()}>
                         <div className="flex gap-0.5 items-center">
                           <Tooltip><TooltipTrigger asChild>
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
