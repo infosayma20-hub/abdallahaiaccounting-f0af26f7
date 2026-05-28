@@ -32,6 +32,7 @@ import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 
 interface JournalLine {
   id: string;
@@ -91,6 +92,8 @@ const JournalNewPage = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
   const [lineContactSearches, setLineContactSearches] = useState<Record<string, string>>({});
+  // Independent search state for the FIRST column (account-code picker)
+  const [codeSearches, setCodeSearches] = useState<Record<string, string | undefined>>({});
 
   // Invalid line IDs (highlighted on failed save attempt)
   const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
@@ -800,20 +803,45 @@ const JournalNewPage = () => {
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
-                      <Input
-                        value={line.account_code}
-                        onChange={e => {
-                          const code = e.target.value;
-                          const acct = accounts.find(a => a.account_code === code);
-                          setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                            ...l, account_code: code, account_name: acct?.account_name || l.account_name,
-                          }));
-                        }}
-                        className="h-9 font-mono text-xs w-20"
-                        placeholder="1110"
-                        dir="ltr"
-                        data-smart-first={i === 0 ? "true" : undefined}
-                      />
+                      {(() => {
+                        const codeQuery = codeSearches[line.id] !== undefined
+                          ? (codeSearches[line.id] as string)
+                          : line.account_code;
+                        const q = (codeQuery || "").trim();
+                        const filtered = !q
+                          ? postableAccounts.slice(0, 200)
+                          : postableAccounts.filter(a => multiWordMatchAny(q, a.account_code, a.account_name)).slice(0, 200);
+                        return (
+                          <SmartSearchableDropdown
+                            value={codeQuery}
+                            onChange={(v) => setCodeSearches(prev => ({ ...prev, [line.id]: v }))}
+                            items={filtered}
+                            getKey={(a: any) => a.account_code}
+                            getLabel={(a: any) => `${a.account_code} — ${a.account_name}`}
+                            renderOption={(a: any, active) => (
+                              <span className={`flex items-center gap-2 ${active ? "" : ""}`}>
+                                <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded" dir="ltr">{a.account_code}</span>
+                                <span className="text-foreground text-xs">{a.account_name}</span>
+                              </span>
+                            )}
+                            onSelect={(a: any) => {
+                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                                ...l,
+                                account_code: a.account_code,
+                                account_name: a.account_name || l.account_name,
+                              }));
+                              setCodeSearches(prev => ({ ...prev, [line.id]: undefined }));
+                            }}
+                            placeholder="1110 أو اسم الحساب"
+                            emptyText="لا توجد حسابات مطابقة"
+                            markFirst={i === 0}
+                            className="w-44"
+                            inputClassName="h-9 font-mono text-xs"
+                            showSearchIcon
+                            showChevron
+                          />
+                        );
+                      })()}
                     </td>
                     <td className="p-2.5">
                       <Select 
