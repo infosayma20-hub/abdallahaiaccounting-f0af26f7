@@ -961,6 +961,17 @@ const JournalNewPage = () => {
     }
   };
 
+  // Always-fresh refs for ActionPane (memoized tabs would otherwise capture
+  // stale handlers and miss the latest form state — same fix as VoucherFormPage).
+  const handleSaveRef = useRef<((mode?: "draft" | "posted" | "deferred") => void) | null>(null);
+  const handleUpdateRef = useRef<(() => void) | null>(null);
+  const handleDeleteRef = useRef<(() => void) | null>(null);
+  const handlePrintRef = useRef<(() => void) | null>(null);
+  handleSaveRef.current = handleSave;
+  handleUpdateRef.current = handleUpdate;
+  handleDeleteRef.current = handleDelete;
+  handlePrintRef.current = handlePrint;
+
   // Duplicate loaded voucher into a fresh new entry (keeps all data, generates new ref)
   const handleDuplicate = async () => {
     if (!user) return;
