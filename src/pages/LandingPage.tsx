@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { Send, MessageCircle, Play, ChevronDown, Sparkles } from "lucide-react";
 import heroImg from "@/assets/landing-hero-erp.jpg";
 import posImg from "@/assets/landing-pos.jpg";
 import aiMobileImg from "@/assets/landing-ai-mobile.jpg";
@@ -14,7 +15,83 @@ import reportsImg from "@/assets/landing-reports.jpg";
  * Type: Cairo (Arabic headings) + DM Sans (Latin numerals).
  * RTL, ILS pricing, Palestinian VAT 16%.
  */
+// ============ Hooks ============
+const useInView = (options?: IntersectionObserverInit) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.15, ...options }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [options]);
+
+  return { ref, isInView };
+};
+
+const useCountUp = (target: number, duration = 2000, suffix = "") => {
+  const { ref, isInView } = useInView();
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [isInView, target, duration]);
+
+  return { ref, count, suffix };
+};
+
+const StatCard = ({ target, suffix, label }: { target: number; suffix: string; label: string }) => {
+  const { ref, count } = useCountUp(target, 2500, suffix);
+  return (
+    <div ref={ref} className="bg-white border border-[#e8ecf1] rounded-2xl p-6 hover:shadow-lg transition-shadow">
+      <div className="text-3xl font-black text-[#3b82f6] font-latin mb-1">{count}{suffix}</div>
+      <div className="text-sm font-bold text-[#0D1B2E]/60">{label}</div>
+    </div>
+  );
+};
+
+const ScrollReveal = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+  const { ref, isInView } = useInView();
+  return (
+    <div
+      ref={ref}
+      className={`${className} transition-all duration-700 ${isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+    >
+      {children}
+    </div>
+  );
+};
+
 const LandingPage = () => {
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
+  const [navBg, setNavBg] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSent, setNewsletterSent] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     document.title = "أموالي | نظام ERP فلسطيني متكامل — محاسبة، POS، موارد بشرية وذكاء اصطناعي";
     const setMeta = (name: string, content: string, attr: "name" | "property" = "name") => {
@@ -36,14 +113,52 @@ const LandingPage = () => {
       "نظام ERP فلسطيني شامل: محاسبة، POS، HR، مخازن، شيكات، ضريبة فلسطينية 16%، ومحاسب AI بالعربي.",
       "property"
     );
+
+    const onScroll = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress((window.scrollY / h) * 100);
+      setNavBg(window.scrollY > 60);
+    };
+    const onMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("mousemove", onMouseMove);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    document.querySelectorAll(".reveal-section").forEach((el) => observer.observe(el));
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", onMouseMove);
+      observer.disconnect();
+    };
   }, []);
 
   return (
     <div
       dir="rtl"
-      className="bg-[#fafbfc] text-[#0D1B2E] overflow-x-hidden selection:bg-[#3b82f6] selection:text-white min-h-screen"
+      className="bg-[#fafbfc] text-[#0D1B2E] overflow-x-hidden selection:bg-[#3b82f6] selection:text-white min-h-screen pb-16 md:pb-0"
       style={{ fontFamily: "'Cairo', sans-serif" }}
     >
+      {/* Scroll Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-1 z-[60]">
+        <div
+          className="h-full bg-[#3b82f6] transition-[width] duration-150 ease-out"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       <style>{`
         .font-latin { font-family: 'DM Sans', sans-serif; }
         .bento-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -51,10 +166,12 @@ const LandingPage = () => {
         .glass-nav { backdrop-filter: blur(12px); border-bottom: 1px solid rgba(232, 236, 241, 0.8); }
         @keyframes ampPulse { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
         .amp-bar { transform-origin: center; animation: ampPulse 1.2s ease-in-out infinite; }
+        .reveal-section { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .reveal-section.visible { opacity: 1; transform: translateY(0); }
       `}</style>
 
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 glass-nav bg-white/70 px-6 py-4">
+      <nav className={`fixed top-0 w-full z-50 px-6 py-4 transition-all duration-300 ${navBg ? "glass-nav bg-white/70 shadow-lg shadow-[#0D1B2E]/5" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
@@ -85,7 +202,16 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero */}
-      <section className="pt-40 pb-20 px-6">
+      <section className="pt-40 pb-20 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #0D1B2E 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div
+          className="pointer-events-none fixed z-0 w-[600px] h-[600px] rounded-full opacity-[0.06] blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)',
+            left: mousePos.x - 300,
+            top: mousePos.y - 300,
+          }}
+        />
         <div className="max-w-7xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 bg-[#e8ecf1] border border-[#d1d7e0] px-3 py-1.5 rounded-full text-xs font-bold mb-8">
             <span className="flex h-2 w-2 rounded-full bg-green-500" />
@@ -114,29 +240,23 @@ const LandingPage = () => {
           </div>
 
           {/* Hero Image */}
-          <div className="relative mb-20 rounded-3xl overflow-hidden shadow-2xl shadow-[#0D1B2E]/10 border border-[#e8ecf1]">
+          <div className="relative mb-20 rounded-3xl overflow-hidden shadow-2xl shadow-[#0D1B2E]/10 border border-[#e8ecf1] group">
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0D1B2E]/20 via-transparent to-transparent z-10 pointer-events-none" />
             <img
               src={heroImg}
               alt="لوحة تحكم نظام ERP أموالي الفلسطيني"
               width={1600}
               height={1024}
-              className="w-full h-auto"
+              className="w-full h-auto transition-transform duration-700 group-hover:scale-[1.02]"
             />
           </div>
 
           {/* Stats Strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            {[
-              { n: "+500", l: "شركة فلسطينية" },
-              { n: "+12", l: "وحدة ERP متكاملة" },
-              { n: "VAT 16%", l: "ضريبة فلسطينية" },
-              { n: "24/7", l: "دعم عربي" },
-            ].map((s) => (
-              <div key={s.l} className="bg-white border border-[#e8ecf1] rounded-2xl p-6">
-                <div className="text-3xl font-black text-[#3b82f6] font-latin mb-1">{s.n}</div>
-                <div className="text-sm font-bold text-[#0D1B2E]/60">{s.l}</div>
-              </div>
-            ))}
+            <StatCard target={500} suffix="+" label="شركة فلسطينية" />
+            <StatCard target={12} suffix="+" label="وحدة ERP متكاملة" />
+            <StatCard target={16} suffix="%" label="ضريبة فلسطينية" />
+            <StatCard target={99} suffix=".9%" label="وقت تشغيل" />
           </div>
 
           {/* Trust Strip */}
@@ -147,11 +267,27 @@ const LandingPage = () => {
             <div className="font-bold">يعمل بدون إنترنت (POS)</div>
             <div className="font-bold">تخزين سحابي مشفّر</div>
           </div>
+
+          {/* Awards & Badges */}
+          <div className="mt-12 flex flex-wrap justify-center items-center gap-6">
+            {[
+              { icon: "🛡️", label: "AES-256 Encryption" },
+              { icon: "📋", label: "IFRS Compliant" },
+              { icon: "🇵🇸", label: "Palestinian Tax Ready" },
+              { icon: "☁️", label: "ISO 27001 Aligned" },
+              { icon: "📱", label: "PWA Certified" },
+            ].map((b) => (
+              <div key={b.label} className="flex items-center gap-2 bg-white border border-[#e8ecf1] rounded-full px-4 py-2 text-xs font-black text-[#0D1B2E]/70">
+                <span>{b.icon}</span>
+                <span className="font-latin">{b.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Palestinian DNA Section */}
-      <section className="py-20 px-6 bg-white">
+      <section className="py-20 px-6 bg-white reveal-section">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -254,7 +390,7 @@ const LandingPage = () => {
       </section>
 
       {/* POS Showcase */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div className="order-2 md:order-1">
             <img src={posImg} alt="نقاط بيع POS أموالي" width={1024} height={1024} loading="lazy" className="w-full rounded-3xl shadow-xl border border-[#e8ecf1]" />
@@ -285,7 +421,7 @@ const LandingPage = () => {
       </section>
 
       {/* Reports Showcase */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
             <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">REPORTS & ANALYTICS</div>
@@ -314,7 +450,7 @@ const LandingPage = () => {
       </section>
 
       {/* Inventory + HR side by side */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-4">إدارة كل تفصيلة بدقّة <span className="font-latin text-[#3b82f6]">ERP</span></h2>
@@ -368,7 +504,7 @@ const LandingPage = () => {
       </section>
 
       {/* Why ERP matters */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-3xl md:text-5xl font-black mb-6">ليش نظام <span className="font-latin text-[#3b82f6]">ERP</span> مش رفاهية؟</h2>
           <p className="text-[#0D1B2E]/60 font-bold text-lg mb-12 max-w-3xl mx-auto leading-relaxed">
@@ -400,7 +536,7 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-4">شركات فلسطينية وثقت فينا</h2>
@@ -424,8 +560,42 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Marquee — Keywords */}
+      <section className="py-10 overflow-hidden bg-[#0D1B2E]">
+        <div className="relative">
+          <style>{`
+            @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+            .marquee-track { display: flex; width: max-content; animation: marquee 30s linear infinite; }
+            .marquee-track:hover { animation-play-state: paused; }
+          `}</style>
+          <div className="marquee-track">
+            {[...Array(2)].flatMap(() =>
+              [
+                "نظام ERP فلسطيني",
+                "ضريبة القيمة المضافة 16%",
+                "محاسبة كاملة",
+                "POS بدون إنترنت",
+                "موارد بشرية + رواتب",
+                "إدارة مخازن + باركود",
+                "شيكات صادرة وواردة",
+                "محاسب AI باللهجة الفلسطينية",
+                "تقارير مالية معتمدة",
+                "ZKTeco K40",
+                "بورتال موظف",
+                "طباعة حرارية",
+              ].map((w, i) => (
+                <span key={i} className="inline-flex items-center gap-2 px-6 py-3 mx-3 bg-white/5 border border-white/10 rounded-full text-white font-bold text-sm whitespace-nowrap">
+                  <Sparkles className="w-4 h-4 text-[#3b82f6]" />
+                  {w}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Integrations */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">INTEGRATIONS</div>
@@ -457,7 +627,7 @@ const LandingPage = () => {
       </section>
 
       {/* Security & Compliance */}
-      <section className="py-24 px-6 bg-[#0D1B2E] text-white">
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-white/10 text-white px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">SECURITY · COMPLIANCE</div>
@@ -486,7 +656,7 @@ const LandingPage = () => {
       </section>
 
       {/* FAQ */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-black mb-4">أسئلة شائعة</h2>
@@ -516,7 +686,7 @@ const LandingPage = () => {
       </section>
 
       {/* Roadmap */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">ROADMAP 2026</div>
@@ -542,8 +712,39 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Latest Updates */}
+      <section className="py-20 px-6 bg-white reveal-section">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">CHANGELOG</div>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">آخر التحديثات</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">نظامنا بيتطور أسبوعياً — هذول آخر 3 تحديثات كبيرة</p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { date: "مايو 2026", tag: "NEW", tagColor: "bg-[#3b82f6]", title: "حسيب AI 2.0 — الآن يدعم أوامر صوتية باللهجة الفلسطينية", desc: "تحديث جوهري للمحاسب الذكي: دعم صوتي كامل، أوامر معقدة متعددة الخطوات، وتعلم من سلوك المستخدم." },
+              { date: "أبريل 2026", tag: "UPDATE", tagColor: "bg-green-500", title: "POS offline mode مع مزامنة تلقائية", desc: "نقاط البيع الآن بتشتغل 100% بدون نت مع مزامنة ذكية لما يرجع الإنترنت — لا فقدان بيانات نهائياً." },
+              { date: "مارس 2026", tag: "FEATURE", tagColor: "bg-purple-500", title: "لوحات تحكم مخصصة (Custom Dashboards)", desc: "اسحب وأفلت أي widget: KPI، تقارير، رسوم بيانية، نصوص — وشاركها مع فريقك فوراً." },
+            ].map((u, i) => (
+              <div key={i} className="flex items-start gap-6 bg-[#fafbfc] border border-[#e8ecf1] rounded-2xl p-6 hover:shadow-lg transition-all">
+                <div className="hidden sm:block w-24 shrink-0">
+                  <div className="text-xs font-bold text-[#0D1B2E]/50 font-latin">{u.date}</div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`${u.tagColor} text-white text-[10px] font-black px-2 py-0.5 rounded-full font-latin`}>{u.tag}</span>
+                    <h3 className="font-black text-[#0D1B2E]">{u.title}</h3>
+                  </div>
+                  <p className="text-sm font-bold text-[#0D1B2E]/60">{u.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How it Works — 4 steps */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">HOW IT WORKS</div>
@@ -573,7 +774,7 @@ const LandingPage = () => {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-black mb-4">ليش <span className="text-[#3b82f6]">أموالي</span> مش مثل الباقي؟</h2>
@@ -611,7 +812,7 @@ const LandingPage = () => {
 
       {/* Pricing */}
       {/* Numbers in Production */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-2 rounded-full bg-[#3b82f6]/10 text-[#3b82f6] font-black text-xs mb-4 font-latin tracking-wider">
@@ -644,7 +845,7 @@ const LandingPage = () => {
       </section>
 
       {/* Role-based use cases */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-2 rounded-full bg-[#3b82f6]/10 text-[#3b82f6] font-black text-xs mb-4 font-latin tracking-wider">
@@ -708,7 +909,7 @@ const LandingPage = () => {
       </section>
 
       {/* Migration Guarantee */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-6xl mx-auto">
           <div className="rounded-3xl bg-gradient-to-br from-[#0D1B2E] to-[#1e3a5f] p-10 md:p-16 text-white relative overflow-hidden">
             <div className="absolute top-0 left-0 w-96 h-96 bg-[#3b82f6]/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -750,6 +951,43 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Video Demo */}
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">DEMO</div>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">شوف النظام بعيونك</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">جولة 90 ثانية توريك كل وحدة من وحدات الـ ERP</p>
+          </div>
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-[#0D1B2E]/10 border border-[#e8ecf1] aspect-video bg-gradient-to-br from-[#0D1B2E] to-[#1e3a5f] flex items-center justify-center group cursor-pointer" onClick={() => setShowVideo(true)}>
+            {!showVideo && (
+              <>
+                <div className="absolute inset-0 bg-[#0D1B2E]/40 group-hover:bg-[#0D1B2E]/30 transition-all" />
+                <div className="relative z-10 text-center">
+                  <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <Play className="w-8 h-8 text-white fill-white" />
+                  </div>
+                  <p className="text-white font-black text-lg">شغّل الفيديو التوضيحي</p>
+                  <p className="text-white/60 text-sm font-bold mt-2">90 ثانية · بدون تسجيل</p>
+                </div>
+              </>
+            )}
+            {showVideo && (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-white p-8">
+                  <Sparkles className="w-12 h-12 text-[#3b82f6] mx-auto mb-4" />
+                  <p className="font-black text-xl mb-2">الفيديو التوضيحي قريباً</p>
+                  <p className="text-white/60 font-bold">فريقنا الفلسطيني يجهزلك جولة كاملة بالعربي</p>
+                  <button onClick={(e) => { e.stopPropagation(); setShowVideo(false); }} className="mt-6 bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-xl font-black transition-all">
+                    إغلاق
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="py-24 px-6 bg-[#0D1B2E] text-white rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto">
@@ -782,7 +1020,7 @@ const LandingPage = () => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-6 bg-[#0D1B2E] text-white">
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
             جاهز تنقل شركتك لمستوى <span className="font-latin text-[#3b82f6]">ERP</span> احترافي؟
@@ -794,6 +1032,43 @@ const LandingPage = () => {
           >
             انضم إلى أموالي اليوم
           </Link>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="py-20 px-6 bg-white border-t border-[#e8ecf1]">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">STAY INFORMED</div>
+          <h2 className="text-3xl md:text-4xl font-black mb-4">اشترك بالنشرة البريدية</h2>
+          <p className="text-[#0D1B2E]/60 font-bold mb-8">أهم تحديثات الـ ERP، نصائح محاسبية، وإعلانات الميزات الجديدة — مرة بالشهر بالعربي.</p>
+          {!newsletterSent ? (
+            <form
+              onSubmit={(e) => { e.preventDefault(); if (newsletterEmail.includes("@")) setNewsletterSent(true); }}
+              className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+            >
+              <input
+                type="email"
+                required
+                placeholder="بريدك الإلكتروني"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                className="flex-1 px-5 py-3.5 rounded-xl border border-[#e8ecf1] bg-[#fafbfc] text-[#0D1B2E] font-bold placeholder:text-[#0D1B2E]/40 focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 transition-all"
+              />
+              <button
+                type="submit"
+                className="bg-[#0D1B2E] text-white px-6 py-3.5 rounded-xl font-black hover:bg-[#1a2e46] transition-all flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                اشترك
+              </button>
+            </form>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl mb-2">✓</div>
+              <p className="font-black text-green-800">تم الاشتراك بنجاح!</p>
+              <p className="text-green-700 font-bold text-sm mt-1">شيك على بريدك لتأكيد الاشتراك</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -827,6 +1102,28 @@ const LandingPage = () => {
           جرّب أموالي ERP مجاناً ←
         </Link>
       </div>
+
+      {/* Floating WhatsApp */}
+      <a
+        href="https://wa.me/970599123456?text=مرحبا،%20أنا%20مهتم%20بنظام%20أموالي%20ERP"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-24 md:bottom-8 left-6 z-50 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-green-500/30 hover:scale-110 transition-transform"
+        aria-label="تواصل عبر واتساب"
+      >
+        <MessageCircle className="w-7 h-7" />
+      </a>
+
+      {/* Back to Top */}
+      {scrollProgress > 10 && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-8 right-6 z-50 bg-[#0D1B2E] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-2xl shadow-[#0D1B2E]/30 hover:scale-110 transition-transform"
+          aria-label="العودة لأعلى الصفحة"
+        >
+          <ChevronDown className="w-5 h-5 rotate-180" />
+        </button>
+      )}
     </div>
   );
 };
