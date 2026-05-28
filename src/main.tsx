@@ -10,6 +10,10 @@ import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/700.css";
 import "./lib/excel-export"; // Activates Excel branding interceptor globally
 import { hydrateConfigFromBridge } from "./lib/device-config";
+import { captureRefFromUrl } from "./lib/referralCapture";
+
+// Capture ?ref=CODE from URL into localStorage for referral attribution
+captureRefFromUrl();
 
 // Force Western Arabic numerals (123) globally instead of Eastern (١٢٣)
 const origNumberToLocaleString = Number.prototype.toLocaleString;
