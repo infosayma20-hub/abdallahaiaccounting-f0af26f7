@@ -247,11 +247,11 @@ const JournalNewPage = () => {
         if (currData?.id) {
           const { data: rateRows } = await supabase
             .from("exchange_rates")
-            .select("rate")
+            .select("mid_rate")
             .eq("currency_id", currData.id)
-            .order("effective_date", { ascending: false })
+            .order("rate_date", { ascending: false })
             .limit(1);
-          const rate = rateRows?.[0]?.rate;
+          const rate = rateRows?.[0]?.mid_rate;
           if (!cancelled && rate) {
             setFormExchangeRate(Number(rate));
             return;
