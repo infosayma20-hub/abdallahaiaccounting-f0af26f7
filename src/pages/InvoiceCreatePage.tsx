@@ -1987,6 +1987,11 @@ const InvoiceCreatePage = () => {
         </div>
       )}
 
+      {/* View-mode lock: disable every form control inside the main form
+          when isReadOnly. Uses <fieldset disabled> which natively disables
+          all descendant inputs/buttons/selects without per-field plumbing.
+          `contents` class keeps the grid layout intact. */}
+      <fieldset disabled={isReadOnly} className="contents">
       {/* ═══════════════════════════════════════════════════════════════
           PROFESSIONAL ACCOUNTING-GRADE LAYOUT — 12-column grid (RTL)
           ───────────────────────────────────────────────────────────────
