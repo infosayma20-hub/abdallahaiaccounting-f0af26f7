@@ -494,6 +494,40 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Marquee — Keywords */}
+      <section className="py-10 overflow-hidden bg-[#0D1B2E]">
+        <div className="relative">
+          <style>{`
+            @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+            .marquee-track { display: flex; width: max-content; animation: marquee 30s linear infinite; }
+            .marquee-track:hover { animation-play-state: paused; }
+          `}</style>
+          <div className="marquee-track">
+            {[...Array(2)].flatMap(() =>
+              [
+                "نظام ERP فلسطيني",
+                "ضريبة القيمة المضافة 16%",
+                "محاسبة كاملة",
+                "POS بدون إنترنت",
+                "موارد بشرية + رواتب",
+                "إدارة مخازن + باركود",
+                "شيكات صادرة وواردة",
+                "محاسب AI باللهجة الفلسطينية",
+                "تقارير مالية معتمدة",
+                "ZKTeco K40",
+                "بورتال موظف",
+                "طباعة حرارية",
+              ].map((w, i) => (
+                <span key={i} className="inline-flex items-center gap-2 px-6 py-3 mx-3 bg-white/5 border border-white/10 rounded-full text-white font-bold text-sm whitespace-nowrap">
+                  <Sparkles className="w-4 h-4 text-[#3b82f6]" />
+                  {w}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Integrations */}
       <section className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
