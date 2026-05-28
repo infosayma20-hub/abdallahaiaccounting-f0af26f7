@@ -8,10 +8,8 @@ if (!EMAIL || !PASSWORD) {
 }
 
 /**
- * Phase 1 (Receipt) — Smoke test for ReceiptNewPage FinanceShell wrap.
- * Verifies the page renders inside FinanceShell with the expected
- * ActionPane buttons + cost-center + currency testids.
- * No writes performed.
+ * Phase 2 (Payment) — Smoke test for VoucherFormPage(voucherType="payment")
+ * inside FinanceShell. Mirrors receipt smoke; no writes.
  */
 
 async function login(page: Page) {
@@ -26,24 +24,19 @@ async function login(page: Page) {
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("Receipt — FinanceShell smoke (Phase 1)", () => {
+test.describe("Payment — FinanceShell smoke (Phase 2)", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
 
-  test("new receipt: FinanceShell + ActionPane action buttons exist", async ({ page }) => {
-    await page.goto("/finance/receipt/new", { waitUntil: "domcontentloaded" });
+  test("new payment: FinanceShell + ActionPane action buttons exist", async ({ page }) => {
+    await page.goto("/finance/payment/new", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    // RTL
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-
-    // Breadcrumb / title rendered by FinanceShell
-    await expect(page.locator("body")).toContainText(/سند قبض جديد/);
+    await expect(page.locator("body")).toContainText(/سند صرف جديد/);
     await expect(page.locator("body")).toContainText(/المالية/);
 
-    // Required action buttons (new mode) — testids are stable across tab labels.
-    // Wait for at least one to appear (FinanceShell mounts after auth/cloud bootstrap).
     await expect(page.locator('[data-testid="action-new"]')).toBeVisible({ timeout: 20_000 });
     const expectedNew = [
       "action-new",
@@ -60,81 +53,68 @@ test.describe("Receipt — FinanceShell smoke (Phase 1)", () => {
       await expect(page.locator(`[data-testid="${tid}"]`), `missing ${tid}`).toBeVisible();
     }
 
-    // Dimensions section is collapsed by default; toggle is visible,
-    // cost-center field is attached but hidden until expanded.
-    await expect(page.locator('[data-testid="receipt-dimensions-toggle"]')).toBeVisible();
-    await expect(page.locator('[data-testid="receipt-cost-center"]')).toBeAttached();
-    await expect(page.locator('[data-testid="receipt-currency"]')).toBeVisible();
+    await expect(page.locator('[data-testid="payment-dimensions-toggle"]')).toBeVisible();
+    await expect(page.locator('[data-testid="payment-cost-center"]')).toBeAttached();
+    await expect(page.locator('[data-testid="payment-currency"]')).toBeVisible();
 
-    // Expand and confirm cost-center becomes visible.
-    await page.locator('[data-testid="receipt-dimensions-toggle"]').click();
-    await expect(page.locator('[data-testid="receipt-cost-center"]')).toBeVisible();
+    await page.locator('[data-testid="payment-dimensions-toggle"]').click();
+    await expect(page.locator('[data-testid="payment-cost-center"]')).toBeVisible();
 
-    // Voucher number field is always visible (read-only)
-    await expect(page.locator('[data-testid="receipt-voucher-number"]')).toBeVisible();
+    await expect(page.locator('[data-testid="payment-voucher-number"]')).toBeVisible();
   });
 
-  test("duplicate flow: voucher number field shows a new RCV- number distinct from original", async ({ page }) => {
-    // Open the most recent receipt via list
-    await page.goto("/finance/receipts", { waitUntil: "domcontentloaded" });
+  test("duplicate flow: payment number field shows a new number distinct from original", async ({ page }) => {
+    await page.goto("/finance/payments", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
-    const firstLink = page.locator('a[href*="/finance/receipt/"][href*="/edit"]').first();
+    const firstLink = page.locator('a[href*="/finance/payment/"][href*="/edit"]').first();
     if (!(await firstLink.isVisible().catch(() => false))) {
-      test.skip(true, "feature missing: no existing receipts to duplicate");
+      test.skip(true, "feature missing: no existing payments to duplicate");
       return;
     }
     await Promise.all([
-      page.waitForURL(/\/finance\/receipt\/.+\/edit/, { timeout: 20_000 }),
+      page.waitForURL(/\/finance\/payment\/.+\/edit/, { timeout: 20_000 }),
       firstLink.click(),
     ]);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    const numberField = page.locator('[data-testid="receipt-voucher-number"]');
+    const numberField = page.locator('[data-testid="payment-voucher-number"]');
     await expect(numberField).toBeVisible({ timeout: 20_000 });
     const originalNumber = (await numberField.inputValue()).trim();
-    expect(originalNumber).toMatch(/^RCV-/);
+    expect(originalNumber.length).toBeGreaterThan(0);
 
-    // Click duplicate via ActionPane
     await page.locator('[data-testid="action-duplicate"]').click();
-    await page.waitForURL(/\/finance\/receipt\/new/, { timeout: 20_000 });
+    await page.waitForURL(/\/finance\/payment\/new/, { timeout: 20_000 });
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    // After duplicate (new mode) — field is visible but empty until save.
-    // Verify the field exists; the visible "current" RCV chip in the side card
-    // should also reflect the next number once issued.
     await expect(numberField).toBeVisible();
     const afterDuplicate = (await numberField.inputValue()).trim();
     expect(afterDuplicate).not.toBe(originalNumber);
   });
 
-  test("receipts list opens — used to pick latest receipt id for edit smoke", async ({ page }) => {
-    await page.goto("/finance/receipts", { waitUntil: "domcontentloaded" });
+  test("payments list opens", async ({ page }) => {
+    await page.goto("/finance/payments", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await expect(page.locator("body")).toContainText(/سندات القبض|قبض/);
+    await expect(page.locator("body")).toContainText(/سندات الصرف|صرف/);
   });
 
-  test("edit receipt (first row): FinanceShell shows edit/update/delete/duplicate", async ({ page }) => {
-    // Best-effort: navigate to receipts list and click first row's edit affordance.
-    await page.goto("/finance/receipts", { waitUntil: "domcontentloaded" });
+  test("edit payment (first row): FinanceShell shows edit/update/delete/duplicate", async ({ page }) => {
+    await page.goto("/finance/payments", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    // Try to open the first receipt — feature missing if none exists.
-    const firstLink = page.locator('a[href*="/finance/receipt/"][href*="/edit"]').first();
+    const firstLink = page.locator('a[href*="/finance/payment/"][href*="/edit"]').first();
     if (!(await firstLink.isVisible().catch(() => false))) {
-      test.skip(true, "feature missing: no existing receipts to edit");
+      test.skip(true, "feature missing: no existing payments to edit");
       return;
     }
     await Promise.all([
-      page.waitForURL(/\/finance\/receipt\/.+\/edit/, { timeout: 20_000 }),
+      page.waitForURL(/\/finance\/payment\/.+\/edit/, { timeout: 20_000 }),
       firstLink.click(),
     ]);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    // View-mode banner
-    await expect(page.locator('[data-testid="receipt-view-banner"]')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('[data-testid="payment-view-banner"]')).toBeVisible({ timeout: 20_000 });
 
-    // Edit-mode action buttons
     const expectedEdit = [
       "action-new",
       "action-duplicate",
