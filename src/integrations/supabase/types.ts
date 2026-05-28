@@ -12462,6 +12462,69 @@ export type Database = {
           },
         ]
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          qualified_at: string | null
+          referred_email: string | null
+          referred_user_id: string | null
+          referrer_user_id: string
+          reward_days: number
+          reward_granted: boolean
+          rewarded_at: string | null
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          qualified_at?: string | null
+          referred_email?: string | null
+          referred_user_id?: string | null
+          referrer_user_id: string
+          reward_days?: number
+          reward_granted?: boolean
+          rewarded_at?: string | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          qualified_at?: string | null
+          referred_email?: string | null
+          referred_user_id?: string | null
+          referrer_user_id?: string
+          reward_days?: number
+          reward_granted?: boolean
+          rewarded_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       report_folders: {
         Row: {
           color: string | null
@@ -13484,6 +13547,7 @@ export type Database = {
           agreement_type: string | null
           auto_renew: boolean | null
           billing_cycle: string
+          bonus_days: number
           cancelled_at: string | null
           company_id: string | null
           created_at: string
@@ -13506,6 +13570,7 @@ export type Database = {
           agreement_type?: string | null
           auto_renew?: boolean | null
           billing_cycle?: string
+          bonus_days?: number
           cancelled_at?: string | null
           company_id?: string | null
           created_at?: string
@@ -13528,6 +13593,7 @@ export type Database = {
           agreement_type?: string | null
           auto_renew?: boolean | null
           billing_cycle?: string
+          bonus_days?: number
           cancelled_at?: string | null
           company_id?: string | null
           created_at?: string
@@ -17331,6 +17397,7 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_referral_signup: { Args: { p_code: string }; Returns: undefined }
       approve_procurement_request: {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
@@ -17882,6 +17949,7 @@ export type Database = {
           was_created: boolean
         }[]
       }
+      generate_referral_code: { Args: never; Returns: string }
       generate_return_number: {
         Args: {
           _return_type: Database["public"]["Enums"]["return_type_enum"]
