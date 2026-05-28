@@ -304,8 +304,10 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const SmartRedirect = () => {
-  const { targetPath, checking } = useRoleRedirect();
+  const { targetPath, checking, user } = useRoleRedirect();
   if (checking) return <AuthCheckSpinner />;
+  // Logged-out visitors → public marketing landing page.
+  if (!user) return <LandingPage />;
   return <Navigate to={targetPath || "/apps"} replace />;
 };
 
