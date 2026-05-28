@@ -338,6 +338,9 @@ export function useSaveJournalVoucher() {
       );
 
       const totalDebit = validLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+      const masterCode = input.currency_code || "ILS";
+      const masterRate = masterCode === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
+      const totalDebitIls = totalDebit * masterRate;
 
       // ── (2) رقم السند ──
       const refNumber = input.ref_number?.trim() || (await generateRefNumber(user.id));
@@ -360,7 +363,7 @@ export function useSaveJournalVoucher() {
           contact_id: input.contact_id || null,
           cost_center_id: input.cost_center_id || null,
           amount: totalDebit,
-          amount_ils: totalDebit,
+          amount_ils: totalDebitIls,
           description: input.description.trim(),
           notes: input.notes || null,
           status: initialStatus,
