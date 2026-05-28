@@ -574,6 +574,8 @@ export function useSaveJournalVoucher() {
           cost_center_id: input.cost_center_id || null,
           amount: totalDebit,
           amount_ils: totalDebitIlsU,
+          currency: masterCodeU,
+          exchange_rate: masterRateU,
           description: input.description.trim(),
           notes: input.notes || null,
           status: intermediateStatusU,
