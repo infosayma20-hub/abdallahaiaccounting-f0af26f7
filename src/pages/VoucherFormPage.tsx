@@ -177,6 +177,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [prefillConsumed, setPrefillConsumed] = useState(false);
 
   const isReceipt = voucherType === "receipt";
+  const isPayment = voucherType === "payment";
+  /** Phase 1/2: both receipt & payment now use the FinanceShell + ActionPane. */
+  const useFinanceShell = isReceipt || isPayment;
   const pageTitle = isEditMode 
     ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف")
     : (isReceipt ? "سند قبض جديد" : "سند صرف جديد");
