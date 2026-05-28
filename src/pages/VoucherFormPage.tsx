@@ -3413,20 +3413,23 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     </SmartFormScope>
   );
 
-  if (isReceipt) {
+  if (useFinanceShell) {
+    const listLabel = isReceipt ? "سندات القبض" : "سندات الصرف";
+    const listHref = isReceipt ? "/finance/receipts" : "/finance/payments";
+    const bannerTestId = isReceipt ? "receipt-view-banner" : "payment-view-banner";
     return (
       <FinanceShell
         title={pageTitle}
         subtitle={pageDesc}
         breadcrumb={[
           { label: "المالية", href: "/accounting-center" },
-          { label: "سندات القبض", href: "/finance/receipts" },
+          { label: listLabel, href: listHref },
           { label: pageTitle },
         ]}
-        actionTabs={receiptActionTabs}
+        actionTabs={voucherActionTabs}
       >
         {isEditMode && (
-          <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`} data-testid="receipt-view-banner">
+          <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`} data-testid={bannerTestId}>
             <div className="flex items-center gap-2 text-xs font-semibold">
               {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
               <span>
