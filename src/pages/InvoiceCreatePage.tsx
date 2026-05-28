@@ -1861,6 +1861,8 @@ const InvoiceCreatePage = () => {
       { key: "print",   label: "طباعة",  icon: Printer, onClick: () => handlePrintRef.current?.(false) },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentInvoice("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft,  onClick: () => goToAdjacentInvoice("next") },
       { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/invoices") },
       { key: "center",  label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
     ]};
