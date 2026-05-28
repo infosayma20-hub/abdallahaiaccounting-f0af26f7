@@ -17923,6 +17923,7 @@ export type Database = {
       }
       get_rep_warehouse_id: { Args: never; Returns: string }
       get_team_owner_id: { Args: { _user_id: string }; Returns: string }
+      get_tenant_company_logo: { Args: never; Returns: string }
       has_feature_permission: {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: boolean
