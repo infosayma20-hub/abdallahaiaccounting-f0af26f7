@@ -1621,6 +1621,10 @@ const InvoiceCreatePage = () => {
     }
   };
 
+  // Keep ref pointed to latest handleCreate so memoized ActionPane tabs
+  // always invoke the fresh closure (otherwise validation reads stale state).
+  handleCreateRef.current = handleCreate;
+
   // ─── Print Preview ───
   const buildPrintInvoice = () => ({
     type: form.type,
