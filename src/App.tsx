@@ -340,6 +340,7 @@ const App = () => (
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
+              <Route path="/landing" element={<LandingPage />} />
               <Route path="/share" element={<ShareQRPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
