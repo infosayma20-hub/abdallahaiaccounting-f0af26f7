@@ -35,6 +35,8 @@ import useFocusHighlight from "@/hooks/useFocusHighlight";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
 interface Contact {
   id: string;
   contact_name: string;
@@ -145,6 +147,22 @@ const InvoicesPage = () => {
   const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Column visibility (localStorage per page)
+  const invoiceColumnDefs: ColumnDef[] = useMemo(() => ([
+    { key: "date", label: "التاريخ" },
+    { key: "contact", label: "العميل/المورد" },
+    { key: "invoiceNumber", label: "الرقم", required: true },
+    { key: "type", label: "النوع" },
+    { key: "status", label: "الحالة" },
+    { key: "paymentMethod", label: "الدفع" },
+    { key: "notes", label: "الملاحظات", defaultVisible: false },
+    { key: "total", label: "الإجمالي", required: true },
+    { key: "remaining", label: "المتبقي" },
+    { key: "actions", label: "إجراءات", required: true },
+  ]), []);
+  const invoiceColState = useColumnVisibility("invoices-page", invoiceColumnDefs);
+  const show = invoiceColState.isVisible;
 
   // Advanced filters
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -928,7 +946,16 @@ const InvoicesPage = () => {
 
   const filtered = invoices.filter(inv => {
     if (filterType !== "all" && inv.type !== filterType) return false;
-    if (searchQuery && !inv.contactName.includes(searchQuery) && !inv.invoiceNumber.includes(searchQuery)) return false;
+    if (searchQuery) {
+      const q = searchQuery.trim().toLowerCase();
+      const haystack = [
+        inv.contactName,
+        inv.invoiceNumber,
+        inv.notes,
+        ...(Array.isArray(inv.items) ? inv.items.map((it: any) => it.description) : []),
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     if (dateFrom && inv.date < dateFrom) return false;
     if (dateTo && inv.date > dateTo) return false;
     if (amountMin && inv.total < Number(amountMin)) return false;
@@ -1209,6 +1236,7 @@ const InvoicesPage = () => {
               <Table2 className="h-4 w-4" />
             </button>
           </div>
+          {viewMode === "table" && <ColumnVisibilityMenu state={invoiceColState} />}
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="export" disableInsteadOfHide>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={sorted.length === 0}>
               <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
@@ -1367,15 +1395,16 @@ const InvoicesPage = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="text-right"><SortHeader label="التاريخ" field="date" /></TableHead>
-                  <TableHead className="text-right"><SortHeader label="العميل/المورد" field="contact" /></TableHead>
-                  <TableHead className="text-right">الرقم</TableHead>
-                  <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>
-                  <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>
-                  <TableHead className="text-right">الدفع</TableHead>
-                  <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>
-                  <TableHead className="text-right">المتبقي</TableHead>
-                  <TableHead className="text-right">أفعال</TableHead>
+                  {show("date") && <TableHead className="text-right"><SortHeader label="التاريخ" field="date" /></TableHead>}
+                  {show("contact") && <TableHead className="text-right"><SortHeader label="العميل/المورد" field="contact" /></TableHead>}
+                  {show("invoiceNumber") && <TableHead className="text-right">الرقم</TableHead>}
+                  {show("type") && <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>}
+                  {show("status") && <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>}
+                  {show("paymentMethod") && <TableHead className="text-right">الدفع</TableHead>}
+                  {show("notes") && <TableHead className="text-right">الملاحظات</TableHead>}
+                  {show("total") && <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>}
+                  {show("remaining") && <TableHead className="text-right">المتبقي</TableHead>}
+                  {show("actions") && <TableHead className="text-right">أفعال</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1389,30 +1418,31 @@ const InvoicesPage = () => {
                       className={`hover:bg-muted/20 cursor-pointer transition-all duration-500 ${isFocused ? "bg-primary/10 ring-2 ring-primary/60" : ""}`}
                       onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}
                     >
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
-                      <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground font-mono">{inv.invoiceNumber}</TableCell>
-                      <TableCell>
+                      {show("date") && <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>}
+                      {show("contact") && <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>}
+                      {show("invoiceNumber") && <TableCell className="text-xs text-muted-foreground font-mono">{inv.invoiceNumber}</TableCell>}
+                      {show("type") && <TableCell>
                         <Badge variant="secondary" className={`text-[10px] ${
                           inv.type === "sales" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
                         }`}>
                           {inv.type === "sales" ? "مبيعات" : "مشتريات"}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
+                      </TableCell>}
+                      {show("status") && <TableCell>
                         <Badge variant="secondary" className={`text-[10px] ${st.color}`}>{st.label}</Badge>
                         {inv.status !== 'cancelled' && (
                           <Badge variant="secondary" className={`text-[10px] mr-1 ${paymentStatusConfig[inv.paymentStatus]?.color || ''}`}>
                             {paymentStatusConfig[inv.paymentStatus]?.label}
                           </Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>
-                      <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
-                      <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                      </TableCell>}
+                      {show("paymentMethod") && <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>}
+                      {show("notes") && <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={inv.notes || ""}>{inv.notes || "—"}</TableCell>}
+                      {show("total") && <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>}
+                      {show("remaining") && <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
-                      </TableCell>
-                      <TableCell onClick={e => e.stopPropagation()}>
+                      </TableCell>}
+                      {show("actions") && <TableCell onClick={e => e.stopPropagation()}>
                         <div className="flex gap-0.5 items-center">
                           <Tooltip><TooltipTrigger asChild>
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
@@ -1474,22 +1504,22 @@ const InvoicesPage = () => {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </TableCell>
+                      </TableCell>}
                     </TableRow>
                   );
                 })}
               </TableBody>
               <TableFooter>
                 <TableRow className="bg-muted/40 font-semibold">
-                  <TableCell colSpan={6} className="text-right text-xs">
+                  <TableCell colSpan={["date","contact","invoiceNumber","type","status","paymentMethod","notes"].filter(k => show(k)).length} className="text-right text-xs">
                     الإجمالي ({totalsAll.financialCount.toLocaleString()} فاتورة
                     {totalsAll.cancelledCount > 0 && !totalsAll.onlyCancelled ? ` • ${totalsAll.cancelledCount} ملغاة مستبعدة` : ""})
                   </TableCell>
-                  <TableCell className="tabular-nums text-sm font-bold">₪{fmtNum(totalsAll.total)}</TableCell>
-                  <TableCell className={`tabular-nums text-sm font-bold ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {show("total") && <TableCell className="tabular-nums text-sm font-bold">₪{fmtNum(totalsAll.total)}</TableCell>}
+                  {show("remaining") && <TableCell className={`tabular-nums text-sm font-bold ${totalsAll.remaining > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                     ₪{fmtNum(totalsAll.remaining)}
-                  </TableCell>
-                  <TableCell />
+                  </TableCell>}
+                  {show("actions") && <TableCell />}
                 </TableRow>
               </TableFooter>
             </Table>
