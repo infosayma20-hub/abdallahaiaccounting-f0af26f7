@@ -1226,6 +1226,125 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ROI Calculator */}
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">ROI · العائد على الاستثمار</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">شو رح توفّر شركتك مع أموالي <span className="font-latin text-[#3b82f6]">ERP</span>؟</h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg max-w-2xl mx-auto">أرقام واقعية من شركات فلسطينية حقيقية بعد سنة من الاستخدام.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              { metric: "70%", label: "توفير بوقت إصدار الفواتير", detail: "بدل 8 دقائق للفاتورة، صار دقيقتين" },
+              { metric: "₪18,000", label: "متوسط توفير سنوي بالموظفين", detail: "موظف محاسبة واحد بمحل اثنين" },
+              { metric: "35%", label: "زيادة بنسبة التحصيل", detail: "تنبيهات ذمم + كشف حساب WhatsApp" },
+              { metric: "0", label: "أخطاء بالضريبة 16%", detail: "حساب تلقائي + تقارير جاهزة للوزارة" },
+              { metric: "92%", label: "تقليل بأخطاء المخزون", detail: "باركود + جرد لحظي + تنبيهات نقص" },
+              { metric: "24h", label: "أقصى وقت لاسترجاع أي بيان", detail: "نسخ احتياطي يومي + Audit Log" },
+            ].map((it) => (
+              <div key={it.label} className="bg-white border border-[#e8ecf1] rounded-2xl p-6 flex items-center gap-5 hover:border-[#3b82f6] hover:shadow-lg transition-all">
+                <div className="text-3xl md:text-4xl font-black font-latin text-[#3b82f6] shrink-0 min-w-[100px]">{it.metric}</div>
+                <div>
+                  <div className="font-black text-[#0D1B2E] mb-1">{it.label}</div>
+                  <div className="text-xs text-[#0D1B2E]/60 font-bold leading-relaxed">{it.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Palestinian Pride */}
+      <section className="py-24 px-6 bg-white reveal-section overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">MADE IN PALESTINE 🇵🇸</div>
+              <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
+                صُمّم في <span className="text-[#3b82f6]">فلسطين</span>،
+                <br />لأصحاب الشركات <span className="text-[#3b82f6]">الفلسطينيين</span>
+              </h2>
+              <p className="text-[#0D1B2E]/70 font-bold text-lg leading-relaxed mb-6">
+                أموالي <span className="font-latin text-[#3b82f6]">ERP</span> مش ترجمة لبرنامج أجنبي، ومش نسخة معدّلة من نظام عربي. هاد نظام مبني من الصفر بأيدي مهندسين فلسطينيين، لحل مشاكل السوق الفلسطيني الفريدة.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "فهم عميق للتعقيدات الضريبية الفلسطينية (16% ضريبة شاملة/مضافة)",
+                  "دعم كامل للشيكل، الدولار، الدينار الأردني، واليورو بنفس الفاتورة",
+                  "ربط مع البنوك الفلسطينية وشركات الدفع المحلية",
+                  "دعم فني فلسطيني بيفهم لهجتك ومشاكلك — مش مركز اتصالات هندي",
+                  "تحديثات مجانية ومستمرة على مدار السنة بدون رسوم إضافية",
+                  "أسعار بالشيكل تناسب الشركات الصغيرة والمتوسطة الفلسطينية",
+                ].map((it) => (
+                  <li key={it} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#3b82f6]/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-[#3b82f6]" />
+                    </div>
+                    <span className="text-[#0D1B2E] font-bold leading-relaxed">{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="relative">
+              <div className="aspect-square rounded-[3rem] bg-gradient-to-br from-[#0D1B2E] via-[#1a2e46] to-[#3b82f6] p-1 shadow-2xl shadow-blue-500/20">
+                <div className="w-full h-full rounded-[3rem] bg-[#0D1B2E] flex flex-col items-center justify-center text-white p-12 relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,_white_1px,_transparent_1px)] [background-size:20px_20px]" />
+                  <div className="text-[120px] mb-4 relative">🇵🇸</div>
+                  <div className="text-4xl font-black mb-3 relative text-center">من القدس للعالم</div>
+                  <div className="text-white/60 font-bold text-center relative">تقنية فلسطينية بمستوى عالمي</div>
+                  <div className="mt-8 grid grid-cols-3 gap-4 w-full relative">
+                    {[{n:"100%",l:"فلسطيني"},{n:"24/7",l:"دعم محلي"},{n:"∞",l:"تحديثات"}].map(s=>(
+                      <div key={s.l} className="text-center">
+                        <div className="text-2xl font-black font-latin text-[#3b82f6]">{s.n}</div>
+                        <div className="text-[10px] text-white/60 font-bold mt-1">{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Module Deep Dives */}
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">MODULE DEEP DIVE</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">كل وحدة من أموالي <span className="font-latin text-[#3b82f6]">ERP</span> = برنامج كامل لحاله</h2>
+            <p className="text-white/60 font-bold text-lg max-w-2xl mx-auto">شو يلي بميّز كل وحدة عن البرامج المنافسة.</p>
+          </div>
+          <div className="space-y-6">
+            {[
+              { tag: "01 · POS", title: "نقطة بيع بمستوى عالمي", points: ["يشتغل أوفلاين 100% ويتزامن لمّا يرجع النت","إدارة ورديات وكاشيرين بصلاحيات مختلفة","ربط مع طابعات حرارية متعددة (إيصال + مطبخ)","دعم باركود، موازين، وقارئ بطاقات","مرتجعات متعددة العملات بكشف نهاية الوردية","تكامل مع شركات التوصيل (قمر + ملكي)"] },
+              { tag: "02 · ACCOUNTING", title: "محاسبة بمعايير IFRS الدولية", points: ["شجرة حسابات متكاملة (22 حساب أساسي محمي)","قيد عكسي IFRS بدل الحذف للحفاظ على Audit","إقفال فترات مالية بحماية على مستوى DB","تقارير: ميزان مراجعة، قوائم دخل، ميزانية، تدفقات","إدارة الشيكات (واردة، صادرة، تظهير، تحت التحصيل)","إدارة أصول ثابتة مع جدول إهلاك تلقائي"] },
+              { tag: "03 · INVENTORY", title: "مخزون لحظي بدقّة مطلقة", points: ["تتبّع لحظي للكميات بكل فرع/مستودع","دعم Batch / Serial / Expiry للأدوية والأطعمة","BOM (قائمة مكوّنات) للمصانع والمطاعم","جرد دوري بأجهزة باركود محمولة","تنبيهات نقص ذكية حسب معدّل البيع","تكاليف موزّونة، فيفو، ليفو حسب اختيارك"] },
+              { tag: "04 · HR & PAYROLL", title: "موارد بشرية كاملة", points: ["محرّك رواتب بـ 5 مصادر بيانات","ربط مع أجهزة بصمة ZKTeco K40","نظام إجازات وغياب بطلبات إلكترونية","قفل يومي للحضور بصلاحيات صارمة","Employee Portal للموظفين على جوّالاتهم","رسائل وإجراءات تأديبية مع توقيع إلكتروني"] },
+              { tag: "05 · AI · حسيب", title: "ذكاء اصطناعي بلهجة فلسطينية", points: ["تسجيل قيود محاسبية بالصوت أو الكتابة","يفهم 'سجّلّي 500 شيكل من أبو محمد' ويعمل سند قبض","ينشئ عملاء وموردين تلقائياً عند الحاجة","يعدّل الفواتير القديمة بأوامر صوتية","يجاوب على أسئلة محاسبية معقّدة","يدعم تسجيل عدة معاملات بنفس الأمر"] },
+            ].map((m) => (
+              <div key={m.tag} className="group bg-white/5 border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-[#3b82f6]/50 transition-all">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  <div className="lg:col-span-1">
+                    <div className="text-xs font-black text-[#3b82f6] mb-2 font-latin tracking-widest">{m.tag}</div>
+                    <h3 className="text-2xl font-black leading-tight">{m.title}</h3>
+                  </div>
+                  <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {m.points.map((p) => (
+                      <div key={p} className="flex items-start gap-3 text-sm">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] mt-2 shrink-0" />
+                        <span className="text-white/80 font-bold leading-relaxed">{p}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
         <div className="max-w-4xl mx-auto text-center">
