@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { Send, MessageCircle, Play, ChevronDown, Sparkles } from "lucide-react";
 import heroImg from "@/assets/landing-hero-erp.jpg";
 import posImg from "@/assets/landing-pos.jpg";
 import aiMobileImg from "@/assets/landing-ai-mobile.jpg";
