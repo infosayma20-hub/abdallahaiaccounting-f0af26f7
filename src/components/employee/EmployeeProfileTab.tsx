@@ -173,7 +173,17 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
   return (
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
       {/* Avatar & Name */}
-      <div className="text-center pt-4">
+      <div className="relative text-center pt-4">
+        {/* Sign out (top-right next to name in RTL) */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={signOut}
+          className="absolute top-2 right-0 h-9 gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl px-2"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-xs">خروج</span>
+        </Button>
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -243,16 +253,6 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
           </CardContent>
         </Card>
       )}
-
-      {/* Sign out */}
-      <Button
-        variant="outline"
-        className="w-full h-12 rounded-2xl gap-2 border-destructive/30 text-destructive hover:bg-destructive/5 active:scale-[0.97] transition-transform"
-        onClick={signOut}
-      >
-        <LogOut className="h-4 w-4" />
-        تسجيل خروج
-      </Button>
 
       <Dialog open={pwdOpen} onOpenChange={(o) => { if (!saving) setPwdOpen(o); }}>
         <DialogContent dir="rtl" className="max-w-sm rounded-2xl">
