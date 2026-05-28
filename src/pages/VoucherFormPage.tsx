@@ -2875,14 +2875,30 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </CardContent>
       </Card>
 
-      {/* Workshop / Cost Center (optional) */}
-      {workshopList.length > 0 && (
-        <div className="relative" ref={workshopDropdownRef}>
-          <div className="flex items-center gap-2 mb-1.5">
-            <Wrench className="h-4 w-4" style={{ color: "#6B7280" }} />
-            <span style={{ fontSize: 13, color: "#6B7280", fontFamily: "Cairo" }}>مركز التكلفة / الورشة (اختياري)</span>
+      {/* Cost-center & workshop — collapsed by default; expand via chevron. */}
+      <details className="group rounded-xl border border-border/50 bg-card/40">
+        <summary
+          className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden"
+          data-testid="receipt-dimensions-toggle"
+        >
+          <div className="flex items-center gap-2 text-[13px] text-muted-foreground" style={{ fontFamily: "Cairo" }}>
+            <Wrench className="h-4 w-4" />
+            <span>أبعاد محاسبية (اختياري)</span>
+            {(selectedWorkshop || costCenterId) && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">محدد</span>
+            )}
           </div>
-          {selectedWorkshop ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="px-3 pb-3 pt-1 space-y-3">
+          {/* Workshop (optional) */}
+          {workshopList.length > 0 && (
+            <div className="relative" ref={workshopDropdownRef}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <Wrench className="h-4 w-4" style={{ color: "#6B7280" }} />
+                <span style={{ fontSize: 13, color: "#6B7280", fontFamily: "Cairo" }}>الورشة (اختياري)</span>
+              </div>
+              {selectedWorkshop ? (
             <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50 bg-card">
               <span style={{ background: "#E8F5E9", color: "#2E7D32", padding: "2px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
                 🏗️ {selectedWorkshop.name} {selectedWorkshop.customer_name ? `(${selectedWorkshop.customer_name})` : ""}
@@ -2917,24 +2933,23 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               )}
             </div>
           )}
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Cost Center (Financial Dimension) — optional, independent of workshop */}
-      <div>
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[13px] text-muted-foreground" style={{ fontFamily: "Cairo" }}>
-            مركز التكلفة (اختياري)
-          </span>
+          {/* Cost Center (Financial Dimension) */}
+          <div data-testid={isReceipt ? "receipt-cost-center" : "payment-cost-center"}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[13px] text-muted-foreground" style={{ fontFamily: "Cairo" }}>
+                مركز التكلفة (اختياري)
+              </span>
+            </div>
+            <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              يُرحَّل إلى القيد المحاسبي ويظهر في التقارير حسب مركز التكلفة.
+            </p>
+          </div>
         </div>
-        <div data-testid={isReceipt ? "receipt-cost-center" : "payment-cost-center"}>
-          <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-1">
-          يُرحَّل إلى القيد المحاسبي ويظهر في التقارير حسب مركز التكلفة.
-          {/* TODO: cost_center_rules — إلزام مراكز التكلفة على المصاريف مؤجل للمرحلة القادمة. */}
-        </p>
-      </div>
+      </details>
 
       {/* ───── Payment + Allocation — flow continuously inside the
           col-span-8 left column so the sticky summary on the right
