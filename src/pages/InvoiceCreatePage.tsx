@@ -2,15 +2,16 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
-  Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
+  Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle, CheckCircle,
+  Pencil, Lock, Copy, Printer, ChevronRight, ChevronLeft, ListChecks, Calculator,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
   Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import PageHeader from "@/components/layout/PageHeader";
-import VoucherNavToolbar from "@/components/VoucherNavToolbar";
+import { FinanceShell, ActionPane, type ActionTab } from "@/components/finance/shell";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -204,6 +205,11 @@ const InvoiceCreatePage = () => {
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
+  // Edit mode opens read-only by default; user toggles via "تعديل" button.
+  const [isReadOnly, setIsReadOnly] = useState<boolean>(isEditMode);
+  // Always-fresh handleCreate ref (memoized ActionPane handlers would
+  // otherwise capture stale closures with empty form → false validation).
+  const handleCreateRef = useRef<((asDraft?: boolean) => void) | null>(null);
   const originalInvoiceRef = useRef<{
     linkedTransactionId: string | null;
     contactId: string | null;
@@ -1616,6 +1622,10 @@ const InvoiceCreatePage = () => {
     }
   };
 
+  // Keep ref pointed to latest handleCreate so memoized ActionPane tabs
+  // always invoke the fresh closure (otherwise validation reads stale state).
+  handleCreateRef.current = handleCreate;
+
   // ─── Print Preview ───
   const buildPrintInvoice = () => ({
     type: form.type,
@@ -1810,6 +1820,49 @@ const InvoiceCreatePage = () => {
     toast({ title: "تم استعادة المسودة ✓" });
   }, [isEditMode, navigate, toast]);
 
+  // ─── Action Pane tabs (FinanceShell) — same shape as VoucherFormPage ───
+  const invoiceActionTabs: ActionTab[] = useMemo(() => {
+    const pageTitle = isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة";
+    const inEdit = isEditMode;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "فاتورة جديدة", icon: Plus, variant: "primary" as const,
+          onClick: () => startNewInvoice() },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy,
+          onClick: () => handleNewSimilar() }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: () => handleCreateRef.current?.(false), disabled: isReadOnly,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
+          { key: "delete", label: "حذف الفاتورة", icon: Trash2,
+            onClick: () => setShowDeleteConfirm(true) },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ كمسودة", icon: Save,
+            onClick: () => handleCreateRef.current?.(true) },
+          { key: "post", label: "إنشاء الفاتورة", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleCreateRef.current?.(false) },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrint() },
+      { key: "print",   label: "طباعة",  icon: Printer, onClick: () => handlePrint() },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/invoices") },
+      { key: "center",  label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, isReadOnly]);
+
+  // Ctrl/Cmd+Enter is already wired via useInvoiceKeyboard above (onSave → handleCreate).
+
   // ─── RENDER ───
   if (loadingEditInvoice) {
     return (
@@ -1843,40 +1896,41 @@ const InvoiceCreatePage = () => {
         />
       )}
 
-      {/* Header */}
-      <PageHeader 
-        title={isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"} 
-        breadcrumb={["المبيعات", "الفواتير", isEditMode ? "تعديل" : "إنشاء فاتورة"]} 
-      />
+      {/* FinanceShell header (breadcrumb + title) + ActionPane — replaces
+          the old PageHeader and VoucherNavToolbar. Keeps the same RTL look
+          as سند القبض/الصرف and exposes all actions through the ActionPane. */}
+      <div className="-mx-4 lg:-mx-6 px-5 pt-3 pb-2 border-b border-border bg-card">
+        <nav className="flex items-center gap-1 text-[12px] text-muted-foreground mb-1.5">
+          <Link to="/accounting-center" className="hover:text-foreground">المالية</Link>
+          <ChevronLeft className="h-3 w-3 rotate-180" />
+          <Link to="/invoices" className="hover:text-foreground">الفواتير</Link>
+          <ChevronLeft className="h-3 w-3 rotate-180" />
+          <span>{isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة"}</span>
+        </nav>
+        <h1 className="text-[20px] font-bold text-foreground truncate">
+          {isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"}
+          {isEditMode && nextInvoiceNumber && (
+            <span className="text-[12px] font-normal text-muted-foreground mr-2">— {nextInvoiceNumber}</span>
+          )}
+        </h1>
+      </div>
+      <div className="-mx-4 lg:-mx-6">
+        <ActionPane tabs={invoiceActionTabs} />
+      </div>
 
-      {/* Navigation Toolbar */}
-      <VoucherNavToolbar
-        voucherType="invoice"
-        currentRef={isEditMode ? nextInvoiceNumber : undefined}
-        onPrint={handlePrint}
-        onDelete={isEditMode ? () => setShowDeleteConfirm(true) : undefined}
-        onNewSimilar={isEditMode ? handleNewSimilar : undefined}
-        onNew={startNewInvoice}
-        showNavigation={isEditMode}
-        onSaveDraft={() => handleCreate(true)}
-        onSavePost={() => handleCreate(false)}
-        savePostLabel={isEditMode ? "حفظ التعديلات" : "إنشاء الفاتورة"}
-        saving={creating}
-        saveDraftDisabled={creating}
-        savePostDisabled={
-          creating ||
-          !form.contactId ||
-          form.items.length === 0 ||
-          form.items.every(i => !i.productId && !i.description?.trim())
-        }
-        savePostDisabledReason={
-          !form.contactId
-            ? "اختر العميل/المورد أولاً"
-            : (form.items.length === 0 || form.items.every(i => !i.productId && !i.description?.trim()))
-            ? "أضف بنداً واحداً على الأقل"
-            : undefined
-        }
-      />
+      {/* Edit-mode view banner (mirrors voucher behaviour) */}
+      {isEditMode && (
+        <div className={`mt-4 mb-2 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`}>
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            <span>
+              {isReadOnly
+                ? `وضع العرض — الفاتورة ${nextInvoiceNumber}. اضغط "تعديل" للتعديل أو "إنشاء مشابه" لنسخها.`
+                : `وضع التعديل — الفاتورة ${nextInvoiceNumber}. اضغط "حفظ التعديلات" لحفظ التغييرات.`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Warranty Cards Action — only in edit mode for sales invoices */}
       {isEditMode && form.type === "sales" && editInvoiceId && (
@@ -2877,56 +2931,18 @@ const InvoiceCreatePage = () => {
 
       </div>
 
-      {/* ─── Sticky Bottom Actions ─── */}
+      {/* Sticky bottom save toolbar removed — ActionPane (top) now owns
+          جديد / حفظ مسودة / إنشاء الفاتورة / معاينة / طباعة. A compact
+          total-only strip stays for live feedback on mobile/desktop. */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        {/* Mobile-only prominent total row (desktop shows it inline below) */}
-        <div className="lg:hidden flex items-center justify-between gap-2 mb-2 px-3 h-11 rounded-xl bg-primary/5 border border-primary/15">
+        <div className="flex items-center justify-between gap-3 px-3 h-11 rounded-xl bg-primary/5 border border-primary/15">
           <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">الإجمالي</span>
-          <span
-            dir="ltr"
-            title={fmtCurrency(summary.total)}
-            className="font-extrabold text-primary tabular-nums whitespace-nowrap text-lg"
-          >
-            {fmtCurrency(summary.total)}
-          </span>
-        </div>
-        <div className="w-full mx-auto flex gap-2 items-center">
-          {/* Live mini-summary: invoices are credit-only, so always shows total as outstanding (آجل) */}
-          <div
-            className="hidden lg:flex items-center gap-3 px-4 h-12 rounded-xl bg-primary/5 border border-primary/15 min-w-[260px] shrink-0"
-            title={fmtCurrency(summary.total)}
-          >
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">الإجمالي</span>
-            <span
-              dir="ltr"
-              className="font-extrabold text-primary tabular-nums whitespace-nowrap leading-none text-xl xl:text-2xl"
-            >
+          <div className="flex items-center gap-2">
+            <span dir="ltr" title={fmtCurrency(summary.total)} className="font-extrabold text-primary tabular-nums whitespace-nowrap text-lg">
               {fmtCurrency(summary.total)}
             </span>
-            <span className="text-muted-foreground/40">·</span>
             <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-[10px]">آجل</span>
           </div>
-          <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
-            <Save className="h-4 w-4" /> حفظ كمسودة
-          </Button>
-          <Button className="flex-1 rounded-xl gap-1.5 h-11 text-sm font-bold shadow-lg shadow-primary/20" onClick={() => handleCreate(false)} disabled={creating}>
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileText className="h-4 w-4" /> {isEditMode ? "حفظ التعديلات" : "إنشاء الفاتورة"}</>}
-          </Button>
-          <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={handlePrint}>
-            <Eye className="h-4 w-4" /> معاينة PDF
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm">
-                <Send className="h-4 w-4" /> إرسال <ChevronDown className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleWhatsApp} className="gap-2">📱 إرسال واتساب</DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">📧 إرسال إيميل</DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">📋 نسخ رابط الفاتورة</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
