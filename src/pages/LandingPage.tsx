@@ -698,6 +698,37 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Latest Updates */}
+      <section className="py-20 px-6 bg-white reveal-section">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">CHANGELOG</div>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">آخر التحديثات</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">نظامنا بيتطور أسبوعياً — هذول آخر 3 تحديثات كبيرة</p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { date: "مايو 2026", tag: "NEW", tagColor: "bg-[#3b82f6]", title: "حسيب AI 2.0 — الآن يدعم أوامر صوتية باللهجة الفلسطينية", desc: "تحديث جوهري للمحاسب الذكي: دعم صوتي كامل، أوامر معقدة متعددة الخطوات، وتعلم من سلوك المستخدم." },
+              { date: "أبريل 2026", tag: "UPDATE", tagColor: "bg-green-500", title: "POS offline mode مع مزامنة تلقائية", desc: "نقاط البيع الآن بتشتغل 100% بدون نت مع مزامنة ذكية لما يرجع الإنترنت — لا فقدان بيانات نهائياً." },
+              { date: "مارس 2026", tag: "FEATURE", tagColor: "bg-purple-500", title: "لوحات تحكم مخصصة (Custom Dashboards)", desc: "اسحب وأفلت أي widget: KPI، تقارير، رسوم بيانية، نصوص — وشاركها مع فريقك فوراً." },
+            ].map((u, i) => (
+              <div key={i} className="flex items-start gap-6 bg-[#fafbfc] border border-[#e8ecf1] rounded-2xl p-6 hover:shadow-lg transition-all">
+                <div className="hidden sm:block w-24 shrink-0">
+                  <div className="text-xs font-bold text-[#0D1B2E]/50 font-latin">{u.date}</div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`${u.tagColor} text-white text-[10px] font-black px-2 py-0.5 rounded-full font-latin`}>{u.tag}</span>
+                    <h3 className="font-black text-[#0D1B2E]">{u.title}</h3>
+                  </div>
+                  <p className="text-sm font-bold text-[#0D1B2E]/60">{u.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How it Works — 4 steps */}
       <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-6xl mx-auto">
