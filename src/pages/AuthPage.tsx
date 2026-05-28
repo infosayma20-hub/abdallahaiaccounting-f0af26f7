@@ -102,11 +102,15 @@ const AuthPage = () => {
     setLoading(true);
     try {
       if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+        const { error } = await supabase.from("password_reset_requests").insert({
+          email: email.trim().toLowerCase(),
+          reason: "طلب نسيت كلمة المرور من صفحة تسجيل الدخول",
         });
         if (error) throw error;
-        toast({ title: "تم الإرسال", description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور" });
+        toast({
+          title: "تم إرسال طلبك ✅",
+          description: "تم إرسال طلب استعادة كلمة المرور إلى الإدارة، سيتم التواصل معك قريباً.",
+        });
         setMode("login");
       } else if (mode === "signup") {
         if (password.length < 6) {
@@ -151,6 +155,15 @@ const AuthPage = () => {
         normalizeStoredAuthSession();
         localStorage.removeItem("trial_banner_dismissed");
         if (data.user) {
+          // إجبار الموظف على تغيير كلمة المرور إذا كانت مؤقتة من الأدمن
+          if ((data.user.user_metadata as any)?.must_change_password) {
+            toast({
+              title: "مطلوب تغيير كلمة المرور",
+              description: "تم تعيين كلمة مرور مؤقتة لك من قِبل الإدارة. الرجاء تغييرها الآن.",
+            });
+            navigate("/reset-password?force=1");
+            return;
+          }
           const dest = await resolveRedirect(data.user.id);
           navigate(dest);
         } else {
@@ -346,7 +359,7 @@ const AuthPage = () => {
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
               <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
-                {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة"}
+                {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسيتم إرسال طلبك للإدارة لإعادة تعيين كلمة المرور"}
               </p>
             </div>
 
@@ -528,7 +541,7 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة"}
+                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال طلب للإدارة"}
               </button>
             </form>
 

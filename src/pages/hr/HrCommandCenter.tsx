@@ -30,6 +30,7 @@ import {
 import { HrKpiCard } from "./components/HrKpiCard";
 import { HrAttendanceToday } from "./components/HrAttendanceToday";
 import { HrRequestsPanel } from "./components/HrRequestsPanel";
+import { PasswordResetRequestsPanel } from "./components/PasswordResetRequestsPanel";
 import { HrCharts } from "./components/HrCharts";
 import { HrSectionCard } from "./components/HrSectionCard";
 
@@ -305,6 +306,7 @@ export default function HrCommandCenter() {
                 pendingRequests={pendingRequests}
                 employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
               />
+              <PasswordResetRequestsPanel />
             </div>
 
             <div>
