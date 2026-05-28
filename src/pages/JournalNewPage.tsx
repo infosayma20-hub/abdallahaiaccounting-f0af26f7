@@ -1009,20 +1009,20 @@ const JournalNewPage = () => {
             variant: isReadOnly ? ("primary" as const) : undefined,
             onClick: () => setIsReadOnly(prev => !prev) },
           { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
-            onClick: handleUpdate, disabled: isReadOnly || saving || !isBalanced,
+            onClick: () => handleUpdateRef.current?.(), disabled: isReadOnly || saving || !isBalanced,
             tooltip: isReadOnly ? "اضغط تعديل أولاً" : (!isBalanced ? "القيد غير متوازن" : undefined) },
           { key: "delete", label: "حذف", icon: Trash2,
-            onClick: handleDelete, disabled: saving },
+            onClick: () => handleDeleteRef.current?.(), disabled: saving },
         ]}
       : { key: "save", label: "حفظ", items: [
-          { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSave("draft"), disabled: saving },
+          { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSaveRef.current?.("draft"), disabled: saving },
           { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
-            onClick: () => handleSave("posted"), disabled: saving || !isBalanced,
+            onClick: () => handleSaveRef.current?.("posted"), disabled: saving || !isBalanced,
             tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
       { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
-      { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
+      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrintRef.current?.() },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
       { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
