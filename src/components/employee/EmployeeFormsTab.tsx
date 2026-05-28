@@ -399,7 +399,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
         return (
           <>
             <p className="text-[11px] text-muted-foreground bg-primary/5 rounded-xl p-2.5 leading-relaxed">
-              املأ معلوماتك الأساسية ليتم تحديث ملفك في HR (تاريخ الميلاد، الواتساب، الهوية...).
+              املأ معلوماتك الأساسية ليتم تحديث ملفك في HR. هذه البيانات سيراها الإدارة ومدير الموارد البشرية ويقارنوها مع سجلاتنا.
             </p>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الاسم الكامل *</label>
@@ -411,13 +411,44 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 <Input type="date" value={formData.date_of_birth || ""} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب *</label>
-                <Input value={formData.whatsapp || ""} onChange={e => setFormData(p => ({ ...p, whatsapp: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="05X-XXXXXXX" />
+                <label className="text-xs text-muted-foreground mb-1 block">تاريخ البداية في الملكي *</label>
+                <Input type="date" value={formData.malaky_start_date || ""} onChange={e => setFormData(p => ({ ...p, malaky_start_date: e.target.value }))} dir="ltr" className="rounded-xl" />
               </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب *</label>
+              <div className="flex gap-2" dir="ltr">
+                <Select
+                  value={formData.whatsapp_prefix || "+972"}
+                  onValueChange={(v) => setFormData(p => ({ ...p, whatsapp_prefix: v }))}
+                >
+                  <SelectTrigger className="w-[100px] rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="+972">🇮🇱 +972</SelectItem>
+                    <SelectItem value="+970">🇵🇸 +970</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  inputMode="numeric"
+                  value={formData.whatsapp_local || ""}
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setFormData(p => ({
+                      ...p,
+                      whatsapp_local: digits,
+                      whatsapp: `${p.whatsapp_prefix || "+972"}${digits.replace(/^0/, "")}`,
+                    }));
+                  }}
+                  className="rounded-xl flex-1"
+                  placeholder="59XXXXXXX"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">بدون الصفر في البداية — مثال: 591234567</p>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">رقم الهوية *</label>
               <Input value={formData.id_number || ""} onChange={e => setFormData(p => ({ ...p, id_number: e.target.value }))} dir="ltr" className="rounded-xl" />
+              <p className="text-[10px] text-warning mt-1">⚠️ رقم الهوية الشخصية (وليس رقم البصمة) — 9 خانات</p>
             </div>
              <div>
                <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
@@ -442,6 +473,20 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 </div>
               </div>
             )}
+            <div className="rounded-xl border border-dashed border-border p-3 space-y-2">
+              <p className="text-[11px] font-semibold text-foreground">📋 رصيد الإجازات (حسب اعتقادك)</p>
+              <p className="text-[10px] text-muted-foreground">سنقارن هذه الأرقام مع سجلاتنا للتأكد من التطابق.</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">رصيد الإجازات السنوية المتبقي (أيام) *</label>
+                  <Input type="number" min={0} step="0.5" value={formData.annual_leave_remaining_claimed || ""} onChange={e => setFormData(p => ({ ...p, annual_leave_remaining_claimed: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="0" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">عدد أيام الإجازات المرضية المأخوذة *</label>
+                  <Input type="number" min={0} step="0.5" value={formData.sick_days_taken_claimed || ""} onChange={e => setFormData(p => ({ ...p, sick_days_taken_claimed: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="0" />
+                </div>
+              </div>
+            </div>
              <div>
                <label className="text-xs text-muted-foreground mb-1 block">المستوى التعليمي</label>
                <div className="grid grid-cols-3 gap-2">
