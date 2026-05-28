@@ -1019,6 +1019,132 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Industries / Verticals */}
+      <section className="py-24 px-6 bg-white reveal-section">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">INDUSTRIES</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">قطاعات فلسطينية مغطّاة بالكامل</h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg max-w-2xl mx-auto">نظام <span className="font-latin text-[#3b82f6]">ERP</span> فلسطيني واحد، مهيّأ لكل قطاع بإعدادات جاهزة وحسابات ودفاتر مخصّصة.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {[
+              { emoji: "🍔", title: "مطاعم وكافيهات", desc: "POS + مطبخ + توصيل + ولاء" },
+              { emoji: "🛒", title: "سوبرماركت", desc: "باركود + موازين + عروض" },
+              { emoji: "💊", title: "صيدليات", desc: "دفعات + صلاحيات + وصفات" },
+              { emoji: "🏭", title: "مصانع", desc: "BOM + أوامر إنتاج + تكاليف" },
+              { emoji: "🔧", title: "ورشات صيانة", desc: "بطاقات عمل + ضمانات + قطع" },
+              { emoji: "🏗️", title: "مقاولات", desc: "مشاريع + مستخلصات + ضمانات" },
+              { emoji: "👔", title: "ملابس وأقمشة", desc: "ألوان + مقاسات + مواسم" },
+              { emoji: "💎", title: "مجوهرات", desc: "ذهب 21/18 + سعر يومي + أوزان" },
+              { emoji: "📦", title: "جملة وتوزيع", desc: "مندوبين + خطوط سير + حوافز" },
+              { emoji: "🚚", title: "شركات شحن", desc: "بوالص + كباتن + تتبّع GPS" },
+              { emoji: "🏥", title: "عيادات", desc: "مواعيد + ملفات + فواتير تأمين" },
+              { emoji: "🎓", title: "أكاديميات", desc: "طلاب + رسوم + شهادات" },
+            ].map((it) => (
+              <div key={it.title} className="group bg-[#fafbfc] border border-[#e8ecf1] rounded-2xl p-6 hover:border-[#3b82f6] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 transition-all">
+                <div className="text-4xl mb-3">{it.emoji}</div>
+                <div className="font-black text-[#0D1B2E] mb-1">{it.title}</div>
+                <div className="text-xs text-[#0D1B2E]/60 font-bold leading-relaxed">{it.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Integrations */}
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">INTEGRATIONS</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">تكاملات جاهزة مع كل اللي بتستخدمه</h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg max-w-2xl mx-auto">ربط مباشر مع الأجهزة، الفوترة الإلكترونية، والمنصات الفلسطينية والعالمية.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { name: "ZKTeco K40", cat: "بصمة حضور" },
+              { name: "طابعات حرارية 80mm", cat: "كاشير" },
+              { name: "ميزان باركود", cat: "سوبرماركت" },
+              { name: "WhatsApp Business", cat: "إشعارات" },
+              { name: "Yeastar P550", cat: "Caller ID" },
+              { name: "بريد بنكي ILS/USD/JOD", cat: "تسويات" },
+              { name: "قمر للتوصيل", cat: "Delivery" },
+              { name: "ملكي للتوصيل", cat: "Delivery" },
+              { name: "بنك فلسطين / القدس / العربي", cat: "بنوك" },
+              { name: "PalPay / JawwalPay", cat: "مدفوعات" },
+              { name: "فاتورة ضريبية إلكترونية", cat: "ضريبة فلسطين" },
+              { name: "Excel / CSV / QuickBooks", cat: "استيراد" },
+            ].map((it) => (
+              <div key={it.name} className="bg-white border border-[#e8ecf1] rounded-xl p-5 hover:border-[#3b82f6] hover:shadow-lg transition-all">
+                <div className="text-xs text-[#3b82f6] font-black font-latin tracking-wide mb-2">{it.cat}</div>
+                <div className="font-black text-[#0D1B2E] text-sm">{it.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Security & Compliance */}
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">SECURITY · COMPLIANCE</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">أمان بمستوى البنوك، التزام بالقانون الفلسطيني</h2>
+            <p className="text-white/60 font-bold text-lg max-w-2xl mx-auto">بياناتك مشفّرة، مدعومة، وخاضعة لأعلى معايير الأمان الدولية.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { title: "تشفير AES-256", desc: "جميع البيانات مشفّرة أثناء التخزين والنقل (TLS 1.3)." },
+              { title: "نسخ احتياطي يومي", desc: "نسخ تلقائية كل 24 ساعة، استرجاع لـ 30 يوم بالضغط على زر." },
+              { title: "صلاحيات RBAC", desc: "8 أدوار جاهزة + صلاحيات حقل-بحقل لكل موظف." },
+              { title: "Audit Log كامل", desc: "كل تعديل، حذف، ودخول مسجّل باسم المستخدم وIP." },
+              { title: "IFRS متوافق", desc: "قيود محاسبية بمعايير دولية مع دعم القيد العكسي." },
+              { title: "ضريبة فلسطين 16%", desc: "تقارير ضريبية جاهزة للتقديم في وزارة المالية." },
+              { title: "Multi-Tenant عزل", desc: "بيانات شركتك معزولة 100% بسياسات RLS صارمة." },
+              { title: "Uptime 99.9%", desc: "خوادم سحابية موزّعة، صيانة بدون توقّف." },
+            ].map((it) => (
+              <div key={it.title} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-[#3b82f6]/50 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-[#3b82f6]/20 flex items-center justify-center mb-4">
+                  <div className="w-2 h-2 rounded-full bg-[#3b82f6]" />
+                </div>
+                <div className="font-black mb-2">{it.title}</div>
+                <div className="text-sm text-white/60 font-bold leading-relaxed">{it.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-24 px-6 bg-white reveal-section">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-14">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">FAQ</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">أسئلة بتسأل عنها قبل ما تبدأ</h2>
+          </div>
+          <div className="space-y-3">
+            {[
+              { q: "هل أموالي نظام ERP حقيقي ولا برنامج محاسبة عادي؟", a: "أموالي نظام ERP فلسطيني متكامل — يشمل المحاسبة، المخزون، الكاشير، الموارد البشرية، المشتريات، المبيعات، التصنيع، التوصيل، CRM، تقارير ذكاء أعمال — كلها بقاعدة بيانات واحدة وحساب موحّد." },
+              { q: "هل بشتغل بدون إنترنت؟", a: "نعم. الكاشير (POS) بشتغل أوفلاين كامل ويتزامن لمّا يرجع الإنترنت. باقي النظام بحتاج إنترنت لأنه سحابي." },
+              { q: "هل بدعم ضريبة فلسطين 16%؟", a: "نعم — مبني خصيصاً للنظام الضريبي الفلسطيني: ضريبة شاملة/مضافة، دفاتر مدخلات ومخرجات، وتقارير جاهزة لوزارة المالية." },
+              { q: "كيف بنقل بياناتي من نظامي القديم؟", a: "فريقنا بنقلك مجاناً من Excel، بيسان، الأمين، QuickBooks، أو أي نظام تاني. نشتغل تحليل → نقل → تدريب → تشغيل متوازي لمدة شهر." },
+              { q: "إذا اشتركت اليوم، إيمتى بقدر أبدأ؟", a: "فوراً. بتسجّل، بتختار قطاعك، وبتبلّش تصدر فواتير خلال 5 دقايق. الإعداد المتقدّم بتساعدك فيه فريقنا مجاناً." },
+              { q: "بيناتي محمية؟", a: "بياناتك مشفّرة AES-256، معزولة بسياسات RLS، ومنسوخة احتياطياً كل يوم. ولا أحد غيرك بقدر يوصلها — ولا حتى فريقنا." },
+              { q: "هل بدعم أكتر من فرع وأكتر من مستخدم؟", a: "نعم — فروع غير محدودة، مستخدمين غير محدودين، صلاحيات تفصيلية لكل دور. كل فرع بحسابات وتقارير مستقلّة + تقرير مجمّع." },
+              { q: "هل في تطبيق موبايل؟", a: "أموالي PWA — بشتغل من المتصفّح وبتقدر تثبّته على الموبايل والكمبيوتر بضغطة واحدة. بدون تحميل من المتاجر." },
+            ].map((it, i) => (
+              <details key={i} className="group bg-[#fafbfc] border border-[#e8ecf1] rounded-2xl p-6 open:border-[#3b82f6] open:shadow-lg transition-all">
+                <summary className="flex items-center justify-between cursor-pointer list-none">
+                  <span className="font-black text-[#0D1B2E] pr-4">{it.q}</span>
+                  <ChevronDown className="w-5 h-5 text-[#3b82f6] shrink-0 transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="text-[#0D1B2E]/70 font-bold text-sm leading-relaxed mt-4">{it.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
         <div className="max-w-4xl mx-auto text-center">
