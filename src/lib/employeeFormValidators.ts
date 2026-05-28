@@ -88,8 +88,6 @@ export function validateEmployeeForm(
         if (id.length < 7 || id.length > 12) return { ok: false, error: "رقم الهوية غير صحيح" };
       }
       if (isEmpty(data.marital_status)) return { ok: false, error: "اختر الحالة الاجتماعية" };
-      if (isEmpty(data.annual_leave_remaining_claimed)) return { ok: false, error: "أدخل رصيد الإجازات السنوية المتبقي" };
-      if (isEmpty(data.sick_days_taken_claimed)) return { ok: false, error: "أدخل عدد أيام الإجازات المرضية المأخوذة" };
       return { ok: true };
     }
 
