@@ -459,9 +459,9 @@ const LandingPage = () => {
       <section className="py-24 px-6 bg-[#0D1B2E] text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
-            جاهز تنقل شركتك لمستوى جديد من الذكاء؟
+            جاهز تنقل شركتك لمستوى <span className="font-latin text-[#3b82f6]">ERP</span> احترافي؟
           </h2>
-          <p className="text-white/60 font-bold text-lg mb-10">جربه مجاناً 14 يوم بدون بطاقة ائتمان</p>
+          <p className="text-white/60 font-bold text-lg mb-10">انضم لـ +500 شركة فلسطينية. جرب أموالي مجاناً 14 يوم بدون بطاقة ائتمان.</p>
           <Link
             to="/auth?mode=signup"
             className="inline-block bg-[#3b82f6] text-white px-12 py-5 rounded-2xl text-xl font-black hover:bg-blue-600 shadow-2xl shadow-blue-500/30 transition-all"
