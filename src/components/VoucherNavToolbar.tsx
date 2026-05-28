@@ -223,24 +223,24 @@ const VoucherNavToolbar = ({
         {hasNav && (
           <div className="flex items-center gap-0.5 border-l border-border pl-2 ml-1">
             <Button variant="ghost" size="sm" onClick={goFirst} disabled={!hasPrev}
-              className="h-8 w-8 p-0" title="الأول">
+              className="h-8 w-8 p-0" title="الأول" data-testid="voucher-nav-first">
               <ChevronsRight className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={goPrev} disabled={!hasPrev}
-              className="h-8 w-8 p-0" title="السابق">
+              className="h-8 w-8 p-0" title="السابق" data-testid="voucher-nav-prev">
               <ChevronRight className="h-4 w-4" />
             </Button>
             {currentIndex >= 0 && (
-              <span className="text-[10px] text-muted-foreground px-1.5 font-mono">
+              <span className="text-[10px] text-muted-foreground px-1.5 font-mono" data-testid="voucher-nav-counter">
                 {currentIndex + 1}/{allIds.length}
               </span>
             )}
             <Button variant="ghost" size="sm" onClick={goNext} disabled={!hasNext}
-              className="h-8 w-8 p-0" title="التالي">
+              className="h-8 w-8 p-0" title="التالي" data-testid="voucher-nav-next">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={goLast} disabled={!hasNext}
-              className="h-8 w-8 p-0" title="الأخير">
+              className="h-8 w-8 p-0" title="الأخير" data-testid="voucher-nav-last">
               <ChevronsLeft className="h-4 w-4" />
             </Button>
           </div>
@@ -248,14 +248,14 @@ const VoucherNavToolbar = ({
 
         {/* Search */}
         <Button variant="outline" size="sm" onClick={() => setSearchOpen(true)}
-          className="h-8 gap-1.5 text-xs">
+          className="h-8 gap-1.5 text-xs" data-testid="voucher-nav-search">
           <Search className="h-3.5 w-3.5" /> استعلام
         </Button>
 
         {/* Print */}
         {onPrint && (
           <Button variant="outline" size="sm" onClick={onPrint}
-            className="h-8 gap-1.5 text-xs">
+            className="h-8 gap-1.5 text-xs" data-testid="voucher-nav-print">
             <Printer className="h-3.5 w-3.5" /> طباعة
           </Button>
         )}
@@ -263,7 +263,7 @@ const VoucherNavToolbar = ({
         {/* Preview */}
         {onPreview && (
           <Button variant="outline" size="sm" onClick={onPreview}
-            className="h-8 gap-1.5 text-xs">
+            className="h-8 gap-1.5 text-xs" data-testid="voucher-nav-preview">
             <Eye className="h-3.5 w-3.5" /> معاينة
           </Button>
         )}
@@ -279,6 +279,7 @@ const VoucherNavToolbar = ({
             disabled={saveDraftDisabled || saving}
             className="h-8 gap-1.5 text-xs"
             title="حفظ كمسودة"
+            data-testid="voucher-nav-save-draft"
           >
             <Save className="h-3.5 w-3.5" /> حفظ
           </Button>
@@ -296,6 +297,7 @@ const VoucherNavToolbar = ({
                     onClick={onSavePost}
                     disabled={savePostDisabled || saving}
                     className="h-8 gap-1.5 text-xs font-bold"
+                    data-testid="voucher-nav-save-post"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {saving ? "جارٍ..." : savePostLabel}
@@ -314,7 +316,7 @@ const VoucherNavToolbar = ({
         {/* Delete */}
         {onDelete && currentRef && (
           <Button variant="outline" size="sm" onClick={onDelete}
-            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30">
+            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30" data-testid="voucher-nav-delete">
             <Trash2 className="h-3.5 w-3.5" /> حذف
           </Button>
         )}
@@ -322,14 +324,14 @@ const VoucherNavToolbar = ({
         {/* New Similar */}
         {onNewSimilar && currentRef && (
           <Button variant="outline" size="sm" onClick={onNewSimilar}
-            className="h-8 gap-1.5 text-xs">
+            className="h-8 gap-1.5 text-xs" data-testid="voucher-nav-duplicate">
             <Copy className="h-3.5 w-3.5" /> جديد مشابه
           </Button>
         )}
 
         {/* New */}
         <Button size="sm" onClick={handleNewPath}
-          className="h-8 gap-1.5 text-xs">
+          className="h-8 gap-1.5 text-xs" data-testid="voucher-nav-new">
           <Plus className="h-3.5 w-3.5" /> جديد
         </Button>
       </div>
