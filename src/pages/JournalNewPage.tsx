@@ -983,6 +983,36 @@ const JournalNewPage = () => {
                 يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
               </p>
             </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs mb-1.5 block">العملة</Label>
+              <Select value={formCurrency} onValueChange={setFormCurrency}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formCurrency !== "ILS" && (
+              <div className="md:col-span-3">
+                <Label className="text-xs mb-1.5 block flex items-center gap-1">
+                  سعر الصرف
+                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
+                </Label>
+                <Input
+                  type="number"
+                  value={formExchangeRate}
+                  onChange={e => setFormExchangeRate(parseFloat(e.target.value) || 0)}
+                  step="0.001"
+                  min="0"
+                  className="font-mono text-left"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  1 {CURRENCIES.find(c => c.value === formCurrency)?.label} = ₪{formExchangeRate}
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
