@@ -2555,7 +2555,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header + old toolbar — hidden for receipts (FinanceShell + ActionPane own this). */}
+      {!isReceipt && <>
       <PageHeader
         title={pageTitle}
         breadcrumb={["المالية", isReceipt ? "سندات القبض" : "سندات الصرف", pageTitle]}
@@ -2662,6 +2663,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </button>
         )}
       </div>
+      </>}
 
       {/* Phase 5J — cross-link panel (edit mode only) */}
       {isEditMode && refNumber && (
