@@ -268,6 +268,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  // Bug #6: amount input ref + highlight after contact selection
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const [highlightAmount, setHighlightAmount] = useState(false);
+  // Focus + highlight helper used by contact pickers
+  const focusAmountField = useCallback(() => {
+    setTimeout(() => {
+      amountInputRef.current?.focus();
+      amountInputRef.current?.select?.();
+      setHighlightAmount(true);
+      setTimeout(() => setHighlightAmount(false), 1400);
+    }, 50);
+  }, []);
   const [fastEntryEnabled] = useFastEntryMode();
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -440,6 +452,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     return !d.amount && !d.notes && !d.contactId && !d.employeeId && !d.glAccountCode && (!d.cheques || d.cheques.length === 0);
   }, []);
 
+  // Bug #7: Ctrl+Enter / Cmd+Enter → حفظ وترحيل (or حفظ التعديلات in edit mode).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
+      e.preventDefault();
+      if (saving || isReadOnly) return;
+      handleSave(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // handleSave is recreated each render; we intentionally read latest via closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saving, isReadOnly]);
+
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
     draftFormId,
     draftSnapshot,
@@ -549,7 +575,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   // Load contacts
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     Promise.all([
       supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", ownerId).order("contact_name"),
       // SOA parity: include cancelled-but-reversed entries so the original
@@ -621,40 +647,40 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       })
       .then(() => setDraftReady(true), () => setDraftReady(true));
-  }, [user]);
+  }, [user, ownerId]);
 
   // Load GL accounts (for "account" party type)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     supabase.from("accounts")
       .select("id, account_code, account_name, account_type")
       .eq("user_id", ownerId)
       .eq("is_active", true)
       .order("account_code")
       .then(({ data }) => setGlAccounts(data || []));
-  }, [user]);
+  }, [user, ownerId]);
 
   // Load employees (for payment vouchers)
   useEffect(() => {
-    if (!user || isReceipt) return;
+    if (!user || !ownerId || isReceipt) return;
     supabase.from("employees")
       .select("id, full_name, department, job_title")
       .eq("user_id", ownerId)
       .eq("is_active", true)
       .order("full_name")
       .then(({ data }) => setEmployeeList(data || []));
-  }, [user, isReceipt]);
+  }, [user, ownerId, isReceipt]);
 
   // Load workshops for cost center selector
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     supabase.from("workshops")
       .select("id, name, customer_name, status")
       .eq("user_id", ownerId)
       .in("status", ["active", "completed"])
       .order("name")
       .then(({ data }) => setWorkshopList(data || []));
-  }, [user]);
+  }, [user, ownerId]);
 
   useEffect(() => {
     if (currency === "ILS") {
@@ -871,7 +897,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   // Load cash boxes, bank accounts, and generate ref number for payments
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     const load = async () => {
       const [cbRes, baRes] = await Promise.all([
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
@@ -899,11 +925,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
     };
     load();
-  }, [user, isReceipt]);
+  }, [user, ownerId, isReceipt]);
 
   // Load invoices when contact is selected
   useEffect(() => {
-    if (!user || !selectedContact) { setInvoices([]); return; }
+    if (!user || !ownerId || !selectedContact) { setInvoices([]); return; }
     // Smart loading:
     //   - Receipt + customer  → sale invoices (settlement)
     //   - Payment + supplier  → purchase invoices (settlement)
@@ -943,7 +969,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         setInvoices(loaded);
       });
-  }, [user, selectedContact, isReceipt]);
+  }, [user, ownerId, selectedContact, isReceipt]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
@@ -2732,7 +2758,33 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     value={selectedContact ? selectedContact.contact_name : contactSearch}
                     onChange={e => { setContactSearch(e.target.value); setSelectedContact(null); setShowContactDropdown(true); }}
                     onFocus={() => setShowContactDropdown(true)}
-                    onKeyDown={e => { if (e.key === "Enter") { setShowContactDropdown(false); } }}
+                    onKeyDown={e => {
+                      // Bug #5: ArrowDown moves focus into the dropdown list
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setShowContactDropdown(true);
+                        setTimeout(() => {
+                          const first = contactDropdownRef.current?.querySelector<HTMLButtonElement>(
+                            "div[class*='absolute'] button"
+                          );
+                          first?.focus();
+                        }, 30);
+                        return;
+                      }
+                      // Bug #6: Enter when single match → auto-select and jump to amount
+                      if (e.key === "Enter") {
+                        if (!selectedContact && filteredContacts.length === 1) {
+                          e.preventDefault();
+                          const only = filteredContacts[0];
+                          setSelectedContact(only);
+                          setContactSearch("");
+                          setShowContactDropdown(false);
+                          focusAmountField();
+                          return;
+                        }
+                        setShowContactDropdown(false);
+                      }
+                    }}
                     placeholder={contactPlaceholder}
                     className="pr-9"
                     data-smart-first="true"
@@ -2747,8 +2799,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 {showContactDropdown && !selectedContact && (
                   <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
                     {filteredContacts.map(c => (
-                      <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
-                        className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
+                      <button
+                        key={c.id}
+                        onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); focusAmountField(); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); focusAmountField();
+                          } else if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            (e.currentTarget.nextElementSibling as HTMLButtonElement | null)?.focus();
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            (e.currentTarget.previousElementSibling as HTMLButtonElement | null)?.focus();
+                          }
+                        }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-secondary focus:bg-secondary focus:outline-none transition-colors flex items-center justify-between">
                         <span className="text-sm">{c.contact_name}</span>
                         <span className="text-xs text-muted-foreground">دفتر: ₪{formatAmount(c.ledger_balance ?? c.current_balance ?? 0)} · مفتوح: ₪{formatAmount(c.open_invoices_balance ?? 0)}</span>
                       </button>
@@ -2974,10 +3040,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               <div className="relative">
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground">{currencySymbol}</span>
                 <Input
+                  ref={amountInputRef}
                   type="number"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
-                  className="pr-9 text-left font-mono text-2xl font-bold h-14"
+                  className={`pr-9 text-left font-mono text-2xl font-bold h-14 transition-all ${highlightAmount ? "ring-4 ring-primary/60 ring-offset-2 ring-offset-background" : ""}`}
                   placeholder="0.00"
                   min="0"
                   step="0.01"
