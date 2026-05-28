@@ -345,6 +345,8 @@ export default function EmployeeFormsManagementPage() {
           </div>
         </div>
 
+        <PasswordResetRequestsPanel />
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
