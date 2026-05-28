@@ -204,6 +204,14 @@ const LandingPage = () => {
       {/* Hero */}
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #0D1B2E 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div
+          className="pointer-events-none fixed z-0 w-[600px] h-[600px] rounded-full opacity-[0.06] blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)',
+            left: mousePos.x - 300,
+            top: mousePos.y - 300,
+          }}
+        />
         <div className="max-w-7xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 bg-[#e8ecf1] border border-[#d1d7e0] px-3 py-1.5 rounded-full text-xs font-bold mb-8">
             <span className="flex h-2 w-2 rounded-full bg-green-500" />
