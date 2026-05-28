@@ -395,6 +395,9 @@ export function useSaveJournalVoucher() {
       // ── (5) عند الترحيل: إنشاء transactions ──
       if (mode === "posted") {
         const txType = SUBTYPE_TO_TX_TYPE[input.subtype] || "journal";
+        const currencyCode = input.currency_code || "ILS";
+        const currencyLabel = input.currency_label || "شيكل";
+        const rate = currencyCode === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
         const { txns, usedClearing } = buildTransactionsFromLines({
           userId: user.id,
           date: input.date,
@@ -405,6 +408,9 @@ export function useSaveJournalVoucher() {
           voucherId: voucher.id,
           voucherContactId: input.contact_id,
           voucherCostCenterId: input.cost_center_id || null,
+          currencyLabel,
+          currencyCode,
+          exchangeRate: rate,
         });
         if (usedClearing) {
           await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
@@ -429,7 +435,7 @@ export function useSaveJournalVoucher() {
             entryDate: input.date,
             description: input.description.trim(),
             lines: rpcLines,
-            currency: "ILS",
+            currency: currencyLabel,
             reference: voucher.ref_number,
             idempotencyKey: `VOUCHER-${voucher.id}`,
             source: "journal_voucher",
