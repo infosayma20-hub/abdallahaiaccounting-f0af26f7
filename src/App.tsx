@@ -192,6 +192,7 @@ const SetupPage = lazy(() => import("./pages/SetupPage"));
 const FinanceHomePage = lazy(() => import("./pages/FinanceHomePage"));
 const FinanceVoucherPage = lazy(() => import("./pages/FinanceVoucherPage"));
 const FinanceReceiptsPage = lazy(() => import("./pages/FinanceReceiptsPage"));
+const FinancePaymentsPage = lazy(() => import("./pages/FinancePaymentsPage"));
 const FinanceJournalPage = lazy(() => import("./pages/FinanceJournalPage"));
 const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
@@ -462,7 +463,7 @@ const App = () => (
                       <Route path="/finance" element={<Navigate to="/finance/receipts" replace />} />
                       <Route path="/accounting-center" element={<AccountingCenterPage />} />
                      <Route path="/finance/receipts" element={<FinanceReceiptsPage />} />
-                      <Route path="/finance/payments" element={<FinanceVoucherPage voucherType="payment" />} />
+                      <Route path="/finance/payments" element={<FinancePaymentsPage />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
                       <Route path="/finance/journal/new" element={<FeatureGuard app="finance" feature="journal" perm="create" label="إنشاء قيد"><JournalNewPage /></FeatureGuard>} />
                       <Route path="/finance/receipt/new" element={<FeatureGuard app="finance" feature="receipts" perm="create" label="سند قبض جديد"><VoucherFormPage voucherType="receipt" /></FeatureGuard>} />
