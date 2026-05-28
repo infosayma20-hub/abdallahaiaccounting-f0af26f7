@@ -868,8 +868,8 @@ const JournalNewPage = () => {
                   return displayLines.map((line, i) => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
-                    <td data-journal-line-id={line.id} className="p-2.5 text-muted-foreground">{i + 1}</td>
-                    <td className="p-2.5">
+                    <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
+                    <td className="p-3">
                       {(() => {
                         const codeQuery = codeSearches[line.id] !== undefined
                           ? (codeSearches[line.id] as string)
@@ -902,15 +902,15 @@ const JournalNewPage = () => {
                             placeholder="1110 أو اسم الحساب"
                             emptyText="لا توجد حسابات مطابقة"
                             markFirst={i === 0}
-                            className="w-44"
-                            inputClassName="h-9 font-mono text-xs"
+                            className="w-full"
+                            inputClassName="h-11 font-mono text-sm"
                             showSearchIcon
                             showChevron
                           />
                         );
                       })()}
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Select 
                         value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
                         onValueChange={v => {
@@ -943,7 +943,7 @@ const JournalNewPage = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-9 text-xs">
+                        <SelectTrigger className="h-11 text-sm">
                           {(line.account_code || (line.contact_id && line.contact_id !== "__none__")) ? (
                             <span className="truncate flex items-center gap-2">
                               {line.contact_id && line.contact_id !== "__none__" && (
@@ -1062,7 +1062,7 @@ const JournalNewPage = () => {
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
                         value={line.debit || ""}
@@ -1085,10 +1085,10 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-debit={line.id}
-                        className="h-9 font-mono text-xs" placeholder="0"
+                        className="h-11 font-mono text-sm" placeholder="0"
                       />
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
                         value={line.credit || ""}
