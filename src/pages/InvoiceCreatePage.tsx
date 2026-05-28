@@ -210,6 +210,7 @@ const InvoiceCreatePage = () => {
   // Always-fresh handleCreate ref (memoized ActionPane handlers would
   // otherwise capture stale closures with empty form → false validation).
   const handleCreateRef = useRef<((asDraft?: boolean) => void) | null>(null);
+  const handlePrintRef = useRef<((previewOnly?: boolean) => void) | null>(null);
   const originalInvoiceRef = useRef<{
     linkedTransactionId: string | null;
     contactId: string | null;
