@@ -29,15 +29,17 @@ export default function useJournalKeyboard({
 
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      // Skip when user is typing in a textarea / contenteditable (avoid stealing real text input)
-      if (target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+      const inTextarea = target?.tagName === "TEXTAREA" || target?.isContentEditable;
 
-      // Ctrl/Cmd + Enter → save
+      // Ctrl/Cmd + Enter → save (works everywhere, including textareas)
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         onSave();
         return;
       }
+
+      // Skip other shortcuts when typing in a textarea to avoid stealing real text input
+      if (inTextarea) return;
 
       // Alt + N → new row
       if (e.altKey && (e.key === "n" || e.key === "N" || e.code === "KeyN")) {
