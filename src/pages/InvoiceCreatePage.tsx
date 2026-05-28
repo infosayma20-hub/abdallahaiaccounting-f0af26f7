@@ -1045,7 +1045,20 @@ const InvoiceCreatePage = () => {
   // ─── Quick Add Product ───
   const handleQuickAddProduct = async () => {
     if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
-    const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: user.id } as any);
+    const isService = quickAddForm.product_type === "service";
+    const payload: any = {
+      name: quickAddForm.name,
+      sell_price: quickAddForm.sell_price,
+      buy_price: quickAddForm.buy_price,
+      unit: isService ? "خدمة" : quickAddForm.unit,
+      quantity: isService ? 0 : quickAddForm.quantity,
+      product_type: quickAddForm.product_type,
+      service_direction: isService
+        ? (quickAddForm.service_direction || (form.type === "sales" ? "provided" : "received"))
+        : null,
+      user_id: user.id,
+    };
+    const { error } = await supabase.from("products").insert(payload);
     if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
