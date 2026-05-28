@@ -28,6 +28,7 @@ const POSDeviceAuthGuard = lazy(() => import("./components/pos/POSDeviceAuthGuar
 
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const SmartAccountantPage = lazy(() => import("./pages/SmartAccountantPage"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
 const VoiceInput = lazy(() => import("./pages/VoiceInput"));
