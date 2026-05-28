@@ -1828,6 +1828,37 @@ const InvoiceCreatePage = () => {
   }, [isEditMode, navigate, toast]);
 
   // ─── Action Pane tabs (FinanceShell) — same shape as VoucherFormPage ───
+  const goToAdjacentInvoice = async (direction: "prev" | "next") => {
+    if (!user) return;
+    try {
+      let q = supabase
+        .from("invoices")
+        .select("id, invoice_number, created_at")
+        .eq("user_id", user.id)
+        .eq("invoice_type", form.type === "sales" ? "sale" : "purchase");
+      const cursor = (window as any).__invoiceCreatedAt as string | undefined;
+      if (isEditMode && cursor) {
+        if (direction === "prev") {
+          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
+        } else {
+          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
+        }
+      } else {
+        q = q.order("created_at", { ascending: direction !== "prev" });
+      }
+      const { data, error } = await q.limit(1);
+      if (error) throw error;
+      const target = (data as any[] | null || [])[0];
+      if (!target) {
+        toast({ title: direction === "prev" ? "لا توجد فاتورة سابقة" : "لا توجد فاتورة تالية" });
+        return;
+      }
+      navigate(`/invoices/new?edit=${target.id}`);
+    } catch (err: any) {
+      toast({ title: "تعذر التنقل بين الفواتير", description: err.message, variant: "destructive" });
+    }
+  };
+
   const invoiceActionTabs: ActionTab[] = useMemo(() => {
     const pageTitle = isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة";
     const inEdit = isEditMode;
