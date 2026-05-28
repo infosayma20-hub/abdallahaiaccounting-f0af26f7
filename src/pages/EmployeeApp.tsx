@@ -131,19 +131,11 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         setBranchName(br?.name || "");
       }
 
-      // Company logo — prefer company_settings (where users actually upload it),
-      // fall back to companies.logo_url. Resolved via team owner so all employees
-      // of the same tenant see the owner's company logo.
+      // Company logo — fetched via SECURITY DEFINER RPC so employees can see
+      // their tenant's logo even when RLS blocks direct reads on companies.
       try {
-        const { data: ownerId } = await supabase.rpc("get_team_owner_id");
-        const effectiveOwner = (ownerId as string) || user.id;
-        const [{ data: cs }, { data: comp }] = await Promise.all([
-          supabase.from("company_settings").select("logo_url").eq("user_id", effectiveOwner).maybeSingle(),
-          emp.company_id
-            ? supabase.from("companies").select("logo_url").eq("id", emp.company_id).maybeSingle()
-            : Promise.resolve({ data: null as any }),
-        ]);
-        setCompanyLogo((cs as any)?.logo_url || (comp as any)?.logo_url || null);
+        const { data: logo } = await supabase.rpc("get_tenant_company_logo");
+        setCompanyLogo((logo as string) || null);
       } catch {
         setCompanyLogo(null);
       }
