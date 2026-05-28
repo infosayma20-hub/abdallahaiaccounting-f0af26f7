@@ -328,9 +328,11 @@ export function useNotifications() {
 
     const priority = { urgent: 0, warning: 1, info: 2 };
     notifs.sort((a, b) => priority[a.category] - priority[b.category]);
-    setNotifications(notifs);
+    // Apply persisted read state so dismissed notifications stay dismissed
+    const readIds = loadReadIds();
+    setNotifications(notifs.map(n => readIds.has(n.id) ? { ...n, read: true } : n));
     setLoading(false);
-  }, [user]);
+  }, [user, loadReadIds]);
 
   // Realtime subscription for qamar_orders changes
   useEffect(() => {
@@ -359,10 +361,17 @@ export function useNotifications() {
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    const ids = loadReadIds(); ids.add(id); saveReadIds(ids);
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      const ids = loadReadIds();
+      next.forEach(n => ids.add(n.id));
+      saveReadIds(ids);
+      return next;
+    });
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
