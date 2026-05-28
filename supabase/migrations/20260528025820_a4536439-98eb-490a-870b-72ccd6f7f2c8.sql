@@ -1,0 +1,1 @@
+GRANT SELECT, UPDATE ON public.malaki_portal_users TO authenticated; GRANT ALL ON public.malaki_portal_users TO service_role;
