@@ -270,6 +270,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
   // Bug #6: amount input ref + highlight after contact selection
   const amountInputRef = useRef<HTMLInputElement>(null);
+  // Ref always pointing to the latest handleSave (defined far below).
+  // ActionPane onClick handlers must call through this ref because the
+  // ActionPane tabs are memoized and would otherwise capture a stale
+  // handleSave closure with amount="" → "الرجاء إدخال المبلغ" bug.
+  const handleSaveRef = useRef<((asDraft?: boolean) => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
   // Focus + highlight helper used by contact pickers
   const focusAmountField = useCallback(() => {
@@ -380,16 +385,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             variant: isReadOnly ? ("primary" as const) : undefined,
             onClick: () => setIsReadOnly(prev => !prev) },
           { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
-            onClick: () => handleSave(false), disabled: isReadOnly,
+            onClick: () => handleSaveRef.current?.(false), disabled: isReadOnly,
             tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
           { key: "delete", label: "إلغاء السند", icon: Trash2,
             onClick: () => setShowCancelModal(true) },
         ]}
       : { key: "save", label: "حفظ", items: [
           { key: "draft", label: "حفظ مسودة", icon: Save,
-            onClick: () => handleSave(true) },
+            onClick: () => handleSaveRef.current?.(true) },
           { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
-            onClick: () => handleSave(false) },
+            onClick: () => handleSaveRef.current?.(false) },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
       { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrint() },
@@ -458,12 +463,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
       e.preventDefault();
       if (saving || isReadOnly) return;
-      handleSave(false);
+      handleSaveRef.current?.(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // handleSave is recreated each render; we intentionally read latest via closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saving, isReadOnly]);
 
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
@@ -2149,6 +2152,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       setSaving(false);
     }
   };
+
+  // Keep the ref pointed at the latest handleSave so that memoized
+  // ActionPane tabs and the Ctrl+Enter listener always see fresh state.
+  handleSaveRef.current = handleSave;
 
   const handlePrint = () => {
     const partyName = partyType === "employee" && selectedEmployee
