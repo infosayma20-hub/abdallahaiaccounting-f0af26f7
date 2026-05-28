@@ -843,17 +843,17 @@ const JournalNewPage = () => {
           </div>
 
           <div className="rounded-xl border border-border overflow-hidden">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
-                  <th className="p-2.5 text-white font-medium w-10">#</th>
-                  <th className="p-2.5 text-white font-medium w-24">رقم الحساب</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "26%" }}>الحساب / الجهة</th>
-                  <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
-                  <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "16%" }}>تعليق</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "16%" }}>مركز التكلفة</th>
-                  <th className="p-2.5 w-10"></th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] w-12">#</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "14%" }}>رقم الحساب</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "24%" }}>الحساب / الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "16%" }}>مركز التكلفة</th>
+                  <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
               <tbody>
