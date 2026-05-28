@@ -415,132 +415,154 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       case "employee_info":
         return (
           <>
-            <p className="text-[11px] text-muted-foreground bg-primary/5 rounded-xl p-2.5 leading-relaxed">
-              املأ معلوماتك الأساسية ليتم تحديث ملفك في HR. هذه البيانات سيراها الإدارة ومدير الموارد البشرية ويقارنوها مع سجلاتنا.
-            </p>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الاسم الكامل *</label>
-              <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl" />
+            <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <UserCog className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-bold">تحديث بياناتك الشخصية</h3>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                عبّي البيانات الناقصة فقط، خذ وقتك. كل حقل عليه ⭐ ضروري، والباقي اختياري.
+                سيراجعها قسم الموارد البشرية ويحدّث ملفك مباشرة.
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">تاريخ الميلاد *</label>
-                <Input type="date" value={formData.date_of_birth || ""} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl" />
+
+            {/* Section 1: Identity */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-primary">
+                <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">1</span>
+                <h4 className="text-sm font-semibold">معلوماتك الأساسية</h4>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">تاريخ البداية في الملكي *</label>
-                <Input type="date" value={formData.malaky_start_date || ""} onChange={e => setFormData(p => ({ ...p, malaky_start_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+                <label className="text-xs font-medium mb-1.5 block">الاسم الكامل (رباعي) <span className="text-destructive">⭐</span></label>
+                <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl h-11" placeholder="مثال: محمد أحمد علي حسن" />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">رقم الهوية الشخصية <span className="text-destructive">⭐</span></label>
+                <Input inputMode="numeric" value={formData.id_number || ""} onChange={e => setFormData(p => ({ ...p, id_number: e.target.value.replace(/\D/g, "").slice(0, 9) }))} dir="ltr" className="rounded-xl h-11" placeholder="9 أرقام" />
+                <p className="text-[10px] text-warning mt-1">💡 رقم هويتك الشخصية وليس رقم البصمة في الجهاز</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">تاريخ الميلاد <span className="text-destructive">⭐</span></label>
+                <Input type="date" value={formData.date_of_birth || ""} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl h-11" />
               </div>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب *</label>
-              <div className="flex gap-2" dir="ltr">
-                <Select
-                  value={formData.whatsapp_prefix || "+972"}
-                  onValueChange={(v) => setFormData(p => ({ ...p, whatsapp_prefix: v }))}
-                >
-                  <SelectTrigger className="w-[100px] rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="+972">🇮🇱 +972</SelectItem>
-                    <SelectItem value="+970">🇵🇸 +970</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  inputMode="numeric"
-                  value={formData.whatsapp_local || ""}
-                  onChange={e => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
-                    setFormData(p => ({
-                      ...p,
-                      whatsapp_local: digits,
-                      whatsapp: `${p.whatsapp_prefix || "+972"}${digits.replace(/^0/, "")}`,
-                    }));
-                  }}
-                  className="rounded-xl flex-1"
-                  placeholder="59XXXXXXX"
-                />
+
+            {/* Section 2: Contact */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 text-primary">
+                <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">2</span>
+                <h4 className="text-sm font-semibold">رقم الواتساب</h4>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">بدون الصفر في البداية — مثال: 591234567</p>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">الرقم اللي بتستقبل عليه واتساب <span className="text-destructive">⭐</span></label>
+                <div className="flex gap-2" dir="ltr">
+                  <Select
+                    value={formData.whatsapp_prefix || "+972"}
+                    onValueChange={(v) => setFormData(p => ({ ...p, whatsapp_prefix: v, whatsapp: `${v}${(p.whatsapp_local || "").replace(/^0/, "")}` }))}
+                  >
+                    <SelectTrigger className="w-[110px] rounded-xl h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="+972">🇮🇱 +972</SelectItem>
+                      <SelectItem value="+970">🇵🇸 +970</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    inputMode="numeric"
+                    value={formData.whatsapp_local || ""}
+                    onChange={e => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setFormData(p => ({
+                        ...p,
+                        whatsapp_local: digits,
+                        whatsapp: `${p.whatsapp_prefix || "+972"}${digits.replace(/^0/, "")}`,
+                      }));
+                    }}
+                    className="rounded-xl flex-1 h-11"
+                    placeholder="591234567"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">💡 بدون الصفر في البداية</p>
+              </div>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">رقم الهوية *</label>
-              <Input value={formData.id_number || ""} onChange={e => setFormData(p => ({ ...p, id_number: e.target.value }))} dir="ltr" className="rounded-xl" />
-              <p className="text-[10px] text-warning mt-1">⚠️ رقم الهوية الشخصية (وليس رقم البصمة) — 9 خانات</p>
-            </div>
-             <div>
-               <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
-               <div className="grid grid-cols-2 gap-2">
-                 {["أعزب", "متزوج", "مطلق", "أرمل"].map(v => (
-                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, marital_status: v }))}
-                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.marital_status === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
-                     {v}
-                   </button>
-                 ))}
-               </div>
-             </div>
-            {(formData.marital_status === "متزوج" || formData.marital_status === "مطلق" || formData.marital_status === "أرمل") && (
+
+            {/* Section 3: Work */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 text-primary">
+                <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">3</span>
+                <h4 className="text-sm font-semibold">معلومات العمل</h4>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">تاريخ بدايتك بالعمل في الملكي <span className="text-destructive">⭐</span></label>
+                <Input type="date" value={formData.malaky_start_date || ""} onChange={e => setFormData(p => ({ ...p, malaky_start_date: e.target.value }))} dir="ltr" className="rounded-xl h-11" />
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">اسم الزوج/الزوجة</label>
-                  <Input value={formData.spouse_name || ""} onChange={e => setFormData(p => ({ ...p, spouse_name: e.target.value }))} className="rounded-xl" />
+                  <label className="text-xs font-medium mb-1.5 block">الفرع</label>
+                  <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">عدد الأطفال</label>
-                  <Input type="number" min={0} value={formData.children_count || ""} onChange={e => setFormData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="0" />
+                  <label className="text-xs font-medium mb-1.5 block">القسم</label>
+                  <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
                 </div>
               </div>
-            )}
-            <div className="rounded-xl border border-dashed border-border p-3 space-y-2">
-              <p className="text-[11px] font-semibold text-foreground">📋 رصيد الإجازات (حسب اعتقادك)</p>
-              <p className="text-[10px] text-muted-foreground">سنقارن هذه الأرقام مع سجلاتنا للتأكد من التطابق.</p>
+            </div>
+
+            {/* Section 4: Family */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 text-primary">
+                <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">4</span>
+                <h4 className="text-sm font-semibold">الحالة الاجتماعية</h4>
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">رصيد الإجازات السنوية المتبقي (أيام) *</label>
-                  <Input type="number" min={0} step="0.5" value={formData.annual_leave_remaining_claimed || ""} onChange={e => setFormData(p => ({ ...p, annual_leave_remaining_claimed: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="0" />
+                {["أعزب", "متزوج", "مطلق", "أرمل"].map(v => (
+                  <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, marital_status: v }))}
+                    className={`py-3 rounded-xl border text-sm font-medium transition-all ${formData.marital_status === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              {(formData.marital_status === "متزوج" || formData.marital_status === "مطلق" || formData.marital_status === "أرمل") && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block">اسم الزوج/الزوجة</label>
+                    <Input value={formData.spouse_name || ""} onChange={e => setFormData(p => ({ ...p, spouse_name: e.target.value }))} className="rounded-xl h-11" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block">عدد الأبناء</label>
+                    <Input type="number" min={0} value={formData.children_count || ""} onChange={e => setFormData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl h-11" placeholder="0" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">عدد أيام الإجازات المرضية المأخوذة *</label>
-                  <Input type="number" min={0} step="0.5" value={formData.sick_days_taken_claimed || ""} onChange={e => setFormData(p => ({ ...p, sick_days_taken_claimed: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="0" />
-                </div>
-              </div>
+              )}
             </div>
-             <div>
-               <label className="text-xs text-muted-foreground mb-1 block">المستوى التعليمي</label>
-               <div className="grid grid-cols-3 gap-2">
-                 {["ثانوي", "دبلوم", "بكالوريوس", "ماجستير", "دكتوراه"].map(v => (
-                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, education: v }))}
-                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.education === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
-                     {v}
-                   </button>
-                 ))}
-               </div>
-             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
-                <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
+
+            {/* Section 5: Attachment */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 text-primary">
+                <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">5</span>
+                <h4 className="text-sm font-semibold">صورة الهوية <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span></h4>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
-                <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">الشفت</label>
-                <Input value={formData.shift || ""} onChange={e => setFormData(p => ({ ...p, shift: e.target.value }))} className="rounded-xl" />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
-              <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" placeholder="أي معلومة إضافية..." />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">صورة الهوية / صورة شخصية (اختياري)</label>
-              <label className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                <Upload className="h-5 w-5 text-muted-foreground" />
-                <span className="text-xs text-primary">اختر صورة</span>
-                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
+              <label className="border-2 border-dashed border-border rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                {uploadingFile ? (
+                  <>
+                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                    <span className="text-xs text-muted-foreground">جاري الرفع…</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-xs text-primary font-medium">اضغط لاختيار صورة من جهازك</span>
+                    <span className="text-[10px] text-muted-foreground">صورة أو PDF</span>
+                  </>
+                )}
+                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" disabled={uploadingFile} />
               </label>
-              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
+              {formData.attachment_url && <p className="text-xs text-emerald-500 flex items-center gap-1">✅ تم رفع الملف بنجاح</p>}
+            </div>
+
+            {/* Notes */}
+            <div className="pt-2">
+              <label className="text-xs font-medium mb-1.5 block">ملاحظات إضافية <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span></label>
+              <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" placeholder="أي معلومة بدك توصلها للموارد البشرية..." />
             </div>
           </>
         );
