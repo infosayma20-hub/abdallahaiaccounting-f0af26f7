@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 // useSearchParams imported below with useNavigate
-import PageHeader from "@/components/layout/PageHeader";
+import { FinanceShell } from "@/components/finance/shell/FinanceShell";
+import type { ActionTab } from "@/components/finance/shell/types";
 
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send, TrendingUp } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send, TrendingUp, RefreshCw, Home } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
