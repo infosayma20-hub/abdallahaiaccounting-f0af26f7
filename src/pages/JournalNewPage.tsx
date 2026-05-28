@@ -586,8 +586,8 @@ const JournalNewPage = () => {
       subtitle="إنشاء وتعديل القيود المحاسبية اليدوية"
       breadcrumb={[
         { label: "المالية", href: "/accounting-center" },
-        { label: "سندات القيد", href: "/finance/journals" },
-        { label: "قيد جديد" },
+        { label: "القيود اليومية", href: "/finance/journals" },
+        { label: "قيد يومي جديد" },
       ]}
       actionTabs={actionTabs}
     >
@@ -743,7 +743,7 @@ const JournalNewPage = () => {
       </div>
 
       {/* ═══ RIGHT COLUMN — Sticky Balance Summary (4 cols) ═══ */}
-      <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
+      <aside className="lg:col-span-4 lg:row-span-3 lg:sticky lg:top-4 self-start w-full">
         <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
             <Scale className="h-4 w-4 text-primary" />
