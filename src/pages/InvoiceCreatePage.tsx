@@ -2,15 +2,15 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
-  Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
+  Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle, CheckCircle,
+  Pencil, Lock, Copy, Printer, ChevronRight, ChevronLeft, ListChecks, Calculator,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
   Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import PageHeader from "@/components/layout/PageHeader";
-import VoucherNavToolbar from "@/components/VoucherNavToolbar";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
