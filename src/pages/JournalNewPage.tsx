@@ -172,7 +172,7 @@ const JournalNewPage = () => {
     journalDraftSnapshot,
     applyJournalDraft,
     {
-      enabled: !fromDuplicate,
+      enabled: !fromDuplicate && !editingVoucherId,
       version: 1,
       isEmpty: isJournalDraftEmpty,
       routePath: "/finance/journal/new",
