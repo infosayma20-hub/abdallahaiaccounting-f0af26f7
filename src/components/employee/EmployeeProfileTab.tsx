@@ -71,12 +71,17 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
   const { signOut, user } = useAuth();
   const f = latestInfoForm || {};
   const [pwdOpen, setPwdOpen] = useState(false);
+  const [oldPwd, setOldPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleChangePassword = async () => {
+    if (!oldPwd) {
+      toast.error("أدخل كلمة المرور الحالية");
+      return;
+    }
     if (newPwd.length < 8) {
       toast.error("كلمة المرور لازم تكون 8 أحرف على الأقل");
       return;
@@ -85,7 +90,27 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
       toast.error("كلمة المرور غير متطابقة");
       return;
     }
+    if (newPwd === oldPwd) {
+      toast.error("كلمة المرور الجديدة لازم تكون مختلفة عن الحالية");
+      return;
+    }
+    const email = user?.email;
+    if (!email) {
+      toast.error("لا يوجد بريد إلكتروني مرتبط بحسابك");
+      return;
+    }
     setSaving(true);
+    // 1) تحقق من كلمة المرور الحالية عبر تسجيل دخول صامت
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email,
+      password: oldPwd,
+    });
+    if (verifyError) {
+      setSaving(false);
+      toast.error("كلمة المرور الحالية غير صحيحة");
+      return;
+    }
+    // 2) تحديث كلمة المرور
     const { error } = await supabase.auth.updateUser({ password: newPwd });
     setSaving(false);
     if (error) {
@@ -94,6 +119,7 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
     }
     toast.success("تم تغيير كلمة المرور بنجاح");
     setPwdOpen(false);
+    setOldPwd("");
     setNewPwd("");
     setConfirmPwd("");
   };
@@ -237,6 +263,15 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">كلمة المرور الحالية</Label>
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={oldPwd}
+                onChange={(e) => setOldPwd(e.target.value)}
+                placeholder="كلمة المرور الحالية"
+              />
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">كلمة المرور الجديدة</Label>
               <div className="relative">
