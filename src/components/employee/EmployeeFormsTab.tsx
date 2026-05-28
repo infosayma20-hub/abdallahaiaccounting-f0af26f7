@@ -186,8 +186,15 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       toast({ title: "خطأ في رفع الملف", description: error.message, variant: "destructive" });
       return;
     }
-    const { data: urlData } = supabase.storage.from("employee-forms").getPublicUrl(path);
-    setFormData(prev => ({ ...prev, attachment_url: urlData.publicUrl }));
+    // Bucket is private — create a long-lived signed URL so HR can view the file later
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("employee-forms")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 5); // 5 years
+    if (signErr || !signed?.signedUrl) {
+      toast({ title: "تم الرفع لكن تعذر إنشاء رابط العرض", description: signErr?.message || "", variant: "destructive" });
+      return;
+    }
+    setFormData(prev => ({ ...prev, attachment_url: signed.signedUrl, attachment_path: path }));
     toast({ title: "تم رفع الملف ✅" });
   };
 
