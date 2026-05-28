@@ -92,6 +92,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab || "home");
+  const [pendingFormId, setPendingFormId] = useState<string | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
@@ -330,6 +331,8 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             isManager={employee.is_manager || false}
             isHrManager={employee.is_hr_manager || false}
             onRefresh={fetchData}
+            initialFormId={pendingFormId}
+            onInitialFormConsumed={() => setPendingFormId(null)}
           />
         )}
 
@@ -338,7 +341,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             employee={employee}
             branchName={branchName}
             latestInfoForm={latestInfoForm}
-            onUpdateInfo={() => setActiveTab("forms")}
+            onUpdateInfo={() => { setPendingFormId("employee_info"); setActiveTab("forms"); }}
           />
         )}
       </div>

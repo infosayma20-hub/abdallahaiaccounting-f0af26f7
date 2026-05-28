@@ -26,6 +26,8 @@ interface Props {
   isManager: boolean;
   isHrManager: boolean;
   onRefresh: () => void;
+  initialFormId?: string | null;
+  onInitialFormConsumed?: () => void;
 }
 
 type FormCard = {
@@ -75,7 +77,7 @@ const statusLabel = (s: string) => {
   }
 };
 
-export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrManager, onRefresh }: Props) {
+export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrManager, onRefresh, initialFormId, onInitialFormConsumed }: Props) {
   const [activeForm, setActiveForm] = useState<string | null>(null);
   const [activePolicy, setActivePolicy] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -97,6 +99,14 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     fetchOwnerSettings();
     fetchEmployeeProfile();
   }, [employeeId]);
+
+  // Auto-open requested form (e.g. when user taps "تحديث معلوماتي" from profile)
+  useEffect(() => {
+    if (initialFormId) {
+      setActiveForm(initialFormId);
+      onInitialFormConsumed?.();
+    }
+  }, [initialFormId]);
 
   const fetchOwnerSettings = async () => {
     // Get team owner id for this employee
