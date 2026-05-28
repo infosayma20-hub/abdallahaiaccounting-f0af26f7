@@ -1579,7 +1579,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         // Direct transaction for account party type or foreign currency
         const debitCode = depositAccountCode;
         const creditCode = counterAccountCode;
-        const { data: txData } = await supabase.from("transactions").insert({
+        const { data: txData, error: txErr } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: paymentDate,
           description: notes || `سند قبض - ${selectedGlAccount?.account_name || selectedContact?.contact_name || ""}`,
@@ -1597,7 +1597,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           cost_center_name: selectedWorkshop?.name || null,
           cost_center_id: costCenterId,
         } as any).select("id").single();
+        if (txErr) throw txErr;
         txId = txData?.id || null;
+      }
+
+      // GUARD: never insert a posted receipt voucher without an accounting entry.
+      // Prevents the silent orphan that produced REC-2026-0001 (linked_transaction_id NULL while status=posted).
+      if (!asDraft && isReceipt && !txId) {
+        throw new Error("فشل ترحيل سند القبض: لم يتم إنشاء القيد المحاسبي. الرجاء المحاولة مرة أخرى.");
       }
 
       if (!asDraft && !isReceipt) {
