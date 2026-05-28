@@ -53,6 +53,12 @@ export interface JournalSaveInput {
   mode?: "draft" | "posted" | "deferred";
   attachments?: any[];
   line_sort_order?: "debit_first" | "original";
+  /** Currency label (Arabic), e.g. "شيكل" / "دولار" / "دينار" / "يورو". Default "شيكل" (ILS). */
+  currency_label?: string;
+  /** Currency code (ISO-ish), e.g. "ILS" / "USD" / "JOD" / "EUR". Default "ILS". */
+  currency_code?: string;
+  /** Exchange rate to ILS (1 unit of currency_code = N ILS). Required when currency_code != "ILS". */
+  exchange_rate?: number;
 }
 
 export interface JournalSaveResult {
@@ -95,8 +101,13 @@ function buildTransactionsFromLines(args: {
   voucherId: string;
   voucherContactId?: string | null;
   voucherCostCenterId?: string | null;
+  currencyLabel: string;
+  currencyCode: string;
+  exchangeRate: number;
 }): { txns: any[]; usedClearing: boolean } {
-  const { userId, date, description, lines, txType, reference, voucherId, voucherContactId, voucherCostCenterId } = args;
+  const { userId, date, description, lines, txType, reference, voucherId, voucherContactId, voucherCostCenterId, currencyLabel, currencyCode, exchangeRate } = args;
+  const isForeign = currencyCode !== "ILS";
+  const rate = isForeign ? (Number(exchangeRate) || 1) : 1;
 
   const cleanContact = (c?: string | null) =>
     c && c !== "__none__" ? c : null;
@@ -138,8 +149,10 @@ function buildTransactionsFromLines(args: {
             : description,
           debit_account_code: dl.account_code,
           credit_account_code: PARTY_TRANSFER_CLEARING_CODE,
-          amount,
-          currency: "ILS",
+          amount: amount * rate,
+          currency: currencyLabel,
+          foreign_amount: isForeign ? amount : null,
+          exchange_rate: isForeign ? rate : null,
           transaction_type: txType,
           reference,
           contact_id: dContact,
@@ -154,8 +167,10 @@ function buildTransactionsFromLines(args: {
             : description,
           debit_account_code: PARTY_TRANSFER_CLEARING_CODE,
           credit_account_code: cl.account_code,
-          amount,
-          currency: "ILS",
+          amount: amount * rate,
+          currency: currencyLabel,
+          foreign_amount: isForeign ? amount : null,
+          exchange_rate: isForeign ? rate : null,
           transaction_type: txType,
           reference,
           contact_id: cContact,
@@ -171,8 +186,10 @@ function buildTransactionsFromLines(args: {
           description: contactName ? `${description} - ${contactName}` : description,
           debit_account_code: dl.account_code,
           credit_account_code: cl.account_code,
-          amount,
-          currency: "ILS",
+          amount: amount * rate,
+          currency: currencyLabel,
+          foreign_amount: isForeign ? amount : null,
+          exchange_rate: isForeign ? rate : null,
           transaction_type: txType,
           reference,
           contact_id: lineContactId,
