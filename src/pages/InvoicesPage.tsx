@@ -936,8 +936,9 @@ const InvoicesPage = () => {
     return true;
   });
 
-  const salesTotal = invoices.filter(i => i.type === "sales").reduce((s, i) => s + i.total, 0);
-  const purchaseTotal = invoices.filter(i => i.type === "purchase").reduce((s, i) => s + i.total, 0);
+  // Bug #4: KPI cards must exclude cancelled invoices
+  const salesTotal = invoices.filter(i => i.type === "sales" && i.status !== "cancelled").reduce((s, i) => s + i.total, 0);
+  const purchaseTotal = invoices.filter(i => i.type === "purchase" && i.status !== "cancelled").reduce((s, i) => s + i.total, 0);
 
   const PAGE_SIZE = 15;
 
