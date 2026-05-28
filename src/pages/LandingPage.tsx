@@ -424,6 +424,124 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Integrations */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">INTEGRATIONS</div>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">يتكامل مع أدوات شغلك اليومية</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">نظام ERP مفتوح يتصل بكل ما تحتاجه</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {[
+              { name: "WhatsApp", desc: "كشوف حساب مباشرة" },
+              { name: "ZKTeco K40", desc: "بصمة الحضور" },
+              { name: "Yeastar P550", desc: "هاتف POS" },
+              { name: "Thermal Printers", desc: "طباعة حرارية" },
+              { name: "Google Sheets", desc: "تصدير مباشر" },
+              { name: "Excel · PDF", desc: "تصدير كامل" },
+              { name: "Email · SMTP", desc: "بريد ترانزاكشن" },
+              { name: "Webhooks", desc: "ربط مخصص" },
+              { name: "REST API", desc: "تكامل تطبيقات" },
+              { name: "Delivery Apps", desc: "ربط التوصيل" },
+              { name: "Barcode Scanners", desc: "USB · Bluetooth" },
+              { name: "Multi-Currency API", desc: "أسعار صرف لحظية" },
+            ].map((i) => (
+              <div key={i.name} className="bg-[#fafbfc] border border-[#e8ecf1] rounded-2xl p-5 hover:border-[#3b82f6]/30 hover:bg-white transition-all">
+                <div className="font-black font-latin text-[#0D1B2E] text-sm mb-1">{i.name}</div>
+                <div className="text-xs font-bold text-[#0D1B2E]/50">{i.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Security & Compliance */}
+      <section className="py-24 px-6 bg-[#0D1B2E] text-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-white/10 text-white px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">SECURITY · COMPLIANCE</div>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">أمان بمعايير المؤسسات الكبرى</h2>
+            <p className="text-white/60 font-bold text-lg max-w-2xl mx-auto">بياناتك المالية أهم شي عنا. حماية متعددة الطبقات بمعايير عالمية.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: "🔐", title: "تشفير AES-256", desc: "كل البيانات مشفّرة في الراحة والنقل" },
+              { icon: "🛡️", title: "عزل متعدد المستأجرين", desc: "RLS صارم — مستحيل تشوف بيانات شركة ثانية" },
+              { icon: "📋", title: "سجل تدقيق كامل", desc: "كل تعديل مالي مُسجّل ومُؤرشف للأبد" },
+              { icon: "💾", title: "نسخ احتياطية يومية", desc: "نسخ مؤتمتة + استعادة فورية" },
+              { icon: "✅", title: "متوافق مع IFRS", desc: "قيود عكسية وفصل فترات مالية" },
+              { icon: "🔒", title: "حسابات محمية", desc: "22 حساب نظامي لا يمكن حذفه أو العبث به" },
+              { icon: "👥", title: "أدوار وصلاحيات", desc: "8 أدوار جاهزة + تخصيص لكل مستخدم" },
+              { icon: "🇵🇸", title: "بيانات محفوظة محلياً", desc: "خوادم آمنة تخدم السوق العربي والفلسطيني" },
+            ].map((s) => (
+              <div key={s.title} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
+                <div className="text-3xl mb-3">{s.icon}</div>
+                <div className="font-black mb-2">{s.title}</div>
+                <div className="text-sm font-bold text-white/60 leading-relaxed">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-black mb-4">أسئلة شائعة</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">كل اللي بتفكر فيه قبل ما تبدأ</p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { q: "هل النظام مناسب للشركات الصغيرة أم الكبيرة؟", a: "أموالي ERP يخدم الاثنين. ابدأ بمستخدم واحد ومحل صغير، وكبّر لـ +50 مستخدم وعدة فروع بنفس النظام بدون ما تغيّر شي." },
+              { q: "هل يعمل بدون إنترنت؟", a: "نقاط البيع POS تشتغل كامل بدون إنترنت (IndexedDB) ولما يرجع الإنترنت بتتزامن البيانات تلقائياً. باقي النظام يحتاج اتصال." },
+              { q: "هل يدعم ضريبة فلسطين 16% فعلاً؟", a: "نعم — مبني خصيصاً للضريبة الفلسطينية. شامل، غير شامل، تقارير ضريبية معتمدة، وحسابات ضريبة مدخلات/مخرجات منفصلة." },
+              { q: "هل بياناتي بأمان؟", a: "تشفير AES-256، عزل صارم بين الشركات (RLS)، نسخ احتياطية يومية، وسجل تدقيق كامل لكل عملية مالية." },
+              { q: "كم تأخذ عملية الترحيل من نظامي القديم؟", a: "فريقنا الفلسطيني يساعدك مجاناً في ترحيل بياناتك (عملاء، موردين، أرصدة افتتاحية، مخزون) خلال 3-7 أيام عمل." },
+              { q: "هل في تدريب؟", a: "نعم — جلسات تدريبية مجانية بالعربي، فيديوهات شرح، ومركز مساعدة كامل. زائد دعم فني عربي 24/7." },
+              { q: "هل أقدر ألغي اشتراكي؟", a: "نعم في أي وقت بدون رسوم. بياناتك بتضل عندك قابلة للتصدير الكامل." },
+              { q: "هل عندكم تطبيق جوال؟", a: "أكيد — تطبيق PWA يشتغل على iOS وAndroid، زائد بوابة موظف مخصصة وبوابة مالك للمتابعة من أي مكان." },
+            ].map((item, i) => (
+              <details key={i} className="bg-[#fafbfc] border border-[#e8ecf1] rounded-2xl p-6 group">
+                <summary className="font-black text-lg cursor-pointer list-none flex items-center justify-between">
+                  <span>{item.q}</span>
+                  <span className="text-[#3b82f6] text-2xl group-open:rotate-45 transition-transform">+</span>
+                </summary>
+                <p className="mt-4 text-[#0D1B2E]/70 font-medium leading-relaxed">{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Roadmap */}
+      <section className="py-24 px-6 bg-[#fafbfc]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">ROADMAP 2026</div>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">نظام بيكبر معك</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">شو جاي في الأشهر القادمة</p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { status: "متوفر الآن", color: "bg-green-500", title: "نظام ERP كامل + حسيب AI", desc: "محاسبة، POS، HR، مخازن، شيكات، ضريبة 16%، ومحاسب ذكي." },
+              { status: "قريباً Q3", color: "bg-[#3b82f6]", title: "تطبيق جوال أصلي iOS/Android", desc: "تطبيق native مع notifications وعمل offline موسّع." },
+              { status: "Q4", color: "bg-amber-500", title: "تكامل البنوك الفلسطينية", desc: "ربط مباشر مع بنك فلسطين والقدس والعربي لاستيراد الحركات." },
+              { status: "2027", color: "bg-purple-500", title: "فوترة إلكترونية رسمية", desc: "ربط مباشر مع منظومة الفوترة الإلكترونية الفلسطينية المرتقبة." },
+            ].map((r, i) => (
+              <div key={i} className="bg-white border border-[#e8ecf1] rounded-2xl p-6 flex items-center gap-6">
+                <div className={`${r.color} text-white text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap`}>{r.status}</div>
+                <div className="flex-1">
+                  <div className="font-black text-lg mb-1">{r.title}</div>
+                  <div className="text-sm font-bold text-[#0D1B2E]/60">{r.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="py-24 px-6 bg-[#0D1B2E] text-white rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto">
