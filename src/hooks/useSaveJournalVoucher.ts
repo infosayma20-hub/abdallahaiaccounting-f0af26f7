@@ -553,6 +553,9 @@ export function useSaveJournalVoucher() {
         (l) => (l.account_code || l.contact_id) && (Number(l.debit) > 0 || Number(l.credit) > 0)
       );
       const totalDebit = validLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+      const masterCodeU = input.currency_code || "ILS";
+      const masterRateU = masterCodeU === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
+      const totalDebitIlsU = totalDebit * masterRateU;
 
       // تحديث الـ master — نُنزّل الحالة إلى draft مؤقتاً عند إعادة الترحيل
       // حتى لا يفشل trigger guard_voucher_must_have_journal بسبب
@@ -568,7 +571,7 @@ export function useSaveJournalVoucher() {
           contact_id: input.contact_id || null,
           cost_center_id: input.cost_center_id || null,
           amount: totalDebit,
-          amount_ils: totalDebit,
+          amount_ils: totalDebitIlsU,
           description: input.description.trim(),
           notes: input.notes || null,
           status: intermediateStatusU,
