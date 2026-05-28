@@ -1814,6 +1814,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const violationNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
         const empDesc = isEmpPay ? `${categoryLabel} - ${selectedEmployee.full_name}${violationNote}` : "";
 
+        // GUARD: never insert a posted payment voucher without an accounting entry.
+        if (!asDraft && !txId) {
+          throw new Error("فشل ترحيل سند الصرف: لم يتم إنشاء القيد المحاسبي. الرجاء المحاولة مرة أخرى.");
+        }
+
         const { data: voucher, error: voucherError } = await supabase
           .from("vouchers")
           .insert({
