@@ -904,6 +904,43 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Newsletter */}
+      <section className="py-20 px-6 bg-white border-t border-[#e8ecf1]">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">STAY INFORMED</div>
+          <h2 className="text-3xl md:text-4xl font-black mb-4">اشترك بالنشرة البريدية</h2>
+          <p className="text-[#0D1B2E]/60 font-bold mb-8">أهم تحديثات الـ ERP، نصائح محاسبية، وإعلانات الميزات الجديدة — مرة بالشهر بالعربي.</p>
+          {!newsletterSent ? (
+            <form
+              onSubmit={(e) => { e.preventDefault(); if (newsletterEmail.includes("@")) setNewsletterSent(true); }}
+              className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+            >
+              <input
+                type="email"
+                required
+                placeholder="بريدك الإلكتروني"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                className="flex-1 px-5 py-3.5 rounded-xl border border-[#e8ecf1] bg-[#fafbfc] text-[#0D1B2E] font-bold placeholder:text-[#0D1B2E]/40 focus:outline-none focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20 transition-all"
+              />
+              <button
+                type="submit"
+                className="bg-[#0D1B2E] text-white px-6 py-3.5 rounded-xl font-black hover:bg-[#1a2e46] transition-all flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                اشترك
+              </button>
+            </form>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl mb-2">✓</div>
+              <p className="font-black text-green-800">تم الاشتراك بنجاح!</p>
+              <p className="text-green-700 font-bold text-sm mt-1">شيك على بريدك لتأكيد الاشتراك</p>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Footer */}
       <footer id="contact" className="bg-[#0D1B2E] text-white/40 pt-20 pb-10 px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
