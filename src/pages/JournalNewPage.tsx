@@ -83,6 +83,9 @@ const JournalNewPage = () => {
   const [formCostCenterId, setFormCostCenterId] = useState<string | null>(null);
   const [contactSearch, setContactSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [formCurrency, setFormCurrency] = useState("ILS");
+  const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
+  const [fetchingRate, setFetchingRate] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedRefNumber, setSavedRefNumber] = useState("");
   const [fastEntryEnabled] = useFastEntryMode();
