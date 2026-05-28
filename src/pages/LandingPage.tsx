@@ -124,7 +124,7 @@ const LandingPage = () => {
       `}</style>
 
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 glass-nav bg-white/70 px-6 py-4">
+      <nav className={`fixed top-0 w-full z-50 px-6 py-4 transition-all duration-300 ${navBg ? "glass-nav bg-white/70 shadow-lg shadow-[#0D1B2E]/5" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
