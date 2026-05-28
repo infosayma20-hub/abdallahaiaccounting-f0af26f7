@@ -268,6 +268,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  // Bug #6: amount input ref + highlight after contact selection
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const [highlightAmount, setHighlightAmount] = useState(false);
+  // Focus + highlight helper used by contact pickers
+  const focusAmountField = useCallback(() => {
+    setTimeout(() => {
+      amountInputRef.current?.focus();
+      amountInputRef.current?.select?.();
+      setHighlightAmount(true);
+      setTimeout(() => setHighlightAmount(false), 1400);
+    }, 50);
+  }, []);
   const [fastEntryEnabled] = useFastEntryMode();
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
