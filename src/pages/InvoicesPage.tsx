@@ -1150,8 +1150,8 @@ const InvoicesPage = () => {
   };
 
   const netTotal = salesTotal - purchaseTotal;
-  const paidTotal = invoices.reduce((s, i) => s + i.paidAmount, 0);
-  const unpaidTotal = invoices.reduce((s, i) => s + i.remainingAmount, 0);
+  const paidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.paidAmount, 0);
+  const unpaidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.remainingAmount, 0);
 
   const pageTitle = filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير";
   const actionTabs: ActionTab[] = [
