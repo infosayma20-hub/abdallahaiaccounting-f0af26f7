@@ -463,12 +463,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
       e.preventDefault();
       if (saving || isReadOnly) return;
-      handleSave(false);
+      handleSaveRef.current?.(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // handleSave is recreated each render; we intentionally read latest via closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saving, isReadOnly]);
 
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
