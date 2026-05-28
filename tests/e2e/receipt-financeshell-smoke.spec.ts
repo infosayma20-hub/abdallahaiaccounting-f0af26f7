@@ -42,10 +42,9 @@ test.describe("Receipt — FinanceShell smoke (Phase 1)", () => {
     await expect(page.locator("body")).toContainText(/سند قبض جديد/);
     await expect(page.locator("body")).toContainText(/المالية/);
 
-    // ActionPane tab ("عام")
-    await expect(page.getByRole("button", { name: "عام" }).first()).toBeVisible();
-
-    // Required action buttons (new mode)
+    // Required action buttons (new mode) — testids are stable across tab labels.
+    // Wait for at least one to appear (FinanceShell mounts after auth/cloud bootstrap).
+    await expect(page.locator('[data-testid="action-new"]')).toBeVisible({ timeout: 20_000 });
     const expectedNew = [
       "action-new",
       "action-draft",
