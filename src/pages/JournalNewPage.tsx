@@ -1110,10 +1110,10 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-credit={line.id}
-                        className="h-9 font-mono text-xs" placeholder="0"
+                        className="h-11 font-mono text-sm" placeholder="0"
                       />
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Input
                         value={line.line_comment || ""}
                         onChange={e => updateLine(line.id, "line_comment" as any, e.target.value)}
@@ -1124,12 +1124,12 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-memo={line.id}
-                        className="h-9 text-xs"
+                        className="h-11 text-sm"
                         placeholder="تعليق على هذا السطر..."
                       />
                     </td>
                     <td
-                      className="p-2.5"
+                      className="p-3"
                       onKeyDown={(e) => {
                         // Enter on the last row's cost-center cell creates a new row
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -1145,7 +1145,7 @@ const JournalNewPage = () => {
                         value={line.cost_center_id || null}
                         onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
                         placeholder={formCostCenterId ? "موروث من الرأس" : "بدون"}
-                        className="h-9 text-[11px]"
+                        className="h-11 text-sm"
                       />
                       {!line.cost_center_id && formCostCenterId && (
                         <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
@@ -1153,7 +1153,7 @@ const JournalNewPage = () => {
                         </p>
                       )}
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1165,9 +1165,9 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
-                  <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
-                  <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
+                  <td colSpan={3} className="p-3 text-sm font-bold">الإجمالي</td>
+                  <td className="p-3 font-mono text-sm">₪{formatAmount(totalDebit)}</td>
+                  <td className="p-3 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td colSpan={3}></td>
                 </tr>
               </tfoot>
