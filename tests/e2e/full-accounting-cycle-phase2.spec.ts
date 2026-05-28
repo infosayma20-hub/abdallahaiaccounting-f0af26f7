@@ -234,14 +234,29 @@ test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => 
 
   test("5) Click تعديل → change description → تحديث saves", async () => {
     await page.goto(`/finance/journal/new?edit=${postedVoucherId}`, { waitUntil: "domcontentloaded" });
+    // Wait for the voucher to fully load (read-only banner visible).
+    await expect(page.getByText("وضع العرض")).toBeVisible({ timeout: 20_000 });
+    // Dismiss any draft-restore banner if shown (common on re-open).
+    const dismissDraft = page.getByRole("button", { name: /تجاهل|إلغاء|متابعة بدون استرداد/ });
+    if (await dismissDraft.first().isVisible().catch(() => false)) {
+      await dismissDraft.first().click().catch(() => undefined);
+    }
+
+    // Toggle to edit mode and wait until update becomes enabled.
     await page.getByTestId("action-edit").click();
     await expect(page.getByText("وضع التعديل")).toBeVisible({ timeout: 10_000 });
+    const updateBtn = page.getByTestId("action-update");
+    await expect(updateBtn).toBeEnabled({ timeout: 10_000 });
 
     const desc = page.getByPlaceholder("مثال: سلفة راتب - رهام حسون").first();
     await expect(desc).toBeVisible();
     await desc.fill(DESC_EDITED);
+    // Blur the textarea so React state flushes before we click update.
+    await desc.blur();
+    await page.waitForTimeout(300);
+    await expect(updateBtn).toBeEnabled({ timeout: 10_000 });
 
-    await page.getByTestId("action-update").click();
+    await updateBtn.click();
     // Success toast (either "تم تحديث" or "تم ترحيل" depending on flow).
     await expect(page.locator("body")).toContainText(/تم (تحديث|حفظ|ترحيل)/, { timeout: 20_000 });
 
