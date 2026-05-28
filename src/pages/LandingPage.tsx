@@ -196,17 +196,10 @@ const LandingPage = () => {
 
           {/* Stats Strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            {[
-              { n: "+500", l: "شركة فلسطينية" },
-              { n: "+12", l: "وحدة ERP متكاملة" },
-              { n: "VAT 16%", l: "ضريبة فلسطينية" },
-              { n: "24/7", l: "دعم عربي" },
-            ].map((s) => (
-              <div key={s.l} className="bg-white border border-[#e8ecf1] rounded-2xl p-6">
-                <div className="text-3xl font-black text-[#3b82f6] font-latin mb-1">{s.n}</div>
-                <div className="text-sm font-bold text-[#0D1B2E]/60">{s.l}</div>
-              </div>
-            ))}
+            <StatCard target={500} suffix="+" label="شركة فلسطينية" />
+            <StatCard target={12} suffix="+" label="وحدة ERP متكاملة" />
+            <StatCard target={16} suffix="%" label="ضريبة فلسطينية" />
+            <StatCard target={99} suffix=".9%" label="وقت تشغيل" />
           </div>
 
           {/* Trust Strip */}
