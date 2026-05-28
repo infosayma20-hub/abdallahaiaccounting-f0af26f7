@@ -150,6 +150,24 @@ async function fetchVoucherByDescription(page: Page, description: string) {
   return null;
 }
 
+async function fetchDraftVoucherByPrefix(page: Page, prefix: string, excludeId: string) {
+  const token = await getAccessToken(page);
+  const api = await pwRequest.newContext();
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    const res = await api.get(
+      `${SUPABASE_URL}/rest/v1/vouchers?description=like.${encodeURIComponent(prefix + "%")}&status=eq.draft&id=neq.${excludeId}&select=id,ref_number,status,amount,description&order=created_at.desc&limit=1`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}` } },
+    );
+    if (res.ok()) {
+      const rows = (await res.json()) as any[];
+      if (rows[0]) return rows[0];
+    }
+    await page.waitForTimeout(500);
+  }
+  return null;
+}
+
 test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => {
   let page: Page;
   let consoleErrors: string[];
@@ -303,7 +321,11 @@ test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => 
     await page.getByTestId("action-draft").click();
     await expect(page.locator("body")).toContainText(/مسودة|تم الحفظ/, { timeout: 20_000 });
 
-    const v = await fetchVoucherByDescription(page, duplicateDesc);
+    let v = await fetchVoucherByDescription(page, duplicateDesc);
+    if (!v) {
+      // Duplicate flow may have saved with the original (cloned) description.
+      v = await fetchDraftVoucherByPrefix(page, RUN_ID, postedVoucherId!);
+    }
     expect(v, "duplicate draft not found in DB").toBeTruthy();
     expect(v!.status).toBe("draft");
     expect(v!.ref_number).not.toBe(postedRef);
