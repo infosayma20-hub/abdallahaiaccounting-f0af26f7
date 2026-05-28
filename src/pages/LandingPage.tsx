@@ -676,6 +676,16 @@ const LandingPage = () => {
           <span className="font-latin">Made in Palestine with ❤</span>
         </div>
       </footer>
+
+      {/* Sticky Mobile CTA */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#e8ecf1] p-3 shadow-2xl">
+        <Link
+          to="/auth?mode=signup"
+          className="block w-full text-center bg-[#3b82f6] text-white py-3.5 rounded-xl font-black shadow-lg shadow-blue-500/30"
+        >
+          جرّب أموالي ERP مجاناً ←
+        </Link>
+      </div>
     </div>
   );
 };
