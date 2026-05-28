@@ -1071,6 +1071,21 @@ const JournalNewPage = () => {
       </div>
 
       <div data-print-area>
+      {/* View-mode banner when an existing voucher is loaded */}
+      {editingVoucherId && (
+        <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`}>
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            <span>
+              {isReadOnly
+                ? `وضع العرض — السند ${formRefNumber}. اضغط "تعديل" للتعديل أو "إنشاء مشابه" لنسخه.`
+                : `وضع التعديل — السند ${formRefNumber}. اضغط "حفظ التعديلات" لحفظ التغييرات.`}
+            </span>
+          </div>
+          {loadingVoucher && <Loader2 className="h-4 w-4 animate-spin" />}
+        </div>
+      )}
+      <fieldset disabled={!!editingVoucherId && isReadOnly} className="contents min-w-0">
       {/* ═══════════════════════════════════════════════════════════════
           MASTER LAYOUT — Odoo / QuickBooks Journal style
           Left  (flex-1): Header → Lines → Description → Notes/Attachments
