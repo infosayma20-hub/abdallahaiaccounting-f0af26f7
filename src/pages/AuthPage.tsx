@@ -97,35 +97,56 @@ const AuthPage = () => {
     return "/apps";
   }, []);
 
+  const sendEmailResetLink = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      toast({ title: "أدخل بريدك الإلكتروني", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+    toast({
+      title: "تم إرسال الرابط ✅",
+      description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور.",
+    });
+    setMode("login");
+  };
+
+  const sendHrResetRequest = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      toast({ title: "أدخل بريدك الإلكتروني", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("password_reset_requests").insert({
+        email: cleanEmail,
+        reason: "طلب نسيت كلمة المرور من صفحة تسجيل الدخول",
+      });
+      if (error) throw error;
+      toast({
+        title: "تم إرسال طلبك ✅",
+        description: "تم إرسال طلبك إلى الموارد البشرية / إدارة شركتك.",
+      });
+      setMode("login");
+    } catch (err: any) {
+      toast({ title: "تعذر إرسال الطلب", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (mode === "forgot") {
-        const cleanEmail = email.trim().toLowerCase();
-        // نحاول أولاً إنشاء طلب داخلي (للموظفين المرتبطين بشركة فيها موارد بشرية).
-        const { error } = await supabase.from("password_reset_requests").insert({
-          email: cleanEmail,
-          reason: "طلب نسيت كلمة المرور من صفحة تسجيل الدخول",
-        });
-        if (!error) {
-          toast({
-            title: "تم إرسال طلبك ✅",
-            description: "تم إرسال طلب استعادة كلمة المرور إلى الموارد البشرية / إدارة شركتك.",
-          });
-          setMode("login");
-        } else {
-          // الإيميل غير مرتبط بموظف (مثل أصحاب الشركات/الأدمن) → نرجع للرابط عبر البريد الإلكتروني.
-          const { error: mailErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-            redirectTo: `${window.location.origin}/reset-password`,
-          });
-          if (mailErr) throw mailErr;
-          toast({
-            title: "تم إرسال الرابط ✅",
-            description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور.",
-          });
-          setMode("login");
-        }
+        // الزر الافتراضي للنموذج = إرسال رابط الاستعادة على البريد الإلكتروني.
+        await sendEmailResetLink();
+        return;
       } else if (mode === "signup") {
         if (password.length < 6) {
           toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
@@ -555,8 +576,27 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال طلب للإدارة"}
+                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة على البريد"}
               </button>
+
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  onClick={sendHrResetRequest}
+                  disabled={loading}
+                  className="w-full h-11 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                  style={{
+                    background: '#FFFFFF',
+                    color: '#0D1B2E',
+                    border: '1px solid #0D1B2E',
+                    fontWeight: 400,
+                    letterSpacing: '0.02em',
+                    fontFamily: 'Tajawal',
+                  }}
+                >
+                  إرسال طلب للإدارة (للموظفين)
+                </button>
+              )}
             </form>
 
             {/* Links */}
@@ -594,7 +634,7 @@ const AuthPage = () => {
               )}
               {mode === "forgot" && (
                 <p className="mt-3 text-xs leading-relaxed" style={{ color: '#8896A4', fontWeight: 300 }}>
-                  ملاحظة: إذا كنت موظفاً، سيتم إرسال طلبك مباشرةً إلى الموارد البشرية / إدارة شركتك فقط، ولن يصل لأي شركة أخرى.
+                  الزر الثاني مخصص للموظفين المرتبطين بشركة.
                 </p>
               )}
               <SamiChatbot inline />
