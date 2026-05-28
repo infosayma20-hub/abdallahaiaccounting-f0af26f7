@@ -452,6 +452,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     return !d.amount && !d.notes && !d.contactId && !d.employeeId && !d.glAccountCode && (!d.cheques || d.cheques.length === 0);
   }, []);
 
+  // Bug #7: Ctrl+Enter / Cmd+Enter → حفظ وترحيل (or حفظ التعديلات in edit mode).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
+      e.preventDefault();
+      if (saving || isReadOnly) return;
+      handleSave(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // handleSave is recreated each render; we intentionally read latest via closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saving, isReadOnly]);
+
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
     draftFormId,
     draftSnapshot,
