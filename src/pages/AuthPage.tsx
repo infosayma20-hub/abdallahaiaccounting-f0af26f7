@@ -102,30 +102,9 @@ const AuthPage = () => {
     setLoading(true);
     try {
       if (mode === "forgot") {
-        const cleanEmail = email.trim().toLowerCase();
-        // نحاول أولاً إنشاء طلب داخلي (للموظفين المرتبطين بشركة فيها موارد بشرية).
-        const { error } = await supabase.from("password_reset_requests").insert({
-          email: cleanEmail,
-          reason: "طلب نسيت كلمة المرور من صفحة تسجيل الدخول",
-        });
-        if (!error) {
-          toast({
-            title: "تم إرسال طلبك ✅",
-            description: "تم إرسال طلب استعادة كلمة المرور إلى الموارد البشرية / إدارة شركتك.",
-          });
-          setMode("login");
-        } else {
-          // الإيميل غير مرتبط بموظف (مثل أصحاب الشركات/الأدمن) → نرجع للرابط عبر البريد الإلكتروني.
-          const { error: mailErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-            redirectTo: `${window.location.origin}/reset-password`,
-          });
-          if (mailErr) throw mailErr;
-          toast({
-            title: "تم إرسال الرابط ✅",
-            description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور.",
-          });
-          setMode("login");
-        }
+        // الزر الافتراضي للنموذج = إرسال رابط الاستعادة على البريد الإلكتروني.
+        await sendEmailResetLink();
+        return;
       } else if (mode === "signup") {
         if (password.length < 6) {
           toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
