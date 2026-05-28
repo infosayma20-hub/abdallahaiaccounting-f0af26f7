@@ -7,6 +7,7 @@ import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Card, CardContent } from "@/components/ui/card";
