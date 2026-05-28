@@ -1,5 +1,11 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import heroImg from "@/assets/landing-hero-erp.jpg";
+import posImg from "@/assets/landing-pos.jpg";
+import aiMobileImg from "@/assets/landing-ai-mobile.jpg";
+import inventoryImg from "@/assets/landing-inventory.jpg";
+import hrImg from "@/assets/landing-hr.jpg";
+import reportsImg from "@/assets/landing-reports.jpg";
 
 /**
  * Public marketing landing page — AMWALI أموالي
@@ -10,8 +16,7 @@ import { Link } from "react-router-dom";
  */
 const LandingPage = () => {
   useEffect(() => {
-    // SEO: per-page title/description override of index.html defaults
-    document.title = "أموالي | نظام محاسبة ونقاط بيع ذكي للشركات الفلسطينية";
+    document.title = "أموالي | نظام ERP فلسطيني متكامل — محاسبة، POS، موارد بشرية وذكاء اصطناعي";
     const setMeta = (name: string, content: string, attr: "name" | "property" = "name") => {
       let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
       if (!el) {
@@ -23,12 +28,12 @@ const LandingPage = () => {
     };
     setMeta(
       "description",
-      "أموالي — منصة محاسبة متكاملة مع نقاط بيع وفواتير ضريبية VAT 16% ومحاسب AI ذكي بالعربي. ابدأ تجربتك المجانية 14 يوم."
+      "أموالي — أول نظام ERP فلسطيني متكامل: محاسبة كاملة، نقاط بيع POS، موارد بشرية ورواتب، مخازن، شيكات، ضريبة 16%، ومحاسب ذكاء اصطناعي بالعربي. صُمّم في فلسطين لأصحاب الأعمال الفلسطينيين."
     );
-    setMeta("og:title", "أموالي — نظام إدارة الأعمال الذكي", "property");
+    setMeta("og:title", "أموالي — نظام ERP الفلسطيني المتكامل", "property");
     setMeta(
       "og:description",
-      "محاسبة ونقاط بيع وفواتير VAT فلسطيني 16% بدعم الذكاء الاصطناعي.",
+      "نظام ERP فلسطيني شامل: محاسبة، POS، HR، مخازن، شيكات، ضريبة فلسطينية 16%، ومحاسب AI بالعربي.",
       "property"
     );
   }, []);
