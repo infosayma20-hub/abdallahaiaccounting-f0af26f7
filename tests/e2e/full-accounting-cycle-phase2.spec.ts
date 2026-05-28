@@ -1,4 +1,4 @@
-import { test, expect, Page, ConsoleMessage, request as pwRequest } from "@playwright/test";
+import { test, expect, Page, ConsoleMessage } from "@playwright/test";
 
 /**
  * Phase 2 — Limited WRITE scenario.
@@ -25,10 +25,6 @@ import { test, expect, Page, ConsoleMessage, request as pwRequest } from "@playw
 
 const EMAIL = process.env.E2E_EMAIL!;
 const PASSWORD = process.env.E2E_PASSWORD!;
-const SUPABASE_URL = "https://omwuyscprzexgmxgittp.supabase.co";
-const SUPABASE_ANON =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9td3V5c2NwcnpleGdteGdpdHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNDEwMTIsImV4cCI6MjA4NjkxNzAxMn0.v-p6sK69OwTnPEFKNaESFQCf7BZREWzfFnr9Ux2ui-Y";
-const TEST_USER_ID = "fcbc3c51-8ef1-43f9-a642-422692234ca2";
 
 if (!EMAIL || !PASSWORD) {
   throw new Error("Missing E2E_EMAIL / E2E_PASSWORD (see tests/.env.e2e.local)");
@@ -102,23 +98,29 @@ async function pickAccount(page: Page, lineId: string, codeOrName: string) {
   });
 }
 
-async function fetchVoucherIdByDescription(description: string) {
-  const api = await pwRequest.newContext();
-  const res = await api.get(
-    `${SUPABASE_URL}/rest/v1/vouchers?user_id=eq.${TEST_USER_ID}&description=eq.${encodeURIComponent(
-      description,
-    )}&select=id,ref_number,status,amount,description&order=created_at.desc&limit=1`,
-    { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } },
-  );
-  expect(res.ok(), `Supabase lookup failed: ${res.status()}`).toBeTruthy();
-  const rows = (await res.json()) as Array<{
-    id: string;
-    ref_number: string;
-    status: string;
-    amount: number;
-    description: string;
-  }>;
-  return rows[0];
+/**
+ * Look up a voucher row using the authenticated supabase client that the
+ * page already has in scope. We retry a few times because the post handler
+ * commits asynchronously.
+ */
+async function fetchVoucherByDescription(page: Page, description: string) {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    const row = await page.evaluate(async (desc) => {
+      // @ts-ignore - injected on window by src/integrations/supabase/client wrapper? fallback to module.
+      const mod = await import("/src/integrations/supabase/client.ts");
+      const { data } = await mod.supabase
+        .from("vouchers")
+        .select("id, ref_number, status, amount, description")
+        .eq("description", desc)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      return (data && data[0]) || null;
+    }, description);
+    if (row) return row as { id: string; ref_number: string; status: string; amount: number };
+    await page.waitForTimeout(500);
+  }
+  return null;
 }
 
 test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => {
@@ -171,14 +173,14 @@ test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => 
     // Toast contains "تم ترحيل سند القيد"
     await expect(page.locator("body")).toContainText("تم ترحيل سند القيد", { timeout: 20_000 });
 
-    // Lookup the saved voucher via REST.
-    const v = await fetchVoucherIdByDescription(DESC_ORIGINAL);
+    // Lookup the saved voucher via the page's authenticated supabase client.
+    const v = await fetchVoucherByDescription(page, DESC_ORIGINAL);
     expect(v, "voucher not found by description in DB").toBeTruthy();
-    expect(v.status).toBe("posted");
-    expect(Number(v.amount)).toBeCloseTo(1000, 2);
-    postedVoucherId = v.id;
-    postedRef = v.ref_number;
-    createdRecords.push({ kind: "journal voucher (posted)", ref: v.ref_number, id: v.id });
+    expect(v!.status).toBe("posted");
+    expect(Number(v!.amount)).toBeCloseTo(1000, 2);
+    postedVoucherId = v!.id;
+    postedRef = v!.ref_number;
+    createdRecords.push({ kind: "journal voucher (posted)", ref: v!.ref_number, id: v!.id });
   });
 
   test("3) Voucher appears in /finance/journals list (search by runId)", async () => {
@@ -217,9 +219,9 @@ test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => 
     await expect(page.locator("body")).toContainText(/تم (تحديث|حفظ|ترحيل)/, { timeout: 20_000 });
 
     // Verify persisted in DB.
-    const v = await fetchVoucherIdByDescription(DESC_EDITED);
+    const v = await fetchVoucherByDescription(page, DESC_EDITED);
     expect(v, "edited description not found in DB after update").toBeTruthy();
-    expect(v.id).toBe(postedVoucherId);
+    expect(v!.id).toBe(postedVoucherId);
   });
 
   test("6) Duplicate → save as DRAFT → new ref produced", async () => {
@@ -248,11 +250,11 @@ test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => 
     await page.getByTestId("action-draft").click();
     await expect(page.locator("body")).toContainText(/مسودة|تم الحفظ/, { timeout: 20_000 });
 
-    const v = await fetchVoucherIdByDescription(duplicateDesc);
+    const v = await fetchVoucherByDescription(page, duplicateDesc);
     expect(v, "duplicate draft not found in DB").toBeTruthy();
-    expect(v.status).toBe("draft");
-    expect(v.ref_number).not.toBe(postedRef);
-    createdRecords.push({ kind: "journal voucher (draft, duplicated)", ref: v.ref_number, id: v.id });
+    expect(v!.status).toBe("draft");
+    expect(v!.ref_number).not.toBe(postedRef);
+    createdRecords.push({ kind: "journal voucher (draft, duplicated)", ref: v!.ref_number, id: v!.id });
   });
 
   test("7) Trial balance loads and is balanced (if totals are visible)", async () => {
