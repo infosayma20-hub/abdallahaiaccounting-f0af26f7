@@ -81,6 +81,7 @@ export default function JournalAccountPicker({
         ref={triggerRef}
         type="button"
         data-journal-code={lineId}
+        data-smart-focusable
         onClick={() => setOpen(true)}
         onFocus={() => {
           if (autoOpenOnFocus && !justClosedRef.current && !value) {
