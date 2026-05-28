@@ -359,7 +359,7 @@ const AuthPage = () => {
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
               <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
-                {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسيتم إرسال طلبك للإدارة لإعادة تعيين كلمة المرور"}
+                {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسيتم إرسال طلبك لإدارة شركتك / الموارد البشرية لإعادة تعيين كلمة المرور"}
               </p>
             </div>
 
@@ -576,6 +576,11 @@ const AuthPage = () => {
               {mode === "forgot" && (
                 <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
                   <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>العودة لتسجيل الدخول</button>
+                </p>
+              )}
+              {mode === "forgot" && (
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: '#8896A4', fontWeight: 300 }}>
+                  ملاحظة: إذا كنت موظفاً، سيتم إرسال طلبك مباشرةً إلى الموارد البشرية / إدارة شركتك فقط، ولن يصل لأي شركة أخرى.
                 </p>
               )}
               <SamiChatbot inline />
