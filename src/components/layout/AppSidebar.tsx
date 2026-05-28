@@ -126,9 +126,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         onClick={(e) => {
           e.stopPropagation();
           if (disabled) return;
-          if (hasDirectPath && hasChildren) {
-            // Navigate to the workspace AND expand the quick-links list.
-            navigate(item.path);
+          // Bug #1: clicking ANY app row should expand its sub-items
+          // (and also navigate to the main workspace if it has a path).
+          if (hasChildren && item.path) {
+            navigate(item.path!);
             onMobileClose();
             setOpenItem(item.label);
           } else if (hasChildren) {
@@ -136,18 +137,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               onToggle();
               setOpenItem(item.label);
             } else {
-              // Preserve scroll position + keep clicked item visible after toggle
-              const navEl = navRef.current;
-              const itemEl = itemRefs.current.get(item.label);
-              const prevScroll = navEl?.scrollTop ?? 0;
-              const itemTopBefore = itemEl?.offsetTop ?? 0;
-              setOpenItem(prev => prev === item.label ? null : item.label);
-              requestAnimationFrame(() => {
-                if (!navEl || !itemEl) return;
-                const itemTopAfter = itemEl.offsetTop;
-                const delta = itemTopAfter - itemTopBefore;
-                navEl.scrollTop = prevScroll + delta;
-              });
+              setOpenItem(item.label);
             }
           } else if (item.path) {
             handleNavigate(item.path);
