@@ -204,6 +204,11 @@ const InvoiceCreatePage = () => {
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
+  // Edit mode opens read-only by default; user toggles via "تعديل" button.
+  const [isReadOnly, setIsReadOnly] = useState<boolean>(isEditMode);
+  // Always-fresh handleCreate ref (memoized ActionPane handlers would
+  // otherwise capture stale closures with empty form → false validation).
+  const handleCreateRef = useRef<((asDraft?: boolean) => void) | null>(null);
   const originalInvoiceRef = useRef<{
     linkedTransactionId: string | null;
     contactId: string | null;
