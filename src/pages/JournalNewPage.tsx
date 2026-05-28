@@ -880,53 +880,30 @@ const JournalNewPage = () => {
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
                     <td className="p-3">
                       {(() => {
-                        const codeQuery = codeSearches[line.id] !== undefined
-                          ? (codeSearches[line.id] as string)
-                          : line.account_code;
-                        const q = (codeQuery || "").trim();
-                        const filtered = !q
-                          ? postableAccounts.slice(0, 200)
-                          : postableAccounts.filter(a => multiWordMatchAny(q, a.account_code, a.account_name)).slice(0, 200);
                         return (
-                          <SmartSearchableDropdown
-                            value={codeQuery}
-                            onChange={(v) => {
-                              setCodeSearches(prev => ({ ...prev, [line.id]: v }));
-                              // If user clears the code field, also clear the linked account & contact
-                              if (!v || !v.trim()) {
-                                setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                                  ...l,
-                                  account_code: "",
-                                  account_name: "",
-                                  contact_id: "",
-                                  contact_name: "",
-                                }));
-                              }
-                            }}
-                            items={filtered}
-                            getKey={(a: any) => a.account_code}
-                            getLabel={(a: any) => `${a.account_code} — ${a.account_name}`}
-                            renderOption={(a: any, active) => (
-                              <span className={`flex items-center gap-2 ${active ? "" : ""}`}>
-                                <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded" dir="ltr">{a.account_code}</span>
-                                <span className="text-foreground text-xs">{a.account_name}</span>
-                              </span>
-                            )}
-                            onSelect={(a: any) => {
+                          <JournalAccountPicker
+                            lineId={line.id}
+                            value={line.account_code}
+                            accountName={line.account_name}
+                            accounts={postableAccounts}
+                            invalid={invalidLineIds.has(line.id)}
+                            autoOpenOnFocus
+                            onSelect={(a) => {
                               setLines(prev => prev.map(l => l.id !== line.id ? l : {
                                 ...l,
                                 account_code: a.account_code,
                                 account_name: a.account_name || l.account_name,
                               }));
-                              setCodeSearches(prev => ({ ...prev, [line.id]: undefined }));
                             }}
-                            placeholder="1110 أو اسم الحساب"
-                            emptyText="لا توجد حسابات مطابقة"
-                            markFirst={i === 0}
-                            className="w-full"
-                            inputClassName="h-11 font-mono text-sm"
-                            showSearchIcon
-                            showChevron
+                            onClear={() => {
+                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                                ...l,
+                                account_code: "",
+                                account_name: "",
+                                contact_id: "",
+                                contact_name: "",
+                              }));
+                            }}
                           />
                         );
                       })()}
