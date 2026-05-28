@@ -1747,6 +1747,7 @@ const JournalNewPage = () => {
 
       {/* ═══ END MASTER FLEX ═══ */}
       </div>
+      </fieldset>
       </div>
       {/* ═══ END data-print-area ═══ */}
 
