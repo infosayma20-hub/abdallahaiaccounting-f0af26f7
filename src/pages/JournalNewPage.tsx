@@ -1033,7 +1033,19 @@ const JournalNewPage = () => {
                         placeholder="تعليق على هذا السطر..."
                       />
                     </td>
-                    <td className="p-2.5">
+                    <td
+                      className="p-2.5"
+                      onKeyDown={(e) => {
+                        // Enter on the last row's cost-center cell creates a new row
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          const ids = lines.map(l => l.id);
+                          if (ids[ids.length - 1] === line.id) {
+                            e.preventDefault();
+                            addLineAndFocus();
+                          }
+                        }
+                      }}
+                    >
                       <CostCenterCombobox
                         value={line.cost_center_id || null}
                         onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
