@@ -52,6 +52,29 @@ const FinanceJournalPage = () => {
   const [filterStatus, setFilterStatus] = useState("active");
   const [saving, setSaving] = useState(false);
 
+  // Advanced filters
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterSubtype, setFilterSubtype] = useState("all");
+  const [filterContactId, setFilterContactId] = useState("all");
+  const [filterAmountMin, setFilterAmountMin] = useState("");
+  const [filterAmountMax, setFilterAmountMax] = useState("");
+
+  // Column visibility (notes, contact, subtype hideable)
+  const columnDefs: ColumnDef[] = [
+    { key: "ref_number", label: "الرقم", required: true },
+    { key: "date", label: "التاريخ" },
+    { key: "subtype", label: "النوع" },
+    { key: "contact_name", label: "الجهة", defaultVisible: false },
+    { key: "description", label: "الوصف" },
+    { key: "notes", label: "الملاحظات", defaultVisible: false },
+    { key: "amount", label: "المبلغ", required: true },
+    { key: "status", label: "الحالة" },
+    { key: "actions", label: "إجراءات", required: true },
+  ];
+  const colState = useColumnVisibility("finance-journal-page", columnDefs);
+  const show = colState.isVisible;
+
   // Duplicate
   const [duplicateModal, setDuplicateModal] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<any>(null);
