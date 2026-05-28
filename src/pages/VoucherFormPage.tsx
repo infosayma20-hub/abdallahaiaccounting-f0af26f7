@@ -1685,6 +1685,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             workshopId: selectedWorkshop?.id || null,
             costCenterId: costCenterId,
           });
+          if (result?.success === false) {
+            throw new Error(result.error || "فشل إنشاء القيد المحاسبي لسند القبض");
+          }
           txId = result?.transaction_id || null;
         } else {
           // LEGACY path — unchanged behaviour for all existing tenants.
@@ -1697,9 +1700,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             p_description: notes || `سند قبض من ${selectedContact!.contact_name}`,
             p_currency: currencyLabel,
             p_idempotency_key: `RCV-NEW-${Date.now()}`,
+            p_voucher_date: paymentDate,
+            p_exchange_rate: currency !== "ILS" ? exchangeRate : null,
+            p_cash_account_code: depositAccountCode,
+            p_contact_account_code: counterAccountCode,
+            p_notes: notes || null,
+            p_workshop_id: selectedWorkshop?.id || null,
+            p_cost_center_id: costCenterId,
           });
           if (rpcError) throw rpcError;
-          txId = (txResult as any)?.transaction_id || null;
+          const rpcResult = (txResult as any) || {};
+          if (rpcResult.success === false) {
+            throw new Error(rpcResult.error || "فشل إنشاء القيد المحاسبي لسند القبض");
+          }
+          txId = rpcResult.transaction_id || null;
 
           // Update deposit account and workshop if needed
           if (txId) {
@@ -1816,9 +1830,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             workshopId: selectedWorkshop?.id || null,
             costCenterId: costCenterId,
           });
+          if (result?.success === false) {
+            throw new Error(result.error || "فشل إنشاء القيد المحاسبي لسند الصرف");
+          }
           txId = result?.transaction_id || null;
         } else {
-        const { data: txData } = await supabase.from("transactions").insert({
+        const { data: txData, error: txErr } = await supabase.from("transactions").insert({
           user_id: ownerId,
           transaction_date: paymentDate,
           description: txDescription,
@@ -1837,6 +1854,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           cost_center_name: selectedWorkshop?.name || null,
           cost_center_id: costCenterId,
         } as any).select("id").single();
+        if (txErr) throw txErr;
         txId = txData?.id || null;
         }
       }
