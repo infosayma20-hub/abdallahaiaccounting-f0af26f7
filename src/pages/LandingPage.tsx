@@ -255,7 +255,7 @@ const LandingPage = () => {
       </section>
 
       {/* Palestinian DNA Section */}
-      <section className="py-20 px-6 bg-white">
+      <section className="py-20 px-6 bg-white reveal-section">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -358,7 +358,7 @@ const LandingPage = () => {
       </section>
 
       {/* POS Showcase */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div className="order-2 md:order-1">
             <img src={posImg} alt="نقاط بيع POS أموالي" width={1024} height={1024} loading="lazy" className="w-full rounded-3xl shadow-xl border border-[#e8ecf1]" />
@@ -389,7 +389,7 @@ const LandingPage = () => {
       </section>
 
       {/* Reports Showcase */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
             <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">REPORTS & ANALYTICS</div>
@@ -418,7 +418,7 @@ const LandingPage = () => {
       </section>
 
       {/* Inventory + HR side by side */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-4">إدارة كل تفصيلة بدقّة <span className="font-latin text-[#3b82f6]">ERP</span></h2>
@@ -472,7 +472,7 @@ const LandingPage = () => {
       </section>
 
       {/* Why ERP matters */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-3xl md:text-5xl font-black mb-6">ليش نظام <span className="font-latin text-[#3b82f6]">ERP</span> مش رفاهية؟</h2>
           <p className="text-[#0D1B2E]/60 font-bold text-lg mb-12 max-w-3xl mx-auto leading-relaxed">
@@ -504,7 +504,7 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-4">شركات فلسطينية وثقت فينا</h2>
@@ -563,7 +563,7 @@ const LandingPage = () => {
       </section>
 
       {/* Integrations */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">INTEGRATIONS</div>
@@ -595,7 +595,7 @@ const LandingPage = () => {
       </section>
 
       {/* Security & Compliance */}
-      <section className="py-24 px-6 bg-[#0D1B2E] text-white">
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section" text-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-white/10 text-white px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">SECURITY · COMPLIANCE</div>
@@ -624,7 +624,7 @@ const LandingPage = () => {
       </section>
 
       {/* FAQ */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-black mb-4">أسئلة شائعة</h2>
@@ -654,7 +654,7 @@ const LandingPage = () => {
       </section>
 
       {/* Roadmap */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">ROADMAP 2026</div>
@@ -681,7 +681,7 @@ const LandingPage = () => {
       </section>
 
       {/* How it Works — 4 steps */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">HOW IT WORKS</div>
@@ -711,7 +711,7 @@ const LandingPage = () => {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-black mb-4">ليش <span className="text-[#3b82f6]">أموالي</span> مش مثل الباقي؟</h2>
@@ -749,7 +749,7 @@ const LandingPage = () => {
 
       {/* Pricing */}
       {/* Numbers in Production */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-2 rounded-full bg-[#3b82f6]/10 text-[#3b82f6] font-black text-xs mb-4 font-latin tracking-wider">
@@ -782,7 +782,7 @@ const LandingPage = () => {
       </section>
 
       {/* Role-based use cases */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-block px-4 py-2 rounded-full bg-[#3b82f6]/10 text-[#3b82f6] font-black text-xs mb-4 font-latin tracking-wider">
@@ -846,7 +846,7 @@ const LandingPage = () => {
       </section>
 
       {/* Migration Guarantee */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white reveal-section">
         <div className="max-w-6xl mx-auto">
           <div className="rounded-3xl bg-gradient-to-br from-[#0D1B2E] to-[#1e3a5f] p-10 md:p-16 text-white relative overflow-hidden">
             <div className="absolute top-0 left-0 w-96 h-96 bg-[#3b82f6]/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -889,7 +889,7 @@ const LandingPage = () => {
       </section>
 
       {/* Video Demo */}
-      <section className="py-24 px-6 bg-[#fafbfc]">
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">DEMO</div>
@@ -957,7 +957,7 @@ const LandingPage = () => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-6 bg-[#0D1B2E] text-white">
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section" text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
             جاهز تنقل شركتك لمستوى <span className="font-latin text-[#3b82f6]">ERP</span> احترافي؟
