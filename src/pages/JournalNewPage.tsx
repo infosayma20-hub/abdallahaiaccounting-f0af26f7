@@ -274,6 +274,88 @@ const JournalNewPage = () => {
     return () => { cancelled = true; };
   }, [formCurrency, formDate, user]);
 
+  // ─── Sync editingVoucherId with URL (?edit=...) ───
+  useEffect(() => {
+    const urlId = searchParams.get("edit") || null;
+    setEditingVoucherId(urlId);
+    setIsReadOnly(!!urlId);
+  }, [searchParams]);
+
+  // ─── Load existing voucher into the page when editingVoucherId changes ───
+  useEffect(() => {
+    if (!user || !editingVoucherId) {
+      setEditingCreatedAt(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingVoucher(true);
+      try {
+        const { data: v, error: vErr } = await supabase
+          .from("vouchers")
+          .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type")
+          .eq("id", editingVoucherId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (vErr || !v) {
+          toast.error("السند غير موجود أو ليس لديك صلاحية");
+          if (!cancelled) navigate("/finance/journal/new", { replace: true });
+          return;
+        }
+        if (v.type !== "journal") {
+          toast.error("هذا السند ليس قيد يومية");
+          if (!cancelled) navigate("/finance/journal/new", { replace: true });
+          return;
+        }
+
+        const { data: lns } = await supabase
+          .from("voucher_lines")
+          .select("account_code, account_name, debit, credit, contact_id, contact_name, line_comment, cost_center_id, line_order")
+          .eq("voucher_id", editingVoucherId)
+          .order("line_order", { ascending: true });
+
+        if (cancelled) return;
+
+        setEditingCreatedAt(v.created_at);
+        setFormDate(v.date);
+        setFormRefNumber(v.ref_number);
+        setFormSubtype((v.subtype as any) || "normal");
+        setFormContactId(v.contact_id || "");
+        setFormCostCenterId(v.cost_center_id || null);
+        setFormDescription(v.description || "");
+        setFormNotes(v.notes || "");
+        setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
+        setLineSortOrder((v.line_sort_order as any) || "original");
+
+        const loaded: JournalLine[] = (lns || []).map((l: any, i: number) => ({
+          id: `${editingVoucherId}-${i}-${Date.now()}`,
+          account_code: l.account_code || "",
+          account_name: l.account_name || "",
+          debit: Number(l.debit) || 0,
+          credit: Number(l.credit) || 0,
+          contact_id: l.contact_id || "",
+          contact_name: l.contact_name || "",
+          line_comment: l.line_comment || "",
+          cost_center_id: l.cost_center_id || null,
+        }));
+        while (loaded.length < 2) {
+          loaded.push({
+            id: `pad-${loaded.length}-${Date.now()}`,
+            account_code: "", account_name: "", debit: 0, credit: 0,
+            contact_id: "", contact_name: "", line_comment: "",
+          });
+        }
+        setLines(loaded);
+        setIsReadOnly(true);
+      } catch (err: any) {
+        toast.error(err.message || "تعذر تحميل السند");
+      } finally {
+        if (!cancelled) setLoadingVoucher(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [editingVoucherId, user, navigate]);
+
   const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
   const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
   const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
