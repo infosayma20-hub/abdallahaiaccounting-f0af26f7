@@ -17,7 +17,15 @@ const ResetPasswordPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      if (password.length < 8) {
+        toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 8 أحرف على الأقل", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({
+        password,
+        data: { must_change_password: false },
+      });
       if (error) throw error;
       toast({ title: "تم تحديث كلمة المرور ✅" });
       navigate("/");
