@@ -1830,9 +1830,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             workshopId: selectedWorkshop?.id || null,
             costCenterId: costCenterId,
           });
+          if (result?.success === false) {
+            throw new Error(result.error || "فشل إنشاء القيد المحاسبي لسند الصرف");
+          }
           txId = result?.transaction_id || null;
         } else {
-        const { data: txData } = await supabase.from("transactions").insert({
+        const { data: txData, error: txErr } = await supabase.from("transactions").insert({
           user_id: ownerId,
           transaction_date: paymentDate,
           description: txDescription,
@@ -1851,6 +1854,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           cost_center_name: selectedWorkshop?.name || null,
           cost_center_id: costCenterId,
         } as any).select("id").single();
+        if (txErr) throw txErr;
         txId = txData?.id || null;
         }
       }
