@@ -736,17 +736,11 @@ const JournalNewPage = () => {
               </p>
             </div>
           </div>
-
-          <div>
-            <Label className="text-xs mb-1.5 block font-semibold">الوصف *</Label>
-            <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="مثال: سلفة راتب - رهام حسون" />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Journal Lines */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
+      {/* ═══ END LEFT COLUMN (Header only) ═══ */}
+      </div>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-primary" />
