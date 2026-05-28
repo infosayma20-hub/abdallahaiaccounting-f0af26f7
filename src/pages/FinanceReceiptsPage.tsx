@@ -89,6 +89,7 @@ export default function FinanceReceiptsPage() {
     { key: "account_label", label: "الصندوق/البنك" },
     { key: "cost_center_name", label: "مركز التكلفة" },
     { key: "currency", label: "العملة" },
+    { key: "notes", label: "الملاحظات", defaultVisible: false },
     { key: "amount", label: "المبلغ", required: true },
     { key: "status_label", label: "الحالة" },
     { key: "actions", label: "إجراءات", required: true },
@@ -289,8 +290,10 @@ export default function FinanceReceiptsPage() {
 
   const handleEdit = async (r: Row) => {
     try { await assertPermission("finance", "receipts", "update"); } catch { return; }
-    if (r.status === "posted") { setWarnTarget(r); setWarnOpen(true); }
-    else navigate(`/finance/receipt/${r.id}/edit`);
+    // Open in read-only view first; the EditPostedWarningDialog will be
+    // triggered from inside VoucherFormPage when the user explicitly
+    // presses "تعديل" on a posted voucher.
+    navigate(`/finance/receipt/${r.id}/edit`);
   };
   const confirmEditPosted = () => {
     if (!warnTarget) return;
@@ -490,6 +493,7 @@ export default function FinanceReceiptsPage() {
                     {show("account_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الصندوق/البنك</th>}
                     {show("cost_center_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">مركز التكلفة</th>}
                     {show("currency") && <th className="text-right px-3 py-2 text-[11px] font-semibold">العملة</th>}
+                    {show("notes") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الملاحظات</th>}
                     <th className="text-left px-3 py-2 text-[11px] font-semibold">المبلغ</th>
                     {show("status_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الحالة</th>}
                     <th className="text-center px-2 py-2 text-[11px] font-semibold print:hidden">إجراءات</th>
@@ -539,6 +543,11 @@ export default function FinanceReceiptsPage() {
                           </td>
                         )}
                         {show("currency") && <td className="px-3 py-2 text-xs font-mono text-muted-foreground align-middle">{r.currency}</td>}
+                        {show("notes") && (
+                          <td className="px-3 py-2 align-middle">
+                            <SmartTextCell value={r.notes || "—"} className="text-xs text-muted-foreground" />
+                          </td>
+                        )}
                         <td className="px-3 py-2 text-sm font-bold tabular-nums text-left align-middle">
                           {r.amount.toLocaleString()}
                         </td>
@@ -576,7 +585,7 @@ export default function FinanceReceiptsPage() {
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                    <td colSpan={1 + [show("date"),show("contact_name"),show("payment_label"),show("account_label"),show("cost_center_name"),show("currency")].filter(Boolean).length} className="px-3 py-2 text-right text-foreground">
+                    <td colSpan={1 + [show("date"),show("contact_name"),show("payment_label"),show("account_label"),show("cost_center_name"),show("currency"),show("notes")].filter(Boolean).length} className="px-3 py-2 text-right text-foreground">
                       المجموع ({filtered.length} سند)
                     </td>
                     <td className="px-3 py-2 text-left tabular-nums text-foreground">
