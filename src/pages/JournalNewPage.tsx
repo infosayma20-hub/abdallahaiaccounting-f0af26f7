@@ -975,31 +975,44 @@ const JournalNewPage = () => {
     toast.success("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ");
   };
 
-  const actionTabs: ActionTab[] = useMemo(() => ([{
-    key: "general",
-    label: "عام",
-    groups: [
-      { key: "new", label: "جديد", items: [
-        { key: "new", label: "قيد جديد", icon: Plus, variant: "primary", onClick: resetForm },
-      ]},
-      { key: "save", label: "حفظ", items: [
-        { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSave("draft"), disabled: saving },
-        { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary",
-          onClick: () => handleSave("posted"), disabled: saving || !isBalanced,
-          tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
-      ]},
-      { key: "view", label: "عرض", items: [
-        { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
-        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
-      ]},
-      { key: "nav", label: "تنقل", items: [
-        { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
-        { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
-        { key: "query", label: "استعلام", icon: ListChecks, onClick: openJournalList },
-        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
-      ]},
-    ],
-  }]), [saving, isBalanced, resetForm, handlePrint]);
+  const actionTabs: ActionTab[] = useMemo(() => {
+    const inEdit = !!editingVoucherId;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "قيد جديد", icon: Plus, variant: "primary" as const,
+          onClick: () => { navigate("/finance/journal/new"); resetForm(); } },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy, onClick: handleDuplicate }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: handleUpdate, disabled: isReadOnly || saving || !isBalanced,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : (!isBalanced ? "القيد غير متوازن" : undefined) },
+          { key: "delete", label: "حذف", icon: Trash2,
+            onClick: handleDelete, disabled: saving },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSave("draft"), disabled: saving },
+          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleSave("posted"), disabled: saving || !isBalanced,
+            tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
+      { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
+      { key: "query", label: "استعلام", icon: ListChecks, onClick: openJournalList },
+      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+  }, [saving, isBalanced, resetForm, handlePrint, editingVoucherId, isReadOnly, editingCreatedAt]);
 
   // ── FastTabs sections (collapsible body) ──
   const headerSummary = `${subtypeLabels[formSubtype]} • ${formDate}${formRefNumber ? ` • ${formRefNumber}` : ""}`;
