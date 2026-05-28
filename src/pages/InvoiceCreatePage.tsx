@@ -210,6 +210,7 @@ const InvoiceCreatePage = () => {
   // Always-fresh handleCreate ref (memoized ActionPane handlers would
   // otherwise capture stale closures with empty form → false validation).
   const handleCreateRef = useRef<((asDraft?: boolean) => void) | null>(null);
+  const handlePrintRef = useRef<((previewOnly?: boolean) => void) | null>(null);
   const originalInvoiceRef = useRef<{
     linkedTransactionId: string | null;
     contactId: string | null;
@@ -1685,6 +1686,11 @@ const InvoiceCreatePage = () => {
     }, 200);
   };
 
+  // Keep ref pointed to latest handlePrint so memoized ActionPane tabs
+  // always invoke the fresh closure (otherwise it captures the initial
+  // nextInvoiceNumber "..." placeholder).
+  handlePrintRef.current = handlePrint;
+
   // ─── Delete Invoice ───
   const handleDeleteInvoice = async () => {
     if (!editInvoiceId || !user) return;
@@ -1850,8 +1856,8 @@ const InvoiceCreatePage = () => {
             onClick: () => handleCreateRef.current?.(false) },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
-      { key: "preview", label: "معاينة", icon: Eye,     onClick: () => handlePrint(true) },
-      { key: "print",   label: "طباعة",  icon: Printer, onClick: () => handlePrint(false) },
+      { key: "preview", label: "معاينة", icon: Eye,     onClick: () => handlePrintRef.current?.(true) },
+      { key: "print",   label: "طباعة",  icon: Printer, onClick: () => handlePrintRef.current?.(false) },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
       { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/invoices") },
