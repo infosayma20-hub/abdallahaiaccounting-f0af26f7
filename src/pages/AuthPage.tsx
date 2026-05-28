@@ -155,6 +155,15 @@ const AuthPage = () => {
         normalizeStoredAuthSession();
         localStorage.removeItem("trial_banner_dismissed");
         if (data.user) {
+          // إجبار الموظف على تغيير كلمة المرور إذا كانت مؤقتة من الأدمن
+          if ((data.user.user_metadata as any)?.must_change_password) {
+            toast({
+              title: "مطلوب تغيير كلمة المرور",
+              description: "تم تعيين كلمة مرور مؤقتة لك من قِبل الإدارة. الرجاء تغييرها الآن.",
+            });
+            navigate("/reset-password?force=1");
+            return;
+          }
           const dest = await resolveRedirect(data.user.id);
           navigate(dest);
         } else {
