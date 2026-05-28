@@ -390,7 +390,18 @@ const FinanceJournalPage = () => {
   const totalPagesCalc = Math.max(1, Math.ceil(sortedFiltered.length / PER_PAGE));
   const paged = sortedFiltered.slice((pageCurrent - 1) * PER_PAGE, pageCurrent * PER_PAGE);
 
-  useEffect(() => { setPageCurrent(1); }, [searchQuery, filterStatus]);
+  useEffect(() => { setPageCurrent(1); }, [searchQuery, filterStatus, filterDateFrom, filterDateTo, filterSubtype, filterContactId, filterAmountMin, filterAmountMax]);
+
+  const activeAdvancedCount =
+    (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0) +
+    (filterSubtype !== "all" ? 1 : 0) + (filterContactId !== "all" ? 1 : 0) +
+    (filterAmountMin ? 1 : 0) + (filterAmountMax ? 1 : 0);
+
+  const clearAdvanced = () => {
+    setFilterDateFrom(""); setFilterDateTo("");
+    setFilterSubtype("all"); setFilterContactId("all");
+    setFilterAmountMin(""); setFilterAmountMax("");
+  };
 
   const toggleSort = (key: string) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
