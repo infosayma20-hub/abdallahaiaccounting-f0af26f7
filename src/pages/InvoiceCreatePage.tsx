@@ -1856,8 +1856,8 @@ const InvoiceCreatePage = () => {
             onClick: () => handleCreateRef.current?.(false) },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
-      { key: "preview", label: "معاينة", icon: Eye,     onClick: () => handlePrint(true) },
-      { key: "print",   label: "طباعة",  icon: Printer, onClick: () => handlePrint(false) },
+      { key: "preview", label: "معاينة", icon: Eye,     onClick: () => handlePrintRef.current?.(true) },
+      { key: "print",   label: "طباعة",  icon: Printer, onClick: () => handlePrintRef.current?.(false) },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
       { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/invoices") },
