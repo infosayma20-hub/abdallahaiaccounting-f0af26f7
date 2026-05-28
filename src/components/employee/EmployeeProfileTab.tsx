@@ -290,6 +290,19 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
                   {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <div className="rounded-lg border border-border/40 bg-muted/30 p-2.5 space-y-1.5 mt-2">
+                <p className="text-[11px] font-semibold text-foreground">💡 مثال على كلمة مرور قوية:</p>
+                <div className="flex flex-wrap gap-1.5" dir="ltr">
+                  <code className="text-[11px] bg-background border border-border/50 rounded px-1.5 py-0.5 font-mono">Ahmad@2026</code>
+                  <code className="text-[11px] bg-background border border-border/50 rounded px-1.5 py-0.5 font-mono">Sara#Work99</code>
+                  <code className="text-[11px] bg-background border border-border/50 rounded px-1.5 py-0.5 font-mono">MyCat$Blue7</code>
+                </div>
+                <ul className="text-[10.5px] text-muted-foreground space-y-0.5 list-disc pr-4 leading-relaxed">
+                  <li>8 أحرف على الأقل</li>
+                  <li>حروف كبيرة وصغيرة + أرقام + رمز (@ # $ !)</li>
+                  <li>تجنّب: 12345678 — password — اسمك — رقم جوالك</li>
+                </ul>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">تأكيد كلمة المرور</Label>
@@ -301,7 +314,7 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
               />
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              اختر كلمة مرور قوية وآمنة، ولا تشاركها مع أحد.
+              لا تشارك كلمة المرور مع أي شخص.
             </p>
           </div>
           <DialogFooter className="flex-row-reverse gap-2">
