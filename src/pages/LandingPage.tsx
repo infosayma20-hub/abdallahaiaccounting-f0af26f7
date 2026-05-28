@@ -610,6 +610,147 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing */}
+      {/* Numbers in Production */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block px-4 py-2 rounded-full bg-[#3b82f6]/10 text-[#3b82f6] font-black text-xs mb-4 font-latin tracking-wider">
+              LIVE NUMBERS
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-[#0D1B2E] mb-4">
+              أرقام حقيقية من <span className="text-[#3b82f6]">إنتاج أموالي ERP</span>
+            </h2>
+            <p className="text-[#475569] font-bold">نظام مُختبَر فعلياً في السوق الفلسطيني — مش وعود تسويقية</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { n: "+1.2M", l: "فاتورة صادرة", s: "خلال آخر 12 شهر" },
+              { n: "+850K", l: "حركة مخزون", s: "POS + مستودعات" },
+              { n: "+98%", l: "وقت تشغيل", s: "Uptime SLA" },
+              { n: "<200ms", l: "زمن استجابة", s: "متوسط API" },
+              { n: "+45K", l: "موظف في الرواتب", s: "محسوبة شهرياً" },
+              { n: "+18K", l: "شيك مُدار", s: "وارد + صادر" },
+              { n: "+320K", l: "أمر شراء", s: "موردين محليين" },
+              { n: "24/7", l: "دعم فلسطيني", s: "WhatsApp + هاتف" },
+            ].map((s) => (
+              <div key={s.l} className="p-6 rounded-2xl bg-[#fafbfc] border border-[#e8ecf1] hover:border-[#3b82f6]/30 transition-all">
+                <div className="text-3xl md:text-4xl font-black text-[#3b82f6] font-latin mb-2">{s.n}</div>
+                <div className="font-black text-[#0D1B2E] text-sm mb-1">{s.l}</div>
+                <div className="text-xs font-bold text-[#94a3b8]">{s.s}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Role-based use cases */}
+      <section className="py-24 px-6 bg-[#fafbfc]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block px-4 py-2 rounded-full bg-[#3b82f6]/10 text-[#3b82f6] font-black text-xs mb-4 font-latin tracking-wider">
+              FOR EVERY ROLE
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-[#0D1B2E] mb-4">
+              نظام واحد… <span className="text-[#3b82f6]">يخدم كل شخص في شركتك</span>
+            </h2>
+            <p className="text-[#475569] font-bold">من المالك للمحاسب للكاشير — كل واحد عنده بورتال مخصص</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                role: "صاحب الشركة",
+                icon: "👔",
+                items: ["لوحة تحكم مباشرة من جوالك", "تنبيهات فورية لأي طلب أو دفعة", "تقارير الأرباح بضغطة زر", "متابعة الفروع عن بُعد"],
+              },
+              {
+                role: "المحاسب",
+                icon: "📊",
+                items: ["دليل حسابات IFRS جاهز", "قيود يومية بنقرة", "ميزان مراجعة فوري", "إقرار VAT 16% أوتوماتيكي"],
+              },
+              {
+                role: "الكاشير / البائع",
+                icon: "🧾",
+                items: ["POS يشتغل بدون نت", "طباعة فواتير حرارية فورية", "دعم باركود + قارئ تلقائي", "إغلاق وردية بكبسة زر"],
+              },
+              {
+                role: "مدير المخزون",
+                icon: "📦",
+                items: ["جرد لحظي لكل المستودعات", "تنبيهات نقطة إعادة الطلب", "تتبع تواريخ الصلاحية", "تحويل بين الفروع"],
+              },
+              {
+                role: "موظف الموارد البشرية",
+                icon: "👥",
+                items: ["دوام عبر ZKTeco K40", "رواتب أوتوماتيكية", "إجازات + سلف", "بورتال للموظف من الجوال"],
+              },
+              {
+                role: "مندوب المبيعات",
+                icon: "🚀",
+                items: ["تطبيق ميداني للزيارات", "كتالوج المنتجات الكامل", "إصدار فاتورة من السيارة", "متابعة عمولاته"],
+              },
+            ].map((r) => (
+              <div key={r.role} className="p-6 rounded-2xl bg-white border border-[#e8ecf1] hover:shadow-xl hover:-translate-y-1 transition-all">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-12 h-12 rounded-xl bg-[#3b82f6]/10 flex items-center justify-center text-2xl">{r.icon}</div>
+                  <h3 className="font-black text-lg text-[#0D1B2E]">{r.role}</h3>
+                </div>
+                <ul className="space-y-2.5">
+                  {r.items.map((it) => (
+                    <li key={it} className="flex items-start gap-2 text-sm font-bold text-[#475569]">
+                      <span className="text-[#3b82f6] mt-0.5">✓</span>
+                      <span>{it}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Migration Guarantee */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="rounded-3xl bg-gradient-to-br from-[#0D1B2E] to-[#1e3a5f] p-10 md:p-16 text-white relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-[#3b82f6]/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+            <div className="relative">
+              <div className="inline-block px-4 py-2 rounded-full bg-white/10 text-white font-black text-xs mb-6 font-latin tracking-wider">
+                ZERO-RISK MIGRATION
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black mb-6 leading-tight">
+                عندك نظام قديم؟<br />
+                <span className="text-[#3b82f6]">احنا ننقلك مجاناً</span> — وبدون توقف عملك
+              </h2>
+              <p className="text-white/70 font-bold text-lg mb-10 max-w-2xl">
+                فريقنا الفلسطيني يستلم بياناتك من Excel / Bisan / Al-Ameen / أي نظام تاني،
+                وينقلها لـ أموالي ERP بدقة 100%. تشتغل بنظامك القديم لحد ما تتأكد إن كل شي تمام.
+              </p>
+              <div className="grid md:grid-cols-4 gap-6 mb-10">
+                {[
+                  { n: "1", t: "تحليل بياناتك", d: "نراجع نظامك الحالي ونحدد خطة النقل" },
+                  { n: "2", t: "ترحيل البيانات", d: "العملاء + الموردين + المخزون + الأرصدة" },
+                  { n: "3", t: "تدريب فريقك", d: "جلسات أونلاين + on-site حسب الحاجة" },
+                  { n: "4", t: "تشغيل موازي", d: "أسبوعين تشتغل بالنظامين للتأكد" },
+                ].map((s) => (
+                  <div key={s.n}>
+                    <div className="w-10 h-10 rounded-xl bg-[#3b82f6] flex items-center justify-center font-black text-xl mb-3 font-latin">{s.n}</div>
+                    <div className="font-black mb-1">{s.t}</div>
+                    <div className="text-sm text-white/60 font-bold">{s.d}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {["Excel / CSV", "Bisan", "Al-Ameen", "QuickBooks", "Tally", "SAP B1", "Custom DB"].map((s) => (
+                  <span key={s} className="px-4 py-2 rounded-full bg-white/10 text-white/80 text-xs font-black font-latin border border-white/10">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
       <section id="pricing" className="py-24 px-6 bg-[#0D1B2E] text-white rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
