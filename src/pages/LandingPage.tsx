@@ -565,3 +565,170 @@ const FooterCol = ({ title, links }: { title: string; links: [string, string][] 
 );
 
 export default LandingPage;
+
+// ============ Data ============
+type ERPModule = {
+  title: string;
+  tag: string;
+  desc: string;
+  features: string[];
+  span: string;
+  tone: "dark" | "light" | "accent" | "white";
+};
+
+const ERP_MODULES: ERPModule[] = [
+  {
+    title: "المحاسبة المالية الكاملة",
+    tag: "ACCOUNTING",
+    desc: "دفتر يومية، شجرة حسابات قابلة للتخصيص بالكامل (22 حساب محمي معياري)، قيود مزدوجة، إقفال سنوي، فترات مالية مقفلة.",
+    features: ["شجرة حسابات شجرية", "قيود تلقائية ويدوية", "فترات مالية", "إقفال سنوي", "Multi-currency"],
+    span: "md:col-span-8",
+    tone: "dark",
+  },
+  {
+    title: "فواتير + ضريبة فلسطينية 16%",
+    tag: "VAT",
+    desc: "فواتير ضريبية معتمدة، شاملة وغير شاملة، خصومات، عملات متعددة، أرقام مخصصة.",
+    features: ["VAT 16%", "Multi-currency", "خصومات", "Recurring"],
+    span: "md:col-span-4",
+    tone: "accent",
+  },
+  {
+    title: "نقاط البيع POS",
+    tag: "POS",
+    desc: "شاشة لمس سريعة، يعمل بدون إنترنت (IndexedDB)، مرتجعات، مناوبات، شاشة مطبخ.",
+    features: ["Offline", "Touch UI", "Returns", "Shifts", "Kitchen Display"],
+    span: "md:col-span-4",
+    tone: "light",
+  },
+  {
+    title: "إدارة المخازن والمنتجات",
+    tag: "INVENTORY",
+    desc: "مخازن متعددة، باركود، تحويلات، جرد، تقييم FIFO، تنبيهات نقص، فصل منتجات/خدمات.",
+    features: ["Multi-warehouse", "Barcode", "FIFO", "Transfers", "Stock Counts"],
+    span: "md:col-span-4",
+    tone: "white",
+  },
+  {
+    title: "المشتريات وإدارة الموردين",
+    tag: "PURCHASING",
+    desc: "طلبات شراء، فواتير موردين، شحنات استيراد مع توزيع التكاليف (T/QTY) حسب IAS 2.",
+    features: ["Purchase Orders", "Suppliers", "Import Shipments", "Cost Allocation"],
+    span: "md:col-span-4",
+    tone: "white",
+  },
+  {
+    title: "إدارة الموارد البشرية والرواتب",
+    tag: "HR · PAYROLL",
+    desc: "ملف موظف، رواتب فلسطينية، حضور بصمة (ZKTeco)، إجازات، تأديب، بوابة موظف.",
+    features: ["Payroll Engine", "Attendance", "Leaves", "Disciplinary", "Portal", "Shifts"],
+    span: "md:col-span-8",
+    tone: "dark",
+  },
+  {
+    title: "إدارة الشيكات الفلسطينية",
+    tag: "CHEQUES",
+    desc: "شيكات صادرة وواردة، تظهير، تحت التحصيل، ربط بالموردين/العملاء — الواقع الفلسطيني بالكامل.",
+    features: ["Outbound", "Inbound", "Endorsement", "Collection"],
+    span: "md:col-span-6",
+    tone: "light",
+  },
+  {
+    title: "إدارة العملاء (CRM)",
+    tag: "CRM",
+    desc: "بيانات عملاء، أرشفة، تصنيفات، مندوبي مبيعات، كشوف حساب قابلة للمشاركة بواتساب.",
+    features: ["Contacts", "Sales Reps", "WhatsApp SOA", "Archives"],
+    span: "md:col-span-6",
+    tone: "white",
+  },
+  {
+    title: "الأصول الثابتة والإهلاكات",
+    tag: "FIXED ASSETS",
+    desc: "دورة حياة كاملة للأصل، إهلاك دوري، نطاق 12XX، حسابات فرعية لكل أصل.",
+    features: ["Lifecycle", "Depreciation", "1290 Sub-accounts"],
+    span: "md:col-span-4",
+    tone: "white",
+  },
+  {
+    title: "تقارير وتحليلات ERP",
+    tag: "REPORTS",
+    desc: "+40 تقرير: ميزان مراجعة، قائمة دخل، ميزانية عمومية، أعمار ديون، تقارير ضريبية.",
+    features: ["Trial Balance", "P&L", "Balance Sheet", "Aging", "Custom Dashboards"],
+    span: "md:col-span-4",
+    tone: "accent",
+  },
+  {
+    title: "محاسب AI — حسيب",
+    tag: "AI ACCOUNTANT",
+    desc: "تحدث معاه بلهجتك الفلسطينية. ينشئ قيود، فواتير، يجاوب أسئلتك المالية فوراً.",
+    features: ["Voice", "Palestinian Arabic", "Auto Entries", "Insights"],
+    span: "md:col-span-4",
+    tone: "dark",
+  },
+  {
+    title: "بوابات فرعية متخصصة",
+    tag: "PORTALS",
+    desc: "بوابة موظف، بوابة مالك، بوابة موردين، بوابة تتبع طلبات — كل واحد يشوف الي يخصه.",
+    features: ["Employee", "Owner", "Suppliers", "Tracker"],
+    span: "md:col-span-6",
+    tone: "light",
+  },
+  {
+    title: "طباعة احترافية وتصميم قوالب",
+    tag: "PRINT",
+    desc: "محرر قوالب طباعة بدون كود، طباعة عربية كاملة، Bridge للطابعات الحرارية والشبكية.",
+    features: ["No-code Designer", "Arabic PDF", "Thermal", "Network Printers"],
+    span: "md:col-span-6",
+    tone: "white",
+  },
+];
+
+const SECTORS = [
+  { icon: "🏪", title: "المحلات والسوبرماركت", desc: "باركود، مخزون لحظي، POS سريع، تنبيهات نقص، عروض وخصومات." },
+  { icon: "🍽️", title: "المطاعم والكافيهات", desc: "إدارة طاولات، شاشة مطبخ، طلبات خارجية، ربط بأنظمة التوصيل." },
+  { icon: "🔧", title: "ورش الصيانة والخدمات", desc: "أوامر شغل، مراكز تكلفة لكل ورشة، عروض أسعار، فواتير دورية." },
+  { icon: "🏭", title: "المصانع والإنتاج", desc: "مواد خام، أوامر إنتاج، تكاليف منتج تامة، مخازن متعددة." },
+  { icon: "🚚", title: "التوزيع والمندوبين", desc: "مندوبي مبيعات، تسويات يومية، طرق توزيع، تحصيل ميداني." },
+  { icon: "🏗️", title: "المقاولات والإنشاءات", desc: "مشاريع، مراحل، استخلاصات، عمال يومية، شيكات آجلة." },
+  { icon: "💊", title: "الصيدليات", desc: "تواريخ صلاحية، باركود طبي، تأمين، وصفات." },
+  { icon: "👔", title: "شركات الخدمات", desc: "عقود، فواتير دورية، عروض أسعار، اشتراكات." },
+  { icon: "🎓", title: "المؤسسات التعليمية", desc: "رسوم، أقساط، رواتب معلمين، تقارير مالية شاملة." },
+];
+
+const TONE_STYLES: Record<ERPModule["tone"], string> = {
+  dark: "bg-[#0D1B2E] text-white",
+  light: "bg-[#e8ecf1] text-[#0D1B2E]",
+  accent: "bg-[#3b82f6] text-white",
+  white: "bg-white border border-[#e8ecf1] text-[#0D1B2E]",
+};
+
+const ModuleCard = ({ module, index }: { module: ERPModule; index: number }) => {
+  const isDark = module.tone === "dark" || module.tone === "accent";
+  return (
+    <div
+      className={`${module.span} bento-card ${TONE_STYLES[module.tone]} rounded-[2rem] p-8 flex flex-col justify-between min-h-[260px] relative overflow-hidden`}
+    >
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <span className={`text-xs font-black font-latin tracking-wider px-2 py-1 rounded ${isDark ? "bg-white/10 text-white/80" : "bg-[#0D1B2E]/5 text-[#0D1B2E]/60"}`}>
+            {String(index + 1).padStart(2, "0")} · {module.tag}
+          </span>
+        </div>
+        <h3 className="text-2xl md:text-3xl font-black mb-3 leading-tight">{module.title}</h3>
+        <p className={`font-medium leading-relaxed mb-6 ${isDark ? "text-white/70" : "text-[#0D1B2E]/60"}`}>{module.desc}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {module.features.map((f) => (
+          <span
+            key={f}
+            className={`text-[10px] font-black font-latin px-2.5 py-1 rounded-full ${
+              isDark ? "bg-white/10 text-white/90" : "bg-[#fafbfc] border border-[#e8ecf1] text-[#0D1B2E]/70"
+            }`}
+          >
+            {f}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
