@@ -140,6 +140,7 @@ const LandingPage = () => {
 
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", onMouseMove);
       observer.disconnect();
     };
   }, []);
