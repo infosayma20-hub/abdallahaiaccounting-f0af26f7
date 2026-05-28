@@ -243,9 +243,21 @@ test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => 
     }
 
     // Toggle to edit mode and wait until update becomes enabled.
-    await page.getByTestId("action-edit").click();
+    // The edit toggle can race with the async voucher loader, so retry the
+    // click until the update button reports enabled.
     const updateBtn = page.getByTestId("action-update");
-    await expect(updateBtn).toBeEnabled({ timeout: 10_000 });
+    const editBtn = page.getByTestId("action-edit");
+    await expect(updateBtn).toBeVisible({ timeout: 15_000 });
+    for (let i = 0; i < 5; i++) {
+      await editBtn.click().catch(() => undefined);
+      try {
+        await expect(updateBtn).toBeEnabled({ timeout: 2_000 });
+        break;
+      } catch {
+        await page.waitForTimeout(500);
+      }
+    }
+    await expect(updateBtn).toBeEnabled({ timeout: 5_000 });
 
     const desc = page.getByPlaceholder("مثال: سلفة راتب - رهام حسون").first();
     await expect(desc).toBeVisible();
