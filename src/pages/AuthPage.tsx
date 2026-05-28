@@ -576,8 +576,27 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال طلب للإدارة"}
+                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة على البريد"}
               </button>
+
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  onClick={sendHrResetRequest}
+                  disabled={loading}
+                  className="w-full h-11 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                  style={{
+                    background: '#FFFFFF',
+                    color: '#0D1B2E',
+                    border: '1px solid #0D1B2E',
+                    fontWeight: 400,
+                    letterSpacing: '0.02em',
+                    fontFamily: 'Tajawal',
+                  }}
+                >
+                  إرسال طلب للإدارة (للموظفين)
+                </button>
+              )}
             </form>
 
             {/* Links */}
