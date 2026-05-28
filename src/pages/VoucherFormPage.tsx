@@ -270,6 +270,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
   // Bug #6: amount input ref + highlight after contact selection
   const amountInputRef = useRef<HTMLInputElement>(null);
+  // Ref always pointing to the latest handleSave (defined far below).
+  // ActionPane onClick handlers must call through this ref because the
+  // ActionPane tabs are memoized and would otherwise capture a stale
+  // handleSave closure with amount="" → "الرجاء إدخال المبلغ" bug.
+  const handleSaveRef = useRef<((asDraft?: boolean) => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
   // Focus + highlight helper used by contact pickers
   const focusAmountField = useCallback(() => {
