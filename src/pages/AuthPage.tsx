@@ -578,6 +578,11 @@ const AuthPage = () => {
                   <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>العودة لتسجيل الدخول</button>
                 </p>
               )}
+              {mode === "forgot" && (
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: '#8896A4', fontWeight: 300 }}>
+                  ملاحظة: إذا كنت موظفاً، سيتم إرسال طلبك مباشرةً إلى الموارد البشرية / إدارة شركتك فقط، ولن يصل لأي شركة أخرى.
+                </p>
+              )}
               <SamiChatbot inline />
             </div>
           </div>
