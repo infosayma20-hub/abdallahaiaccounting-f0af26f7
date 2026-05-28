@@ -35,6 +35,8 @@ import useFocusHighlight from "@/hooks/useFocusHighlight";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
 interface Contact {
   id: string;
   contact_name: string;
