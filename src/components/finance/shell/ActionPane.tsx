@@ -120,6 +120,7 @@ function CommandGroup({
               onClick={() => onClick(it)}
               title={it.tooltip || (it.shortcut ? `${it.label} (${it.shortcut})` : it.label)}
               className={cn("h-8 gap-1.5 text-[12.5px] font-normal", variantClass(it.variant))}
+              data-testid={`action-${it.key}`}
             >
               {it.icon && <it.icon className="h-3.5 w-3.5" />}
               <span>{it.label}</span>
