@@ -832,6 +832,14 @@ const JournalNewPage = () => {
   // Reset form to a blank entry (used by "قيد جديد" action)
   const resetForm = useCallback(() => {
     setSaved(false);
+    setEditingVoucherId(null);
+    setEditingCreatedAt(null);
+    setIsReadOnly(false);
+    setFormRefNumber("");
+    setFormDate(new Date().toISOString().split("T")[0]);
+    setFormSubtype("normal");
+    setFormCurrency("ILS");
+    setFormExchangeRate(1);
     setFormDescription("");
     setFormNotes("");
     setFormContactId("");
