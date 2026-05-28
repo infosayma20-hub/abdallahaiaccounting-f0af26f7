@@ -150,113 +150,274 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Bento Features */}
-      <section id="features" className="py-24 px-6 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black mb-4">كل أدوات عملك في مكان واحد</h2>
-            <p className="text-[#0D1B2E]/60 font-bold">نظام متكامل يغنيك عن خمس برامج منفصلة</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {/* AI Feature (Main) */}
-            <div className="md:col-span-4 lg:col-span-3 lg:row-span-2 bento-card bg-[#0D1B2E] rounded-[2rem] p-8 text-white flex flex-col justify-between overflow-hidden relative min-h-[320px]">
-              <div className="relative z-10">
-                <div className="bg-[#3b82f6] w-fit px-3 py-1 rounded-lg text-[10px] font-black mb-4 uppercase font-latin">حسيب AI</div>
-                <h3 className="text-3xl font-black mb-4 leading-tight">محاسبك الذكي بالعربي يفهم لهجتك</h3>
-                <p className="text-white/60 font-medium text-lg leading-relaxed">
-                  اسأل حسيب عن مبيعاتك، مصاريفك، أو أرباحك المتوقعة بلهجتك اليومية وسيقوم بتحليل كل شيء فوراً.
-                </p>
-              </div>
-              <div className="mt-8 flex items-end gap-1.5 h-12">
-                <div className="amp-bar w-1.5 h-4 bg-blue-400 rounded-full" style={{ animationDelay: "0ms" }} />
-                <div className="amp-bar w-1.5 h-8 bg-blue-500 rounded-full" style={{ animationDelay: "150ms" }} />
-                <div className="amp-bar w-1.5 h-12 bg-white rounded-full" style={{ animationDelay: "300ms" }} />
-                <div className="amp-bar w-1.5 h-6 bg-blue-300 rounded-full" style={{ animationDelay: "450ms" }} />
-                <div className="amp-bar w-1.5 h-10 bg-blue-400 rounded-full" style={{ animationDelay: "600ms" }} />
-                <span className="text-white/40 text-sm font-medium ms-3">"كم دفعنا شيكات الشهر هاد؟"</span>
-              </div>
-              <div className="absolute -bottom-10 -left-10 w-64 h-64 bg-blue-500/20 blur-3xl pointer-events-none" />
+      {/* Palestinian DNA Section */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">PALESTINIAN BY DESIGN</div>
+              <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
+                مش بس مترجم للعربي — <br />
+                <span className="text-[#3b82f6]">مبني للسوق الفلسطيني</span>
+              </h2>
+              <p className="text-[#0D1B2E]/70 font-medium text-lg leading-relaxed mb-8">
+                كل نظام <span className="font-latin font-bold">ERP</span> ثاني بتشتريه بتحس إنه أجنبي ومش فاهم شغلتك. أموالي مختلف. صُمّم في رام الله، اختُبر في نابلس والخليل وغزة، وبيتكلم لهجتك.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "ضريبة قيمة مضافة فلسطينية 16% (شاملة وغير شاملة)",
+                  "عملة الشيكل ₪ افتراضية + دعم الدينار والدولار",
+                  "تقارير معتمدة من وزارة المالية الفلسطينية",
+                  "دعم الشيكات الآجلة (الواقع الفلسطيني الفعلي)",
+                  "متوافق مع نظام التأمين الصحي وضمان نهاية الخدمة",
+                  "دعم فني عربي بالكامل من فريق فلسطيني",
+                ].map((p) => (
+                  <li key={p} className="flex items-start gap-3 font-bold text-[#0D1B2E]">
+                    <span className="text-[#3b82f6] mt-1">✓</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-
-            {/* POS */}
-            <div className="md:col-span-2 bento-card bg-[#e8ecf1] rounded-[2rem] p-8 flex flex-col justify-between min-h-[200px]">
-              <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6">
-                <svg className="w-6 h-6 text-[#3b82f6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            <div className="relative">
+              <div className="aspect-square rounded-[2rem] overflow-hidden bg-gradient-to-br from-[#0D1B2E] to-[#3b82f6] p-8 flex items-center justify-center">
+                <div className="text-center text-white">
+                  <div className="text-8xl mb-4">🇵🇸</div>
+                  <div className="text-2xl font-black mb-2">Made in Palestine</div>
+                  <div className="font-latin font-bold text-white/70">صُنع بفخر في فلسطين</div>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-extrabold mb-2">نقطة بيع POS</h3>
-                <p className="text-[#0D1B2E]/50 text-sm font-bold">سريعة، متصلة، وتعمل حتى بدون إنترنت.</p>
-              </div>
-            </div>
-
-            {/* Invoicing */}
-            <div className="md:col-span-2 lg:col-span-3 bento-card bg-white border border-[#e8ecf1] rounded-[2rem] p-8 flex flex-col md:flex-row items-center gap-8">
-              <div className="flex-1">
-                <h3 className="text-xl font-extrabold mb-2">فواتير + ضريبة 16%</h3>
-                <p className="text-[#0D1B2E]/50 text-sm font-bold leading-relaxed">
-                  إصدار فواتير ضريبية معتمدة وفقاً لمتطلبات وزارة المالية الفلسطينية بلمسة واحدة.
-                </p>
-              </div>
-              <div className="w-full md:w-32 h-20 bg-[#fafbfc] border border-dashed border-[#d1d7e0] rounded-xl flex items-center justify-center font-latin font-bold text-xs text-[#0D1B2E]/40">
-                INVOICE #4282
-              </div>
-            </div>
-
-            {/* Reports */}
-            <div className="md:col-span-2 bento-card bg-[#e8ecf1] rounded-[2rem] p-8">
-              <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6">
-                <svg className="w-6 h-6 text-[#3b82f6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
-              </div>
-              <h3 className="text-xl font-extrabold mb-2">تقارير فورية</h3>
-              <p className="text-[#0D1B2E]/50 text-sm font-bold">لوحة تحكم ذكية تلخص وضع عملك في ثوانٍ.</p>
-            </div>
-
-            {/* Mobile PWA */}
-            <div className="md:col-span-2 lg:col-span-1 lg:row-span-2 bento-card bg-[#3b82f6] rounded-[2rem] p-8 text-white flex flex-col items-center text-center min-h-[320px]">
-              <div className="w-full h-48 bg-white/10 rounded-2xl mt-auto mb-6 flex items-end justify-center overflow-hidden">
-                <div className="w-1/2 h-4/5 bg-white rounded-t-xl mb-[-10px] shadow-2xl shadow-black/20" />
-              </div>
-              <h3 className="text-lg font-black mb-1">تطبيق جوال</h3>
-              <p className="text-white/70 text-xs font-bold">عملك في جيبك دائماً</p>
-            </div>
-
-            {/* Cheques */}
-            <div className="md:col-span-2 bento-card bg-white border border-[#e8ecf1] rounded-[2rem] p-8">
-              <h3 className="text-xl font-extrabold mb-2">شيكات وسندات</h3>
-              <p className="text-[#0D1B2E]/50 text-sm font-bold">تتبع مواعيد الاستحقاق وسندات القبض والصرف آلياً.</p>
-            </div>
-
-            {/* HR */}
-            <div className="md:col-span-2 bento-card bg-white border border-[#e8ecf1] rounded-[2rem] p-8">
-              <h3 className="text-xl font-extrabold mb-2">موظفين وحضور</h3>
-              <p className="text-[#0D1B2E]/50 text-sm font-bold">رواتب، حضور، انصراف، ومهام في مكان واحد.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Solutions by Sector */}
-      <section className="py-24 px-6">
+      {/* ERP Modules — Complete Catalog */}
+      <section id="modules" className="py-24 px-6 bg-[#fafbfc]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black mb-4">لكل قطاع حلّه</h2>
-            <p className="text-[#0D1B2E]/60 font-bold">خصائص مصممة لتناسب طبيعة تجارتك</p>
+            <div className="inline-block bg-[#0D1B2E] text-white px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">12+ ERP MODULES</div>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">نظام <span className="font-latin text-[#3b82f6]">ERP</span> ضخم بكل معنى الكلمة</h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg max-w-2xl mx-auto">+12 وحدة متكاملة، +180 جدول بيانات، تغطي كل جانب من جوانب شركتك بدون ما تحتاج أي برنامج إضافي.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { title: "محلات تجارية", desc: "إدارة مخازن متطورة، باركود، وتنبيهات بنقص الكميات." },
-              { title: "مطاعم وكافيهات", desc: "إدارة طاولات، مطبخ، وطلبات خارجية بمرونة عالية." },
-              { title: "شركات خدمات", desc: "عروض أسعار، عقود، وفواتير دورية للمشاريع." },
-            ].map((s) => (
-              <div
-                key={s.title}
-                className="bg-[#e8ecf1] p-10 rounded-3xl group cursor-pointer hover:bg-[#3b82f6] transition-all"
-              >
-                <div className="w-12 h-12 bg-white rounded-xl mb-6 flex items-center justify-center">
-                  <div className="w-6 h-6 bg-[#3b82f6] rounded-md group-hover:bg-white transition-colors" />
+
+          <div className="grid md:grid-cols-12 gap-6">
+            {ERP_MODULES.map((m, i) => (
+              <ModuleCard key={m.title} module={m} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI Section with phone */}
+      <section id="ai" className="py-24 px-6 bg-[#0D1B2E] text-white overflow-hidden">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-[#3b82f6]/20 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-6 font-latin tracking-wider">
+              <span className="flex h-2 w-2 rounded-full bg-[#3b82f6] animate-pulse" />
+              AI ACCOUNTANT · حسيب
+            </div>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 leading-[1.1]">
+              محاسبك الذكي <br />
+              بيحكي <span className="text-[#3b82f6]">لهجتك الفلسطينية</span>
+            </h2>
+            <p className="text-white/70 font-medium text-lg leading-relaxed mb-8">
+              "حسيب" — أول محاسب ذكاء اصطناعي بيفهم اللهجة الفلسطينية. اضغط بصمتك واحكي معاه عادي، بيسجل القيود، يطلع الفواتير، ويحلل أرباحك خلال ثواني.
+            </p>
+            <div className="space-y-3 mb-8">
+              {[
+                "\"كم بعت اليوم؟\" — جواب فوري بالأرقام",
+                "\"سجل لي قبض من أبو سامي 5000 شيكل\" — قيد جاهز",
+                "\"شو وضع الذمم المدينة؟\" — تقرير كامل بثواني",
+                "\"عملي فاتورة لشركة الأمل بقيمة 1200 شامل ضريبة\" — تم",
+              ].map((q) => (
+                <div key={q} className="bg-white/5 border border-white/10 rounded-xl p-4 font-bold text-sm">
+                  💬 {q}
                 </div>
-                <h4 className="text-2xl font-black mb-4 group-hover:text-white">{s.title}</h4>
-                <p className="text-[#0D1B2E]/60 font-bold group-hover:text-white/80">{s.desc}</p>
+              ))}
+            </div>
+            <Link to="/auth?mode=signup" className="inline-block bg-[#3b82f6] text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-600 transition-all">
+              جرب حسيب الآن
+            </Link>
+          </div>
+          <div className="flex justify-center">
+            <img
+              src={aiMobileImg}
+              alt="تطبيق حسيب AI - المحاسب الذكي الفلسطيني"
+              width={500}
+              height={620}
+              loading="lazy"
+              className="max-w-sm w-full rounded-[2.5rem] shadow-2xl shadow-blue-500/20"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* POS Showcase */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div className="order-2 md:order-1">
+            <img src={posImg} alt="نقاط بيع POS أموالي" width={1024} height={1024} loading="lazy" className="w-full rounded-3xl shadow-xl border border-[#e8ecf1]" />
+          </div>
+          <div className="order-1 md:order-2">
+            <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">POS MODULE</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">نقاط بيع <span className="text-[#3b82f6]">احترافية</span> للمحلات والمطاعم</h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg mb-8 leading-relaxed">
+              نظام POS كامل بشاشات لمس، باركود، إدارة مناوبات، ربط بالطابعات الحرارية، وأهم شي: <strong className="text-[#0D1B2E]">يشتغل كامل بدون إنترنت</strong>.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                ["💳", "دفع نقدي وفيزا وآجل"],
+                ["📡", "Offline Mode كامل"],
+                ["🖨", "طباعة حرارية فورية"],
+                ["🔄", "مرتجعات بضغطة زر"],
+                ["👨‍🍳", "شاشة مطبخ منفصلة"],
+                ["📊", "إغلاق مناوبة آلي"],
+              ].map(([emoji, txt]) => (
+                <div key={txt} className="flex items-center gap-3 bg-[#fafbfc] border border-[#e8ecf1] rounded-xl p-3">
+                  <span className="text-2xl">{emoji}</span>
+                  <span className="font-bold text-sm">{txt}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Reports Showcase */}
+      <section className="py-24 px-6 bg-[#fafbfc]">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">REPORTS & ANALYTICS</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">قرارات أذكى بـ <span className="text-[#3b82f6]">+40 تقرير</span> جاهز</h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg mb-8 leading-relaxed">
+              ميزان مراجعة، قائمة دخل، ميزانية عمومية، تدفقات نقدية، أعمار الديون، تقارير ضريبية فلسطينية — كلها بضغطة زر وبتصدير PDF / Excel.
+            </p>
+            <ul className="space-y-3">
+              {[
+                "ميزان مراجعة شجري متعدد المستويات",
+                "كشوف حسابات قابلة للمشاركة بـ WhatsApp",
+                "تقارير المبيعات حسب المنتج/العميل/المندوب",
+                "تحليل الربحية لكل فرع ولكل ورشة",
+                "لوحات تحكم مخصصة (Custom Dashboards) قابلة للسحب والإفلات",
+              ].map((r) => (
+                <li key={r} className="flex items-start gap-3 font-bold">
+                  <span className="text-[#3b82f6]">▸</span><span>{r}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <img src={reportsImg} alt="تقارير وتحليلات أموالي ERP" width={1024} height={1024} loading="lazy" className="w-full rounded-3xl shadow-xl border border-[#e8ecf1]" />
+          </div>
+        </div>
+      </section>
+
+      {/* Inventory + HR side by side */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black mb-4">إدارة كل تفصيلة بدقّة <span className="font-latin text-[#3b82f6]">ERP</span></h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-[#fafbfc] border border-[#e8ecf1] rounded-3xl overflow-hidden">
+              <img src={inventoryImg} alt="إدارة المخازن" width={1200} height={900} loading="lazy" className="w-full h-64 object-cover" />
+              <div className="p-8">
+                <h3 className="text-2xl font-black mb-3">مخازن متعددة + باركود</h3>
+                <p className="text-[#0D1B2E]/60 font-bold mb-4">إدارة كميات، تحويلات بين الفروع، باركود لكل صنف، تنبيهات نقص، جرد دوري ومفاجئ، وتقييم مخزون FIFO.</p>
+                <div className="flex flex-wrap gap-2 text-xs font-black">
+                  {["Multi-warehouse", "Barcode", "FIFO", "Stock Alerts", "Transfers"].map(t => (
+                    <span key={t} className="bg-white border border-[#e8ecf1] px-3 py-1 rounded-full font-latin">{t}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#fafbfc] border border-[#e8ecf1] rounded-3xl overflow-hidden">
+              <img src={hrImg} alt="الموارد البشرية" width={1200} height={900} loading="lazy" className="w-full h-64 object-cover" />
+              <div className="p-8">
+                <h3 className="text-2xl font-black mb-3">موارد بشرية ورواتب فلسطينية</h3>
+                <p className="text-[#0D1B2E]/60 font-bold mb-4">ملف موظف كامل، رواتب، حضور وانصراف، إجازات، استقطاعات، مكافآت، بوابة موظف، ودعم بصمة ZKTeco.</p>
+                <div className="flex flex-wrap gap-2 text-xs font-black">
+                  {["Payroll", "Attendance", "ZKTeco K40", "Employee Portal", "Disciplinary"].map(t => (
+                    <span key={t} className="bg-white border border-[#e8ecf1] px-3 py-1 rounded-full font-latin">{t}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sectors */}
+      <section id="features" className="py-24 px-6 bg-[#fafbfc]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black mb-4">يناسب كل قطاع فلسطيني</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">من بقالة الحارة إلى المصنع الكبير — نظام واحد يكبر معك</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {SECTORS.map((s) => (
+              <div key={s.title} className="bg-white border border-[#e8ecf1] p-8 rounded-3xl hover:shadow-xl hover:border-[#3b82f6]/30 transition-all">
+                <div className="text-4xl mb-4">{s.icon}</div>
+                <h4 className="text-xl font-black mb-3">{s.title}</h4>
+                <p className="text-[#0D1B2E]/60 font-bold text-sm leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why ERP matters */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-black mb-6">ليش نظام <span className="font-latin text-[#3b82f6]">ERP</span> مش رفاهية؟</h2>
+          <p className="text-[#0D1B2E]/60 font-bold text-lg mb-12 max-w-3xl mx-auto leading-relaxed">
+            لأنك بدون <span className="font-latin font-black">ERP</span> بتشتغل بـ 5 برامج منفصلة، Excel، ودفاتر يدوية. النتيجة: أخطاء، ضياع وقت، وقرارات بدون أرقام صحيحة.
+          </p>
+          <div className="grid md:grid-cols-2 gap-6 text-right">
+            <div className="bg-red-50 border-2 border-red-100 rounded-3xl p-8">
+              <div className="text-red-600 font-black mb-4">❌ بدون ERP</div>
+              <ul className="space-y-3 font-bold text-[#0D1B2E]/70">
+                <li>• محاسب على Excel + برنامج فواتير منفصل</li>
+                <li>• جرد مخزون يدوي كل شهر</li>
+                <li>• رواتب على ورق وحاسبة</li>
+                <li>• ما بتعرف ربحك إلا آخر السنة</li>
+                <li>• تكاليف اشتراكات +5 برامج</li>
+              </ul>
+            </div>
+            <div className="bg-[#3b82f6]/5 border-2 border-[#3b82f6]/20 rounded-3xl p-8">
+              <div className="text-[#3b82f6] font-black mb-4">✓ مع أموالي <span className="font-latin">ERP</span></div>
+              <ul className="space-y-3 font-bold text-[#0D1B2E]">
+                <li>• كل شي بنظام واحد متكامل</li>
+                <li>• مخزون لحظي ودقيق دائماً</li>
+                <li>• رواتب آلية بضغطة زر</li>
+                <li>• ربحك على الشاشة كل ثانية</li>
+                <li>• اشتراك واحد بسعر معقول</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-24 px-6 bg-[#fafbfc]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black mb-4">شركات فلسطينية وثقت فينا</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { name: "أبو محمد", role: "صاحب سوبرماركت — رام الله", text: "كنت أصرف 3 ساعات يومياً على الحسابات. هلأ كل شي آلي. حسيب AI بيجاوبني عن أي سؤال بثواني." },
+              { name: "شركة الأمل للمقاولات", role: "نابلس", text: "أول مرة نشوف نظام ERP بيفهم الواقع الفلسطيني — شيكات، ضريبة 16%، وعمال يومية. صار سهل علينا." },
+              { name: "مطعم الديوان", role: "الخليل", text: "شاشة المطبخ والـ POS بتشتغلوا حتى لما الإنترنت بيقطع. مرة واحدة ما خسرنا طلبية." },
+            ].map((t) => (
+              <div key={t.name} className="bg-white p-8 rounded-3xl border border-[#e8ecf1]">
+                <div className="text-[#3b82f6] text-4xl mb-4">"</div>
+                <p className="font-bold text-[#0D1B2E]/80 leading-relaxed mb-6">{t.text}</p>
+                <div className="border-t border-[#e8ecf1] pt-4">
+                  <div className="font-black">{t.name}</div>
+                  <div className="text-sm font-bold text-[#0D1B2E]/50">{t.role}</div>
+                </div>
               </div>
             ))}
           </div>
