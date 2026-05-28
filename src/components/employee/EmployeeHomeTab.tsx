@@ -119,14 +119,6 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
       >
         <div className="relative z-10 flex items-start gap-3">
-          {companyLogo && (
-            <img
-              src={companyLogo}
-              alt="شعار الشركة"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-              className="h-12 w-12 rounded-xl bg-white/90 object-contain p-1 shrink-0 border border-white/30"
-            />
-          )}
           <div className="min-w-0 flex-1">
             <p className="text-sm text-primary-foreground/60">مرحباً 👋</p>
             <h1 className="text-xl font-bold text-primary-foreground truncate">{employeeName}</h1>
@@ -142,6 +134,14 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             </div>
           )}
           </div>
+          {companyLogo && (
+            <img
+              src={companyLogo}
+              alt="شعار الشركة"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-white/30 shadow-md"
+            />
+          )}
         </div>
         {/* Decorative circle */}
         <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
