@@ -126,6 +126,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         onClick={(e) => {
           e.stopPropagation();
           if (disabled) return;
+          // Always expand the sidebar when the user clicks an item while collapsed
+          if (collapsed) onToggle();
           // Bug #1: clicking ANY app row should expand its sub-items
           // (and also navigate to the main workspace if it has a path).
           if (hasChildren && item.path) {
@@ -133,12 +135,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             onMobileClose();
             setOpenItem(item.label);
           } else if (hasChildren) {
-            if (collapsed) {
-              onToggle();
-              setOpenItem(item.label);
-            } else {
-              setOpenItem(item.label);
-            }
+            setOpenItem(item.label);
           } else if (item.path) {
             handleNavigate(item.path);
           }
