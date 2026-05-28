@@ -2831,7 +2831,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             مركز التكلفة (اختياري)
           </span>
         </div>
-        <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
+        <div data-testid={isReceipt ? "receipt-cost-center" : "payment-cost-center"}>
+          <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
+        </div>
         <p className="text-[10px] text-muted-foreground mt-1">
           يُرحَّل إلى القيد المحاسبي ويظهر في التقارير حسب مركز التكلفة.
           {/* TODO: cost_center_rules — إلزام مراكز التكلفة على المصاريف مؤجل للمرحلة القادمة. */}
@@ -2869,7 +2871,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             <div className="md:col-span-4">
               <Label className="text-xs mb-1.5 block">العملة</Label>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="h-14"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-14" data-testid={isReceipt ? "receipt-currency" : "payment-currency"}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CURRENCIES.map(c => (
                     <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
