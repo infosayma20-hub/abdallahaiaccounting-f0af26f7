@@ -971,6 +971,28 @@ const LandingPage = () => {
           جرّب أموالي ERP مجاناً ←
         </Link>
       </div>
+
+      {/* Floating WhatsApp */}
+      <a
+        href="https://wa.me/970599123456?text=مرحبا،%20أنا%20مهتم%20بنظام%20أموالي%20ERP"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-24 md:bottom-8 left-6 z-50 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-green-500/30 hover:scale-110 transition-transform"
+        aria-label="تواصل عبر واتساب"
+      >
+        <MessageCircle className="w-7 h-7" />
+      </a>
+
+      {/* Back to Top */}
+      {scrollProgress > 10 && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-8 right-6 z-50 bg-[#0D1B2E] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-2xl shadow-[#0D1B2E]/30 hover:scale-110 transition-transform"
+          aria-label="العودة لأعلى الصفحة"
+        >
+          <ChevronDown className="w-5 h-5 rotate-180" />
+        </button>
+      )}
     </div>
   );
 };
