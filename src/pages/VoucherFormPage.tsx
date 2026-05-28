@@ -177,6 +177,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [prefillConsumed, setPrefillConsumed] = useState(false);
 
   const isReceipt = voucherType === "receipt";
+  const isPayment = voucherType === "payment";
+  /** Phase 1/2: both receipt & payment now use the FinanceShell + ActionPane. */
+  const useFinanceShell = isReceipt || isPayment;
   const pageTitle = isEditMode 
     ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف")
     : (isReceipt ? "سند قبض جديد" : "سند صرف جديد");
@@ -300,19 +303,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Cost center (Financial Dimension) — independent of legacy workshop_id
   const [costCenterId, setCostCenterId] = useState<string | null>(null);
 
-  // ─── Read-only / view-mode for Receipt (Phase 1 FinanceShell wrap) ───
-  // When editing an existing receipt, open in read-only until the user
-  // clicks "تعديل" — mirrors JournalNewPage behavior.
-  const [isReadOnly, setIsReadOnly] = useState<boolean>(isEditMode && voucherType === "receipt");
+  // ─── Read-only / view-mode (FinanceShell wrap) ───
+  // When editing an existing receipt/payment voucher, open in read-only
+  // until the user clicks "تعديل" — mirrors JournalNewPage behavior.
+  const [isReadOnly, setIsReadOnly] = useState<boolean>(isEditMode && useFinanceShell);
 
-  // ─── Prev/Next navigation between receipts (Phase 1) ───
+  // ─── Prev/Next navigation between vouchers (receipt OR payment) ───
   // Declared up here (before any early returns) so React hook order stays stable.
-  const goToAdjacentReceipt = async (direction: "prev" | "next") => {
-    if (voucherType !== "receipt" || !ownerId) return;
+  const goToAdjacentVoucher = async (direction: "prev" | "next") => {
+    if (!useFinanceShell || !ownerId) return;
+    const table = isReceipt ? "receipt_vouchers" : "vouchers";
+    const numberField = isReceipt ? "receipt_number" : "ref_number";
+    const routePrefix = isReceipt ? "/finance/receipt" : "/finance/payment";
     try {
       let q = supabase
-        .from("receipt_vouchers")
-        .select("id, receipt_number, created_at")
+        .from(table as any)
+        .select(`id, ${numberField}, created_at`)
         .eq("user_id", ownerId);
       if (editId && (window as any).__voucherCreatedAt) {
         const cursor = (window as any).__voucherCreatedAt as string;
@@ -326,30 +332,32 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
       const { data, error } = await q.limit(1);
       if (error) throw error;
-      const target = (data || [])[0];
+      const target = (data as any[] | null || [])[0];
       if (!target) {
         toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
         return;
       }
-      navigate(`/finance/receipt/${target.id}/edit`);
+      navigate(`${routePrefix}/${target.id}/edit`);
     } catch (err: any) {
       toast.error(err.message || "تعذر التنقل بين السندات");
     }
   };
 
-  // ─── Action Pane tabs (FinanceShell) — receipt only in Phase 1 ───
+  // ─── Action Pane tabs (FinanceShell) — receipt + payment ───
   // CRITICAL: this useMemo must live ABOVE the editLoading/saved early
   // returns so React always sees the same hook count across renders.
   // Handler refs are wrapped in lazy arrows so TDZ on consts declared
   // further down is never hit (onClick fires only after full render).
-  const isReceiptType = voucherType === "receipt";
-  const receiptActionTabs: ActionTab[] = useMemo(() => {
-    if (!isReceiptType) return [];
+  const voucherActionTabs: ActionTab[] = useMemo(() => {
+    if (!useFinanceShell) return [];
+    const newRoute = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
+    const listRoute = isReceipt ? "/finance/receipts" : "/finance/payments";
+    const newLabel = isReceipt ? "سند قبض جديد" : "سند صرف جديد";
     const inEdit = isEditMode;
     const newGroup = {
       key: "new", label: "جديد", items: [
-        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary" as const,
-          onClick: () => navigate("/finance/receipt/new") },
+        { key: "new", label: newLabel, icon: Plus, variant: "primary" as const,
+          onClick: () => navigate(newRoute) },
         ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy,
           onClick: () => handleNewSimilar() }] : []),
       ],
@@ -376,14 +384,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrint() },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
-      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentReceipt("prev") },
-      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentReceipt("next") },
-      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/finance/receipts") },
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
+      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate(listRoute) },
       { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
     ]};
     return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReceiptType, isEditMode, isReadOnly]);
+  }, [useFinanceShell, isReceipt, isEditMode, isReadOnly]);
 
   // ─── Auto-Draft (السندات) ───
   const draftFormId = `voucher_${voucherType}_new`;
@@ -2555,8 +2563,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       )}
 
-      {/* Header + old toolbar — hidden for receipts (FinanceShell + ActionPane own this). */}
-      {!isReceipt && <>
+      {/* Header + old toolbar — hidden for receipts and payments
+          (FinanceShell + ActionPane own this for both). */}
+      {!useFinanceShell && <>
       <PageHeader
         title={pageTitle}
         breadcrumb={["المالية", isReceipt ? "سندات القبض" : "سندات الصرف", pageTitle]}
@@ -2695,7 +2704,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {isReceipt && (
+            {useFinanceShell && (
               <div>
                 <Label className="text-xs mb-1.5 block">رقم السند</Label>
                 <Input
@@ -2703,7 +2712,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   readOnly
                   value={savedReceiptNumber || refNumber || ""}
                   placeholder="يُولَّد عند الحفظ"
-                  data-testid="receipt-voucher-number"
+                  data-testid={isReceipt ? "receipt-voucher-number" : "payment-voucher-number"}
                   className="font-mono font-bold tracking-wide bg-muted/40 cursor-default"
                 />
               </div>
@@ -3336,8 +3345,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* ═══ END MASTER GRID ═══ */}
       </div>
 
-      {/* ═══ Sticky Bottom Action Bar — hidden for receipts (ActionPane owns this). */}
-      {!isReceipt && !isCancelled && (
+      {/* ═══ Sticky Bottom Action Bar — hidden for receipts & payments
+          (ActionPane owns this for both). */}
+      {!useFinanceShell && !isCancelled && (
         <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
           <div className="max-w-[1600px] mx-auto flex items-center gap-2 flex-wrap">
             {/* Ghost: Print */}
@@ -3366,7 +3376,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       )}
 
       {/* Cancelled — only show print, full width */}
-      {!isReceipt && isCancelled && (
+      {!useFinanceShell && isCancelled && (
         <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 flex items-center justify-center">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-5 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
@@ -3405,20 +3415,23 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     </SmartFormScope>
   );
 
-  if (isReceipt) {
+  if (useFinanceShell) {
+    const listLabel = isReceipt ? "سندات القبض" : "سندات الصرف";
+    const listHref = isReceipt ? "/finance/receipts" : "/finance/payments";
+    const bannerTestId = isReceipt ? "receipt-view-banner" : "payment-view-banner";
     return (
       <FinanceShell
         title={pageTitle}
         subtitle={pageDesc}
         breadcrumb={[
           { label: "المالية", href: "/accounting-center" },
-          { label: "سندات القبض", href: "/finance/receipts" },
+          { label: listLabel, href: listHref },
           { label: pageTitle },
         ]}
-        actionTabs={receiptActionTabs}
+        actionTabs={voucherActionTabs}
       >
         {isEditMode && (
-          <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`} data-testid="receipt-view-banner">
+          <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`} data-testid={bannerTestId}>
             <div className="flex items-center gap-2 text-xs font-semibold">
               {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
               <span>
