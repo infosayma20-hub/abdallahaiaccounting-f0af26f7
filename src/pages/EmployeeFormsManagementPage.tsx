@@ -31,6 +31,7 @@ import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
 import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { useNavigate } from "react-router-dom";
+import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -344,6 +345,8 @@ export default function EmployeeFormsManagementPage() {
             <h1 className="text-xl font-bold">طلبات الموظفين</h1>
           </div>
         </div>
+
+        <PasswordResetRequestsPanel />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
