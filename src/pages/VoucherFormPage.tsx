@@ -1172,8 +1172,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const handleSave = async (asDraft = false) => {
     const isEmployeePayment = !isReceipt && partyType === "employee";
     const isAccountPayment = partyType === "account";
-    if (!user || amountNum <= 0) {
-      toast.error("الرجاء تعبئة جميع الحقول المطلوبة");
+    if (!user) {
+      toast.error("لم يتم التعرف على المستخدم — أعد تسجيل الدخول");
+      return;
+    }
+    if (!ownerId) {
+      toast.error("جاري تحميل بيانات الحساب، حاول بعد ثانية");
+      return;
+    }
+    if (amountNum <= 0) {
+      toast.error("الرجاء إدخال المبلغ");
+      try { amountInputRef.current?.focus(); } catch {}
       return;
     }
     if (isEmployeePayment && !selectedEmployee) {
