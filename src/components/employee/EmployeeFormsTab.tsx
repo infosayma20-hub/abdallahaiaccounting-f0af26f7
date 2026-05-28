@@ -414,14 +414,14 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
       case "employee_info":
         return (
-          <>
+          <div dir="rtl" className="space-y-3">
             <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 p-4 space-y-1">
               <div className="flex items-center gap-2">
                 <UserCog className="h-5 w-5 text-primary" />
                 <h3 className="text-sm font-bold">تحديث بياناتك الشخصية</h3>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                عبّي البيانات الناقصة فقط، خذ وقتك. كل حقل عليه ⭐ ضروري، والباقي اختياري.
+                عبّي جميع الحقول، الحقول المعلّمة بـ <span className="text-destructive font-bold">*</span> إلزامية.
                 سيراجعها قسم الموارد البشرية ويحدّث ملفك مباشرة.
               </p>
             </div>
@@ -433,16 +433,16 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 <h4 className="text-sm font-semibold">معلوماتك الأساسية</h4>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1.5 block">الاسم الكامل (رباعي) <span className="text-destructive">⭐</span></label>
+                <label className="text-xs font-medium mb-1.5 block">الاسم الكامل (رباعي) <span className="text-destructive">*</span></label>
                 <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl h-11" placeholder="مثال: محمد أحمد علي حسن" />
               </div>
               <div>
-                <label className="text-xs font-medium mb-1.5 block">رقم الهوية الشخصية <span className="text-destructive">⭐</span></label>
+                <label className="text-xs font-medium mb-1.5 block">رقم الهوية الشخصية <span className="text-destructive">*</span></label>
                 <Input inputMode="numeric" value={formData.id_number || ""} onChange={e => setFormData(p => ({ ...p, id_number: e.target.value.replace(/\D/g, "").slice(0, 9) }))} dir="ltr" className="rounded-xl h-11" placeholder="9 أرقام" />
-                <p className="text-[10px] text-warning mt-1">💡 رقم هويتك الشخصية وليس رقم البصمة في الجهاز</p>
+                <p className="text-[10px] text-warning mt-1">رقم هويتك الشخصية وليس رقم البصمة في الجهاز</p>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1.5 block">تاريخ الميلاد <span className="text-destructive">⭐</span></label>
+                <label className="text-xs font-medium mb-1.5 block">تاريخ الميلاد <span className="text-destructive">*</span></label>
                 <Input type="date" value={formData.date_of_birth || ""} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl h-11" />
               </div>
             </div>
@@ -454,7 +454,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 <h4 className="text-sm font-semibold">رقم الواتساب</h4>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1.5 block">الرقم اللي بتستقبل عليه واتساب <span className="text-destructive">⭐</span></label>
+                <label className="text-xs font-medium mb-1.5 block">الرقم اللي بتستقبل عليه واتساب <span className="text-destructive">*</span></label>
                 <div className="flex gap-2" dir="ltr">
                   <Select
                     value={formData.whatsapp_prefix || "+972"}
@@ -462,8 +462,8 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                   >
                     <SelectTrigger className="w-[110px] rounded-xl h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="+972">🇮🇱 +972</SelectItem>
-                      <SelectItem value="+970">🇵🇸 +970</SelectItem>
+                      <SelectItem value="+972">+972</SelectItem>
+                      <SelectItem value="+970">+970</SelectItem>
                     </SelectContent>
                   </Select>
                   <Input
@@ -481,7 +481,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                     placeholder="591234567"
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">💡 بدون الصفر في البداية</p>
+                <p className="text-[10px] text-muted-foreground mt-1">بدون الصفر في البداية</p>
               </div>
             </div>
 
@@ -492,16 +492,16 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 <h4 className="text-sm font-semibold">معلومات العمل</h4>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1.5 block">تاريخ بدايتك بالعمل في الملكي <span className="text-destructive">⭐</span></label>
+                <label className="text-xs font-medium mb-1.5 block">تاريخ بدايتك بالعمل في الملكي <span className="text-destructive">*</span></label>
                 <Input type="date" value={formData.malaky_start_date || ""} onChange={e => setFormData(p => ({ ...p, malaky_start_date: e.target.value }))} dir="ltr" className="rounded-xl h-11" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-medium mb-1.5 block">الفرع</label>
+                  <label className="text-xs font-medium mb-1.5 block">الفرع <span className="text-destructive">*</span></label>
                   <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium mb-1.5 block">القسم</label>
+                  <label className="text-xs font-medium mb-1.5 block">القسم <span className="text-destructive">*</span></label>
                   <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
                 </div>
               </div>
@@ -511,7 +511,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 text-primary">
                 <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">4</span>
-                <h4 className="text-sm font-semibold">الحالة الاجتماعية</h4>
+                <h4 className="text-sm font-semibold">الحالة الاجتماعية <span className="text-destructive">*</span></h4>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {["أعزب", "متزوج", "مطلق", "أرمل"].map(v => (
@@ -524,11 +524,11 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               {(formData.marital_status === "متزوج" || formData.marital_status === "مطلق" || formData.marital_status === "أرمل") && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs font-medium mb-1.5 block">اسم الزوج/الزوجة</label>
+                    <label className="text-xs font-medium mb-1.5 block">اسم الزوج/الزوجة <span className="text-destructive">*</span></label>
                     <Input value={formData.spouse_name || ""} onChange={e => setFormData(p => ({ ...p, spouse_name: e.target.value }))} className="rounded-xl h-11" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium mb-1.5 block">عدد الأبناء</label>
+                    <label className="text-xs font-medium mb-1.5 block">عدد الأبناء <span className="text-destructive">*</span></label>
                     <Input type="number" min={0} value={formData.children_count || ""} onChange={e => setFormData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl h-11" placeholder="0" />
                   </div>
                 </div>
@@ -539,7 +539,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 text-primary">
                 <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">5</span>
-                <h4 className="text-sm font-semibold">صورة الهوية <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span></h4>
+                <h4 className="text-sm font-semibold">صورة الهوية <span className="text-destructive">*</span></h4>
               </div>
               <label className="border-2 border-dashed border-border rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
                 {uploadingFile ? (
@@ -556,7 +556,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 )}
                 <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" disabled={uploadingFile} />
               </label>
-              {formData.attachment_url && <p className="text-xs text-emerald-500 flex items-center gap-1">✅ تم رفع الملف بنجاح</p>}
+              {formData.attachment_url && <p className="text-xs text-emerald-500 flex items-center gap-1">تم رفع الملف بنجاح</p>}
             </div>
 
             {/* Notes */}
@@ -564,7 +564,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs font-medium mb-1.5 block">ملاحظات إضافية <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span></label>
               <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" placeholder="أي معلومة بدك توصلها للموارد البشرية..." />
             </div>
-          </>
+          </div>
         );
 
       case "complaints":
