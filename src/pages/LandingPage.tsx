@@ -62,6 +62,16 @@ const useCountUp = (target: number, duration = 2000, suffix = "") => {
   return { ref, count, suffix };
 };
 
+const StatCard = ({ target, suffix, label }: { target: number; suffix: string; label: string }) => {
+  const { ref, count } = useCountUp(target, 2500, suffix);
+  return (
+    <div ref={ref} className="bg-white border border-[#e8ecf1] rounded-2xl p-6 hover:shadow-lg transition-shadow">
+      <div className="text-3xl font-black text-[#3b82f6] font-latin mb-1">{count}{suffix}</div>
+      <div className="text-sm font-bold text-[#0D1B2E]/60">{label}</div>
+    </div>
+  );
+};
+
 const LandingPage = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
