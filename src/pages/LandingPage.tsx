@@ -142,7 +142,7 @@ const LandingPage = () => {
   return (
     <div
       dir="rtl"
-      className="bg-[#fafbfc] text-[#0D1B2E] overflow-x-hidden selection:bg-[#3b82f6] selection:text-white min-h-screen"
+      className="bg-[#fafbfc] text-[#0D1B2E] overflow-x-hidden selection:bg-[#3b82f6] selection:text-white min-h-screen pb-16 md:pb-0"
       style={{ fontFamily: "'Cairo', sans-serif" }}
     >
       {/* Scroll Progress Bar */}
