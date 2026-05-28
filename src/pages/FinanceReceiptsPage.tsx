@@ -20,6 +20,10 @@ import {
   FinanceShell, applyFilters,
   type ActionTab, type FilterCondition, type FilterField,
 } from "@/components/finance/shell";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
+import { printVoucherList } from "@/components/print/buildVoucherListPrint";
+import { onCrossTabChange } from "@/lib/crossTabSync";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
 import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
