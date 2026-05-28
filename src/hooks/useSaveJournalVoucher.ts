@@ -53,6 +53,12 @@ export interface JournalSaveInput {
   mode?: "draft" | "posted" | "deferred";
   attachments?: any[];
   line_sort_order?: "debit_first" | "original";
+  /** Currency label (Arabic), e.g. "شيكل" / "دولار" / "دينار" / "يورو". Default "شيكل" (ILS). */
+  currency_label?: string;
+  /** Currency code (ISO-ish), e.g. "ILS" / "USD" / "JOD" / "EUR". Default "ILS". */
+  currency_code?: string;
+  /** Exchange rate to ILS (1 unit of currency_code = N ILS). Required when currency_code != "ILS". */
+  exchange_rate?: number;
 }
 
 export interface JournalSaveResult {
@@ -95,8 +101,13 @@ function buildTransactionsFromLines(args: {
   voucherId: string;
   voucherContactId?: string | null;
   voucherCostCenterId?: string | null;
+  currencyLabel: string;
+  currencyCode: string;
+  exchangeRate: number;
 }): { txns: any[]; usedClearing: boolean } {
-  const { userId, date, description, lines, txType, reference, voucherId, voucherContactId, voucherCostCenterId } = args;
+  const { userId, date, description, lines, txType, reference, voucherId, voucherContactId, voucherCostCenterId, currencyLabel, currencyCode, exchangeRate } = args;
+  const isForeign = currencyCode !== "ILS";
+  const rate = isForeign ? (Number(exchangeRate) || 1) : 1;
 
   const cleanContact = (c?: string | null) =>
     c && c !== "__none__" ? c : null;
@@ -138,8 +149,10 @@ function buildTransactionsFromLines(args: {
             : description,
           debit_account_code: dl.account_code,
           credit_account_code: PARTY_TRANSFER_CLEARING_CODE,
-          amount,
-          currency: "ILS",
+          amount: amount * rate,
+          currency: currencyLabel,
+          foreign_amount: isForeign ? amount : null,
+          exchange_rate: isForeign ? rate : null,
           transaction_type: txType,
           reference,
           contact_id: dContact,
@@ -154,8 +167,10 @@ function buildTransactionsFromLines(args: {
             : description,
           debit_account_code: PARTY_TRANSFER_CLEARING_CODE,
           credit_account_code: cl.account_code,
-          amount,
-          currency: "ILS",
+          amount: amount * rate,
+          currency: currencyLabel,
+          foreign_amount: isForeign ? amount : null,
+          exchange_rate: isForeign ? rate : null,
           transaction_type: txType,
           reference,
           contact_id: cContact,
@@ -171,8 +186,10 @@ function buildTransactionsFromLines(args: {
           description: contactName ? `${description} - ${contactName}` : description,
           debit_account_code: dl.account_code,
           credit_account_code: cl.account_code,
-          amount,
-          currency: "ILS",
+          amount: amount * rate,
+          currency: currencyLabel,
+          foreign_amount: isForeign ? amount : null,
+          exchange_rate: isForeign ? rate : null,
           transaction_type: txType,
           reference,
           contact_id: lineContactId,
@@ -321,6 +338,9 @@ export function useSaveJournalVoucher() {
       );
 
       const totalDebit = validLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+      const masterCode = input.currency_code || "ILS";
+      const masterRate = masterCode === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
+      const totalDebitIls = totalDebit * masterRate;
 
       // ── (2) رقم السند ──
       const refNumber = input.ref_number?.trim() || (await generateRefNumber(user.id));
@@ -343,7 +363,7 @@ export function useSaveJournalVoucher() {
           contact_id: input.contact_id || null,
           cost_center_id: input.cost_center_id || null,
           amount: totalDebit,
-          amount_ils: totalDebit,
+          amount_ils: totalDebitIls,
           description: input.description.trim(),
           notes: input.notes || null,
           status: initialStatus,
@@ -378,6 +398,9 @@ export function useSaveJournalVoucher() {
       // ── (5) عند الترحيل: إنشاء transactions ──
       if (mode === "posted") {
         const txType = SUBTYPE_TO_TX_TYPE[input.subtype] || "journal";
+        const currencyCode = input.currency_code || "ILS";
+        const currencyLabel = input.currency_label || "شيكل";
+        const rate = currencyCode === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
         const { txns, usedClearing } = buildTransactionsFromLines({
           userId: user.id,
           date: input.date,
@@ -388,6 +411,9 @@ export function useSaveJournalVoucher() {
           voucherId: voucher.id,
           voucherContactId: input.contact_id,
           voucherCostCenterId: input.cost_center_id || null,
+          currencyLabel,
+          currencyCode,
+          exchangeRate: rate,
         });
         if (usedClearing) {
           await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
@@ -412,7 +438,7 @@ export function useSaveJournalVoucher() {
             entryDate: input.date,
             description: input.description.trim(),
             lines: rpcLines,
-            currency: "ILS",
+            currency: currencyLabel,
             reference: voucher.ref_number,
             idempotencyKey: `VOUCHER-${voucher.id}`,
             source: "journal_voucher",
@@ -527,6 +553,9 @@ export function useSaveJournalVoucher() {
         (l) => (l.account_code || l.contact_id) && (Number(l.debit) > 0 || Number(l.credit) > 0)
       );
       const totalDebit = validLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+      const masterCodeU = input.currency_code || "ILS";
+      const masterRateU = masterCodeU === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
+      const totalDebitIlsU = totalDebit * masterRateU;
 
       // تحديث الـ master — نُنزّل الحالة إلى draft مؤقتاً عند إعادة الترحيل
       // حتى لا يفشل trigger guard_voucher_must_have_journal بسبب
@@ -542,7 +571,7 @@ export function useSaveJournalVoucher() {
           contact_id: input.contact_id || null,
           cost_center_id: input.cost_center_id || null,
           amount: totalDebit,
-          amount_ils: totalDebit,
+          amount_ils: totalDebitIlsU,
           description: input.description.trim(),
           notes: input.notes || null,
           status: intermediateStatusU,
@@ -573,6 +602,9 @@ export function useSaveJournalVoucher() {
       // إعادة إنشاء transactions (إذا posted)
       if (mode === "posted") {
         const txType = SUBTYPE_TO_TX_TYPE[input.subtype] || "journal";
+        const currencyCode = input.currency_code || "ILS";
+        const currencyLabel = input.currency_label || "شيكل";
+        const rate = currencyCode === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
         const { txns, usedClearing } = buildTransactionsFromLines({
           userId: user.id,
           date: input.date,
@@ -583,6 +615,9 @@ export function useSaveJournalVoucher() {
           voucherId,
           voucherContactId: input.contact_id,
           voucherCostCenterId: input.cost_center_id || null,
+          currencyLabel,
+          currencyCode,
+          exchangeRate: rate,
         });
         if (usedClearing) {
           await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
@@ -608,7 +643,7 @@ export function useSaveJournalVoucher() {
             entryDate: input.date,
             description: input.description.trim(),
             lines: rpcLines,
-            currency: "ILS",
+            currency: currencyLabel,
             reference: existing.ref_number,
             idempotencyKey: `VOUCHER-${voucherId}-${Date.now()}`,
             source: "journal_voucher_edit",

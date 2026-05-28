@@ -4,7 +4,7 @@ import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2, Eye, Calculator,
   BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock,
-  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks
+  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,13 @@ import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/comp
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
+
+const CURRENCIES = [
+  { value: "ILS", label: "شيكل", symbol: "₪" },
+  { value: "USD", label: "دولار", symbol: "$" },
+  { value: "JOD", label: "دينار", symbol: "د.ا" },
+  { value: "EUR", label: "يورو", symbol: "€" },
+];
 
 interface JournalLine {
   id: string;
@@ -76,6 +83,9 @@ const JournalNewPage = () => {
   const [formCostCenterId, setFormCostCenterId] = useState<string | null>(null);
   const [contactSearch, setContactSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [formCurrency, setFormCurrency] = useState("ILS");
+  const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
+  const [fetchingRate, setFetchingRate] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedRefNumber, setSavedRefNumber] = useState("");
   const [fastEntryEnabled] = useFastEntryMode();
@@ -127,8 +137,8 @@ const JournalNewPage = () => {
   // ─── Auto-Draft (سند القيد) ───
   const journalDraftSnapshot = useMemo(() => ({
     formDate, formRefNumber, formSubtype, formDescription, formNotes,
-    formContactId, lines, attachments, lineSortOrder,
-  }), [formDate, formRefNumber, formSubtype, formDescription, formNotes, formContactId, lines, attachments, lineSortOrder]);
+    formContactId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate,
+  }), [formDate, formRefNumber, formSubtype, formDescription, formNotes, formContactId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate]);
 
   const applyJournalDraft = useCallback((d: any) => {
     if (d.formDate) setFormDate(d.formDate);
@@ -140,6 +150,8 @@ const JournalNewPage = () => {
     if (Array.isArray(d.lines) && d.lines.length >= 2) setLines(d.lines);
     if (Array.isArray(d.attachments)) setAttachments(d.attachments);
     if (d.lineSortOrder) setLineSortOrder(d.lineSortOrder);
+    if (d.formCurrency) setFormCurrency(d.formCurrency);
+    if (d.formExchangeRate) setFormExchangeRate(Number(d.formExchangeRate));
     toast.success("تم استعادة المسودة");
   }, []);
 
@@ -215,6 +227,46 @@ const JournalNewPage = () => {
         setFormRefNumber(`QV-${new Date().getFullYear()}-${nextNum}`);
       });
   }, [user]);
+
+  // Auto-fetch exchange rate when currency changes (mirrors VoucherFormPage logic)
+  useEffect(() => {
+    if (!user) return;
+    if (formCurrency === "ILS") {
+      setFormExchangeRate(1);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setFetchingRate(true);
+      try {
+        const { data: currData } = await supabase
+          .from("currencies")
+          .select("id")
+          .eq("code", formCurrency)
+          .maybeSingle();
+        if (currData?.id) {
+          const { data: rateRows } = await supabase
+            .from("exchange_rates")
+            .select("mid_rate")
+            .eq("currency_id", currData.id)
+            .order("rate_date", { ascending: false })
+            .limit(1);
+          const rate = rateRows?.[0]?.mid_rate;
+          if (!cancelled && rate) {
+            setFormExchangeRate(Number(rate));
+            return;
+          }
+        }
+        const { data: dbRate } = await supabase.rpc("get_exchange_rate", {
+          p_currency_code: formCurrency,
+          p_date: formDate,
+        });
+        if (!cancelled && dbRate) setFormExchangeRate(Number(dbRate));
+      } catch { /* ignore — keep manual rate */ }
+      finally { if (!cancelled) setFetchingRate(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [formCurrency, formDate, user]);
 
   const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
   const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
@@ -427,6 +479,9 @@ const JournalNewPage = () => {
         notes: formNotes || null,
         contact_id: formContactId || null,
         cost_center_id: formCostCenterId || null,
+        currency_code: formCurrency,
+        currency_label: CURRENCIES.find(c => c.value === formCurrency)?.label || "شيكل",
+        exchange_rate: formExchangeRate,
         lines: validLines.map((l) => ({
           account_code: l.account_code,
           account_name: l.account_name,
@@ -928,6 +983,36 @@ const JournalNewPage = () => {
                 يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
               </p>
             </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs mb-1.5 block">العملة</Label>
+              <Select value={formCurrency} onValueChange={setFormCurrency}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formCurrency !== "ILS" && (
+              <div className="md:col-span-3">
+                <Label className="text-xs mb-1.5 block flex items-center gap-1">
+                  سعر الصرف
+                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
+                </Label>
+                <Input
+                  type="number"
+                  value={formExchangeRate}
+                  onChange={e => setFormExchangeRate(parseFloat(e.target.value) || 0)}
+                  step="0.001"
+                  min="0"
+                  className="font-mono text-left"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  1 {CURRENCIES.find(c => c.value === formCurrency)?.label} = ₪{formExchangeRate}
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
