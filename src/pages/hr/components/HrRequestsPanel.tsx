@@ -157,6 +157,33 @@ export function HrRequestsPanel({ pendingRequests, employees }: Props) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
       return;
     }
+    // Sync employee_info → employees row (does NOT touch fingerprint_id)
+    if (table === "employee_forms" && status === "approved") {
+      const { data: f } = await (supabase as any)
+        .from("employee_forms")
+        .select("form_type, form_data, employee_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (f?.form_type === "employee_info" && f.employee_id) {
+        const d = (f.form_data || {}) as Record<string, any>;
+        const maritalMap: Record<string, string> = {
+          "أعزب": "single", "متزوج": "married", "مطلق": "divorced", "أرمل": "widowed",
+        };
+        const phone = d.whatsapp || (d.whatsapp_prefix && d.whatsapp_local
+          ? `${d.whatsapp_prefix}${String(d.whatsapp_local).replace(/\D/g, "").replace(/^0/, "")}`
+          : null);
+        const patch: Record<string, any> = {};
+        if (phone) patch.phone = phone;
+        if (d.date_of_birth) patch.date_of_birth = d.date_of_birth;
+        if (d.id_number) patch.id_number = String(d.id_number).replace(/\D/g, "");
+        if (d.malaky_start_date) patch.start_date = d.malaky_start_date;
+        if (d.marital_status) patch.marital_status = maritalMap[d.marital_status] || d.marital_status;
+        if (d.children_count !== undefined && d.children_count !== "") patch.children_count = Number(d.children_count) || 0;
+        if (Object.keys(patch).length > 0) {
+          await (supabase as any).from("employees").update(patch).eq("id", f.employee_id);
+        }
+      }
+    }
     toast({
       title: status === "approved" ? "تمت الموافقة" : "تم الرفض",
       description: "تم تحديث حالة الطلب بنجاح",
