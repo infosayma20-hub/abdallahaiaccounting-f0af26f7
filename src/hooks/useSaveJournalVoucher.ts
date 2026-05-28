@@ -525,7 +525,12 @@ export function useSaveJournalVoucher() {
       );
       const totalDebit = validLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
 
-      // تحديث الـ master
+      // تحديث الـ master — نُنزّل الحالة إلى draft مؤقتاً عند إعادة الترحيل
+      // حتى لا يفشل trigger guard_voucher_must_have_journal بسبب
+      // linked_transaction_id=null أثناء إعادة بناء الـ transactions.
+      const finalStatusU: "posted" | "draft" | "deferred" =
+        mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft";
+      const intermediateStatusU = finalStatusU === "posted" ? "draft" : finalStatusU;
       const { error: uErr } = await supabase
         .from("vouchers")
         .update({
@@ -537,7 +542,7 @@ export function useSaveJournalVoucher() {
           amount_ils: totalDebit,
           description: input.description.trim(),
           notes: input.notes || null,
-          status: mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft",
+          status: intermediateStatusU,
           attachments: input.attachments && input.attachments.length > 0 ? input.attachments : [],
           line_sort_order: input.line_sort_order || "original",
           linked_transaction_id: null,
@@ -611,8 +616,15 @@ export function useSaveJournalVoucher() {
           if (firstTxId) {
             await supabase
               .from("vouchers")
-              .update({ linked_transaction_id: firstTxId })
+              .update({
+                linked_transaction_id: firstTxId,
+                status: "posted",
+                posted_by: user.id,
+                posted_at: new Date().toISOString(),
+              })
               .eq("id", voucherId);
+          } else {
+            throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
         } else if (txns.length > 0) {
           const { data: txData, error: tErr } = await supabase
@@ -623,8 +635,15 @@ export function useSaveJournalVoucher() {
           if (txData && txData.length > 0) {
             await supabase
               .from("vouchers")
-              .update({ linked_transaction_id: txData[0].id })
+              .update({
+                linked_transaction_id: txData[0].id,
+                status: "posted",
+                posted_by: user.id,
+                posted_at: new Date().toISOString(),
+              })
               .eq("id", voucherId);
+          } else {
+            throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
         }
       }
