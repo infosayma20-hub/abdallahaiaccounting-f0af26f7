@@ -479,6 +479,9 @@ const JournalNewPage = () => {
         notes: formNotes || null,
         contact_id: formContactId || null,
         cost_center_id: formCostCenterId || null,
+        currency_code: formCurrency,
+        currency_label: CURRENCIES.find(c => c.value === formCurrency)?.label || "شيكل",
+        exchange_rate: formExchangeRate,
         lines: validLines.map((l) => ({
           account_code: l.account_code,
           account_name: l.account_name,
