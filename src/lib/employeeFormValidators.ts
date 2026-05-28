@@ -74,9 +74,22 @@ export function validateEmployeeForm(
     case "employee_info": {
       if (isEmpty(data.name)) return { ok: false, error: "أدخل الاسم" };
       if (isEmpty(data.date_of_birth)) return { ok: false, error: "أدخل تاريخ الميلاد" };
-      if (isEmpty(data.whatsapp)) return { ok: false, error: "أدخل رقم الواتساب" };
+      if (isEmpty(data.malaky_start_date)) return { ok: false, error: "أدخل تاريخ البداية في الملكي" };
+      if (isEmpty(data.whatsapp_local)) return { ok: false, error: "أدخل رقم الواتساب" };
+      {
+        const digits = String(data.whatsapp_local || "").replace(/\D/g, "");
+        const prefix = data.whatsapp_prefix || "+972";
+        if (digits.length < 8 || digits.length > 10) return { ok: false, error: "رقم الواتساب غير صحيح (9 خانات)" };
+        if (prefix !== "+972" && prefix !== "+970") return { ok: false, error: "اختر مقدمة الرقم +972 أو +970" };
+      }
       if (isEmpty(data.id_number)) return { ok: false, error: "أدخل رقم الهوية" };
+      {
+        const id = String(data.id_number || "").replace(/\D/g, "");
+        if (id.length < 7 || id.length > 12) return { ok: false, error: "رقم الهوية غير صحيح" };
+      }
       if (isEmpty(data.marital_status)) return { ok: false, error: "اختر الحالة الاجتماعية" };
+      if (isEmpty(data.annual_leave_remaining_claimed)) return { ok: false, error: "أدخل رصيد الإجازات السنوية المتبقي" };
+      if (isEmpty(data.sick_days_taken_claimed)) return { ok: false, error: "أدخل عدد أيام الإجازات المرضية المأخوذة" };
       return { ok: true };
     }
 
