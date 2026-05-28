@@ -2695,6 +2695,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {isReceipt && (
+              <div>
+                <Label className="text-xs mb-1.5 block">رقم السند</Label>
+                <Input
+                  type="text"
+                  readOnly
+                  value={savedReceiptNumber || refNumber || ""}
+                  placeholder="يُولَّد عند الحفظ"
+                  data-testid="receipt-voucher-number"
+                  className="font-mono font-bold tracking-wide bg-muted/40 cursor-default"
+                />
+              </div>
+            )}
             <div>
               <Label className="text-xs mb-1.5 block">التاريخ</Label>
               <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} autoFocus />
