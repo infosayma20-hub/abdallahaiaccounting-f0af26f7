@@ -59,7 +59,7 @@ interface Row {
   raw: any;
 }
 
-export default function FinanceReceiptsPage() {
+export default function FinancePaymentsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -93,15 +93,15 @@ export default function FinanceReceiptsPage() {
     { key: "status_label", label: "الحالة" },
     { key: "actions", label: "إجراءات", required: true },
   ]), []);
-  const colState = useColumnVisibility("finance-receipts-page", columnDefs);
+  const colState = useColumnVisibility("finance-payments-page", columnDefs);
   const show = colState.isVisible;
 
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const [rvRes, cRes, cbRes, baRes] = await Promise.all([
-      supabase.from("receipt_vouchers").select("*").eq("user_id", user.id)
-        .order("payment_date", { ascending: false }),
+      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment")
+        .order("date", { ascending: false }),
       supabase.from("contacts").select("id, contact_name").eq("user_id", user.id),
       supabase.from("cash_boxes").select("id, name, currency").eq("user_id", user.id),
       supabase.from("bank_accounts").select("id, name, currency").eq("user_id", user.id),
@@ -131,8 +131,8 @@ export default function FinanceReceiptsPage() {
       const currency = cb?.currency || ba?.currency || "ILS";
       return {
         id: rv.id,
-        ref_number: rv.receipt_number || "",
-        date: rv.payment_date || null,
+        ref_number: rv.ref_number || "",
+        date: rv.date || null,
         contact_id: rv.contact_id,
         contact_name: rv.contact_name || cMap.get(rv.contact_id || "") || "—",
         payment_method: rv.payment_method || "",
@@ -161,7 +161,7 @@ export default function FinanceReceiptsPage() {
     const onFocus = () => fetchData();
     window.addEventListener("focus", onFocus);
     const off = onCrossTabChange((e) => {
-      if (e.entity === "receipt_voucher") fetchData();
+      if (e.entity === "voucher") fetchData();
     });
     return () => { window.removeEventListener("focus", onFocus); off(); };
   }, [fetchData]);
@@ -223,19 +223,19 @@ export default function FinanceReceiptsPage() {
   );
 
   // Actions
-  const handleNew = () => navigate("/finance/receipt/new");
+  const handleNew = () => navigate("/finance/payment/new");
   const handleOpenCenter = () => navigate("/accounting-center");
   const handlePrint = () => {
     const visibleCols = columnDefs.filter((c) => c.key !== "actions" && show(c.key));
     printVoucherList<Row>({
-      title: "سندات القبض",
-      subtitle: "كشف بسندات القبض المُفلترة",
+      title: "سندات الصرف",
+      subtitle: "كشف بسندات الصرف المُفلترة",
       companyName: settings.company_name || undefined,
       rows: filtered,
       info: periodLabel ? [{ label: "الفترة", value: periodLabel }] : [],
       summary: [
         { label: "عدد السندات", value: String(filtered.length) },
-        { label: "إجمالي المقبوضات", value: `₪${totalAmount.toLocaleString()}` },
+        { label: "إجمالي المدفوعات", value: `₪${totalAmount.toLocaleString()}` },
       ],
       columns: visibleCols.map((c) => ({
         key: c.key,
@@ -279,34 +279,34 @@ export default function FinanceReceiptsPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 8 }, { wch: 14 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "سندات القبض");
+    XLSX.utils.book_append_sheet(wb, ws, "سندات الصرف");
     setNextExportBranding({
-      title: "سندات القبض",
+      title: "سندات الصرف",
       extraInfo: [`عدد السندات: ${data.length.toLocaleString()}`],
     });
-    XLSX.writeFile(wb, `سندات_قبض_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(wb, `سندات_صرف_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   const handleEdit = async (r: Row) => {
-    try { await assertPermission("finance", "receipts", "update"); } catch { return; }
+    try { await assertPermission("finance", "payments", "update"); } catch { return; }
     if (r.status === "posted") { setWarnTarget(r); setWarnOpen(true); }
-    else navigate(`/finance/receipt/${r.id}/edit`);
+    else navigate(`/finance/payment/${r.id}/edit`);
   };
   const confirmEditPosted = () => {
     if (!warnTarget) return;
     if (user) {
       supabase.from("document_edit_history" as any).insert({
-        document_id: warnTarget.id, document_type: "receipt",
+        document_id: warnTarget.id, document_type: "payment",
         old_data: warnTarget.raw, edit_reason: "فتح تعديل مستند مرحّل",
         edited_by: user.id, user_id: user.id,
       } as any);
     }
     setWarnOpen(false);
-    navigate(`/finance/receipt/${warnTarget.id}/edit`);
+    navigate(`/finance/payment/${warnTarget.id}/edit`);
   };
 
   const handleDelete = async (r: Row) => {
-    try { await assertPermission("finance", "receipts", "delete"); } catch { return; }
+    try { await assertPermission("finance", "payments", "delete"); } catch { return; }
     setDelTarget(r); setDelOpen(true);
   };
   const confirmDelete = async (reason: string) => {
@@ -329,11 +329,11 @@ export default function FinanceReceiptsPage() {
         }
         await supabase.from("payment_invoice_links" as any).delete().eq("payment_id", delTarget.id);
       }
-      const { error } = await supabase.from("receipt_vouchers")
+      const { error } = await supabase.from("vouchers")
         .update({ status: "cancelled" } as any).eq("id", delTarget.id);
       if (error) throw error;
       await supabase.from("document_edit_history" as any).insert({
-        document_id: delTarget.id, document_type: "receipt",
+        document_id: delTarget.id, document_type: "payment",
         old_data: delTarget.raw, edit_reason: reason,
         edited_by: user.id, user_id: user.id,
         changes: { action: "delete", reason },
@@ -358,9 +358,9 @@ export default function FinanceReceiptsPage() {
       selectedCashBox: dupTarget.cash_box_id || "",
       selectedBankAccount: dupTarget.bank_account_id || "",
     };
-    localStorage.setItem("draft_receipt_new", JSON.stringify(draft));
+    localStorage.setItem("draft_payment_new", JSON.stringify(draft));
     setDupOpen(false);
-    navigate("/finance/receipt/new?from_duplicate=true");
+    navigate("/finance/payment/new?from_duplicate=true");
   };
 
   const actionTabs: ActionTab[] = useMemo(() => ([{
@@ -368,7 +368,7 @@ export default function FinanceReceiptsPage() {
     label: "عام",
     groups: [
       { key: "new", label: "جديد", items: [
-        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary", onClick: handleNew },
+        { key: "new", label: "سند صرف جديد", icon: Plus, variant: "primary", onClick: handleNew },
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
@@ -392,17 +392,17 @@ export default function FinanceReceiptsPage() {
 
   return (
     <FinanceShell
-      title="سندات القبض"
-      subtitle="إدارة سندات القبض والمتحصلات"
+      title="سندات الصرف"
+      subtitle="إدارة سندات الصرف والمدفوعات"
       breadcrumb={[
         { label: "المالية", href: "/accounting-center" },
-        { label: "سندات القبض" },
+        { label: "سندات الصرف" },
       ]}
       actionTabs={actionTabs}
       filterFields={filterFields}
       filters={shellFilters}
       onFiltersChange={setShellFilters}
-      storageKey="finance-receipts-page"
+      storageKey="finance-payments-page"
       rightSlot={
         <div className="flex items-center gap-1.5">
           <div className="relative">
@@ -426,8 +426,8 @@ export default function FinanceReceiptsPage() {
             <p className="text-xl font-bold text-foreground tabular-nums">{filtered.length}</p>
           </div>
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-            <p className="text-[11px] text-muted-foreground">إجمالي المقبوضات (نشطة)</p>
-            <p className="text-xl font-bold text-emerald-600 tabular-nums">
+            <p className="text-[11px] text-muted-foreground">إجمالي المدفوعات (نشطة)</p>
+            <p className="text-xl font-bold text-destructive tabular-nums">
               ₪{totalAmount.toLocaleString()}
             </p>
           </div>
@@ -446,7 +446,7 @@ export default function FinanceReceiptsPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-            <p className="text-sm text-muted-foreground">لا توجد سندات قبض مطابقة</p>
+            <p className="text-sm text-muted-foreground">لا توجد سندات صرف مطابقة</p>
           </div>
         ) : (
           <div data-print-area className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden print:shadow-none print:border-0">
@@ -454,7 +454,7 @@ export default function FinanceReceiptsPage() {
             <div className="hidden print:block px-4 py-3 border-b border-border/60">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-base font-bold text-foreground">سندات القبض</h1>
+                  <h1 className="text-base font-bold text-foreground">سندات الصرف</h1>
                   {settings.company_name && (
                     <p className="text-xs text-muted-foreground mt-0.5">{settings.company_name}</p>
                   )}
@@ -552,14 +552,14 @@ export default function FinanceReceiptsPage() {
                         <td className="px-2 py-1 align-middle print:hidden">
                           <div className="flex items-center justify-center gap-0.5">
                             {canEdit(r.raw) && (
-                              <Can app="finance" feature="receipts" perm="update">
+                              <Can app="finance" feature="payments" perm="update">
                                 <button onClick={() => handleEdit(r)} className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="تعديل">
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
                               </Can>
                             )}
                             {canDelete(r.raw) && r.status !== "cancelled" && (
-                              <Can app="finance" feature="receipts" perm="delete">
+                              <Can app="finance" feature="payments" perm="delete">
                                 <button onClick={() => handleDelete(r)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="حذف">
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -595,7 +595,7 @@ export default function FinanceReceiptsPage() {
         open={dupOpen}
         onClose={() => setDupOpen(false)}
         onConfirm={confirmDuplicate}
-        docType="receipt"
+        docType="payment"
         info={{
           contactName: dupTarget?.contact_name,
           paymentMethod: dupTarget?.payment_label,
