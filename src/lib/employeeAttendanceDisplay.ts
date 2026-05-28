@@ -44,7 +44,7 @@ function localISODate(d: Date): string {
 function fmtTime(t?: string | null): string {
   if (!t) return "—";
   try {
-    return new Date(t).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+    return new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true });
   } catch { return "—"; }
 }
 
