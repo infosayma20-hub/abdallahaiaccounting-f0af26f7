@@ -275,6 +275,8 @@ const InvoiceCreatePage = () => {
       buy_price: Number(d?.buy_price) || 0,
       unit: d?.unit || "قطعة",
       quantity: Number(d?.quantity) || 0,
+      product_type: (d?.product_type === "service" ? "service" : "product"),
+      service_direction: (d?.service_direction === "provided" || d?.service_direction === "received") ? d.service_direction : "",
     }),
     {
       enabled: showQuickAdd && !!user,
