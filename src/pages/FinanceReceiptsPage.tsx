@@ -290,8 +290,10 @@ export default function FinanceReceiptsPage() {
 
   const handleEdit = async (r: Row) => {
     try { await assertPermission("finance", "receipts", "update"); } catch { return; }
-    if (r.status === "posted") { setWarnTarget(r); setWarnOpen(true); }
-    else navigate(`/finance/receipt/${r.id}/edit`);
+    // Open in read-only view first; the EditPostedWarningDialog will be
+    // triggered from inside VoucherFormPage when the user explicitly
+    // presses "تعديل" on a posted voucher.
+    navigate(`/finance/receipt/${r.id}/edit`);
   };
   const confirmEditPosted = () => {
     if (!warnTarget) return;
