@@ -419,6 +419,9 @@ export function useSaveJournalVoucher() {
             notes: input.notes || null,
             costCenterId: input.cost_center_id || null,
           });
+          if (result?.success === false || result?.error) {
+            throw new Error(result?.error || "فشل إنشاء القيد المحاسبي المرتبط");
+          }
           const firstTxId = result?.transaction_id || null;
           if (firstTxId) {
             await supabase
@@ -612,6 +615,9 @@ export function useSaveJournalVoucher() {
             notes: input.notes || null,
             costCenterId: input.cost_center_id || null,
           });
+          if (result?.success === false || result?.error) {
+            throw new Error(result?.error || "فشل إنشاء القيد المحاسبي المرتبط");
+          }
           const firstTxId = result?.transaction_id || null;
           if (firstTxId) {
             await supabase
