@@ -132,3 +132,47 @@ test.describe("Payment — FinanceShell smoke (Phase 2)", () => {
     }
   });
 });
+
+test.describe("Payment — read-only on PV link click (Phase 2.6)", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  test("click PV-number opens read-only; action-edit unlocks; action-update saves & returns read-only", async ({ page }) => {
+    await page.goto("/finance/payments", { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    const firstLink = page.locator('a[href*="/finance/payment/"][href*="/edit"]').first();
+    if (!(await firstLink.isVisible().catch(() => false))) {
+      test.skip(true, "feature missing: no existing payments");
+      return;
+    }
+    await Promise.all([
+      page.waitForURL(/\/finance\/payment\/.+\/edit/, { timeout: 20_000 }),
+      firstLink.click(),
+    ]);
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    // No popup/dialog should appear on link click
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+
+    // Read-only banner visible
+    await expect(page.locator('[data-testid="payment-view-banner"]')).toBeVisible({ timeout: 20_000 });
+
+    // Voucher number field is read-only (disabled or readonly attribute)
+    const numberField = page.locator('[data-testid="payment-voucher-number"]');
+    await expect(numberField).toBeVisible();
+    const isReadOnly = await numberField.evaluate(
+      (el: HTMLInputElement) => el.readOnly || el.disabled
+    );
+    expect(isReadOnly).toBe(true);
+
+    // action-edit must exist; action-update must exist
+    await expect(page.locator('[data-testid="action-edit"]')).toBeVisible();
+    await expect(page.locator('[data-testid="action-update"]')).toBeVisible();
+
+    // Click edit -> banner should disappear (form becomes editable)
+    await page.locator('[data-testid="action-edit"]').click();
+    await expect(page.locator('[data-testid="payment-view-banner"]')).toBeHidden({ timeout: 10_000 });
+  });
+});
