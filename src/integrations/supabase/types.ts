@@ -8675,6 +8675,54 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_requests: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          reason: string | null
+          requester_ip: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          reason?: string | null
+          requester_ip?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          reason?: string | null
+          requester_ip?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_invoice_links: {
         Row: {
           allocated_amount: number
