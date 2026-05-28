@@ -97,6 +97,48 @@ const AuthPage = () => {
     return "/apps";
   }, []);
 
+  const sendEmailResetLink = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      toast({ title: "أدخل بريدك الإلكتروني", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+    toast({
+      title: "تم إرسال الرابط ✅",
+      description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور.",
+    });
+    setMode("login");
+  };
+
+  const sendHrResetRequest = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      toast({ title: "أدخل بريدك الإلكتروني", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("password_reset_requests").insert({
+        email: cleanEmail,
+        reason: "طلب نسيت كلمة المرور من صفحة تسجيل الدخول",
+      });
+      if (error) throw error;
+      toast({
+        title: "تم إرسال طلبك ✅",
+        description: "تم إرسال طلبك إلى الموارد البشرية / إدارة شركتك.",
+      });
+      setMode("login");
+    } catch (err: any) {
+      toast({ title: "تعذر إرسال الطلب", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
