@@ -35,6 +35,13 @@ import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 
+const CURRENCIES = [
+  { value: "ILS", label: "شيكل", symbol: "₪" },
+  { value: "USD", label: "دولار", symbol: "$" },
+  { value: "JOD", label: "دينار", symbol: "د.ا" },
+  { value: "EUR", label: "يورو", symbol: "€" },
+];
+
 interface JournalLine {
   id: string;
   account_code: string;
