@@ -243,13 +243,26 @@ Deno.serve(async (req) => {
         return { id: tx.id, description: tx.description || "عملية", amount: tx.amount || 0, type, timeAgo };
       });
 
-      // Top debtors/creditors
-      const topDebtors = contacts.filter(c => c.contact_type === "عميل" && (c.current_balance || 0) > 0)
-        .sort((a, b) => (b.current_balance || 0) - (a.current_balance || 0)).slice(0, 5)
-        .map(c => ({ name: c.contact_name, balance: c.current_balance }));
-      const topCreditors = contacts.filter(c => c.contact_type === "مورد" && (c.current_balance || 0) > 0)
-        .sort((a, b) => (b.current_balance || 0) - (a.current_balance || 0)).slice(0, 5)
-        .map(c => ({ name: c.contact_name, balance: c.current_balance }));
+      // Top debtors/creditors — computed live from 1130/2110 ledger (NOT contacts.current_balance, which can be stale)
+      const contactName = new Map(contacts.map(c => [c.id, { name: c.contact_name, type: c.contact_type }]));
+      const debtorMap = new Map<string, number>();
+      const creditorMap = new Map<string, number>();
+      for (const t of allTx) {
+        if (!t.contact_id) continue;
+        const amt = t.amount || 0;
+        if (t.debit_account_code === "1130") debtorMap.set(t.contact_id, (debtorMap.get(t.contact_id) || 0) + amt);
+        if (t.credit_account_code === "1130") debtorMap.set(t.contact_id, (debtorMap.get(t.contact_id) || 0) - amt);
+        if (t.credit_account_code === "2110") creditorMap.set(t.contact_id, (creditorMap.get(t.contact_id) || 0) + amt);
+        if (t.debit_account_code === "2110") creditorMap.set(t.contact_id, (creditorMap.get(t.contact_id) || 0) - amt);
+      }
+      const topDebtors = Array.from(debtorMap.entries())
+        .filter(([id, bal]) => bal > 0.01 && contactName.has(id))
+        .sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([id, bal]) => ({ name: contactName.get(id)!.name, balance: bal }));
+      const topCreditors = Array.from(creditorMap.entries())
+        .filter(([id, bal]) => bal > 0.01 && contactName.has(id))
+        .sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([id, bal]) => ({ name: contactName.get(id)!.name, balance: bal }));
 
       return respond({
         success: true,
