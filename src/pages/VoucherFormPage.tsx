@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator } from "lucide-react";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import EndorseChequeModal, { type EndorsedCheque } from "@/components/EndorseChequeModal";
 import VoucherCancelModal from "@/components/VoucherCancelModal";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
@@ -298,6 +299,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   // Cost center (Financial Dimension) — independent of legacy workshop_id
   const [costCenterId, setCostCenterId] = useState<string | null>(null);
+
+  // ─── Read-only / view-mode for Receipt (Phase 1 FinanceShell wrap) ───
+  // When editing an existing receipt, open in read-only until the user
+  // clicks "تعديل" — mirrors JournalNewPage behavior.
+  const [isReadOnly, setIsReadOnly] = useState<boolean>(isEditMode && voucherType === "receipt");
 
   // ─── Auto-Draft (السندات) ───
   const draftFormId = `voucher_${voucherType}_new`;
@@ -2415,7 +2421,80 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error(err.message || "فشل إلغاء السند");
     }
   };
-  return (
+
+  // ─── Prev/Next navigation between receipts (Phase 1) ───
+  const goToAdjacentReceipt = async (direction: "prev" | "next") => {
+    if (!isReceipt || !ownerId) return;
+    try {
+      let q = supabase
+        .from("receipt_vouchers")
+        .select("id, receipt_number, created_at")
+        .eq("user_id", ownerId);
+      if (editId && (window as any).__voucherCreatedAt) {
+        const cursor = (window as any).__voucherCreatedAt as string;
+        if (direction === "prev") {
+          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
+        } else {
+          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
+        }
+      } else {
+        q = q.order("created_at", { ascending: direction !== "prev" });
+      }
+      const { data, error } = await q.limit(1);
+      if (error) throw error;
+      const target = (data || [])[0];
+      if (!target) {
+        toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
+        return;
+      }
+      navigate(`/finance/receipt/${target.id}/edit`);
+    } catch (err: any) {
+      toast.error(err.message || "تعذر التنقل بين السندات");
+    }
+  };
+
+  // ─── Action Pane tabs (FinanceShell) — receipt only in Phase 1 ───
+  const receiptActionTabs: ActionTab[] = useMemo(() => {
+    if (!isReceipt) return [];
+    const inEdit = isEditMode;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary" as const,
+          onClick: () => navigate("/finance/receipt/new") },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy, onClick: handleNewSimilar }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: () => handleSave(false), disabled: isReadOnly || saving || isCancelled,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
+          { key: "delete", label: "إلغاء السند", icon: Trash2,
+            onClick: () => setShowCancelModal(true), disabled: saving || isCancelled },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ مسودة", icon: Save,
+            onClick: () => handleSave(true), disabled: saving },
+          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleSave(false), disabled: saving },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: handlePrint },
+      { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentReceipt("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentReceipt("next") },
+      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/finance/receipts") },
+      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+  }, [isReceipt, isEditMode, isReadOnly, saving, isCancelled, editId]);
+
+  const formBody = (
     <SmartFormScope
       className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-8"
       firstFieldSelector="[data-smart-first]"
@@ -2825,7 +2904,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             مركز التكلفة (اختياري)
           </span>
         </div>
-        <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
+        <div data-testid={isReceipt ? "receipt-cost-center" : "payment-cost-center"}>
+          <CostCenterCombobox value={costCenterId} onChange={setCostCenterId} />
+        </div>
         <p className="text-[10px] text-muted-foreground mt-1">
           يُرحَّل إلى القيد المحاسبي ويظهر في التقارير حسب مركز التكلفة.
           {/* TODO: cost_center_rules — إلزام مراكز التكلفة على المصاريف مؤجل للمرحلة القادمة. */}
@@ -2863,7 +2944,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             <div className="md:col-span-4">
               <Label className="text-xs mb-1.5 block">العملة</Label>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="h-14"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-14" data-testid={isReceipt ? "receipt-currency" : "payment-currency"}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CURRENCIES.map(c => (
                     <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
@@ -3286,6 +3367,39 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       />
     </SmartFormScope>
   );
+
+  if (isReceipt) {
+    return (
+      <FinanceShell
+        title={pageTitle}
+        subtitle={pageDesc}
+        breadcrumb={[
+          { label: "المالية", href: "/accounting-center" },
+          { label: "سندات القبض", href: "/finance/receipts" },
+          { label: pageTitle },
+        ]}
+        actionTabs={receiptActionTabs}
+      >
+        {isEditMode && (
+          <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`} data-testid="receipt-view-banner">
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              <span>
+                {isReadOnly
+                  ? `وضع العرض — السند ${refNumber}. اضغط "تعديل" للتعديل أو "إنشاء مشابه" لنسخه.`
+                  : `وضع التعديل — السند ${refNumber}. اضغط "حفظ التعديلات" لحفظ التغييرات.`}
+              </span>
+            </div>
+          </div>
+        )}
+        <fieldset disabled={isEditMode && isReadOnly} className="contents min-w-0">
+          {formBody}
+        </fieldset>
+      </FinanceShell>
+    );
+  }
+
+  return formBody;
 };
 
 export default VoucherFormPage;
