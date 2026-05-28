@@ -881,7 +881,19 @@ const JournalNewPage = () => {
                         return (
                           <SmartSearchableDropdown
                             value={codeQuery}
-                            onChange={(v) => setCodeSearches(prev => ({ ...prev, [line.id]: v }))}
+                            onChange={(v) => {
+                              setCodeSearches(prev => ({ ...prev, [line.id]: v }));
+                              // If user clears the code field, also clear the linked account & contact
+                              if (!v || !v.trim()) {
+                                setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                                  ...l,
+                                  account_code: "",
+                                  account_name: "",
+                                  contact_id: "",
+                                  contact_name: "",
+                                }));
+                              }
+                            }}
                             items={filtered}
                             getKey={(a: any) => a.account_code}
                             getLabel={(a: any) => `${a.account_code} — ${a.account_name}`}
