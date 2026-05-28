@@ -736,17 +736,84 @@ const JournalNewPage = () => {
               </p>
             </div>
           </div>
-
-          <div>
-            <Label className="text-xs mb-1.5 block font-semibold">الوصف *</Label>
-            <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="مثال: سلفة راتب - رهام حسون" />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Journal Lines */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
+      {/* ═══ END LEFT COLUMN (Header only) ═══ */}
+      </div>
+
+      {/* ═══ RIGHT COLUMN — Sticky Balance Summary (4 cols) ═══ */}
+      <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
+        <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
+            <Scale className="h-4 w-4 text-primary" />
+            <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
+          </div>
+          <CardContent className="p-4 space-y-3">
+            {(() => {
+              const isZero = totalDebit === 0 && totalCredit === 0;
+              if (isZero) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 text-muted-foreground text-xs">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>أدخل المبالغ للتحقق من التوازن</span>
+                  </div>
+                );
+              }
+              if (isBalanced) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>القيد متوازن — جاهز للترحيل</span>
+                  </div>
+                );
+              }
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-bold border border-destructive/20">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>القيد غير متوازن</span>
+                </div>
+              );
+            })()}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي مدين</span>
+                <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400 text-sm">₪{formatAmount(totalDebit)}</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-destructive/5 border border-destructive/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي دائن</span>
+                <span className="font-bold tabular-nums text-destructive text-sm">₪{formatAmount(totalCredit)}</span>
+              </div>
+              <div className="h-px bg-border/60 my-1" />
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/40">
+                <span className="text-[12px] font-semibold">الفرق</span>
+                <span className={`font-extrabold tabular-nums text-base ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
+                  ₪{formatAmount(Math.abs(totalDebit - totalCredit))}
+                </span>
+              </div>
+            </div>
+            <div className="pt-2 mt-1 border-t border-border/50 space-y-1.5 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>عدد الأسطر</span>
+                <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>نوع السند</span>
+                <span className="font-semibold text-foreground">{subtypeLabels[formSubtype]}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>التاريخ</span>
+                <span className="font-semibold text-foreground tabular-nums">{formDate}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
+
+      {/* ═══ FULL-WIDTH JOURNAL LINES (col-span-12) — Big, wide, primary focus ═══ */}
+      <div className="lg:col-span-12 min-w-0">
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-5 lg:p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-primary" />
@@ -776,17 +843,17 @@ const JournalNewPage = () => {
           </div>
 
           <div className="rounded-xl border border-border overflow-hidden">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
-                  <th className="p-2.5 text-white font-medium w-10">#</th>
-                  <th className="p-2.5 text-white font-medium w-24">رقم الحساب</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "26%" }}>الحساب / الجهة</th>
-                  <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
-                  <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "16%" }}>تعليق</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "16%" }}>مركز التكلفة</th>
-                  <th className="p-2.5 w-10"></th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] w-12">#</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "14%" }}>رقم الحساب</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "24%" }}>الحساب / الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "16%" }}>مركز التكلفة</th>
+                  <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
               <tbody>
@@ -801,8 +868,8 @@ const JournalNewPage = () => {
                   return displayLines.map((line, i) => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
-                    <td data-journal-line-id={line.id} className="p-2.5 text-muted-foreground">{i + 1}</td>
-                    <td className="p-2.5">
+                    <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
+                    <td className="p-3">
                       {(() => {
                         const codeQuery = codeSearches[line.id] !== undefined
                           ? (codeSearches[line.id] as string)
@@ -835,15 +902,15 @@ const JournalNewPage = () => {
                             placeholder="1110 أو اسم الحساب"
                             emptyText="لا توجد حسابات مطابقة"
                             markFirst={i === 0}
-                            className="w-44"
-                            inputClassName="h-9 font-mono text-xs"
+                            className="w-full"
+                            inputClassName="h-11 font-mono text-sm"
                             showSearchIcon
                             showChevron
                           />
                         );
                       })()}
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Select 
                         value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
                         onValueChange={v => {
@@ -876,7 +943,7 @@ const JournalNewPage = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-9 text-xs">
+                        <SelectTrigger className="h-11 text-sm">
                           {(line.account_code || (line.contact_id && line.contact_id !== "__none__")) ? (
                             <span className="truncate flex items-center gap-2">
                               {line.contact_id && line.contact_id !== "__none__" && (
@@ -995,7 +1062,7 @@ const JournalNewPage = () => {
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
                         value={line.debit || ""}
@@ -1018,10 +1085,10 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-debit={line.id}
-                        className="h-9 font-mono text-xs" placeholder="0"
+                        className="h-11 font-mono text-sm" placeholder="0"
                       />
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
                         value={line.credit || ""}
@@ -1043,10 +1110,10 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-credit={line.id}
-                        className="h-9 font-mono text-xs" placeholder="0"
+                        className="h-11 font-mono text-sm" placeholder="0"
                       />
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <Input
                         value={line.line_comment || ""}
                         onChange={e => updateLine(line.id, "line_comment" as any, e.target.value)}
@@ -1057,12 +1124,12 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-memo={line.id}
-                        className="h-9 text-xs"
+                        className="h-11 text-sm"
                         placeholder="تعليق على هذا السطر..."
                       />
                     </td>
                     <td
-                      className="p-2.5"
+                      className="p-3"
                       onKeyDown={(e) => {
                         // Enter on the last row's cost-center cell creates a new row
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -1078,7 +1145,7 @@ const JournalNewPage = () => {
                         value={line.cost_center_id || null}
                         onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
                         placeholder={formCostCenterId ? "موروث من الرأس" : "بدون"}
-                        className="h-9 text-[11px]"
+                        className="h-11 text-sm"
                       />
                       {!line.cost_center_id && formCostCenterId && (
                         <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
@@ -1086,7 +1153,7 @@ const JournalNewPage = () => {
                         </p>
                       )}
                     </td>
-                    <td className="p-2.5">
+                    <td className="p-3">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1098,9 +1165,9 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
-                  <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
-                  <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
+                  <td colSpan={3} className="p-3 text-sm font-bold">الإجمالي</td>
+                  <td className="p-3 font-mono text-sm">₪{formatAmount(totalDebit)}</td>
+                  <td className="p-3 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td colSpan={3}></td>
                 </tr>
               </tfoot>
@@ -1124,8 +1191,26 @@ const JournalNewPage = () => {
           <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
         </CardContent>
       </Card>
+      </div>
 
-      {/* ═══ Bottom row INSIDE left column: Notes (7) + Attachments (5) ═══ */}
+      {/* ═══ Bottom row (col-span-12): Description → Notes + Attachments ═══ */}
+      <div className="lg:col-span-12 space-y-5">
+      {/* Description Card — same style as Notes */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl">
+        <CardContent className="p-5">
+          <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
+            الوصف *
+          </Label>
+          <Textarea
+            value={formDescription}
+            onChange={e => setFormDescription(e.target.value)}
+            placeholder="مثال: سلفة راتب - رهام حسون"
+            rows={3}
+            className="resize-none"
+          />
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <Card className="lg:col-span-7 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
@@ -1182,84 +1267,7 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
       </div>
-
-      {/* ═══ END LEFT COLUMN ═══ */}
       </div>
-
-      {/* ═══ RIGHT COLUMN — Sticky Balance Summary (4 cols) ═══
-          Always visible while scrolling; mirrors SmartSummary pattern. */}
-      <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
-        <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
-            <Scale className="h-4 w-4 text-primary" />
-            <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
-          </div>
-          <CardContent className="p-4 space-y-3">
-            {/* Status badge */}
-            {(() => {
-              const diff = totalDebit - totalCredit;
-              const isZero = totalDebit === 0 && totalCredit === 0;
-              if (isZero) {
-                return (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 text-muted-foreground text-xs">
-                    <FileText className="h-3.5 w-3.5" />
-                    <span>أدخل المبالغ للتحقق من التوازن</span>
-                  </div>
-                );
-              }
-              if (isBalanced) {
-                return (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>القيد متوازن — جاهز للترحيل</span>
-                  </div>
-                );
-              }
-              return (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-bold border border-destructive/20">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>القيد غير متوازن</span>
-                </div>
-              );
-            })()}
-
-            {/* Debit / Credit / Diff */}
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
-                <span className="text-[11px] text-muted-foreground font-medium">إجمالي مدين</span>
-                <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400 text-sm">₪{formatAmount(totalDebit)}</span>
-              </div>
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-destructive/5 border border-destructive/15">
-                <span className="text-[11px] text-muted-foreground font-medium">إجمالي دائن</span>
-                <span className="font-bold tabular-nums text-destructive text-sm">₪{formatAmount(totalCredit)}</span>
-              </div>
-              <div className="h-px bg-border/60 my-1" />
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/40">
-                <span className="text-[12px] font-semibold">الفرق</span>
-                <span className={`font-extrabold tabular-nums text-base ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
-                  ₪{formatAmount(Math.abs(totalDebit - totalCredit))}
-                </span>
-              </div>
-            </div>
-
-            {/* Meta */}
-            <div className="pt-2 mt-1 border-t border-border/50 space-y-1.5 text-[11px] text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <span>عدد الأسطر</span>
-                <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>نوع السند</span>
-                <span className="font-semibold text-foreground">{subtypeLabels[formSubtype]}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>التاريخ</span>
-                <span className="font-semibold text-foreground tabular-nums">{formDate}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </aside>
 
       {/* ═══ END MASTER GRID ═══ */}
       </div>
