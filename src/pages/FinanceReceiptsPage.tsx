@@ -225,7 +225,44 @@ export default function FinanceReceiptsPage() {
   // Actions
   const handleNew = () => navigate("/finance/receipt/new");
   const handleOpenCenter = () => navigate("/accounting-center");
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const visibleCols = columnDefs.filter((c) => c.key !== "actions" && show(c.key));
+    printVoucherList<Row>({
+      title: "سندات القبض",
+      subtitle: "كشف بسندات القبض المُفلترة",
+      companyName: settings.company_name || undefined,
+      rows: filtered,
+      info: periodLabel ? [{ label: "الفترة", value: periodLabel }] : [],
+      summary: [
+        { label: "عدد السندات", value: String(filtered.length) },
+        { label: "إجمالي المقبوضات", value: `₪${totalAmount.toLocaleString()}` },
+      ],
+      columns: visibleCols.map((c) => ({
+        key: c.key,
+        label: c.label,
+        align: c.key === "amount" ? "left" : "right",
+        render: (r: Row) => {
+          switch (c.key) {
+            case "ref_number": return r.ref_number || "—";
+            case "date": return fmtDateDisplay(r.date) || "—";
+            case "contact_name": return r.contact_name || "—";
+            case "payment_label": return r.payment_label;
+            case "account_label": return r.account_label;
+            case "cost_center_name": return r.cost_center_name;
+            case "currency": return r.currency;
+            case "amount": return r.amount.toLocaleString();
+            case "status_label": return r.status_label;
+            default: return "";
+          }
+        },
+      })),
+      totalsLabel: `المجموع (${filtered.length} سند)`,
+      totalsCells: visibleCols.map((c) =>
+        c.key === "amount" ? `₪${totalAmount.toLocaleString()}` : null,
+      ),
+      isCancelled: (r) => r.status === "cancelled",
+    });
+  };
 
   const handleExport = () => {
     const data = filtered.map((r) => ({
