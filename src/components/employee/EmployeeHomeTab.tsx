@@ -63,7 +63,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
   const canCheckIn = !lastEvent || lastEvent.event_type === "check_out";
   const canCheckOut = !!lastEvent && lastEvent.event_type === "check_in";
-  const dayComplete = todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2;
+  const dayComplete = !!(todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2);
   const status = todayRecord ? statusMap[todayRecord.status] || null : null;
 
   const elapsed = useMemo(() => {
