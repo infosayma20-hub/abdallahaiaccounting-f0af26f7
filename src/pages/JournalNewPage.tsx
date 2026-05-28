@@ -705,11 +705,35 @@ const JournalNewPage = () => {
     });
   }, []);
 
-  const doBrowserPrint = () => window.print();
   const doPreview = () => {
     document.querySelector<HTMLElement>("[data-journal-summary]")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const openCenter = () => navigate("/accounting-center");
+  const openJournalList = () => navigate("/finance/journals");
+
+  // Prev/Next navigation between existing journal vouchers
+  const goToAdjacentVoucher = async (direction: "prev" | "next") => {
+    if (!user) return;
+    try {
+      const order = direction === "prev" ? { ascending: false } : { ascending: true };
+      const { data, error } = await supabase
+        .from("vouchers")
+        .select("id, ref_number")
+        .eq("user_id", user.id)
+        .eq("type", "journal")
+        .order("created_at", order)
+        .limit(1);
+      if (error) throw error;
+      const target = (data || [])[0];
+      if (!target) {
+        toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
+        return;
+      }
+      navigate(`/finance/journals?voucher=${target.id}`);
+    } catch (err: any) {
+      toast.error(err.message || "تعذر التنقل بين السندات");
+    }
+  };
 
   const actionTabs: ActionTab[] = useMemo(() => ([{
     key: "general",
@@ -726,13 +750,16 @@ const JournalNewPage = () => {
       ]},
       { key: "view", label: "عرض", items: [
         { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
-        { key: "print", label: "طباعة", icon: Printer, onClick: doBrowserPrint },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
       ]},
       { key: "nav", label: "تنقل", items: [
+        { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
+        { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
+        { key: "query", label: "استعلام", icon: ListChecks, onClick: openJournalList },
         { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
       ]},
     ],
-  }]), [saving, isBalanced, resetForm]);
+  }]), [saving, isBalanced, resetForm, handlePrint]);
 
   // ── FastTabs sections (collapsible body) ──
   const headerSummary = `${subtypeLabels[formSubtype]} • ${formDate}${formRefNumber ? ` • ${formRefNumber}` : ""}`;
