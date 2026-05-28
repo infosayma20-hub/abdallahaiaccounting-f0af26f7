@@ -858,24 +858,121 @@ const JournalNewPage = () => {
   const goToAdjacentVoucher = async (direction: "prev" | "next") => {
     if (!user) return;
     try {
-      const order = direction === "prev" ? { ascending: false } : { ascending: true };
-      const { data, error } = await supabase
+      let q = supabase
         .from("vouchers")
-        .select("id, ref_number")
+        .select("id, ref_number, created_at")
         .eq("user_id", user.id)
-        .eq("type", "journal")
-        .order("created_at", order)
-        .limit(1);
+        .eq("type", "journal");
+      if (editingCreatedAt) {
+        if (direction === "prev") {
+          q = q.lt("created_at", editingCreatedAt).order("created_at", { ascending: false });
+        } else {
+          q = q.gt("created_at", editingCreatedAt).order("created_at", { ascending: true });
+        }
+      } else {
+        // No voucher loaded yet — prev = most recent, next = oldest
+        q = q.order("created_at", { ascending: direction !== "prev" });
+      }
+      const { data, error } = await q.limit(1);
       if (error) throw error;
       const target = (data || [])[0];
       if (!target) {
         toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
         return;
       }
-      navigate(`/finance/journals?edit=${target.id}`);
+      navigate(`/finance/journal/new?edit=${target.id}`);
     } catch (err: any) {
       toast.error(err.message || "تعذر التنقل بين السندات");
     }
+  };
+
+  // Build a JournalSaveInput payload from current form state (shared by save+update).
+  const buildPayload = (mode: "draft" | "posted" | "deferred") => {
+    const validLines = lines
+      .filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0))
+      .map((l) => ({
+        account_code: l.account_code,
+        account_name: l.account_name,
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
+        contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
+        contact_name: l.contact_name || null,
+        line_comment: l.line_comment || null,
+        cost_center_id: l.cost_center_id || null,
+      }));
+    return {
+      ref_number: formRefNumber,
+      date: formDate,
+      subtype: formSubtype as any,
+      description: formDescription,
+      notes: formNotes || null,
+      contact_id: formContactId || null,
+      cost_center_id: formCostCenterId || null,
+      currency_code: formCurrency,
+      currency_label: CURRENCIES.find(c => c.value === formCurrency)?.label || "شيكل",
+      exchange_rate: formExchangeRate,
+      lines: validLines,
+      mode,
+      attachments,
+      line_sort_order: lineSortOrder,
+    };
+  };
+
+  // Update an existing loaded voucher
+  const handleUpdate = async () => {
+    if (!editingVoucherId) return;
+    if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
+    if (!isBalanced) { toast.error("القيد غير متوازن"); return; }
+    setSaving(true);
+    try {
+      const result = await updateJournalVoucher(editingVoucherId, buildPayload("posted") as any);
+      if (!result.success) throw new Error(result.error || "فشل تعديل السند");
+      toast.success(`تم تحديث السند ${result.ref_number || formRefNumber}`);
+      setIsReadOnly(true);
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete loaded voucher
+  const handleDelete = async () => {
+    if (!editingVoucherId) return;
+    if (!window.confirm(`هل تريد حذف السند ${formRefNumber}؟ لا يمكن التراجع.`)) return;
+    setSaving(true);
+    try {
+      const result = await removeJournalVoucher(editingVoucherId);
+      if (!result.success) throw new Error(result.error || "فشل الحذف");
+      toast.success(`تم حذف السند ${formRefNumber}`);
+      navigate("/finance/journal/new", { replace: true });
+    } catch (err: any) {
+      toast.error(err.message || "تعذر الحذف");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Duplicate loaded voucher into a fresh new entry (keeps all data, generates new ref)
+  const handleDuplicate = async () => {
+    if (!user) return;
+    // Generate a new ref number
+    const { data } = await supabase
+      .from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal")
+      .order("created_at", { ascending: false }).limit(1);
+    const lastRef = (data || [])[0]?.ref_number || "";
+    const match = lastRef.match(/(\d+)$/);
+    const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+    const newRef = `QV-${new Date().getFullYear()}-${nextNum}`;
+
+    setEditingVoucherId(null);
+    setEditingCreatedAt(null);
+    setIsReadOnly(false);
+    setFormRefNumber(newRef);
+    setFormDate(new Date().toISOString().split("T")[0]);
+    // Reset URL (remove ?edit=)
+    navigate("/finance/journal/new", { replace: true });
+    toast.success("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ");
   };
 
   const actionTabs: ActionTab[] = useMemo(() => ([{
