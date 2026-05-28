@@ -1789,6 +1789,7 @@ const JournalNewPage = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Quick Add Contact Dialog */}
       <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
