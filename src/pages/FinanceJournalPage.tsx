@@ -376,7 +376,7 @@ const FinanceJournalPage = () => {
               <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">سندات القيد</h1>
+              <h1 className="text-xl font-bold text-foreground">القيود اليومية</h1>
               <p className="text-xs text-muted-foreground">إدارة القيود المحاسبية اليدوية</p>
             </div>
           </div>
