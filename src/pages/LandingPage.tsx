@@ -143,6 +143,8 @@ const LandingPage = () => {
         .glass-nav { backdrop-filter: blur(12px); border-bottom: 1px solid rgba(232, 236, 241, 0.8); }
         @keyframes ampPulse { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
         .amp-bar { transform-origin: center; animation: ampPulse 1.2s ease-in-out infinite; }
+        .reveal-section { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .reveal-section.visible { opacity: 1; transform: translateY(0); }
       `}</style>
 
       {/* Navigation */}
