@@ -305,6 +305,86 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // clicks "تعديل" — mirrors JournalNewPage behavior.
   const [isReadOnly, setIsReadOnly] = useState<boolean>(isEditMode && voucherType === "receipt");
 
+  // ─── Prev/Next navigation between receipts (Phase 1) ───
+  // Declared up here (before any early returns) so React hook order stays stable.
+  const goToAdjacentReceipt = async (direction: "prev" | "next") => {
+    if (voucherType !== "receipt" || !ownerId) return;
+    try {
+      let q = supabase
+        .from("receipt_vouchers")
+        .select("id, receipt_number, created_at")
+        .eq("user_id", ownerId);
+      if (editId && (window as any).__voucherCreatedAt) {
+        const cursor = (window as any).__voucherCreatedAt as string;
+        if (direction === "prev") {
+          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
+        } else {
+          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
+        }
+      } else {
+        q = q.order("created_at", { ascending: direction !== "prev" });
+      }
+      const { data, error } = await q.limit(1);
+      if (error) throw error;
+      const target = (data || [])[0];
+      if (!target) {
+        toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
+        return;
+      }
+      navigate(`/finance/receipt/${target.id}/edit`);
+    } catch (err: any) {
+      toast.error(err.message || "تعذر التنقل بين السندات");
+    }
+  };
+
+  // ─── Action Pane tabs (FinanceShell) — receipt only in Phase 1 ───
+  // CRITICAL: this useMemo must live ABOVE the editLoading/saved early
+  // returns so React always sees the same hook count across renders.
+  // Handler refs are wrapped in lazy arrows so TDZ on consts declared
+  // further down is never hit (onClick fires only after full render).
+  const isReceiptType = voucherType === "receipt";
+  const receiptActionTabs: ActionTab[] = useMemo(() => {
+    if (!isReceiptType) return [];
+    const inEdit = isEditMode;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary" as const,
+          onClick: () => navigate("/finance/receipt/new") },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy,
+          onClick: () => handleNewSimilar() }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: () => handleSave(false), disabled: isReadOnly,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
+          { key: "delete", label: "إلغاء السند", icon: Trash2,
+            onClick: () => setShowCancelModal(true) },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ مسودة", icon: Save,
+            onClick: () => handleSave(true) },
+          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleSave(false) },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrint() },
+      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrint() },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentReceipt("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentReceipt("next") },
+      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/finance/receipts") },
+      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReceiptType, isEditMode, isReadOnly]);
+
   // ─── Auto-Draft (السندات) ───
   const draftFormId = `voucher_${voucherType}_new`;
   const draftRoutePath = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
@@ -2422,78 +2502,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
   };
 
-  // ─── Prev/Next navigation between receipts (Phase 1) ───
-  const goToAdjacentReceipt = async (direction: "prev" | "next") => {
-    if (!isReceipt || !ownerId) return;
-    try {
-      let q = supabase
-        .from("receipt_vouchers")
-        .select("id, receipt_number, created_at")
-        .eq("user_id", ownerId);
-      if (editId && (window as any).__voucherCreatedAt) {
-        const cursor = (window as any).__voucherCreatedAt as string;
-        if (direction === "prev") {
-          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
-        } else {
-          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
-        }
-      } else {
-        q = q.order("created_at", { ascending: direction !== "prev" });
-      }
-      const { data, error } = await q.limit(1);
-      if (error) throw error;
-      const target = (data || [])[0];
-      if (!target) {
-        toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
-        return;
-      }
-      navigate(`/finance/receipt/${target.id}/edit`);
-    } catch (err: any) {
-      toast.error(err.message || "تعذر التنقل بين السندات");
-    }
-  };
-
-  // ─── Action Pane tabs (FinanceShell) — receipt only in Phase 1 ───
-  const receiptActionTabs: ActionTab[] = useMemo(() => {
-    if (!isReceipt) return [];
-    const inEdit = isEditMode;
-    const newGroup = {
-      key: "new", label: "جديد", items: [
-        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary" as const,
-          onClick: () => navigate("/finance/receipt/new") },
-        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy, onClick: handleNewSimilar }] : []),
-      ],
-    };
-    const saveGroup = inEdit
-      ? { key: "save", label: "حفظ", items: [
-          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
-            variant: isReadOnly ? ("primary" as const) : undefined,
-            onClick: () => setIsReadOnly(prev => !prev) },
-          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
-            onClick: () => handleSave(false), disabled: isReadOnly || saving || isCancelled,
-            tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
-          { key: "delete", label: "إلغاء السند", icon: Trash2,
-            onClick: () => setShowCancelModal(true), disabled: saving || isCancelled },
-        ]}
-      : { key: "save", label: "حفظ", items: [
-          { key: "draft", label: "حفظ مسودة", icon: Save,
-            onClick: () => handleSave(true), disabled: saving },
-          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
-            onClick: () => handleSave(false), disabled: saving },
-        ]};
-    const viewGroup = { key: "view", label: "عرض", items: [
-      { key: "preview", label: "معاينة", icon: Eye, onClick: handlePrint },
-      { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
-    ]};
-    const navGroup = { key: "nav", label: "تنقل", items: [
-      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentReceipt("prev") },
-      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentReceipt("next") },
-      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/finance/receipts") },
-      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
-    ]};
-    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
-  }, [isReceipt, isEditMode, isReadOnly, saving, isCancelled, editId]);
-
   const formBody = (
     <SmartFormScope
       className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-8"
@@ -2547,7 +2555,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header + old toolbar — hidden for receipts (FinanceShell + ActionPane own this). */}
+      {!isReceipt && <>
       <PageHeader
         title={pageTitle}
         breadcrumb={["المالية", isReceipt ? "سندات القبض" : "سندات الصرف", pageTitle]}
@@ -2654,6 +2663,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </button>
         )}
       </div>
+      </>}
 
       {/* Phase 5J — cross-link panel (edit mode only) */}
       {isEditMode && refNumber && (
@@ -3298,9 +3308,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* ═══ END MASTER GRID ═══ */}
       </div>
 
-      {/* ═══ Sticky Bottom Action Bar — full container width
-          Outside the grid so it spans 100% and centers properly. */}
-      {!isCancelled && (
+      {/* ═══ Sticky Bottom Action Bar — hidden for receipts (ActionPane owns this). */}
+      {!isReceipt && !isCancelled && (
         <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
           <div className="max-w-[1600px] mx-auto flex items-center gap-2 flex-wrap">
             {/* Ghost: Print */}
@@ -3329,7 +3338,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       )}
 
       {/* Cancelled — only show print, full width */}
-      {isCancelled && (
+      {!isReceipt && isCancelled && (
         <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 flex items-center justify-center">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-5 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
