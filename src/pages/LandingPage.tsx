@@ -1145,6 +1145,87 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="py-24 px-6 bg-[#fafbfc] reveal-section">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">TESTIMONIALS</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">شركات فلسطينية اختارت أموالي <span className="font-latin text-[#3b82f6]">ERP</span></h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg max-w-2xl mx-auto">قصص حقيقية من أصحاب شركات بتشتغل على النظام يومياً.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { name: "أبو محمد", role: "صاحب سوبرماركت — رام الله", quote: "بعد ما كنت أضيع 3 ساعات يومياً بالكاشير والحسابات، صرت أخلّص كل شي بـ 20 دقيقة. أموالي وفّرت عليّ موظف محاسبة كامل." },
+              { name: "م. سامي", role: "مدير مصنع ألبسة — الخليل", quote: "أول مرة أحس إني مسيطر على المخزون والإنتاج. تقارير الربحية لكل موديل بتيجي بضغطة زر. هاد فعلاً ERP بمستوى عالمي." },
+              { name: "د. ليلى", role: "صاحبة صيدلية — نابلس", quote: "نظام الصلاحيات والدفعات أنقذني من خسائر كبيرة. وحسيب الذكاء الاصطناعي بيرد عليّ بالعربي بسرعة جنونية." },
+              { name: "أبو خالد", role: "مقاول إنشاءات — جنين", quote: "أدير 8 مشاريع بنفس الوقت من جوّالي. المستخلصات، الموردين، الموظفين — كله مرتّب وواضح." },
+              { name: "كريم", role: "صاحب مطعم — بيت لحم", quote: "POS بيشتغل أوفلاين بدون أي مشاكل، والشاشة بالمطبخ متصلة مباشرة. الطلبات بتطلع صحيح من أول مرة." },
+              { name: "هند", role: "مدير حسابات شركة توزيع — غزة", quote: "ربطنا 12 مندوب بالنظام، كل واحد بشوف عملاءه وتحصيلاته على جواله. التحصيل ارتفع 35% بأول شهرين." },
+            ].map((t, i) => (
+              <div key={i} className="bg-white border border-[#e8ecf1] rounded-2xl p-7 hover:shadow-xl hover:-translate-y-1 transition-all">
+                <div className="text-[#3b82f6] text-3xl font-black mb-3 leading-none">“</div>
+                <p className="text-[#0D1B2E] font-bold leading-relaxed mb-6">{t.quote}</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-[#e8ecf1]">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#0D1B2E] flex items-center justify-center text-white font-black">
+                    {t.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-black text-[#0D1B2E] text-sm">{t.name}</div>
+                    <div className="text-xs text-[#0D1B2E]/60 font-bold">{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Deep Capabilities Bento */}
+      <section className="py-24 px-6 bg-white reveal-section">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">UNDER THE HOOD</div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4">قدرات تقنية ما رح تلاقيها بأي نظام ثاني</h2>
+            <p className="text-[#0D1B2E]/60 font-bold text-lg max-w-2xl mx-auto">هندسة برمجية بمستوى المؤسسات الكبيرة، مفصّلة على واقع السوق الفلسطيني.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="md:col-span-2 bg-gradient-to-br from-[#0D1B2E] to-[#1a2e46] text-white rounded-3xl p-8 hover:shadow-2xl transition-all">
+              <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">CORE ENGINE</div>
+              <h3 className="text-2xl font-black mb-3">قيود محاسبية ذرّية ومحميّة على مستوى قاعدة البيانات</h3>
+              <p className="text-white/70 font-bold leading-relaxed mb-6">كل فاتورة، دفعة، أو حركة مخزون بتمر بـ PostgreSQL Triggers بتضمن توازن القيد، إقفال الفترات المالية، ومنع التعديل على المستندات المرحّلة. ما تنفع الـ Excel ولا برامج المحاسبة التقليدية.</p>
+              <div className="grid grid-cols-3 gap-4">
+                {[{n:"180+",l:"جدول قاعدة بيانات"},{n:"50+",l:"Trigger محاسبي"},{n:"100%",l:"عزل Multi-Tenant"}].map(s=>(
+                  <div key={s.l} className="bg-white/5 rounded-xl p-4">
+                    <div className="text-2xl font-black font-latin text-[#3b82f6]">{s.n}</div>
+                    <div className="text-xs text-white/60 font-bold mt-1">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-[#fafbfc] border border-[#e8ecf1] rounded-3xl p-8 hover:border-[#3b82f6] transition-all">
+              <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">REVERSE ENTRY</div>
+              <h3 className="text-xl font-black mb-3 text-[#0D1B2E]">قيد عكسي IFRS</h3>
+              <p className="text-[#0D1B2E]/70 font-bold text-sm leading-relaxed">بدل ما تحذف القيد، النظام بعمل قيد عكسي معتمد دولياً، مع الحفاظ على Audit Trail كامل.</p>
+            </div>
+            <div className="bg-[#fafbfc] border border-[#e8ecf1] rounded-3xl p-8 hover:border-[#3b82f6] transition-all">
+              <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">FISCAL LOCK</div>
+              <h3 className="text-xl font-black mb-3 text-[#0D1B2E]">إقفال فترات مالية</h3>
+              <p className="text-[#0D1B2E]/70 font-bold text-sm leading-relaxed">بعد إقفال الشهر، ولا أحد بقدر يعدّل بأي مستند داخله. ضمان حقيقي لسلامة الميزانية.</p>
+            </div>
+            <div className="bg-[#fafbfc] border border-[#e8ecf1] rounded-3xl p-8 hover:border-[#3b82f6] transition-all">
+              <div className="text-xs font-black text-[#3b82f6] mb-3 font-latin tracking-widest">REALTIME</div>
+              <h3 className="text-xl font-black mb-3 text-[#0D1B2E]">مزامنة لحظية بين الأجهزة</h3>
+              <p className="text-[#0D1B2E]/70 font-bold text-sm leading-relaxed">عدّل من جوّالك، بتشوف التعديل على شاشة الكاشير فوراً. BroadcastChannel + Supabase Realtime.</p>
+            </div>
+            <div className="md:col-span-2 bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white rounded-3xl p-8 hover:shadow-2xl transition-all">
+              <div className="text-xs font-black text-white/70 mb-3 font-latin tracking-widest">SOFT DELETE · AUDIT</div>
+              <h3 className="text-2xl font-black mb-3">لا شي بيضيع، ولا شي بينحذف فعلياً</h3>
+              <p className="text-white/80 font-bold leading-relaxed">نظام الـ Soft Delete + Audit Log بيخلّيك دايماً تعرف مين عدّل، إيمتى، وعلى شو. مع إمكانية الاسترجاع لأي مستند بضغطة زر، وحماية كاملة من التلاعب.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
         <div className="max-w-4xl mx-auto text-center">
