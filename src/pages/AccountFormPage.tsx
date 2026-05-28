@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, Save, RotateCcw, Lock, AlertTriangle } from "lucide-react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowRight, Save, RotateCcw, Lock, AlertTriangle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +56,7 @@ interface Account {
 const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const navigate = useNavigate();
   const { accountId } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { company } = useCompany();
   const { toast } = useToast();
@@ -74,6 +75,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const [descriptionAr, setDescriptionAr] = useState("");
   const [notes, setNotes] = useState("");
   const [codeError, setCodeError] = useState("");
+  const [parentPrefilled, setParentPrefilled] = useState(false);
 
   // Load accounts for parent selector
   useEffect(() => {
@@ -101,6 +103,19 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     }
   }, [mode, accountId, accounts]);
 
+  // Pre-fill from ?parent= query param (when adding sub-account from tree)
+  useEffect(() => {
+    if (mode !== "create" || parentPrefilled || accounts.length === 0) return;
+    const parentParam = searchParams.get("parent");
+    if (!parentParam) { setParentPrefilled(true); return; }
+    const parent = accounts.find(a => a.account_code === parentParam);
+    if (parent) {
+      setAccountType(normalizeType(parent.account_type));
+      setParentCode(parent.account_code);
+    }
+    setParentPrefilled(true);
+  }, [mode, accounts, searchParams, parentPrefilled]);
+
   // Auto-set balance when type changes
   useEffect(() => {
     if (accountType && DEFAULT_BALANCE[accountType]) {
@@ -120,6 +135,46 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     if (!accountType) return accounts;
     return accounts.filter(a => normalizeType(a.account_type) === accountType && a.id !== accountId);
   }, [accounts, accountType, accountId]);
+
+  // Siblings = accounts sharing the same parent (or top-level of same type if no parent)
+  const siblings = useMemo(() => {
+    if (mode === "edit") return [];
+    if (parentCode) {
+      return accounts.filter(a => a.parent_code === parentCode).sort((a, b) => a.account_code.localeCompare(b.account_code));
+    }
+    if (accountType) {
+      return accounts
+        .filter(a => !a.parent_code && normalizeType(a.account_type) === accountType)
+        .sort((a, b) => a.account_code.localeCompare(b.account_code));
+    }
+    return [];
+  }, [accounts, parentCode, accountType, mode]);
+
+  // Suggested next code: max sibling + 1 (preserving width). Falls back to parent+"01" or type bucket.
+  const suggestedCode = useMemo(() => {
+    if (mode === "edit") return "";
+    const used = new Set(accounts.map(a => a.account_code));
+    if (parentCode) {
+      const childPrefix = parentCode;
+      const children = accounts
+        .filter(a => a.parent_code === parentCode && a.account_code.startsWith(childPrefix))
+        .map(a => a.account_code);
+      if (children.length === 0) {
+        const c = childPrefix + "01";
+        return used.has(c) ? "" : c;
+      }
+      const widths = children.map(c => c.length);
+      const width = Math.max(...widths);
+      const nums = children
+        .filter(c => c.length === width)
+        .map(c => parseInt(c, 10))
+        .filter(n => !isNaN(n));
+      let next = (nums.length ? Math.max(...nums) : parseInt(childPrefix + "00", 10)) + 1;
+      while (used.has(String(next).padStart(width, "0"))) next += 1;
+      return String(next).padStart(width, "0");
+    }
+    return "";
+  }, [accounts, parentCode, mode]);
 
   const isProtected = existingAccount?.is_system_protected;
   const isValid = name.trim() && accountType && code && !codeError;
@@ -270,6 +325,34 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
                 data-smart-first={isProtected ? undefined : "true"}
               />
               {codeError && <p className="text-[10px] text-destructive">{codeError}</p>}
+              {!isProtected && mode === "create" && suggestedCode && code !== suggestedCode && (
+                <button
+                  type="button"
+                  onClick={() => setCode(suggestedCode)}
+                  className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  اقتراح: <span className="font-mono">{suggestedCode}</span> — انقر للاستخدام
+                </button>
+              )}
+              {!isProtected && mode === "create" && siblings.length > 0 && (
+                <div className="mt-1 rounded-md border bg-muted/30 px-2 py-1.5">
+                  <p className="text-[10px] text-muted-foreground mb-1">
+                    {parentCode ? `الأبناء الحاليون لـ ${parentCode}` : "حسابات رئيسية بنفس النوع"} ({siblings.length})
+                  </p>
+                  <div className="max-h-28 overflow-y-auto space-y-0.5">
+                    {siblings.slice(0, 30).map(s => (
+                      <div key={s.id} className="flex items-center justify-between text-[11px] gap-2">
+                        <span className="font-mono text-foreground/80" dir="ltr">{s.account_code}</span>
+                        <span className="truncate text-muted-foreground">{s.account_name}</span>
+                      </div>
+                    ))}
+                    {siblings.length > 30 && (
+                      <p className="text-[10px] text-muted-foreground text-center pt-1">... و {siblings.length - 30} حساب آخر</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">اسم الحساب <span className="text-destructive">*</span></Label>
