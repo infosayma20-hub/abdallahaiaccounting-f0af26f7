@@ -421,7 +421,7 @@ export default function FinancePaymentsPage() {
         </div>
       }
     >
-      <div className="space-y-4 max-w-[1600px] mx-auto" dir="rtl">
+      <div className="space-y-4 w-full" dir="rtl">
         {/* KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
