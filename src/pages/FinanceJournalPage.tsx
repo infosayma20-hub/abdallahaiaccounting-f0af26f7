@@ -339,15 +339,30 @@ const FinanceJournalPage = () => {
   };
 
   const filtered = useMemo(() => {
+    const contactName = (id: string | null | undefined) =>
+      id ? (contacts.find((c) => c.id === id)?.contact_name || "") : "";
     return vouchers.filter(v => {
       if (searchQuery) {
-        if (!multiWordMatchAny(searchQuery, v.ref_number, v.description)) return false;
+        if (!multiWordMatchAny(
+          searchQuery,
+          v.ref_number,
+          v.description,
+          v.notes,
+          contactName(v.contact_id),
+        )) return false;
       }
       if (filterStatus === "active" && v.status === "cancelled") return false;
       if (filterStatus !== "all" && filterStatus !== "active" && v.status !== filterStatus) return false;
+      if (filterDateFrom && (!v.date || v.date < filterDateFrom)) return false;
+      if (filterDateTo && (!v.date || v.date > filterDateTo)) return false;
+      if (filterSubtype !== "all" && (v.subtype || "normal") !== filterSubtype) return false;
+      if (filterContactId !== "all" && (v.contact_id || "") !== filterContactId) return false;
+      const amt = Number(v.amount || 0);
+      if (filterAmountMin && amt < Number(filterAmountMin)) return false;
+      if (filterAmountMax && amt > Number(filterAmountMax)) return false;
       return true;
     });
-  }, [vouchers, searchQuery, filterStatus]);
+  }, [vouchers, contacts, searchQuery, filterStatus, filterDateFrom, filterDateTo, filterSubtype, filterContactId, filterAmountMin, filterAmountMax]);
 
   const totalAll = vouchers.filter(v => v.status === "posted").reduce((s, v) => s + Number(v.amount || 0), 0);
   const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
