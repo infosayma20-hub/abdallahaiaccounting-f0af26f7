@@ -899,7 +899,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   }, [editId, user, isReceipt]);
 
   // Load cash boxes, bank accounts, and generate ref number for payments
-  const regenerateRefNumber = React.useCallback(async () => {
+  const regenerateRefNumber = useCallback(async () => {
     if (!ownerId) return;
     if (!isReceipt) {
       const { data: vData } = await supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }).limit(1);
