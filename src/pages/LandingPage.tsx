@@ -253,6 +253,22 @@ const LandingPage = () => {
             <div className="font-bold">يعمل بدون إنترنت (POS)</div>
             <div className="font-bold">تخزين سحابي مشفّر</div>
           </div>
+
+          {/* Awards & Badges */}
+          <div className="mt-12 flex flex-wrap justify-center items-center gap-6">
+            {[
+              { icon: "🛡️", label: "AES-256 Encryption" },
+              { icon: "📋", label: "IFRS Compliant" },
+              { icon: "🇵🇸", label: "Palestinian Tax Ready" },
+              { icon: "☁️", label: "ISO 27001 Aligned" },
+              { icon: "📱", label: "PWA Certified" },
+            ].map((b) => (
+              <div key={b.label} className="flex items-center gap-2 bg-white border border-[#e8ecf1] rounded-full px-4 py-2 text-xs font-black text-[#0D1B2E]/70">
+                <span>{b.icon}</span>
+                <span className="font-latin">{b.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
