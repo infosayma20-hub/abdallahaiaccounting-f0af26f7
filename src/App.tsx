@@ -207,7 +207,6 @@ const VoucherFormPage = lazy(() => import("./pages/VoucherFormPage"));
 const JournalNewPage = lazy(() => import("./pages/JournalNewPage"));
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
 const PortalDashboard = lazy(() => import("./pages/portal/PortalDashboard"));
-const PortalSettings = lazy(() => import("./pages/portal/PortalSettings"));
 const TaskLoginPage = lazy(() => import("./pages/tasks/TaskLoginPage"));
 const TaskBoardPage = lazy(() => import("./pages/tasks/TaskBoardPage"));
 const TaskAdminPage = lazy(() => import("./pages/tasks/TaskAdminPage"));
@@ -367,10 +366,8 @@ const App = () => (
               <Route path="/loading-demo" element={<LoadingDemoPage />} />
               <Route path="/portal" element={<Navigate to="/auth" replace />} />
               <Route path="/portal/dashboard" element={<PortalDashboard />} />
-              <Route path="/portal/settings" element={<PortalSettings />} />
               <Route path="/malaki" element={<Navigate to="/auth" replace />} />
               <Route path="/malaki/dashboard" element={<Navigate to="/portal/dashboard" replace />} />
-              <Route path="/malaki/settings" element={<Navigate to="/portal/settings" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
               <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
               <Route path="/device-setup" element={<ProtectedRoute><DeviceSetupGuard><DeviceSetupPage /></DeviceSetupGuard></ProtectedRoute>} />

@@ -246,7 +246,6 @@ export default function PortalDashboard() {
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
-    ...(user.role === 'owner' ? [{ label: 'الإعدادات', icon: Settings, action: () => navigate('/portal/settings') }] : []),
     { label: 'تسجيل الخروج', icon: LogOut, action: () => { logout(); navigate('/auth'); } },
   ];
 
