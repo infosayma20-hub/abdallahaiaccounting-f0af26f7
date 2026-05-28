@@ -1752,6 +1752,7 @@ const JournalNewPage = () => {
       {/* ═══ END data-print-area ═══ */}
 
       {/* ═══ Sticky Bottom Action Bar ═══ */}
+      {!editingVoucherId && (
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Mini status pill */}
