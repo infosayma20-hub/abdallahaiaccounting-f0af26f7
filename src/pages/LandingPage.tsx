@@ -196,7 +196,8 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero */}
-      <section className="pt-40 pb-20 px-6">
+      <section className="pt-40 pb-20 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #0D1B2E 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         <div className="max-w-7xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 bg-[#e8ecf1] border border-[#d1d7e0] px-3 py-1.5 rounded-full text-xs font-bold mb-8">
             <span className="flex h-2 w-2 rounded-full bg-green-500" />
