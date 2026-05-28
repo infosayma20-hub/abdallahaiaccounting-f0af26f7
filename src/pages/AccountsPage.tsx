@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Trash2, FileSpreadsheet, Lock, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown, FileText, Network, Settings2 } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Trash2, FileSpreadsheet, Lock, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown, FileText, Network, Settings2, Printer, Calculator } from "lucide-react";
 import { MoveAccountModal } from "@/components/accounting/MoveAccountModal";
 import { ImportAccountsModal } from "@/components/accounting/ImportAccountsModal";
 import { exportAccountsToExcel } from "@/lib/accountsExport";
@@ -187,6 +187,7 @@ const AccountsPage = () => {
   const [moveModalAccount, setMoveModalAccount] = useState<Account | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [profileData, setProfileData] = useState<{ company_name?: string | null; display_name?: string | null } | null>(null);
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -243,6 +244,16 @@ const AccountsPage = () => {
       }
     };
     init();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("company_name, display_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setProfileData(data as any));
   }, [user]);
 
   const handleDeleteAccount = useCallback(async (acc: Account) => {
