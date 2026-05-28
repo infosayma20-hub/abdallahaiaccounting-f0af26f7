@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
   FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
-  ArrowUpDown, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Ban
+  ArrowUpDown, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Ban,
+  SlidersHorizontal
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -20,6 +21,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface JournalLine {
   id: string;
@@ -47,6 +51,29 @@ const FinanceJournalPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("active");
   const [saving, setSaving] = useState(false);
+
+  // Advanced filters
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterSubtype, setFilterSubtype] = useState("all");
+  const [filterContactId, setFilterContactId] = useState("all");
+  const [filterAmountMin, setFilterAmountMin] = useState("");
+  const [filterAmountMax, setFilterAmountMax] = useState("");
+
+  // Column visibility (notes, contact, subtype hideable)
+  const columnDefs: ColumnDef[] = [
+    { key: "ref_number", label: "الرقم", required: true },
+    { key: "date", label: "التاريخ" },
+    { key: "subtype", label: "النوع" },
+    { key: "contact_name", label: "الجهة", defaultVisible: false },
+    { key: "description", label: "الوصف" },
+    { key: "notes", label: "الملاحظات", defaultVisible: false },
+    { key: "amount", label: "المبلغ", required: true },
+    { key: "status", label: "الحالة" },
+    { key: "actions", label: "إجراءات", required: true },
+  ];
+  const colState = useColumnVisibility("finance-journal-page", columnDefs);
+  const show = colState.isVisible;
 
   // Duplicate
   const [duplicateModal, setDuplicateModal] = useState(false);
@@ -312,15 +339,30 @@ const FinanceJournalPage = () => {
   };
 
   const filtered = useMemo(() => {
+    const contactName = (id: string | null | undefined) =>
+      id ? (contacts.find((c) => c.id === id)?.contact_name || "") : "";
     return vouchers.filter(v => {
       if (searchQuery) {
-        if (!multiWordMatchAny(searchQuery, v.ref_number, v.description)) return false;
+        if (!multiWordMatchAny(
+          searchQuery,
+          v.ref_number,
+          v.description,
+          v.notes,
+          contactName(v.contact_id),
+        )) return false;
       }
       if (filterStatus === "active" && v.status === "cancelled") return false;
       if (filterStatus !== "all" && filterStatus !== "active" && v.status !== filterStatus) return false;
+      if (filterDateFrom && (!v.date || v.date < filterDateFrom)) return false;
+      if (filterDateTo && (!v.date || v.date > filterDateTo)) return false;
+      if (filterSubtype !== "all" && (v.subtype || "normal") !== filterSubtype) return false;
+      if (filterContactId !== "all" && (v.contact_id || "") !== filterContactId) return false;
+      const amt = Number(v.amount || 0);
+      if (filterAmountMin && amt < Number(filterAmountMin)) return false;
+      if (filterAmountMax && amt > Number(filterAmountMax)) return false;
       return true;
     });
-  }, [vouchers, searchQuery, filterStatus]);
+  }, [vouchers, contacts, searchQuery, filterStatus, filterDateFrom, filterDateTo, filterSubtype, filterContactId, filterAmountMin, filterAmountMax]);
 
   const totalAll = vouchers.filter(v => v.status === "posted").reduce((s, v) => s + Number(v.amount || 0), 0);
   const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
@@ -348,7 +390,18 @@ const FinanceJournalPage = () => {
   const totalPagesCalc = Math.max(1, Math.ceil(sortedFiltered.length / PER_PAGE));
   const paged = sortedFiltered.slice((pageCurrent - 1) * PER_PAGE, pageCurrent * PER_PAGE);
 
-  useEffect(() => { setPageCurrent(1); }, [searchQuery, filterStatus]);
+  useEffect(() => { setPageCurrent(1); }, [searchQuery, filterStatus, filterDateFrom, filterDateTo, filterSubtype, filterContactId, filterAmountMin, filterAmountMax]);
+
+  const activeAdvancedCount =
+    (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0) +
+    (filterSubtype !== "all" ? 1 : 0) + (filterContactId !== "all" ? 1 : 0) +
+    (filterAmountMin ? 1 : 0) + (filterAmountMax ? 1 : 0);
+
+  const clearAdvanced = () => {
+    setFilterDateFrom(""); setFilterDateTo("");
+    setFilterSubtype("all"); setFilterContactId("all");
+    setFilterAmountMin(""); setFilterAmountMax("");
+  };
 
   const toggleSort = (key: string) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -424,6 +477,74 @@ const FinanceJournalPage = () => {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex-1" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs">
+                <SlidersHorizontal className="h-3.5 w-3.5" /> فلاتر متقدمة
+                {activeAdvancedCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                    {activeAdvancedCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[360px] p-4 space-y-3" dir="rtl">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold">فلاتر متقدمة</h4>
+                {activeAdvancedCount > 0 && (
+                  <button onClick={clearAdvanced} className="text-[11px] text-destructive hover:underline">
+                    مسح الكل
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px]">من تاريخ</Label>
+                  <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="h-8 mt-1 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[11px]">إلى تاريخ</Label>
+                  <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="h-8 mt-1 text-xs" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-[11px]">نوع القيد</Label>
+                <Select value={filterSubtype} onValueChange={setFilterSubtype}>
+                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الأنواع</SelectItem>
+                    <SelectItem value="normal">عادي</SelectItem>
+                    <SelectItem value="opening">افتتاحي</SelectItem>
+                    <SelectItem value="adjustment">تسوية</SelectItem>
+                    <SelectItem value="closing">إقفالي</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px]">جهة الاتصال</Label>
+                <Select value={filterContactId} onValueChange={setFilterContactId}>
+                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder="الكل" /></SelectTrigger>
+                  <SelectContent className="max-h-[280px]">
+                    <SelectItem value="all">جميع الجهات</SelectItem>
+                    {contacts.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px]">أقل مبلغ</Label>
+                  <Input type="number" value={filterAmountMin} onChange={e => setFilterAmountMin(e.target.value)} placeholder="0" className="h-8 mt-1 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[11px]">أعلى مبلغ</Label>
+                  <Input type="number" value={filterAmountMax} onChange={e => setFilterAmountMax(e.target.value)} placeholder="—" className="h-8 mt-1 text-xs" />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <ColumnVisibilityMenu state={colState} />
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px] rounded-xl text-xs">
               <SelectValue placeholder="حالة السند" />
