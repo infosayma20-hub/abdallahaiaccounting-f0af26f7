@@ -131,14 +131,21 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         setBranchName(br?.name || "");
       }
 
-      // Company logo (best-effort, errors silently ignored)
-      if (emp.company_id) {
-        const { data: comp } = await supabase
-          .from("companies")
-          .select("logo_url")
-          .eq("id", emp.company_id)
-          .maybeSingle();
-        setCompanyLogo(comp?.logo_url || null);
+      // Company logo — prefer company_settings (where users actually upload it),
+      // fall back to companies.logo_url. Resolved via team owner so all employees
+      // of the same tenant see the owner's company logo.
+      try {
+        const { data: ownerId } = await supabase.rpc("get_team_owner_id");
+        const effectiveOwner = (ownerId as string) || user.id;
+        const [{ data: cs }, { data: comp }] = await Promise.all([
+          supabase.from("company_settings").select("logo_url").eq("user_id", effectiveOwner).maybeSingle(),
+          emp.company_id
+            ? supabase.from("companies").select("logo_url").eq("id", emp.company_id).maybeSingle()
+            : Promise.resolve({ data: null as any }),
+        ]);
+        setCompanyLogo((cs as any)?.logo_url || (comp as any)?.logo_url || null);
+      } catch {
+        setCompanyLogo(null);
       }
 
       // Latest employee_info submission (for fields not yet on employees row)
