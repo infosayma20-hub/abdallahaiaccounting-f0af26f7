@@ -867,13 +867,35 @@ const AccountStatementV2Page = () => {
       showReference: !!statementOptions.showReference,
       showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
     });
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { try { w.print(); } catch {} }, 700);
+    // Print via hidden iframe to avoid the "about:blank" footer that
+    // appears when using window.open("","_blank").
+    const existing = document.getElementById("__soa_print_iframe__");
+    if (existing) existing.remove();
+    const iframe = document.createElement("iframe");
+    iframe.id = "__soa_print_iframe__";
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (e) {
+        console.error("print error", e);
+      }
+    };
+    // Wait for fonts/images
+    setTimeout(triggerPrint, 700);
   }, [
     selectedEntityId, selectedEntityName, selectedEntityCode, selectedContact,
     isEmployeesTab, isAccountsTab,

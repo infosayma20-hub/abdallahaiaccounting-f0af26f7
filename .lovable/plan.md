@@ -1,109 +1,52 @@
+# خطة الإصلاحات (9 بنود)
 
-## ملاحظات بعد التحقق من الإنتاج
+سأنفذها كلها في هذه الجولة، وأرتّبها من الأصغر للأكبر مع تأكيد على عدم لمس منطق الحسابات/القاعدة.
 
-- **لا يوجد `journal_lines`** — الدفتر الفعلي هو `transactions` (مؤكد ✅).
-- `cost_centers` **موجود فعلاً** (فارغ، بنية كاملة، ينقصه SELECT policy + GRANT) → نستخدم `ALTER TABLE IF EXISTS` ونكمل.
-- الاسم الفعلي للأبعاد هو `transaction_dimensions` (لا يوجد جدول باسم `transaction_financial_dimensions`) → نستخدم الموجود كما طلبت.
-- `vouchers` يحوي `workshop_id` بالفعل (نفس النمط نتبعه لـ `cost_center_id`).
-- توقيعات الـ RPCs الحالية مؤكدة:
-  - `create_receipt_with_entry(...17 args)` بدون `p_cost_center_id`
-  - `create_payment_with_entry(...17 args)` بدون `p_cost_center_id`
-  - `create_journal_entry_multi_party_atomic(...10 args)` بدون `p_cost_center_id`
-  - `update_voucher_atomic(...20 args)` بدون `p_cost_center_id`
+## 1) سندات القبض والصرف لا تعمل من الـ navigation
+- المسارات في `App.tsx` صحيحة (`/finance/receipt/new`, `/finance/payment/new`).
+- لكن من اللقطات يظهر أن الصفحة تفتح لكن البحث عن جهة (`سفيان`) يرجع "لا توجد نتائج" — أي العميل/الجهة ما بتظهر.
+- سأتحقق من فلتر البحث في `VoucherFormPage` (هل يستخدم `contact_type` القانوني؟ وهل يحترم `is_deleted=false` بشكل سليم؟) وأصلحه.
 
----
+## 2) معاينة الطباعة والطباعة لا تعمل في سند القيد
+- في `JournalNewPage` زرّي "معاينة" و"طباعة" يطبعان الصفحة كاملة بدلاً من السند فقط.
+- سأغلّف السند داخل `[data-print-area]`، وأخفي البقية بـ `no-print`، وأضيف رأس طباعة (شركة + رقم السند + تاريخ + نوع السند).
 
-## المرحلة 1 — Migration آمن (هذه الجلسة، طلب موافقتك)
+## 3) سند القيد بصفحة واحدة عند الطباعة
+- ضبط CSS طباعة: `@page { size: A4; margin: 10mm }`, تكثيف الجدول، إخفاء التبويبات/الـAction Pane/الـ summary card الجانبية.
 
-### 1.أ — إكمال `cost_centers`
-```sql
-ALTER TABLE IF EXISTS public.cost_centers ADD COLUMN IF NOT EXISTS notes text;
--- SELECT policy المفقودة:
-CREATE POLICY IF NOT EXISTS "Users view own cost centers" ON public.cost_centers
-  FOR SELECT TO authenticated USING (auth.uid() = user_id);
--- GRANTs:
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.cost_centers TO authenticated;
-GRANT ALL ON public.cost_centers TO service_role;
--- فهارس إضافية:
-CREATE INDEX IF NOT EXISTS idx_cost_centers_active ON public.cost_centers(user_id, is_active) WHERE is_deleted = false;
-```
-**لا `company_id`**. نبقى على `user_id` فقط.
+## 4) عدسة بحث الحسابات داخل سطور سند القيد
+- استبدال الـ Input النصي البسيط لحقل "رقم الحساب / الجهة" بمكوّن بحث مع Popover يعرض كل شجرة الحسابات، بحث فوري بالاسم/الرقم، اختيار بنقرة. (موجود مكوّن `SmartAccountPicker` / `AccountAutocomplete` احتمالاً — سأبحث وأستخدمه، وإلا أبني واحد بسيط مبني على `Command` من shadcn.)
 
-### 1.ب — إضافة `cost_center_id` إلى الجداول الفعلية (كلها nullable)
-```sql
-ALTER TABLE public.transactions   ADD COLUMN IF NOT EXISTS cost_center_id uuid REFERENCES public.cost_centers(id) ON DELETE SET NULL;
-ALTER TABLE public.vouchers       ADD COLUMN IF NOT EXISTS cost_center_id uuid REFERENCES public.cost_centers(id) ON DELETE SET NULL;
-ALTER TABLE public.voucher_lines  ADD COLUMN IF NOT EXISTS cost_center_id uuid REFERENCES public.cost_centers(id) ON DELETE SET NULL;
-ALTER TABLE public.invoices       ADD COLUMN IF NOT EXISTS cost_center_id uuid REFERENCES public.cost_centers(id) ON DELETE SET NULL;
-ALTER TABLE public.invoice_items  ADD COLUMN IF NOT EXISTS cost_center_id uuid REFERENCES public.cost_centers(id) ON DELETE SET NULL;
+## 5) Enter من حقل مركز التكلفة في السطر الأخير → سطر جديد
+- في معالج keyboard للسطور: لو الحقل الحالي = آخر حقل (مركز التكلفة) والصف = آخر صف → `Enter` ينفذ `addRow()` وينقل التركيز لأول حقل في الصف الجديد.
 
-CREATE INDEX IF NOT EXISTS idx_transactions_cc  ON public.transactions(cost_center_id)  WHERE cost_center_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_vouchers_cc      ON public.vouchers(cost_center_id)      WHERE cost_center_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_voucher_lines_cc ON public.voucher_lines(cost_center_id) WHERE cost_center_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_invoices_cc      ON public.invoices(cost_center_id)      WHERE cost_center_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_invoice_items_cc ON public.invoice_items(cost_center_id) WHERE cost_center_id IS NOT NULL;
-```
-**لا triggers على `transactions`**. الترحيل يمر فقط من خلال RPCs.
+## 6) مركز التكلفة في الفاتورة + FinanceShell للفواتير
+- إضافة حقل اختيار "مركز التكلفة" في `InvoiceFormPage` (بنفس النمط، أعلى الجدول) — لا تغيير في منطق الترحيل (يُمرَّر فقط للقيد الناتج إن كان مدعوماً).
+- تطبيق `FinanceShell` على `InvoicesPage`: breadcrumb (المالية / الفواتير)، Action Pane (فاتورة جديدة، تحديث، طباعة، تصدير، فتح مركز المالية)، FiltersPanel فعلي.
 
-### 1.ج — حماية الحذف
-Trigger `BEFORE DELETE` على `cost_centers` يمنع الحذف إذا له أي حركة في `transactions`/`vouchers`/`invoices`. الحل: تعطيل (`is_active = false`) بدل الحذف.
+## 7) طباعة كشف الحساب تطبع `about:blank` و HTML خام
+- المشكلة في فتح نافذة جديدة `window.open("","_blank")` وطباعتها — تظهر "about:blank" في الفوتر/الهيدر.
+- الحل: استخدام نفس نمط `data-print-area` داخل الصفحة الحالية + CSS `@media print` (نفس ما عملناه في باقي الصفحات)، وإزالة `window.open`.
 
-### 1.د — تحديث الـ RPCs (إضافة `p_cost_center_id`)
-- `create_receipt_with_entry(...17 + p_cost_center_id uuid DEFAULT NULL)` — يكتب `cost_center_id` في `vouchers` و`transactions` الناتجة.
-- `create_payment_with_entry(...نفس الشيء)`.
-- `create_journal_entry_multi_party_atomic(...10 + p_cost_center_id uuid DEFAULT NULL)`:
-  - مستوى السند: من المعامل العام.
-  - **مستوى السطر**: كل عنصر داخل `p_lines` يدعم مفتاح `cost_center_id` اختياري يتجاوز العام.
-- `update_voucher_atomic(...20 + p_cost_center_id uuid DEFAULT NULL)` — لكل سطر داخل `p_journal_lines` نفس المفتاح.
+## 8) طباعة شجرة الحسابات تطبع الصفحة كاملة
+- مراجعة CSS طباعة في `AccountsPage`: إخفاء كل عناصر الـShell والـSidebar والـTopBar داخل `no-print`/`print:hidden`، وتغليف الشجرة فقط بـ `data-print-area`.
 
-**كل الـ DEFAULT NULL** → backward compatible. السطور بدون مركز تبقى تعمل، الحركات القديمة تظهر "بدون مركز تكلفة".
+## 9) طباعة ميزان المراجعة تطبع الصفحة كاملة
+- نفس المعالجة في `TrialBalancePage`: تحقق أن العناصر خارج `[data-print-area]` فيها `print:hidden`، وإضافة global CSS rule `@media print { body > *:not(...) { display:none } }` في `index.css` لضمان طباعة `data-print-area` فقط.
 
-### 1.هـ — جدول `transaction_dimensions` (الموجود) يبقى كما هو
-لا نلمسه الآن. التكرار سيكون مستقبلاً عند الحاجة لأبعاد متعددة (project, segment…). حالياً مركز التكلفة يعيش كحقل مباشر على الحركة + اختياري في `transaction_dimensions` لاحقاً (Phase منفصل).
+## تقنياً (ملخص)
+- سأضيف rule عام في `src/index.css` تحت `@media print`:
+  ```css
+  @media print {
+    body * { visibility: hidden; }
+    [data-print-area], [data-print-area] * { visibility: visible; }
+    [data-print-area] { position: absolute; inset: 0; }
+    .no-print, .no-print * { display: none !important; }
+    @page { size: A4; margin: 10mm; }
+  }
+  ```
+  هذا يصلح بنود (3, 7, 8, 9) دفعة واحدة بشكل موحّد + تأكيد كل صفحة عندها `data-print-area`.
 
----
-
-## المرحلة 2 — شاشة إدارة مراكز التكلفة
-
-`src/pages/CostCentersPage.tsx` على `/finance/cost-centers`:
-- شجرة هرمية (parent_id) + جدول/بطاقات
-- أعمدة: الكود، الاسم، النوع، المسؤول، الفرع، الحالة، عدد الحركات (count من transactions)
-- أزرار: جديد، تعديل (Dialog)، تفعيل/إيقاف، حذف (محمي بالـ trigger)
-- بحث + فلاتر (نوع، حالة، فرع)
-- إضافة بطاقة "مراكز التكلفة" في `AccountingCenterPage` مع `Alt+C` لاحقاً
-
-مكوّنات:
-- `src/components/cost-centers/CostCenterCombobox.tsx`
-- `src/components/cost-centers/CostCenterTree.tsx`
-- `src/components/cost-centers/CostCenterFormDialog.tsx`
-- `src/hooks/useCostCenters.ts`
-
----
-
-## المرحلة 3 — ربط سند القيد/القبض/الصرف
-
-`VoucherFormPage`:
-- حقل `CostCenterCombobox` رأس السند (يُمرَّر إلى الـ RPC عبر `p_cost_center_id`)
-- سند القيد متعدد السطور: عمود إضافي في الجدول لاختيار مركز التكلفة لكل سطر (يتجاوز الرأس)
-- Flag-gated مع `vouchers_use_rpc` (نفس آلية Phase 5C/5D/5E): عندما يكون OFF نمرّر `cost_center_id` مباشرة في الـ INSERT للـ legacy path أيضاً (آمن لأن العمود nullable).
-- لا تحقق إلزامي في هذه المرحلة (سنضيف `cost_center_rules` في مرحلة لاحقة).
-
----
-
-## ما لن نلمسه الآن
-
-- الفواتير ومردوداتها (مرحلة 4)
-- المخزون والرواتب والورش (مرحلة 7) — مع ملاحظة أن `workshops` لها حالياً نظام مستقل، الربط سيكون `workshops.cost_center_id` لاحقاً
-- التقارير الجديدة (مرحلة 6) — بعد التأكد من سلامة الترحيل والبيانات
-- قواعد الإلزام `cost_center_rules` (مرحلة 8)
-- `transaction_dimensions` كنظام أبعاد متعددة
-
----
-
-## ملخص ما سيتم في هذه الجلسة
-
-1. Migration (1.أ → 1.د) — طلب موافقتك قبل التنفيذ
-2. `CostCentersPage` + المكوّنات + الربط في `AccountingCenterPage`
-3. `CostCenterCombobox` داخل `VoucherFormPage` (رأس + سطر للقيد)
-
-هل أبدأ بالـ Migration؟
+## بعد التنفيذ
+- TypeScript check.
+- لن ألمس قاعدة البيانات ولا منطق القيود.
