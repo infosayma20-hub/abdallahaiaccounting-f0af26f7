@@ -3308,9 +3308,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* ═══ END MASTER GRID ═══ */}
       </div>
 
-      {/* ═══ Sticky Bottom Action Bar — full container width
-          Outside the grid so it spans 100% and centers properly. */}
-      {!isCancelled && (
+      {/* ═══ Sticky Bottom Action Bar — hidden for receipts (ActionPane owns this). */}
+      {!isReceipt && !isCancelled && (
         <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
           <div className="max-w-[1600px] mx-auto flex items-center gap-2 flex-wrap">
             {/* Ghost: Print */}
@@ -3339,7 +3338,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       )}
 
       {/* Cancelled — only show print, full width */}
-      {isCancelled && (
+      {!isReceipt && isCancelled && (
         <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 flex items-center justify-center">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-5 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
