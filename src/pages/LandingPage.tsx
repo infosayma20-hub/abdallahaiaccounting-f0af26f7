@@ -542,6 +542,73 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* How it Works — 4 steps */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">HOW IT WORKS</div>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">من التسجيل لأول فاتورة بـ <span className="text-[#3b82f6]">10 دقائق</span></h2>
+            <p className="text-[#0D1B2E]/60 font-bold">4 خطوات بسيطة وفريقنا الفلسطيني معك على طول الطريق</p>
+          </div>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { n: "01", t: "سجّل مجاناً", d: "أنشئ حسابك بأقل من دقيقة — بدون بطاقة ائتمان." },
+              { n: "02", t: "اختر قطاعك", d: "النظام يجهّز لك شجرة حسابات وإعدادات ضريبة فلسطينية جاهزة." },
+              { n: "03", t: "أضف بياناتك", d: "عملاء، موردين، منتجات — أو خلي فريقنا يرحّلهم لك مجاناً." },
+              { n: "04", t: "ابدأ بإصدار فواتيرك", d: "فواتير ضريبية معتمدة، POS شغّال، وحسيب AI جاهز يساعدك." },
+            ].map((s, i) => (
+              <div key={s.n} className="relative">
+                <div className="bg-[#fafbfc] border border-[#e8ecf1] rounded-3xl p-6 h-full hover:border-[#3b82f6]/40 hover:bg-white transition-all">
+                  <div className="font-latin font-black text-5xl text-[#3b82f6]/20 mb-4">{s.n}</div>
+                  <h3 className="text-xl font-black mb-2">{s.t}</h3>
+                  <p className="text-sm font-bold text-[#0D1B2E]/60 leading-relaxed">{s.d}</p>
+                </div>
+                {i < 3 && (
+                  <div className="hidden md:block absolute top-1/2 -left-3 w-6 h-px bg-[#3b82f6]/30" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Table */}
+      <section className="py-24 px-6 bg-[#fafbfc]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-black mb-4">ليش <span className="text-[#3b82f6]">أموالي</span> مش مثل الباقي؟</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">مقارنة شفافة مع البرامج المنتشرة في السوق</p>
+          </div>
+          <div className="bg-white border border-[#e8ecf1] rounded-3xl overflow-hidden shadow-lg">
+            <div className="grid grid-cols-4 bg-[#0D1B2E] text-white font-black text-sm">
+              <div className="p-4 md:p-6">الميزة</div>
+              <div className="p-4 md:p-6 text-center bg-[#3b82f6]">أموالي ERP</div>
+              <div className="p-4 md:p-6 text-center text-white/60">برامج محلية</div>
+              <div className="p-4 md:p-6 text-center text-white/60">برامج أجنبية</div>
+            </div>
+            {[
+              ["ضريبة فلسطينية 16% جاهزة", "yes", "partial", "no"],
+              ["دعم الشيكات الآجلة الفلسطينية", "yes", "partial", "no"],
+              ["محاسب AI باللهجة الفلسطينية", "yes", "no", "no"],
+              ["POS بدون إنترنت", "yes", "partial", "yes"],
+              ["دعم عربي 24/7 من فريق فلسطيني", "yes", "yes", "no"],
+              ["تكامل ZKTeco وطابعات حرارية", "yes", "partial", "partial"],
+              ["تحديثات مجانية مستمرة", "yes", "no", "yes"],
+              ["تطبيق جوال PWA", "yes", "no", "partial"],
+              ["+12 وحدة ERP متكاملة", "yes", "partial", "yes"],
+              ["سعر بالشيكل بدون تحويلات", "yes", "yes", "no"],
+            ].map(([label, a, b, c], i) => (
+              <div key={i} className={`grid grid-cols-4 text-sm font-bold ${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"}`}>
+                <div className="p-4 md:p-6 text-[#0D1B2E]">{label}</div>
+                <div className="p-4 md:p-6 text-center"><CompCell v={a as string} highlight /></div>
+                <div className="p-4 md:p-6 text-center"><CompCell v={b as string} /></div>
+                <div className="p-4 md:p-6 text-center"><CompCell v={c as string} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="py-24 px-6 bg-[#0D1B2E] text-white rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto">
