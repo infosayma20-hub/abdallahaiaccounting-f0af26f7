@@ -820,6 +820,43 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Video Demo */}
+      <section className="py-24 px-6 bg-[#fafbfc]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#3b82f6]/10 text-[#3b82f6] px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">DEMO</div>
+            <h2 className="text-3xl md:text-5xl font-black mb-4">شوف النظام بعيونك</h2>
+            <p className="text-[#0D1B2E]/60 font-bold">جولة 90 ثانية توريك كل وحدة من وحدات الـ ERP</p>
+          </div>
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-[#0D1B2E]/10 border border-[#e8ecf1] aspect-video bg-gradient-to-br from-[#0D1B2E] to-[#1e3a5f] flex items-center justify-center group cursor-pointer" onClick={() => setShowVideo(true)}>
+            {!showVideo && (
+              <>
+                <div className="absolute inset-0 bg-[#0D1B2E]/40 group-hover:bg-[#0D1B2E]/30 transition-all" />
+                <div className="relative z-10 text-center">
+                  <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <Play className="w-8 h-8 text-white fill-white" />
+                  </div>
+                  <p className="text-white font-black text-lg">شغّل الفيديو التوضيحي</p>
+                  <p className="text-white/60 text-sm font-bold mt-2">90 ثانية · بدون تسجيل</p>
+                </div>
+              </>
+            )}
+            {showVideo && (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-white p-8">
+                  <Sparkles className="w-12 h-12 text-[#3b82f6] mx-auto mb-4" />
+                  <p className="font-black text-xl mb-2">الفيديو التوضيحي قريباً</p>
+                  <p className="text-white/60 font-bold">فريقنا الفلسطيني يجهزلك جولة كاملة بالعربي</p>
+                  <button onClick={(e) => { e.stopPropagation(); setShowVideo(false); }} className="mt-6 bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-xl font-black transition-all">
+                    إغلاق
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="py-24 px-6 bg-[#0D1B2E] text-white rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto">
