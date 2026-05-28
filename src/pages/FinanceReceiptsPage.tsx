@@ -404,14 +404,17 @@ export default function FinanceReceiptsPage() {
       onFiltersChange={setShellFilters}
       storageKey="finance-receipts-page"
       rightSlot={
-        <div className="relative">
-          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث سريع..."
-            className="h-8 w-56 pr-8 text-xs"
-          />
+        <div className="flex items-center gap-1.5">
+          <div className="relative">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="بحث سريع..."
+              className="h-8 w-56 pr-8 text-xs"
+            />
+          </div>
+          <ColumnVisibilityMenu state={colState} />
         </div>
       }
     >
