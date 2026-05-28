@@ -520,18 +520,25 @@ const AccountsPage = () => {
       <div className="h-[calc(100dvh-3.5rem)] bg-background" dir="rtl">
         <FinanceShell
           title="شجرة الحسابات"
-          subtitle="الدليل المحاسبي الموحّد — Asset / Liability / Equity / Revenue / Expense"
-          breadcrumb={[{ label: "المحاسبة", href: "/accounting-center" }, { label: "شجرة الحسابات" }]}
+          subtitle="إدارة الحسابات الرئيسية والفرعية"
+          breadcrumb={[{ label: "المالية", href: "/accounting-center" }, { label: "شجرة الحسابات" }]}
           actionTabs={actionTabs}
           filterFields={filterFields}
           filters={shellFilters}
           onFiltersChange={setShellFilters}
-          storageKey="accounts-page"
+          storageKey="finance-accounts-page"
         >
-          <div className="space-y-4 max-w-[1600px] mx-auto">
+          <div data-print-area className="space-y-4 max-w-[1600px] mx-auto">
+        {/* Print-only header */}
+        <div className="hidden print:block mb-4 border-b pb-2">
+          <h1 className="text-lg font-bold">{profileData?.company_name || profileData?.display_name || "الشركة"}</h1>
+          <p className="text-sm">شجرة الحسابات</p>
+          <p className="text-xs">تاريخ الطباعة: {new Date().toLocaleDateString("en-GB")}</p>
+        </div>
+
         {/* Summary Cards */}
         {!loading && accounts.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 no-print print:hidden">
             {typeOrder.filter(t => typeCounts[t]).map(t => (
               <div key={t} className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border px-3 py-2.5 text-center">
                 <p className="text-[10px] text-[hsl(210,10%,42%)] dark:text-muted-foreground font-medium">{typeLabels[t]}</p>
