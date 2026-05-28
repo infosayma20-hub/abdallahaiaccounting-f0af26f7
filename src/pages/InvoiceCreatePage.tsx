@@ -1049,7 +1049,7 @@ const InvoiceCreatePage = () => {
     if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
-    setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+    setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" });
     clearProductDraft();
     // Refresh products
     const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
@@ -2938,7 +2938,7 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-3">
-            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 }); setShowQuickAdd(false); }}>إلغاء</Button>
+            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" }); setShowQuickAdd(false); }}>إلغاء</Button>
             <Button onClick={handleQuickAddProduct}>إضافة المنتج</Button>
           </div>
         </DialogContent>
