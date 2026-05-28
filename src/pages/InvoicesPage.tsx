@@ -1152,9 +1152,50 @@ const InvoicesPage = () => {
   const paidTotal = invoices.reduce((s, i) => s + i.paidAmount, 0);
   const unpaidTotal = invoices.reduce((s, i) => s + i.remainingAmount, 0);
 
+  const pageTitle = filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير";
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home",
+      label: "الرئيسية",
+      groups: [
+        {
+          key: "new",
+          label: "جديد",
+          items: [
+            {
+              key: "new-invoice",
+              label: "فاتورة جديدة",
+              icon: Plus,
+              variant: "primary",
+              onClick: () => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`),
+              shortcut: "Alt+N",
+            },
+          ],
+        },
+        {
+          key: "actions",
+          label: "إجراءات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchInvoices() },
+            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: sorted.length === 0 },
+            { key: "finance-home", label: "مركز المالية", icon: Home, onClick: () => navigate("/finance") },
+          ],
+        },
+      ],
+    },
+  ];
+
   return (
-    <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
-      <PageHeader title={filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير"} breadcrumb={[filterType === "purchase" ? "المشتريات" : "المبيعات", "الفواتير"]} />
+    <FinanceShell
+      title={pageTitle}
+      breadcrumb={[
+        { label: "المالية", href: "/finance" },
+        { label: filterType === "purchase" ? "المشتريات" : "المبيعات" },
+        { label: "الفواتير" },
+      ]}
+      actionTabs={actionTabs}
+    >
+    <div className="space-y-5" dir="rtl">
       {/* Actions */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
@@ -1714,6 +1755,7 @@ const InvoicesPage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </FinanceShell>
   );
 };
 
