@@ -137,8 +137,8 @@ const JournalNewPage = () => {
   // ─── Auto-Draft (سند القيد) ───
   const journalDraftSnapshot = useMemo(() => ({
     formDate, formRefNumber, formSubtype, formDescription, formNotes,
-    formContactId, lines, attachments, lineSortOrder,
-  }), [formDate, formRefNumber, formSubtype, formDescription, formNotes, formContactId, lines, attachments, lineSortOrder]);
+    formContactId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate,
+  }), [formDate, formRefNumber, formSubtype, formDescription, formNotes, formContactId, lines, attachments, lineSortOrder, formCurrency, formExchangeRate]);
 
   const applyJournalDraft = useCallback((d: any) => {
     if (d.formDate) setFormDate(d.formDate);
@@ -150,6 +150,8 @@ const JournalNewPage = () => {
     if (Array.isArray(d.lines) && d.lines.length >= 2) setLines(d.lines);
     if (Array.isArray(d.attachments)) setAttachments(d.attachments);
     if (d.lineSortOrder) setLineSortOrder(d.lineSortOrder);
+    if (d.formCurrency) setFormCurrency(d.formCurrency);
+    if (d.formExchangeRate) setFormExchangeRate(Number(d.formExchangeRate));
     toast.success("تم استعادة المسودة");
   }, []);
 
