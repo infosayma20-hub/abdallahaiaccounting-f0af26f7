@@ -161,6 +161,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [searchParams] = useSearchParams();
   const { id: editId } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = (dataOwnerId ?? user?.id) as string;
   const { company } = useCompany();
   const { settings } = useCompanySettings();
 
