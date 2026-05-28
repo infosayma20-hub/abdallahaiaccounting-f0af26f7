@@ -102,11 +102,15 @@ const AuthPage = () => {
     setLoading(true);
     try {
       if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+        const { error } = await supabase.from("password_reset_requests").insert({
+          email: email.trim().toLowerCase(),
+          reason: "طلب نسيت كلمة المرور من صفحة تسجيل الدخول",
         });
         if (error) throw error;
-        toast({ title: "تم الإرسال", description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور" });
+        toast({
+          title: "تم إرسال طلبك ✅",
+          description: "تم إرسال طلب استعادة كلمة المرور إلى الإدارة، سيتم التواصل معك قريباً.",
+        });
         setMode("login");
       } else if (mode === "signup") {
         if (password.length < 6) {
