@@ -109,6 +109,8 @@ const typeDisplayMap: Record<string, string> = {
   "asset_purchase": "شراء أصل",
   "depreciation": "إهلاك",
   "asset_disposal": "استبعاد أصل",
+  "reversal": "قيد عكسي",
+  "reverse": "قيد عكسي",
   "سند صرف": "سند صرف",
   "سند قبض": "سند قبض",
   "قيد يومية": "سند صرف",
