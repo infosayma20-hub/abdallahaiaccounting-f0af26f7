@@ -60,9 +60,15 @@ test.describe("Receipt — FinanceShell smoke (Phase 1)", () => {
       await expect(page.locator(`[data-testid="${tid}"]`), `missing ${tid}`).toBeVisible();
     }
 
-    // Cost center + currency testids
-    await expect(page.locator('[data-testid="receipt-cost-center"]')).toBeVisible();
+    // Dimensions section is collapsed by default; toggle is visible,
+    // cost-center field is attached but hidden until expanded.
+    await expect(page.locator('[data-testid="receipt-dimensions-toggle"]')).toBeVisible();
+    await expect(page.locator('[data-testid="receipt-cost-center"]')).toBeAttached();
     await expect(page.locator('[data-testid="receipt-currency"]')).toBeVisible();
+
+    // Expand and confirm cost-center becomes visible.
+    await page.locator('[data-testid="receipt-dimensions-toggle"]').click();
+    await expect(page.locator('[data-testid="receipt-cost-center"]')).toBeVisible();
 
     // Voucher number field is always visible (read-only)
     await expect(page.locator('[data-testid="receipt-voucher-number"]')).toBeVisible();
