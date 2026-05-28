@@ -28,6 +28,7 @@ const POSDeviceAuthGuard = lazy(() => import("./components/pos/POSDeviceAuthGuar
 
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const SmartAccountantPage = lazy(() => import("./pages/SmartAccountantPage"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
 const VoiceInput = lazy(() => import("./pages/VoiceInput"));
@@ -303,8 +304,10 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const SmartRedirect = () => {
-  const { targetPath, checking } = useRoleRedirect();
+  const { targetPath, checking, user } = useRoleRedirect();
   if (checking) return <AuthCheckSpinner />;
+  // Logged-out visitors → public marketing landing page.
+  if (!user) return <LandingPage />;
   return <Navigate to={targetPath || "/apps"} replace />;
 };
 
