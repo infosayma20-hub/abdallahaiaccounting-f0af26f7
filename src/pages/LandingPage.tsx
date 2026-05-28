@@ -57,11 +57,15 @@ const LandingPage = () => {
       <nav className="fixed top-0 w-full z-50 glass-nav bg-white/70 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <div className="text-2xl font-black text-[#0D1B2E] tracking-tight">أموالي</div>
+            <div className="flex items-center gap-2">
+              <div className="text-2xl font-black text-[#0D1B2E] tracking-tight">أموالي</div>
+              <span className="hidden sm:inline-flex items-center gap-1 bg-[#0D1B2E] text-white text-[9px] font-black px-2 py-1 rounded font-latin tracking-wider">ERP · PALESTINE</span>
+            </div>
             <div className="hidden md:flex items-center gap-6 font-bold text-sm text-[#0D1B2E]/70">
+              <a href="#modules" className="hover:text-[#3b82f6] transition-colors">وحدات النظام</a>
               <a href="#features" className="hover:text-[#3b82f6] transition-colors">الميزات</a>
               <a href="#pricing" className="hover:text-[#3b82f6] transition-colors">الأسعار</a>
-              <a href="#features" className="hover:text-[#3b82f6] transition-colors flex items-center gap-1">
+              <a href="#ai" className="hover:text-[#3b82f6] transition-colors flex items-center gap-1">
                 حسيب AI
                 <span className="bg-[#3b82f6]/10 text-[#3b82f6] text-[10px] px-1.5 py-0.5 rounded font-latin">NEW</span>
               </a>
@@ -85,13 +89,14 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 bg-[#e8ecf1] border border-[#d1d7e0] px-3 py-1.5 rounded-full text-xs font-bold mb-8">
             <span className="flex h-2 w-2 rounded-full bg-green-500" />
-            النظام الأول المتوافق مع ضريبة القيمة المضافة 16% في فلسطين
+            أول نظام <span className="font-latin font-black">ERP</span> فلسطيني متوافق مع ضريبة القيمة المضافة 16%
           </div>
-          <h1 className="text-5xl md:text-7xl font-black leading-[1.15] mb-6 max-w-4xl mx-auto text-[#0D1B2E]">
-            إدارة أعمالك صارت أبسط — <span className="text-[#3b82f6]">وأذكى</span>
+          <h1 className="text-5xl md:text-7xl font-black leading-[1.15] mb-6 max-w-5xl mx-auto text-[#0D1B2E]">
+            نظام <span className="text-[#3b82f6] font-latin">ERP</span> فلسطيني <br className="hidden md:block" />
+            يدير شركتك من الألف إلى الياء
           </h1>
-          <p className="text-lg md:text-xl text-[#0D1B2E]/60 mb-10 max-w-2xl mx-auto font-medium">
-            المنصة الشاملة للمحاسبة ونقاط البيع وإدارة الموظفين، مدعومة بالذكاء الاصطناعي لنمو أسرع في السوق الفلسطيني.
+          <p className="text-lg md:text-xl text-[#0D1B2E]/60 mb-10 max-w-3xl mx-auto font-medium leading-relaxed">
+            منصة <span className="font-latin font-bold">ERP</span> متكاملة بنيناها في فلسطين، لأصحاب الأعمال الفلسطينيين: محاسبة، نقاط بيع، مخازن، موارد بشرية، شيكات، تقارير، ومحاسب ذكاء اصطناعي بيفهم لهجتك الفلسطينية. كل شي بنظام واحد.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
             <Link
@@ -101,19 +106,46 @@ const LandingPage = () => {
               ابدأ مجاناً 14 يوم
             </Link>
             <a
-              href="#features"
+              href="#modules"
               className="w-full sm:w-auto border-2 border-[#e8ecf1] text-[#0D1B2E] px-8 py-4 rounded-2xl text-lg font-black hover:bg-white transition-all"
             >
-              شاهد الميزات
+              استكشف وحدات النظام
             </a>
           </div>
 
+          {/* Hero Image */}
+          <div className="relative mb-20 rounded-3xl overflow-hidden shadow-2xl shadow-[#0D1B2E]/10 border border-[#e8ecf1]">
+            <img
+              src={heroImg}
+              alt="لوحة تحكم نظام ERP أموالي الفلسطيني"
+              width={1600}
+              height={1024}
+              className="w-full h-auto"
+            />
+          </div>
+
+          {/* Stats Strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            {[
+              { n: "+500", l: "شركة فلسطينية" },
+              { n: "+12", l: "وحدة ERP متكاملة" },
+              { n: "VAT 16%", l: "ضريبة فلسطينية" },
+              { n: "24/7", l: "دعم عربي" },
+            ].map((s) => (
+              <div key={s.l} className="bg-white border border-[#e8ecf1] rounded-2xl p-6">
+                <div className="text-3xl font-black text-[#3b82f6] font-latin mb-1">{s.n}</div>
+                <div className="text-sm font-bold text-[#0D1B2E]/60">{s.l}</div>
+              </div>
+            ))}
+          </div>
+
           {/* Trust Strip */}
-          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-70 border-y border-[#e8ecf1] py-8">
-            <div className="font-bold">+500 شركة موثوقة</div>
-            <div className="font-bold"><span className="font-latin">VAT 16%</span> فلسطيني</div>
-            <div className="font-bold">دعم فني عربي 24/7</div>
-            <div className="font-bold">تخزين سحابي آمن</div>
+          <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-4 opacity-80 border-y border-[#e8ecf1] py-6 text-sm">
+            <div className="font-bold">🇵🇸 صُمّم في فلسطين</div>
+            <div className="font-bold">متوافق مع وزارة المالية</div>
+            <div className="font-bold">عملة الشيكل ₪ افتراضية</div>
+            <div className="font-bold">يعمل بدون إنترنت (POS)</div>
+            <div className="font-bold">تخزين سحابي مشفّر</div>
           </div>
         </div>
       </section>
