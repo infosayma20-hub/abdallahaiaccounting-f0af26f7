@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Trash2, FileSpreadsheet, Lock, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown, FileText, Network, Settings2 } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Trash2, FileSpreadsheet, Lock, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown, FileText, Network, Settings2, Printer, Calculator } from "lucide-react";
 import { MoveAccountModal } from "@/components/accounting/MoveAccountModal";
 import { ImportAccountsModal } from "@/components/accounting/ImportAccountsModal";
 import { exportAccountsToExcel } from "@/lib/accountsExport";
@@ -187,6 +187,7 @@ const AccountsPage = () => {
   const [moveModalAccount, setMoveModalAccount] = useState<Account | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [profileData, setProfileData] = useState<{ company_name?: string | null; display_name?: string | null } | null>(null);
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -243,6 +244,16 @@ const AccountsPage = () => {
       }
     };
     init();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("company_name, display_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setProfileData(data as any));
   }, [user]);
 
   const handleDeleteAccount = useCallback(async (acc: Account) => {
@@ -451,14 +462,16 @@ const AccountsPage = () => {
           items: [
             { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchAccounts, disabled: loading },
             { key: "expand", label: expanded.size > 0 ? "ضم الكل" : "توسيع الكل", icon: expanded.size > 0 ? ChevronsDownUp : ChevronsUpDown, onClick: () => (expanded.size > 0 ? collapseAll() : expandAll()) },
+            { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
           ],
         },
         {
           key: "transfer",
-          label: "ترحيل",
+          label: "طباعة وتصدير",
           items: [
+            { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: loading || accounts.length === 0 },
             { key: "import", label: "استيراد", icon: Upload, onClick: () => setShowImportModal(true) },
-            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: () => exportAccountsToExcel(accounts) },
+            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: () => exportAccountsToExcel(accounts), disabled: accounts.length === 0 },
           ],
         },
       ],
@@ -507,18 +520,25 @@ const AccountsPage = () => {
       <div className="h-[calc(100dvh-3.5rem)] bg-background" dir="rtl">
         <FinanceShell
           title="شجرة الحسابات"
-          subtitle="الدليل المحاسبي الموحّد — Asset / Liability / Equity / Revenue / Expense"
-          breadcrumb={[{ label: "المحاسبة", href: "/accounting-center" }, { label: "شجرة الحسابات" }]}
+          subtitle="إدارة الحسابات الرئيسية والفرعية"
+          breadcrumb={[{ label: "المالية", href: "/accounting-center" }, { label: "شجرة الحسابات" }]}
           actionTabs={actionTabs}
           filterFields={filterFields}
           filters={shellFilters}
           onFiltersChange={setShellFilters}
-          storageKey="accounts-page"
+          storageKey="finance-accounts-page"
         >
-          <div className="space-y-4 max-w-[1600px] mx-auto">
+          <div data-print-area className="space-y-4 max-w-[1600px] mx-auto">
+        {/* Print-only header */}
+        <div className="hidden print:block mb-4 border-b pb-2">
+          <h1 className="text-lg font-bold">{profileData?.company_name || profileData?.display_name || "الشركة"}</h1>
+          <p className="text-sm">شجرة الحسابات</p>
+          <p className="text-xs">تاريخ الطباعة: {new Date().toLocaleDateString("en-GB")}</p>
+        </div>
+
         {/* Summary Cards */}
         {!loading && accounts.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 no-print print:hidden">
             {typeOrder.filter(t => typeCounts[t]).map(t => (
               <div key={t} className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border px-3 py-2.5 text-center">
                 <p className="text-[10px] text-[hsl(210,10%,42%)] dark:text-muted-foreground font-medium">{typeLabels[t]}</p>
@@ -530,7 +550,7 @@ const AccountsPage = () => {
 
         {/* Filter Tabs + Search */}
         {!loading && accounts.length > 0 && (
-          <div className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border">
+          <div className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border no-print print:hidden">
             <div className="flex items-center border-b border-[hsl(210,14%,89%)] dark:border-border overflow-x-auto">
               {filterTabs.map(tab => (
                 <button
@@ -740,7 +760,7 @@ const AccountsPage = () => {
 
                     {/* Row Actions */}
                     {!isVirtualTypeHeader && (
-                      <div className="hidden sm:flex items-center justify-end gap-0.5 pe-1" onClick={(e) => e.stopPropagation()}>
+                      <div className="hidden sm:flex items-center justify-end gap-0.5 pe-1 print:hidden no-print" onClick={(e) => e.stopPropagation()}>
                         {isProtected && (
                           <Tooltip>
                             <TooltipTrigger asChild>
