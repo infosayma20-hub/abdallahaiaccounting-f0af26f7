@@ -29,6 +29,10 @@ const POSDeviceAuthGuard = lazy(() => import("./components/pos/POSDeviceAuthGuar
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
+const BlogIndexPage = lazy(() => import("./pages/marketing/BlogIndexPage"));
+const BlogPostPage = lazy(() => import("./pages/marketing/BlogPostPage"));
+const ReferralPage = lazy(() => import("./pages/ReferralPage"));
 const SmartAccountantPage = lazy(() => import("./pages/SmartAccountantPage"));
 const MenuPage = lazy(() => import("./pages/MenuPage"));
 const VoiceInput = lazy(() => import("./pages/VoiceInput"));
@@ -333,6 +337,9 @@ const App = () => (
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/blog" element={<BlogIndexPage />} />
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/share" element={<ShareQRPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
