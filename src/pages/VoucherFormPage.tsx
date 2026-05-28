@@ -2421,7 +2421,80 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error(err.message || "فشل إلغاء السند");
     }
   };
-  return (
+
+  // ─── Prev/Next navigation between receipts (Phase 1) ───
+  const goToAdjacentReceipt = async (direction: "prev" | "next") => {
+    if (!isReceipt || !ownerId) return;
+    try {
+      let q = supabase
+        .from("receipt_vouchers")
+        .select("id, receipt_number, created_at")
+        .eq("user_id", ownerId);
+      if (editId && (window as any).__voucherCreatedAt) {
+        const cursor = (window as any).__voucherCreatedAt as string;
+        if (direction === "prev") {
+          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
+        } else {
+          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
+        }
+      } else {
+        q = q.order("created_at", { ascending: direction !== "prev" });
+      }
+      const { data, error } = await q.limit(1);
+      if (error) throw error;
+      const target = (data || [])[0];
+      if (!target) {
+        toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
+        return;
+      }
+      navigate(`/finance/receipt/${target.id}/edit`);
+    } catch (err: any) {
+      toast.error(err.message || "تعذر التنقل بين السندات");
+    }
+  };
+
+  // ─── Action Pane tabs (FinanceShell) — receipt only in Phase 1 ───
+  const receiptActionTabs: ActionTab[] = useMemo(() => {
+    if (!isReceipt) return [];
+    const inEdit = isEditMode;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary" as const,
+          onClick: () => navigate("/finance/receipt/new") },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy, onClick: handleNewSimilar }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: () => handleSave(false), disabled: isReadOnly || saving || isCancelled,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
+          { key: "delete", label: "إلغاء السند", icon: Trash2,
+            onClick: () => setShowCancelModal(true), disabled: saving || isCancelled },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ مسودة", icon: Save,
+            onClick: () => handleSave(true), disabled: saving },
+          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleSave(false), disabled: saving },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: handlePrint },
+      { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentReceipt("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentReceipt("next") },
+      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/finance/receipts") },
+      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+  }, [isReceipt, isEditMode, isReadOnly, saving, isCancelled, editId]);
+
+  const formBody = (
     <SmartFormScope
       className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-8"
       firstFieldSelector="[data-smart-first]"
