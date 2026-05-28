@@ -204,6 +204,11 @@ const FIELD_LABELS: Record<string, string> = {
   salary: "الراتب",
   calculated_loan_limit: "سقف القرض المحسوب",
   months_of_service: "أشهر الخدمة",
+  malaky_start_date: "تاريخ البداية في الملكي",
+  whatsapp_prefix: "مقدمة الواتساب",
+  whatsapp_local: "رقم الواتساب (محلي)",
+  annual_leave_remaining_claimed: "رصيد الإجازات السنوية المتبقي (حسب الموظف)",
+  sick_days_taken_claimed: "الإجازات المرضية المأخوذة (حسب الموظف)",
 };
 
 const ROUTING_KEYS = new Set(["branch", "branch_id", "branch_name", "department", "department_id", "department_name", "shift", "shift_id", "shift_name"]);
