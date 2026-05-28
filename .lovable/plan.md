@@ -1,41 +1,62 @@
+# خطة الإصلاحات الأربعة
 
-## الهدف
-عند التنقل بين سندات القيد من شاشة "سند قيد جديد"، نريد أن يُستحضر السند بنفس الشاشة (وليس بوب اب)، مع منع التعديل افتراضياً، وأزرار واضحة في الشريط العلوي: **تعديل، حفظ التعديلات، حذف، إنشاء مشابه، السابق، التالي**. ربط كامل مع `useSaveJournalVoucher` (الحفظ/التحديث/الحذف الموحّد).
+## 1) إزالة النصوص الإنجليزية من واجهة الفلاتر
+**المشكلة:** في popover "إضافة فلتر" تظهر كلمات `date`, `option`, `text`, `number` خام بجانب اسم الحقل.
+**الملف:** `src/components/finance/shell/FiltersPanel.tsx` (سطر 155)
+**الإصلاح:** خريطة `TYPE_LABELS_AR` → `date: تاريخ`, `option: قائمة`, `text: نص`, `number: رقم`. وإخفاء الـ badge أساساً إذا كان مكرراً مع label.
 
-## التغييرات
+## 2) تعديل سند القبض = Update فعلي (نفس الرقم)
+**التشخيص:** كود `handleSave` في edit mode (سطر 1320–1393) فعلياً يعمل update صحيح + Delete & Recreate transaction (مطابق لـ Accounting Integrity Policy). **السلوك المرئي للمستخدم** هو نتيجة:
+- `handleCancelVoucher` (سطر 2443) المرتبط بزر "إلغاء/حذف" في ActionPane يحدّث status=cancelled.
+- على الأرجح المستخدم ضغط حذف بدل حفظ، أو الصفحة فتحت read-only (isReadOnly default = true في FinanceShell) ولم ينتبه أن "تحديث السند" مطلوب صراحة.
 
-### 1) `src/pages/JournalNewPage.tsx` — استحضار سند موجود
-- قراءة `?edit=<voucherId>` من `useSearchParams`.
-- إضافة state: `editingVoucherId`, `isReadOnly` (افتراضياً `true` عند الفتح بسند موجود).
-- `useEffect` يجلب `vouchers` + `voucher_lines` للسند المحدد ويملأ كل الحقول (التاريخ، رقم السند، النوع الفرعي، جهة الاتصال، مركز التكلفة، العملة، سعر الصرف، الوصف، الملاحظات، السطور، المرفقات).
-- تعطيل جميع inputs/selects/buttons داخل الجدول عند `isReadOnly` (إضافة سطر، حذف سطر، تغيير الحساب، إلخ).
-- عند فتح سند موجود: إيقاف `useFormDraft` (لا نريد سحب مسودة قيد جديد فوق سند محمّل).
+**الإصلاح:**
+- التأكد أن action **"تحديث السند"** في ActionPane (وزر primary بداخل الـ form) يستدعي `handleSave(false)` ويُحدث الصف **بدون** تغيير `receipt_number`.
+- إضافة toast واضح بعد التحديث: `"تم تحديث السند REC-XXXX (5,000 → 10,000.4) ✓"`.
+- بعد التحديث، invalidate React Query + استدعاء `broadcastChange("receipt_voucher", "updated", id)` (موجود) — والتأكد أن `FinanceReceiptsPage` يستمع للـ broadcast ويعيد fetch تلقائياً (حالياً يحتاج refresh يدوي).
+- زر "حذف/إلغاء" في ActionPane أوضح بصرياً (variant=destructive) ليفرق عن "حفظ".
 
-### 2) الشريط العلوي (Action Tabs)
-- **في وضع "قيد جديد" (لا يوجد `edit`)**: نفس الأزرار الحالية (حفظ، حفظ وترحيل، معاينة، طباعة، السابق، التالي، استعلام).
-- **في وضع استحضار سند**:
-  - `تعديل` — يفعّل `isReadOnly=false` (يصبح كل الجدول قابلاً للتعديل).
-  - `حفظ التعديلات` — معطّل حتى يضغط تعديل؛ يستدعي `useSaveJournalVoucher().update(editingVoucherId, ...)` ثم يبقى في الشاشة بنفس السند.
-  - `حذف` — يستدعي `useSaveJournalVoucher().remove(editingVoucherId)` بعد تأكيد، ثم يرجع لـ `/finance/journal/new` فاضي.
-  - `إنشاء مشابه` — يمسح `editingVoucherId`، يولّد رقم سند جديد، يفرغ التاريخ لـ اليوم، يفك القفل (`isReadOnly=false`)، ويبقي بقية الحقول والسطور كما هي للحفظ كسند جديد.
-  - `السابق`/`التالي` يعملان دائماً، ويُحدثان `?edit=` بنفس الشاشة.
-  - معاينة/طباعة/استعلام تبقى متاحة.
+## 3) خيارات إخفاء الأعمدة في قوائم القبض/الصرف/الفواتير
+**التصميم:** مكوّن جديد `ColumnVisibilityMenu` يضاف بجانب زر الفلاتر:
+- يخزّن `Record<columnKey, boolean>` في `localStorage` تحت `cols-${storageKey}`.
+- يعرض dropdown بجميع الأعمدة، Checkbox لكل واحد + "إظهار الكل / إخفاء الكل".
+- الأعمدة الإلزامية (رقم السند، المبلغ، الإجراءات) غير قابلة للإخفاء.
 
-### 3) إصلاح منطق Prev/Next الفعلي
-حالياً `goToAdjacentVoucher` يجلب أحدث سند دائماً (نفس النتيجة للاتجاهين). نستبدله بـ:
-- إذا لا يوجد سند مفتوح: `prev` = آخر سند، `next` = أول سند.
-- إذا في وضع تحرير: استخدام `created_at` للسند الحالي كـ cursor مع `lt`/`gt` حسب الاتجاه و`order` مناسب، ثم `navigate("/finance/journal/new?edit=" + target.id)`.
+**التطبيق:**
+- `src/components/finance/shell/ColumnVisibilityMenu.tsx` (جديد) + `useColumnVisibility(storageKey, defaults)` hook.
+- تمريره عبر `FinanceShell` كـ `columnsMenu?: ReactNode` أو slot في الـ toolbar.
+- استخدامه في: `FinanceReceiptsPage`, `FinanceVoucherPage` (سند الصرف), وصفحة الفواتير الرئيسية. الأعمدة الافتراضية المخفية: لا شيء؛ المستخدم يخفي يدوياً.
 
-### 4) ربط الحذف والتحديث
-- استخراج `update` و`remove` من `useSaveJournalVoucher()` (موجودان أصلاً في الـ hook).
-- `handleUpdate` يجمع نفس الـ payload الحالي ويستدعي `update(editingVoucherId, payload)`.
-- `handleDelete` يفتح `confirm` ثم ينادي `remove(editingVoucherId)`.
+## 4) طباعة بنمط كشف الحساب (بدون about:blank)
+**المشكلة الحالية:** `handlePrint = () => window.print()` يستخدم متصفح المعاينة → header/footer متصفح + URL في الذيل.
+**الحل:**
+- إنشاء component مشترك `PrintableSheet` بنفس تنسيق `AccountStatementPrint` (المرفق): header شركة + متاديتا + جدول نظيف + footer توقيع.
+- زرّ الطباعة يفتح نافذة جديدة (`window.open('', '_blank')`) ويحقن HTML مستقل (بدون chrome) + CSS مطبعي + `@page { margin: 12mm; size: A4 }` ثم `window.print()` تلقائياً.
+- يدعم وضعين:
+  - **قائمة** (للقوائم الثلاث): جدول جميع الصفوف المفلترة + مجموع.
+  - **سند فردي** (من داخل VoucherFormPage): قالب سند احترافي (شركة، تاريخ، رقم، الجهة، المبلغ بالحروف، توقيعات).
+- إخفاء عناوين/تذييلات المتصفح يتم من إعدادات المتصفح، لكن نزيل URL/title بضبط `document.title = ''` مؤقتاً قبل الطباعة ضمن النافذة الجديدة.
+- ملف جديد: `src/lib/print/openPrintWindow.ts` + `src/components/print/VoucherPrintTemplate.tsx` + `src/components/print/VoucherListPrintTemplate.tsx`.
 
-### 5) عرض بصري لوضع القراءة
-- شريط بسيط أعلى الكارد الأول (مثل بانر) يقول: **"وضع العرض — اضغط 'تعديل' للتعديل"** عند `isReadOnly && editingVoucherId`.
-- لون مختلف للـ Card border (border-primary/30) لتمييز السند المستحضر عن السند الجديد.
+## ملفات ستُعدّل/تُنشأ
+**جديد:**
+- `src/components/finance/shell/ColumnVisibilityMenu.tsx`
+- `src/components/finance/shell/useColumnVisibility.ts`
+- `src/lib/print/openPrintWindow.ts`
+- `src/components/print/VoucherListPrintTemplate.tsx`
+- `src/components/print/VoucherPrintTemplate.tsx`
 
-## ملاحظات
-- لا تغييرات على schema أو DB — كل العمليات تمر عبر `useSaveJournalVoucher` الموحّد.
-- البوب اب القديم (`JournalEntryPopup` عبر `/finance/journals?edit=...`) يبقى كما هو — فقط أزرار الـ Prev/Next والاستعلام داخل صفحة سند القيد ستوجّه لـ `/finance/journal/new?edit=...` بدل البوب اب.
-- لن نلمس عمليات الـ keyboard shortcuts إلا لتعطيل الحفظ التلقائي في وضع القراءة.
+**معدّل:**
+- `src/components/finance/shell/FiltersPanel.tsx` (ترجمة type badges)
+- `src/components/finance/shell/FinanceShell.tsx` (slot للـ ColumnVisibilityMenu)
+- `src/pages/FinanceReceiptsPage.tsx` (column visibility + استبدال handlePrint + listener للـ broadcast)
+- `src/pages/FinanceVoucherPage.tsx` (نفس الـ 3)
+- صفحة الفواتير الرئيسية (سأحدد اسمها أثناء التنفيذ)
+- `src/pages/VoucherFormPage.tsx` (طباعة سند فردي عبر النموذج الجديد + توضيح زر التحديث)
+
+## خارج النطاق
+- لن أعدل schema/migrations.
+- لن أغير منطق RPC أو journal posting.
+- التفضيلات في `localStorage` فقط (لا DB sync) حسب جوابك.
+
+هل أبدأ التنفيذ؟
