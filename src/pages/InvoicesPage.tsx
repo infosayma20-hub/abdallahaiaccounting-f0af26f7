@@ -1395,15 +1395,16 @@ const InvoicesPage = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="text-right"><SortHeader label="التاريخ" field="date" /></TableHead>
-                  <TableHead className="text-right"><SortHeader label="العميل/المورد" field="contact" /></TableHead>
-                  <TableHead className="text-right">الرقم</TableHead>
-                  <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>
-                  <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>
-                  <TableHead className="text-right">الدفع</TableHead>
-                  <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>
-                  <TableHead className="text-right">المتبقي</TableHead>
-                  <TableHead className="text-right">أفعال</TableHead>
+                  {show("date") && <TableHead className="text-right"><SortHeader label="التاريخ" field="date" /></TableHead>}
+                  {show("contact") && <TableHead className="text-right"><SortHeader label="العميل/المورد" field="contact" /></TableHead>}
+                  {show("invoiceNumber") && <TableHead className="text-right">الرقم</TableHead>}
+                  {show("type") && <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>}
+                  {show("status") && <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>}
+                  {show("paymentMethod") && <TableHead className="text-right">الدفع</TableHead>}
+                  {show("notes") && <TableHead className="text-right">الملاحظات</TableHead>}
+                  {show("total") && <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>}
+                  {show("remaining") && <TableHead className="text-right">المتبقي</TableHead>}
+                  {show("actions") && <TableHead className="text-right">أفعال</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
