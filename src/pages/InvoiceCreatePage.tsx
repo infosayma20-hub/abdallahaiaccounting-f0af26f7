@@ -777,6 +777,7 @@ const InvoiceCreatePage = () => {
         }));
 
         if (data.invoice_number) setNextInvoiceNumber(data.invoice_number);
+        if ((data as any).created_at) (window as any).__invoiceCreatedAt = (data as any).created_at;
 
         // Load attachments and terms from edit data
         if (data.attachments) {
