@@ -3367,6 +3367,39 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       />
     </SmartFormScope>
   );
+
+  if (isReceipt) {
+    return (
+      <FinanceShell
+        title={pageTitle}
+        subtitle={pageDesc}
+        breadcrumb={[
+          { label: "المالية", href: "/accounting-center" },
+          { label: "سندات القبض", href: "/finance/receipts" },
+          { label: pageTitle },
+        ]}
+        actionTabs={receiptActionTabs}
+      >
+        {isEditMode && (
+          <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`} data-testid="receipt-view-banner">
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              <span>
+                {isReadOnly
+                  ? `وضع العرض — السند ${refNumber}. اضغط "تعديل" للتعديل أو "إنشاء مشابه" لنسخه.`
+                  : `وضع التعديل — السند ${refNumber}. اضغط "حفظ التعديلات" لحفظ التغييرات.`}
+              </span>
+            </div>
+          </div>
+        )}
+        <fieldset disabled={isEditMode && isReadOnly} className="contents min-w-0">
+          {formBody}
+        </fieldset>
+      </FinanceShell>
+    );
+  }
+
+  return formBody;
 };
 
 export default VoucherFormPage;
