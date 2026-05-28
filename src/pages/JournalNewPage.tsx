@@ -33,6 +33,7 @@ import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
+import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 
 interface JournalLine {
   id: string;
@@ -262,7 +263,15 @@ const JournalNewPage = () => {
       { id: newId, account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
     ]);
     setTimeout(() => {
-      document.querySelector<HTMLInputElement>(`[data-journal-debit="${newId}"]`)?.focus();
+      // Focus the new row's account-code picker trigger.
+      // The picker is configured to auto-open on focus for empty rows,
+      // so the user lands directly in the search box.
+      const trigger = document.querySelector<HTMLButtonElement>(`[data-journal-code="${newId}"]`);
+      trigger?.focus();
+      if (!trigger) {
+        // Fallback to debit cell if picker not mounted yet
+        document.querySelector<HTMLInputElement>(`[data-journal-debit="${newId}"]`)?.focus();
+      }
     }, 50);
   };
 
