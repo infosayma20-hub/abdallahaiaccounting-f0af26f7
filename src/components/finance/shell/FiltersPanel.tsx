@@ -51,6 +51,13 @@ const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }
   ],
 };
 
+const TYPE_LABELS_AR: Record<string, string> = {
+  text: "نص",
+  number: "رقم",
+  date: "تاريخ",
+  option: "قائمة",
+};
+
 interface FiltersPanelProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -152,7 +159,9 @@ export function FiltersPanel({
                       className="text-right text-[12.5px] px-2 py-1.5 hover:bg-muted rounded"
                     >
                       <span>{f.label}</span>
-                      <span className="text-muted-foreground text-[10.5px] mr-2">{f.type}</span>
+                      <span className="text-muted-foreground text-[10.5px] mr-2">
+                        {TYPE_LABELS_AR[f.type] || f.type}
+                      </span>
                     </button>
                   ))}
                   {filteredFields.length === 0 && (
