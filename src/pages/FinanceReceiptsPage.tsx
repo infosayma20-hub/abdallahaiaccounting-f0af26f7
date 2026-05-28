@@ -80,6 +80,22 @@ export default function FinanceReceiptsPage() {
   const [warnOpen, setWarnOpen] = useState(false);
   const [warnTarget, setWarnTarget] = useState<Row | null>(null);
 
+  // Column visibility (localStorage per page)
+  const columnDefs: ColumnDef[] = useMemo(() => ([
+    { key: "ref_number", label: "رقم السند", required: true },
+    { key: "date", label: "التاريخ" },
+    { key: "contact_name", label: "الجهة" },
+    { key: "payment_label", label: "طريقة الدفع" },
+    { key: "account_label", label: "الصندوق/البنك" },
+    { key: "cost_center_name", label: "مركز التكلفة" },
+    { key: "currency", label: "العملة" },
+    { key: "amount", label: "المبلغ", required: true },
+    { key: "status_label", label: "الحالة" },
+    { key: "actions", label: "إجراءات", required: true },
+  ]), []);
+  const colState = useColumnVisibility("finance-receipts-page", columnDefs);
+  const show = colState.isVisible;
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -139,6 +155,16 @@ export default function FinanceReceiptsPage() {
   }, [user, costCenters]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Auto-refresh when the page regains focus, or another tab broadcasts a change.
+  useEffect(() => {
+    const onFocus = () => fetchData();
+    window.addEventListener("focus", onFocus);
+    const off = onCrossTabChange((e) => {
+      if (e.entity === "receipt_voucher") fetchData();
+    });
+    return () => { window.removeEventListener("focus", onFocus); off(); };
+  }, [fetchData]);
 
   // distinct option lists
   const contactOptions = useMemo(() => {
