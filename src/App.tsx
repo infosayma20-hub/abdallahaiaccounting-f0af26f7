@@ -463,6 +463,8 @@ const App = () => (
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/settings/referrals" element={<ReferralPage />} />
+                      <Route path="/referrals" element={<ReferralPage />} />
                       <Route path="/billing" element={<Navigate to="/pricing" replace />} />
                       <Route path="/subscription" element={<Navigate to="/pricing" replace />} />
                       <Route path="/journal-entries" element={<Navigate to="/transactions" replace />} />
