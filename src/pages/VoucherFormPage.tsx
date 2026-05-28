@@ -305,6 +305,86 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // clicks "تعديل" — mirrors JournalNewPage behavior.
   const [isReadOnly, setIsReadOnly] = useState<boolean>(isEditMode && voucherType === "receipt");
 
+  // ─── Prev/Next navigation between receipts (Phase 1) ───
+  // Declared up here (before any early returns) so React hook order stays stable.
+  const goToAdjacentReceipt = async (direction: "prev" | "next") => {
+    if (voucherType !== "receipt" || !ownerId) return;
+    try {
+      let q = supabase
+        .from("receipt_vouchers")
+        .select("id, receipt_number, created_at")
+        .eq("user_id", ownerId);
+      if (editId && (window as any).__voucherCreatedAt) {
+        const cursor = (window as any).__voucherCreatedAt as string;
+        if (direction === "prev") {
+          q = q.lt("created_at", cursor).order("created_at", { ascending: false });
+        } else {
+          q = q.gt("created_at", cursor).order("created_at", { ascending: true });
+        }
+      } else {
+        q = q.order("created_at", { ascending: direction !== "prev" });
+      }
+      const { data, error } = await q.limit(1);
+      if (error) throw error;
+      const target = (data || [])[0];
+      if (!target) {
+        toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
+        return;
+      }
+      navigate(`/finance/receipt/${target.id}/edit`);
+    } catch (err: any) {
+      toast.error(err.message || "تعذر التنقل بين السندات");
+    }
+  };
+
+  // ─── Action Pane tabs (FinanceShell) — receipt only in Phase 1 ───
+  // CRITICAL: this useMemo must live ABOVE the editLoading/saved early
+  // returns so React always sees the same hook count across renders.
+  // Handler refs are wrapped in lazy arrows so TDZ on consts declared
+  // further down is never hit (onClick fires only after full render).
+  const isReceiptType = voucherType === "receipt";
+  const receiptActionTabs: ActionTab[] = useMemo(() => {
+    if (!isReceiptType) return [];
+    const inEdit = isEditMode;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary" as const,
+          onClick: () => navigate("/finance/receipt/new") },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy,
+          onClick: () => handleNewSimilar() }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: () => handleSave(false), disabled: isReadOnly,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
+          { key: "delete", label: "إلغاء السند", icon: Trash2,
+            onClick: () => setShowCancelModal(true) },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ مسودة", icon: Save,
+            onClick: () => handleSave(true) },
+          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleSave(false) },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrint() },
+      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrint() },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentReceipt("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentReceipt("next") },
+      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/finance/receipts") },
+      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReceiptType, isEditMode, isReadOnly]);
+
   // ─── Auto-Draft (السندات) ───
   const draftFormId = `voucher_${voucherType}_new`;
   const draftRoutePath = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
