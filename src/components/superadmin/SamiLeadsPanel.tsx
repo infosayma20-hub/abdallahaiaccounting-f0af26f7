@@ -67,7 +67,7 @@ export default function SamiLeadsPanel() {
   // Realtime subscription for new leads
   useEffect(() => {
     const channel = supabase
-      .channel("sami-leads-realtime")
+      .channel("topic-super-admin-sami-leads")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sami_leads" }, (payload) => {
         const newLead = payload.new as Lead;
         setLeads(prev => [newLead, ...prev]);

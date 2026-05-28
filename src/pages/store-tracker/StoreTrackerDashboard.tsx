@@ -59,7 +59,7 @@ export default function StoreTrackerDashboard() {
 
     // Real-time subscription
     const channel = supabase
-      .channel("store-tracker-orders")
+      .channel(`store-tracker-orders-${user?.id ?? "anon"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "qamar_orders" }, (payload) => {
         if (payload.eventType === "INSERT") {
           setOrders((prev) => [payload.new as any, ...prev]);

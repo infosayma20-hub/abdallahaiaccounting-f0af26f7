@@ -45,7 +45,7 @@ export function SignupNotificationsBell() {
   useEffect(() => {
     load();
     const channel = supabase
-      .channel("admin_notifications_bell")
+      .channel("topic-super-admin-signup-notifications")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "admin_notifications" },

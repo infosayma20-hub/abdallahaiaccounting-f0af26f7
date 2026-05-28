@@ -1053,7 +1053,7 @@ const POSPage = () => {
       setPendingDispatchCount(count || 0);
     };
     loadCount();
-    const ch = supabase.channel("dispatch-count")
+    const ch = supabase.channel(`dispatch-count-${dataOwnerId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "call_center_orders", filter: `user_id=eq.${dataOwnerId}` }, () => loadCount())
       .subscribe();
     return () => { supabase.removeChannel(ch); };

@@ -80,7 +80,7 @@ export default function TaskBoardPage() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('tasks-realtime')
+      .channel(`tasks-realtime-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
         fetchData();
       })

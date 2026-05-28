@@ -176,7 +176,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
     if (!dataOwnerId || !enabled) return;
 
     const channel = supabase
-      .channel("call-center-orders")
+      .channel(`call-center-orders-${dataOwnerId}`)
       .on(
         "postgres_changes",
         {
@@ -233,7 +233,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
   useEffect(() => {
     if (!dataOwnerId || !enabled) return;
     const channel = supabase
-      .channel("call-center-order-edits")
+      .channel(`call-center-order-edits-${dataOwnerId}`)
       .on("postgres_changes", {
         event: "*", schema: "public", table: "call_center_order_edits",
         filter: `user_id=eq.${dataOwnerId}`,

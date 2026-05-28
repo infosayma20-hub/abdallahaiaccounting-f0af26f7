@@ -189,8 +189,14 @@ export default function PortalAttendanceTab({ theme }: Props) {
 
   // Realtime subscription for attendance events
   useEffect(() => {
-    const channel = supabase
-      .channel('portal-attendance-events')
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const suffix = user?.id ?? 'anon';
+      channel = supabase
+        .channel(`portal-attendance-events-${suffix}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'attendance_events' },
@@ -230,8 +236,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
         }
       )
       .subscribe();
+    })();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [notificationsEnabled, audioUnlocked, playNotificationSound]);
 
   useEffect(() => {

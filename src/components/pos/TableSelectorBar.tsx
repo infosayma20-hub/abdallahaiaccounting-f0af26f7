@@ -109,8 +109,9 @@ export default function TableSelectorBar({
 
   // Real-time updates
   useEffect(() => {
+    if (!dataOwnerId) return;
     const channel = supabase
-      .channel("pos-table-bar")
+      .channel(`pos-table-bar-${dataOwnerId}`)
       .on("postgres_changes", {
         event: "*",
         schema: "public",
@@ -119,7 +120,7 @@ export default function TableSelectorBar({
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [fetchTables]);
+  }, [fetchTables, dataOwnerId]);
 
   if (tables.length === 0) return null;
 

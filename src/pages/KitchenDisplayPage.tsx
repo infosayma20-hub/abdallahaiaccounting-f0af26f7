@@ -131,8 +131,9 @@ export default function KitchenDisplayPage() {
 
   // Realtime subscription
   useEffect(() => {
+    if (!user) return;
     const channel = supabase
-      .channel("kitchen-tickets-realtime")
+      .channel(`kitchen-tickets-realtime-${user.id}`)
       .on("postgres_changes", {
         event: "*",
         schema: "public",
@@ -146,7 +147,7 @@ export default function KitchenDisplayPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [loadTickets, soundEnabled]);
+  }, [loadTickets, soundEnabled, user]);
 
   // Auto-refresh every 15s
   useEffect(() => {

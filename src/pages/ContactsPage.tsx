@@ -254,7 +254,7 @@ const ContactsPage = () => {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('crm-alerts')
+      .channel(`crm-alerts-${user.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',

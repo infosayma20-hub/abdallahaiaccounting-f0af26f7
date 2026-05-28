@@ -119,7 +119,7 @@ export default function PortalTasksTab({ theme }: Props) {
   useEffect(() => {
     if (!linkedUserId) return;
     const channel = supabase
-      .channel('portal-tasks')
+      .channel(`portal-tasks-${linkedUserId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',

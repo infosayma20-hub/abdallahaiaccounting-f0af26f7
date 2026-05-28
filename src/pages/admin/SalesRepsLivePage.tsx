@@ -149,8 +149,14 @@ export default function SalesRepsLivePage() {
 
   // Realtime: any change to rep invoices or van_sales_days triggers refetch
   useEffect(() => {
-    const channel = (supabase as any)
-      .channel("rep-live")
+    let channel: any = null;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const suffix = user?.id ?? "anon";
+      channel = (supabase as any)
+        .channel(`rep-live-${suffix}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "invoices", filter: "source=eq.rep" },
@@ -167,7 +173,11 @@ export default function SalesRepsLivePage() {
         () => load()
       )
       .subscribe();
-    return () => { (supabase as any).removeChannel(channel); };
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) (supabase as any).removeChannel(channel);
+    };
   }, [load]);
 
   const hasAnyActivity = rows.some(

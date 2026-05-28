@@ -449,7 +449,7 @@ function LiveMonitor() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("super-admin-live")
+      .channel("topic-super-admin-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, (payload) => {
         if (pausedRef.current) return;
         const t = payload.new as any;
