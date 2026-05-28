@@ -2153,6 +2153,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
   };
 
+  // Keep the ref pointed at the latest handleSave so that memoized
+  // ActionPane tabs and the Ctrl+Enter listener always see fresh state.
+  handleSaveRef.current = handleSave;
+
   const handlePrint = () => {
     const partyName = partyType === "employee" && selectedEmployee
       ? selectedEmployee.full_name
