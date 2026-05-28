@@ -148,18 +148,6 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/5" />
       </div>
 
-      {/* POS Quick Access for Cashiers */}
-      {isCashier && onOpenPOS && (
-        <Button
-          onClick={onOpenPOS}
-          className="w-full h-14 text-base gap-3 rounded-2xl active:scale-[0.98] transition-transform"
-          style={{ background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
-        >
-          <ShoppingCart className="w-5 h-5" />
-          فتح نقطة البيع
-        </Button>
-      )}
-
       {/* Manager Section */}
       {hasMgmt && (
         <Card className="border-primary/20 bg-card">
