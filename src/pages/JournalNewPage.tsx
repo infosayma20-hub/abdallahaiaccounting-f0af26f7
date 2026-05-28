@@ -4,7 +4,8 @@ import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2, Eye, Calculator,
   BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock,
-  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw
+  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw,
+  Pencil, Copy, Lock
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,10 +70,15 @@ const JournalNewPage = () => {
   const { user } = useAuth();
   const { company } = useCompany();
   const { settings } = useCompanySettings();
-  const { save: saveJournalVoucher } = useSaveJournalVoucher();
+  const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
+  const editIdFromUrl = searchParams.get("edit") || null;
+  const [editingVoucherId, setEditingVoucherId] = useState<string | null>(editIdFromUrl);
+  const [editingCreatedAt, setEditingCreatedAt] = useState<string | null>(null);
+  const [isReadOnly, setIsReadOnly] = useState<boolean>(!!editIdFromUrl);
+  const [loadingVoucher, setLoadingVoucher] = useState<boolean>(false);
 
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
   const [formRefNumber, setFormRefNumber] = useState("");
