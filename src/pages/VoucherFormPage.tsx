@@ -2785,8 +2785,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 {showContactDropdown && !selectedContact && (
                   <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
                     {filteredContacts.map(c => (
-                      <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
-                        className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
+                      <button
+                        key={c.id}
+                        onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); focusAmountField(); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); focusAmountField();
+                          } else if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            (e.currentTarget.nextElementSibling as HTMLButtonElement | null)?.focus();
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            (e.currentTarget.previousElementSibling as HTMLButtonElement | null)?.focus();
+                          }
+                        }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-secondary focus:bg-secondary focus:outline-none transition-colors flex items-center justify-between">
                         <span className="text-sm">{c.contact_name}</span>
                         <span className="text-xs text-muted-foreground">دفتر: ₪{formatAmount(c.ledger_balance ?? c.current_balance ?? 0)} · مفتوح: ₪{formatAmount(c.open_invoices_balance ?? 0)}</span>
                       </button>
