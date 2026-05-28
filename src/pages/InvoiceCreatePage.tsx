@@ -259,7 +259,7 @@ const InvoiceCreatePage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showWarrantyDialog, setShowWarrantyDialog] = useState(false);
   const [showQuickAddRep, setShowQuickAddRep] = useState(false);
-  const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+  const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product" as "product" | "service", service_direction: "" as "" | "provided" | "received" });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
 
   // ─── Auto-draft للنوافذ المنبثقة (Quick Add) ───
@@ -275,6 +275,8 @@ const InvoiceCreatePage = () => {
       buy_price: Number(d?.buy_price) || 0,
       unit: d?.unit || "قطعة",
       quantity: Number(d?.quantity) || 0,
+      product_type: (d?.product_type === "service" ? "service" : "product"),
+      service_direction: (d?.service_direction === "provided" || d?.service_direction === "received") ? d.service_direction : "",
     }),
     {
       enabled: showQuickAdd && !!user,
@@ -1043,11 +1045,24 @@ const InvoiceCreatePage = () => {
   // ─── Quick Add Product ───
   const handleQuickAddProduct = async () => {
     if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
-    const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: user.id } as any);
+    const isService = quickAddForm.product_type === "service";
+    const payload: any = {
+      name: quickAddForm.name,
+      sell_price: quickAddForm.sell_price,
+      buy_price: quickAddForm.buy_price,
+      unit: isService ? "خدمة" : quickAddForm.unit,
+      quantity: isService ? 0 : quickAddForm.quantity,
+      product_type: quickAddForm.product_type,
+      service_direction: isService
+        ? (quickAddForm.service_direction || (form.type === "sales" ? "provided" : "received"))
+        : null,
+      user_id: user.id,
+    };
+    const { error } = await supabase.from("products").insert(payload);
     if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
-    setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+    setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" });
     clearProductDraft();
     // Refresh products
     const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
@@ -2922,9 +2937,50 @@ const InvoiceCreatePage = () => {
           <div className="space-y-3">
             <div><label className="text-xs text-muted-foreground">اسم المنتج *</label><Input value={quickAddForm.name} onChange={e => setQuickAddForm({ ...quickAddForm, name: e.target.value })} className="rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground">النوع</label>
+                <Select
+                  value={quickAddForm.product_type}
+                  onValueChange={(v: "product" | "service") =>
+                    setQuickAddForm({
+                      ...quickAddForm,
+                      product_type: v,
+                      service_direction: v === "service"
+                        ? (quickAddForm.service_direction || (form.type === "sales" ? "provided" : "received"))
+                        : "",
+                    })
+                  }
+                >
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">منتج (مخزون)</SelectItem>
+                    <SelectItem value="service">خدمة (بدون مخزون)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {quickAddForm.product_type === "service" && (
+                <div>
+                  <label className="text-xs text-muted-foreground">اتجاه الخدمة</label>
+                  <Select
+                    value={quickAddForm.service_direction || (form.type === "sales" ? "provided" : "received")}
+                    onValueChange={(v: "provided" | "received") =>
+                      setQuickAddForm({ ...quickAddForm, service_direction: v })
+                    }
+                  >
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="provided">خدمة مقدّمة (نبيعها)</SelectItem>
+                      <SelectItem value="received">خدمة متلقّاة (نشتريها)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground">سعر البيع</label><Input type="number" value={quickAddForm.sell_price} onChange={e => setQuickAddForm({ ...quickAddForm, sell_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
               <div><label className="text-xs text-muted-foreground">سعر الشراء</label><Input type="number" value={quickAddForm.buy_price} onChange={e => setQuickAddForm({ ...quickAddForm, buy_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
             </div>
+            {quickAddForm.product_type !== "service" && (
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground">الوحدة</label>
                 <Select value={quickAddForm.unit} onValueChange={v => setQuickAddForm({ ...quickAddForm, unit: v })}>
@@ -2934,9 +2990,10 @@ const InvoiceCreatePage = () => {
               </div>
               <div><label className="text-xs text-muted-foreground">الكمية المبدئية</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
             </div>
+            )}
           </div>
           <div className="flex justify-end gap-2 mt-3">
-            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 }); setShowQuickAdd(false); }}>إلغاء</Button>
+            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" }); setShowQuickAdd(false); }}>إلغاء</Button>
             <Button onClick={handleQuickAddProduct}>إضافة المنتج</Button>
           </div>
         </DialogContent>
