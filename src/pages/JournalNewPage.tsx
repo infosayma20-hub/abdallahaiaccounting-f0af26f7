@@ -4,7 +4,7 @@ import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2, Eye, Calculator,
   BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock,
-  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks
+  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
