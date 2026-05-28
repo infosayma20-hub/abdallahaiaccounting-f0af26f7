@@ -899,6 +899,23 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   }, [editId, user, isReceipt]);
 
   // Load cash boxes, bank accounts, and generate ref number for payments
+  const regenerateRefNumber = useCallback(async () => {
+    if (!ownerId) return;
+    if (!isReceipt) {
+      const { data: vData } = await supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }).limit(1);
+      const lastRef = (vData || [])[0]?.ref_number || "";
+      const match = lastRef.match(/(\d+)$/);
+      const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+      setRefNumber(`PV-${new Date().getFullYear()}-${nextNum}`);
+    } else {
+      const { data: rvData } = await supabase.from("receipt_vouchers").select("receipt_number").eq("user_id", ownerId).order("created_at", { ascending: false }).limit(1);
+      const lastRef = (rvData || [])[0]?.receipt_number || "";
+      const match = lastRef.match(/(\d+)$/);
+      const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+      setRefNumber(`RCV-${new Date().getFullYear()}-${nextNum}`);
+    }
+  }, [ownerId, isReceipt]);
+
   useEffect(() => {
     if (!user || !ownerId) return;
     const load = async () => {
@@ -913,22 +930,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setSelectedBankAccount(baRes.data[0].id);
         setSelectedChequeBankAccount(baRes.data[0].id);
       }
-      if (!isReceipt) {
-        const { data: vData } = await supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }).limit(1);
-        const lastRef = (vData || [])[0]?.ref_number || "";
-        const match = lastRef.match(/(\d+)$/);
-        const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
-        setRefNumber(`PV-${new Date().getFullYear()}-${nextNum}`);
-      } else {
-        const { data: rvData } = await supabase.from("receipt_vouchers").select("receipt_number").eq("user_id", ownerId).order("created_at", { ascending: false }).limit(1);
-        const lastRef = (rvData || [])[0]?.receipt_number || "";
-        const match = lastRef.match(/(\d+)$/);
-        const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
-        setRefNumber(`RCV-${new Date().getFullYear()}-${nextNum}`);
-      }
+      await regenerateRefNumber();
     };
     load();
-  }, [user, ownerId, isReceipt]);
+  }, [user, ownerId, isReceipt, regenerateRefNumber]);
 
   // Load invoices when contact is selected
   useEffect(() => {
@@ -2468,7 +2473,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             <button onClick={() => navigate(listPath)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">
               العودة للسندات
             </button>
-            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheques([]); setEndorsedCheques([]); setCurrency("ILS"); setExchangeRate(1); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
+            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheques([]); setEndorsedCheques([]); setCurrency("ILS"); setExchangeRate(1); regenerateRefNumber(); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               {isReceipt ? "سند قبض جديد" : "سند صرف جديد"}
             </button>
           </div>
