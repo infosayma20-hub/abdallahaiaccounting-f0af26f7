@@ -598,13 +598,15 @@ const FinanceJournalPage = () => {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الرقم" field="ref_number" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="date" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">النوع</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">الوصف</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
-                  <th className="px-3 py-3 w-10"></th>
+                  {show("ref_number") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الرقم" field="ref_number" /></th>}
+                  {show("date") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="date" /></th>}
+                  {show("subtype") && <th className="px-3 py-3 text-right text-xs font-semibold">النوع</th>}
+                  {show("contact_name") && <th className="px-3 py-3 text-right text-xs font-semibold">الجهة</th>}
+                  {show("description") && <th className="px-3 py-3 text-right text-xs font-semibold">الوصف</th>}
+                  {show("notes") && <th className="px-3 py-3 text-right text-xs font-semibold">الملاحظات</th>}
+                  {show("amount") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>}
+                  {show("status") && <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>}
+                  {show("actions") && <th className="px-3 py-3 w-10"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -628,29 +630,31 @@ const FinanceJournalPage = () => {
                       data-focus-id={v.id}
                       className={`border-b border-border/50 transition-all duration-500 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5 ${focusedVoucherId === v.id ? "!bg-primary/10 ring-2 ring-primary/60" : ""}`}
                     >
-                      <td className="px-3 py-3">
+                      {show("ref_number") && <td className="px-3 py-3">
                         <button
                           className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0"
                           onClick={() => openVoucherForEdit(v.id)}
                         >
                           {v.ref_number}
                         </button>
-                      </td>
-                      <td className="px-3 py-3 text-xs text-foreground tabular-nums">{v.date}</td>
-                      <td className="px-3 py-3">
+                      </td>}
+                      {show("date") && <td className="px-3 py-3 text-xs text-foreground tabular-nums">{v.date}</td>}
+                      {show("subtype") && <td className="px-3 py-3">
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground">
                           {subtypeLabels[v.subtype] || "عادي"}
                         </span>
-                      </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[250px]">{v.description}</td>
-                      <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{fmt(Number(v.amount || 0))}</td>
-                      <td className="px-3 py-3">
+                      </td>}
+                      {show("contact_name") && <td className="px-3 py-3 text-xs text-foreground truncate max-w-[180px]">{v.contact_name || "—"}</td>}
+                      {show("description") && <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[250px]">{v.description}</td>}
+                      {show("notes") && <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[250px]">{v.notes || "—"}</td>}
+                      {show("amount") && <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{fmt(Number(v.amount || 0))}</td>}
+                      {show("status") && <td className="px-3 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[v.status] || "bg-muted text-muted-foreground"}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${dotColor[v.status] || "bg-muted-foreground"}`} />
                           {statusLabelMap[v.status] || v.status}
                         </span>
-                      </td>
-                      <td className="px-3 py-2">
+                      </td>}
+                      {show("actions") && <td className="px-3 py-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
@@ -671,16 +675,17 @@ const FinanceJournalPage = () => {
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </td>
+                      </td>}
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                  <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
-                  <td className="px-3 py-3 tabular-nums text-foreground">{fmt(filtered.reduce((s, v) => s + Number(v.amount || 0), 0))}</td>
-                  <td className="px-3 py-3" />
+                  <td colSpan={["ref_number","date","subtype","contact_name","description","notes"].filter(k => show(k)).length} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
+                  {show("amount") && <td className="px-3 py-3 tabular-nums text-foreground">{fmt(filtered.reduce((s, v) => s + Number(v.amount || 0), 0))}</td>}
+                  {show("status") && <td className="px-3 py-3" />}
+                  {show("actions") && <td className="px-3 py-3" />}
                 </tr>
               </tfoot>
             </table>
