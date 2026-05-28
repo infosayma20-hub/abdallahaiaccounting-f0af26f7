@@ -326,6 +326,12 @@ export function useSaveJournalVoucher() {
       const refNumber = input.ref_number?.trim() || (await generateRefNumber(user.id));
 
       // ── (3) إنشاء voucher master ──
+      // ⚠️ نُنشئ السند دائماً بحالة draft أولاً، ثم نُرحّله بعد إنشاء
+      // الـ transactions وربط linked_transaction_id، لتفادي trigger
+      // guard_voucher_must_have_journal الذي يرفض posted بدون ربط.
+      const finalStatus: "posted" | "draft" | "deferred" =
+        mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft";
+      const initialStatus = finalStatus === "posted" ? "draft" : finalStatus;
       const { data: voucher, error: vErr } = await supabase
         .from("vouchers")
         .insert({
@@ -340,9 +346,9 @@ export function useSaveJournalVoucher() {
           amount_ils: totalDebit,
           description: input.description.trim(),
           notes: input.notes || null,
-          status: mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft",
-          posted_by: mode === "posted" ? user.id : null,
-          posted_at: mode === "posted" ? new Date().toISOString() : null,
+          status: initialStatus,
+          posted_by: null,
+          posted_at: null,
           attachments: input.attachments && input.attachments.length > 0 ? input.attachments : [],
           line_sort_order: input.line_sort_order || "original",
         })
@@ -417,8 +423,15 @@ export function useSaveJournalVoucher() {
           if (firstTxId) {
             await supabase
               .from("vouchers")
-              .update({ linked_transaction_id: firstTxId })
+              .update({
+                linked_transaction_id: firstTxId,
+                status: "posted",
+                posted_by: user.id,
+                posted_at: new Date().toISOString(),
+              })
               .eq("id", voucher.id);
+          } else {
+            throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
         } else if (txns.length > 0) {
           const { data: txData, error: tErr } = await supabase
@@ -427,12 +440,19 @@ export function useSaveJournalVoucher() {
             .select("id");
           if (tErr) throw tErr;
 
-          // ربط أول transaction بالـ voucher لدعم cascade delete
+          // ربط أول transaction بالـ voucher + ترحيل السند
           if (txData && txData.length > 0) {
             await supabase
               .from("vouchers")
-              .update({ linked_transaction_id: txData[0].id })
+              .update({
+                linked_transaction_id: txData[0].id,
+                status: "posted",
+                posted_by: user.id,
+                posted_at: new Date().toISOString(),
+              })
               .eq("id", voucher.id);
+          } else {
+            throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
         }
       }
