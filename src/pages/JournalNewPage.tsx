@@ -33,6 +33,7 @@ import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
+import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 
 interface JournalLine {
   id: string;
@@ -262,7 +263,15 @@ const JournalNewPage = () => {
       { id: newId, account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
     ]);
     setTimeout(() => {
-      document.querySelector<HTMLInputElement>(`[data-journal-debit="${newId}"]`)?.focus();
+      // Focus the new row's account-code picker trigger.
+      // The picker is configured to auto-open on focus for empty rows,
+      // so the user lands directly in the search box.
+      const trigger = document.querySelector<HTMLButtonElement>(`[data-journal-code="${newId}"]`);
+      trigger?.focus();
+      if (!trigger) {
+        // Fallback to debit cell if picker not mounted yet
+        document.querySelector<HTMLInputElement>(`[data-journal-debit="${newId}"]`)?.focus();
+      }
     }, 50);
   };
 
@@ -626,14 +635,14 @@ const JournalNewPage = () => {
 
       <div data-print-area>
       {/* ═══════════════════════════════════════════════════════════════
-          12-COLUMN MASTER GRID — Odoo / QuickBooks Journal style
-          Left  (col-span-8): Header → Lines → Notes/Attachments
-          Right (col-span-4): Sticky balance summary (Debit/Credit/Diff)
+          MASTER LAYOUT — Odoo / QuickBooks Journal style
+          Left  (flex-1): Header → Lines → Description → Notes/Attachments
+          Right (320px) : TRULY sticky balance summary (Debit/Credit/Diff)
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
 
-      {/* ═══ LEFT COLUMN — Main content (8 cols) ═══ */}
-      <div className="lg:col-span-8 min-w-0 space-y-5">
+      {/* ═══ LEFT COLUMN — Main content (grows to fill) ═══ */}
+      <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
       {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
       <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
@@ -739,79 +748,7 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
-      {/* ═══ END LEFT COLUMN (Header only) ═══ */}
-      </div>
-
-      {/* ═══ RIGHT COLUMN — Sticky Balance Summary (4 cols) ═══ */}
-      <aside className="lg:col-span-4 lg:row-span-3 lg:sticky lg:top-4 self-start w-full">
-        <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
-            <Scale className="h-4 w-4 text-primary" />
-            <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
-          </div>
-          <CardContent className="p-4 space-y-3">
-            {(() => {
-              const isZero = totalDebit === 0 && totalCredit === 0;
-              if (isZero) {
-                return (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 text-muted-foreground text-xs">
-                    <FileText className="h-3.5 w-3.5" />
-                    <span>أدخل المبالغ للتحقق من التوازن</span>
-                  </div>
-                );
-              }
-              if (isBalanced) {
-                return (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>القيد متوازن — جاهز للترحيل</span>
-                  </div>
-                );
-              }
-              return (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-bold border border-destructive/20">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>القيد غير متوازن</span>
-                </div>
-              );
-            })()}
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
-                <span className="text-[11px] text-muted-foreground font-medium">إجمالي مدين</span>
-                <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400 text-sm">₪{formatAmount(totalDebit)}</span>
-              </div>
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-destructive/5 border border-destructive/15">
-                <span className="text-[11px] text-muted-foreground font-medium">إجمالي دائن</span>
-                <span className="font-bold tabular-nums text-destructive text-sm">₪{formatAmount(totalCredit)}</span>
-              </div>
-              <div className="h-px bg-border/60 my-1" />
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/40">
-                <span className="text-[12px] font-semibold">الفرق</span>
-                <span className={`font-extrabold tabular-nums text-base ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
-                  ₪{formatAmount(Math.abs(totalDebit - totalCredit))}
-                </span>
-              </div>
-            </div>
-            <div className="pt-2 mt-1 border-t border-border/50 space-y-1.5 text-[11px] text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <span>عدد الأسطر</span>
-                <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>نوع السند</span>
-                <span className="font-semibold text-foreground">{subtypeLabels[formSubtype]}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>التاريخ</span>
-                <span className="font-semibold text-foreground tabular-nums">{formDate}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </aside>
-
-      {/* ═══ FULL-WIDTH JOURNAL LINES (col-span-12) — Big, wide, primary focus ═══ */}
-      <div className="lg:col-span-12 min-w-0">
+      {/* ═══ JOURNAL LINES — Big, wide, primary focus ═══ */}
       <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-5 lg:p-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -871,53 +808,30 @@ const JournalNewPage = () => {
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
                     <td className="p-3">
                       {(() => {
-                        const codeQuery = codeSearches[line.id] !== undefined
-                          ? (codeSearches[line.id] as string)
-                          : line.account_code;
-                        const q = (codeQuery || "").trim();
-                        const filtered = !q
-                          ? postableAccounts.slice(0, 200)
-                          : postableAccounts.filter(a => multiWordMatchAny(q, a.account_code, a.account_name)).slice(0, 200);
                         return (
-                          <SmartSearchableDropdown
-                            value={codeQuery}
-                            onChange={(v) => {
-                              setCodeSearches(prev => ({ ...prev, [line.id]: v }));
-                              // If user clears the code field, also clear the linked account & contact
-                              if (!v || !v.trim()) {
-                                setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                                  ...l,
-                                  account_code: "",
-                                  account_name: "",
-                                  contact_id: "",
-                                  contact_name: "",
-                                }));
-                              }
-                            }}
-                            items={filtered}
-                            getKey={(a: any) => a.account_code}
-                            getLabel={(a: any) => `${a.account_code} — ${a.account_name}`}
-                            renderOption={(a: any, active) => (
-                              <span className={`flex items-center gap-2 ${active ? "" : ""}`}>
-                                <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded" dir="ltr">{a.account_code}</span>
-                                <span className="text-foreground text-xs">{a.account_name}</span>
-                              </span>
-                            )}
-                            onSelect={(a: any) => {
+                          <JournalAccountPicker
+                            lineId={line.id}
+                            value={line.account_code}
+                            accountName={line.account_name}
+                            accounts={postableAccounts}
+                            invalid={invalidLineIds.has(line.id)}
+                            autoOpenOnFocus
+                            onSelect={(a) => {
                               setLines(prev => prev.map(l => l.id !== line.id ? l : {
                                 ...l,
                                 account_code: a.account_code,
                                 account_name: a.account_name || l.account_name,
                               }));
-                              setCodeSearches(prev => ({ ...prev, [line.id]: undefined }));
                             }}
-                            placeholder="1110 أو اسم الحساب"
-                            emptyText="لا توجد حسابات مطابقة"
-                            markFirst={i === 0}
-                            className="w-full"
-                            inputClassName="h-11 font-mono text-sm"
-                            showSearchIcon
-                            showChevron
+                            onClear={() => {
+                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                                ...l,
+                                account_code: "",
+                                account_name: "",
+                                contact_id: "",
+                                contact_name: "",
+                              }));
+                            }}
                           />
                         );
                       })()}
@@ -1203,10 +1117,8 @@ const JournalNewPage = () => {
           <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
         </CardContent>
       </Card>
-      </div>
 
-      {/* ═══ Bottom row (col-span-12): Description → Notes + Attachments ═══ */}
-      <div className="lg:col-span-12 space-y-5">
+      {/* ═══ Description → Notes + Attachments ═══ */}
       {/* Description Card — same style as Notes */}
       <Card className="border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
@@ -1279,9 +1191,79 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
       </div>
+
+      {/* ═══ END LEFT COLUMN ═══ */}
       </div>
 
-      {/* ═══ END MASTER GRID ═══ */}
+      {/* ═══ RIGHT COLUMN — Truly Sticky Balance Summary ═══ */}
+      <aside className="w-full lg:w-[320px] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
+        <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
+            <Scale className="h-4 w-4 text-primary" />
+            <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
+          </div>
+          <CardContent className="p-4 space-y-3">
+            {(() => {
+              const isZero = totalDebit === 0 && totalCredit === 0;
+              if (isZero) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 text-muted-foreground text-xs">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>أدخل المبالغ للتحقق من التوازن</span>
+                  </div>
+                );
+              }
+              if (isBalanced) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>القيد متوازن — جاهز للترحيل</span>
+                  </div>
+                );
+              }
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-bold border border-destructive/20">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>القيد غير متوازن</span>
+                </div>
+              );
+            })()}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي مدين</span>
+                <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400 text-sm">₪{formatAmount(totalDebit)}</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-destructive/5 border border-destructive/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي دائن</span>
+                <span className="font-bold tabular-nums text-destructive text-sm">₪{formatAmount(totalCredit)}</span>
+              </div>
+              <div className="h-px bg-border/60 my-1" />
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/40">
+                <span className="text-[12px] font-semibold">الفرق</span>
+                <span className={`font-extrabold tabular-nums text-base ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
+                  ₪{formatAmount(Math.abs(totalDebit - totalCredit))}
+                </span>
+              </div>
+            </div>
+            <div className="pt-2 mt-1 border-t border-border/50 space-y-1.5 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>عدد الأسطر</span>
+                <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>نوع السند</span>
+                <span className="font-semibold text-foreground">{subtypeLabels[formSubtype]}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>التاريخ</span>
+                <span className="font-semibold text-foreground tabular-nums">{formDate}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
+
+      {/* ═══ END MASTER FLEX ═══ */}
       </div>
       </div>
       {/* ═══ END data-print-area ═══ */}
