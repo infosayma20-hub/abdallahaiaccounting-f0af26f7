@@ -32,6 +32,7 @@ import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 
 interface JournalLine {
   id: string;
@@ -91,6 +92,8 @@ const JournalNewPage = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
   const [lineContactSearches, setLineContactSearches] = useState<Record<string, string>>({});
+  // Independent search state for the FIRST column (account-code picker)
+  const [codeSearches, setCodeSearches] = useState<Record<string, string | undefined>>({});
 
   // Invalid line IDs (highlighted on failed save attempt)
   const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
