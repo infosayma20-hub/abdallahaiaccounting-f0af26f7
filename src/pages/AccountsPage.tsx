@@ -485,7 +485,7 @@ const AccountsPage = () => {
           label: "الأستاذ",
           items: [
             { key: "gl", label: "الأستاذ العام", icon: FileText, onClick: () => navigate("/general-ledger") },
-            { key: "tb", label: "ميزان المراجعة", icon: Network, onClick: () => navigate("/reports/trial-balance") },
+            { key: "tb", label: "ميزان المراجعة", icon: Network, onClick: () => navigate("/trial-balance") },
           ],
         },
       ],
