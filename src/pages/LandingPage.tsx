@@ -119,7 +119,11 @@ const LandingPage = () => {
       setScrollProgress((window.scrollY / h) * 100);
       setNavBg(window.scrollY > 60);
     };
+    const onMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("mousemove", onMouseMove);
 
     const observer = new IntersectionObserver(
       (entries) => {
