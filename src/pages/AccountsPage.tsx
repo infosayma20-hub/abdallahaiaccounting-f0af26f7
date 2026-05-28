@@ -760,7 +760,7 @@ const AccountsPage = () => {
 
                     {/* Row Actions */}
                     {!isVirtualTypeHeader && (
-                      <div className="hidden sm:flex items-center justify-end gap-0.5 pe-1" onClick={(e) => e.stopPropagation()}>
+                      <div className="hidden sm:flex items-center justify-end gap-0.5 pe-1 print:hidden no-print" onClick={(e) => e.stopPropagation()}>
                         {isProtected && (
                           <Tooltip>
                             <TooltipTrigger asChild>
