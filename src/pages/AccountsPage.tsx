@@ -550,7 +550,7 @@ const AccountsPage = () => {
 
         {/* Filter Tabs + Search */}
         {!loading && accounts.length > 0 && (
-          <div className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border">
+          <div className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border no-print print:hidden">
             <div className="flex items-center border-b border-[hsl(210,14%,89%)] dark:border-border overflow-x-auto">
               {filterTabs.map(tab => (
                 <button
