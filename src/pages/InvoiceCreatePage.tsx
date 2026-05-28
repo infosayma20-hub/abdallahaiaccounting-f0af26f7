@@ -1945,10 +1945,10 @@ const InvoiceCreatePage = () => {
           <ChevronLeft className="h-3 w-3 rotate-180" />
           <Link to="/invoices" className="hover:text-foreground">الفواتير</Link>
           <ChevronLeft className="h-3 w-3 rotate-180" />
-          <span>{isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة"}</span>
+          <span>{isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة"}</span>
         </nav>
         <h1 className="text-[20px] font-bold text-foreground truncate">
-          {isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"}
+          {isEditMode ? (isReadOnly ? "عرض الفاتورة" : "تعديل الفاتورة") : "إنشاء فاتورة جديدة"}
           {isEditMode && nextInvoiceNumber && (
             <span className="text-[12px] font-normal text-muted-foreground mr-2">— {nextInvoiceNumber}</span>
           )}
