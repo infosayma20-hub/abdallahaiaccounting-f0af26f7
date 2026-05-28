@@ -156,8 +156,9 @@ export default function FloorPlanPage() {
 
   // Real-time
   useEffect(() => {
+    if (!userId) return;
     const channel = supabase
-      .channel("table-updates")
+      .channel(`table-updates-${userId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "restaurant_tables" }, (payload) => {
         if (payload.eventType === "DELETE") {
           setTables(prev => prev.filter(t => t.id !== payload.old.id));
@@ -173,7 +174,7 @@ export default function FloorPlanPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [userId]);
 
   const filteredTables = activeSection
     ? tables.filter(t => t.section_id === activeSection)

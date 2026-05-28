@@ -39,7 +39,7 @@ export function usePBXCallListener({ userId, enabled, onIncomingCall }: UsePBXCa
     if (!userId || !enabled) return;
 
     const channel = supabase
-      .channel('pbx-calls')
+      .channel(`pbx-calls-${userId}`)
       .on(
         'postgres_changes',
         {

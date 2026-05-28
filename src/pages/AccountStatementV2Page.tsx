@@ -217,7 +217,7 @@ const AccountStatementV2Page = () => {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('account_statement_realtime')
+      .channel(`account_statement_realtime-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
         fetchData();
       })

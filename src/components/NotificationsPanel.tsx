@@ -339,7 +339,7 @@ export function useNotifications() {
     if (!user) return;
 
     const channel = supabase
-      .channel("notif-qamar-orders")
+      .channel(`notif-qamar-orders-${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "qamar_orders" }, () => {
         // Play notification sound
         try { new Audio("/notification.mp3").play().catch(() => {}); } catch {}

@@ -113,7 +113,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
     if (!open || !dataOwnerId) return;
 
     const channel = supabase
-      .channel("dispatch-log")
+      .channel(`dispatch-log-${dataOwnerId}`)
       .on(
         "postgres_changes",
         {

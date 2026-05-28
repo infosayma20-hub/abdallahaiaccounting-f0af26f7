@@ -131,7 +131,7 @@ export default function UserSecurityAuditTab({
   // Realtime: live updates for new security events
   useEffect(() => {
     const channel = supabase
-      .channel("user_security_audit_live")
+      .channel("topic-super-admin-user-security-audit")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "user_security_audit" },

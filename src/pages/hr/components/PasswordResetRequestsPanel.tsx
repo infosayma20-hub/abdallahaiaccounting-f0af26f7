@@ -52,16 +52,21 @@ export function PasswordResetRequestsPanel() {
 
   useEffect(() => {
     fetchRows();
-    const ch = supabase
-      .channel("password_reset_requests_panel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "password_reset_requests" },
-        () => fetchRows(),
-      )
-      .subscribe();
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const suffix = user?.id ?? "anon";
+      ch = supabase
+        .channel(`topic-hr-password-reset-${suffix}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "password_reset_requests" },
+          () => fetchRows(),
+        )
+        .subscribe();
+    })();
     return () => {
-      supabase.removeChannel(ch);
+      if (ch) supabase.removeChannel(ch);
     };
   }, []);
 
