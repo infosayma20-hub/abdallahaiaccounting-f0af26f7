@@ -724,6 +724,44 @@ table td, table th, .tabular-nums {
   }
 }
 
+/* ── Bulletproof print isolation ──
+   Some app shells render wrappers, overlays, portals, action ribbons or
+   floating widgets that don't match the chrome selectors above, which causes
+   `window.print()` to still spit out the whole page. The rules below force
+   ONLY [data-print-area] (and its ancestors, so it can render) to be visible
+   on paper — everything else is hidden regardless of nesting. */
+@media print {
+  body:has([data-print-area]) * {
+    visibility: hidden !important;
+  }
+  body:has([data-print-area]) [data-print-area],
+  body:has([data-print-area]) [data-print-area] * {
+    visibility: visible !important;
+  }
+  body:has([data-print-area]) [data-print-area] {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  /* Single-page tightening for compact statements / journals */
+  body:has([data-print-area]) [data-print-area] {
+    font-size: 11px !important;
+  }
+  /* Keep print-only fixed-position dialogs from leaking */
+  body:has([data-print-area]) [data-radix-portal],
+  body:has([data-print-area]) [data-radix-popper-content-wrapper],
+  body:has([data-print-area]) [role="dialog"],
+  body:has([data-print-area]) [role="tooltip"] {
+    display: none !important;
+  }
+}
+
 /* ═══════════════════════════════════════
    CUSTOM SCROLLBAR — FINIX BRAND
    ═══════════════════════════════════════ */
