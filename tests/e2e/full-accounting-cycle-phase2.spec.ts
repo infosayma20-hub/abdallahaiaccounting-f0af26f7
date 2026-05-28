@@ -1,4 +1,4 @@
-import { test, expect, Page, ConsoleMessage } from "@playwright/test";
+import { test, expect, Page, ConsoleMessage, request as pwRequest } from "@playwright/test";
 
 /**
  * Phase 2 — Limited WRITE scenario.
@@ -25,6 +25,9 @@ import { test, expect, Page, ConsoleMessage } from "@playwright/test";
 
 const EMAIL = process.env.E2E_EMAIL!;
 const PASSWORD = process.env.E2E_PASSWORD!;
+const SUPABASE_URL = "https://omwuyscprzexgmxgittp.supabase.co";
+const SUPABASE_ANON =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9td3V5c2NwcnpleGdteGdpdHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNDEwMTIsImV4cCI6MjA4NjkxNzAxMn0.v-p6sK69OwTnPEFKNaESFQCf7BZREWzfFnr9Ux2ui-Y";
 
 if (!EMAIL || !PASSWORD) {
   throw new Error("Missing E2E_EMAIL / E2E_PASSWORD (see tests/.env.e2e.local)");
@@ -99,25 +102,49 @@ async function pickAccount(page: Page, lineId: string, codeOrName: string) {
 }
 
 /**
- * Look up a voucher row using the authenticated supabase client that the
- * page already has in scope. We retry a few times because the post handler
- * commits asynchronously.
+ * Look up a voucher row by description, authenticated as the test user.
+ * We grab the supabase access_token from the page's localStorage and call
+ * PostgREST directly. RLS then scopes the SELECT to the test user.
  */
+async function getAccessToken(page: Page): Promise<string> {
+  const token = await page.evaluate(() => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)!;
+      if (k.startsWith("sb-") && k.endsWith("-auth-token")) {
+        try {
+          const v = JSON.parse(localStorage.getItem(k)!);
+          return v?.access_token || v?.currentSession?.access_token || null;
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null;
+  });
+  if (!token) throw new Error("Could not extract supabase access_token from page localStorage");
+  return token as string;
+}
+
 async function fetchVoucherByDescription(page: Page, description: string) {
+  const token = await getAccessToken(page);
+  const api = await pwRequest.newContext();
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
-    const row = await page.evaluate(async (desc) => {
-      // @ts-ignore - injected on window by src/integrations/supabase/client wrapper? fallback to module.
-      const mod = await import("/src/integrations/supabase/client.ts");
-      const { data } = await mod.supabase
-        .from("vouchers")
-        .select("id, ref_number, status, amount, description")
-        .eq("description", desc)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      return (data && data[0]) || null;
-    }, description);
-    if (row) return row as { id: string; ref_number: string; status: string; amount: number };
+    const res = await api.get(
+      `${SUPABASE_URL}/rest/v1/vouchers?description=eq.${encodeURIComponent(
+        description,
+      )}&select=id,ref_number,status,amount,description&order=created_at.desc&limit=1`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}` } },
+    );
+    if (res.ok()) {
+      const rows = (await res.json()) as Array<{
+        id: string;
+        ref_number: string;
+        status: string;
+        amount: number;
+      }>;
+      if (rows[0]) return rows[0];
+    }
     await page.waitForTimeout(500);
   }
   return null;
