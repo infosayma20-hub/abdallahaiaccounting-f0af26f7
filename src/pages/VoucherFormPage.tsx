@@ -883,7 +883,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   // Load cash boxes, bank accounts, and generate ref number for payments
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     const load = async () => {
       const [cbRes, baRes] = await Promise.all([
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
@@ -911,11 +911,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
     };
     load();
-  }, [user, isReceipt]);
+  }, [user, ownerId, isReceipt]);
 
   // Load invoices when contact is selected
   useEffect(() => {
-    if (!user || !selectedContact) { setInvoices([]); return; }
+    if (!user || !ownerId || !selectedContact) { setInvoices([]); return; }
     // Smart loading:
     //   - Receipt + customer  → sale invoices (settlement)
     //   - Payment + supplier  → purchase invoices (settlement)
@@ -955,7 +955,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         setInvoices(loaded);
       });
-  }, [user, selectedContact, isReceipt]);
+  }, [user, ownerId, selectedContact, isReceipt]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
