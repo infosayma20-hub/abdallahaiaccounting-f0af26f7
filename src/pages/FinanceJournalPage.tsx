@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
   FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
-  ArrowUpDown, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Ban
+  ArrowUpDown, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Ban,
+  SlidersHorizontal
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -20,6 +21,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface JournalLine {
   id: string;
