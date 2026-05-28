@@ -18317,8 +18317,6 @@ export type Database = {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
       uaao_can_admin_target: {
         Args: { _admin: string; _target: string }
