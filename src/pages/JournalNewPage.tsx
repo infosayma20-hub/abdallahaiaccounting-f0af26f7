@@ -527,7 +527,164 @@ const JournalNewPage = () => {
     }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const dateFormatted = new Date(formDate).toLocaleDateString("ar-EG", {
+      year: "numeric", month: "2-digit", day: "2-digit"
+    });
+    const fmt = (n: number) =>
+      Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const subtypeAr = subtypeLabels[formSubtype] || formSubtype;
+
+    const sortedLines = lineSortOrder === "debit_first"
+      ? [...lines].sort((a, b) => (Number(b.debit) > 0 ? 0 : 1) - (Number(a.debit) > 0 ? 0 : 1))
+      : lines;
+
+    const rowsHtml = sortedLines
+      .filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0))
+      .map((l, i) => `
+        <tr>
+          <td style="text-align:center;color:#94a3b8;">${i + 1}</td>
+          <td><span style="font-family:monospace;background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:10px;">${l.account_code}</span> ${l.account_name || ""}</td>
+          <td>${l.contact_name || "—"}</td>
+          <td style="text-align:left;color:#059669;font-weight:600;">${Number(l.debit) > 0 ? "₪" + fmt(Number(l.debit)) : ""}</td>
+          <td style="text-align:left;color:#dc2626;font-weight:600;">${Number(l.credit) > 0 ? "₪" + fmt(Number(l.credit)) : ""}</td>
+          <td style="color:#64748b;font-size:10px;">${l.line_comment || ""}</td>
+        </tr>
+      `).join("");
+
+    const printHtml = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8">
+  <title>سند قيد - ${formRefNumber}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; color: #1a2332; background: #f5f5f5; padding: 20px; }
+    .voucher { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #0D1B2A 0%, #1B3A5C 100%); padding: 20px 28px; display: flex; justify-content: space-between; align-items: center; }
+    .company-name { font-size: 18px; font-weight: 700; color: #4A9EE8; }
+    .company-address { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .badge { background: #4A9EE8; color: #0D1B2A; padding: 4px 12px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .voucher-num { font-size: 11px; color: #fff; margin-top: 4px; }
+    .info-row { padding: 16px 28px; display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid #edf0f4; }
+    .info-label { font-size: 10px; color: #888; }
+    .info-value { font-size: 12px; font-weight: 600; }
+    .desc { padding: 14px 28px; border-bottom: 1px solid #edf0f4; background: #fafbfc; }
+    .desc-label { font-size: 10px; color: #888; margin-bottom: 4px; }
+    .desc-value { font-size: 13px; font-weight: 600; color: #1a2332; line-height: 1.5; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    thead tr { background: #f1f5f9; }
+    thead th { padding: 8px 10px; color: #475569; text-align: right; font-weight: 600; font-size: 10px; border-bottom: 2px solid #e2e8f0; }
+    thead th.left { text-align: left; }
+    tbody td { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9; font-variant-numeric: tabular-nums; vertical-align: top; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    tfoot td { padding: 10px; font-weight: 700; font-size: 12px; background: #f1f5f9; border-top: 2px solid #cbd5e1; font-variant-numeric: tabular-nums; }
+    .totals { padding: 14px 28px; display: flex; justify-content: space-between; gap: 16px; align-items: center; background: #f8fafc; border-bottom: 1px solid #edf0f4; }
+    .total-pill { padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+    .total-debit { background: rgba(5,150,105,0.1); color: #059669; }
+    .total-credit { background: rgba(220,38,38,0.1); color: #dc2626; }
+    .total-balance { background: ${isBalanced ? "rgba(5,150,105,0.15)" : "rgba(220,38,38,0.15)"}; color: ${isBalanced ? "#059669" : "#dc2626"}; }
+    .notes { padding: 12px 28px; border-bottom: 1px solid #edf0f4; font-size: 11px; color: #475569; }
+    .signatures { padding: 24px 28px; display: flex; justify-content: space-around; }
+    .sig-block { text-align: center; flex: 1; }
+    .sig-line { border-bottom: 1px solid #ccc; width: 140px; margin: 0 auto 6px; height: 28px; }
+    .sig-label { font-size: 10px; color: #888; }
+    .footer { background: #f7f8fa; border-top: 1px solid #edf0f4; padding: 10px 28px; display: flex; justify-content: space-between; align-items: center; }
+    .footer-info { font-size: 9px; color: #aaa; }
+    .footer-brand { font-size: 9px; color: #4A9EE8; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="voucher">
+  <div class="header">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${settings.logo_url ? `<img src="${settings.logo_url}" style="height:40px;width:auto;border-radius:4px;" />` : ""}
+        <div>
+          <div class="company-name">${settings.company_name || "AMWALI"}</div>
+          <div class="company-address">${settings.address || ""}</div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:left;">
+      <div class="badge">سند قيد</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:1px;">Journal Voucher</div>
+      <div class="voucher-num">${formRefNumber || ""}</div>
+    </div>
+  </div>
+
+  <div class="info-row">
+    <div><div class="info-label">التاريخ</div><div class="info-value">${dateFormatted}</div></div>
+    <div><div class="info-label">نوع السند</div><div class="info-value">${subtypeAr}</div></div>
+    <div><div class="info-label">عدد الأسطر</div><div class="info-value">${sortedLines.length}</div></div>
+    <div><div class="info-label">الحالة</div><div class="info-value" style="color:${isBalanced ? "#059669" : "#dc2626"};">${isBalanced ? "متوازن" : "غير متوازن"}</div></div>
+  </div>
+
+  ${formDescription ? `
+  <div class="desc">
+    <div class="desc-label">الوصف</div>
+    <div class="desc-value">${formDescription}</div>
+  </div>` : ""}
+
+  <div style="padding:16px 28px;">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:center;width:30px;">#</th>
+          <th>الحساب</th>
+          <th>الجهة</th>
+          <th class="left">مدين</th>
+          <th class="left">دائن</th>
+          <th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml || `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px;">لا توجد سطور</td></tr>`}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" style="text-align:right;">الإجمالي</td>
+          <td style="text-align:left;color:#059669;">₪${fmt(totalDebit)}</td>
+          <td style="text-align:left;color:#dc2626;">₪${fmt(totalCredit)}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="totals">
+    <span class="total-pill total-debit">إجمالي مدين: ₪${fmt(totalDebit)}</span>
+    <span class="total-pill total-credit">إجمالي دائن: ₪${fmt(totalCredit)}</span>
+    <span class="total-pill total-balance">${isBalanced ? "متوازن ✓" : `الفرق: ₪${fmt(diff)}`}</span>
+  </div>
+
+  ${formNotes ? `<div class="notes"><strong>ملاحظات:</strong> ${formNotes}</div>` : ""}
+
+  <div class="signatures">
+    <div class="sig-block"><div class="sig-line"></div><div class="sig-label">المحاسب</div></div>
+    <div class="sig-block"><div class="sig-line"></div><div class="sig-label">المراجع</div></div>
+    <div class="sig-block"><div class="sig-line"></div><div class="sig-label">المدير المالي</div></div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-info">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""} ${settings.tax_number ? "| رقم ضريبي: " + settings.tax_number : ""}</div>
+    <div class="footer-brand">AMWALI ERP Software</div>
+  </div>
+</div>
+<script>
+  document.fonts.ready.then(function() { setTimeout(function() { window.print(); }, 300); });
+</script>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(printHtml);
+    w.document.close();
+  };
 
   // Reset form to a blank entry (used by "قيد جديد" action)
   const resetForm = useCallback(() => {
