@@ -2704,7 +2704,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {isReceipt && (
+            {useFinanceShell && (
               <div>
                 <Label className="text-xs mb-1.5 block">رقم السند</Label>
                 <Input
@@ -2712,7 +2712,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   readOnly
                   value={savedReceiptNumber || refNumber || ""}
                   placeholder="يُولَّد عند الحفظ"
-                  data-testid="receipt-voucher-number"
+                  data-testid={isReceipt ? "receipt-voucher-number" : "payment-voucher-number"}
                   className="font-mono font-bold tracking-wide bg-muted/40 cursor-default"
                 />
               </div>
