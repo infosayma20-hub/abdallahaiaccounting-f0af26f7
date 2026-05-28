@@ -148,6 +148,22 @@ const InvoicesPage = () => {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Column visibility (localStorage per page)
+  const invoiceColumnDefs: ColumnDef[] = useMemo(() => ([
+    { key: "date", label: "التاريخ" },
+    { key: "contact", label: "العميل/المورد" },
+    { key: "invoiceNumber", label: "الرقم", required: true },
+    { key: "type", label: "النوع" },
+    { key: "status", label: "الحالة" },
+    { key: "paymentMethod", label: "الدفع" },
+    { key: "notes", label: "الملاحظات", defaultVisible: false },
+    { key: "total", label: "الإجمالي", required: true },
+    { key: "remaining", label: "المتبقي" },
+    { key: "actions", label: "إجراءات", required: true },
+  ]), []);
+  const invoiceColState = useColumnVisibility("invoices-page", invoiceColumnDefs);
+  const show = invoiceColState.isVisible;
+
   // Advanced filters
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
