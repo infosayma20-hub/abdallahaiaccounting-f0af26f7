@@ -290,8 +290,10 @@ export default function FinancePaymentsPage() {
 
   const handleEdit = async (r: Row) => {
     try { await assertPermission("finance", "payments", "update"); } catch { return; }
-    if (r.status === "posted") { setWarnTarget(r); setWarnOpen(true); }
-    else navigate(`/finance/payment/${r.id}/edit`);
+    // Open in read-only view first; the EditPostedWarningDialog will be
+    // triggered from inside VoucherFormPage when the user explicitly
+    // presses "تعديل" on a posted voucher.
+    navigate(`/finance/payment/${r.id}/edit`);
   };
   const confirmEditPosted = () => {
     if (!warnTarget) return;
