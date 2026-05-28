@@ -729,7 +729,7 @@ const JournalNewPage = () => {
         toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
         return;
       }
-      navigate(`/finance/journals?voucher=${target.id}`);
+      navigate(`/finance/journals?edit=${target.id}`);
     } catch (err: any) {
       toast.error(err.message || "تعذر التنقل بين السندات");
     }
