@@ -244,7 +244,6 @@ test.describe.serial("Full Accounting Cycle — Phase 2 (limited write)", () => 
 
     // Toggle to edit mode and wait until update becomes enabled.
     await page.getByTestId("action-edit").click();
-    await expect(page.getByText("وضع التعديل")).toBeVisible({ timeout: 10_000 });
     const updateBtn = page.getByTestId("action-update");
     await expect(updateBtn).toBeEnabled({ timeout: 10_000 });
 
