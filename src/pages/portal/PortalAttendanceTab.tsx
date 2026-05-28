@@ -236,8 +236,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
         }
       )
       .subscribe();
+    })();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [notificationsEnabled, audioUnlocked, playNotificationSound]);
 
   useEffect(() => {
