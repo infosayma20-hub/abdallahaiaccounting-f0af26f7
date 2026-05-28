@@ -106,6 +106,14 @@ const LandingPage = () => {
       className="bg-[#fafbfc] text-[#0D1B2E] overflow-x-hidden selection:bg-[#3b82f6] selection:text-white min-h-screen"
       style={{ fontFamily: "'Cairo', sans-serif" }}
     >
+      {/* Scroll Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-1 z-[60]">
+        <div
+          className="h-full bg-[#3b82f6] transition-[width] duration-150 ease-out"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       <style>{`
         .font-latin { font-family: 'DM Sans', sans-serif; }
         .bento-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
