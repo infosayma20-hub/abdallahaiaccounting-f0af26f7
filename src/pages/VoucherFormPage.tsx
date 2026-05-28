@@ -561,7 +561,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   // Load contacts
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     Promise.all([
       supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", ownerId).order("contact_name"),
       // SOA parity: include cancelled-but-reversed entries so the original
@@ -633,40 +633,40 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       })
       .then(() => setDraftReady(true), () => setDraftReady(true));
-  }, [user]);
+  }, [user, ownerId]);
 
   // Load GL accounts (for "account" party type)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     supabase.from("accounts")
       .select("id, account_code, account_name, account_type")
       .eq("user_id", ownerId)
       .eq("is_active", true)
       .order("account_code")
       .then(({ data }) => setGlAccounts(data || []));
-  }, [user]);
+  }, [user, ownerId]);
 
   // Load employees (for payment vouchers)
   useEffect(() => {
-    if (!user || isReceipt) return;
+    if (!user || !ownerId || isReceipt) return;
     supabase.from("employees")
       .select("id, full_name, department, job_title")
       .eq("user_id", ownerId)
       .eq("is_active", true)
       .order("full_name")
       .then(({ data }) => setEmployeeList(data || []));
-  }, [user, isReceipt]);
+  }, [user, ownerId, isReceipt]);
 
   // Load workshops for cost center selector
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     supabase.from("workshops")
       .select("id, name, customer_name, status")
       .eq("user_id", ownerId)
       .in("status", ["active", "completed"])
       .order("name")
       .then(({ data }) => setWorkshopList(data || []));
-  }, [user]);
+  }, [user, ownerId]);
 
   useEffect(() => {
     if (currency === "ILS") {
