@@ -462,14 +462,16 @@ const AccountsPage = () => {
           items: [
             { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchAccounts, disabled: loading },
             { key: "expand", label: expanded.size > 0 ? "ضم الكل" : "توسيع الكل", icon: expanded.size > 0 ? ChevronsDownUp : ChevronsUpDown, onClick: () => (expanded.size > 0 ? collapseAll() : expandAll()) },
+            { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
           ],
         },
         {
           key: "transfer",
-          label: "ترحيل",
+          label: "طباعة وتصدير",
           items: [
+            { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: loading || accounts.length === 0 },
             { key: "import", label: "استيراد", icon: Upload, onClick: () => setShowImportModal(true) },
-            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: () => exportAccountsToExcel(accounts) },
+            { key: "export", label: "تصدير Excel", icon: FileSpreadsheet, onClick: () => exportAccountsToExcel(accounts), disabled: accounts.length === 0 },
           ],
         },
       ],
