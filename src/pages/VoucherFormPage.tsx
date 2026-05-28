@@ -2563,8 +2563,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       )}
 
-      {/* Header + old toolbar — hidden for receipts (FinanceShell + ActionPane own this). */}
-      {!isReceipt && <>
+      {/* Header + old toolbar — hidden for receipts and payments
+          (FinanceShell + ActionPane own this for both). */}
+      {!useFinanceShell && <>
       <PageHeader
         title={pageTitle}
         breadcrumb={["المالية", isReceipt ? "سندات القبض" : "سندات الصرف", pageTitle]}
