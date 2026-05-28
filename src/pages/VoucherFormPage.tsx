@@ -2744,7 +2744,33 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     value={selectedContact ? selectedContact.contact_name : contactSearch}
                     onChange={e => { setContactSearch(e.target.value); setSelectedContact(null); setShowContactDropdown(true); }}
                     onFocus={() => setShowContactDropdown(true)}
-                    onKeyDown={e => { if (e.key === "Enter") { setShowContactDropdown(false); } }}
+                    onKeyDown={e => {
+                      // Bug #5: ArrowDown moves focus into the dropdown list
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setShowContactDropdown(true);
+                        setTimeout(() => {
+                          const first = contactDropdownRef.current?.querySelector<HTMLButtonElement>(
+                            "div[class*='absolute'] button"
+                          );
+                          first?.focus();
+                        }, 30);
+                        return;
+                      }
+                      // Bug #6: Enter when single match → auto-select and jump to amount
+                      if (e.key === "Enter") {
+                        if (!selectedContact && filteredContacts.length === 1) {
+                          e.preventDefault();
+                          const only = filteredContacts[0];
+                          setSelectedContact(only);
+                          setContactSearch("");
+                          setShowContactDropdown(false);
+                          focusAmountField();
+                          return;
+                        }
+                        setShowContactDropdown(false);
+                      }
+                    }}
                     placeholder={contactPlaceholder}
                     className="pr-9"
                     data-smart-first="true"
