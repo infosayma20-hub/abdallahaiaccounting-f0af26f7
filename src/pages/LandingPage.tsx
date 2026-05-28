@@ -751,6 +751,12 @@ const FooterCol = ({ title, links }: { title: string; links: [string, string][] 
 
 export default LandingPage;
 
+const CompCell = ({ v, highlight = false }: { v: string; highlight?: boolean }) => {
+  if (v === "yes") return <span className={`inline-block font-black ${highlight ? "text-[#3b82f6] text-lg" : "text-green-600"}`}>✓</span>;
+  if (v === "partial") return <span className="inline-block text-amber-500 font-black">~</span>;
+  return <span className="inline-block text-red-400 font-black">✗</span>;
+};
+
 // ============ Data ============
 type ERPModule = {
   title: string;
