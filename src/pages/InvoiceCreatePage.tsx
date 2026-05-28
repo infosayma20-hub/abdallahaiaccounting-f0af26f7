@@ -2976,6 +2976,8 @@ const InvoiceCreatePage = () => {
 
       </div>
 
+      </fieldset>
+
       {/* Sticky bottom save toolbar removed — ActionPane (top) now owns
           جديد / حفظ مسودة / إنشاء الفاتورة / معاينة / طباعة. A compact
           total-only strip stays for live feedback on mobile/desktop. */}
