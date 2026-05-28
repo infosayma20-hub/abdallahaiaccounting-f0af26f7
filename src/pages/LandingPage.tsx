@@ -596,7 +596,7 @@ const LandingPage = () => {
       </section>
 
       {/* Security & Compliance */}
-      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section" text-white">
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-block bg-white/10 text-white px-3 py-1 rounded-full text-xs font-black mb-4 font-latin tracking-wider">SECURITY · COMPLIANCE</div>
@@ -958,7 +958,7 @@ const LandingPage = () => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section" text-white">
+      <section className="py-24 px-6 bg-[#0D1B2E] reveal-section text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
             جاهز تنقل شركتك لمستوى <span className="font-latin text-[#3b82f6]">ERP</span> احترافي؟
