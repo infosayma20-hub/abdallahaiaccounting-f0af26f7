@@ -635,14 +635,14 @@ const JournalNewPage = () => {
 
       <div data-print-area>
       {/* ═══════════════════════════════════════════════════════════════
-          12-COLUMN MASTER GRID — Odoo / QuickBooks Journal style
-          Left  (col-span-8): Header → Lines → Notes/Attachments
-          Right (col-span-4): Sticky balance summary (Debit/Credit/Diff)
+          MASTER LAYOUT — Odoo / QuickBooks Journal style
+          Left  (flex-1): Header → Lines → Description → Notes/Attachments
+          Right (320px) : TRULY sticky balance summary (Debit/Credit/Diff)
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
 
-      {/* ═══ LEFT COLUMN — Main content (8 cols) ═══ */}
-      <div className="lg:col-span-8 min-w-0 space-y-5">
+      {/* ═══ LEFT COLUMN — Main content (grows to fill) ═══ */}
+      <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
       {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
       <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
