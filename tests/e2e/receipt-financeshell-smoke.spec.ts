@@ -1,0 +1,113 @@
+import { test, expect, Page } from "@playwright/test";
+
+const EMAIL = process.env.E2E_EMAIL!;
+const PASSWORD = process.env.E2E_PASSWORD!;
+
+if (!EMAIL || !PASSWORD) {
+  throw new Error("Missing E2E_EMAIL / E2E_PASSWORD env vars (see .env.e2e.local)");
+}
+
+/**
+ * Phase 1 (Receipt) — Smoke test for ReceiptNewPage FinanceShell wrap.
+ * Verifies the page renders inside FinanceShell with the expected
+ * ActionPane buttons + cost-center + currency testids.
+ * No writes performed.
+ */
+
+async function login(page: Page) {
+  await page.goto("/auth", { waitUntil: "domcontentloaded" });
+  await page.locator('input[type="email"]').first().fill(EMAIL);
+  await page.locator('input[type="password"]').first().fill(PASSWORD);
+  await Promise.all([
+    page.waitForURL((u) => !u.pathname.startsWith("/auth"), { timeout: 30_000 }),
+    page.locator('form button[type="submit"]').first().click(),
+  ]);
+}
+
+test.describe.configure({ mode: "serial" });
+
+test.describe("Receipt — FinanceShell smoke (Phase 1)", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  test("new receipt: FinanceShell + ActionPane action buttons exist", async ({ page }) => {
+    await page.goto("/finance/receipt/new", { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    // RTL
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    // Breadcrumb / title rendered by FinanceShell
+    await expect(page.locator("body")).toContainText(/سند قبض جديد/);
+    await expect(page.locator("body")).toContainText(/المالية/);
+
+    // ActionPane tab ("عام")
+    await expect(page.getByRole("button", { name: "عام" }).first()).toBeVisible();
+
+    // Required action buttons (new mode)
+    const expectedNew = [
+      "action-new",
+      "action-draft",
+      "action-post",
+      "action-preview",
+      "action-print",
+      "action-prev",
+      "action-next",
+      "action-inquiry",
+      "action-center",
+    ];
+    for (const tid of expectedNew) {
+      await expect(page.locator(`[data-testid="${tid}"]`), `missing ${tid}`).toBeVisible();
+    }
+
+    // Cost center + currency testids
+    await expect(page.locator('[data-testid="receipt-cost-center"]')).toBeVisible();
+    await expect(page.locator('[data-testid="receipt-currency"]')).toBeVisible();
+  });
+
+  test("receipts list opens — used to pick latest receipt id for edit smoke", async ({ page }) => {
+    await page.goto("/finance/receipts", { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.locator("body")).toContainText(/سندات القبض|قبض/);
+  });
+
+  test("edit receipt (first row): FinanceShell shows edit/update/delete/duplicate", async ({ page }) => {
+    // Best-effort: navigate to receipts list and click first row's edit affordance.
+    await page.goto("/finance/receipts", { waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    // Try to open the first receipt — feature missing if none exists.
+    const firstLink = page.locator('a[href*="/finance/receipt/"][href*="/edit"]').first();
+    if (!(await firstLink.isVisible().catch(() => false))) {
+      test.skip(true, "feature missing: no existing receipts to edit");
+      return;
+    }
+    await Promise.all([
+      page.waitForURL(/\/finance\/receipt\/.+\/edit/, { timeout: 20_000 }),
+      firstLink.click(),
+    ]);
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    // View-mode banner
+    await expect(page.locator('[data-testid="receipt-view-banner"]')).toBeVisible({ timeout: 20_000 });
+
+    // Edit-mode action buttons
+    const expectedEdit = [
+      "action-new",
+      "action-duplicate",
+      "action-edit",
+      "action-update",
+      "action-delete",
+      "action-preview",
+      "action-print",
+      "action-prev",
+      "action-next",
+      "action-inquiry",
+    ];
+    for (const tid of expectedEdit) {
+      await expect(page.locator(`[data-testid="${tid}"]`), `missing ${tid}`).toBeVisible();
+    }
+  });
+});
