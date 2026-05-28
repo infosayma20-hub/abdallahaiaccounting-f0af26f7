@@ -1387,7 +1387,7 @@ const InvoicesPage = () => {
                       key={inv.id}
                       data-focus-id={inv.id}
                       className={`hover:bg-muted/20 cursor-pointer transition-all duration-500 ${isFocused ? "bg-primary/10 ring-2 ring-primary/60" : ""}`}
-                      onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}
+                      onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}
                     >
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
                       <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>
