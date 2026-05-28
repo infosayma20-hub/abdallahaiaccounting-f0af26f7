@@ -477,6 +477,74 @@ const FinanceJournalPage = () => {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex-1" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs">
+                <SlidersHorizontal className="h-3.5 w-3.5" /> فلاتر متقدمة
+                {activeAdvancedCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                    {activeAdvancedCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[360px] p-4 space-y-3" dir="rtl">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold">فلاتر متقدمة</h4>
+                {activeAdvancedCount > 0 && (
+                  <button onClick={clearAdvanced} className="text-[11px] text-destructive hover:underline">
+                    مسح الكل
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px]">من تاريخ</Label>
+                  <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="h-8 mt-1 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[11px]">إلى تاريخ</Label>
+                  <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="h-8 mt-1 text-xs" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-[11px]">نوع القيد</Label>
+                <Select value={filterSubtype} onValueChange={setFilterSubtype}>
+                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الأنواع</SelectItem>
+                    <SelectItem value="normal">عادي</SelectItem>
+                    <SelectItem value="opening">افتتاحي</SelectItem>
+                    <SelectItem value="adjustment">تسوية</SelectItem>
+                    <SelectItem value="closing">إقفالي</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px]">جهة الاتصال</Label>
+                <Select value={filterContactId} onValueChange={setFilterContactId}>
+                  <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue placeholder="الكل" /></SelectTrigger>
+                  <SelectContent className="max-h-[280px]">
+                    <SelectItem value="all">جميع الجهات</SelectItem>
+                    {contacts.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px]">أقل مبلغ</Label>
+                  <Input type="number" value={filterAmountMin} onChange={e => setFilterAmountMin(e.target.value)} placeholder="0" className="h-8 mt-1 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[11px]">أعلى مبلغ</Label>
+                  <Input type="number" value={filterAmountMax} onChange={e => setFilterAmountMax(e.target.value)} placeholder="—" className="h-8 mt-1 text-xs" />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <ColumnVisibilityMenu state={colState} />
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px] rounded-xl text-xs">
               <SelectValue placeholder="حالة السند" />
