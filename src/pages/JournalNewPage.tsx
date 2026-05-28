@@ -4,7 +4,8 @@ import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2, Eye, Calculator,
   BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock,
-  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw
+  FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw,
+  Pencil, Copy, Lock
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,10 +70,15 @@ const JournalNewPage = () => {
   const { user } = useAuth();
   const { company } = useCompany();
   const { settings } = useCompanySettings();
-  const { save: saveJournalVoucher } = useSaveJournalVoucher();
+  const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
+  const editIdFromUrl = searchParams.get("edit") || null;
+  const [editingVoucherId, setEditingVoucherId] = useState<string | null>(editIdFromUrl);
+  const [editingCreatedAt, setEditingCreatedAt] = useState<string | null>(null);
+  const [isReadOnly, setIsReadOnly] = useState<boolean>(!!editIdFromUrl);
+  const [loadingVoucher, setLoadingVoucher] = useState<boolean>(false);
 
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
   const [formRefNumber, setFormRefNumber] = useState("");
@@ -166,7 +172,7 @@ const JournalNewPage = () => {
     journalDraftSnapshot,
     applyJournalDraft,
     {
-      enabled: !fromDuplicate,
+      enabled: !fromDuplicate && !editingVoucherId,
       version: 1,
       isEmpty: isJournalDraftEmpty,
       routePath: "/finance/journal/new",
@@ -267,6 +273,88 @@ const JournalNewPage = () => {
     })();
     return () => { cancelled = true; };
   }, [formCurrency, formDate, user]);
+
+  // ─── Sync editingVoucherId with URL (?edit=...) ───
+  useEffect(() => {
+    const urlId = searchParams.get("edit") || null;
+    setEditingVoucherId(urlId);
+    setIsReadOnly(!!urlId);
+  }, [searchParams]);
+
+  // ─── Load existing voucher into the page when editingVoucherId changes ───
+  useEffect(() => {
+    if (!user || !editingVoucherId) {
+      setEditingCreatedAt(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingVoucher(true);
+      try {
+        const { data: v, error: vErr } = await supabase
+          .from("vouchers")
+          .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type")
+          .eq("id", editingVoucherId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (vErr || !v) {
+          toast.error("السند غير موجود أو ليس لديك صلاحية");
+          if (!cancelled) navigate("/finance/journal/new", { replace: true });
+          return;
+        }
+        if (v.type !== "journal") {
+          toast.error("هذا السند ليس قيد يومية");
+          if (!cancelled) navigate("/finance/journal/new", { replace: true });
+          return;
+        }
+
+        const { data: lns } = await supabase
+          .from("voucher_lines")
+          .select("account_code, account_name, debit, credit, contact_id, contact_name, line_comment, cost_center_id, line_order")
+          .eq("voucher_id", editingVoucherId)
+          .order("line_order", { ascending: true });
+
+        if (cancelled) return;
+
+        setEditingCreatedAt(v.created_at);
+        setFormDate(v.date);
+        setFormRefNumber(v.ref_number);
+        setFormSubtype((v.subtype as any) || "normal");
+        setFormContactId(v.contact_id || "");
+        setFormCostCenterId(v.cost_center_id || null);
+        setFormDescription(v.description || "");
+        setFormNotes(v.notes || "");
+        setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
+        setLineSortOrder((v.line_sort_order as any) || "original");
+
+        const loaded: JournalLine[] = (lns || []).map((l: any, i: number) => ({
+          id: `${editingVoucherId}-${i}-${Date.now()}`,
+          account_code: l.account_code || "",
+          account_name: l.account_name || "",
+          debit: Number(l.debit) || 0,
+          credit: Number(l.credit) || 0,
+          contact_id: l.contact_id || "",
+          contact_name: l.contact_name || "",
+          line_comment: l.line_comment || "",
+          cost_center_id: l.cost_center_id || null,
+        }));
+        while (loaded.length < 2) {
+          loaded.push({
+            id: `pad-${loaded.length}-${Date.now()}`,
+            account_code: "", account_name: "", debit: 0, credit: 0,
+            contact_id: "", contact_name: "", line_comment: "",
+          });
+        }
+        setLines(loaded);
+        setIsReadOnly(true);
+      } catch (err: any) {
+        toast.error(err.message || "تعذر تحميل السند");
+      } finally {
+        if (!cancelled) setLoadingVoucher(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [editingVoucherId, user, navigate]);
 
   const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
   const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
@@ -770,51 +858,161 @@ const JournalNewPage = () => {
   const goToAdjacentVoucher = async (direction: "prev" | "next") => {
     if (!user) return;
     try {
-      const order = direction === "prev" ? { ascending: false } : { ascending: true };
-      const { data, error } = await supabase
+      let q = supabase
         .from("vouchers")
-        .select("id, ref_number")
+        .select("id, ref_number, created_at")
         .eq("user_id", user.id)
-        .eq("type", "journal")
-        .order("created_at", order)
-        .limit(1);
+        .eq("type", "journal");
+      if (editingCreatedAt) {
+        if (direction === "prev") {
+          q = q.lt("created_at", editingCreatedAt).order("created_at", { ascending: false });
+        } else {
+          q = q.gt("created_at", editingCreatedAt).order("created_at", { ascending: true });
+        }
+      } else {
+        // No voucher loaded yet — prev = most recent, next = oldest
+        q = q.order("created_at", { ascending: direction !== "prev" });
+      }
+      const { data, error } = await q.limit(1);
       if (error) throw error;
       const target = (data || [])[0];
       if (!target) {
         toast.info(direction === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالٍ");
         return;
       }
-      navigate(`/finance/journals?edit=${target.id}`);
+      navigate(`/finance/journal/new?edit=${target.id}`);
     } catch (err: any) {
       toast.error(err.message || "تعذر التنقل بين السندات");
     }
   };
 
-  const actionTabs: ActionTab[] = useMemo(() => ([{
-    key: "general",
-    label: "عام",
-    groups: [
-      { key: "new", label: "جديد", items: [
-        { key: "new", label: "قيد جديد", icon: Plus, variant: "primary", onClick: resetForm },
-      ]},
-      { key: "save", label: "حفظ", items: [
-        { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSave("draft"), disabled: saving },
-        { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary",
-          onClick: () => handleSave("posted"), disabled: saving || !isBalanced,
-          tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
-      ]},
-      { key: "view", label: "عرض", items: [
-        { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
-        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
-      ]},
-      { key: "nav", label: "تنقل", items: [
-        { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
-        { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
-        { key: "query", label: "استعلام", icon: ListChecks, onClick: openJournalList },
-        { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
-      ]},
-    ],
-  }]), [saving, isBalanced, resetForm, handlePrint]);
+  // Build a JournalSaveInput payload from current form state (shared by save+update).
+  const buildPayload = (mode: "draft" | "posted" | "deferred") => {
+    const validLines = lines
+      .filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0))
+      .map((l) => ({
+        account_code: l.account_code,
+        account_name: l.account_name,
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
+        contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
+        contact_name: l.contact_name || null,
+        line_comment: l.line_comment || null,
+        cost_center_id: l.cost_center_id || null,
+      }));
+    return {
+      ref_number: formRefNumber,
+      date: formDate,
+      subtype: formSubtype as any,
+      description: formDescription,
+      notes: formNotes || null,
+      contact_id: formContactId || null,
+      cost_center_id: formCostCenterId || null,
+      currency_code: formCurrency,
+      currency_label: CURRENCIES.find(c => c.value === formCurrency)?.label || "شيكل",
+      exchange_rate: formExchangeRate,
+      lines: validLines,
+      mode,
+      attachments,
+      line_sort_order: lineSortOrder,
+    };
+  };
+
+  // Update an existing loaded voucher
+  const handleUpdate = async () => {
+    if (!editingVoucherId) return;
+    if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
+    if (!isBalanced) { toast.error("القيد غير متوازن"); return; }
+    setSaving(true);
+    try {
+      const result = await updateJournalVoucher(editingVoucherId, buildPayload("posted") as any);
+      if (!result.success) throw new Error(result.error || "فشل تعديل السند");
+      toast.success(`تم تحديث السند ${result.ref_number || formRefNumber}`);
+      setIsReadOnly(true);
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete loaded voucher
+  const handleDelete = async () => {
+    if (!editingVoucherId) return;
+    if (!window.confirm(`هل تريد حذف السند ${formRefNumber}؟ لا يمكن التراجع.`)) return;
+    setSaving(true);
+    try {
+      const result = await removeJournalVoucher(editingVoucherId);
+      if (!result.success) throw new Error(result.error || "فشل الحذف");
+      toast.success(`تم حذف السند ${formRefNumber}`);
+      navigate("/finance/journal/new", { replace: true });
+    } catch (err: any) {
+      toast.error(err.message || "تعذر الحذف");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Duplicate loaded voucher into a fresh new entry (keeps all data, generates new ref)
+  const handleDuplicate = async () => {
+    if (!user) return;
+    // Generate a new ref number
+    const { data } = await supabase
+      .from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal")
+      .order("created_at", { ascending: false }).limit(1);
+    const lastRef = (data || [])[0]?.ref_number || "";
+    const match = lastRef.match(/(\d+)$/);
+    const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+    const newRef = `QV-${new Date().getFullYear()}-${nextNum}`;
+
+    setEditingVoucherId(null);
+    setEditingCreatedAt(null);
+    setIsReadOnly(false);
+    setFormRefNumber(newRef);
+    setFormDate(new Date().toISOString().split("T")[0]);
+    // Reset URL (remove ?edit=)
+    navigate("/finance/journal/new", { replace: true });
+    toast.success("تم تجهيز سند مشابه — عدّل ما يلزم ثم احفظ");
+  };
+
+  const actionTabs: ActionTab[] = useMemo(() => {
+    const inEdit = !!editingVoucherId;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "قيد جديد", icon: Plus, variant: "primary" as const,
+          onClick: () => { navigate("/finance/journal/new"); resetForm(); } },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy, onClick: handleDuplicate }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: handleUpdate, disabled: isReadOnly || saving || !isBalanced,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : (!isBalanced ? "القيد غير متوازن" : undefined) },
+          { key: "delete", label: "حذف", icon: Trash2,
+            onClick: handleDelete, disabled: saving },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ", icon: Save, onClick: () => handleSave("draft"), disabled: saving },
+          { key: "post", label: "حفظ وترحيل", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleSave("posted"), disabled: saving || !isBalanced,
+            tooltip: !isBalanced ? "القيد غير متوازن" : undefined },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: doPreview },
+      { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
+      { key: "next", label: "التالي", icon: ChevronLeft, onClick: () => goToAdjacentVoucher("next") },
+      { key: "query", label: "استعلام", icon: ListChecks, onClick: openJournalList },
+      { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: openCenter },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+  }, [saving, isBalanced, resetForm, handlePrint, editingVoucherId, isReadOnly, editingCreatedAt]);
 
   // ── FastTabs sections (collapsible body) ──
   const headerSummary = `${subtypeLabels[formSubtype]} • ${formDate}${formRefNumber ? ` • ${formRefNumber}` : ""}`;
@@ -873,6 +1071,21 @@ const JournalNewPage = () => {
       </div>
 
       <div data-print-area>
+      {/* View-mode banner when an existing voucher is loaded */}
+      {editingVoucherId && (
+        <div className={`mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`}>
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            <span>
+              {isReadOnly
+                ? `وضع العرض — السند ${formRefNumber}. اضغط "تعديل" للتعديل أو "إنشاء مشابه" لنسخه.`
+                : `وضع التعديل — السند ${formRefNumber}. اضغط "حفظ التعديلات" لحفظ التغييرات.`}
+            </span>
+          </div>
+          {loadingVoucher && <Loader2 className="h-4 w-4 animate-spin" />}
+        </div>
+      )}
+      <fieldset disabled={!!editingVoucherId && isReadOnly} className="contents min-w-0">
       {/* ═══════════════════════════════════════════════════════════════
           MASTER LAYOUT — Odoo / QuickBooks Journal style
           Left  (flex-1): Header → Lines → Description → Notes/Attachments
@@ -1534,10 +1747,12 @@ const JournalNewPage = () => {
 
       {/* ═══ END MASTER FLEX ═══ */}
       </div>
+      </fieldset>
       </div>
       {/* ═══ END data-print-area ═══ */}
 
       {/* ═══ Sticky Bottom Action Bar ═══ */}
+      {!editingVoucherId && (
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Mini status pill */}
@@ -1574,6 +1789,7 @@ const JournalNewPage = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Quick Add Contact Dialog */}
       <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
