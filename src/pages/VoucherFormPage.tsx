@@ -2888,7 +2888,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       <details className="group rounded-xl border border-border/50 bg-card/40">
         <summary
           className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden"
-          data-testid="receipt-dimensions-toggle"
+          data-testid={isReceipt ? "receipt-dimensions-toggle" : "payment-dimensions-toggle"}
         >
           <div className="flex items-center gap-2 text-[13px] text-muted-foreground" style={{ fontFamily: "Cairo" }}>
             <Wrench className="h-4 w-4" />
