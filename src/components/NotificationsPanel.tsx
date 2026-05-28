@@ -26,6 +26,19 @@ export function useNotifications() {
   const [loading, setLoading] = useState(false);
   const channelRef = useRef<any>(null);
 
+  // Bug #2: persist read notification IDs so refresh/realtime don't bring them back as unread
+  const readKey = user ? `amwali_notif_read_${user.id}` : "amwali_notif_read";
+  const loadReadIds = useCallback((): Set<string> => {
+    try {
+      const raw = localStorage.getItem(readKey);
+      if (!raw) return new Set();
+      return new Set(JSON.parse(raw) as string[]);
+    } catch { return new Set(); }
+  }, [readKey]);
+  const saveReadIds = useCallback((ids: Set<string>) => {
+    try { localStorage.setItem(readKey, JSON.stringify(Array.from(ids))); } catch {}
+  }, [readKey]);
+
   const generateNotifications = useCallback(async () => {
     if (!user) return;
     setLoading(true);
