@@ -936,8 +936,9 @@ const InvoicesPage = () => {
     return true;
   });
 
-  const salesTotal = invoices.filter(i => i.type === "sales").reduce((s, i) => s + i.total, 0);
-  const purchaseTotal = invoices.filter(i => i.type === "purchase").reduce((s, i) => s + i.total, 0);
+  // Bug #4: KPI cards must exclude cancelled invoices
+  const salesTotal = invoices.filter(i => i.type === "sales" && i.status !== "cancelled").reduce((s, i) => s + i.total, 0);
+  const purchaseTotal = invoices.filter(i => i.type === "purchase" && i.status !== "cancelled").reduce((s, i) => s + i.total, 0);
 
   const PAGE_SIZE = 15;
 
@@ -1149,8 +1150,8 @@ const InvoicesPage = () => {
   };
 
   const netTotal = salesTotal - purchaseTotal;
-  const paidTotal = invoices.reduce((s, i) => s + i.paidAmount, 0);
-  const unpaidTotal = invoices.reduce((s, i) => s + i.remainingAmount, 0);
+  const paidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.paidAmount, 0);
+  const unpaidTotal = invoices.filter(i => i.status !== "cancelled").reduce((s, i) => s + i.remainingAmount, 0);
 
   const pageTitle = filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير";
   const actionTabs: ActionTab[] = [

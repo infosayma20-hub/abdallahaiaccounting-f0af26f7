@@ -26,6 +26,19 @@ export function useNotifications() {
   const [loading, setLoading] = useState(false);
   const channelRef = useRef<any>(null);
 
+  // Bug #2: persist read notification IDs so refresh/realtime don't bring them back as unread
+  const readKey = user ? `amwali_notif_read_${user.id}` : "amwali_notif_read";
+  const loadReadIds = useCallback((): Set<string> => {
+    try {
+      const raw = localStorage.getItem(readKey);
+      if (!raw) return new Set();
+      return new Set(JSON.parse(raw) as string[]);
+    } catch { return new Set(); }
+  }, [readKey]);
+  const saveReadIds = useCallback((ids: Set<string>) => {
+    try { localStorage.setItem(readKey, JSON.stringify(Array.from(ids))); } catch {}
+  }, [readKey]);
+
   const generateNotifications = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -315,9 +328,11 @@ export function useNotifications() {
 
     const priority = { urgent: 0, warning: 1, info: 2 };
     notifs.sort((a, b) => priority[a.category] - priority[b.category]);
-    setNotifications(notifs);
+    // Apply persisted read state so dismissed notifications stay dismissed
+    const readIds = loadReadIds();
+    setNotifications(notifs.map(n => readIds.has(n.id) ? { ...n, read: true } : n));
     setLoading(false);
-  }, [user]);
+  }, [user, loadReadIds]);
 
   // Realtime subscription for qamar_orders changes
   useEffect(() => {
@@ -346,10 +361,17 @@ export function useNotifications() {
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    const ids = loadReadIds(); ids.add(id); saveReadIds(ids);
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      const ids = loadReadIds();
+      next.forEach(n => ids.add(n.id));
+      saveReadIds(ids);
+      return next;
+    });
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
