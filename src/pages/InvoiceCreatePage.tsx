@@ -2931,56 +2931,18 @@ const InvoiceCreatePage = () => {
 
       </div>
 
-      {/* ─── Sticky Bottom Actions ─── */}
+      {/* Sticky bottom save toolbar removed — ActionPane (top) now owns
+          جديد / حفظ مسودة / إنشاء الفاتورة / معاينة / طباعة. A compact
+          total-only strip stays for live feedback on mobile/desktop. */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        {/* Mobile-only prominent total row (desktop shows it inline below) */}
-        <div className="lg:hidden flex items-center justify-between gap-2 mb-2 px-3 h-11 rounded-xl bg-primary/5 border border-primary/15">
+        <div className="flex items-center justify-between gap-3 px-3 h-11 rounded-xl bg-primary/5 border border-primary/15">
           <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">الإجمالي</span>
-          <span
-            dir="ltr"
-            title={fmtCurrency(summary.total)}
-            className="font-extrabold text-primary tabular-nums whitespace-nowrap text-lg"
-          >
-            {fmtCurrency(summary.total)}
-          </span>
-        </div>
-        <div className="w-full mx-auto flex gap-2 items-center">
-          {/* Live mini-summary: invoices are credit-only, so always shows total as outstanding (آجل) */}
-          <div
-            className="hidden lg:flex items-center gap-3 px-4 h-12 rounded-xl bg-primary/5 border border-primary/15 min-w-[260px] shrink-0"
-            title={fmtCurrency(summary.total)}
-          >
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">الإجمالي</span>
-            <span
-              dir="ltr"
-              className="font-extrabold text-primary tabular-nums whitespace-nowrap leading-none text-xl xl:text-2xl"
-            >
+          <div className="flex items-center gap-2">
+            <span dir="ltr" title={fmtCurrency(summary.total)} className="font-extrabold text-primary tabular-nums whitespace-nowrap text-lg">
               {fmtCurrency(summary.total)}
             </span>
-            <span className="text-muted-foreground/40">·</span>
             <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-[10px]">آجل</span>
           </div>
-          <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
-            <Save className="h-4 w-4" /> حفظ كمسودة
-          </Button>
-          <Button className="flex-1 rounded-xl gap-1.5 h-11 text-sm font-bold shadow-lg shadow-primary/20" onClick={() => handleCreate(false)} disabled={creating}>
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileText className="h-4 w-4" /> {isEditMode ? "حفظ التعديلات" : "إنشاء الفاتورة"}</>}
-          </Button>
-          <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={handlePrint}>
-            <Eye className="h-4 w-4" /> معاينة PDF
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm">
-                <Send className="h-4 w-4" /> إرسال <ChevronDown className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleWhatsApp} className="gap-2">📱 إرسال واتساب</DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">📧 إرسال إيميل</DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">📋 نسخ رابط الفاتورة</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
