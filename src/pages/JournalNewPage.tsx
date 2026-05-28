@@ -1117,10 +1117,8 @@ const JournalNewPage = () => {
           <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
         </CardContent>
       </Card>
-      </div>
 
-      {/* ═══ Bottom row (col-span-12): Description → Notes + Attachments ═══ */}
-      <div className="lg:col-span-12 space-y-5">
+      {/* ═══ Description → Notes + Attachments ═══ */}
       {/* Description Card — same style as Notes */}
       <Card className="border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
@@ -1193,9 +1191,79 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
       </div>
+
+      {/* ═══ END LEFT COLUMN ═══ */}
       </div>
 
-      {/* ═══ END MASTER GRID ═══ */}
+      {/* ═══ RIGHT COLUMN — Truly Sticky Balance Summary ═══ */}
+      <aside className="w-full lg:w-[320px] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
+        <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
+            <Scale className="h-4 w-4 text-primary" />
+            <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
+          </div>
+          <CardContent className="p-4 space-y-3">
+            {(() => {
+              const isZero = totalDebit === 0 && totalCredit === 0;
+              if (isZero) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 text-muted-foreground text-xs">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>أدخل المبالغ للتحقق من التوازن</span>
+                  </div>
+                );
+              }
+              if (isBalanced) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>القيد متوازن — جاهز للترحيل</span>
+                  </div>
+                );
+              }
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-bold border border-destructive/20">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>القيد غير متوازن</span>
+                </div>
+              );
+            })()}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي مدين</span>
+                <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400 text-sm">₪{formatAmount(totalDebit)}</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-destructive/5 border border-destructive/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي دائن</span>
+                <span className="font-bold tabular-nums text-destructive text-sm">₪{formatAmount(totalCredit)}</span>
+              </div>
+              <div className="h-px bg-border/60 my-1" />
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/40">
+                <span className="text-[12px] font-semibold">الفرق</span>
+                <span className={`font-extrabold tabular-nums text-base ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
+                  ₪{formatAmount(Math.abs(totalDebit - totalCredit))}
+                </span>
+              </div>
+            </div>
+            <div className="pt-2 mt-1 border-t border-border/50 space-y-1.5 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>عدد الأسطر</span>
+                <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>نوع السند</span>
+                <span className="font-semibold text-foreground">{subtypeLabels[formSubtype]}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>التاريخ</span>
+                <span className="font-semibold text-foreground tabular-nums">{formDate}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
+
+      {/* ═══ END MASTER FLEX ═══ */}
       </div>
       </div>
       {/* ═══ END data-print-area ═══ */}
