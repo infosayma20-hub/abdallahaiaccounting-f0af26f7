@@ -259,7 +259,7 @@ const InvoiceCreatePage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showWarrantyDialog, setShowWarrantyDialog] = useState(false);
   const [showQuickAddRep, setShowQuickAddRep] = useState(false);
-  const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+  const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product" as "product" | "service", service_direction: "" as "" | "provided" | "received" });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
 
   // ─── Auto-draft للنوافذ المنبثقة (Quick Add) ───
