@@ -225,6 +225,32 @@ export default function EmployeeFormsManagementPage() {
     if (error) {
       toast.error("خطأ: " + error.message);
     } else {
+      // Sync employee_info → employees row on approval (does NOT touch fingerprint_id).
+      if (action === "approved" && form.form_type === "employee_info" && form.employee_id) {
+        try {
+          const d = (form.form_data || {}) as Record<string, any>;
+          const maritalMap: Record<string, string> = {
+            "أعزب": "single", "متزوج": "married", "مطلق": "divorced", "أرمل": "widowed",
+          };
+          const phone = d.whatsapp || (d.whatsapp_prefix && d.whatsapp_local
+            ? `${d.whatsapp_prefix}${String(d.whatsapp_local).replace(/\D/g, "").replace(/^0/, "")}`
+            : null);
+          const patch: Record<string, any> = {};
+          if (phone) patch.phone = phone;
+          if (d.date_of_birth) patch.date_of_birth = d.date_of_birth;
+          if (d.id_number) patch.id_number = String(d.id_number).replace(/\D/g, "");
+          if (d.malaky_start_date) patch.start_date = d.malaky_start_date;
+          if (d.marital_status) patch.marital_status = maritalMap[d.marital_status] || d.marital_status;
+          if (d.children_count !== undefined && d.children_count !== "") patch.children_count = Number(d.children_count) || 0;
+          if (d.address) patch.address = d.address;
+          if (Object.keys(patch).length > 0) {
+            const { error: upErr } = await supabase.from("employees").update(patch).eq("id", form.employee_id);
+            if (upErr) toast.error("تم اعتماد الطلب لكن فشل تحديث ملف الموظف: " + upErr.message);
+          }
+        } catch (e: any) {
+          toast.error("تعذّر مزامنة البيانات: " + (e?.message || ""));
+        }
+      }
       toast.success(action === "approved" ? "تمت الموافقة ✅" : "تم الرفض ❌");
       if (selectedForm?.id === form.id) { setSelectedForm(null); setReviewNotes(""); }
       fetchForms();
