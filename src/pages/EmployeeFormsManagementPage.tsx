@@ -31,6 +31,7 @@ import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
 import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { useNavigate } from "react-router-dom";
+import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
