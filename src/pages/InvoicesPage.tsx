@@ -1236,6 +1236,7 @@ const InvoicesPage = () => {
               <Table2 className="h-4 w-4" />
             </button>
           </div>
+          {viewMode === "table" && <ColumnVisibilityMenu state={invoiceColState} />}
           <Can app={filterType === "purchase" ? "purchases" : "sales"} feature={filterType === "purchase" ? "purchase_invoices" : "invoices"} perm="export" disableInsteadOfHide>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={sorted.length === 0}>
               <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
