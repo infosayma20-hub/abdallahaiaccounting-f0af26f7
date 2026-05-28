@@ -3026,10 +3026,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               <div className="relative">
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground">{currencySymbol}</span>
                 <Input
+                  ref={amountInputRef}
                   type="number"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
-                  className="pr-9 text-left font-mono text-2xl font-bold h-14"
+                  className={`pr-9 text-left font-mono text-2xl font-bold h-14 transition-all ${highlightAmount ? "ring-4 ring-primary/60 ring-offset-2 ring-offset-background" : ""}`}
                   placeholder="0.00"
                   min="0"
                   step="0.01"
