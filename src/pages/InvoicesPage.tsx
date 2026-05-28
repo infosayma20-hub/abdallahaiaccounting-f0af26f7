@@ -1504,7 +1504,7 @@ const InvoicesPage = () => {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </TableCell>
+                      </TableCell>}
                     </TableRow>
                   );
                 })}
