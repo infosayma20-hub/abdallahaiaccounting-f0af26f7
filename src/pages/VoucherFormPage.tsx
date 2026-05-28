@@ -457,14 +457,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).order("contact_name"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", ownerId).order("contact_name"),
       // SOA parity: include cancelled-but-reversed entries so the original
       // and its reversal both contribute and cancel out (matches AccountStatementV2).
       supabase.from("transactions")
         .select("contact_id, amount, debit_account_code, credit_account_code, is_deleted, reversed_by_id")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .or("is_deleted.eq.false,reversed_by_id.not.is.null"),
-      (supabase.from("invoices").select("contact_id, remaining_amount, total_amount, paid_amount").eq("user_id", user.id).in("payment_status", ["unpaid", "partial"]) as any)
+      (supabase.from("invoices").select("contact_id, remaining_amount, total_amount, paid_amount").eq("user_id", ownerId).in("payment_status", ["unpaid", "partial"]) as any)
         .neq("status", "cancelled")
         .not("status", "in", '("مسودة","draft")'),
     ])
@@ -534,7 +534,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!user) return;
     supabase.from("accounts")
       .select("id, account_code, account_name, account_type")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("is_active", true)
       .order("account_code")
       .then(({ data }) => setGlAccounts(data || []));
@@ -545,7 +545,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!user || isReceipt) return;
     supabase.from("employees")
       .select("id, full_name, department, job_title")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("is_active", true)
       .order("full_name")
       .then(({ data }) => setEmployeeList(data || []));
@@ -556,7 +556,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!user) return;
     supabase.from("workshops")
       .select("id, name, customer_name, status")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .in("status", ["active", "completed"])
       .order("name")
       .then(({ data }) => setWorkshopList(data || []));
@@ -624,7 +624,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     let cancelled = false;
     fetchContactStatementBalance({
       contactId: selectedContact.id,
-      userId: user.id,
+      userId: ownerId,
       contactType: selectedContact.contact_type,
     })
       .then((ledger) => {
@@ -645,7 +645,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .from("receipt_vouchers")
             .select("*")
             .eq("id", editId)
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .single();
           if (data) {
             setPaymentDate(data.payment_date || new Date().toISOString().split("T")[0]);
@@ -659,7 +659,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: chList } = await supabase
                 .from("cheques")
                 .select("cheque_number, cheque_date, bank_name, amount, account_number, notes")
-                .eq("user_id", user.id)
+                .eq("user_id", ownerId)
                 .or(`voucher_id.eq.${editId},receipt_voucher_id.eq.${editId}`)
                 .order("created_at", { ascending: true });
               if (chList && chList.length > 0) {
@@ -702,7 +702,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .from("vouchers")
             .select("*")
             .eq("id", editId)
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .single();
           if (data) {
             setPaymentDate(data.date || new Date().toISOString().split("T")[0]);
@@ -717,7 +717,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: chList } = await supabase
                 .from("cheques")
                 .select("cheque_number, cheque_date, bank_name, amount, account_number, notes")
-                .eq("user_id", user.id)
+                .eq("user_id", ownerId)
                 .eq("voucher_id", editId)
                 .order("created_at", { ascending: true });
               if (chList && chList.length > 0) {
@@ -780,8 +780,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!user) return;
     const load = async () => {
       const [cbRes, baRes] = await Promise.all([
-        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency, incoming_checks_account_code, outgoing_checks_account_code").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
+        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency, incoming_checks_account_code, outgoing_checks_account_code").eq("user_id", ownerId).eq("is_active", true),
       ]);
       setCashBoxes(cbRes.data || []);
       setBankAccounts(baRes.data || []);
@@ -791,13 +791,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setSelectedChequeBankAccount(baRes.data[0].id);
       }
       if (!isReceipt) {
-        const { data: vData } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }).limit(1);
+        const { data: vData } = await supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }).limit(1);
         const lastRef = (vData || [])[0]?.ref_number || "";
         const match = lastRef.match(/(\d+)$/);
         const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
         setRefNumber(`PV-${new Date().getFullYear()}-${nextNum}`);
       } else {
-        const { data: rvData } = await supabase.from("receipt_vouchers").select("receipt_number").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1);
+        const { data: rvData } = await supabase.from("receipt_vouchers").select("receipt_number").eq("user_id", ownerId).order("created_at", { ascending: false }).limit(1);
         const lastRef = (rvData || [])[0]?.receipt_number || "";
         const match = lastRef.match(/(\d+)$/);
         const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
@@ -821,7 +821,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     // the allocation engine work on the open set.
     (supabase.from("invoices")
       .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, currency, exchange_rate, invoice_type")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("contact_id", selectedContact.id)
       .in("invoice_type", isReceipt ? ["sale"] : ["purchase", "sale"])
       .in("payment_status", ["unpaid", "partial"]) as any)
@@ -1192,7 +1192,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         // Make sure the advance accounts exist for this user (idempotent)
         if (cls.intent === "advance" || cls.intent === "supplier_advance") {
-          await supabase.rpc("ensure_advance_accounts" as any, { p_user_id: user.id });
+          await supabase.rpc("ensure_advance_accounts" as any, { p_user_id: ownerId });
         }
 
         if (isReceipt) {
@@ -1248,7 +1248,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               workshop_id: selectedWorkshop?.id || null,
             } as any)
             .eq("id", editId)
-            .eq("user_id", user.id);
+            .eq("user_id", ownerId);
           if (error) throw error;
 
           // Update linked transaction (Golden Rule: delete old + insert fresh)
@@ -1268,7 +1268,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
             // Insert fresh transaction
             const { data: newTx } = await supabase.from("transactions").insert({
-              user_id: user.id,
+              user_id: ownerId,
               transaction_date: paymentDate,
               description: notes || `سند قبض من ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`,
               debit_account_code: depositAccountCode,
@@ -1301,7 +1301,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // ─── Cheques: delete & recreate (Golden Rule) ───
           if (paymentMethod === "شيك") {
             await syncChequesOnEdit({
-              userId: user.id,
+              userId: ownerId,
               voucherId: editId,
               receiptVoucherId: editId,
               direction: "وارد",
@@ -1315,7 +1315,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           } else {
             // Payment method changed away from cheque — wipe orphan rows if no
             // downstream events have happened yet.
-            await wipeUnreferencedCheques(user.id, editId);
+            await wipeUnreferencedCheques(ownerId, editId);
           }
         } else {
           // Get linked transaction ID before updating
@@ -1340,7 +1340,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const { data: empAccount } = await supabase
               .from("accounts")
               .select("account_code")
-              .eq("user_id", user.id)
+              .eq("user_id", ownerId)
               .eq("parent_code", "2180")
               .like("account_name", `%${selectedEmployee.full_name}%`)
               .limit(1)
@@ -1352,14 +1352,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: maxCode } = await supabase
                 .from("accounts")
                 .select("account_code")
-                .eq("user_id", user.id)
+                .eq("user_id", ownerId)
                 .eq("parent_code", "2180")
                 .order("account_code", { ascending: false })
                 .limit(1)
                 .single();
               const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "21801";
               await supabase.from("accounts").insert({
-                user_id: user.id,
+                user_id: ownerId,
                 account_code: nextCode,
                 account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
                 account_type: "التزامات",
@@ -1397,7 +1397,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               cost_center_id: costCenterId,
             } as any)
             .eq("id", editId)
-            .eq("user_id", user.id);
+            .eq("user_id", ownerId);
           if (error) throw error;
 
           // Update linked transaction (Golden Rule: delete old + insert fresh).
@@ -1418,7 +1418,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             // Insert fresh transaction
             const payMethodMapAr: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
             const { data: newTx } = await supabase.from("transactions").insert({
-              user_id: user.id,
+              user_id: ownerId,
               transaction_date: paymentDate,
               description: editTxDescription,
               debit_account_code: editDebitAccountCode,
@@ -1452,7 +1452,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // ─── Cheques: delete & recreate (Golden Rule) ───
           if (paymentMethod === "شيك") {
             await syncChequesOnEdit({
-              userId: user.id,
+              userId: ownerId,
               voucherId: editId,
               receiptVoucherId: null,
               direction: "صادر",
@@ -1464,7 +1464,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               fallbackDate: paymentDate,
             });
           } else {
-            await wipeUnreferencedCheques(user.id, editId);
+            await wipeUnreferencedCheques(ownerId, editId);
           }
 
           // B3.4: refresh sub-ledger mirror for this voucher (delete & recreate).
@@ -1482,7 +1482,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const violNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
               const d = new Date(paymentDate);
               await supabase.from("employee_financial_movements").insert({
-                user_id: user.id,
+                user_id: ownerId,
                 employee_id: selectedEmployee.id,
                 source_type: "finance_manual",
                 source_id: editId,
@@ -1539,7 +1539,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // notes directly to the RPC so we no longer have to mutate
           // transactions after the fact.
           const result = await callCreateReceiptRpc({
-            userId: user.id,
+            userId: ownerId,
             contactId: selectedContact!.id,
             contactName: selectedContact!.contact_name,
             amount: amountNum,
@@ -1557,7 +1557,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         } else {
           // LEGACY path — unchanged behaviour for all existing tenants.
           const { data: txResult, error: rpcError } = await supabase.rpc("create_receipt_with_entry", {
-            p_user_id: user.id,
+            p_user_id: ownerId,
             p_contact_id: selectedContact!.id,
             p_contact_name: selectedContact!.contact_name,
             p_amount: amountNum,
@@ -1583,7 +1583,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const debitCode = depositAccountCode;
         const creditCode = counterAccountCode;
         const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-          user_id: user.id,
+          user_id: ownerId,
           transaction_date: paymentDate,
           description: notes || `سند قبض - ${selectedGlAccount?.account_name || selectedContact?.contact_name || ""}`,
           debit_account_code: debitCode,
@@ -1628,7 +1628,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           const { data: empAccount } = await supabase
             .from("accounts")
             .select("account_code")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .eq("parent_code", "2180")
             .like("account_name", `%${selectedEmployee.full_name}%`)
             .limit(1)
@@ -1640,14 +1640,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const { data: maxCode } = await supabase
               .from("accounts")
               .select("account_code")
-              .eq("user_id", user.id)
+              .eq("user_id", ownerId)
               .eq("parent_code", "2180")
               .order("account_code", { ascending: false })
               .limit(1)
               .single();
             const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "21801";
             await supabase.from("accounts").insert({
-              user_id: user.id,
+              user_id: ownerId,
               account_code: nextCode,
               account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
               account_type: "التزامات",
@@ -1670,7 +1670,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         // correct journal lines.
         if (vouchersRpcOn && isSimpleContactVoucher) {
           const result = await callCreatePaymentRpc({
-            userId: user.id,
+            userId: ownerId,
             contactId: selectedContact!.id,
             contactName: selectedContact!.contact_name,
             amount: amountNum,
@@ -1687,7 +1687,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           txId = result?.transaction_id || null;
         } else {
         const { data: txData } = await supabase.from("transactions").insert({
-          user_id: user.id,
+          user_id: ownerId,
           transaction_date: paymentDate,
           description: txDescription,
           debit_account_code: debitAccountCode,
@@ -1713,7 +1713,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const { data: receipt, error: receiptError } = await supabase
           .from("receipt_vouchers")
           .insert({
-            user_id: user.id,
+            user_id: ownerId,
             contact_id: selectedContact?.id || null,
             contact_name: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
             payment_date: paymentDate,
@@ -1749,7 +1749,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             // links AND recalculates invoice paid/remaining/status in one
             // transaction. Replaces the per-invoice update loop.
             await callAllocateVoucherRpc({
-              userId: user.id,
+              userId: ownerId,
               paymentId: receipt.id,
               voucherAmount: amountNum,
               allocations: selectedInvoices.map(inv => ({
@@ -1785,7 +1785,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // Atomic insert with .select() + count verification.
           // Throws on partial save → outer try/catch surfaces error to user.
           await insertChequesForVoucher({
-            userId: user.id,
+            userId: ownerId,
             voucherId: txId,
             receiptVoucherId: receipt?.id || null,
             direction: "وارد",
@@ -1825,7 +1825,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const { data: voucher, error: voucherError } = await supabase
           .from("vouchers")
           .insert({
-            user_id: user.id,
+            user_id: ownerId,
             type: "payment" as const,
             ref_number: refNumber || `PV-${new Date().getFullYear()}-0001`,
             date: paymentDate,
@@ -1876,7 +1876,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const subLedgerErr = await supabase
               .from("employee_financial_movements")
               .insert({
-                user_id: user.id,
+                user_id: ownerId,
                 employee_id: selectedEmployee.id,
                 source_type: "finance_manual",
                 source_id: voucher.id,
@@ -1903,7 +1903,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           // Same atomic helper as receipt-side. Hardens PV path that previously
           // suffered from "voucher saved with zero cheques" incidents.
           await insertChequesForVoucher({
-            userId: user.id,
+            userId: ownerId,
             voucherId: txId,
             receiptVoucherId: null,
             direction: "صادر",
@@ -1927,14 +1927,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               endorsed_to_name: supplierName,
               endorsed_at: new Date().toISOString(),
               endorsement_voucher_id: voucher.id,
-            } as any).eq("id", ec.id).eq("user_id", user.id);
+            } as any).eq("id", ec.id).eq("user_id", ownerId);
 
             // Create endorsement accounting entry:
             // Debit: supplier account (2110) — reduces payable
             // Credit: received cheques account (1150) — reduces cheques held
             const endorseDescription = `تجيير شيك رقم ${ec.cheque_number || "-"} للمورد ${supplierName}`;
             await supabase.from("transactions").insert({
-              user_id: user.id,
+              user_id: ownerId,
               transaction_date: paymentDate,
               description: endorseDescription,
               debit_account_code: "2110",
@@ -1952,7 +1952,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             // Record status change in cheque_status_history
             await supabase.from("cheque_status_history").insert({
               cheque_id: ec.id,
-              user_id: user.id,
+              user_id: ownerId,
               from_status: ec.status as any,
               to_status: "مظهر" as any,
               action_type: "endorsement",
@@ -1969,7 +1969,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             // not `receipt_vouchers`). The RPC will also recalc invoice
             // status server-side.
             await callAllocateVoucherRpc({
-              userId: user.id,
+              userId: ownerId,
               transactionId: txId,
               voucherAmount: amountNum,
               allocations: selectedInvoices.map(inv => ({
@@ -2394,7 +2394,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         old_data: { ref_number: refNumber, amount: amountNum, contact_name: selectedContact?.contact_name },
         edit_reason: cancelReason,
         edited_by: user.id,
-        user_id: user.id,
+        user_id: ownerId,
         changes: { action: "cancel", reason: cancelReason },
       } as any);
 
