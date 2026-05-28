@@ -484,14 +484,14 @@ export default function FinanceReceiptsPage() {
                 <thead>
                   <tr className="border-b border-border/60 bg-primary text-primary-foreground print:bg-muted print:text-foreground">
                     <th className="text-right px-3 py-2 text-[11px] font-semibold">رقم السند</th>
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">التاريخ</th>
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">الجهة</th>
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">طريقة الدفع</th>
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">الصندوق/البنك</th>
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">مركز التكلفة</th>
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">العملة</th>
+                    {show("date") && <th className="text-right px-3 py-2 text-[11px] font-semibold">التاريخ</th>}
+                    {show("contact_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الجهة</th>}
+                    {show("payment_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">طريقة الدفع</th>}
+                    {show("account_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الصندوق/البنك</th>}
+                    {show("cost_center_name") && <th className="text-right px-3 py-2 text-[11px] font-semibold">مركز التكلفة</th>}
+                    {show("currency") && <th className="text-right px-3 py-2 text-[11px] font-semibold">العملة</th>}
                     <th className="text-left px-3 py-2 text-[11px] font-semibold">المبلغ</th>
-                    <th className="text-right px-3 py-2 text-[11px] font-semibold">الحالة</th>
+                    {show("status_label") && <th className="text-right px-3 py-2 text-[11px] font-semibold">الحالة</th>}
                     <th className="text-center px-2 py-2 text-[11px] font-semibold print:hidden">إجراءات</th>
                   </tr>
                 </thead>
@@ -518,29 +518,37 @@ export default function FinanceReceiptsPage() {
                             {r.ref_number || "—"}
                           </button>
                         </td>
-                        <td className="px-3 py-2 text-xs tabular-nums align-middle">{fmtDateDisplay(r.date) || "—"}</td>
-                        <td className="px-3 py-2 align-middle">
-                          <SmartTextCell value={r.contact_name} className="text-sm font-medium" />
-                        </td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground align-middle">{r.payment_label}</td>
-                        <td className="px-3 py-2 align-middle">
-                          <SmartTextCell value={r.account_label} className="text-xs" />
-                        </td>
-                        <td className="px-3 py-2 align-middle">
-                          <SmartTextCell
-                            value={r.cost_center_name}
-                            className={`text-xs ${r.cost_center_id ? "" : "text-muted-foreground/70 italic"}`}
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-xs font-mono text-muted-foreground align-middle">{r.currency}</td>
+                        {show("date") && <td className="px-3 py-2 text-xs tabular-nums align-middle">{fmtDateDisplay(r.date) || "—"}</td>}
+                        {show("contact_name") && (
+                          <td className="px-3 py-2 align-middle">
+                            <SmartTextCell value={r.contact_name} className="text-sm font-medium" />
+                          </td>
+                        )}
+                        {show("payment_label") && <td className="px-3 py-2 text-xs text-muted-foreground align-middle">{r.payment_label}</td>}
+                        {show("account_label") && (
+                          <td className="px-3 py-2 align-middle">
+                            <SmartTextCell value={r.account_label} className="text-xs" />
+                          </td>
+                        )}
+                        {show("cost_center_name") && (
+                          <td className="px-3 py-2 align-middle">
+                            <SmartTextCell
+                              value={r.cost_center_name}
+                              className={`text-xs ${r.cost_center_id ? "" : "text-muted-foreground/70 italic"}`}
+                            />
+                          </td>
+                        )}
+                        {show("currency") && <td className="px-3 py-2 text-xs font-mono text-muted-foreground align-middle">{r.currency}</td>}
                         <td className="px-3 py-2 text-sm font-bold tabular-nums text-left align-middle">
                           {r.amount.toLocaleString()}
                         </td>
-                        <td className="px-3 py-2 align-middle">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle}`}>
-                            {r.status_label}
-                          </span>
-                        </td>
+                        {show("status_label") && (
+                          <td className="px-3 py-2 align-middle">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle}`}>
+                              {r.status_label}
+                            </span>
+                          </td>
+                        )}
                         <td className="px-2 py-1 align-middle print:hidden">
                           <div className="flex items-center justify-center gap-0.5">
                             {canEdit(r.raw) && (
@@ -568,13 +576,13 @@ export default function FinanceReceiptsPage() {
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                    <td colSpan={7} className="px-3 py-2 text-right text-foreground">
+                    <td colSpan={1 + [show("date"),show("contact_name"),show("payment_label"),show("account_label"),show("cost_center_name"),show("currency")].filter(Boolean).length} className="px-3 py-2 text-right text-foreground">
                       المجموع ({filtered.length} سند)
                     </td>
                     <td className="px-3 py-2 text-left tabular-nums text-foreground">
                       ₪{totalAmount.toLocaleString()}
                     </td>
-                    <td colSpan={2} />
+                    <td colSpan={1 + (show("status_label") ? 1 : 0)} />
                   </tr>
                 </tfoot>
               </table>
