@@ -1686,6 +1686,11 @@ const InvoiceCreatePage = () => {
     }, 200);
   };
 
+  // Keep ref pointed to latest handlePrint so memoized ActionPane tabs
+  // always invoke the fresh closure (otherwise it captures the initial
+  // nextInvoiceNumber "..." placeholder).
+  handlePrintRef.current = handlePrint;
+
   // ─── Delete Invoice ───
   const handleDeleteInvoice = async () => {
     if (!editInvoiceId || !user) return;
