@@ -1896,40 +1896,41 @@ const InvoiceCreatePage = () => {
         />
       )}
 
-      {/* Header */}
-      <PageHeader 
-        title={isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"} 
-        breadcrumb={["المبيعات", "الفواتير", isEditMode ? "تعديل" : "إنشاء فاتورة"]} 
-      />
+      {/* FinanceShell header (breadcrumb + title) + ActionPane — replaces
+          the old PageHeader and VoucherNavToolbar. Keeps the same RTL look
+          as سند القبض/الصرف and exposes all actions through the ActionPane. */}
+      <div className="-mx-4 lg:-mx-6 px-5 pt-3 pb-2 border-b border-border bg-card">
+        <nav className="flex items-center gap-1 text-[12px] text-muted-foreground mb-1.5">
+          <Link to="/accounting-center" className="hover:text-foreground">المالية</Link>
+          <ChevronLeft className="h-3 w-3 rotate-180" />
+          <Link to="/invoices" className="hover:text-foreground">الفواتير</Link>
+          <ChevronLeft className="h-3 w-3 rotate-180" />
+          <span>{isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة"}</span>
+        </nav>
+        <h1 className="text-[20px] font-bold text-foreground truncate">
+          {isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"}
+          {isEditMode && nextInvoiceNumber && (
+            <span className="text-[12px] font-normal text-muted-foreground mr-2">— {nextInvoiceNumber}</span>
+          )}
+        </h1>
+      </div>
+      <div className="-mx-4 lg:-mx-6">
+        <ActionPane tabs={invoiceActionTabs} />
+      </div>
 
-      {/* Navigation Toolbar */}
-      <VoucherNavToolbar
-        voucherType="invoice"
-        currentRef={isEditMode ? nextInvoiceNumber : undefined}
-        onPrint={handlePrint}
-        onDelete={isEditMode ? () => setShowDeleteConfirm(true) : undefined}
-        onNewSimilar={isEditMode ? handleNewSimilar : undefined}
-        onNew={startNewInvoice}
-        showNavigation={isEditMode}
-        onSaveDraft={() => handleCreate(true)}
-        onSavePost={() => handleCreate(false)}
-        savePostLabel={isEditMode ? "حفظ التعديلات" : "إنشاء الفاتورة"}
-        saving={creating}
-        saveDraftDisabled={creating}
-        savePostDisabled={
-          creating ||
-          !form.contactId ||
-          form.items.length === 0 ||
-          form.items.every(i => !i.productId && !i.description?.trim())
-        }
-        savePostDisabledReason={
-          !form.contactId
-            ? "اختر العميل/المورد أولاً"
-            : (form.items.length === 0 || form.items.every(i => !i.productId && !i.description?.trim()))
-            ? "أضف بنداً واحداً على الأقل"
-            : undefined
-        }
-      />
+      {/* Edit-mode view banner (mirrors voucher behaviour) */}
+      {isEditMode && (
+        <div className={`mt-4 mb-2 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border ${isReadOnly ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"}`}>
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {isReadOnly ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            <span>
+              {isReadOnly
+                ? `وضع العرض — الفاتورة ${nextInvoiceNumber}. اضغط "تعديل" للتعديل أو "إنشاء مشابه" لنسخها.`
+                : `وضع التعديل — الفاتورة ${nextInvoiceNumber}. اضغط "حفظ التعديلات" لحفظ التغييرات.`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Warranty Cards Action — only in edit mode for sales invoices */}
       {isEditMode && form.type === "sales" && editInvoiceId && (
