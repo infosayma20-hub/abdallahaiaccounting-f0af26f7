@@ -1819,6 +1819,49 @@ const InvoiceCreatePage = () => {
     toast({ title: "تم استعادة المسودة ✓" });
   }, [isEditMode, navigate, toast]);
 
+  // ─── Action Pane tabs (FinanceShell) — same shape as VoucherFormPage ───
+  const invoiceActionTabs: ActionTab[] = useMemo(() => {
+    const pageTitle = isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة";
+    const inEdit = isEditMode;
+    const newGroup = {
+      key: "new", label: "جديد", items: [
+        { key: "new", label: "فاتورة جديدة", icon: Plus, variant: "primary" as const,
+          onClick: () => startNewInvoice() },
+        ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy,
+          onClick: () => handleNewSimilar() }] : []),
+      ],
+    };
+    const saveGroup = inEdit
+      ? { key: "save", label: "حفظ", items: [
+          { key: "edit", label: isReadOnly ? "تعديل" : "إلغاء التعديل", icon: isReadOnly ? Pencil : Lock,
+            variant: isReadOnly ? ("primary" as const) : undefined,
+            onClick: () => setIsReadOnly(prev => !prev) },
+          { key: "update", label: "حفظ التعديلات", icon: Save, variant: "primary" as const,
+            onClick: () => handleCreateRef.current?.(false), disabled: isReadOnly,
+            tooltip: isReadOnly ? "اضغط تعديل أولاً" : undefined },
+          { key: "delete", label: "حذف الفاتورة", icon: Trash2,
+            onClick: () => setShowDeleteConfirm(true) },
+        ]}
+      : { key: "save", label: "حفظ", items: [
+          { key: "draft", label: "حفظ كمسودة", icon: Save,
+            onClick: () => handleCreateRef.current?.(true) },
+          { key: "post", label: "إنشاء الفاتورة", icon: CheckCircle, variant: "primary" as const,
+            onClick: () => handleCreateRef.current?.(false) },
+        ]};
+    const viewGroup = { key: "view", label: "عرض", items: [
+      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrint() },
+      { key: "print",   label: "طباعة",  icon: Printer, onClick: () => handlePrint() },
+    ]};
+    const navGroup = { key: "nav", label: "تنقل", items: [
+      { key: "inquiry", label: "استعلام", icon: ListChecks, onClick: () => navigate("/invoices") },
+      { key: "center",  label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+    ]};
+    return [{ key: "general", label: "عام", groups: [newGroup, saveGroup, viewGroup, navGroup] }];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, isReadOnly]);
+
+  // Ctrl/Cmd+Enter is already wired via useInvoiceKeyboard above (onSave → handleCreate).
+
   // ─── RENDER ───
   if (loadingEditInvoice) {
     return (
