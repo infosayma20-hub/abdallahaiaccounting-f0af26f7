@@ -1387,7 +1387,7 @@ const InvoicesPage = () => {
                       key={inv.id}
                       data-focus-id={inv.id}
                       className={`hover:bg-muted/20 cursor-pointer transition-all duration-500 ${isFocused ? "bg-primary/10 ring-2 ring-primary/60" : ""}`}
-                      onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}
+                      onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}
                     >
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
                       <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>
@@ -1503,7 +1503,7 @@ const InvoicesPage = () => {
           {paginated.map(inv => {
             const st = statusConfig[inv.status] || fallbackStatus;
             return (
-              <Card key={inv.id} className="border-0 shadow-sm rounded-2xl cursor-pointer hover:shadow-md transition-all" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+              <Card key={inv.id} className="border-0 shadow-sm rounded-2xl cursor-pointer hover:shadow-md transition-all" onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${inv.type === "sales" ? "bg-primary/10" : "bg-destructive/10"}`}>
