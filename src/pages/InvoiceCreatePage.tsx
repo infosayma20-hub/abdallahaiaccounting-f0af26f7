@@ -1666,7 +1666,7 @@ const InvoiceCreatePage = () => {
     taxInclusive: form.taxInclusive,
   });
 
-  const handlePrint = () => {
+  const handlePrint = (previewOnly: boolean = false) => {
     const previewInvoice = buildPrintInvoice();
     const win = window.open("", "_blank");
     if (!win) return;
@@ -1679,8 +1679,8 @@ const InvoiceCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode ? "أصلية" : "معاينة"} />);
-        setTimeout(() => win.print(), 500);
+        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode && !previewOnly ? "أصلية" : "معاينة"} />);
+        if (!previewOnly) setTimeout(() => win.print(), 500);
       }
     }, 200);
   };
