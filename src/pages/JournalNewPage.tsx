@@ -228,6 +228,46 @@ const JournalNewPage = () => {
       });
   }, [user]);
 
+  // Auto-fetch exchange rate when currency changes (mirrors VoucherFormPage logic)
+  useEffect(() => {
+    if (!user) return;
+    if (formCurrency === "ILS") {
+      setFormExchangeRate(1);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setFetchingRate(true);
+      try {
+        const { data: currData } = await supabase
+          .from("currencies")
+          .select("id")
+          .eq("code", formCurrency)
+          .maybeSingle();
+        if (currData?.id) {
+          const { data: rateRows } = await supabase
+            .from("exchange_rates")
+            .select("rate")
+            .eq("currency_id", currData.id)
+            .order("effective_date", { ascending: false })
+            .limit(1);
+          const rate = rateRows?.[0]?.rate;
+          if (!cancelled && rate) {
+            setFormExchangeRate(Number(rate));
+            return;
+          }
+        }
+        const { data: dbRate } = await supabase.rpc("get_exchange_rate", {
+          p_currency_code: formCurrency,
+          p_date: formDate,
+        });
+        if (!cancelled && dbRate) setFormExchangeRate(Number(dbRate));
+      } catch { /* ignore — keep manual rate */ }
+      finally { if (!cancelled) setFetchingRate(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [formCurrency, formDate, user]);
+
   const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
   const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
   const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
