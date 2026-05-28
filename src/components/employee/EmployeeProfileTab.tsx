@@ -4,9 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import {
   LogOut, User, Building2, Briefcase, Phone, Mail, Cake, IdCard,
   Heart, Users as UsersIcon, GraduationCap, Calendar, Clock, MessageSquare,
-  PenLine, Image as ImageIcon
+  PenLine, Image as ImageIcon, KeyRound, Eye, EyeOff
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Employee {
   full_name: string;
@@ -64,6 +70,33 @@ function tMarital(v?: string | null) {
 export default function EmployeeProfileTab({ employee, branchName, latestInfoForm, onUpdateInfo }: Props) {
   const { signOut, user } = useAuth();
   const f = latestInfoForm || {};
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (newPwd.length < 8) {
+      toast.error("كلمة المرور لازم تكون 8 أحرف على الأقل");
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      toast.error("كلمة المرور غير متطابقة");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPwd });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message || "فشل تغيير كلمة المرور");
+      return;
+    }
+    toast.success("تم تغيير كلمة المرور بنجاح");
+    setPwdOpen(false);
+    setNewPwd("");
+    setConfirmPwd("");
+  };
 
   // Merge: employees row first, then last submitted employee_info
   const merged = {
@@ -143,6 +176,16 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
         </Button>
       )}
 
+      {/* Change Password CTA */}
+      <Button
+        variant="outline"
+        className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary hover:bg-primary/5"
+        onClick={() => setPwdOpen(true)}
+      >
+        <KeyRound className="h-4 w-4" />
+        تغيير كلمة المرور
+      </Button>
+
       {/* Info Card */}
       <Card className="border-border bg-card">
         <CardContent className="p-4 space-y-3">
@@ -184,6 +227,58 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
         <LogOut className="h-4 w-4" />
         تسجيل خروج
       </Button>
+
+      <Dialog open={pwdOpen} onOpenChange={(o) => { if (!saving) setPwdOpen(o); }}>
+        <DialogContent dir="rtl" className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-right flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />
+              تغيير كلمة المرور
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">كلمة المرور الجديدة</Label>
+              <div className="relative">
+                <Input
+                  type={showPwd ? "text" : "password"}
+                  value={newPwd}
+                  onChange={(e) => setNewPwd(e.target.value)}
+                  placeholder="8 أحرف على الأقل"
+                  className="pl-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(!showPwd)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">تأكيد كلمة المرور</Label>
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={confirmPwd}
+                onChange={(e) => setConfirmPwd(e.target.value)}
+                placeholder="أعد كتابة كلمة المرور"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              اختر كلمة مرور قوية وآمنة، ولا تشاركها مع أحد.
+            </p>
+          </div>
+          <DialogFooter className="flex-row-reverse gap-2">
+            <Button onClick={handleChangePassword} disabled={saving} className="flex-1">
+              {saving ? "جاري الحفظ..." : "حفظ"}
+            </Button>
+            <Button variant="outline" onClick={() => setPwdOpen(false)} disabled={saving} className="flex-1">
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
