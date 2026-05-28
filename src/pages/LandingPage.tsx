@@ -15,7 +15,60 @@ import reportsImg from "@/assets/landing-reports.jpg";
  * Type: Cairo (Arabic headings) + DM Sans (Latin numerals).
  * RTL, ILS pricing, Palestinian VAT 16%.
  */
+// ============ Hooks ============
+const useInView = (options?: IntersectionObserverInit) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.15, ...options }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [options]);
+
+  return { ref, isInView };
+};
+
+const useCountUp = (target: number, duration = 2000, suffix = "") => {
+  const { ref, isInView } = useInView();
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [isInView, target, duration]);
+
+  return { ref, count, suffix };
+};
+
 const LandingPage = () => {
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
+  const [navBg, setNavBg] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSent, setNewsletterSent] = useState(false);
+
   useEffect(() => {
     document.title = "أموالي | نظام ERP فلسطيني متكامل — محاسبة، POS، موارد بشرية وذكاء اصطناعي";
     const setMeta = (name: string, content: string, attr: "name" | "property" = "name") => {
@@ -37,6 +90,14 @@ const LandingPage = () => {
       "نظام ERP فلسطيني شامل: محاسبة، POS، HR، مخازن، شيكات، ضريبة فلسطينية 16%، ومحاسب AI بالعربي.",
       "property"
     );
+
+    const onScroll = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress((window.scrollY / h) * 100);
+      setNavBg(window.scrollY > 60);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
