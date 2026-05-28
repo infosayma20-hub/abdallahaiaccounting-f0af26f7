@@ -225,13 +225,14 @@ const LandingPage = () => {
           </div>
 
           {/* Hero Image */}
-          <div className="relative mb-20 rounded-3xl overflow-hidden shadow-2xl shadow-[#0D1B2E]/10 border border-[#e8ecf1]">
+          <div className="relative mb-20 rounded-3xl overflow-hidden shadow-2xl shadow-[#0D1B2E]/10 border border-[#e8ecf1] group">
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0D1B2E]/20 via-transparent to-transparent z-10 pointer-events-none" />
             <img
               src={heroImg}
               alt="لوحة تحكم نظام ERP أموالي الفلسطيني"
               width={1600}
               height={1024}
-              className="w-full h-auto"
+              className="w-full h-auto transition-transform duration-700 group-hover:scale-[1.02]"
             />
           </div>
 
