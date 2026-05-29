@@ -36,6 +36,7 @@ import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/comp
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
+import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
 
 const CURRENCIES = [
   { value: "ILS", label: "شيكل", symbol: "₪" },
