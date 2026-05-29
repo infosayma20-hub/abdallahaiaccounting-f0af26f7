@@ -277,6 +277,35 @@ export default function EmployeeFormsManagementPage() {
     else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
   };
 
+  // Load branches/departments lazily when admin enters edit mode
+  useEffect(() => {
+    if (!editMode || !dataOwnerId) return;
+    if (editBranches.length > 0 && editDepts.length > 0) return;
+    (async () => {
+      const [{ data: br }, { data: dp }] = await Promise.all([
+        supabase.from("branches_safe").select("id, name").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
+        supabase.from("departments").select("id, name_ar, name").eq("user_id", dataOwnerId).eq("is_active", true).eq("is_deleted", false).order("name_ar"),
+      ]);
+      setEditBranches((br || []).map((b: any) => ({ id: b.id, name: b.name })));
+      setEditDepts((dp || []).map((d: any) => ({ id: d.id, name: d.name_ar || d.name })));
+    })();
+  }, [editMode, dataOwnerId]);
+
+  const saveEdits = async () => {
+    if (!selectedForm) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({ form_data: editedData } as any)
+      .eq("id", selectedForm.id);
+    setSavingEdit(false);
+    if (error) { toast.error("فشل حفظ التعديلات: " + error.message); return; }
+    toast.success("تم حفظ التعديلات ✅");
+    setSelectedForm({ ...selectedForm, form_data: editedData });
+    setEditMode(false);
+    fetchForms();
+  };
+
   const handleUploadPolicy = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
