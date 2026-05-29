@@ -673,8 +673,8 @@ export default function HRAttendancePage() {
     else if (filter === "present") rows = rows.filter(x => x.row.status === "present");
     else if (filter === "late") rows = rows.filter(x => x.row.status === "late" || x.issue.lateMin >= 5);
     else if (filter === "absent") rows = rows.filter(x => x.row.status === "absent");
-    else if (filter === "incomplete") rows = rows.filter(x => (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent"));
-    else if (filter === "missing_checkin") rows = rows.filter(x => !x.row.first_check_in && x.row.status !== "absent");
+    else if (filter === "incomplete") rows = rows.filter(x => (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent" && x.dayType === "working"));
+    else if (filter === "missing_checkin") rows = rows.filter(x => !x.row.first_check_in && x.row.status !== "absent" && x.dayType === "working");
     else if (filter === "missing_checkout") rows = rows.filter(x => x.row.first_check_in && !x.row.last_check_out);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
