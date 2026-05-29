@@ -784,6 +784,10 @@ const InvoiceCreatePage = () => {
           // Infer invoice kind from saved payment_method:
           // "نقدي"/"cash" → cash; anything else (incl. "آجل") → credit.
           invoiceKind: (data.payment_method === "نقدي" || data.payment_method === "cash") ? "cash" : "credit",
+          // Restore the saved cash account code so the picker reflects the
+          // original choice. NULL for legacy cash invoices saved before this
+          // column existed — the user must re-pick a cash account on save.
+          cashAccountCode: (data as any).cash_account_code || null,
           currency: data.currency || "شيكل",
           exchangeRate: Number(data.exchange_rate) || 1,
           notes: data.notes || "",
