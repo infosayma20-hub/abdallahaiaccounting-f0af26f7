@@ -1834,13 +1834,27 @@ const JournalNewPage = () => {
 
       {/* ═══ Sticky Bottom Action Bar ═══ */}
       {!editingVoucherId && (
-      <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
-        <div className="flex items-center gap-2 flex-wrap">
+      <>
+      {/* Spacer to prevent fixed bar from covering content */}
+      <div aria-hidden className="h-20" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
+      <div
+        className="fixed bottom-0 inset-x-0 lg:right-[var(--sidebar-width,0px)] px-3 sm:px-6 pt-2.5 pb-2.5 bg-background/95 backdrop-blur-md border-t border-border/60 shadow-[0_-4px_16px_-4px_rgba(0,0,0,0.08)] z-40"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.625rem)" }}
+      >
+        <div className="mx-auto max-w-[1800px] flex items-center gap-2 flex-wrap">
           {/* Mini status pill */}
           <div className={`hidden md:flex items-center gap-2 px-3 h-11 rounded-xl text-[11px] font-semibold tabular-nums ${isBalanced && totalDebit > 0 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : totalDebit > 0 ? "bg-destructive/10 text-destructive" : "bg-muted/40 text-muted-foreground"}`}>
             <span>مدين ₪{formatAmount(totalDebit)}</span>
             <span className="opacity-40">·</span>
             <span>دائن ₪{formatAmount(totalCredit)}</span>
+            <span className="opacity-40">·</span>
+            {totalDebit === 0 && totalCredit === 0 ? (
+              <span>—</span>
+            ) : isBalanced ? (
+              <span className="flex items-center gap-1"><CheckCircle className="h-3 w-3" /> متوازن</span>
+            ) : (
+              <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> فرق ₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
+            )}
           </div>
 
           {/* Ghost: Print */}
@@ -1870,6 +1884,7 @@ const JournalNewPage = () => {
           </button>
         </div>
       </div>
+      </>
       )}
 
       {/* Quick Add Contact Dialog */}
