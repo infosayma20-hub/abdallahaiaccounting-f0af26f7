@@ -355,6 +355,11 @@ const InvoiceCreatePage = () => {
     dueDate: "",
     paymentTerms: "net_30",
     paymentMethod: "credit" as "credit", // ← always credit; no UI to change
+    // Invoice kind exposed to the user via segmented control next to cost center.
+    // "credit" (آجل) → posts to AR/AP, paid_amount=0. "cash" (نقدي) → immediately
+    // marked as paid (paid_amount=total) so payment_status="paid"; no separate
+    // receipt voucher needed. Stored in DB via payment_method field.
+    invoiceKind: "credit" as "credit" | "cash",
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
