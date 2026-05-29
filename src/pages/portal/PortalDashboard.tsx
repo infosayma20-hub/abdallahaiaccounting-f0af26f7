@@ -19,6 +19,7 @@ import PortalOverviewTab from './PortalOverviewTab';
 import PortalReceivablesTab from './PortalReceivablesTab';
 import PortalStoreTab from './PortalStoreTab';
 import PortalSuppliersTab from './PortalSuppliersTab';
+import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#0D1B2E';
@@ -86,7 +87,7 @@ function getColors(dark: boolean) {
 }
 
 type TabKey = 'home' | 'finance' | 'attendance' | 'reports' | 'more';
-type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables' | 'suppliers';
+type FinanceSectionKey = 'menu' | 'sales' | 'liquidity' | 'receivables' | 'suppliers';
 
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0);
@@ -132,7 +133,7 @@ export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('home');
-  const [financeSection, setFinanceSection] = useState<FinanceSectionKey>('all');
+  const [financeSection, setFinanceSection] = useState<FinanceSectionKey>('menu');
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('portal_theme');
     if (saved) return saved === 'dark';
