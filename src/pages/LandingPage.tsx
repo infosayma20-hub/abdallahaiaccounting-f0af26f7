@@ -302,62 +302,150 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ============ EMPLOYEE ATTENDANCE ============ */}
-      <section id="attendance" className="py-20 px-6">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="text-xs font-black text-[#3b82f6] tracking-widest">حضور وانصراف</span>
-            <h2 className="text-3xl md:text-4xl font-black mt-3 mb-5">دوام موظفيك مربوط بالرواتب مباشرة</h2>
-            <p className="text-[#0D1B2E]/70 leading-relaxed mb-6">
-              نظام حضور مرن يدعم البصمة (جهاز ZKTeco K40)، أو تسجيل يدوي من المدير، أو من الموظف نفسه عبر بوابة الموظفين.
-              التأخير والخروج المبكر والإضافي يحسبوا تلقائياً حسب وردية الموظف ويظهروا مباشرة في كشف الراتب.
+      {/* ============ EMPLOYEE MOBILE APP — DEEP DIVE ============ */}
+      <section id="attendance" className="py-20 px-6 bg-gradient-to-b from-white to-[#fafbfc]">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="text-xs font-black text-[#3b82f6] tracking-widest">تطبيق الموظف · MOBILE-FIRST</span>
+            <h2 className="text-3xl md:text-5xl font-black mt-3 mb-4">
+              كل موظف عنده <span className="text-[#3b82f6]">تطبيق خاص فيه</span> على جواله
+            </h2>
+            <p className="text-[#0D1B2E]/70 max-w-2xl mx-auto leading-relaxed">
+              يبصم بـ QR محمي + GPS، يشوف ساعاته، قسائم راتبه، يطلب إجازة، يصحّح بصمة، ويتلقّى تنبيهات البصمات الناقصة — كله من جواله.
             </p>
-            <ul className="space-y-3 text-sm font-bold">
-              {[
-                "ورديات مختلفة لكل موظف (work_shifts) مع حد سماح للتأخير",
-                "تصنيف أيام الأسبوع وأيام العطل الرسمية تلقائياً",
-                "طلبات الإجازة والاستئذان من بوابة الموظف",
-                "قفل يوم الحضور بعد المراجعة — لا يقدر يعدّل بعدها",
-                "ربط مباشر بمحرك الرواتب (5 مصادر بيانات)",
-                "بوابة موظف PWA — Mobile-first، تشتغل على أي جوال",
-              ].map((p) => (
-                <li key={p} className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-[#3b82f6] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#0D1B2E]/80 font-medium">{p}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="text-xs text-[#0D1B2E]/50 mt-3 font-bold">الصور من حساب مطعم "الدجاج الملكي" — أحد عملائنا الفعليين 🇵🇸</p>
           </div>
-          <div className="bg-gradient-to-br from-[#fafbfc] to-[#e8ecf1] border border-[#e8ecf1] rounded-3xl p-8">
-            <div className="bg-white rounded-2xl p-6 shadow-lg">
-              <div className="flex justify-between items-center mb-5 pb-4 border-b border-[#e8ecf1]">
-                <div>
-                  <div className="text-xs text-[#0D1B2E]/50 font-bold">كشف راتب — مايو 2026</div>
-                  <div className="font-extrabold text-lg">أحمد عبدالله</div>
+
+          {/* 4 employee mobile screens */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+            {[
+              { img: hrEmployeeHome, t: "الرئيسية", d: "ساعة البصمة، حالة اليوم، إحصائيات الشهر، آخر 5 أيام." },
+              { img: hrForms, t: "النماذج", d: "إجازة، سلفة، قرض حسن، تصحيح بصمة، رسالة لـ HR." },
+              { img: hrAttendanceLog, t: "دوامي", d: "سجل شهري كامل: تأخير، حضور، إجازات، ساعات إجمالية." },
+              { img: hrProfile, t: "ملفي", d: "بياناتي، الفرع، الشِفت، تعديل المعلومات، تغيير كلمة المرور." },
+            ].map((s) => (
+              <div key={s.t}>
+                <div className="device-frame max-w-[220px] mx-auto">
+                  <img src={s.img} alt={`شاشة الموظف — ${s.t}`} loading="lazy" />
                 </div>
-                <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded">جاهز</span>
+                <h3 className="text-center font-extrabold mt-4 mb-1 text-sm">{s.t}</h3>
+                <p className="text-center text-xs text-[#0D1B2E]/60 leading-relaxed px-1">{s.d}</p>
               </div>
-              <div className="space-y-2 text-sm font-bold">
-                {[
-                  ["أيام العمل (من البصمة)", "26 يوم", "text-[#0D1B2E]"],
-                  ["ساعات إضافية", "8 ساعة", "text-emerald-600"],
-                  ["تأخير", "1.5 ساعة", "text-red-500"],
-                  ["الراتب الأساسي", "3,500 ₪", "text-[#0D1B2E]"],
-                  ["بدلات", "+450 ₪", "text-emerald-600"],
-                  ["خصم تأخير", "-65 ₪", "text-red-500"],
-                ].map(([k, v, c]) => (
-                  <div key={k} className="flex justify-between">
-                    <span className="text-[#0D1B2E]/70 font-medium">{k}</span>
-                    <span className={`font-latin font-extrabold ${c}`}>{v}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between pt-3 mt-3 border-t-2 border-[#0D1B2E]">
-                  <span className="font-black">الصافي</span>
-                  <span className="font-latin font-black text-[#3b82f6]">3,885 ₪</span>
+            ))}
+          </div>
+
+          {/* QR + GPS biometric explainer */}
+          <div className="bg-[#0D1B2E] text-white rounded-3xl p-8 md:p-10 mb-12">
+            <div className="grid md:grid-cols-3 gap-8 items-start">
+              <div className="md:col-span-2">
+                <span className="text-[10px] font-black text-[#4A9EE8] tracking-widest">QR + GPS BIOMETRIC</span>
+                <h3 className="text-2xl md:text-3xl font-black mt-2 mb-4">
+                  بصمة من <span className="text-[#4A9EE8]">كاميرا الجوال</span> — مع QR محمي وموقع جغرافي
+                </h3>
+                <p className="text-white/70 leading-relaxed mb-6">
+                  الموظف يفتح كاميرا جواله، يصوّر QR الفرع، والنظام يتحقّق من <strong>3 شروط</strong> قبل ما يقبل البصمة:
+                  الرمز ساري، الموقع داخل نطاق الفرع، والوقت ضمن وردية الموظف. كل محاولة بتنحفظ مع IP والـ User-Agent للتدقيق.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                  {[
+                    ["🔐 QR Token متغيّر", "كل فرع له token دوّار — ما يصير نسخ ولصق"],
+                    ["📍 GPS إجباري", "موقع الموظف لازم يطابق إحداثيات الفرع"],
+                    ["⏰ ربط بالوردية", "تأخير وانصراف مبكر يُحسبوا تلقائياً"],
+                    ["📱 إدخال يدوي بديل", "لو الكاميرا ما اشتغلت — كود يدوي"],
+                    ["🔔 تنبيه بصمة ناقصة", "إشعار للموظف لو دخل بدون خروج"],
+                    ["✍️ طلب تصحيح", "يقدّم طلب تصحيح بصمة من النموذج"],
+                  ].map(([t, d]) => (
+                    <div key={t} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                      <div className="font-extrabold mb-1">{t}</div>
+                      <div className="text-white/60">{d}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Highlighted Malaky-branded phone */}
+              <div className="relative">
+                <div className="absolute -top-3 -right-3 bg-[#4A9EE8] text-white text-[10px] font-black px-3 py-1.5 rounded-full z-10 shadow-lg">
+                  مطعم الدجاج الملكي
+                </div>
+                <div className="device-frame max-w-[240px] mx-auto ring-2 ring-[#4A9EE8]/40">
+                  <img src={hrEmployeeHome} alt="تطبيق موظف مطعم الدجاج الملكي على الجوال" loading="lazy" />
                 </div>
               </div>
             </div>
-            <p className="text-xs text-center text-[#0D1B2E]/50 mt-4 font-bold">معاينة الحقول — مرتبطة فعلياً بجدول الحضور</p>
+          </div>
+
+          {/* Shifts + Manager tools */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <div className="bg-white border border-[#e8ecf1] rounded-3xl p-6">
+              <span className="text-[10px] font-black text-[#3b82f6] tracking-widest">الورديات وجدول الدوام</span>
+              <h3 className="text-xl md:text-2xl font-black mt-2 mb-3">ورديات صباحي · ميد · مسائي</h3>
+              <p className="text-sm text-[#0D1B2E]/65 leading-relaxed mb-5">
+                مدير الفرع يبني جدول الدوام الأسبوعي بضغطة، أو ينسخ من الأسبوع السابق. لكل يوم: دوام / إجازة / OFF / تغطية، ولكل وردية وقت بداية ونهاية محدّد.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="device-frame max-w-full">
+                  <img src={hrRosterWeek} alt="جدول الدوام الأسبوعي للفرع" loading="lazy" />
+                </div>
+                <div className="device-frame max-w-full">
+                  <img src={hrShiftDialog} alt="إسناد وردية لموظف — صباحي/ميد/مسائي" loading="lazy" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#e8ecf1] rounded-3xl p-6">
+              <span className="text-[10px] font-black text-[#3b82f6] tracking-widest">صلاحيات المدراء</span>
+              <h3 className="text-xl md:text-2xl font-black mt-2 mb-3">مدير الفرع يشوف فريقه فقط</h3>
+              <p className="text-sm text-[#0D1B2E]/65 leading-relaxed mb-5">
+                لمّا الموظف يكون مدير فرع، بيظهر له قسم "إدارة الفريق" تلقائياً: حضور الفريق، جدول الدوام، تبديل ورديات، واعتماد/رفض طلبات موظفيه — بدون ما يشوف موظفين فروع تانية.
+              </p>
+              <div className="device-frame max-w-[280px] mx-auto">
+                <img src={hrManagerTools} alt="أدوات مدير الفرع — حضور الفريق، الدوام، تبديل الورديات، اعتماد الطلبات" loading="lazy" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ HR DASHBOARD — EMPLOYEES 360 ============ */}
+      <section id="hr" className="py-20 px-6 bg-[#0D1B2E] text-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-xs font-black text-[#4A9EE8] tracking-widest">لوحة HR · EMPLOYEES 360°</span>
+            <h2 className="text-3xl md:text-5xl font-black mt-3 mb-4">
+              كل موظفينك في <span className="text-[#4A9EE8]">شاشة واحدة</span>
+            </h2>
+            <p className="text-white/70 max-w-2xl mx-auto leading-relaxed">
+              لوحة موارد بشرية متكاملة: حضور اليوم، الطلبات المعلّقة، البصمات الناقصة، الرواتب، والقروض — كله Real-time.
+            </p>
+          </div>
+
+          <div className="browser-frame max-w-5xl mx-auto mb-10">
+            <div className="bar">
+              <span className="dot bg-red-400"/><span className="dot bg-yellow-400"/><span className="dot bg-green-400"/>
+              <span className="text-[10px] text-[#0D1B2E]/40 mr-3 font-latin">app.amwali.app/hr</span>
+            </div>
+            <img src={hrDashboard} alt="لوحة الموارد البشرية الكاملة — حضور، طلبات، رواتب، تنبيهات" loading="lazy" />
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { t: "حضور اليوم Real-time", d: "حاضر، متأخر، ناقص بصمة، غائب — مع تفاصيل لكل قسم وفرع." },
+              { t: "طلبات معلّقة", d: "نماذج، قروض، إجازات — كلها بمكان واحد للاعتماد." },
+              { t: "بصمات ناقصة", d: "تنبيه فوري لأي موظف دخل وما خرج، أو نسي يبصم." },
+              { t: "تكلفة الموظفين", d: "رواتب الشهر، متوسط الموظف، عدد النشطين — Live." },
+              { t: "محرك رواتب قوي", d: "5 مصادر بيانات: حضور، عقود، سلف، خصومات، علاوات." },
+              { t: "إعدادات HR مرنة", d: "أنواع الأيام، العطل الرسمية، الورديات، السياسات." },
+              { t: "تقارير HR كاملة", d: "تقارير حضور، رواتب، إجازات، تكلفة موظفين، أداء." },
+              { t: "Employees 360°", d: "ملف شامل لكل موظف: عقد، حضور، رواتب، طلبات، رسائل." },
+            ].map((f) => (
+              <div key={f.t} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-[#4A9EE8]/50 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <Check className="w-4 h-4 text-[#4A9EE8]" />
+                  <h4 className="font-extrabold text-sm">{f.t}</h4>
+                </div>
+                <p className="text-xs text-white/60 leading-relaxed">{f.d}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
