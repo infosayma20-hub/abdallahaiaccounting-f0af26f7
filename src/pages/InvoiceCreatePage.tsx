@@ -487,6 +487,9 @@ const InvoiceCreatePage = () => {
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
+        // Cash boxes — combined with bank accounts in the cash-invoice picker so
+        // users can choose either to receive (sales) / pay (purchases) cash.
+        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
         // Include cancelled/voided invoices — the DB unique index covers them too,
         // so the next sequence must skip past any existing number regardless of status.
         supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "sale"),
