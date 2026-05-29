@@ -522,15 +522,9 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 ))}
               </div>
               {(formData.marital_status === "متزوج" || formData.marital_status === "مطلق" || formData.marital_status === "أرمل") && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs font-medium mb-1.5 block">اسم الزوج/الزوجة <span className="text-destructive">*</span></label>
-                    <Input value={formData.spouse_name || ""} onChange={e => setFormData(p => ({ ...p, spouse_name: e.target.value }))} className="rounded-xl h-11" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1.5 block">عدد الأبناء <span className="text-destructive">*</span></label>
-                    <Input type="number" min={0} value={formData.children_count || ""} onChange={e => setFormData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl h-11" placeholder="0" />
-                  </div>
+                <div>
+                  <label className="text-xs font-medium mb-1.5 block">عدد الأبناء <span className="text-destructive">*</span></label>
+                  <Input type="number" min={0} value={formData.children_count || ""} onChange={e => setFormData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl h-11" placeholder="0" />
                 </div>
               )}
             </div>
@@ -539,7 +533,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 text-primary">
                 <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">5</span>
-                <h4 className="text-sm font-semibold">صورة الهوية <span className="text-destructive">*</span></h4>
+                <h4 className="text-sm font-semibold">صورة الهوية <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span></h4>
               </div>
               <label className="border-2 border-dashed border-border rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
                 {uploadingFile ? (
