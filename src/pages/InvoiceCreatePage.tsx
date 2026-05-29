@@ -3166,20 +3166,6 @@ const InvoiceCreatePage = () => {
 
       </fieldset>
 
-      {/* Sticky bottom save toolbar removed — ActionPane (top) now owns
-          جديد / حفظ مسودة / إنشاء الفاتورة / معاينة / طباعة. A compact
-          total-only strip stays for live feedback on mobile/desktop. */}
-      <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="flex items-center justify-between gap-3 px-3 h-11 rounded-xl bg-primary/5 border border-primary/15">
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">الإجمالي</span>
-          <div className="flex items-center gap-2">
-            <span dir="ltr" title={fmtCurrency(summary.total)} className="font-extrabold text-primary tabular-nums whitespace-nowrap text-lg">
-              {fmtCurrency(summary.total)}
-            </span>
-            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-[10px]">آجل</span>
-          </div>
-        </div>
-      </div>
 
       {/* Quick Add Product Dialog */}
       <Dialog open={showQuickAdd} onOpenChange={(o) => { if (!o) { setShowQuickAdd(false); } else { setShowQuickAdd(true); } }}>
