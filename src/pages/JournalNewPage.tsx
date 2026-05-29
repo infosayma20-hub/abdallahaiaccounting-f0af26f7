@@ -7,6 +7,7 @@ import {
   FileText, Scale, AlertTriangle, ChevronRight, ChevronLeft, ListChecks, RefreshCw,
   Pencil, Copy, Lock
 } from "lucide-react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -130,6 +131,12 @@ const JournalNewPage = () => {
   const [quickAddType, setQuickAddType] = useState<"customer" | "supplier">("customer");
   const [quickAddSaving, setQuickAddSaving] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("journal:summaryOpen") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("journal:summaryOpen", summaryOpen ? "1" : "0"); } catch {}
+  }, [summaryOpen]);
   const [lines, setLines] = useState<JournalLine[]>([
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
@@ -1277,8 +1284,35 @@ const JournalNewPage = () => {
               <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8">
                 <Bookmark className="h-3 w-3" /> القوالب
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setSummaryOpen(v => !v)} className="gap-1 text-xs h-8">
+                {summaryOpen ? <PanelRightClose className="h-3 w-3" /> : <PanelRightOpen className="h-3 w-3" />}
+                {summaryOpen ? "إخفاء الملخص" : "إظهار الملخص"}
+              </Button>
             </div>
           </div>
+
+          {!summaryOpen && (
+            <div className="flex items-center flex-wrap gap-2 px-3 py-2 rounded-xl bg-muted/40 border border-border/60 text-[12px]">
+              {(() => {
+                const isZero = totalDebit === 0 && totalCredit === 0;
+                if (isZero) return <span className="flex items-center gap-1.5 text-muted-foreground"><FileText className="h-3.5 w-3.5" /> أدخل المبالغ للتحقق من التوازن</span>;
+                if (isBalanced) return <span className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400"><CheckCircle className="h-3.5 w-3.5" /> متوازن</span>;
+                return <span className="flex items-center gap-1.5 font-bold text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> غير متوازن</span>;
+              })()}
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">مدين</span>
+              <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">₪{formatAmount(totalDebit)}</span>
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">دائن</span>
+              <span className="font-bold tabular-nums text-destructive">₪{formatAmount(totalCredit)}</span>
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">الفرق</span>
+              <span className={`font-extrabold tabular-nums ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">الأسطر</span>
+              <span className="font-semibold tabular-nums">{lines.length}</span>
+            </div>
+          )}
 
           <div className="rounded-xl border border-border overflow-hidden">
             <table className="w-full text-sm">
@@ -1697,7 +1731,8 @@ const JournalNewPage = () => {
       </div>
 
       {/* ═══ RIGHT COLUMN — Truly Sticky Balance Summary (responsive width) ═══ */}
-      <aside className="w-full lg:w-[clamp(260px,22vw,360px)] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
+      {summaryOpen && (
+      <aside className="w-full lg:w-[clamp(240px,18vw,300px)] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
         <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
             <Scale className="h-4 w-4 text-primary" />
@@ -1763,6 +1798,7 @@ const JournalNewPage = () => {
           </CardContent>
         </Card>
       </aside>
+      )}
 
       {/* ═══ END MASTER FLEX ═══ */}
       </div>
