@@ -137,6 +137,13 @@ const JournalNewPage = () => {
   useEffect(() => {
     try { localStorage.setItem("journal:summaryOpen", summaryOpen ? "1" : "0"); } catch {}
   }, [summaryOpen]);
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("journal:detailsOpen") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("journal:detailsOpen", detailsOpen ? "1" : "0"); } catch {}
+  }, [detailsOpen]);
+  const [extrasOpen, setExtrasOpen] = useState(false);
   const [lines, setLines] = useState<JournalLine[]>([
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
