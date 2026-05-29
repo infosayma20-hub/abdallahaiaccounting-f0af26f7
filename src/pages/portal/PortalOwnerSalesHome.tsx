@@ -8,6 +8,7 @@ import {
 interface Props {
   theme: 'light' | 'dark';
   onOpenSales?: () => void;
+  initialPreset?: Preset;
 }
 
 type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
@@ -93,11 +94,11 @@ function getTokens(dark: boolean) {
   };
 }
 
-export default function PortalOwnerSalesHome({ theme }: Props) {
+export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
   const dark = theme === 'dark';
   const t = getTokens(dark);
 
-  const [preset, setPreset] = useState<Preset>('today');
+  const [preset, setPreset] = useState<Preset>(initialPreset || 'today');
   const [customFrom, setCustomFrom] = useState(localDateStr(new Date()));
   const [customTo, setCustomTo] = useState(localDateStr(new Date()));
   const [data, setData] = useState<OwnerSales | null>(null);
