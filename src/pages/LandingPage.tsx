@@ -17,6 +17,15 @@ import hrRosterWeek from "@/assets/screens/hr-roster-week.png";
 import hrShiftDialog from "@/assets/screens/hr-shift-dialog.png";
 import hrManagerTools from "@/assets/screens/hr-manager-tools.png";
 import hrDashboard from "@/assets/screens/hr-dashboard.png";
+import finHub from "@/assets/screens/finance-hub.png";
+import finLinks from "@/assets/screens/finance-links.png";
+import finReports from "@/assets/screens/finance-reports.png";
+import finReportsGrid1 from "@/assets/screens/finance-reports-grid1.png";
+import finReportsGrid2 from "@/assets/screens/finance-reports-grid2.png";
+import finTemplates from "@/assets/screens/finance-templates.png";
+import finInvoiceCreate from "@/assets/screens/finance-invoice-create.png";
+import finInvoicePrint from "@/assets/screens/finance-invoice-print.png";
+import finPolicies from "@/assets/screens/finance-customer-policies.png";
 
 /**
  * AMWALI — صفحة هبوط نظيفة، صادقة، مبنية على صور حقيقية من البرنامج.
@@ -95,6 +104,7 @@ const LandingPage = () => {
               <a href="#rep" className="hover:text-[#3b82f6] transition-colors">البائع المتجول</a>
               <a href="#attendance" className="hover:text-[#3b82f6] transition-colors">حضور الموظفين</a>
               <a href="#hr" className="hover:text-[#3b82f6] transition-colors">لوحة HR</a>
+             <a href="#finance" className="hover:text-[#3b82f6] transition-colors">المركز المالي</a>
               <a href="#features" className="hover:text-[#3b82f6] transition-colors">الميزات</a>
               <a href="#pricing" className="hover:text-[#3b82f6] transition-colors">الأسعار</a>
             </div>
