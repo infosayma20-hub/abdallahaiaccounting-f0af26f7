@@ -458,12 +458,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
             <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
             جاري التحميل...
           </div>
-        ) : employees.length === 0 ? (
+        ) : filteredEmployees.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: t.textMuted, fontSize: 13 }}>
-            لا يوجد موظفين مسجلين
+            {employees.length === 0 ? 'لا يوجد موظفين مسجلين' : 'لا يوجد موظفين مطابقين للفلاتر'}
           </div>
         ) : (
-          employees.map(emp => {
+          filteredEmployees.map(emp => {
             const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : emp.status === 'on_break' ? '#f97316' : t.red;
             const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : emp.status === 'on_break' ? `استراحة ☕ ${emp.current_break_reason || ''}` : 'غائب ❌';
             const isExpanded = expandedId === emp.id;
