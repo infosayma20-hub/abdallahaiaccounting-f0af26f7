@@ -58,19 +58,28 @@ export function clearPermissionCache(userId?: string) {
 }
 
 export function usePermission(appKey: string) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { overrides, loading: ovLoading } = useMyFeaturePermissions();
   const { deny: appDeny } = useMyAppOverrides();
   const [roles, setRoles] = useState<string[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   const [defaultsReady, setDefaultsReady] = useState(roleDefaultsLoaded);
 
   useEffect(() => {
     let cancelled = false;
-    if (!user?.id) { setRoles([]); return; }
-    loadUserRoles(user.id).then(r => { if (!cancelled) setRoles(r); });
+    if (!user?.id) {
+      setRoles([]);
+      // Only stop "rolesLoading" once auth is settled and there really is no user.
+      if (!authLoading) setRolesLoading(false);
+      return;
+    }
+    setRolesLoading(true);
+    loadUserRoles(user.id).then(r => {
+      if (!cancelled) { setRoles(r); setRolesLoading(false); }
+    });
     loadRoleDefaults().then(() => { if (!cancelled) setDefaultsReady(true); });
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   const isSuperAdmin = roles.includes("super_admin");
   const isAppBlocked = appDeny.has(appKey);
@@ -105,8 +114,12 @@ export function usePermission(appKey: string) {
     canAll,
     isAppAllowed: !isAppBlocked,
     isSuperAdmin,
-    loading: ovLoading || !defaultsReady,
-  }), [can, canAny, canAll, isAppBlocked, isSuperAdmin, ovLoading, defaultsReady]);
+    // Treat as loading while auth is restoring, while user roles are
+    // still being fetched, while overrides are loading, or before role
+    // defaults have been pulled. This prevents a "locked module" flash
+    // on hard refresh before the Supabase session is hydrated from storage.
+    loading: authLoading || rolesLoading || ovLoading || !defaultsReady,
+  }), [can, canAny, canAll, isAppBlocked, isSuperAdmin, authLoading, rolesLoading, ovLoading, defaultsReady]);
 }
 
 /** Quick async check (e.g. inside event handlers) that consults the DB directly. */
