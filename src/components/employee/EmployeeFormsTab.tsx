@@ -113,10 +113,13 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   }, [initialFormId]);
 
   const fetchOwnerSettings = async () => {
+    // Get team owner id for this employee
+    const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+    const ownerId = ownerData || userId;
     const { data } = await supabase
       .from("company_settings")
       .select("hr_show_policies, hr_show_loan_form")
-      .eq("user_id", userId)
+      .eq("user_id", ownerId)
       .maybeSingle();
     if (data) {
       setShowPolicies(data.hr_show_policies !== false);
@@ -164,9 +167,11 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
   const fetchBranchesAndDepartments = async () => {
     try {
+      const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+      const ownerId = ownerData || userId;
       const [{ data: br }, { data: dp }] = await Promise.all([
-        supabase.from("branches_safe").select("id, name").eq("user_id", userId).eq("is_active", true).order("name"),
-        supabase.from("departments").select("id, name_ar, name").eq("user_id", userId).eq("is_active", true).eq("is_deleted", false).order("name_ar"),
+        supabase.from("branches_safe").select("id, name").eq("user_id", ownerId).eq("is_active", true).order("name"),
+        supabase.from("departments").select("id, name_ar, name").eq("user_id", ownerId).eq("is_active", true).eq("is_deleted", false).order("name_ar"),
       ]);
       setBranchOptions((br || []).map((b: any) => ({ id: b.id, name: b.name })));
       setDeptOptions((dp || []).map((d: any) => ({ id: d.id, name: d.name_ar || d.name })));
