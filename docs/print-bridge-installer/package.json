@@ -12,7 +12,7 @@
     "express": "^4.19.2",
     "cors": "^2.8.5",
     "body-parser": "^1.20.2",
-    "sharp": "^0.33.4",
+    "sharp": "0.32.6",
     "node-windows": "^1.0.0-beta.8"
   }
 }
