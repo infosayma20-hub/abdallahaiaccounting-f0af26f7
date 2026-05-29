@@ -1731,7 +1731,8 @@ const JournalNewPage = () => {
       </div>
 
       {/* ═══ RIGHT COLUMN — Truly Sticky Balance Summary (responsive width) ═══ */}
-      <aside className="w-full lg:w-[clamp(260px,22vw,360px)] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
+      {summaryOpen && (
+      <aside className="w-full lg:w-[clamp(240px,18vw,300px)] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
         <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
             <Scale className="h-4 w-4 text-primary" />
@@ -1797,6 +1798,7 @@ const JournalNewPage = () => {
           </CardContent>
         </Card>
       </aside>
+      )}
 
       {/* ═══ END MASTER FLEX ═══ */}
       </div>
