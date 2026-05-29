@@ -1659,37 +1659,39 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
-      {/* ═══ Description → Notes + Attachments (collapsed by default) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <button
-          onClick={() => setExtrasOpen(v => !v)}
-          className="w-full flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <FileText className="h-4 w-4 text-primary" />
-            الوصف والملاحظات والمرفقات
-            {(formDescription || formNotes || attachments.length > 0) && (
-              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                {[formDescription && "وصف", formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
-              </span>
-            )}
-          </span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
-        </button>
-        {extrasOpen && (
-        <CardContent className="p-5 pt-0 space-y-4">
-          <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
+      {/* ═══ Description — ALWAYS visible (required) ═══ */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl">
+        <CardContent className="p-5 space-y-2">
+          <Label className="text-xs block flex items-center gap-2 font-semibold">
             الوصف *
           </Label>
           <Textarea
             value={formDescription}
             onChange={e => setFormDescription(e.target.value)}
             placeholder="مثال: سلفة راتب - رهام حسون"
-            rows={3}
+            rows={2}
             className="resize-none"
           />
         </CardContent>
-        )}
+      </Card>
+
+      {/* ═══ Notes + Attachments (collapsed by default) ═══ */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setExtrasOpen(v => !v)}
+          className="w-full flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <Paperclip className="h-4 w-4 text-primary" />
+            الملاحظات والمرفقات
+            {(formNotes || attachments.length > 0) && (
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                {[formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
+              </span>
+            )}
+          </span>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
+        </button>
       </Card>
 
       {extrasOpen && (
@@ -1832,13 +1834,27 @@ const JournalNewPage = () => {
 
       {/* ═══ Sticky Bottom Action Bar ═══ */}
       {!editingVoucherId && (
-      <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
-        <div className="flex items-center gap-2 flex-wrap">
+      <>
+      {/* Spacer to prevent fixed bar from covering content */}
+      <div aria-hidden className="h-20" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
+      <div
+        className="fixed bottom-0 inset-x-0 lg:right-[var(--sidebar-width,0px)] px-3 sm:px-6 pt-2.5 pb-2.5 bg-background/95 backdrop-blur-md border-t border-border/60 shadow-[0_-4px_16px_-4px_rgba(0,0,0,0.08)] z-40"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.625rem)" }}
+      >
+        <div className="mx-auto max-w-[1800px] flex items-center gap-2 flex-wrap">
           {/* Mini status pill */}
           <div className={`hidden md:flex items-center gap-2 px-3 h-11 rounded-xl text-[11px] font-semibold tabular-nums ${isBalanced && totalDebit > 0 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : totalDebit > 0 ? "bg-destructive/10 text-destructive" : "bg-muted/40 text-muted-foreground"}`}>
             <span>مدين ₪{formatAmount(totalDebit)}</span>
             <span className="opacity-40">·</span>
             <span>دائن ₪{formatAmount(totalCredit)}</span>
+            <span className="opacity-40">·</span>
+            {totalDebit === 0 && totalCredit === 0 ? (
+              <span>—</span>
+            ) : isBalanced ? (
+              <span className="flex items-center gap-1"><CheckCircle className="h-3 w-3" /> متوازن</span>
+            ) : (
+              <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> فرق ₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
+            )}
           </div>
 
           {/* Ghost: Print */}
@@ -1868,6 +1884,7 @@ const JournalNewPage = () => {
           </button>
         </div>
       </div>
+      </>
       )}
 
       {/* Quick Add Contact Dialog */}
