@@ -359,7 +359,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
         {[
           { key: 'today' as const, label: '● اليوم' },
           { key: 'yesterday' as const, label: 'أمس' },
-          { key: 'custom' as const, label: '📅 فترة' },
+          { key: 'custom' as const, label: 'فترة' },
         ].map(p => (
           <button
             key={p.key}
