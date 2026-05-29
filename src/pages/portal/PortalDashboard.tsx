@@ -20,6 +20,7 @@ import PortalReceivablesTab from './PortalReceivablesTab';
 import PortalStoreTab from './PortalStoreTab';
 import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
+import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#0D1B2E';
@@ -150,6 +151,7 @@ export default function PortalDashboard() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
+  const [showSalesDetail, setShowSalesDetail] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -227,6 +229,7 @@ export default function PortalDashboard() {
     setActiveTab(tab);
     setActiveIndex(tabIndexMap[tab] ?? 0);
     setShowTasksPage(false);
+    setShowSalesDetail(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -263,13 +266,41 @@ export default function PortalDashboard() {
     }
   };
 
-  // ═══════ HOME TAB — Owner Sales Cards ═══════
-  const renderHome = () => (
-    <PortalOwnerSalesHome
-      theme={themeMode}
-      onOpenSales={() => { switchTab('finance'); setFinanceSection('sales'); }}
-    />
-  );
+  // ═══════ HOME TAB — Owner Summary Dashboard ═══════
+  const renderHome = () => {
+    if (showSalesDetail) {
+      return (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 4px' }}>
+            <button onClick={() => setShowSalesDetail(false)} style={{
+              background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+              padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+              color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+            }}>
+              <ChevronLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+              الرئيسية
+            </button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary, fontFamily: 'Cairo' }}>
+              تحليل المبيعات
+            </span>
+          </div>
+          <PortalOwnerSalesHome theme={themeMode} />
+        </div>
+      );
+    }
+    return (
+      <PortalOwnerHomeSummary
+        theme={themeMode}
+        onOpenSalesDetail={() => setShowSalesDetail(true)}
+        onOpenFinance={() => { switchTab('finance'); setFinanceSection('menu'); }}
+        onOpenLiquidity={() => { switchTab('finance'); setFinanceSection('liquidity'); }}
+        onOpenReceivables={() => { switchTab('finance'); setFinanceSection('receivables'); }}
+        onOpenSuppliers={() => { switchTab('finance'); setFinanceSection('suppliers'); }}
+        onOpenAttendance={() => switchTab('attendance')}
+        onOpenTasks={() => { setShowTasksPage(true); }}
+      />
+    );
+  };
 
   // Legacy home (kept for reference, unused)
   const _renderLegacyHome = () => (
@@ -611,6 +642,7 @@ export default function PortalDashboard() {
                   setShowMore(false);
                   setShowTasksPage(false);
                   setShowEmployeeRequests(false);
+                  setShowSalesDetail(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{

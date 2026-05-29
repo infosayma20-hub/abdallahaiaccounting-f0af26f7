@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp, Bell, BellOff } from 'lucide-react';
+import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp, Bell, BellOff, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -40,6 +40,7 @@ interface Summary {
 }
 
 type DatePreset = 'today' | 'yesterday' | 'custom';
+type StatusFilter = 'all' | 'present' | 'on_break' | 'left' | 'absent';
 
 export default function PortalAttendanceTab({ theme }: Props) {
   const [employees, setEmployees] = useState<EmployeeAtt[]>([]);
@@ -50,6 +51,9 @@ export default function PortalAttendanceTab({ theme }: Props) {
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [audioUnlocked, setAudioUnlocked] = useState(true);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -269,6 +273,20 @@ export default function PortalAttendanceTab({ theme }: Props) {
 
   const isRangeMode = dateFrom !== dateTo;
 
+  // Branch/position options (derived from data)
+  const branches = Array.from(new Set(employees.map(e => e.position).filter(Boolean)));
+
+  // Filtered list — "الحاضرون الآن" by default shows present + on_break
+  const filteredEmployees = employees.filter(emp => {
+    if (statusFilter !== 'all' && emp.status !== statusFilter) return false;
+    if (branchFilter !== 'all' && emp.position !== branchFilter) return false;
+    if (searchTerm && !emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+
+  // Live count of currently present (checked in, not left)
+  const liveNow = employees.filter(e => e.status === 'present' || e.status === 'on_break').length;
+
   return (
     <div style={{ direction: 'rtl' }}>
       {/* Header */}
@@ -363,27 +381,74 @@ export default function PortalAttendanceTab({ theme }: Props) {
       )}
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
-        {[
-          { label: 'إجمالي', value: summary.totalEmployees, icon: Users, color: t.accent },
-          { label: 'حاضر', value: summary.present, icon: UserCheck, color: t.green },
-          { label: 'غائب', value: summary.absent, icon: UserX, color: t.red },
-          { label: 'غادر', value: summary.left, icon: Clock, color: t.amber },
-        ].map((kpi, i) => (
-          <div key={i} style={{
-            background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      {/* "الحاضرون الآن" header + filters */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 10, marginTop: 4,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', background: t.green,
+            boxShadow: `0 0 6px ${t.green}80`, animation: 'pulse 2s infinite',
+          }} />
+          <span style={{ fontSize: 14, fontWeight: 800, color: t.text }}>الحاضرون الآن</span>
+          <span style={{
+            background: `${t.green}15`, color: t.green, padding: '2px 8px',
+            borderRadius: 10, fontSize: 11, fontWeight: 700,
+          }}>{liveNow}</span>
+        </div>
+        <span style={{ fontSize: 10, color: t.textMuted }}>
+          {filteredEmployees.length} / {employees.length} ظاهر
+        </span>
+      </div>
+
+      {/* Status filter chips */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 8 }}>
+        {([
+          { key: 'all' as const, label: 'الكل', color: t.accent },
+          { key: 'present' as const, label: 'حاضر', color: t.green },
+          { key: 'on_break' as const, label: 'استراحة', color: '#f97316' },
+          { key: 'left' as const, label: 'غادر', color: t.amber },
+          { key: 'absent' as const, label: 'غائب', color: t.red },
+        ]).map(s => {
+          const active = statusFilter === s.key;
+          return (
+            <button key={s.key} onClick={() => setStatusFilter(s.key)} style={{
+              padding: '5px 12px', borderRadius: 16, fontSize: 11, fontWeight: active ? 700 : 500,
+              border: `1px solid ${active ? s.color : t.border}`,
+              background: active ? s.color : `${s.color}10`,
+              color: active ? '#fff' : s.color,
+              cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'Tajawal, sans-serif',
+            }}>{s.label}</button>
+          );
+        })}
+      </div>
+
+      {/* Search + branch filter */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{
+          flex: 1, minWidth: 140, display: 'flex', alignItems: 'center', gap: 6,
+          background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: '6px 10px',
+        }}>
+          <Search size={12} style={{ color: t.textMuted }} />
+          <input
+            type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            placeholder="بحث باسم الموظف..."
+            style={{
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              fontSize: 12, color: t.text, fontFamily: 'Tajawal, sans-serif',
+            }}
+          />
+        </div>
+        {branches.length > 1 && (
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} style={{
+            background: t.card, border: `1px solid ${t.border}`, borderRadius: 10,
+            padding: '6px 10px', fontSize: 11, color: t.text, fontFamily: 'Tajawal, sans-serif',
           }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: `${kpi.color}15`,
-            }}>
-              <kpi.icon size={16} style={{ color: kpi.color }} />
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
-            <div style={{ fontSize: 9, color: t.textMuted }}>{kpi.label}</div>
-          </div>
-        ))}
+            <option value="all">كل الأقسام</option>
+            {branches.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Employee List */}
@@ -393,12 +458,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
             <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
             جاري التحميل...
           </div>
-        ) : employees.length === 0 ? (
+        ) : filteredEmployees.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: t.textMuted, fontSize: 13 }}>
-            لا يوجد موظفين مسجلين
+            {employees.length === 0 ? 'لا يوجد موظفين مسجلين' : 'لا يوجد موظفين مطابقين للفلاتر'}
           </div>
         ) : (
-          employees.map(emp => {
+          filteredEmployees.map(emp => {
             const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : emp.status === 'on_break' ? '#f97316' : t.red;
             const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : emp.status === 'on_break' ? `استراحة ☕ ${emp.current_break_reason || ''}` : 'غائب ❌';
             const isExpanded = expandedId === emp.id;
@@ -579,6 +644,35 @@ export default function PortalAttendanceTab({ theme }: Props) {
             );
           })
         )}
+      </div>
+
+      {/* Summary KPI cards — moved to bottom */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, marginBottom: 8 }}>
+          ملخص الحضور
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {[
+            { label: 'إجمالي', value: summary.totalEmployees, icon: Users, color: t.accent },
+            { label: 'حاضر', value: summary.present, icon: UserCheck, color: t.green },
+            { label: 'غائب', value: summary.absent, icon: UserX, color: t.red },
+            { label: 'غادر', value: summary.left, icon: Clock, color: t.amber },
+          ].map((kpi, i) => (
+            <div key={i} style={{
+              background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: `${kpi.color}15`,
+              }}>
+                <kpi.icon size={16} style={{ color: kpi.color }} />
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
+              <div style={{ fontSize: 9, color: t.textMuted }}>{kpi.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <style>{`
