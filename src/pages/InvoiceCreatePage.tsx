@@ -400,9 +400,13 @@ const InvoiceCreatePage = () => {
     (draft) => {
       const typedDraft = draft as typeof invoiceDraftSnapshot;
       if (typedDraft && typedDraft.form) {
-        // Back-compat: older drafts may lack invoiceKind — default to credit.
+        // Back-compat: older drafts may lack invoiceKind / cashAccountCode.
         const restored = typedDraft.form as typeof form;
-        setForm({ ...restored, invoiceKind: restored.invoiceKind || "credit" });
+        setForm({
+          ...restored,
+          invoiceKind: restored.invoiceKind || "credit",
+          cashAccountCode: restored.cashAccountCode ?? null,
+        });
         setContactSearch(typedDraft.contactSearch || typedDraft.form.contactName || "");
         setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
         setInvoiceTerms(typedDraft.invoiceTerms ?? "");
