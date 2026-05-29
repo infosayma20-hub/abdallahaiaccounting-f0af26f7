@@ -505,6 +505,26 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                   <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
                 </div>
               </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">المستوى التعليمي <span className="text-destructive">*</span></label>
+                <Select
+                  value={formData.education || ""}
+                  onValueChange={(v) => setFormData(p => ({ ...p, education: v }))}
+                >
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر المستوى التعليمي" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ابتدائي">ابتدائي</SelectItem>
+                    <SelectItem value="إعدادي">إعدادي</SelectItem>
+                    <SelectItem value="ثانوي">ثانوي</SelectItem>
+                    <SelectItem value="توجيهي">توجيهي</SelectItem>
+                    <SelectItem value="دبلوم">دبلوم</SelectItem>
+                    <SelectItem value="بكالوريوس">بكالوريوس</SelectItem>
+                    <SelectItem value="ماجستير">ماجستير</SelectItem>
+                    <SelectItem value="دكتوراه">دكتوراه</SelectItem>
+                    <SelectItem value="أخرى">أخرى</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Section 4: Family */}
