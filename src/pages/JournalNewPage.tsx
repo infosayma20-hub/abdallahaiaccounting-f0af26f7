@@ -1350,156 +1350,38 @@ const JournalNewPage = () => {
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
                     <td className="p-3">
-                      <Select 
-                        value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
-                        onValueChange={v => {
-                          if (v === "__quick_add__") {
-                            setQuickAddForLineId(line.id);
-                            setQuickAddName("");
-                            setShowQuickAdd(true);
-                            return;
-                          }
-                          if (v === "__clear__") {
-                            setLines(prev => prev.map(l => l.id !== line.id ? l : { ...l, account_code: "", account_name: "", contact_id: "", contact_name: "" }));
-                            return;
-                          }
-                          if (v.startsWith("contact:")) {
-                            const contactId = v.replace("contact:", "");
-                            const c = contacts.find(ct => ct.id === contactId);
-                            const autoAccount = c && isCustomer(c) ? "1130" : c && isSupplier(c) ? "2110" : c && isEmployee(c) ? "2180" : "";
-                            const acct = accounts.find(a => a.account_code === autoAccount);
+                      <JournalEntityCombobox
+                        lineId={line.id}
+                        selectedAccountCode={line.account_code}
+                        selectedAccountName={line.account_name}
+                        selectedContactId={line.contact_id && line.contact_id !== "__none__" ? line.contact_id : ""}
+                        selectedContactName={line.contact_name}
+                        accounts={postableAccounts}
+                        contacts={contacts}
+                        invalid={invalidLineIds.has(line.id)}
+                        onSelect={(sel) => {
+                          if (sel.kind === "account") {
                             setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                              ...l, contact_id: contactId, contact_name: c?.contact_name || "",
-                              account_code: autoAccount, account_name: acct?.account_name || "",
-                            }));
-                          } else if (v.startsWith("account:")) {
-                            const code = v.replace("account:", "");
-                            const acct = accounts.find(a => a.account_code === code);
-                            setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                              ...l, account_code: code, account_name: acct?.account_name || "",
+                              ...l, account_code: sel.account_code, account_name: sel.account_name,
                               contact_id: "", contact_name: "",
+                            }));
+                          } else {
+                            const acct = accounts.find(a => a.account_code === sel.autoAccountCode);
+                            setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                              ...l, contact_id: sel.contact.id, contact_name: sel.contact.contact_name,
+                              account_code: sel.autoAccountCode, account_name: acct?.account_name || "",
                             }));
                           }
                         }}
-                      >
-                        <SelectTrigger data-journal-code={line.id} className={`h-11 text-sm ${invalidLineIds.has(line.id) ? "ring-1 ring-destructive/40" : ""}`}>
-                          {(line.account_code || (line.contact_id && line.contact_id !== "__none__")) ? (
-                            <span className="truncate flex items-center gap-2">
-                              {line.contact_id && line.contact_id !== "__none__" && (
-                                <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">
-                                  {isCustomer(contacts.find(c => c.id === line.contact_id) || {} as any) ? <User className="h-2.5 w-2.5" /> : <Building2 className="h-2.5 w-2.5" />}
-                                  {contacts.find(c => c.id === line.contact_id)?.contact_name}
-                                </span>
-                              )}
-                              {line.account_code && (
-                                <span className="flex items-center gap-1.5 shrink-0">
-                                  <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{line.account_code}</span>
-                                  <span className="text-foreground">{line.account_name}</span>
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            <SelectValue placeholder="ابحث عن حساب أو جهة..." />
-                          )}
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[420px] min-w-[380px]">
-                          <div className="px-2 py-1.5 sticky top-0 bg-background z-10 space-y-1">
-                            <div className="relative">
-                              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                              <input
-                                className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                                placeholder="ابحث بالرقم أو الاسم..."
-                                value={accountSearches[line.id] || ""}
-                                onChange={e => setAccountSearches(prev => ({ ...prev, [line.id]: e.target.value }))}
-                                onClick={e => e.stopPropagation()}
-                              />
-                            </div>
-                          </div>
-                          <SelectItem value="__quick_add__">
-                            <span className="flex items-center gap-1.5 text-primary font-medium">
-                              <UserPlus className="h-3.5 w-3.5" /> إضافة زبون / مورد جديد
-                            </span>
-                          </SelectItem>
-                          {(line.account_code || (line.contact_id && line.contact_id !== "__none__")) && (
-                            <SelectItem value="__clear__">
-                              <span className="text-muted-foreground flex items-center gap-1.5"><X className="h-3 w-3" /> تفريغ</span>
-                            </SelectItem>
-                          )}
-                          {(() => {
-                            const q = (accountSearches[line.id] || "");
-                            const fa = postableAccounts.filter(a => !q.trim() || multiWordMatchAny(q, a.account_code, a.account_name));
-                            const fc = q.trim() ? contacts.filter(c => multiWordMatchAny(q, c.contact_name)) : contacts;
-                            const hasSearch = q.trim().length > 0;
-
-                            const accountsSection = fa.length > 0 && (
-                              <SelectGroup>
-                                <SelectLabel className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><BookOpen className="h-3 w-3" /> الحسابات</SelectLabel>
-                                {fa.map(a => (
-                                  <SelectItem key={`a-${a.account_code}`} value={`account:${a.account_code}`}>
-                                    <span className="flex items-center gap-3">
-                                      <span className="font-mono text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded">{a.account_code}</span>
-                                      <span>{a.account_name}</span>
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            );
-
-                            const contactsSection = (
-                              <>
-                                {fc.filter(isCustomer).length > 0 && (
-                                  <SelectGroup>
-                                    <SelectLabel className="flex items-center gap-1.5 text-[10px] text-primary"><User className="h-3 w-3" /> زبائن</SelectLabel>
-                                    {fc.filter(isCustomer).map(c => (
-                                      <SelectItem key={`c-${c.id}`} value={`contact:${c.id}`}>
-                                        <span className="flex items-center gap-2">
-                                          <span className="font-medium">{c.contact_name}</span>
-                                          <span className={`text-[10px] font-mono ${c.current_balance > 0 ? "text-emerald-600" : c.current_balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>₪{formatAmount(Math.abs(c.current_balance || 0))}</span>
-                                        </span>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                )}
-                                {fc.filter(isSupplier).length > 0 && (
-                                  <SelectGroup>
-                                    <SelectLabel className="flex items-center gap-1.5 text-[10px] text-primary"><Building2 className="h-3 w-3" /> موردين</SelectLabel>
-                                    {fc.filter(isSupplier).map(c => (
-                                      <SelectItem key={`c-${c.id}`} value={`contact:${c.id}`}>
-                                        <span className="flex items-center gap-2">
-                                          <span className="font-medium">{c.contact_name}</span>
-                                          <span className={`text-[10px] font-mono ${c.current_balance > 0 ? "text-emerald-600" : c.current_balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>₪{formatAmount(Math.abs(c.current_balance || 0))}</span>
-                                        </span>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                )}
-                                {fc.filter(isEmployee).length > 0 && (
-                                  <SelectGroup>
-                                    <SelectLabel className="flex items-center gap-1.5 text-[10px] text-primary"><Users className="h-3 w-3" /> موظفون</SelectLabel>
-                                    {fc.filter(isEmployee).map(c => (
-                                      <SelectItem key={`c-${c.id}`} value={`contact:${c.id}`}>{c.contact_name}</SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                )}
-                              </>
-                            );
-
-                            return hasSearch ? (
-                              <>
-                                {accountsSection}
-                                {fa.length > 0 && fc.length > 0 && <div className="border-t border-border my-1" />}
-                                {contactsSection}
-                              </>
-                            ) : (
-                              <>
-                                {contactsSection}
-                                {fc.length > 0 && fa.length > 0 && <div className="border-t border-border my-1" />}
-                                {accountsSection}
-                              </>
-                            );
-                          })()}
-                        </SelectContent>
-                      </Select>
+                        onClear={() => {
+                          setLines(prev => prev.map(l => l.id !== line.id ? l : { ...l, account_code: "", account_name: "", contact_id: "", contact_name: "" }));
+                        }}
+                        onQuickAdd={() => {
+                          setQuickAddForLineId(line.id);
+                          setQuickAddName("");
+                          setShowQuickAdd(true);
+                        }}
+                      />
                     </td>
                     <td className="p-3">
                       <Input
