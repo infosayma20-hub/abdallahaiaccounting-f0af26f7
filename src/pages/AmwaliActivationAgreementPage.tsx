@@ -148,6 +148,15 @@ const AmwaliActivationAgreementPage = () => {
       const { next } = getNextContractNumber();
       localStorage.setItem(COUNTER_KEY, String(next + 1));
     } catch {}
+    // Temporarily clear document title so the browser's print header
+    // doesn't show the app name. Restore it after the print dialog closes.
+    const originalTitle = document.title;
+    document.title = " ";
+    const restore = () => {
+      document.title = originalTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
     window.print();
   };
 
