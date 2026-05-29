@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LicenseAgreementDialog } from "@/components/license/LicenseAgreementDialog";
 import { BRAND } from "@/constants/brand";
-import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
