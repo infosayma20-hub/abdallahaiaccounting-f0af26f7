@@ -1527,6 +1527,10 @@ const JournalNewPage = () => {
             </table>
           </div>
 
+          <p className="text-[11px] text-muted-foreground px-1">
+            كل سطر يكون مدين أو دائن فقط.
+          </p>
+
           {/* Sort Order Radio */}
           <div className="flex items-center gap-4 text-xs">
             <span className="text-muted-foreground font-medium">ترتيب البنود:</span>
