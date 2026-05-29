@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
-import AnimatedAmwaliLogo from "@/components/auth/AnimatedAmwaliLogo";
 import amwaliMarkWhiteNavy from "@/assets/amwali-mark-white-navy.png";
+import amwaliLogoFull from "@/assets/amwali-logo-full.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -385,7 +385,7 @@ const AuthPage = () => {
 
             {/* Logo — vertical stacked mark on the white panel */}
             <div className="flex justify-center pt-2 pb-6">
-              <AnimatedAmwaliLogo />
+              <img src={amwaliLogoFull} alt="amwali" className="h-28 w-auto select-none" draggable={false} />
             </div>
 
             {/* Header — thin Tajawal, generous tracking */}
