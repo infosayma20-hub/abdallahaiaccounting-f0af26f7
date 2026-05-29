@@ -241,18 +241,6 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
         </CardContent>
       </Card>
 
-      {/* Notes */}
-      {merged.notes && (
-        <Card className="border-border bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-xs font-semibold">ملاحظات</h3>
-            </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{merged.notes}</p>
-          </CardContent>
-        </Card>
-      )}
 
       <Dialog open={pwdOpen} onOpenChange={(o) => { if (!saving) setPwdOpen(o); }}>
         <DialogContent dir="rtl" className="max-w-sm rounded-2xl">
