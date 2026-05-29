@@ -461,6 +461,180 @@ const LandingPage = () => {
       </section>
 
       {/* ============ FEATURES — HONEST GRID ============ */}
+      {/* ============ FINANCE CENTER — DESKTOP HEAVY ============ */}
+      <section id="finance" className="py-24 px-6 bg-gradient-to-b from-white to-[#fafbfc] border-y border-[#e8ecf1]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="inline-block text-[11px] font-black tracking-[0.25em] text-[#3b82f6] bg-[#3b82f6]/10 px-3 py-1.5 rounded-full">المركز المالي · FINANCE HUB</span>
+            <h2 className="text-3xl md:text-5xl font-black mt-4 mb-4 text-[#0D1B2E]">نظام مالي إداري متكامل</h2>
+            <p className="text-[#0D1B2E]/65 max-w-2xl mx-auto leading-relaxed">
+              مساحة عمل موحّدة — السندات، الدفاتر، الذمم، والتقارير في مكان واحد.
+              قوالب جاهزة، فلاتر مخصّصة، تنبيهات، وسياسات تصنيف زبائن تحميك من المخاطر.
+            </p>
+          </div>
+
+          {/* HUB SCREEN */}
+          <div className="browser-frame max-w-6xl mx-auto mb-6">
+            <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+            <img src={finHub} alt="مركز المالية — السندات والدفاتر والذمم في مكان واحد" className="w-full block"/>
+          </div>
+          <p className="text-center text-[12px] text-[#0D1B2E]/50 mb-16">
+            ملخص نقدي مباشر · شجرة سندات بالاختصارات (Alt+K/I/J/E/R) · روابط سريعة لكل المالية.
+          </p>
+
+          {/* LINKS + LATEST */}
+          <div className="grid md:grid-cols-2 gap-6 mb-20 items-center">
+            <div>
+              <h3 className="text-2xl font-black mb-3 text-[#0D1B2E]">روابط مالية — كل شي بنقرة</h3>
+              <ul className="space-y-2.5 text-[14px] text-[#0D1B2E]/75 leading-relaxed">
+                <li>✔ <b>الدفاتر:</b> شجرة الحسابات · دفتر اليومية · دفتر الأستاذ · ميزان المراجعة · مراكز التكلفة.</li>
+                <li>✔ <b>النقد والبنوك:</b> صناديق، بنوك، شيكات قبض/دفع، عملات أجنبية.</li>
+                <li>✔ <b>الذمم:</b> زبائن، موردين، سندات قبض، سندات صرف.</li>
+                <li>✔ <b>التقارير والامتثال:</b> تقارير، ضريبة 16%، أصول ثابتة، إغلاق فترات.</li>
+                <li>✔ <b>آخر الفواتير · آخر السندات · آخر القيود</b> — لوحة مباشرة بدون تحديث.</li>
+              </ul>
+            </div>
+            <div className="browser-frame">
+              <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+              <img src={finLinks} alt="الروابط المالية وآخر الحركات" className="w-full block"/>
+            </div>
+          </div>
+
+          {/* INVOICE FLOW */}
+          <div className="mb-20">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl md:text-3xl font-black text-[#0D1B2E]">فاتورة احترافية — من الإدخال للطباعة</h3>
+              <p className="text-[13px] text-[#0D1B2E]/60 mt-2">إدخال ذرّي بالاختصارات · حساب الضريبة 16% تلقائي · معاينة وطباعة بقالب جاهز.</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="browser-frame">
+                <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+                <img src={finInvoiceCreate} alt="إنشاء فاتورة مبيعات" className="w-full block"/>
+              </div>
+              <div className="browser-frame">
+                <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+                <img src={finInvoicePrint} alt="معاينة طباعة الفاتورة بشعار الشركة" className="w-full block"/>
+              </div>
+            </div>
+          </div>
+
+          {/* TEMPLATES */}
+          <div className="grid md:grid-cols-2 gap-6 mb-20 items-center">
+            <div className="browser-frame md:order-2">
+              <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+              <img src={finTemplates} alt="مكتبة قوالب الطباعة — مالية، عقود، إشعارات، مراسلات" className="w-full block"/>
+            </div>
+            <div className="md:order-1">
+              <span className="text-[11px] font-black tracking-widest text-[#3b82f6]">قوالب الطباعة</span>
+              <h3 className="text-2xl font-black mt-2 mb-3 text-[#0D1B2E]">صمّم قوالبك بدون مبرمج</h3>
+              <p className="text-[#0D1B2E]/70 text-[14px] leading-relaxed mb-4">
+                مكتبة قوالب جاهزة (مالية، عقود، إشعارات، مراسلات) — وعدّل التصميم بالسحب والإفلات.
+                إشعار دين، مطالبة مالية، عرض سعر، عقد بيع، إشعار تأخر سداد، وصل استلام، إشعار دائن… كله بشعارك وألوانك.
+              </p>
+              <ul className="text-[13px] text-[#0D1B2E]/70 space-y-1.5">
+                <li>• محرر بدون كود — أدلّة محاذاة (Snap Guides).</li>
+                <li>• اختر قالب لكل نوع مستند (فاتورة بيع، شراء، عرض، عقد).</li>
+                <li>• نص عربي مضبوط (Noto Sans Arabic) + خط لاتيني للأرقام.</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* REPORTS HUB */}
+          <div className="mb-20">
+            <div className="text-center mb-8">
+              <span className="text-[11px] font-black tracking-widest text-[#3b82f6]">التقارير</span>
+              <h3 className="text-2xl md:text-3xl font-black mt-2 mb-2 text-[#0D1B2E]">90 تقرير جاهز + منشئ تقارير مخصّص</h3>
+              <p className="text-[13px] text-[#0D1B2E]/60">فلاتر زمنية، مؤشرات فترة، لوحات معلومات Drag-and-Drop، وتقارير محفوظة لكل مستخدم.</p>
+            </div>
+            <div className="browser-frame max-w-6xl mx-auto mb-6">
+              <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+              <img src={finReports} alt="لوحة التقارير ومؤشرات الفترة" className="w-full block"/>
+            </div>
+            <div className="grid md:grid-cols-2 gap-5">
+              <div className="browser-frame">
+                <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+                <img src={finReportsGrid1} alt="مجموعات تقارير: مالية، مبيعات، مشتريات، مخزون، موارد بشرية، أصول ثابتة" className="w-full block"/>
+              </div>
+              <div className="browser-frame">
+                <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
+                <img src={finReportsGrid2} alt="تقارير الذمم والأداء، البائع المتجول، نقطة البيع، إدارة العملات" className="w-full block"/>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+              {[
+                { t: "DSO / DPO", d: "متوسط أيام التحصيل والسداد" },
+                { t: "أعمار الذمم", d: "متأخر 30/60/90/+ يوم" },
+                { t: "كفاءة التحصيل", d: "ربحية الزبائن والموردين" },
+                { t: "تقارير POS", d: "ساعات الذروة، أداء الكاشيرين" },
+              ].map(k => (
+                <div key={k.t} className="bg-white border border-[#e8ecf1] rounded-xl p-3 text-center">
+                  <div className="text-[13px] font-black text-[#0D1B2E]">{k.t}</div>
+                  <div className="text-[10.5px] text-[#0D1B2E]/55 mt-1">{k.d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CUSTOMER POLICIES — FOCUS ZOOM */}
+          <div className="bg-gradient-to-br from-[#0D1B2E] to-[#1B3A5C] rounded-3xl p-8 md:p-14 text-white">
+            <div className="max-w-3xl mx-auto text-center mb-10">
+              <span className="inline-block text-[11px] font-black tracking-[0.3em] text-[#FCD34D] bg-[#FCD34D]/10 border border-[#FCD34D]/30 px-3 py-1.5 rounded-full">
+                ميزة فريدة في السوق
+              </span>
+              <h3 className="text-3xl md:text-5xl font-black mt-4 mb-4">سياسات تصنيف الزبائن</h3>
+              <p className="text-white/70 text-[14.5px] md:text-[16px] leading-relaxed">
+                بالسوق عنا — <b className="text-white">ما في تصنيف للزبائن</b>. النتيجة:
+                شيكات راجعة، ديون مش محصّلة، خسائر بالملايين، ومندوبين بيبيعوا لزبون
+                خطر بدون ما المدير يدري. مع أموالي — <b className="text-white">كل زبون له فئة، له سقف، له شروط دفع، له تنبيه</b>.
+              </p>
+            </div>
+
+            {/* The big zoom screenshot */}
+            <div className="rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 max-w-5xl mx-auto bg-white">
+              <img src={finPolicies} alt="سياسات تصنيف الزبائن A B C D — سقوف ائتمان، شروط دفع، خصومات، متابعة" className="w-full block"/>
+            </div>
+
+            {/* Class breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-10">
+              {[
+                { c: "A", color: "#22C55E", title: "عملاء مميزون", limit: "20,000 ₪", terms: "60 يوم", disc: "5%", note: "مدير المبيعات يتابع شخصياً" },
+                { c: "B", color: "#3B82F6", title: "عملاء جيدون", limit: "10,000 ₪", terms: "45 يوم", disc: "2%", note: "متابعة دورية من المندوب" },
+                { c: "C", color: "#F59E0B", title: "عملاء عاديون", limit: "5,000 ₪", terms: "30 يوم", disc: "—", note: "متابعة عادية" },
+                { c: "D", color: "#EF4444", title: "عملاء مخاطرة", limit: "1,000 ₪", terms: "نقدي فقط", disc: "—", note: "تنبيه فوري للمدير عند أي فاتورة" },
+              ].map(p => (
+                <div key={p.c} className="bg-white/5 backdrop-blur rounded-2xl p-5 border border-white/10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg" style={{ background: p.color + '22', color: p.color, border: `1px solid ${p.color}55` }}>{p.c}</span>
+                    <div className="font-extrabold text-[14px]">{p.title}</div>
+                  </div>
+                  <div className="text-[12px] text-white/70 space-y-1">
+                    <div>سقف ائتمان: <b className="text-white">{p.limit}</b></div>
+                    <div>شروط دفع: <b className="text-white">{p.terms}</b></div>
+                    <div>خصم: <b className="text-white">{p.disc}</b></div>
+                  </div>
+                  <div className="text-[11px] text-white/55 mt-3 leading-relaxed border-t border-white/10 pt-3">{p.note}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* How it protects */}
+            <div className="grid md:grid-cols-3 gap-4 mt-8">
+              {[
+                { t: "حماية تلقائية", d: "النظام بيمنع المندوب من بيع زبون فئة D بالأجل — حتى لو حاول." },
+                { t: "تنبيهات لحظية", d: "تجاوز السقف؟ شيك راجع؟ تأخر سداد؟ — إشعار فوري للمدير." },
+                { t: "متابعة مجدولة", d: "كل فئة لها مدة متابعة (7/15/30/45 يوم) — مذكّرات تلقائية." },
+              ].map(x => (
+                <div key={x.t} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <div className="font-black text-[14px] mb-1">{x.t}</div>
+                  <div className="text-[12px] text-white/65 leading-relaxed">{x.d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ FEATURES — HONEST GRID ============ */}
       <section id="features" className="py-20 px-6 bg-white border-y border-[#e8ecf1]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
