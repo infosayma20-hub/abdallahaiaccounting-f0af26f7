@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface VoucherCancelModalProps {
   open: boolean;
@@ -41,6 +41,18 @@ const VoucherCancelModal = ({
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(false);
+      }
+    };
+    if (openDropdown) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [openDropdown]);
 
   const typeLabel = voucherType === "receipt" ? "سند القبض" : "سند الصرف";
   const fmtAmount = `${currencySymbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -155,31 +167,76 @@ const VoucherCancelModal = ({
           </div>
         </div>
 
-        {/* Reason Select */}
-        <div style={{ marginBottom: "12px" }}>
+        {/* Reason Select (custom dropdown) */}
+        <div style={{ marginBottom: "12px" }} ref={dropdownRef}>
           <label style={{ fontSize: "13px", fontWeight: 600, color: "#1e293b", fontFamily: "Cairo", display: "block", marginBottom: "6px" }}>
             سبب الإلغاء <span style={{ color: "#DC2626" }}>*</span>
           </label>
-          <select
-            value={reason}
-            onChange={e => setReason(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              borderRadius: "12px",
-              border: "1.5px solid #E2E8F0",
-              fontSize: "14px",
-              fontFamily: "Cairo",
-              direction: "rtl",
-              background: "white",
-              cursor: "pointer",
-              outline: "none",
-            }}
-          >
-            {cancellationReasons.map(r => (
-              <option key={r.value} value={r.value}>{r.label}</option>
-            ))}
-          </select>
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setOpenDropdown(o => !o)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: "12px",
+                border: "1.5px solid #E2E8F0",
+                fontSize: "14px",
+                fontFamily: "Cairo",
+                direction: "rtl",
+                background: "white",
+                cursor: "pointer",
+                outline: "none",
+                textAlign: "right",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                color: reason ? "#1e293b" : "#94a3b8",
+              }}
+            >
+              <span>{reason || "اختر السبب"}</span>
+              <span style={{ fontSize: "12px", color: "#94a3b8" }}>{openDropdown ? "▲" : "▼"}</span>
+            </button>
+            {openDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 4px)",
+                  left: 0,
+                  right: 0,
+                  background: "white",
+                  border: "1.5px solid #E2E8F0",
+                  borderRadius: "12px",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  maxHeight: "240px",
+                  overflowY: "auto",
+                  zIndex: 10,
+                }}
+              >
+                {cancellationReasons.filter(r => r.value !== "").map(r => (
+                  <div
+                    key={r.value}
+                    onClick={() => { setReason(r.value); setOpenDropdown(false); }}
+                    style={{
+                      padding: "10px 16px",
+                      fontSize: "14px",
+                      fontFamily: "Cairo",
+                      direction: "rtl",
+                      textAlign: "right",
+                      cursor: "pointer",
+                      background: reason === r.value ? "#FEF2F2" : "white",
+                      color: "#1e293b",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#F8FAFC")}
+                    onMouseLeave={e => (e.currentTarget.style.background = reason === r.value ? "#FEF2F2" : "white")}
+                  >
+                    {r.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Additional Details */}
