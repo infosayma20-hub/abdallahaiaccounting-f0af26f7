@@ -317,13 +317,56 @@ export default function EmployeeFormsManagementPage() {
     const { error: uploadErr } = await supabase.storage.from("employee-forms").upload(path, file);
     if (uploadErr) { toast.error("خطأ في رفع الملف"); setUploadingPolicy(false); return; }
     const { data: urlData } = supabase.storage.from("employee-forms").getPublicUrl(path);
-    const { error } = await supabase.from("employee_policy_documents").insert({
-      user_id: dataOwnerId, title: policyForm.title, description: policyForm.description || null,
-      file_url: urlData.publicUrl, category: policyForm.category,
-    } as any);
+    let error: any = null;
+    if (editPolicyId) {
+      const res = await supabase.from("employee_policy_documents").update({
+        title: policyForm.title, description: policyForm.description || null,
+        file_url: urlData.publicUrl, category: policyForm.category,
+      } as any).eq("id", editPolicyId);
+      error = res.error;
+    } else {
+      const res = await supabase.from("employee_policy_documents").insert({
+        user_id: dataOwnerId, title: policyForm.title, description: policyForm.description || null,
+        file_url: urlData.publicUrl, category: policyForm.category,
+      } as any);
+      error = res.error;
+    }
     setUploadingPolicy(false);
     if (error) { toast.error("خطأ: " + error.message); }
-    else { toast.success("تم إضافة السياسة ✅"); setShowUploadPolicy(false); setPolicyForm({ title: "", description: "", category: "" }); fetchPolicies(); }
+    else { toast.success(editPolicyId ? "تم تحديث السياسة ✅" : "تم إضافة السياسة ✅"); closePolicyDialog(); fetchPolicies(); }
+  };
+
+  const closePolicyDialog = () => {
+    setShowUploadPolicy(false);
+    setEditPolicyId(null);
+    setPolicyForm({ title: "", description: "", category: "" });
+  };
+
+  const openEditPolicy = (p: any) => {
+    setEditPolicyId(p.id);
+    setPolicyForm({ title: p.title || "", description: p.description || "", category: p.category || "" });
+    setShowUploadPolicy(true);
+  };
+
+  const savePolicyMeta = async () => {
+    if (!editPolicyId) return;
+    setSavingPolicy(true);
+    const { error } = await supabase.from("employee_policy_documents").update({
+      title: policyForm.title, description: policyForm.description || null, category: policyForm.category,
+    } as any).eq("id", editPolicyId);
+    setSavingPolicy(false);
+    if (error) { toast.error("خطأ: " + error.message); return; }
+    toast.success("تم تحديث السياسة ✅");
+    closePolicyDialog();
+    fetchPolicies();
+  };
+
+  const deletePolicy = async (p: any) => {
+    if (!confirm(`هل تريد حذف السياسة "${p.title}"؟`)) return;
+    const { error } = await supabase.from("employee_policy_documents").delete().eq("id", p.id);
+    if (error) { toast.error("خطأ في الحذف: " + error.message); return; }
+    toast.success("تم حذف السياسة");
+    fetchPolicies();
   };
 
   const getFormAmount = (f: any) => {
