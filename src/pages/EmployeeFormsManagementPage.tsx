@@ -32,6 +32,7 @@ import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { useNavigate } from "react-router-dom";
 import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
+import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -369,6 +370,10 @@ export default function EmployeeFormsManagementPage() {
     fetchPolicies();
   };
 
+  const openPolicyFile = (fileUrl?: string | null) => {
+    openEmployeeFormsStorageFile(fileUrl, (message) => toast.error("تعذر فتح الملف: " + message));
+  };
+
   const getFormAmount = (f: any) => {
     if (!financialTypes.includes(f.form_type)) return null;
     return f.form_data?.amount || f.form_data?.loan_amount || null;
@@ -674,7 +679,7 @@ export default function EmployeeFormsManagementPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button size="sm" variant="outline" className="gap-1" onClick={() => window.open(p.file_url, "_blank")}>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => openPolicyFile(p.file_url)}>
                           <Eye className="h-3 w-3" /> عرض
                         </Button>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditPolicy(p)}>
@@ -721,9 +726,9 @@ export default function EmployeeFormsManagementPage() {
                           <div key={`${fld.label}-${i}`} className="flex justify-between gap-3 text-sm">
                             <span className="text-muted-foreground shrink-0">{fld.label}:</span>
                             {isAttachment ? (
-                              <a href={String(val)} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 truncate">
+                              <button type="button" onClick={() => openPolicyFile(String(val))} className="text-primary hover:underline inline-flex items-center gap-1 truncate">
                                 <Download className="h-3.5 w-3.5" /> فتح المرفق
-                              </a>
+                              </button>
                             ) : (
                               <span className="font-medium text-right break-words whitespace-pre-wrap">
                                 {typeof val === "object" ? JSON.stringify(val) : String(val)}
