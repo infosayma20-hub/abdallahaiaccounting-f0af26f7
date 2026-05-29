@@ -2109,12 +2109,18 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
-              <Select value={form.paymentTerms} onValueChange={v => setForm(p => ({ ...p, paymentTerms: v }))}>
-                <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_TERMS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {form.invoiceKind === "cash" ? (
+                <div className="h-10 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground flex items-center justify-center px-3">
+                  فوري — فاتورة نقدية
+                </div>
+              ) : (
+                <Select value={form.paymentTerms} onValueChange={v => setForm(p => ({ ...p, paymentTerms: v }))}>
+                  <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_TERMS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
