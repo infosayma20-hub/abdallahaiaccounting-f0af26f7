@@ -2192,247 +2192,112 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const fmtDate = (d: string | Date) => { const dt = new Date(d); const dd = String(dt.getDate()).padStart(2, '0'); const mm = String(dt.getMonth() + 1).padStart(2, '0'); const yyyy = dt.getFullYear(); return `${dd}/${mm}/${yyyy}`; };
     const dateFormatted = fmtDate(paymentDate);
     const typeLabel = isReceipt ? "سند قبض" : "سند صرف";
-    const typeBadge = typeLabel;
     const typeBadgeEn = isReceipt ? "Receipt Voucher" : "Payment Voucher";
 
     const amountInWords = `${Math.floor(amt)} ${currencyLabel}${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط`;
 
-    const chequeHtml = paymentMethod === "شيك" && cheques.length > 0 ? `
-      <div style="margin-top:16px;">
-        <div style="font-size:11px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">بيانات الشيكات (${cheques.length})</div>
-        <table style="width:100%;border-collapse:collapse;font-size:11px;">
-          <thead>
-            <tr style="background:#1B3A5C;">
-              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">#</th>
-              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">رقم الشيك</th>
-              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">تاريخ الاستحقاق</th>
-              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">اسم البنك</th>
-              <th style="padding:6px 10px;color:#4A9EE8;text-align:left;font-weight:600;">المبلغ</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${cheques.map((c, i) => `
-              <tr style="border-bottom:1px solid #edf0f4;">
-                <td style="padding:6px 10px;">${i + 1}</td>
-                <td style="padding:6px 10px;">${c.number || "—"}</td>
-                <td style="padding:6px 10px;">${c.date ? fmtDate(c.date) : "—"}</td>
-                <td style="padding:6px 10px;">${c.bank || "—"}</td>
-                <td style="padding:6px 10px;text-align:left;font-weight:700;">${currencySymbol}${fmtAmt(Number(c.amount) || 0)}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>` : "";
-
     const categoryLabel = !isReceipt && partyType === "employee" && empCategory ? empCategory : "";
 
     const linkedInvs = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
-    const invoiceRows = linkedInvs.map(inv => `
-      <tr style="border-bottom:1px solid #edf0f4;">
-        <td style="padding:5px 10px;font-size:11px;">${inv.invoice_date}</td>
-        <td style="padding:5px 10px;font-size:11px;">${inv.invoice_number || "—"}</td>
-        <td style="padding:5px 10px;font-size:11px;">${notes || (isReceipt ? "سند قبض" : "سند صرف")}</td>
-        <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? "" : currencySymbol + fmtAmt(inv.allocatedAmount || 0)}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? currencySymbol + fmtAmt(inv.allocatedAmount || 0) : "—"}</td>
-      </tr>`).join("");
-
-    const tableBody = linkedInvs.length > 0 ? invoiceRows : `
-      <tr style="border-bottom:1px solid #edf0f4;">
-        <td style="padding:5px 10px;font-size:11px;">${dateFormatted}</td>
-        <td style="padding:5px 10px;font-size:11px;">${savedReceiptNumber || refNumber || "—"}</td>
-        <td style="padding:5px 10px;font-size:11px;">${notes || (categoryLabel ? `${categoryLabel} - ${partyName}` : typeLabel)}</td>
-        <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? "" : currencySymbol + fmtAmt(amt)}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? currencySymbol + fmtAmt(amt) : ""}</td>
-      </tr>`;
-
     const depositLabel = paymentMethod === "شيك" && selectedChequeBankAccount
       ? (bankAccounts.find(b => b.id === selectedChequeBankAccount)?.name || "دفتر الشيكات")
       : depositType === "cash_box"
       ? (cashBoxes.find(c => c.id === selectedCashBox)?.name || "الصندوق")
       : (bankAccounts.find(b => b.id === selectedBankAccount)?.name || "البنك");
 
-    const currencyLine = currency !== "ILS" ? `
-      <div style="margin-top:8px;font-size:10px;color:#666;text-align:center;">
-        العملة: ${currencyLabel} | سعر الصرف: ${exchangeRate} | المبلغ بالشيكل: ₪${fmtAmt(amountInILS)}
-      </div>` : "";
-
-    const printHtml = `<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="utf-8">
-  <title>${typeLabel}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    @media print {
-      @page { size: A4 portrait; margin: 0; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    const info: { label: string; value: string }[] = [
+      { label: isReceipt ? "استلمنا من" : "صرفنا إلى", value: partyName || "—" },
+      { label: "طريقة الدفع", value: paymentMethod },
+      { label: paymentMethod === "شيك" ? "البنك" : (isReceipt ? "إيداع في" : "صرف من"), value: depositLabel },
+      { label: "العملة", value: currencyLabel },
+    ];
+    if (categoryLabel) info.push({ label: "البند", value: categoryLabel });
+    if (currency !== "ILS") {
+      info.push({ label: "سعر الصرف", value: String(exchangeRate) });
+      info.push({ label: "ما يعادله بالشيكل", value: `₪${fmtAmt(amountInILS)}` });
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Cairo', Arial, sans-serif;
-      direction: rtl;
-      color: #1a2332;
-      background: #f5f5f5;
-      padding: 20px;
+
+    const tables: any[] = [];
+
+    // Main amount/details table
+    const linkedRows = linkedInvs.length
+      ? linkedInvs.map((inv) => [
+          inv.invoice_date,
+          inv.invoice_number || "—",
+          notes || typeLabel,
+          typeLabel,
+          isReceipt ? "" : `${currencySymbol}${fmtAmt(inv.allocatedAmount || 0)}`,
+          isReceipt ? `${currencySymbol}${fmtAmt(inv.allocatedAmount || 0)}` : "—",
+        ])
+      : [[
+          dateFormatted,
+          savedReceiptNumber || refNumber || "—",
+          notes || (categoryLabel ? `${categoryLabel} - ${partyName}` : typeLabel),
+          typeLabel,
+          isReceipt ? "" : `${currencySymbol}${fmtAmt(amt)}`,
+          isReceipt ? `${currencySymbol}${fmtAmt(amt)}` : "",
+        ]];
+
+    tables.push({
+      columns: [
+        { label: "التاريخ", align: "right" },
+        { label: "رقم المستند", align: "right" },
+        { label: "البيان", align: "right" },
+        { label: "النوع", align: "right" },
+        { label: "مدين", align: "left", width: "110px" },
+        { label: "دائن", align: "left", width: "110px" },
+      ],
+      rows: linkedRows,
+    });
+
+    // Cheques table (if any)
+    if (paymentMethod === "شيك" && cheques.length > 0) {
+      tables.push({
+        caption: `بيانات الشيكات (${cheques.length})`,
+        columns: [
+          { label: "#", align: "center", width: "32px" },
+          { label: "رقم الشيك", align: "right" },
+          { label: "تاريخ الاستحقاق", align: "right" },
+          { label: "البنك", align: "right" },
+          { label: "المبلغ", align: "left", width: "120px" },
+        ],
+        rows: cheques.map((c, i) => [
+          String(i + 1),
+          c.number || "—",
+          c.date ? fmtDate(c.date) : "—",
+          c.bank || "—",
+          `${currencySymbol}${fmtAmt(Number(c.amount) || 0)}`,
+        ]),
+      });
     }
-    .voucher-container {
-      max-width: 700px;
-      margin: 0 auto;
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .voucher-header {
-      background: linear-gradient(135deg, #0D1B2A 0%, #1B3A5C 100%);
-      padding: 20px 28px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .company-name { font-size: 18px; font-weight: 700; color: #4A9EE8; }
-    .company-address { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; }
-    .badge { background: #4A9EE8; color: #0D1B2A; padding: 4px 12px; border-radius: 4px; font-size: 10px; font-weight: 700; }
-    .voucher-num { font-size: 11px; color: #fff; margin-top: 4px; }
-    .info-row {
-      padding: 16px 28px;
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #edf0f4;
-    }
-    .info-label { font-size: 10px; color: #888; }
-    .info-value { font-size: 12px; font-weight: 600; }
-    .amount-section {
-      padding: 16px 28px;
-      text-align: center;
-      border-bottom: 1px solid #edf0f4;
-    }
-    .amount-label { font-size: 10px; color: #888; margin-bottom: 4px; }
-    .amount-value { font-size: 28px; font-weight: 800; color: #1B3A5C; font-family: 'Cairo', sans-serif; }
-    .amount-words { font-size: 10px; color: #666; margin-top: 2px; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'Cairo', sans-serif; }
-    thead tr { background: #f1f5f9; }
-    thead th { padding: 8px 10px; color: #475569; text-align: right; font-weight: 600; font-size: 10px; border-bottom: 2px solid #e2e8f0; }
-    thead th.text-left { text-align: left; }
-    tbody td { padding: 7px 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9; font-variant-numeric: tabular-nums; }
-    tbody tr:nth-child(even) { background: #fafbfc; }
-    .signatures { padding: 24px 28px; display: flex; justify-content: space-around; }
-    .sig-block { text-align: center; flex: 1; }
-    .sig-line { border-bottom: 1px solid #ccc; width: 140px; margin: 0 auto 6px; }
-    .sig-label { font-size: 10px; color: #888; }
-    .voucher-footer {
-      background: #f7f8fa;
-      border-top: 1px solid #edf0f4;
-      padding: 10px 28px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .footer-info { font-size: 9px; color: #aaa; }
-    .footer-brand { font-size: 9px; color: #4A9EE8; font-weight: 600; }
-  </style>
-</head>
-<body>
-<div class="voucher-container" style="position:relative;">
-  ${isCancelled ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:80px;font-weight:900;color:rgba(220,38,38,0.1);font-family:Cairo;pointer-events:none;z-index:10;white-space:nowrap;">ملغي</div>` : ""}
-  <!-- HEADER -->
-  <div class="voucher-header">
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        ${settings.logo_url ? `<img src="${settings.logo_url}" style="height:40px;width:auto;border-radius:4px;" />` : ""}
-        <div>
-          <div class="company-name">${settings.company_name || "AMWALI"}</div>
-          <div class="company-address">${settings.address || ""}</div>
-        </div>
-      </div>
-    </div>
-    <div style="text-align:left;">
-      <div class="badge">${typeBadge}</div>
-      <div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:1px;">${typeBadgeEn}</div>
-      <div class="voucher-num">${savedReceiptNumber || refNumber || ""}</div>
-    </div>
-  </div>
 
-  <!-- INFO -->
-  <div class="info-row">
-    <div>
-      <div class="info-label">التاريخ</div>
-      <div class="info-value">${dateFormatted}</div>
-    </div>
-    <div>
-      <div class="info-label">${isReceipt ? "استلمنا من" : "صرفنا إلى"}</div>
-      <div class="info-value">${partyName}</div>
-    </div>
-    <div>
-      <div class="info-label">طريقة الدفع</div>
-      <div class="info-value">${paymentMethod}</div>
-    </div>
-  </div>
-
-  <!-- AMOUNT -->
-  <div class="amount-section">
-    <div class="amount-label">${amountLabel}</div>
-    <div class="amount-value">${currencySymbol}${fmtAmt(amt)}</div>
-    <div class="amount-words">${amountInWords}</div>
-    ${currencyLine}
-  </div>
-
-  ${chequeHtml}
-
-  <!-- TABLE -->
-  <div style="padding:16px 28px;">
-    <table>
-      <thead>
-        <tr>
-          <th>التاريخ</th>
-          <th>رقم المستند</th>
-          <th>البيان</th>
-          <th>النوع</th>
-          <th class="text-left">مدين</th>
-          <th class="text-left">دائن</th>
-        </tr>
-      </thead>
-      <tbody>${tableBody}</tbody>
-    </table>
-  </div>
-
-  <!-- SIGNATURES -->
-  <div class="signatures">
-    <div class="sig-block">
-      <div class="sig-line"></div>
-      <div class="sig-label">المحاسب</div>
-    </div>
-    <div class="sig-block">
-      <div class="sig-line"></div>
-      <div class="sig-label">المدير المالي</div>
-    </div>
-    <div class="sig-block">
-      <div class="sig-line"></div>
-      <div class="sig-label">${isReceipt ? "المستلم" : "المستفيد"}</div>
-    </div>
-  </div>
-
-  <!-- FOOTER -->
-  <div class="voucher-footer">
-    <div class="footer-info">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""} ${settings.tax_number ? "| رقم ضريبي: " + settings.tax_number : ""}</div>
-    <div class="footer-brand">AMWALI ERP Software</div>
-  </div>
-</div>
-
-<script>
-  document.fonts.ready.then(function() {
-    setTimeout(function() { window.print(); }, 300);
-  });
-</script>
-</body>
-</html>`;
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(printHtml);
-    printWindow.document.close();
+    openOfficialVoucherWindow({
+      docTypeLabel: typeLabel,
+      docTypeLabelEn: typeBadgeEn,
+      refNumber: savedReceiptNumber || refNumber || "",
+      date: dateFormatted,
+      company: {
+        name: settings.company_name || "AMWALI",
+        logoUrl: settings.logo_url || undefined,
+        address: settings.address || undefined,
+        phone: settings.phone || undefined,
+        email: settings.email || undefined,
+        taxNumber: settings.tax_number || undefined,
+      },
+      info,
+      tables,
+      totals: [
+        { label: amountLabel, value: `${currencySymbol}${fmtAmt(amt)}` },
+        { label: "المبلغ بالكلمات", value: amountInWords },
+      ],
+      notes: notes || undefined,
+      signatures: [
+        { label: "المحاسب" },
+        { label: "المدير المالي" },
+        { label: isReceipt ? "المستلم" : "المستفيد" },
+      ],
+      watermark: isCancelled ? "ملغي" : undefined,
+    });
   };
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
