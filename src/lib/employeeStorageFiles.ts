@@ -38,30 +38,38 @@ export const openEmployeeFormsStorageFile = async (
     return;
   }
 
-  const previewWindow = window.open("", "_blank");
-  if (previewWindow) {
-    previewWindow.document.write("<p dir='rtl' style='font-family:sans-serif;padding:24px'>جاري فتح الملف...</p>");
-  }
-
   const storagePath = getEmployeeFormsStoragePath(fileUrl);
   if (!storagePath) {
-    if (previewWindow) previewWindow.location.href = fileUrl;
-    else window.open(fileUrl, "_blank", "noopener,noreferrer");
+    window.open(fileUrl, "_blank", "noopener,noreferrer");
     return;
   }
 
+  // Prefer a signed URL (regular https) — blob: URLs get blocked by ad blockers like uBlock.
+  const { data: signed, error: signedError } = await supabase
+    .storage
+    .from(BUCKET_NAME)
+    .createSignedUrl(storagePath, 60 * 10);
+
+  if (!signedError && signed?.signedUrl) {
+    window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  // Fallback: download the file and trigger a save (avoids blob: navigation blocks).
   const { data, error } = await supabase.storage.from(BUCKET_NAME).download(storagePath);
   if (error || !data) {
-    const message = error?.message || "تعذر تحميل الملف";
+    const message = error?.message || signedError?.message || "تعذر تحميل الملف";
     onError?.(message);
-    if (previewWindow) {
-      previewWindow.document.body.innerHTML = `<p dir='rtl' style='font-family:sans-serif;padding:24px'>تعذر فتح الملف: ${message}</p>`;
-    }
     return;
   }
 
   const blobUrl = URL.createObjectURL(data);
-  if (previewWindow) previewWindow.location.href = blobUrl;
-  else window.open(blobUrl, "_blank", "noopener,noreferrer");
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = storagePath.split("/").pop() || "file";
+  link.rel = "noopener noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
   window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
 };
