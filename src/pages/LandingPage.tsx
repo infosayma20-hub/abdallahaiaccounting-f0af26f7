@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Send, MessageCircle, Play, ChevronDown, Sparkles } from "lucide-react";
-import heroImg from "@/assets/landing-hero-erp.jpg";
-import posImg from "@/assets/landing-pos.jpg";
-import aiMobileImg from "@/assets/landing-ai-mobile.jpg";
-import inventoryImg from "@/assets/landing-inventory.jpg";
-import hrImg from "@/assets/landing-hr.jpg";
-import reportsImg from "@/assets/landing-reports.jpg";
+import logoMark from "@/assets/amwali-mark-navy.png";
+import appsGrid from "@/assets/screens/apps-grid.png";
+import repHome from "@/assets/screens/rep-home.png";
+import repExpense from "@/assets/screens/rep-expense.png";
+import repOrders from "@/assets/screens/rep-orders.png";
 
 /**
  * Public marketing landing page — AMWALI أموالي
