@@ -657,7 +657,9 @@ export default function HRAttendancePage() {
     const present = working.filter(x => x.row.status === "present").length;
     const late = working.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
     const absent = working.filter(x => x.row.status === "absent").length;
-    const incomplete = working.filter(x => x.row.first_check_in && !x.row.last_check_out).length
+    // بصمات غير مكتملة: أي دخول بدون خروج (حتى في أيام العطل لو الموظف داوم)
+    // + موظفين بدون دخول في أيام العمل (مش غياب)
+    const incomplete = enriched.filter(x => x.row.first_check_in && !x.row.last_check_out).length
       + working.filter(x => !x.row.first_check_in && x.row.status !== "absent").length;
     const issues = working.filter(x => x.issue.severity !== "ok").length;
     const onLeaveOrOff = enriched.filter(x => x.dayType !== "working").length;
