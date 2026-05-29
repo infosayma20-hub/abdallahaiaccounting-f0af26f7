@@ -262,11 +262,13 @@ export default function PortalAttendanceTab({ theme }: Props) {
     text: d ? '#E6EDF3' : '#1B3A5C',
     textMuted: d ? 'rgba(230,237,243,0.5)' : 'rgba(27,58,92,0.5)',
     border: d ? 'rgba(230,237,243,0.08)' : 'rgba(27,58,92,0.1)',
-    green: d ? '#22c55e' : '#16a34a',
-    red: d ? '#ef4444' : '#dc2626',
-    amber: d ? '#f59e0b' : '#d97706',
+    green: d ? '#4ade80' : '#16a34a',
+    red: d ? '#f87171' : '#dc2626',
+    amber: d ? '#fbbf24' : '#d97706',
+    orange: d ? '#fb923c' : '#ea580c',
+    neutral: d ? 'rgba(230,237,243,0.4)' : '#64748b',
     bg: d ? '#0D1117' : '#F0F2F5',
-    accent: '#2A7B9B',
+    accent: d ? '#60a5fa' : '#1B3A5C',
   };
 
   const formatTime = (iso: string | null) => {
@@ -276,19 +278,47 @@ export default function PortalAttendanceTab({ theme }: Props) {
 
   const isRangeMode = dateFrom !== dateTo;
 
-  // Branch/position options (derived from data)
-  const branches = Array.from(new Set(employees.map(e => e.position).filter(Boolean)));
+  // Branch options (derived from data)
+  const branches = Array.from(
+    new Map(
+      employees
+        .filter(e => e.branch_id && e.branch_name)
+        .map(e => [e.branch_id!, e.branch_name!])
+    ).entries()
+  );
+  const hasBranches = branches.length > 0;
 
   // Filtered list — "الحاضرون الآن" by default shows present + on_break
   const filteredEmployees = employees.filter(emp => {
     if (statusFilter !== 'all' && emp.status !== statusFilter) return false;
-    if (branchFilter !== 'all' && emp.position !== branchFilter) return false;
+    if (branchFilter !== 'all' && emp.branch_id !== branchFilter) return false;
     if (searchTerm && !emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
 
   // Live count of currently present (checked in, not left)
   const liveNow = employees.filter(e => e.status === 'present' || e.status === 'on_break').length;
+
+  // Group filtered employees by branch (only when "all" branches selected and branches exist)
+  const showGroups = branchFilter === 'all' && hasBranches;
+  const groupedByBranch: { branchId: string; branchName: string; items: EmployeeAtt[] }[] = (() => {
+    if (!showGroups) return [];
+    const map = new Map<string, { branchId: string; branchName: string; items: EmployeeAtt[] }>();
+    const unassigned: EmployeeAtt[] = [];
+    filteredEmployees.forEach(emp => {
+      if (emp.branch_id && emp.branch_name) {
+        if (!map.has(emp.branch_id)) {
+          map.set(emp.branch_id, { branchId: emp.branch_id, branchName: emp.branch_name, items: [] });
+        }
+        map.get(emp.branch_id)!.items.push(emp);
+      } else {
+        unassigned.push(emp);
+      }
+    });
+    const groups = Array.from(map.values()).sort((a, b) => a.branchName.localeCompare(b.branchName, 'ar'));
+    if (unassigned.length) groups.push({ branchId: '__none__', branchName: 'بدون فرع', items: unassigned });
+    return groups;
+  })();
 
   return (
     <div style={{ direction: 'rtl' }}>
