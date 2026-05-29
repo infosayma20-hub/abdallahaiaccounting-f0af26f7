@@ -90,6 +90,7 @@ export function validateEmployeeForm(
       if (isEmpty(data.marital_status)) return { ok: false, error: "اختر الحالة الاجتماعية" };
       if (isEmpty(data.branch)) return { ok: false, error: "أدخل الفرع" };
       if (isEmpty(data.department)) return { ok: false, error: "أدخل القسم" };
+      if (isEmpty(data.education)) return { ok: false, error: "اختر المستوى التعليمي" };
       if (["متزوج", "مطلق", "أرمل"].includes(String(data.marital_status))) {
         if (isEmpty(data.children_count)) return { ok: false, error: "أدخل عدد الأبناء" };
       }
