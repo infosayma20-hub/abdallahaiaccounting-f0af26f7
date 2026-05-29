@@ -12,6 +12,8 @@ import SectorTemplateLibrary from "@/components/print-templates/SectorTemplateLi
 import type { SectorPreset } from "@/components/print-templates/sectorTemplates";
 import { isDoulia } from "@/lib/print-themes";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
+import { usePermission } from "@/hooks/usePermission";
+import { Handshake as HandshakeIcon } from "lucide-react";
 
 const TEMPLATE_CATEGORIES = [
   { key: "all", label: "الكل" },
@@ -155,6 +157,9 @@ const PrintTemplatesPage = () => {
 
   const { logoBase64, companyName: brandName } = useCompanyLogo();
   const showBrandBanner = isDoulia(user?.email);
+  const { isSuperAdmin } = usePermission("any");
+  const showAmwaliActivation =
+    isSuperAdmin || user?.email?.toLowerCase() === "info.sayma20@gmail.com";
 
   return (
     <div className="space-y-6">
@@ -228,6 +233,23 @@ const PrintTemplatesPage = () => {
 
       {/* Templates Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {showAmwaliActivation && (
+          <div
+            onClick={() => navigate("/contracts/amwali-activation")}
+            className="group bg-gradient-to-br from-[#0D1B2E] to-[#1B3A5C] text-white border border-[#0D1B2E] rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mb-3">
+              <HandshakeIcon className="w-16 h-16 text-white" strokeWidth={1.5} />
+            </div>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 bg-white/20 text-white">
+              أموالي · حصري
+            </span>
+            <h3 className="text-[13px] font-semibold">اتفاقية تفعيل خدمة أموالي</h3>
+            <p className="text-[11px] text-white/70 mt-0.5 mb-3">
+              نموذج عقد جاهز قابل للتعديل والطباعة
+            </p>
+          </div>
+        )}
         {filtered.map(template => {
           const IconComp = ICON_MAP[template.id] || FileText;
           const iconColor = ICON_COLOR_MAP[template.id] || "text-[#0D1B2E]";
