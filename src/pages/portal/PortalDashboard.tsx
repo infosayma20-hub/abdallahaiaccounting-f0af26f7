@@ -19,6 +19,7 @@ import PortalOverviewTab from './PortalOverviewTab';
 import PortalReceivablesTab from './PortalReceivablesTab';
 import PortalStoreTab from './PortalStoreTab';
 import PortalSuppliersTab from './PortalSuppliersTab';
+import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#0D1B2E';
@@ -86,7 +87,7 @@ function getColors(dark: boolean) {
 }
 
 type TabKey = 'home' | 'finance' | 'attendance' | 'reports' | 'more';
-type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables' | 'suppliers';
+type FinanceSectionKey = 'menu' | 'sales' | 'liquidity' | 'receivables' | 'suppliers';
 
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0);
@@ -132,7 +133,7 @@ export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('home');
-  const [financeSection, setFinanceSection] = useState<FinanceSectionKey>('all');
+  const [financeSection, setFinanceSection] = useState<FinanceSectionKey>('menu');
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('portal_theme');
     if (saved) return saved === 'dark';
@@ -262,8 +263,16 @@ export default function PortalDashboard() {
     }
   };
 
-  // ═══════ HOME TAB ═══════
+  // ═══════ HOME TAB — Owner Sales Cards ═══════
   const renderHome = () => (
+    <PortalOwnerSalesHome
+      theme={themeMode}
+      onOpenSales={() => { switchTab('finance'); setFinanceSection('sales'); }}
+    />
+  );
+
+  // Legacy home (kept for reference, unused)
+  const _renderLegacyHome = () => (
     <div>
       {refreshing && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: 8 }}>
@@ -392,53 +401,85 @@ export default function PortalDashboard() {
     </div>
   );
 
-  // ═══════ FINANCE TAB ═══════
-  const renderFinance = () => (
-    <div>
-      <div style={{ display: 'flex', gap: 6, padding: '12px 16px', overflowX: 'auto' as const }}>
-        {([
-          { key: 'all' as FinanceSectionKey, label: 'الكل' },
-          { key: 'sales' as FinanceSectionKey, label: 'المبيعات' },
-          { key: 'liquidity' as FinanceSectionKey, label: 'السيولة' },
-          { key: 'receivables' as FinanceSectionKey, label: 'الذمم' },
-          { key: 'suppliers' as FinanceSectionKey, label: 'الموردين' },
-        ]).map(s => (
-          <button key={s.key} onClick={() => setFinanceSection(s.key)} style={{
-            padding: '6px 16px', borderRadius: 20, border: financeSection === s.key ? 'none' : `1px solid ${c.chipBorder}`,
-            fontSize: 12, fontFamily: 'Cairo',
-            fontWeight: financeSection === s.key ? 700 : 500,
-            background: financeSection === s.key ? c.chipActiveBg : c.chipBg,
-            color: financeSection === s.key ? c.chipActiveText : c.chipText,
-            cursor: 'pointer', whiteSpace: 'nowrap' as const, transition: 'all 0.2s',
+  // ═══════ FINANCE TAB — Card grid ═══════
+  const renderFinance = () => {
+    if (financeSection !== 'menu') {
+      const titles: Record<Exclude<FinanceSectionKey, 'menu'>, string> = {
+        sales: 'المبيعات', liquidity: 'السيولة', receivables: 'الزبائن', suppliers: 'الموردين',
+      };
+      return (
+        <div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 4px',
           }}>
-            {s.label}
-          </button>
-        ))}
+            <button onClick={() => setFinanceSection('menu')} style={{
+              background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
+              padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+              color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
+            }}>
+              <ChevronLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+              المالية
+            </button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary, fontFamily: 'Cairo' }}>
+              {titles[financeSection]}
+            </span>
+          </div>
+          <div style={{ padding: '0 12px' }}>
+            {financeSection === 'sales' && <PortalSalesTab data={salesData} loading={dataLoading} businessDay={businessDay} needsSetup={needsSetup} onRefresh={refresh} theme={themeMode} />}
+            {financeSection === 'liquidity' && <PortalLiquidityTab data={liquidityData} loading={dataLoading} theme={themeMode} />}
+            {financeSection === 'receivables' && <PortalReceivablesTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />}
+            {financeSection === 'suppliers' && <PortalSuppliersTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />}
+          </div>
+        </div>
+      );
+    }
+
+    const cards: { key: Exclude<FinanceSectionKey,'menu'>; label: string; sub: string; icon: any; accent: string; value?: string }[] = [
+      { key: 'sales', label: 'المبيعات', sub: 'تفاصيل المبيعات حسب الفرع والصنف', icon: Wallet, accent: '#0EA5E9', value: fmtSigned(salesToday) },
+      { key: 'liquidity', label: 'السيولة', sub: 'الصناديق والبنوك', icon: HandCoins, accent: animatedCash < 0 ? '#DC2626' : '#16A34A', value: fmtSigned(cashBalance) },
+      { key: 'receivables', label: 'الزبائن', sub: 'الذمم المدينة', icon: Users, accent: '#8B5CF6', value: fmtSigned(receivablesTotal) },
+      { key: 'suppliers', label: 'الموردين', sub: 'الذمم الدائنة', icon: Factory, accent: '#F59E0B', value: fmtSigned(payablesTotal) },
+    ];
+
+    return (
+      <div style={{ padding: '16px 16px 24px' }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: c.textPrimary, marginBottom: 4, fontFamily: 'Cairo' }}>
+          مركز المالية
+        </div>
+        <div style={{ fontSize: 12, color: c.textSecondary, marginBottom: 14, fontFamily: 'Cairo' }}>
+          اختر القسم الذي تريد استعراضه
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {cards.map(card => {
+            const Icon = card.icon;
+            return (
+              <button key={card.key} onClick={() => setFinanceSection(card.key)} style={{
+                textAlign: 'right', background: c.cardBg, border: `1px solid ${c.cardBorder}`,
+                borderRadius: 16, padding: 16, cursor: 'pointer', position: 'relative',
+                overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 8,
+                minHeight: 130, fontFamily: 'Cairo',
+              }}>
+                <div style={{ position: 'absolute', top: 0, right: 0, left: 0, height: 3, background: card.accent }} />
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, background: `${card.accent}22`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.accent,
+                }}>
+                  <Icon size={18} />
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary }}>{card.label}</div>
+                {card.value && (
+                  <div style={{ fontSize: 16, fontWeight: 800, color: c.textPrimary, fontFamily: 'JetBrains Mono, monospace' }}>
+                    {card.value}
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: c.textSecondary }}>{card.sub}</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div style={{ padding: '0 12px' }}>
-        {(financeSection === 'all' || financeSection === 'sales') && (
-          <div style={{ marginBottom: 16 }}>
-            <PortalSalesTab data={salesData} loading={dataLoading} businessDay={businessDay} needsSetup={needsSetup} onRefresh={refresh} theme={themeMode} />
-          </div>
-        )}
-        {(financeSection === 'all' || financeSection === 'liquidity') && (
-          <div style={{ marginBottom: 16 }}>
-            <PortalLiquidityTab data={liquidityData} loading={dataLoading} theme={themeMode} />
-          </div>
-        )}
-        {(financeSection === 'all' || financeSection === 'receivables') && (
-          <div style={{ marginBottom: 16 }}>
-          <PortalReceivablesTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />
-          </div>
-        )}
-        {(financeSection === 'all' || financeSection === 'suppliers') && (
-          <div style={{ marginBottom: 16 }}>
-            <PortalSuppliersTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div style={{
