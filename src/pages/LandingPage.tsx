@@ -6,6 +6,9 @@ import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import repExpense from "@/assets/screens/rep-expense.png";
 import repOrders from "@/assets/screens/rep-orders.png";
+import wsRep from "@/assets/screens/workspace-rep.png";
+import wsCashier from "@/assets/screens/workspace-cashier.png";
+import wsCallcenter from "@/assets/screens/workspace-callcenter.png";
 
 /**
  * AMWALI — صفحة هبوط نظيفة، صادقة، مبنية على صور حقيقية من البرنامج.
@@ -80,6 +83,7 @@ const LandingPage = () => {
             </div>
             <div className="hidden md:flex items-center gap-6 font-bold text-sm text-[#0D1B2E]/70">
               <a href="#apps" className="hover:text-[#3b82f6] transition-colors">واجهة النظام</a>
+              <a href="#workspaces" className="hover:text-[#3b82f6] transition-colors">مساحات العمل</a>
               <a href="#rep" className="hover:text-[#3b82f6] transition-colors">البائع المتجول</a>
               <a href="#attendance" className="hover:text-[#3b82f6] transition-colors">حضور الموظفين</a>
               <a href="#features" className="hover:text-[#3b82f6] transition-colors">الميزات</a>
@@ -156,6 +160,73 @@ const LandingPage = () => {
                 <span className="text-[#0D1B2E]">{app}</span>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============ WORKSPACES — MULTIPLE LOGIN SCREENS ============ */}
+      <section id="workspaces" className="py-20 px-6 bg-gradient-to-b from-[#fafbfc] to-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="text-xs font-black text-[#3b82f6] tracking-widest">مساحات العمل المتعددة · MULTI-WORKSPACE</span>
+            <h2 className="text-3xl md:text-5xl font-black mt-3 mb-4">
+              موظف واحد · <span className="text-[#3b82f6]">عدة شاشات دخول</span>
+            </h2>
+            <p className="text-[#0D1B2E]/70 max-w-2xl mx-auto leading-relaxed">
+              نظامك مش مجرد لوحة وحدة. كل موظف يدخل بحسابه ويختار <strong>الشاشة المناسبة لشغله الحالي</strong> — مندوب الصبح، كاشير الظهر، وخدمة عملاء بالليل. كل صلاحياته تتفعّل تلقائياً.
+            </p>
+          </div>
+
+          {/* 3 workspace screens side by side */}
+          <div className="grid md:grid-cols-3 gap-8 mb-14">
+            {[
+              { img: wsRep, t: "المندوب + الموظف", d: "بائع متجول عنده دوام موظف رسمي — يدخل على شاشة المندوب لطلباته ومصاريفه، أو شاشة الموظف لقسائم راتبه." },
+              { img: wsCashier, t: "الكاشير + الموظف", d: "كاشير الفرع يدخل على شاشة POS للبيع، أو شاشة الموظف لإجازاته وحضوره." },
+              { img: wsCallcenter, t: "كول سنتر + موظف + متابعة", d: "موظف الكول سنتر يستقبل المكالمات، يتابع الزبائن، ويشوف قسائم راتبه — كله من نفس الحساب." },
+            ].map((ws) => (
+              <div key={ws.t}>
+                <div className="device-frame max-w-[280px] mx-auto">
+                  <img src={ws.img} alt={`شاشة اختيار مساحة العمل: ${ws.t}`} loading="lazy" />
+                </div>
+                <h3 className="text-center font-extrabold mt-5 mb-1 text-[#0D1B2E]">{ws.t}</h3>
+                <p className="text-center text-sm text-[#0D1B2E]/60 leading-relaxed px-2">{ws.d}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Why it matters */}
+          <div className="bg-[#0D1B2E] text-white rounded-3xl p-8 md:p-10">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h3 className="text-2xl md:text-3xl font-black mb-4">
+                  ليش هاي الميزة <span className="text-[#4A9EE8]">مهمة جداً؟</span>
+                </h3>
+                <p className="text-white/70 leading-relaxed mb-5">
+                  بدل ما يكون عندك ٣ أنظمة منفصلة (POS، CRM، HR) كل واحد بحساب لحاله — أموالي بيخلي الموظف يدخل بحساب واحد ويتنقّل بين الشاشات اللي عنده صلاحية عليها. الإدارة تتحكم بشكل دقيق: مين يشوف شو، ومتى.
+                </p>
+                <div className="flex items-center gap-2 text-xs font-bold text-[#4A9EE8] bg-[#4A9EE8]/10 px-3 py-2 rounded-lg inline-flex">
+                  <Check className="w-4 h-4" /> Role-Based Access · RBAC مدمج
+                </div>
+              </div>
+              <ul className="space-y-3 text-sm">
+                {[
+                  ["شاشة المندوب", "طلبات، تحصيلات، مصاريف اليوم، عهدة"],
+                  ["شاشة الكاشير (POS)", "بيع، فواتير، إغلاق وردية"],
+                  ["شاشة الموظف", "دوام، إجازات، قسائم راتب، رسائل HR"],
+                  ["شاشة الكول سنتر", "استقبال المكالمات وتحويلها للفرع"],
+                  ["متابعة الزبائن", "بحث، عرض الطلبات، تسجيل المكالمات"],
+                  ["لوحة الإدارة الكاملة", "محاسبة، تقارير، ضريبة، شجرة حسابات"],
+                ].map(([t, d]) => (
+                  <li key={t} className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
+                    <Check className="w-5 h-5 text-[#4A9EE8] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-extrabold">{t}</div>
+                      <div className="text-xs text-white/60 mt-0.5">{d}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
