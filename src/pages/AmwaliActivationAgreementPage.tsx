@@ -15,7 +15,20 @@ import amwaliLogo from "@/assets/amwali-logo-tall.png";
  */
 
 const STORAGE_KEY = "amwali_activation_agreement_v1";
+const COUNTER_KEY = "amwali_act_next_number";
+const COUNTER_START = 13;
 const ALLOWED_EMAIL = "info.sayma20@gmail.com";
+
+const getNextContractNumber = (): { number: string; next: number } => {
+  let next = COUNTER_START;
+  try {
+    const raw = localStorage.getItem(COUNTER_KEY);
+    const parsed = raw ? parseInt(raw, 10) : NaN;
+    if (!isNaN(parsed) && parsed >= COUNTER_START) next = parsed;
+  } catch {}
+  const year = new Date().getFullYear();
+  return { number: `ACT-${year}-${String(next).padStart(3, "0")}`, next };
+};
 
 interface AgreementData {
   // الطرف الثاني (الزبون)
@@ -62,7 +75,7 @@ const DEFAULTS: AgreementData = {
   onetime_fee: "",
   onetime_description: "",
   notes: "",
-  contract_number: `ACT-${new Date().getFullYear()}-`,
+  contract_number: "",
   contract_date: new Date().toISOString().split("T")[0],
 };
 
@@ -100,7 +113,15 @@ const AmwaliActivationAgreementPage = () => {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setData({ ...DEFAULTS, ...JSON.parse(saved) });
+      if (saved) {
+        const parsed = { ...DEFAULTS, ...JSON.parse(saved) };
+        if (!parsed.contract_number || /-$/.test(parsed.contract_number)) {
+          parsed.contract_number = getNextContractNumber().number;
+        }
+        setData(parsed);
+      } else {
+        setData({ ...DEFAULTS, contract_number: getNextContractNumber().number });
+      }
     } catch {}
   }, []);
 
@@ -117,11 +138,18 @@ const AmwaliActivationAgreementPage = () => {
 
   const handleReset = () => {
     if (!confirm("هل تريد مسح كافة الحقول والبدء من جديد؟")) return;
-    setData({ ...DEFAULTS, contract_number: `ACT-${new Date().getFullYear()}-` });
+    setData({ ...DEFAULTS, contract_number: getNextContractNumber().number });
     toast.success("تم مسح النموذج");
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    // Reserve the current number and advance counter for next agreement
+    try {
+      const { next } = getNextContractNumber();
+      localStorage.setItem(COUNTER_KEY, String(next + 1));
+    } catch {}
+    window.print();
+  };
 
   // Access guard
   const allowed = isSuperAdmin || user?.email?.toLowerCase() === ALLOWED_EMAIL;
