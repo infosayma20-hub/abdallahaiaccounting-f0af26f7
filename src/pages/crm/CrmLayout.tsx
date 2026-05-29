@@ -1,9 +1,10 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Kanban, ListChecks, UserCircle2, Ticket, Phone, Calendar, Lightbulb, FileSignature, BookOpen, Repeat } from "lucide-react";
+import { LayoutDashboard, Users, Kanban, ListChecks, UserCircle2, Ticket, Phone, Calendar, Lightbulb, FileSignature, BookOpen, Repeat, Briefcase } from "lucide-react";
 import CrmQuickActionsFab from "./components/CrmQuickActionsFab";
 import CrmGlobalSearch from "./components/CrmGlobalSearch";
 
 const tabs = [
+  { path: "/crm/workbench",    label: "مركز العمل اليومي", icon: Briefcase },
   { path: "/crm",              label: "لوحة CRM",     icon: LayoutDashboard, exact: true },
   { path: "/crm/leads",        label: "العملاء المحتملون", icon: Users },
   { path: "/crm/pipeline",     label: "خط سير المبيعات",  icon: Kanban },

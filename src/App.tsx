@@ -255,6 +255,7 @@ const CsFeatureRequestsPage = lazy(() => import("./pages/crm/CsFeatureRequestsPa
 const CsContractsPage = lazy(() => import("./pages/crm/CsContractsPage"));
 const CsKnowledgeBasePage = lazy(() => import("./pages/crm/CsKnowledgeBasePage"));
 const CsRenewalCenterPage = lazy(() => import("./pages/crm/CsRenewalCenterPage"));
+const CrmWorkbenchPage = lazy(() => import("./pages/crm/CrmWorkbenchPage"));
 
 
 const queryClient = new QueryClient({
@@ -441,6 +442,7 @@ const App = () => (
                       {/* CRM Module — Phase 1 */}
                       <Route path="/crm" element={<CrmLayout />}>
                         <Route index element={<CrmDashboard />} />
+                        <Route path="workbench" element={<CrmWorkbenchPage />} />
                         <Route path="leads" element={<CrmLeadsPage />} />
                         <Route path="pipeline" element={<CrmPipelinePage />} />
                         <Route path="activities" element={<CrmActivitiesPage />} />
