@@ -383,18 +383,24 @@ const AuthPage = () => {
         <div className="flex-1 flex flex-col items-center justify-start px-8 py-4 overflow-y-auto" style={{ background: '#FFFFFF' }} dir="rtl">
           <div className="w-full max-w-[380px]">
 
-            {/* Logo — full AMWALI logo */}
-            <div className="text-center mb-3">
-              <img src={amwaliLogoFull} alt="AMWALI" className="h-28 mx-auto object-contain" />
+            {/* Logo — transparent PNG sits directly on the white panel (no card, no shadow) */}
+            <div className="flex justify-center pt-2 pb-6">
+              <img
+                src={amwaliLogoFull}
+                alt="AMWALI أموالي"
+                className="h-16 w-auto object-contain select-none"
+                draggable={false}
+                style={{ background: 'transparent' }}
+              />
             </div>
 
-            {/* Header — thin font */}
-            <div className="text-center mb-8">
-              <h2 style={{ color: '#0D1B2E', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal' }}>
+            {/* Header — thin Tajawal, generous tracking */}
+            <div className="text-center mb-10">
+              <h2 style={{ color: '#071D49', fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 8, fontFamily: 'Tajawal', lineHeight: 1.15 }}>
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
               <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
-                {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسيتم إرسال طلبك لإدارة شركتك / الموارد البشرية لإعادة تعيين كلمة المرور"}
+                {mode === "login" ? "سجل دخولك للمنصة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسيتم إرسال طلبك لإدارة شركتك / الموارد البشرية لإعادة تعيين كلمة المرور"}
               </p>
             </div>
 
