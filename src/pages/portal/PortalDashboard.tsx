@@ -9,7 +9,6 @@ import {
   FileText, HandCoins, Send, Plus, RefreshCw, ChevronLeft,
   X, Users, Package
 } from 'lucide-react';
-import PortalSalesTab from './PortalSalesTab';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
 import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
@@ -151,7 +150,6 @@ export default function PortalDashboard() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showTasksPage, setShowTasksPage] = useState(false);
   const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
-  const [showSalesDetail, setShowSalesDetail] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -229,7 +227,6 @@ export default function PortalDashboard() {
     setActiveTab(tab);
     setActiveIndex(tabIndexMap[tab] ?? 0);
     setShowTasksPage(false);
-    setShowSalesDetail(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -268,30 +265,10 @@ export default function PortalDashboard() {
 
   // ═══════ HOME TAB — Owner Summary Dashboard ═══════
   const renderHome = () => {
-    if (showSalesDetail) {
-      return (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 4px' }}>
-            <button onClick={() => setShowSalesDetail(false)} style={{
-              background: c.chipBg, border: `1px solid ${c.chipBorder}`, borderRadius: 10,
-              padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-              color: c.textPrimary, fontFamily: 'Cairo', fontSize: 12,
-            }}>
-              <ChevronLeft size={14} style={{ transform: 'rotate(180deg)' }} />
-              الرئيسية
-            </button>
-            <span style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary, fontFamily: 'Cairo' }}>
-              تحليل المبيعات
-            </span>
-          </div>
-          <PortalOwnerSalesHome theme={themeMode} />
-        </div>
-      );
-    }
     return (
       <PortalOwnerHomeSummary
         theme={themeMode}
-        onOpenSalesDetail={() => setShowSalesDetail(true)}
+        onOpenSalesDetail={() => { switchTab('finance'); setFinanceSection('sales'); }}
         onOpenFinance={() => { switchTab('finance'); setFinanceSection('menu'); }}
         onOpenLiquidity={() => { switchTab('finance'); setFinanceSection('liquidity'); }}
         onOpenReceivables={() => { switchTab('finance'); setFinanceSection('receivables'); }}
@@ -456,7 +433,7 @@ export default function PortalDashboard() {
             </span>
           </div>
           <div style={{ padding: '0 12px' }}>
-            {financeSection === 'sales' && <PortalSalesTab data={salesData} loading={dataLoading} businessDay={businessDay} needsSetup={needsSetup} onRefresh={refresh} theme={themeMode} />}
+            {financeSection === 'sales' && <PortalOwnerSalesHome theme={themeMode} />}
             {financeSection === 'liquidity' && <PortalLiquidityTab data={liquidityData} loading={dataLoading} theme={themeMode} />}
             {financeSection === 'receivables' && <PortalReceivablesTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />}
             {financeSection === 'suppliers' && <PortalSuppliersTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />}
@@ -642,7 +619,6 @@ export default function PortalDashboard() {
                   setShowMore(false);
                   setShowTasksPage(false);
                   setShowEmployeeRequests(false);
-                  setShowSalesDetail(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
