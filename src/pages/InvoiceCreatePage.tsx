@@ -1789,6 +1789,7 @@ const InvoiceCreatePage = () => {
       dueDate: "",
       paymentTerms: "net_30",
       paymentMethod: "credit",
+      invoiceKind: "credit",
       currency: "شيكل",
       exchangeRate: 1,
       notes: "",
