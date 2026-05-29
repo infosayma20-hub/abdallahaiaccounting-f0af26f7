@@ -2350,7 +2350,14 @@ const InvoiceCreatePage = () => {
                     type="button"
                     role="tab"
                     aria-selected={form.invoiceKind === "credit"}
-                    onClick={() => setForm(p => ({ ...p, invoiceKind: "credit" }))}
+                    onClick={() =>
+                      setForm(p => ({
+                        ...p,
+                        invoiceKind: "credit",
+                        // Restore a sensible default if user came from cash mode
+                        paymentTerms: p.paymentTerms === "immediate" ? "net_30" : p.paymentTerms,
+                      }))
+                    }
                     className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
                       form.invoiceKind === "credit"
                         ? "bg-background text-foreground shadow-sm"
