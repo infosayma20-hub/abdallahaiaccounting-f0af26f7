@@ -139,6 +139,206 @@ Deno.serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════
+    // ACTION: owner_sales — Sales breakdown for Owner Portal home cards
+    //   * POS vs Invoice split
+    //   * by branch, by item, by cashier
+    //   * Year-over-Year for same calendar range (prev year)
+    // ══════════════════════════════════════════════════════
+    if (action === "owner_sales") {
+      const today = new Date().toISOString().split("T")[0];
+      const dateFrom: string = body.dateFrom || today;
+      const dateTo: string = body.dateTo || today;
+      const startISO = `${dateFrom}T00:00:00`;
+      const endISO = `${dateTo}T23:59:59.999`;
+
+      const shiftDate = (d: string, years: number) => {
+        const dt = new Date(`${d}T00:00:00`);
+        dt.setFullYear(dt.getFullYear() + years);
+        return dt.toISOString().split("T")[0];
+      };
+      const prevFrom = shiftDate(dateFrom, -1);
+      const prevTo = shiftDate(dateTo, -1);
+
+      // ───────── Helper: load sales for a given range ─────────
+      async function loadRange(fromDate: string, toDate: string, withDetails: boolean) {
+        const sISO = `${fromDate}T00:00:00`;
+        const eISO = `${toDate}T23:59:59.999`;
+
+        // POS orders
+        const { data: orders } = await supabase
+          .from("pos_orders")
+          .select("id, total, created_at, session_id, user_id")
+          .eq("user_id", linkedUserId)
+          .eq("state", "paid")
+          .gte("created_at", sISO)
+          .lte("created_at", eISO)
+          .limit(20000);
+        const orderList = orders || [];
+
+        // Invoice sales
+        let invQ = supabase
+          .from("invoices")
+          .select("id, invoice_date, total_amount, contact_name, invoice_number, created_at, sales_rep_id")
+          .eq("user_id", linkedUserId)
+          .eq("invoice_type", "sale")
+          .eq("is_voided", false)
+          .not("status", "in", "(cancelled,void,reversed)")
+          .gte("invoice_date", fromDate)
+          .lte("invoice_date", toDate);
+        const { data: invs } = await invQ.limit(20000);
+        const invList = invs || [];
+
+        const posTotal = orderList.reduce((s, o) => s + (o.total || 0), 0);
+        const invTotal = invList.reduce((s, i) => s + (i.total_amount || 0), 0);
+        const total = posTotal + invTotal;
+        const orderCount = orderList.length + invList.length;
+
+        if (!withDetails) {
+          return { total, posTotal, invTotal, orderCount, byBranch: [], byItem: [], byCashier: [] };
+        }
+
+        // ── Sessions + cash boxes (for branch & cashier) ──
+        const sessionIds = [...new Set(orderList.map(o => o.session_id).filter(Boolean))];
+        const sessionMap: Record<string, { cashBoxId?: string; cashierName?: string }> = {};
+        for (let i = 0; i < sessionIds.length; i += 200) {
+          const chunk = sessionIds.slice(i, i + 200);
+          const { data: sessions } = await supabase
+            .from("pos_sessions")
+            .select("id, cash_box_id, cashier_name")
+            .in("id", chunk);
+          (sessions || []).forEach((s: any) => {
+            sessionMap[s.id] = { cashBoxId: s.cash_box_id, cashierName: s.cashier_name };
+          });
+        }
+        const cashBoxIds = [...new Set(Object.values(sessionMap).map(s => s.cashBoxId).filter(Boolean) as string[])];
+        const cashBoxMap: Record<string, { name: string; location: string }> = {};
+        if (cashBoxIds.length > 0) {
+          const { data: boxes } = await supabase
+            .from("cash_boxes")
+            .select("id, name, branch_location")
+            .in("id", cashBoxIds);
+          (boxes || []).forEach((b: any) => {
+            cashBoxMap[b.id] = { name: b.name, location: b.branch_location };
+          });
+        }
+
+        // ── POS lines (for item breakdown) ──
+        const orderIds = orderList.map(o => o.id);
+        let posLines: any[] = [];
+        for (let i = 0; i < orderIds.length; i += 200) {
+          const chunk = orderIds.slice(i, i + 200);
+          const { data } = await supabase
+            .from("pos_order_lines")
+            .select("order_id, product_name, qty, total")
+            .in("order_id", chunk);
+          if (data) posLines.push(...data);
+        }
+
+        // ── Invoice lines (for item breakdown) ──
+        const invIds = invList.map(i => i.id);
+        let invLines: any[] = [];
+        for (let i = 0; i < invIds.length; i += 200) {
+          const chunk = invIds.slice(i, i + 200);
+          const { data } = await supabase
+            .from("invoice_items")
+            .select("invoice_id, product_name, description, quantity, total_amount")
+            .in("invoice_id", chunk);
+          if (data) invLines.push(...data);
+        }
+
+        // ── Branch aggregation ──
+        const branchAgg: Record<string, { id: string; name: string; location: string; total: number; orderCount: number }> = {};
+        for (const o of orderList) {
+          const sess = sessionMap[o.session_id];
+          const cbId = sess?.cashBoxId || "unknown";
+          const box = cashBoxMap[cbId];
+          if (!branchAgg[cbId]) branchAgg[cbId] = {
+            id: cbId,
+            name: box?.name || "POS غير معروف",
+            location: box?.location || "",
+            total: 0, orderCount: 0,
+          };
+          branchAgg[cbId].total += o.total || 0;
+          branchAgg[cbId].orderCount += 1;
+        }
+        if (invList.length > 0) {
+          branchAgg["__invoices__"] = {
+            id: "__invoices__",
+            name: "فواتير المبيعات",
+            location: "المحاسبة",
+            total: invTotal,
+            orderCount: invList.length,
+          };
+        }
+        const byBranch = Object.values(branchAgg).sort((a, b) => b.total - a.total);
+
+        // ── Item aggregation (combined POS + invoice) ──
+        const itemAgg: Record<string, { name: string; quantity: number; revenue: number }> = {};
+        for (const l of posLines) {
+          const name = l.product_name || "غير معروف";
+          if (!itemAgg[name]) itemAgg[name] = { name, quantity: 0, revenue: 0 };
+          itemAgg[name].quantity += l.qty || 0;
+          itemAgg[name].revenue += l.total || 0;
+        }
+        for (const l of invLines) {
+          const name = l.product_name || l.description || "غير معروف";
+          if (!itemAgg[name]) itemAgg[name] = { name, quantity: 0, revenue: 0 };
+          itemAgg[name].quantity += l.quantity || 0;
+          itemAgg[name].revenue += l.total_amount || 0;
+        }
+        const byItem = Object.values(itemAgg).sort((a, b) => b.revenue - a.revenue);
+
+        // ── Cashier aggregation (POS only) ──
+        const cashierAgg: Record<string, { name: string; total: number; orderCount: number }> = {};
+        for (const o of orderList) {
+          const sess = sessionMap[o.session_id];
+          const name = sess?.cashierName || "غير محدد";
+          if (!cashierAgg[name]) cashierAgg[name] = { name, total: 0, orderCount: 0 };
+          cashierAgg[name].total += o.total || 0;
+          cashierAgg[name].orderCount += 1;
+        }
+        // Also count invoice sales by sales_rep_id if exists
+        const repIds = [...new Set(invList.map(i => i.sales_rep_id).filter(Boolean))];
+        const repMap: Record<string, string> = {};
+        if (repIds.length > 0) {
+          const { data: reps } = await supabase
+            .from("contacts")
+            .select("id, contact_name")
+            .in("id", repIds);
+          (reps || []).forEach((r: any) => { repMap[r.id] = r.contact_name; });
+        }
+        for (const inv of invList) {
+          if (!inv.sales_rep_id) continue;
+          const name = repMap[inv.sales_rep_id] || "مندوب";
+          if (!cashierAgg[name]) cashierAgg[name] = { name, total: 0, orderCount: 0 };
+          cashierAgg[name].total += inv.total_amount || 0;
+          cashierAgg[name].orderCount += 1;
+        }
+        const byCashier = Object.values(cashierAgg).sort((a, b) => b.total - a.total);
+
+        return { total, posTotal, invTotal, orderCount, byBranch, byItem, byCashier };
+      }
+
+      const [current, prevYear] = await Promise.all([
+        loadRange(dateFrom, dateTo, true),
+        loadRange(prevFrom, prevTo, true),
+      ]);
+
+      const growthPct = prevYear.total > 0
+        ? ((current.total - prevYear.total) / prevYear.total) * 100
+        : (current.total > 0 ? 100 : 0);
+
+      return respond({
+        success: true,
+        range: { from: dateFrom, to: dateTo },
+        prevRange: { from: prevFrom, to: prevTo },
+        current,
+        prevYear,
+        growthPct,
+      });
+    }
+
+    // ══════════════════════════════════════════════════════
     // ACTION: overview — Full accounting KPIs for portal dashboard
     // ══════════════════════════════════════════════════════
     if (action === "overview") {
