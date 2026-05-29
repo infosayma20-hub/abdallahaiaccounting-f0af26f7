@@ -320,6 +320,149 @@ export default function PortalAttendanceTab({ theme }: Props) {
     return groups;
   })();
 
+  const renderEmployeeRow = (emp: EmployeeAtt) => {
+    const statusColor = emp.status === 'present' ? t.green
+      : emp.status === 'left' ? t.neutral
+      : emp.status === 'on_break' ? t.orange
+      : t.red;
+    const statusLabel = emp.status === 'present' ? 'مداوم'
+      : emp.status === 'left' ? 'غادر'
+      : emp.status === 'on_break' ? `استراحة${emp.current_break_reason ? ' · ' + emp.current_break_reason : ''}`
+      : 'غائب';
+    const isExpanded = expandedId === emp.id;
+    // Duration since check-in (for currently present)
+    let durationLabel: string | null = null;
+    if (emp.status === 'present' && emp.check_in_time) {
+      const mins = Math.max(0, Math.floor((clock.getTime() - new Date(emp.check_in_time).getTime()) / 60000));
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      durationLabel = h > 0 ? `${h}س ${m}د` : `${m}د`;
+    }
+    return (
+      <div key={emp.id} style={{
+        background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: 'hidden',
+      }}>
+        <div
+          style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+          onClick={() => setExpandedId(isExpanded ? null : emp.id)}
+        >
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%', background: statusColor, flexShrink: 0,
+          }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{emp.full_name}</div>
+            <div style={{ fontSize: 10, color: t.textMuted }}>
+              {emp.branch_name || emp.department || emp.position || '—'}
+              {emp.shift_start && emp.shift_end && (
+                <span style={{ marginRight: 6 }}>
+                  · وردية {emp.shift_start?.slice(0, 5)}–{emp.shift_end?.slice(0, 5)}
+                </span>
+              )}
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', minWidth: 64 }}>
+            {emp.check_in_time && (
+              <div style={{ fontSize: 11, color: t.text, fontWeight: 600 }} dir="ltr">
+                {formatTime(emp.check_in_time)}
+              </div>
+            )}
+            {durationLabel ? (
+              <div style={{ fontSize: 10, color: t.textMuted }}>منذ {durationLabel}</div>
+            ) : emp.check_out_time ? (
+              <div style={{ fontSize: 10, color: t.textMuted }} dir="ltr">→ {formatTime(emp.check_out_time)}</div>
+            ) : emp.today_hours != null && emp.today_hours > 0 ? (
+              <div style={{ fontSize: 10, color: t.textMuted }}>{emp.today_hours.toFixed(1)} س</div>
+            ) : null}
+          </div>
+          <div style={{
+            background: 'transparent', color: statusColor,
+            padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+            whiteSpace: 'nowrap', border: `1px solid ${statusColor}40`,
+          }}>
+            {statusLabel}
+          </div>
+          {isExpanded ? <ChevronUp size={14} style={{ color: t.textMuted }} /> : <ChevronDown size={14} style={{ color: t.textMuted }} />}
+        </div>
+        {isExpanded && (
+          <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${t.border}` }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 10, marginBottom: 10 }}>
+              <MiniStat label="أيام" value={emp.total_days} color={t.text} t={t} />
+              <MiniStat label="ساعات" value={emp.total_hours} color={t.text} t={t} />
+              <MiniStat label="إضافي" value={emp.total_overtime} color={t.text} t={t} />
+              <MiniStat label="استراحة (د)" value={emp.total_break_minutes || 0} color={t.text} t={t} />
+            </div>
+            {emp.breaks && emp.breaks.length > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: t.textMuted, marginBottom: 4 }}>
+                  المغادرات المؤقتة ({emp.breaks.length})
+                </div>
+                {emp.breaks.map((b, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '4px 8px', background: t.bg, borderRadius: 6, marginBottom: 2, fontSize: 10,
+                  }}>
+                    <span style={{ color: t.text }}>{b.reason || 'استراحة'}</span>
+                    <div style={{ display: 'flex', gap: 8, color: t.textMuted }} dir="ltr">
+                      <span>{format(new Date(b.break_out), 'hh:mm a')}</span>
+                      <span>→</span>
+                      <span>{b.break_in ? format(new Date(b.break_in), 'hh:mm a') : 'مفتوح'}</span>
+                      {b.duration_minutes != null && (
+                        <span style={{ fontWeight: 600, color: t.orange }}>{b.duration_minutes}د</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {emp.records.length > 0 ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                      <th style={{ padding: '6px 4px', textAlign: 'right', color: t.textMuted, fontWeight: 600 }}>التاريخ</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>دخول</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إجمالي</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>صافي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {emp.records.slice(0, 30).map((r, i) => (
+                      <tr key={i} style={{ borderBottom: `1px solid ${t.border}` }}>
+                        <td style={{ padding: '6px 4px', color: t.text }}>
+                          {format(new Date(r.date), 'dd/MM', { locale: ar })}
+                          <span style={{ fontSize: 9, color: t.textMuted, marginRight: 4 }}>
+                            {format(new Date(r.date), 'EEEE', { locale: ar })}
+                          </span>
+                        </td>
+                        <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text }} dir="ltr">
+                          {r.check_in ? format(new Date(r.check_in), 'hh:mm a') : '—'}
+                        </td>
+                        <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text }} dir="ltr">
+                          {r.check_out ? format(new Date(r.check_out), 'hh:mm a') : '—'}
+                        </td>
+                        <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text, fontWeight: 600 }}>
+                          {r.hours != null ? r.hours.toFixed(1) : '—'}
+                        </td>
+                        <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text, fontWeight: 700 }}>
+                          {r.net_work_minutes != null ? (r.net_work_minutes / 60).toFixed(1) : (r.hours != null ? r.hours.toFixed(1) : '—')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: 16, color: t.textMuted, fontSize: 11 }}>
+                لا توجد سجلات حضور في هذه الفترة
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={{ direction: 'rtl' }}>
       {/* Header */}
