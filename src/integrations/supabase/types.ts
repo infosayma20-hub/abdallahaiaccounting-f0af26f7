@@ -18322,14 +18322,19 @@ export type Database = {
         }
         Returns: Json
       }
-      create_reverse_entry: {
-        Args: {
-          original_transaction_id: string
-          reason: string
-          reversed_by: string
-        }
-        Returns: string
-      }
+      create_reverse_entry:
+        | {
+            Args: { original_transaction_id: string; reason: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              original_transaction_id: string
+              reason: string
+              reversed_by: string
+            }
+            Returns: string
+          }
       create_sale_invoice_atomic: {
         Args: {
           p_contact_id: string
