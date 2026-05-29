@@ -99,6 +99,8 @@ export default function EmployeeFormsManagementPage() {
   const [showUploadPolicy, setShowUploadPolicy] = useState(false);
   const [policyForm, setPolicyForm] = useState({ title: "", description: "", category: "" });
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
+  const [editPolicyId, setEditPolicyId] = useState<string | null>(null);
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   useEffect(() => {
     if (user && dataOwnerId) {
