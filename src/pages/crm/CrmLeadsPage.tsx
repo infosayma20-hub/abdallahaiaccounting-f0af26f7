@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, Phone, MessageCircle, Mail, MapPin, ArrowRight, Trash2, Edit3 } from "lucide-react";
+import { Plus, Search, Phone, MessageCircle, Mail, MapPin, ArrowRight, Trash2, Edit3, UserCheck, ExternalLink } from "lucide-react";
 import { useCrmLeads } from "./hooks/useCrmData";
 import { LEAD_STATUS_META, PRIORITY_META, type CrmLeadStatus, type CrmLead } from "./types";
 import LeadFormDialog from "./LeadFormDialog";
@@ -62,6 +62,61 @@ export default function CrmLeadsPage() {
     if (error) { toast.error("تعذر الحذف"); return; }
     toast.success("تم الحذف");
     refetch();
+  };
+
+  // Convert lead → real contact + opportunity (so it appears in Pipeline, 360, tickets, calls)
+  const convert = async (l: CrmLead) => {
+    if (l.status === "converted" && l.contact_id) {
+      navigate(`/crm/customer/${l.contact_id}`);
+      return;
+    }
+    const contactName = (l.contact_name || l.company_name || l.title).trim();
+    if (!confirm(`تحويل "${l.title}" إلى عميل فعلي وفتح فرصة بيع؟\n\nسيتم:\n• إنشاء عميل باسم: ${contactName}\n• فتح فرصة في خط سير المبيعات\n• تحديث حالة العميل المحتمل إلى "محوّل"`)) return;
+    const sb: any = supabase;
+    const userId = (l as any).user_id;
+
+    // 1) Create contact
+    const contactPayload: any = {
+      user_id: userId,
+      contact_name: contactName,
+      contact_type: "عميل",
+      phone: l.phone || l.whatsapp || null,
+      email: l.email,
+      address: l.city,
+      industry: l.industry,
+      source: l.source || "crm_lead",
+    };
+    const { data: contact, error: cErr } = await sb.from("contacts").insert(contactPayload).select("id").single();
+    if (cErr || !contact) { toast.error("تعذر إنشاء العميل: " + (cErr?.message || "")); return; }
+
+    // 2) Create opportunity
+    const oppPayload: any = {
+      user_id: userId,
+      title: l.title,
+      lead_id: l.id,
+      contact_id: contact.id,
+      customer_name: contactName,
+      expected_value: Number(l.estimated_value) || 0,
+      probability: Number(l.probability) || 50,
+      stage: "new",
+      priority: l.priority,
+      notes: l.notes,
+      next_activity_date: l.next_activity_date,
+    };
+    const { data: opp, error: oErr } = await sb.from("crm_opportunities").insert(oppPayload).select("id").single();
+    if (oErr) { toast.error("تم إنشاء العميل لكن تعذر إنشاء الفرصة: " + oErr.message); }
+
+    // 3) Update lead → converted
+    await sb.from("crm_leads").update({
+      status: "converted",
+      contact_id: contact.id,
+      converted_opportunity_id: opp?.id || null,
+      converted_at: new Date().toISOString(),
+    }).eq("id", l.id);
+
+    toast.success("تم تحويل العميل المحتمل بنجاح");
+    refetch();
+    navigate(`/crm/customer/${contact.id}`);
   };
 
   const tabs: Array<[string, CrmLeadStatus | "all", number]> = [
@@ -200,6 +255,25 @@ export default function CrmLeadsPage() {
                   <span className="font-semibold text-amber-700">{fmtDateDisplay(lead.next_activity_date)}</span>
                 </div>
               )}
+
+              {/* Convert / Open customer */}
+              <div className="mt-3 pt-2 border-t border-slate-100">
+                {lead.status === "converted" && lead.contact_id ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/crm/customer/${lead.contact_id}`); }}
+                    className="w-full h-8 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-bold hover:bg-emerald-100 flex items-center justify-center gap-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> فتح ملف العميل (360°)
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); convert(lead); }}
+                    className="w-full h-8 rounded-lg bg-blue-600 text-white text-[12px] font-bold hover:bg-blue-700 flex items-center justify-center gap-1.5"
+                  >
+                    <UserCheck className="h-3.5 w-3.5" /> تحويل لعميل + فتح فرصة
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
