@@ -1327,12 +1327,11 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-3.5 text-white font-semibold text-[13px] w-12">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "14%" }}>رقم الحساب</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "24%" }}>الحساب / الجهة</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>مدين ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>دائن ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>تعليق</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "16%" }}>مركز التكلفة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "36%" }}>الحساب أو الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "22%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>مركز التكلفة</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
