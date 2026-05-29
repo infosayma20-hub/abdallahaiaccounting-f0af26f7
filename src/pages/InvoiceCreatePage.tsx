@@ -1807,6 +1807,7 @@ const InvoiceCreatePage = () => {
       paymentTerms: "net_30",
       paymentMethod: "credit",
       invoiceKind: "credit",
+      cashAccountCode: null,
       currency: "شيكل",
       exchangeRate: 1,
       notes: "",
