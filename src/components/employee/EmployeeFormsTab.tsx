@@ -89,6 +89,8 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   const [showPolicies, setShowPolicies] = useState(true);
   const [showLoanForm, setShowLoanForm] = useState(true);
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
+  const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
+  const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
 
   // Form state
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -98,6 +100,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     fetchPolicies();
     fetchOwnerSettings();
     fetchEmployeeProfile();
+    fetchBranchesAndDepartments();
   }, [employeeId]);
 
   // Auto-open requested form (e.g. when user taps "تحديث معلوماتي" from profile)
@@ -159,6 +162,21 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       branchName = br?.name || "";
     }
     setEmployeeProfile({ ...data, branch_name: branchName });
+  };
+
+  const fetchBranchesAndDepartments = async () => {
+    try {
+      const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+      const ownerId = ownerData || userId;
+      const [{ data: br }, { data: dp }] = await Promise.all([
+        supabase.from("branches_safe").select("id, name").eq("user_id", ownerId).eq("is_active", true).order("name"),
+        supabase.from("departments").select("id, name_ar, name").eq("user_id", ownerId).eq("is_active", true).eq("is_deleted", false).order("name_ar"),
+      ]);
+      setBranchOptions((br || []).map((b: any) => ({ id: b.id, name: b.name })));
+      setDeptOptions((dp || []).map((d: any) => ({ id: d.id, name: d.name_ar || d.name })));
+    } catch (e) {
+      // silent — selects fall back to empty
+    }
   };
 
   // Auto-prefill loan form when opened
