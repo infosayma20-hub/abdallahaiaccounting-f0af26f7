@@ -130,9 +130,14 @@ Deno.serve(async (req) => {
       // Get auth users for email/last sign in
       const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
 
+      // Get companies → license_number map
+      const { data: companies } = await admin.from("companies").select("id, license_number, name");
+      const companyMap = new Map((companies || []).map((c: any) => [c.id, c]));
+
       const enriched = (profiles || []).map((p: any) => {
         const authUser = authUsers?.find((u: any) => u.id === p.user_id);
         const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id).map((r: any) => r.role);
+        const company = p.company_id ? companyMap.get(p.company_id) : null;
         return {
           ...p,
           email: authUser?.email,
@@ -140,6 +145,7 @@ Deno.serve(async (req) => {
           last_sign_in: authUser?.last_sign_in_at,
           is_banned: authUser?.banned_until ? new Date(authUser.banned_until) > new Date() : false,
           roles: userRoles,
+          license_number: company?.license_number || null,
         };
       });
 

@@ -129,7 +129,9 @@ type UserRecord = {
   business_type?: string;
   invited_by?: string | null;
   company_id?: string | null;
+  license_number?: string | null;
 };
+
 
 type LiveEvent = {
   id: string;
@@ -1846,7 +1848,11 @@ export default function SuperAdminDashboard() {
   const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
 
   const filteredUsers = users.filter((u) =>
-    !userSearch || (u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
+    !userSearch || (
+      u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.license_number?.toLowerCase().includes(userSearch.toLowerCase())
+    )
   );
 
   const { owners, subUsersMap, standaloneUsers, companyCount } = useMemo(() => {
@@ -1953,6 +1959,9 @@ export default function SuperAdminDashboard() {
               )}
             </div>
             <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
+            {u.license_number && (
+              <p className="text-[10px] font-mono" style={{ color: "var(--sa-text-faint)" }}>ترخيص: {u.license_number}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
@@ -2033,6 +2042,9 @@ export default function SuperAdminDashboard() {
             </div>
             {u.company_name && (
               <span className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>{u.company_name}</span>
+            )}
+            {u.license_number && (
+              <span className="text-[11px] font-mono mr-2" style={{ color: "var(--sa-text-faint)" }}> · ترخيص: {u.license_number}</span>
             )}
           </div>
         </div>
@@ -2213,7 +2225,7 @@ export default function SuperAdminDashboard() {
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--sa-text-faint)" }} />
-                <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="بحث بالاسم أو الإيميل..."
+                <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="بحث بالاسم أو الإيميل أو رقم الترخيص..."
                   className="pr-10 text-sm" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
               </div>
               <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }} className="border-0 text-[10px] sm:text-xs whitespace-nowrap">
