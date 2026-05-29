@@ -2274,9 +2274,8 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
-          {/* Warehouse selector — controls where stock is debited/credited and which inventory is shown in the picker */}
-          {(warehouses.length > 0 || workshops.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
+          {/* Warehouse / cost center / invoice kind row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
               {warehouses.length > 0 && (
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
@@ -2326,8 +2325,56 @@ const InvoiceCreatePage = () => {
                   </Select>
                 </div>
               )}
+              {/* Invoice kind: explicit cash vs credit segmented control */}
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                  نوع الفاتورة
+                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">
+                    ({form.invoiceKind === "cash" ? "تُسدّد فوراً" : "تُسجَّل على الذمة"})
+                  </span>
+                </label>
+                <div
+                  role="tablist"
+                  aria-label="نوع الفاتورة"
+                  className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={form.invoiceKind === "credit"}
+                    onClick={() => setForm(p => ({ ...p, invoiceKind: "credit" }))}
+                    className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
+                      form.invoiceKind === "credit"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    آجل
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={form.invoiceKind === "cash"}
+                    onClick={() =>
+                      setForm(p => ({
+                        ...p,
+                        invoiceKind: "cash",
+                        // Force terms/due-date to match cash semantics
+                        paymentTerms: "immediate",
+                        dueDate: p.date,
+                      }))
+                    }
+                    className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
+                      form.invoiceKind === "cash"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    نقدي
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
 
           {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
