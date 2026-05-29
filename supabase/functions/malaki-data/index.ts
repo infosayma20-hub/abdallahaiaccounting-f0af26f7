@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
         // Invoice sales
         let invQ = supabase
           .from("invoices")
-          .select("id, invoice_date, total_amount, contact_name, invoice_number, created_at, sales_rep_id")
+          .select("id, invoice_date, total_amount, contact_name, invoice_number, created_at")
           .eq("user_id", linkedUserId)
           .eq("invoice_type", "sale")
           .eq("is_voided", false)
@@ -297,23 +297,7 @@ Deno.serve(async (req) => {
           cashierAgg[name].total += o.total || 0;
           cashierAgg[name].orderCount += 1;
         }
-        // Also count invoice sales by sales_rep_id if exists
-        const repIds = [...new Set(invList.map(i => i.sales_rep_id).filter(Boolean))];
-        const repMap: Record<string, string> = {};
-        if (repIds.length > 0) {
-          const { data: reps } = await supabase
-            .from("contacts")
-            .select("id, contact_name")
-            .in("id", repIds);
-          (reps || []).forEach((r: any) => { repMap[r.id] = r.contact_name; });
-        }
-        for (const inv of invList) {
-          if (!inv.sales_rep_id) continue;
-          const name = repMap[inv.sales_rep_id] || "مندوب";
-          if (!cashierAgg[name]) cashierAgg[name] = { name, total: 0, orderCount: 0 };
-          cashierAgg[name].total += inv.total_amount || 0;
-          cashierAgg[name].orderCount += 1;
-        }
+        // (Invoice sales attribution by user is not tracked on invoices table)
         const byCashier = Object.values(cashierAgg).sort((a, b) => b.total - a.total);
 
         return { total, posTotal, invTotal, orderCount, byBranch, byItem, byCashier };
