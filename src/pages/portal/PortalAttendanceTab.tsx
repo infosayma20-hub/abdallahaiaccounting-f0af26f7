@@ -13,6 +13,9 @@ interface EmployeeAtt {
   id: string;
   full_name: string;
   position: string;
+  branch_id: string | null;
+  branch_name: string | null;
+  department: string | null;
   shift_start: string | null;
   shift_end: string | null;
   status: string;
