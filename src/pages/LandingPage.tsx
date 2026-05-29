@@ -6,6 +6,9 @@ import appsGrid from "@/assets/screens/apps-grid.png";
 import repHome from "@/assets/screens/rep-home.png";
 import repExpense from "@/assets/screens/rep-expense.png";
 import repOrders from "@/assets/screens/rep-orders.png";
+import wsRep from "@/assets/screens/workspace-rep.png";
+import wsCashier from "@/assets/screens/workspace-cashier.png";
+import wsCallcenter from "@/assets/screens/workspace-callcenter.png";
 
 /**
  * AMWALI — صفحة هبوط نظيفة، صادقة، مبنية على صور حقيقية من البرنامج.
