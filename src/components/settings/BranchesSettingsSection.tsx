@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ interface Branch {
 
 export default function BranchesSettingsSection() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -39,13 +41,15 @@ export default function BranchesSettingsSection() {
   const [qrMode, setQrMode] = useState("static");
 
   useEffect(() => {
-    if (user) loadBranches();
-  }, [user]);
+    if (user && dataOwnerId) loadBranches();
+  }, [user, dataOwnerId]);
 
   const loadBranches = async () => {
+    if (!dataOwnerId) return;
     const { data } = await supabase
-      .from("branches")
+      .from("branches_safe")
       .select("*")
+      .eq("user_id", dataOwnerId)
       .order("created_at");
     setBranches((data as Branch[]) || []);
     setLoading(false);
@@ -100,7 +104,7 @@ export default function BranchesSettingsSection() {
     } else {
       const { error } = await supabase
         .from("branches")
-        .insert(payload);
+        .insert({ ...payload, user_id: dataOwnerId });
       if (error) return toast.error("خطأ في الإضافة");
       toast.success("تمت إضافة الفرع");
     }
