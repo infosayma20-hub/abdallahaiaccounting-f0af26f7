@@ -524,7 +524,7 @@ export default function EmployeeFormsManagementPage() {
                                       <Eye className="h-3.5 w-3.5" /> مراجعة
                                     </Button>
                                   ) : (
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); setEditMode(false); setEditedData({ ...(f.form_data || {}) }); }}>
                                       <Eye className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
