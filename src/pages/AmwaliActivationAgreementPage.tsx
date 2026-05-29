@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowRight, RotateCcw, Save } from "lucide-react";
+import { Printer, ArrowRight, RotateCcw, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
 import amwaliLogo from "@/assets/amwali-logo-tall.png";
 
@@ -215,6 +215,14 @@ const AmwaliActivationAgreementPage = () => {
           <div className="flex-1 text-sm font-semibold text-slate-700">
             اتفاقية تفعيل خدمة أموالي
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/super-admin/dashboard")}
+            title="الذهاب إلى لوحة السوبر ادمن"
+          >
+            <Shield className="ml-1 h-4 w-4" /> السوبر ادمن
+          </Button>
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="ml-1 h-4 w-4" /> مسح
           </Button>
