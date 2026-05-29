@@ -342,17 +342,22 @@ const JournalNewPage = () => {
         setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
         setLineSortOrder((v.line_sort_order as any) || "original");
 
-        const loaded: JournalLine[] = (lns || []).map((l: any, i: number) => ({
-          id: `${editingVoucherId}-${i}-${Date.now()}`,
-          account_code: l.account_code || "",
-          account_name: l.account_name || "",
-          debit: Number(l.debit) || 0,
-          credit: Number(l.credit) || 0,
-          contact_id: l.contact_id || "",
-          contact_name: l.contact_name || "",
-          line_comment: l.line_comment || "",
-          cost_center_id: l.cost_center_id || null,
-        }));
+        const loaded: JournalLine[] = (lns || []).map((l: any, i: number) => {
+          const d = Number(l.debit) || 0;
+          const c = Number(l.credit) || 0;
+          return {
+            id: `${editingVoucherId}-${i}-${Date.now()}`,
+            account_code: l.account_code || "",
+            account_name: l.account_name || "",
+            // Defensive: legacy data must never present both sides at once in the form.
+            debit: d >= c ? d : 0,
+            credit: c > d ? c : 0,
+            contact_id: l.contact_id || "",
+            contact_name: l.contact_name || "",
+            line_comment: l.line_comment || "",
+            cost_center_id: l.cost_center_id || null,
+          };
+        });
         while (loaded.length < 2) {
           loaded.push({
             id: `pad-${loaded.length}-${Date.now()}`,
@@ -442,6 +447,15 @@ const JournalNewPage = () => {
         const c = contacts.find(c => c.id === cleanVal);
         return { ...l, contact_id: cleanVal, contact_name: c?.contact_name || "" };
       }
+      // Mutual exclusivity: a single line may only carry debit OR credit, never both.
+      if (field === "debit") {
+        const n = Number(value) || 0;
+        return { ...l, debit: n, credit: n > 0 ? 0 : l.credit };
+      }
+      if (field === "credit") {
+        const n = Number(value) || 0;
+        return { ...l, credit: n, debit: n > 0 ? 0 : l.debit };
+      }
       return { ...l, [field]: value };
     }));
   };
@@ -456,12 +470,18 @@ const JournalNewPage = () => {
 
     const newLines: JournalLine[] = tpl.lines.map((l, i) => {
       const acct = accounts.find(a => a.account_code === l.account_code);
+      const d = Number(l.debit) || 0;
+      const c = Number(l.credit) || 0;
+      // Enforce single-sided amount per line — keep the larger side if a template
+      // accidentally carries both.
+      const debit = d >= c ? d : 0;
+      const credit = c > d ? c : 0;
       return {
         id: String(Date.now() + i),
         account_code: l.account_code || "",
         account_name: acct?.account_name || l.account_name || "",
-        debit: Number(l.debit) || 0,
-        credit: Number(l.credit) || 0,
+        debit,
+        credit,
         contact_id: l.contact_id || "",
         contact_name: l.contact_name || "",
         line_comment: l.memo || "",
@@ -545,6 +565,18 @@ const JournalNewPage = () => {
     // - Active rows MUST have a postable account_code AND at least one of debit/credit > 0.
     const postableSet = new Set(postableAccounts.map((a: any) => a.account_code));
     const invalids: string[] = [];
+    // Hard rule: a line cannot carry both debit AND credit. Block save outright.
+    const dualSided = preparedLines.filter(
+      l => Number(l.debit) > 0 && Number(l.credit) > 0
+    );
+    if (dualSided.length > 0) {
+      setInvalidLineIds(new Set(dualSided.map(l => l.id)));
+      const rowNums = dualSided
+        .map(l => preparedLines.findIndex(x => x.id === l.id) + 1)
+        .join("، ");
+      toast.error(`لا يمكن إدخال مدين ودائن في نفس السطر (السطر ${rowNums})`);
+      return;
+    }
     const cleanLines = preparedLines.filter(l => {
       const hasAmount = Number(l.debit) > 0 || Number(l.credit) > 0;
       const hasAccount = !!l.account_code;
@@ -1494,6 +1526,10 @@ const JournalNewPage = () => {
               </tfoot>
             </table>
           </div>
+
+          <p className="text-[11px] text-muted-foreground px-1">
+            كل سطر يكون مدين أو دائن فقط.
+          </p>
 
           {/* Sort Order Radio */}
           <div className="flex items-center gap-4 text-xs">
