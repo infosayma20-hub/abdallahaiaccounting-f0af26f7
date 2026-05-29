@@ -495,8 +495,30 @@ export default function PortalAttendanceTab({ theme }: Props) {
           <div style={{ textAlign: 'center', padding: 40, color: t.textMuted, fontSize: 13 }}>
             {employees.length === 0 ? 'لا يوجد موظفين مسجلين' : 'لا يوجد موظفين مطابقين للفلاتر'}
           </div>
+        ) : showGroups ? (
+          groupedByBranch.map(group => (
+            <div key={group.branchId} style={{ marginBottom: 6 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '6px 4px', marginBottom: 6,
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{group.branchName}</span>
+                <span style={{ fontSize: 10, color: t.textMuted }}>{group.items.length} موظف</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {group.items.map(emp => renderEmployeeRow(emp))}
+              </div>
+            </div>
+          ))
         ) : (
-          filteredEmployees.map(emp => {
+          filteredEmployees.map(emp => renderEmployeeRow(emp))
+        )}
+      </div>
+
+      {/* keep KPI summary block below */}
+      {false && (
+        <div>
+          {filteredEmployees.map(emp => {
             const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : emp.status === 'on_break' ? '#f97316' : t.red;
             const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : emp.status === 'on_break' ? `استراحة ☕ ${emp.current_break_reason || ''}` : 'غائب ❌';
             const isExpanded = expandedId === emp.id;
