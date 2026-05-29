@@ -3549,9 +3549,11 @@ const POSPage = () => {
     // USD: USD_tendered - USD_change - USD_returns
     // JOD: JOD_tendered - JOD_change - JOD_returns
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
-    const effectiveILSCashSales = salesOrderIds.length === 0 && (session.total_sales || 0) > 0
-      ? (session.total_sales || 0)
-      : ilsCashSales;
+    // ⚠️ Do NOT fall back to session.total_sales when there are no paid orders —
+    // that stale value still includes cancelled invoices and produces a false
+    // "expected cash" (and a fake deficit) when the cashier voided everything
+    // before closing the shift. Cancelled orders must NOT inflate expected cash.
+    const effectiveILSCashSales = ilsCashSales;
     const totalReturnsILS = returnsByCurrency.ILS || 0;
     const totalReturnsUSD = returnsByCurrency.USD || 0;
     const totalReturnsJOD = returnsByCurrency.JOD || 0;
