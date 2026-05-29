@@ -263,8 +263,16 @@ export default function PortalDashboard() {
     }
   };
 
-  // ═══════ HOME TAB ═══════
+  // ═══════ HOME TAB — Owner Sales Cards ═══════
   const renderHome = () => (
+    <PortalOwnerSalesHome
+      theme={themeMode}
+      onOpenSales={() => { switchTab('finance'); setFinanceSection('sales'); }}
+    />
+  );
+
+  // Legacy home (kept for reference, unused)
+  const _renderLegacyHome = () => (
     <div>
       {refreshing && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: 8 }}>
