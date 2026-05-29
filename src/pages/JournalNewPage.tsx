@@ -1603,7 +1603,7 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={3} className="p-3 text-sm font-bold">الإجمالي</td>
+                  <td colSpan={2} className="p-3 text-sm font-bold">الإجمالي</td>
                   <td className="p-3 font-mono text-sm">₪{formatAmount(totalDebit)}</td>
                   <td className="p-3 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td colSpan={3}></td>
