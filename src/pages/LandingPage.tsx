@@ -9,6 +9,14 @@ import repOrders from "@/assets/screens/rep-orders.png";
 import wsRep from "@/assets/screens/workspace-rep.png";
 import wsCashier from "@/assets/screens/workspace-cashier.png";
 import wsCallcenter from "@/assets/screens/workspace-callcenter.png";
+import hrEmployeeHome from "@/assets/screens/hr-employee-home.png";
+import hrForms from "@/assets/screens/hr-forms.png";
+import hrAttendanceLog from "@/assets/screens/hr-attendance-log.png";
+import hrProfile from "@/assets/screens/hr-profile.png";
+import hrRosterWeek from "@/assets/screens/hr-roster-week.png";
+import hrShiftDialog from "@/assets/screens/hr-shift-dialog.png";
+import hrManagerTools from "@/assets/screens/hr-manager-tools.png";
+import hrDashboard from "@/assets/screens/hr-dashboard.png";
 
 /**
  * AMWALI — صفحة هبوط نظيفة، صادقة، مبنية على صور حقيقية من البرنامج.
