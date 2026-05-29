@@ -244,6 +244,11 @@ export default function EmployeeFormsManagementPage() {
           if (d.marital_status) patch.marital_status = maritalMap[d.marital_status] || d.marital_status;
           if (d.children_count !== undefined && d.children_count !== "") patch.children_count = Number(d.children_count) || 0;
           if (d.address) patch.address = d.address;
+          if (d.branch_id) patch.branch_id = d.branch_id;
+          if (d.department_id) patch.department_id = d.department_id;
+          if (d.department) patch.department = d.department;
+          if (d.education) patch.education = d.education;
+          if (d.name) patch.full_name = d.name;
           if (Object.keys(patch).length > 0) {
             const { error: upErr } = await supabase.from("employees").update(patch).eq("id", form.employee_id);
             if (upErr) toast.error("تم اعتماد الطلب لكن فشل تحديث ملف الموظف: " + upErr.message);
