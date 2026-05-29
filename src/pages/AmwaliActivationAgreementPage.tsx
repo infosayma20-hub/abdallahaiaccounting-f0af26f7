@@ -151,8 +151,19 @@ const AmwaliActivationAgreementPage = () => {
         @media print {
           @page { size: A4; margin: 12mm; }
           body { background: white !important; }
+          html, body { margin: 0 !important; padding: 0 !important; }
+          body * { visibility: hidden !important; }
+          .print-page, .print-page * { visibility: visible !important; }
+          .print-page {
+            position: absolute !important;
+            inset: 0 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            max-width: none !important;
+            width: 100% !important;
+            padding: 0 !important;
+          }
           .no-print { display: none !important; }
-          .print-page { box-shadow: none !important; margin: 0 !important; max-width: none !important; width: 100% !important; padding: 0 !important; }
           input { border: none !important; background: transparent !important; padding: 0 !important; }
           textarea { border: none !important; background: transparent !important; padding: 0 !important; resize: none !important; }
         }
