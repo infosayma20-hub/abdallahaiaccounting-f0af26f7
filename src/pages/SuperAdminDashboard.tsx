@@ -129,6 +129,7 @@ type UserRecord = {
   business_type?: string;
   invited_by?: string | null;
   company_id?: string | null;
+  license_number?: string | null;
 };
 
 
@@ -1847,7 +1848,11 @@ export default function SuperAdminDashboard() {
   const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
 
   const filteredUsers = users.filter((u) =>
-    !userSearch || (u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
+    !userSearch || (
+      u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.license_number?.toLowerCase().includes(userSearch.toLowerCase())
+    )
   );
 
   const { owners, subUsersMap, standaloneUsers, companyCount } = useMemo(() => {
