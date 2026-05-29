@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
-import amwaliLogoFull from "@/assets/branding/logo-vertical.png";
 import AnimatedAmwaliLogo from "@/components/auth/AnimatedAmwaliLogo";
 import amwaliMarkWhiteNavy from "@/assets/amwali-mark-white-navy.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
