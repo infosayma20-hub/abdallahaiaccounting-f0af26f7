@@ -465,12 +465,18 @@ const JournalNewPage = () => {
 
     const newLines: JournalLine[] = tpl.lines.map((l, i) => {
       const acct = accounts.find(a => a.account_code === l.account_code);
+      const d = Number(l.debit) || 0;
+      const c = Number(l.credit) || 0;
+      // Enforce single-sided amount per line — keep the larger side if a template
+      // accidentally carries both.
+      const debit = d >= c ? d : 0;
+      const credit = c > d ? c : 0;
       return {
         id: String(Date.now() + i),
         account_code: l.account_code || "",
         account_name: acct?.account_name || l.account_name || "",
-        debit: Number(l.debit) || 0,
-        credit: Number(l.credit) || 0,
+        debit,
+        credit,
         contact_id: l.contact_id || "",
         contact_name: l.contact_name || "",
         line_comment: l.memo || "",
