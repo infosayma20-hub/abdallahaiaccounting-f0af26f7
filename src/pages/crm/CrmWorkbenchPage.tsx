@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Clock, AlertTriangle, LifeBuoy, Phone, Calendar, Repeat,
-  StickyNote, Plus, ExternalLink, Ticket, UserX, Activity,
+  StickyNote, Plus, ExternalLink, Ticket, UserX, Activity, UserPlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,7 +10,7 @@ import {
   useCsTickets, useCsCalls, useCsMeetings,
   useCsSubscriptions,
 } from "./hooks/useCsData";
-import { useCrmActivities } from "./hooks/useCrmData";
+import { useCrmActivities, useCrmLeads } from "./hooks/useCrmData";
 import { TICKET_PRIORITY_META, type CsTimelineEvent } from "./types-cs";
 import { fmtDateDisplay } from "@/lib/utils";
 import CsQuickAddDialog, { type CsQuickKind } from "./components/CsQuickAddDialog";
@@ -23,7 +23,7 @@ type TaskRow = {
   key: string;
   contactId: string | null;
   contactName: string;
-  type: "ticket_new" | "ticket_critical" | "renewal" | "meeting_today" | "no_contact_30d";
+  type: "ticket_new" | "ticket_critical" | "renewal" | "meeting_today" | "no_contact_30d" | "lead_new" | "lead_followup";
   typeLabel: string;
   typeColor: string;
   typeBg: string;
@@ -42,6 +42,7 @@ export default function CrmWorkbenchPage() {
   const { items: meetings, refetch: refetchMeetings } = useCsMeetings();
   const { items: subs } = useCsSubscriptions();
   const { activities, refetch: refetchActs } = useCrmActivities();
+  const { leads } = useCrmLeads();
 
   const [contactsMap, setContactsMap] = useState<Record<string, string>>({});
   const [recentEvents, setRecentEvents] = useState<CsTimelineEvent[]>([]);
@@ -104,12 +105,15 @@ export default function CrmWorkbenchPage() {
     const callsToday = calls.filter((c) => c.called_at.startsWith(t)).length;
     const meetingsToday = meetings.filter((m) => m.meeting_date.startsWith(t)).length;
     const renewals7 = subs.filter((s) => { const d = daysFromNow(s.renewal_date); return d >= 0 && d <= 7; }).length;
+    const newLeads = leads.filter((l) => l.status === "new").length;
+    const leadsToFollowToday = leads.filter((l) => l.next_activity_date && l.next_activity_date <= t && !["converted", "lost", "unqualified"].includes(l.status)).length;
     return {
       dueToday, overdue,
       openTickets: openTickets.length, critical: critical.length,
       callsToday, meetingsToday, renewals7,
+      newLeads, leadsToFollowToday,
     };
-  }, [activities, tickets, calls, meetings, subs, t]);
+  }, [activities, tickets, calls, meetings, subs, leads, t]);
 
   const tasks = useMemo<TaskRow[]>(() => {
     const rows: TaskRow[] = [];
@@ -200,15 +204,49 @@ export default function CrmWorkbenchPage() {
       });
     });
 
+    // New leads (status=new)
+    leads
+      .filter((l) => l.status === "new")
+      .forEach((l) => {
+        rows.push({
+          key: `ln-${l.id}`,
+          contactId: null,
+          contactName: l.title + (l.contact_name ? ` — ${l.contact_name}` : ""),
+          type: "lead_new",
+          typeLabel: "عميل محتمل جديد",
+          typeColor: "#1D4ED8", typeBg: "#DBEAFE",
+          date: l.created_at,
+          link: `/crm/leads`,
+        });
+      });
+
+    // Leads with overdue/today next_activity_date
+    leads
+      .filter((l) => l.next_activity_date && l.next_activity_date <= t && !["converted", "lost", "unqualified"].includes(l.status))
+      .forEach((l) => {
+        const isOverdue = l.next_activity_date! < t;
+        rows.push({
+          key: `lf-${l.id}`,
+          contactId: null,
+          contactName: l.title + (l.contact_name ? ` — ${l.contact_name}` : ""),
+          type: "lead_followup",
+          typeLabel: isOverdue ? "متابعة محتمل متأخرة" : "متابعة محتمل اليوم",
+          typeColor: isOverdue ? "#B91C1C" : "#A16207",
+          typeBg: isOverdue ? "#FEE2E2" : "#FEF3C7",
+          date: l.next_activity_date!,
+          link: `/crm/leads`,
+        });
+      });
+
     // Sort: critical first, then by date desc for tickets/meetings, asc for renewals
     const order: Record<TaskRow["type"], number> = {
-      ticket_critical: 0, meeting_today: 1, renewal: 2, ticket_new: 3, no_contact_30d: 4,
+      ticket_critical: 0, lead_followup: 1, meeting_today: 2, renewal: 3, ticket_new: 4, lead_new: 5, no_contact_30d: 6,
     };
     return rows.sort((a, b) => {
       if (order[a.type] !== order[b.type]) return order[a.type] - order[b.type];
       return b.date.localeCompare(a.date);
     });
-  }, [tickets, subs, meetings, noContact30d, contactsMap, t]);
+  }, [tickets, subs, meetings, noContact30d, contactsMap, leads, t]);
 
   const onSaved = () => {
     refetchTickets(); refetchCalls(); refetchMeetings(); refetchActs();
@@ -228,7 +266,9 @@ export default function CrmWorkbenchPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-2">
+        <Kpi label="عملاء محتملون جدد" value={kpis.newLeads}        icon={<UserPlus className="h-3.5 w-3.5" />}      tone={kpis.newLeads > 0 ? "warn" : "default"} onClick={() => navigate("/crm/leads")} />
+        <Kpi label="متابعات محتملين"   value={kpis.leadsToFollowToday} icon={<UserPlus className="h-3.5 w-3.5" />}   tone={kpis.leadsToFollowToday > 0 ? "danger" : "default"} onClick={() => navigate("/crm/leads")} />
         <Kpi label="متابعات اليوم"   value={kpis.dueToday}      icon={<Clock className="h-3.5 w-3.5" />}        tone="default" onClick={() => navigate("/crm/activities")} />
         <Kpi label="متابعات متأخرة" value={kpis.overdue}        icon={<AlertTriangle className="h-3.5 w-3.5" />} tone={kpis.overdue > 0 ? "danger" : "good"} onClick={() => navigate("/crm/activities")} />
         <Kpi label="تذاكر مفتوحة"   value={kpis.openTickets}    icon={<LifeBuoy className="h-3.5 w-3.5" />}     tone="default" onClick={() => navigate("/crm/tickets")} />
