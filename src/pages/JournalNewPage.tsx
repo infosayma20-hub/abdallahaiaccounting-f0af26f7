@@ -1327,9 +1327,9 @@ const JournalNewPage = () => {
                         onClear={() => {
                           setLines(prev => prev.map(l => l.id !== line.id ? l : { ...l, account_code: "", account_name: "", contact_id: "", contact_name: "" }));
                         }}
-                        onQuickAdd={() => {
+                        onQuickAdd={(typedName) => {
                           setQuickAddForLineId(line.id);
-                          setQuickAddName("");
+                          setQuickAddName(typedName || "");
                           setShowQuickAdd(true);
                         }}
                       />

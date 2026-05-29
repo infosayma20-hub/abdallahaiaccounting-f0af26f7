@@ -245,6 +245,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // effect from the ledger so the side panel shows "balance BEFORE this voucher".
   const [originalAmount, setOriginalAmount] = useState<number>(0);
   const contactDropdownRef = useRef<HTMLDivElement>(null);
+  const [creatingContact, setCreatingContact] = useState(false);
 
   // GL Account (for "account" party type)
   const [glAccounts, setGlAccounts] = useState<GLAccount[]>([]);
@@ -984,6 +985,56 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
     return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name)).slice(0, 10);
   }, [contacts, contactSearch]);
+
+  // Inline quick-create contact — mirrors the invoice flow.
+  // When the user types a name not in the list, they can add it as a new
+  // contact directly from the dropdown without opening a separate dialog.
+  const handleQuickAddContactFromSearch = async () => {
+    const trimmed = contactSearch.trim();
+    if (!trimmed || trimmed.length < 2 || !user || !ownerId) return;
+    setCreatingContact(true);
+    try {
+      const contactType = isReceipt ? "عميل" : "مورد";
+      // Lookup first to avoid unique constraint errors on re-clicks
+      const { data: existing } = await supabase
+        .from("contacts")
+        .select("id, contact_name, contact_type, current_balance")
+        .eq("user_id", ownerId)
+        .eq("contact_name", trimmed)
+        .maybeSingle();
+      let created: any = existing;
+      if (!existing) {
+        const { data: upserted, error } = await supabase
+          .from("contacts")
+          .upsert(
+            { user_id: ownerId, contact_name: trimmed, contact_type: contactType, current_balance: 0 } as any,
+            { onConflict: "user_id,contact_name" }
+          )
+          .select("id, contact_name, contact_type, current_balance")
+          .single();
+        if (error) throw error;
+        created = upserted;
+      }
+      const newContact: Contact = {
+        id: created.id,
+        contact_name: created.contact_name,
+        contact_type: created.contact_type || contactType,
+        current_balance: Number(created.current_balance) || 0,
+        ledger_balance: 0,
+        open_invoices_balance: 0,
+      };
+      setContacts(prev => (prev.some(c => c.id === newContact.id) ? prev : [...prev, newContact]));
+      setSelectedContact(newContact);
+      setContactSearch("");
+      setShowContactDropdown(false);
+      toast.success(`تم إضافة ${contactType}: ${newContact.contact_name}`);
+      focusAmountField();
+    } catch (err: any) {
+      toast.error(err?.message || "تعذّر إضافة الجهة");
+    } finally {
+      setCreatingContact(false);
+    }
+  };
 
   const filteredEmployees = useMemo(() => {
     if (!employeeSearch.trim()) return employeeList.slice(0, 10);
@@ -2703,6 +2754,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 </div>
                 {showContactDropdown && !selectedContact && (
                   <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {contactSearch.trim().length >= 2 &&
+                      !filteredContacts.some(c => c.contact_name.trim() === contactSearch.trim()) && (
+                        <button
+                          type="button"
+                          disabled={creatingContact}
+                          onMouseDown={(e) => { e.preventDefault(); handleQuickAddContactFromSearch(); }}
+                          className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 text-primary font-semibold border-b border-border hover:bg-primary/5 disabled:opacity-60"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          {creatingContact
+                            ? "جاري الإضافة..."
+                            : `+ إضافة "${contactSearch.trim()}" كـ${isReceipt ? "زبون" : "مورد"} جديد`}
+                        </button>
+                      )}
                     {filteredContacts.map(c => (
                       <button
                         key={c.id}
@@ -2724,7 +2789,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                         <span className="text-xs text-muted-foreground">دفتر: ₪{formatAmount(c.ledger_balance ?? c.current_balance ?? 0)} · مفتوح: ₪{formatAmount(c.open_invoices_balance ?? 0)}</span>
                       </button>
                     ))}
-                    {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                    {filteredContacts.length === 0 && contactSearch.trim().length < 2 && (
+                      <p className="text-center py-3 text-xs text-muted-foreground">ابدأ بكتابة اسم الجهة...</p>
+                    )}
+                    {filteredContacts.length === 0 && contactSearch.trim().length >= 2 && (
+                      <p className="text-center py-2 text-xs text-muted-foreground">لا توجد نتائج — يمكنك إضافة جهة جديدة من الأعلى</p>
+                    )}
                   </div>
                 )}
               </div>
