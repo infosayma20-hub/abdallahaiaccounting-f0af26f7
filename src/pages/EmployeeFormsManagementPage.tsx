@@ -673,9 +673,17 @@ export default function EmployeeFormsManagementPage() {
                           <Badge variant="outline" className="text-[9px] mt-1">{p.category}</Badge>
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="gap-1" onClick={() => window.open(p.file_url, "_blank")}>
-                        <Eye className="h-3 w-3" /> عرض
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => window.open(p.file_url, "_blank")}>
+                          <Eye className="h-3 w-3" /> عرض
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditPolicy(p)}>
+                          <Pencil className="h-3 w-3" /> تعديل
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => deletePolicy(p)}>
+                          <Trash2 className="h-3 w-3" /> حذف
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
