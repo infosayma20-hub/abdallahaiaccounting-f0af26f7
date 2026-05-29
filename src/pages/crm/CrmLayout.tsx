@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Kanban, ListChecks, UserCircle2 } from "lucide-react";
+import { LayoutDashboard, Users, Kanban, ListChecks, UserCircle2, Ticket, Phone, Calendar, Lightbulb, FileSignature, BookOpen, Repeat } from "lucide-react";
 import CrmQuickActionsFab from "./components/CrmQuickActionsFab";
 import CrmGlobalSearch from "./components/CrmGlobalSearch";
 
@@ -9,6 +9,13 @@ const tabs = [
   { path: "/crm/pipeline",     label: "خط سير المبيعات",  icon: Kanban },
   { path: "/crm/activities",   label: "المتابعات",     icon: ListChecks },
   { path: "/crm/customers",    label: "ملف العميل 360", icon: UserCircle2 },
+  { path: "/crm/tickets",      label: "تذاكر الدعم",     icon: Ticket },
+  { path: "/crm/calls",        label: "المكالمات",       icon: Phone },
+  { path: "/crm/meetings",     label: "الاجتماعات",      icon: Calendar },
+  { path: "/crm/feature-requests", label: "طلبات الميزات", icon: Lightbulb },
+  { path: "/crm/contracts",    label: "العقود",          icon: FileSignature },
+  { path: "/crm/knowledge-base", label: "قاعدة المعرفة", icon: BookOpen },
+  { path: "/crm/renewals",     label: "مركز التجديدات",   icon: Repeat },
 ];
 
 export default function CrmLayout() {

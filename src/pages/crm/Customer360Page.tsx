@@ -24,6 +24,7 @@ import CustomerFinancialSummary from "./components/CustomerFinancialSummary";
 import CustomerPolicyPanel from "./components/CustomerPolicyPanel";
 import CreditWarningBanner from "./components/CreditWarningBanner";
 import CustomerActivityTimeline from "./components/CustomerActivityTimeline";
+import CustomerUnifiedTimeline from "./components/CustomerUnifiedTimeline";
 import CustomerInvoicesList, { type InvoiceRow } from "./components/CustomerInvoicesList";
 import CustomerAgingPanel from "./components/CustomerAgingPanel";
 import OpportunityFormDialog from "./OpportunityFormDialog";
@@ -210,6 +211,7 @@ export default function Customer360Page() {
           <TabsTrigger value="invoices" className="text-[12px]">الفواتير ({invoices.length})</TabsTrigger>
           <TabsTrigger value="activities" className="text-[12px]">المتابعات ({customerActs.length})</TabsTrigger>
           <TabsTrigger value="financial" className="text-[12px]">التفاصيل المالية</TabsTrigger>
+          <TabsTrigger value="timeline" className="text-[12px]">السجل الزمني</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -312,6 +314,14 @@ export default function Customer360Page() {
                 ))}
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        {/* Unified Timeline (CS) */}
+        <TabsContent value="timeline" className="mt-3">
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <h3 className="text-sm font-bold text-slate-900 mb-3">السجل الزمني الموحّد</h3>
+            <CustomerUnifiedTimeline contactId={id} />
           </div>
         </TabsContent>
       </Tabs>

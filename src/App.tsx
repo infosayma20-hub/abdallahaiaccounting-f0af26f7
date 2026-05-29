@@ -247,6 +247,14 @@ const CrmActivitiesPage = lazy(() => import("./pages/crm/CrmActivitiesPage"));
 const CustomerCenterPage = lazy(() => import("./pages/crm/CustomerCenterPage"));
 const Customer360Page = lazy(() => import("./pages/crm/Customer360Page"));
 const OpportunityDetailsPage = lazy(() => import("./pages/crm/OpportunityDetailsPage"));
+const CsTicketsPage = lazy(() => import("./pages/crm/CsTicketsPage"));
+const CsTicketDetailPage = lazy(() => import("./pages/crm/CsTicketDetailPage"));
+const CsCallsPage = lazy(() => import("./pages/crm/CsCallsPage"));
+const CsMeetingsPage = lazy(() => import("./pages/crm/CsMeetingsPage"));
+const CsFeatureRequestsPage = lazy(() => import("./pages/crm/CsFeatureRequestsPage"));
+const CsContractsPage = lazy(() => import("./pages/crm/CsContractsPage"));
+const CsKnowledgeBasePage = lazy(() => import("./pages/crm/CsKnowledgeBasePage"));
+const CsRenewalCenterPage = lazy(() => import("./pages/crm/CsRenewalCenterPage"));
 
 
 const queryClient = new QueryClient({
@@ -439,6 +447,14 @@ const App = () => (
                         <Route path="customers" element={<CustomerCenterPage />} />
                         <Route path="customer/:id" element={<Customer360Page />} />
                         <Route path="opportunity/:id" element={<OpportunityDetailsPage />} />
+                        <Route path="tickets" element={<CsTicketsPage />} />
+                        <Route path="ticket/:id" element={<CsTicketDetailPage />} />
+                        <Route path="calls" element={<CsCallsPage />} />
+                        <Route path="meetings" element={<CsMeetingsPage />} />
+                        <Route path="feature-requests" element={<CsFeatureRequestsPage />} />
+                        <Route path="contracts" element={<CsContractsPage />} />
+                        <Route path="knowledge-base" element={<CsKnowledgeBasePage />} />
+                        <Route path="renewals" element={<CsRenewalCenterPage />} />
                       </Route>
                       <Route path="/contacts/policies" element={<ContactPoliciesPage />} />
                       <Route path="/contacts/:id" element={<ContactDetailPage />} />
