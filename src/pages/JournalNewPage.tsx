@@ -137,6 +137,13 @@ const JournalNewPage = () => {
   useEffect(() => {
     try { localStorage.setItem("journal:summaryOpen", summaryOpen ? "1" : "0"); } catch {}
   }, [summaryOpen]);
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("journal:detailsOpen") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("journal:detailsOpen", detailsOpen ? "1" : "0"); } catch {}
+  }, [detailsOpen]);
+  const [extrasOpen, setExtrasOpen] = useState(false);
   const [lines, setLines] = useState<JournalLine[]>([
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
@@ -1124,11 +1131,39 @@ const JournalNewPage = () => {
 
       {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
       <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" />
-          <h2 className="text-[13px] font-bold text-foreground">بيانات السند</h2>
-        </div>
-        <CardContent className="p-5 space-y-5">
+        <CardContent className="p-3 space-y-3">
+          {/* Compact always-visible row */}
+          <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
+            <div className="md:col-span-3">
+              <Label className="text-xs mb-1.5 block">التاريخ</Label>
+              <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} data-smart-first className="h-9" />
+            </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs mb-1.5 block">رقم السند</Label>
+              <Input value={formRefNumber} readOnly className="font-mono bg-muted/50 cursor-default h-9" />
+            </div>
+            <div className="md:col-span-3">
+              <Label className="text-xs mb-1.5 block">العملة</Label>
+              <Select value={formCurrency} onValueChange={setFormCurrency}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-3 flex md:justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDetailsOpen(v => !v)} className="h-9 gap-1 text-xs w-full md:w-auto">
+                <FileText className="h-3.5 w-3.5" />
+                تفاصيل السند
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </div>
+          </div>
+
+          {detailsOpen && (
+          <div className="space-y-4 pt-3 border-t border-border/50">
           {/* Subtype Tabs — chip strip, single row */}
           <div className="flex flex-wrap gap-2">
             {(["normal", "opening", "adjustment", "closing"] as const).map(st => (
@@ -1136,19 +1171,10 @@ const JournalNewPage = () => {
                 {subtypeLabels[st]}
               </button>
             ))}
-          </div>
+            </div>
 
-          {/* Header fields — 12-col grid: 3 / 3 / 3 / 3 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
-            <div className="lg:col-span-3">
-              <Label className="text-xs mb-1.5 block">التاريخ</Label>
-              <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} data-smart-first />
-            </div>
-            <div className="lg:col-span-3">
-              <Label className="text-xs mb-1.5 block">رقم السند</Label>
-              <Input value={formRefNumber} readOnly className="font-mono bg-muted/50 cursor-default" />
-            </div>
-            <div className="lg:col-span-3">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-6">
               <Label className="text-xs mb-1.5 block">جهة الاتصال (اختياري)</Label>
               <Select value={formContactId} onValueChange={setFormContactId}>
                 <SelectTrigger><SelectValue placeholder="اختر جهة الاتصال..." /></SelectTrigger>
@@ -1206,15 +1232,6 @@ const JournalNewPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="lg:col-span-3">
-              <Label className="text-xs mb-1.5 block">نوع السند</Label>
-              <div className="h-10 px-3 inline-flex items-center rounded-md border border-input bg-muted/40 text-xs font-semibold text-foreground w-full">
-                {subtypeLabels[formSubtype]}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-6">
               <Label className="text-xs mb-1.5 block">مركز التكلفة (عام للسند — اختياري)</Label>
               <CostCenterCombobox value={formCostCenterId} onChange={setFormCostCenterId} />
@@ -1222,19 +1239,8 @@ const JournalNewPage = () => {
                 يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
               </p>
             </div>
-            <div className="md:col-span-3">
-              <Label className="text-xs mb-1.5 block">العملة</Label>
-              <Select value={formCurrency} onValueChange={setFormCurrency}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map(c => (
-                    <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             {formCurrency !== "ILS" && (
-              <div className="md:col-span-3">
+              <div className="md:col-span-12">
                 <Label className="text-xs mb-1.5 block flex items-center gap-1">
                   سعر الصرف
                   {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
@@ -1253,6 +1259,8 @@ const JournalNewPage = () => {
               </div>
             )}
           </div>
+          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1648,15 +1656,28 @@ const JournalNewPage = () => {
             </label>
           </div>
 
-          {/* Balance Status — high-visibility, color-coded */}
-          <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
         </CardContent>
       </Card>
 
-      {/* ═══ Description → Notes + Attachments ═══ */}
-      {/* Description Card — same style as Notes */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl">
-        <CardContent className="p-5">
+      {/* ═══ Description → Notes + Attachments (collapsed by default) ═══ */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setExtrasOpen(v => !v)}
+          className="w-full flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <FileText className="h-4 w-4 text-primary" />
+            الوصف والملاحظات والمرفقات
+            {(formDescription || formNotes || attachments.length > 0) && (
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                {[formDescription && "وصف", formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
+              </span>
+            )}
+          </span>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
+        </button>
+        {extrasOpen && (
+        <CardContent className="p-5 pt-0 space-y-4">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             الوصف *
           </Label>
@@ -1668,8 +1689,10 @@ const JournalNewPage = () => {
             className="resize-none"
           />
         </CardContent>
+        )}
       </Card>
 
+      {extrasOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <Card className="lg:col-span-7 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
@@ -1726,6 +1749,7 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
       </div>
+      )}
 
       {/* ═══ END LEFT COLUMN ═══ */}
       </div>
