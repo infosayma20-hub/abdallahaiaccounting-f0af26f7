@@ -1127,8 +1127,10 @@ const InvoiceCreatePage = () => {
     if (!user) return;
     setCreating(true);
 
-    // Invoices are accrual-only — always credit ("آجل")
-    const paymentMethodDb = CREDIT_PAYMENT_METHOD_DB;
+    // Invoice kind drives the DB payment_method label.
+    // Cash invoices are immediately settled (paid_amount = total in summary);
+    // credit invoices are paid later via receipt/payment vouchers.
+    const paymentMethodDb = form.invoiceKind === "cash" ? "نقدي" : CREDIT_PAYMENT_METHOD_DB;
 
     try {
       let contactId = form.contactId;
