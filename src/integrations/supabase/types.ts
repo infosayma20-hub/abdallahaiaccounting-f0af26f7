@@ -1973,6 +1973,7 @@ export type Database = {
           id: string
           invoice_number_offset: number
           is_active: boolean
+          license_number: string
           logo_url: string | null
           name: string
           owner_id: string
@@ -1987,6 +1988,7 @@ export type Database = {
           id?: string
           invoice_number_offset?: number
           is_active?: boolean
+          license_number: string
           logo_url?: string | null
           name?: string
           owner_id: string
@@ -2001,6 +2003,7 @@ export type Database = {
           id?: string
           invoice_number_offset?: number
           is_active?: boolean
+          license_number?: string
           logo_url?: string | null
           name?: string
           owner_id?: string
@@ -17949,6 +17952,7 @@ export type Database = {
           was_created: boolean
         }[]
       }
+      generate_company_license_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       generate_return_number: {
         Args: {
