@@ -83,6 +83,7 @@ const LandingPage = () => {
             </div>
             <div className="hidden md:flex items-center gap-6 font-bold text-sm text-[#0D1B2E]/70">
               <a href="#apps" className="hover:text-[#3b82f6] transition-colors">واجهة النظام</a>
+              <a href="#workspaces" className="hover:text-[#3b82f6] transition-colors">مساحات العمل</a>
               <a href="#rep" className="hover:text-[#3b82f6] transition-colors">البائع المتجول</a>
               <a href="#attendance" className="hover:text-[#3b82f6] transition-colors">حضور الموظفين</a>
               <a href="#features" className="hover:text-[#3b82f6] transition-colors">الميزات</a>
