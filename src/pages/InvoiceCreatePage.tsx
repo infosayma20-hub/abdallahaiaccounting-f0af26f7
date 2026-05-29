@@ -406,7 +406,7 @@ const InvoiceCreatePage = () => {
       }
       // توافق رجعي مع المسودات القديمة (form فقط)
       const legacyDraft = draft as unknown as typeof form;
-      setForm(legacyDraft);
+      setForm({ ...legacyDraft, invoiceKind: legacyDraft.invoiceKind || "credit" });
       setContactSearch(legacyDraft.contactName || "");
     },
     {
