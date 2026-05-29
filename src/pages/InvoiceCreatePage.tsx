@@ -1212,15 +1212,28 @@ const InvoiceCreatePage = () => {
         terms: invoiceTerms.trim() || null,
         warehouse_id: form.warehouseId || null,
         workshop_id: form.workshopId || null,
-      };
+        cash_account_code: form.invoiceKind === "cash" ? form.cashAccountCode : null,
+      } as any;
 
       // ─── Accounting routing (credit-only invoices) ───
       // Sales invoice  → Dr 1130 (AR) / Cr 4100 (Revenue)
       // Purchase invoice → Dr 5110 (Purchases) / Cr 2110 (AP)
       // Note: payment-related debit codes (1110/1120/1150) are no longer used here;
       // payment is recorded later via receipt/payment vouchers.
-      const debitCode = "1130"; // AR for sales (purchase branch overrides below)
-      const transactionType = form.type === "sales" ? "sale_credit" : "purchase_credit";
+      // ─── Cash invoice GL routing ───
+      // Cash sales:    Dr cashAccountCode / Cr 4100 (revenue)
+      // Cash purchase: Dr 5110 (purchases)   / Cr cashAccountCode
+      // Credit sales:  Dr 1130 (AR)         / Cr 4100
+      // Credit purchase: Dr 5110             / Cr 2110 (AP)
+      const isCashInvoice = form.invoiceKind === "cash";
+      const cashCode = form.cashAccountCode || null;
+      const salesDebitCode = isCashInvoice && cashCode ? cashCode : "1130";
+      const salesCreditCode = "4100";
+      const purchaseDebitCode = "5110";
+      const purchaseCreditCode = isCashInvoice && cashCode ? cashCode : "2110";
+      const transactionType = isCashInvoice
+        ? (form.type === "sales" ? "sale_cash" : "purchase_cash")
+        : (form.type === "sales" ? "sale_credit" : "purchase_credit");
       const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
       const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
 
