@@ -230,15 +230,10 @@ const AmwaliActivationAgreementPage = () => {
         style={{ fontFamily: "'Cairo', 'Tajawal', Arial, sans-serif" }}
       >
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between border-b-2 border-[#0D1B2E] pb-4">
-          <div className="text-right">
-            <div className="text-xs text-slate-500">رقم الاتفاقية</div>
-            <Field
-              value={data.contract_number}
-              onChange={(v) => update("contract_number", v)}
-              width="180px"
-            />
-            <div className="mt-1 text-xs text-slate-500">التاريخ</div>
+        <div className="mb-6 grid grid-cols-3 items-center border-b-2 border-[#0D1B2E] pb-4">
+          {/* Date (left) */}
+          <div className="text-left">
+            <div className="text-xs text-slate-500">التاريخ</div>
             <Field
               type="date"
               value={data.contract_date}
@@ -246,7 +241,19 @@ const AmwaliActivationAgreementPage = () => {
               width="150px"
             />
           </div>
-          <img src={amwaliLogo} alt="أموالي" className="h-20 object-contain" />
+          {/* Logo (center) */}
+          <div className="flex justify-center">
+            <img src={amwaliLogo} alt="أموالي" className="h-20 object-contain" />
+          </div>
+          {/* Contract number (right) */}
+          <div className="text-right">
+            <div className="text-xs text-slate-500">رقم الاتفاقية</div>
+            <Field
+              value={data.contract_number}
+              onChange={(v) => update("contract_number", v)}
+              width="180px"
+            />
+          </div>
         </div>
 
         {/* Title */}
