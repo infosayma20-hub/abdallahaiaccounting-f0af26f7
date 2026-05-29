@@ -19,11 +19,7 @@ import hrManagerTools from "@/assets/screens/hr-manager-tools.png";
 import hrDashboard from "@/assets/screens/hr-dashboard.png";
 import finHub from "@/assets/screens/finance-hub.png";
 import finLinks from "@/assets/screens/finance-links.png";
-import finReports from "@/assets/screens/finance-reports.png";
-import finReportsGrid1 from "@/assets/screens/finance-reports-grid1.png";
-import finReportsGrid2 from "@/assets/screens/finance-reports-grid2.png";
 import finTemplates from "@/assets/screens/finance-templates.png";
-import finInvoiceCreate from "@/assets/screens/finance-invoice-create.png";
 import finInvoicePrint from "@/assets/screens/finance-invoice-print.png";
 import finPolicies from "@/assets/screens/finance-customer-policies.png";
 
