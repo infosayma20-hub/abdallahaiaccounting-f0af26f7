@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LicenseAgreementDialog } from "@/components/license/LicenseAgreementDialog";
 import { BRAND } from "@/constants/brand";
+import { getAppVersionLabel } from "@/utils/appVersion";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
@@ -237,7 +238,7 @@ const ProfileDropdown = ({
             )}
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">الإصدار</span>
-              <span className="font-semibold text-foreground">{BRAND.version}</span>
+              <span className="font-mono font-semibold text-foreground" dir="ltr">{getAppVersionLabel()}</span>
             </div>
           </div>
           <DropdownMenuSeparator />
