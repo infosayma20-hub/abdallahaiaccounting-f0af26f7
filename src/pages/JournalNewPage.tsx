@@ -342,17 +342,22 @@ const JournalNewPage = () => {
         setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
         setLineSortOrder((v.line_sort_order as any) || "original");
 
-        const loaded: JournalLine[] = (lns || []).map((l: any, i: number) => ({
-          id: `${editingVoucherId}-${i}-${Date.now()}`,
-          account_code: l.account_code || "",
-          account_name: l.account_name || "",
-          debit: Number(l.debit) || 0,
-          credit: Number(l.credit) || 0,
-          contact_id: l.contact_id || "",
-          contact_name: l.contact_name || "",
-          line_comment: l.line_comment || "",
-          cost_center_id: l.cost_center_id || null,
-        }));
+        const loaded: JournalLine[] = (lns || []).map((l: any, i: number) => {
+          const d = Number(l.debit) || 0;
+          const c = Number(l.credit) || 0;
+          return {
+            id: `${editingVoucherId}-${i}-${Date.now()}`,
+            account_code: l.account_code || "",
+            account_name: l.account_name || "",
+            // Defensive: legacy data must never present both sides at once in the form.
+            debit: d >= c ? d : 0,
+            credit: c > d ? c : 0,
+            contact_id: l.contact_id || "",
+            contact_name: l.contact_name || "",
+            line_comment: l.line_comment || "",
+            cost_center_id: l.cost_center_id || null,
+          };
+        });
         while (loaded.length < 2) {
           loaded.push({
             id: `pad-${loaded.length}-${Date.now()}`,
