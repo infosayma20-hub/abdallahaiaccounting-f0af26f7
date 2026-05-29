@@ -39,7 +39,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
 import CustomerInvoicesList, { type InvoiceRow } from "./components/CustomerInvoicesList";
 import CustomerAgingPanel from "./components/CustomerAgingPanel";
 import OpportunityFormDialog from "./OpportunityFormDialog";
