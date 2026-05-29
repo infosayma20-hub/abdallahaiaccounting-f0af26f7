@@ -30,7 +30,7 @@ interface Props {
   invalid?: boolean;
   onSelect: (sel: AccountSelection | ContactSelection) => void;
   onClear: () => void;
-  onQuickAdd?: () => void;
+  onQuickAdd?: (typedName: string) => void;
 }
 
 const isCustomer = (c: Contact) => ["customer", "عميل", "زبون", "عميل ومورد"].includes(c.contact_type);
@@ -263,15 +263,15 @@ export default function JournalEntityCombobox({
           )}
           {showEmptyState && (
             <div className="p-2 space-y-1">
-              <div className="px-3 py-2 text-xs text-muted-foreground">لا توجد نتائج</div>
+              <div className="px-3 py-2 text-xs text-muted-foreground">لا توجد نتائج لـ "{debounced}"</div>
               {onQuickAdd && (
                 <button
                   type="button"
-                  onMouseDown={(e) => { e.preventDefault(); onQuickAdd(); setOpen(false); }}
-                  className="w-full text-right px-3 py-2 text-sm flex items-center gap-2 text-primary hover:bg-primary/10 rounded"
+                  onMouseDown={(e) => { e.preventDefault(); onQuickAdd(debounced); setOpen(false); }}
+                  className="w-full text-right px-3 py-2 text-sm flex items-center gap-2 text-primary hover:bg-primary/10 rounded font-medium"
                 >
                   <UserPlus className="h-3.5 w-3.5" />
-                  إضافة زبون / مورد جديد
+                  + إضافة "{debounced}" كجهة جديدة
                 </button>
               )}
             </div>
