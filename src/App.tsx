@@ -231,6 +231,7 @@ const DeviceSetupPage = lazy(() => import("./pages/DeviceSetupPage"));
 const DeviceSetupGuard = lazy(() => import("./components/pos/DeviceSetupGuard"));
 const NewDeviceOnboardingPage = lazy(() => import("./pages/NewDeviceOnboardingPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
+const AmwaliActivationAgreementPage = lazy(() => import("./pages/AmwaliActivationAgreementPage"));
 const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
