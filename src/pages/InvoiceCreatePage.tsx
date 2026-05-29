@@ -1559,7 +1559,11 @@ const InvoiceCreatePage = () => {
         const headerWorkshop = form.workshopId
           ? workshops.find(w => w.id === form.workshopId)
           : null;
-        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings);
+        // Force the legacy direct-insert path for cash invoices: the RPC does
+        // not support overriding the cash leg with the user-selected
+        // gl_account_code, so we route cash invoices through the direct path
+        // where we can set debit/credit codes explicitly.
+        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings) && !isCashInvoice;
         let txDataId: string;
         if (useInvoiceRpc) {
           const rpcRes = await callCreateInvoiceLedgerRpc({
@@ -1588,8 +1592,8 @@ const InvoiceCreatePage = () => {
           user_id: user.id,
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
-          debit_account_code: form.type === "sales" ? "1130" : "5110",
-          credit_account_code: form.type === "sales" ? "4100" : "2110",
+          debit_account_code: form.type === "sales" ? salesDebitCode : purchaseDebitCode,
+          credit_account_code: form.type === "sales" ? salesCreditCode : purchaseCreditCode,
           amount: amountILS,
           currency: form.currency,
           foreign_amount: isForeign ? summary.total : null,
