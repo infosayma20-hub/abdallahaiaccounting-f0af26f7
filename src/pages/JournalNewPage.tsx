@@ -1284,8 +1284,35 @@ const JournalNewPage = () => {
               <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8">
                 <Bookmark className="h-3 w-3" /> القوالب
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setSummaryOpen(v => !v)} className="gap-1 text-xs h-8">
+                {summaryOpen ? <PanelRightClose className="h-3 w-3" /> : <PanelRightOpen className="h-3 w-3" />}
+                {summaryOpen ? "إخفاء الملخص" : "إظهار الملخص"}
+              </Button>
             </div>
           </div>
+
+          {!summaryOpen && (
+            <div className="flex items-center flex-wrap gap-2 px-3 py-2 rounded-xl bg-muted/40 border border-border/60 text-[12px]">
+              {(() => {
+                const isZero = totalDebit === 0 && totalCredit === 0;
+                if (isZero) return <span className="flex items-center gap-1.5 text-muted-foreground"><FileText className="h-3.5 w-3.5" /> أدخل المبالغ للتحقق من التوازن</span>;
+                if (isBalanced) return <span className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400"><CheckCircle className="h-3.5 w-3.5" /> متوازن</span>;
+                return <span className="flex items-center gap-1.5 font-bold text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> غير متوازن</span>;
+              })()}
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">مدين</span>
+              <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">₪{formatAmount(totalDebit)}</span>
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">دائن</span>
+              <span className="font-bold tabular-nums text-destructive">₪{formatAmount(totalCredit)}</span>
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">الفرق</span>
+              <span className={`font-extrabold tabular-nums ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
+              <span className="opacity-40">·</span>
+              <span className="text-muted-foreground">الأسطر</span>
+              <span className="font-semibold tabular-nums">{lines.length}</span>
+            </div>
+          )}
 
           <div className="rounded-xl border border-border overflow-hidden">
             <table className="w-full text-sm">
