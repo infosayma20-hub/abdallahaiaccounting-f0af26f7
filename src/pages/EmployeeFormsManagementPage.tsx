@@ -85,6 +85,11 @@ export default function EmployeeFormsManagementPage() {
   const [filterBranch, setFilterBranch] = useState("all");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editedData, setEditedData] = useState<Record<string, any>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editBranches, setEditBranches] = useState<{ id: string; name: string }[]>([]);
+  const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const perPage = 20;
@@ -244,6 +249,11 @@ export default function EmployeeFormsManagementPage() {
           if (d.marital_status) patch.marital_status = maritalMap[d.marital_status] || d.marital_status;
           if (d.children_count !== undefined && d.children_count !== "") patch.children_count = Number(d.children_count) || 0;
           if (d.address) patch.address = d.address;
+          if (d.branch_id) patch.branch_id = d.branch_id;
+          if (d.department_id) patch.department_id = d.department_id;
+          if (d.department) patch.department = d.department;
+          if (d.education) patch.education = d.education;
+          if (d.name) patch.full_name = d.name;
           if (Object.keys(patch).length > 0) {
             const { error: upErr } = await supabase.from("employees").update(patch).eq("id", form.employee_id);
             if (upErr) toast.error("تم اعتماد الطلب لكن فشل تحديث ملف الموظف: " + upErr.message);
@@ -265,6 +275,35 @@ export default function EmployeeFormsManagementPage() {
     setProcessing(null);
     if (error) { toast.error("خطأ: " + error.message); }
     else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
+  };
+
+  // Load branches/departments lazily when admin enters edit mode
+  useEffect(() => {
+    if (!editMode || !dataOwnerId) return;
+    if (editBranches.length > 0 && editDepts.length > 0) return;
+    (async () => {
+      const [{ data: br }, { data: dp }] = await Promise.all([
+        supabase.from("branches_safe").select("id, name").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
+        supabase.from("departments").select("id, name_ar, name").eq("user_id", dataOwnerId).eq("is_active", true).eq("is_deleted", false).order("name_ar"),
+      ]);
+      setEditBranches((br || []).map((b: any) => ({ id: b.id, name: b.name })));
+      setEditDepts((dp || []).map((d: any) => ({ id: d.id, name: d.name_ar || d.name })));
+    })();
+  }, [editMode, dataOwnerId]);
+
+  const saveEdits = async () => {
+    if (!selectedForm) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("employee_forms")
+      .update({ form_data: editedData } as any)
+      .eq("id", selectedForm.id);
+    setSavingEdit(false);
+    if (error) { toast.error("فشل حفظ التعديلات: " + error.message); return; }
+    toast.success("تم حفظ التعديلات ✅");
+    setSelectedForm({ ...selectedForm, form_data: editedData });
+    setEditMode(false);
+    fetchForms();
   };
 
   const handleUploadPolicy = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -514,7 +553,7 @@ export default function EmployeeFormsManagementPage() {
                                       <Eye className="h-3.5 w-3.5" /> مراجعة
                                     </Button>
                                   ) : (
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); setEditMode(false); setEditedData({ ...(f.form_data || {}) }); }}>
                                       <Eye className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
@@ -665,7 +704,90 @@ export default function EmployeeFormsManagementPage() {
               <Badge variant={statusConfig[selectedForm?.status]?.variant || "outline"}>
                 {statusConfig[selectedForm?.status]?.label || selectedForm?.status}
               </Badge>
+              {selectedForm?.status === "pending" && selectedForm?.form_type === "employee_info" && (
+                <Button size="sm" variant="outline" className="mr-auto h-7 text-xs gap-1 rounded-lg" onClick={() => setEditMode(m => !m)}>
+                  {editMode ? "إلغاء التعديل" : "تعديل البيانات"}
+                </Button>
+              )}
             </div>
+            {editMode && selectedForm?.form_type === "employee_info" && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                <div className="text-xs font-semibold text-primary">تعديل بيانات الموظف قبل الاعتماد</div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">الاسم الكامل</label>
+                  <Input value={editedData.name || ""} onChange={e => setEditedData(p => ({ ...p, name: e.target.value }))} className="rounded-xl h-10" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">رقم الهوية</label>
+                    <Input value={editedData.id_number || ""} onChange={e => setEditedData(p => ({ ...p, id_number: e.target.value.replace(/\D/g, "").slice(0,9) }))} dir="ltr" className="rounded-xl h-10" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">تاريخ الميلاد</label>
+                    <Input type="date" value={editedData.date_of_birth || ""} onChange={e => setEditedData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl h-10" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">تاريخ بدء العمل</label>
+                  <Input type="date" value={editedData.malaky_start_date || ""} onChange={e => setEditedData(p => ({ ...p, malaky_start_date: e.target.value }))} dir="ltr" className="rounded-xl h-10" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
+                    <Select value={editedData.branch_id || ""} onValueChange={(v) => {
+                      const b = editBranches.find(x => x.id === v);
+                      setEditedData(p => ({ ...p, branch_id: v, branch: b?.name || "" }));
+                    }}>
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                      <SelectContent>{editBranches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
+                    <Select value={editedData.department_id || ""} onValueChange={(v) => {
+                      const d = editDepts.find(x => x.id === v);
+                      setEditedData(p => ({ ...p, department_id: v, department: d?.name || "" }));
+                    }}>
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                      <SelectContent>{editDepts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">المستوى التعليمي</label>
+                  <Select value={editedData.education || ""} onValueChange={(v) => setEditedData(p => ({ ...p, education: v }))}>
+                    <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر المستوى" /></SelectTrigger>
+                    <SelectContent>
+                      {["ابتدائي","إعدادي","ثانوي","توجيهي","دبلوم","بكالوريوس","ماجستير","دكتوراه","أخرى"].map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">الحالة الاجتماعية</label>
+                    <Select value={editedData.marital_status || ""} onValueChange={(v) => setEditedData(p => ({ ...p, marital_status: v }))}>
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        {["أعزب","متزوج","مطلق","أرمل"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">عدد الأبناء</label>
+                    <Input type="number" min={0} value={editedData.children_count ?? ""} onChange={e => setEditedData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl h-10" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب</label>
+                  <Input value={editedData.whatsapp || ""} onChange={e => setEditedData(p => ({ ...p, whatsapp: e.target.value }))} dir="ltr" className="rounded-xl h-10" placeholder="+972..." />
+                </div>
+                <Button className="w-full gap-2 rounded-xl" onClick={saveEdits} disabled={savingEdit}>
+                  {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  حفظ التعديلات
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">احفظ التعديلات أولاً ثم اضغط "موافقة" لاعتماد البيانات الجديدة على ملف الموظف.</p>
+              </div>
+            )}
             {selectedForm?.status === "pending" && (
               <>
                 <div>

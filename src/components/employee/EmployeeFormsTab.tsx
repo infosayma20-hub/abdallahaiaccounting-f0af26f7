@@ -89,6 +89,8 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   const [showPolicies, setShowPolicies] = useState(true);
   const [showLoanForm, setShowLoanForm] = useState(true);
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
+  const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
+  const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
 
   // Form state
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -98,6 +100,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     fetchPolicies();
     fetchOwnerSettings();
     fetchEmployeeProfile();
+    fetchBranchesAndDepartments();
   }, [employeeId]);
 
   // Auto-open requested form (e.g. when user taps "تحديث معلوماتي" from profile)
@@ -159,6 +162,21 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       branchName = br?.name || "";
     }
     setEmployeeProfile({ ...data, branch_name: branchName });
+  };
+
+  const fetchBranchesAndDepartments = async () => {
+    try {
+      const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+      const ownerId = ownerData || userId;
+      const [{ data: br }, { data: dp }] = await Promise.all([
+        supabase.from("branches_safe").select("id, name").eq("user_id", ownerId).eq("is_active", true).order("name"),
+        supabase.from("departments").select("id, name_ar, name").eq("user_id", ownerId).eq("is_active", true).eq("is_deleted", false).order("name_ar"),
+      ]);
+      setBranchOptions((br || []).map((b: any) => ({ id: b.id, name: b.name })));
+      setDeptOptions((dp || []).map((d: any) => ({ id: d.id, name: d.name_ar || d.name })));
+    } catch (e) {
+      // silent — selects fall back to empty
+    }
   };
 
   // Auto-prefill loan form when opened
@@ -498,11 +516,35 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs font-medium mb-1.5 block">الفرع <span className="text-destructive">*</span></label>
-                  <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
+                  <Select
+                    value={formData.branch_id || ""}
+                    onValueChange={(v) => {
+                      const b = branchOptions.find(x => x.id === v);
+                      setFormData(p => ({ ...p, branch_id: v, branch: b?.name || "" }));
+                    }}
+                  >
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                    <SelectContent>
+                      {branchOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد فروع</div>}
+                      {branchOptions.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs font-medium mb-1.5 block">القسم <span className="text-destructive">*</span></label>
-                  <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
+                  <Select
+                    value={formData.department_id || ""}
+                    onValueChange={(v) => {
+                      const d = deptOptions.find(x => x.id === v);
+                      setFormData(p => ({ ...p, department_id: v, department: d?.name || "" }));
+                    }}
+                  >
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                    <SelectContent>
+                      {deptOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد أقسام</div>}
+                      {deptOptions.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div>
