@@ -355,6 +355,11 @@ const InvoiceCreatePage = () => {
     dueDate: "",
     paymentTerms: "net_30",
     paymentMethod: "credit" as "credit", // ← always credit; no UI to change
+    // Invoice kind exposed to the user via segmented control next to cost center.
+    // "credit" (آجل) → posts to AR/AP, paid_amount=0. "cash" (نقدي) → immediately
+    // marked as paid (paid_amount=total) so payment_status="paid"; no separate
+    // receipt voucher needed. Stored in DB via payment_method field.
+    invoiceKind: "credit" as "credit" | "cash",
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
@@ -390,7 +395,9 @@ const InvoiceCreatePage = () => {
     (draft) => {
       const typedDraft = draft as typeof invoiceDraftSnapshot;
       if (typedDraft && typedDraft.form) {
-        setForm(typedDraft.form as typeof form);
+        // Back-compat: older drafts may lack invoiceKind — default to credit.
+        const restored = typedDraft.form as typeof form;
+        setForm({ ...restored, invoiceKind: restored.invoiceKind || "credit" });
         setContactSearch(typedDraft.contactSearch || typedDraft.form.contactName || "");
         setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
         setInvoiceTerms(typedDraft.invoiceTerms ?? "");
@@ -399,7 +406,7 @@ const InvoiceCreatePage = () => {
       }
       // توافق رجعي مع المسودات القديمة (form فقط)
       const legacyDraft = draft as unknown as typeof form;
-      setForm(legacyDraft);
+      setForm({ ...legacyDraft, invoiceKind: legacyDraft.invoiceKind || "credit" });
       setContactSearch(legacyDraft.contactName || "");
     },
     {
@@ -765,6 +772,9 @@ const InvoiceCreatePage = () => {
           // Always force credit — invoices are accrual-only since payment UI was removed.
           // Existing non-credit invoices will be re-saved as credit with paid_amount=0.
           paymentMethod: "credit",
+          // Infer invoice kind from saved payment_method:
+          // "نقدي"/"cash" → cash; anything else (incl. "آجل") → credit.
+          invoiceKind: (data.payment_method === "نقدي" || data.payment_method === "cash") ? "cash" : "credit",
           currency: data.currency || "شيكل",
           exchangeRate: Number(data.exchange_rate) || 1,
           notes: data.notes || "",
@@ -878,12 +888,17 @@ const InvoiceCreatePage = () => {
   const summary = useMemo(() => {
     const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
+    // Cash invoices are immediately marked as paid (paid_amount = total, remaining = 0).
+    // Credit invoices remain unpaid at creation (paid via separate receipt voucher).
+    const computePaid = (total: number) =>
+      form.invoiceKind === "cash"
+        ? { paidAmount: total, remainingAmount: 0 }
+        : { paidAmount: 0, remainingAmount: total };
 
     // If tax is disabled at company level, skip all tax calculations
     if (!taxEnabled) {
       const total = grossTotal - totalDiscount;
-      // Credit-only invoices: paid_amount is always 0 at creation; payment is via vouchers later.
-      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount: 0, remainingAmount: total };
+      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, ...computePaid(total) };
     }
 
     if (form.taxInclusive) {
@@ -898,7 +913,7 @@ const InvoiceCreatePage = () => {
       });
       const total = grossTotal - totalDiscount; // Same as entered prices (tax included)
       const subtotalExTax = total - totalTax;
-      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
+      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, ...computePaid(total) };
     } else {
       // Tax-exclusive: tax added on top
       const afterDiscount = grossTotal - totalDiscount;
@@ -908,9 +923,9 @@ const InvoiceCreatePage = () => {
         return s + (base - disc) * (i.taxRate / 100);
       }, 0);
       const total = afterDiscount + totalTax;
-      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
+      return { subtotal: grossTotal, totalDiscount, totalTax, total, ...computePaid(total) };
     }
-  }, [form.items, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
+  }, [form.items, form.taxInclusive, form.invoiceKind, taxEnabled, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -1114,8 +1129,10 @@ const InvoiceCreatePage = () => {
     if (!user) return;
     setCreating(true);
 
-    // Invoices are accrual-only — always credit ("آجل")
-    const paymentMethodDb = CREDIT_PAYMENT_METHOD_DB;
+    // Invoice kind drives the DB payment_method label.
+    // Cash invoices are immediately settled (paid_amount = total in summary);
+    // credit invoices are paid later via receipt/payment vouchers.
+    const paymentMethodDb = form.invoiceKind === "cash" ? "نقدي" : CREDIT_PAYMENT_METHOD_DB;
 
     try {
       let contactId = form.contactId;
@@ -1784,6 +1801,7 @@ const InvoiceCreatePage = () => {
       dueDate: "",
       paymentTerms: "net_30",
       paymentMethod: "credit",
+      invoiceKind: "credit",
       currency: "شيكل",
       exchangeRate: 1,
       notes: "",
@@ -2093,12 +2111,18 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
-              <Select value={form.paymentTerms} onValueChange={v => setForm(p => ({ ...p, paymentTerms: v }))}>
-                <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_TERMS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {form.invoiceKind === "cash" ? (
+                <div className="h-10 rounded-xl border border-border bg-muted/40 text-xs text-muted-foreground flex items-center justify-center px-3">
+                  فوري — فاتورة نقدية
+                </div>
+              ) : (
+                <Select value={form.paymentTerms} onValueChange={v => setForm(p => ({ ...p, paymentTerms: v }))}>
+                  <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_TERMS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
@@ -2258,9 +2282,8 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
-          {/* Warehouse selector — controls where stock is debited/credited and which inventory is shown in the picker */}
-          {(warehouses.length > 0 || workshops.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
+          {/* Warehouse / cost center / invoice kind row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
               {warehouses.length > 0 && (
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
@@ -2310,8 +2333,63 @@ const InvoiceCreatePage = () => {
                   </Select>
                 </div>
               )}
+              {/* Invoice kind: explicit cash vs credit segmented control */}
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                  نوع الفاتورة
+                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">
+                    ({form.invoiceKind === "cash" ? "تُسدّد فوراً" : "تُسجَّل على الذمة"})
+                  </span>
+                </label>
+                <div
+                  role="tablist"
+                  aria-label="نوع الفاتورة"
+                  className="inline-flex w-full rounded-xl border border-border bg-muted/40 p-0.5"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={form.invoiceKind === "credit"}
+                    onClick={() =>
+                      setForm(p => ({
+                        ...p,
+                        invoiceKind: "credit",
+                        // Restore a sensible default if user came from cash mode
+                        paymentTerms: p.paymentTerms === "immediate" ? "net_30" : p.paymentTerms,
+                      }))
+                    }
+                    className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
+                      form.invoiceKind === "credit"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    آجل
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={form.invoiceKind === "cash"}
+                    onClick={() =>
+                      setForm(p => ({
+                        ...p,
+                        invoiceKind: "cash",
+                        // Force terms/due-date to match cash semantics
+                        paymentTerms: "immediate",
+                        dueDate: p.date,
+                      }))
+                    }
+                    className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
+                      form.invoiceKind === "cash"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    نقدي
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
 
           {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
