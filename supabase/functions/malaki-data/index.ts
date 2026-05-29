@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
       // Fetch transactions, contacts, cheques in parallel
       const [txRes, contactRes, chqRes, recentTxRes] = await Promise.all([
         supabase.from("transactions")
-          .select("transaction_date, debit_account_code, credit_account_code, amount, is_opening_balance, transaction_type, contact_id")
+          .select("transaction_date, debit_account_code, credit_account_code, amount, is_opening_balance, transaction_type, contact_id, reversed_by_id")
           .eq("user_id", linkedUserId).eq("is_deleted", false).limit(5000),
         supabase.from("contacts")
           .select("id, contact_name, contact_type, current_balance")
@@ -363,12 +363,15 @@ Deno.serve(async (req) => {
           .select("id, cheque_date, amount, party_name, cheque_type, status")
           .eq("user_id", linkedUserId),
         supabase.from("transactions")
-          .select("id, transaction_date, description, amount, debit_account_code, credit_account_code, created_at")
+          .select("id, transaction_date, description, amount, debit_account_code, credit_account_code, created_at, transaction_type, reversed_by_id")
           .eq("user_id", linkedUserId).eq("is_deleted", false)
           .order("created_at", { ascending: false }).limit(10),
       ]);
 
-      const allTx = txRes.data || [];
+      const allTxRaw = txRes.data || [];
+      // استبعاد القيود الملغاة: القيد الأصلي المعكوس + القيد العكسي نفسه
+      // كلاهما يحمل reversed_by_id != null، لذا نُبقي فقط القيود التي لا تحمل ربط عكس
+      const allTx = allTxRaw.filter((t: any) => !t.reversed_by_id && t.transaction_type !== 'reversal');
       const contacts = contactRes.data || [];
       const cheques = chqRes.data || [];
       const recentTx = recentTxRes.data || [];
