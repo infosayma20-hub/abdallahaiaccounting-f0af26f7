@@ -696,3 +696,15 @@ export default function PortalAttendanceTab({ theme }: Props) {
     </div>
   );
 }
+
+function MiniStat({ label, value, color, t }: { label: string; value: number; color: string; t: any }) {
+  return (
+    <div style={{
+      textAlign: 'center', padding: 8, background: t.bg, borderRadius: 8,
+      border: `1px solid ${t.border}`,
+    }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color }}>{value}</div>
+      <div style={{ fontSize: 9, color: t.textMuted }}>{label}</div>
+    </div>
+  );
+}
