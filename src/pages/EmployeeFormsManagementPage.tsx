@@ -85,6 +85,11 @@ export default function EmployeeFormsManagementPage() {
   const [filterBranch, setFilterBranch] = useState("all");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editedData, setEditedData] = useState<Record<string, any>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editBranches, setEditBranches] = useState<{ id: string; name: string }[]>([]);
+  const [editDepts, setEditDepts] = useState<{ id: string; name: string }[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const perPage = 20;
