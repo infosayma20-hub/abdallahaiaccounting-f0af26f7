@@ -479,7 +479,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
             padding: '6px 10px', fontSize: 11, color: t.text, fontFamily: 'Tajawal, sans-serif',
           }}>
             <option value="all">كل الأقسام</option>
-            {branches.map(b => <option key={b} value={b}>{b}</option>)}
+            {branches.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select>
         )}
       </div>
