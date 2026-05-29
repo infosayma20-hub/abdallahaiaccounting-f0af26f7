@@ -273,6 +273,20 @@ export default function PortalAttendanceTab({ theme }: Props) {
 
   const isRangeMode = dateFrom !== dateTo;
 
+  // Branch/position options (derived from data)
+  const branches = Array.from(new Set(employees.map(e => e.position).filter(Boolean)));
+
+  // Filtered list — "الحاضرون الآن" by default shows present + on_break
+  const filteredEmployees = employees.filter(emp => {
+    if (statusFilter !== 'all' && emp.status !== statusFilter) return false;
+    if (branchFilter !== 'all' && emp.position !== branchFilter) return false;
+    if (searchTerm && !emp.full_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+
+  // Live count of currently present (checked in, not left)
+  const liveNow = employees.filter(e => e.status === 'present' || e.status === 'on_break').length;
+
   return (
     <div style={{ direction: 'rtl' }}>
       {/* Header */}
