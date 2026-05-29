@@ -886,12 +886,17 @@ const InvoiceCreatePage = () => {
   const summary = useMemo(() => {
     const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
+    // Cash invoices are immediately marked as paid (paid_amount = total, remaining = 0).
+    // Credit invoices remain unpaid at creation (paid via separate receipt voucher).
+    const computePaid = (total: number) =>
+      form.invoiceKind === "cash"
+        ? { paidAmount: total, remainingAmount: 0 }
+        : { paidAmount: 0, remainingAmount: total };
 
     // If tax is disabled at company level, skip all tax calculations
     if (!taxEnabled) {
       const total = grossTotal - totalDiscount;
-      // Credit-only invoices: paid_amount is always 0 at creation; payment is via vouchers later.
-      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount: 0, remainingAmount: total };
+      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, ...computePaid(total) };
     }
 
     if (form.taxInclusive) {
@@ -906,7 +911,7 @@ const InvoiceCreatePage = () => {
       });
       const total = grossTotal - totalDiscount; // Same as entered prices (tax included)
       const subtotalExTax = total - totalTax;
-      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
+      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, ...computePaid(total) };
     } else {
       // Tax-exclusive: tax added on top
       const afterDiscount = grossTotal - totalDiscount;
@@ -916,9 +921,9 @@ const InvoiceCreatePage = () => {
         return s + (base - disc) * (i.taxRate / 100);
       }, 0);
       const total = afterDiscount + totalTax;
-      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
+      return { subtotal: grossTotal, totalDiscount, totalTax, total, ...computePaid(total) };
     }
-  }, [form.items, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
+  }, [form.items, form.taxInclusive, form.invoiceKind, taxEnabled, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
