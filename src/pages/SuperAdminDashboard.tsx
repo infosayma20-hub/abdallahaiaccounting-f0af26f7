@@ -1959,6 +1959,9 @@ export default function SuperAdminDashboard() {
               )}
             </div>
             <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
+            {u.license_number && (
+              <p className="text-[10px] font-mono" style={{ color: "var(--sa-text-faint)" }}>ترخيص: {u.license_number}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
