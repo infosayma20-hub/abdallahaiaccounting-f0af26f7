@@ -395,7 +395,9 @@ const InvoiceCreatePage = () => {
     (draft) => {
       const typedDraft = draft as typeof invoiceDraftSnapshot;
       if (typedDraft && typedDraft.form) {
-        setForm(typedDraft.form as typeof form);
+        // Back-compat: older drafts may lack invoiceKind — default to credit.
+        const restored = typedDraft.form as typeof form;
+        setForm({ ...restored, invoiceKind: restored.invoiceKind || "credit" });
         setContactSearch(typedDraft.contactSearch || typedDraft.form.contactName || "");
         setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
         setInvoiceTerms(typedDraft.invoiceTerms ?? "");
