@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -99,6 +99,8 @@ export default function EmployeeFormsManagementPage() {
   const [showUploadPolicy, setShowUploadPolicy] = useState(false);
   const [policyForm, setPolicyForm] = useState({ title: "", description: "", category: "" });
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
+  const [editPolicyId, setEditPolicyId] = useState<string | null>(null);
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   useEffect(() => {
     if (user && dataOwnerId) {
@@ -315,13 +317,56 @@ export default function EmployeeFormsManagementPage() {
     const { error: uploadErr } = await supabase.storage.from("employee-forms").upload(path, file);
     if (uploadErr) { toast.error("خطأ في رفع الملف"); setUploadingPolicy(false); return; }
     const { data: urlData } = supabase.storage.from("employee-forms").getPublicUrl(path);
-    const { error } = await supabase.from("employee_policy_documents").insert({
-      user_id: dataOwnerId, title: policyForm.title, description: policyForm.description || null,
-      file_url: urlData.publicUrl, category: policyForm.category,
-    } as any);
+    let error: any = null;
+    if (editPolicyId) {
+      const res = await supabase.from("employee_policy_documents").update({
+        title: policyForm.title, description: policyForm.description || null,
+        file_url: urlData.publicUrl, category: policyForm.category,
+      } as any).eq("id", editPolicyId);
+      error = res.error;
+    } else {
+      const res = await supabase.from("employee_policy_documents").insert({
+        user_id: dataOwnerId, title: policyForm.title, description: policyForm.description || null,
+        file_url: urlData.publicUrl, category: policyForm.category,
+      } as any);
+      error = res.error;
+    }
     setUploadingPolicy(false);
     if (error) { toast.error("خطأ: " + error.message); }
-    else { toast.success("تم إضافة السياسة ✅"); setShowUploadPolicy(false); setPolicyForm({ title: "", description: "", category: "" }); fetchPolicies(); }
+    else { toast.success(editPolicyId ? "تم تحديث السياسة ✅" : "تم إضافة السياسة ✅"); closePolicyDialog(); fetchPolicies(); }
+  };
+
+  const closePolicyDialog = () => {
+    setShowUploadPolicy(false);
+    setEditPolicyId(null);
+    setPolicyForm({ title: "", description: "", category: "" });
+  };
+
+  const openEditPolicy = (p: any) => {
+    setEditPolicyId(p.id);
+    setPolicyForm({ title: p.title || "", description: p.description || "", category: p.category || "" });
+    setShowUploadPolicy(true);
+  };
+
+  const savePolicyMeta = async () => {
+    if (!editPolicyId) return;
+    setSavingPolicy(true);
+    const { error } = await supabase.from("employee_policy_documents").update({
+      title: policyForm.title, description: policyForm.description || null, category: policyForm.category,
+    } as any).eq("id", editPolicyId);
+    setSavingPolicy(false);
+    if (error) { toast.error("خطأ: " + error.message); return; }
+    toast.success("تم تحديث السياسة ✅");
+    closePolicyDialog();
+    fetchPolicies();
+  };
+
+  const deletePolicy = async (p: any) => {
+    if (!confirm(`هل تريد حذف السياسة "${p.title}"؟`)) return;
+    const { error } = await supabase.from("employee_policy_documents").delete().eq("id", p.id);
+    if (error) { toast.error("خطأ في الحذف: " + error.message); return; }
+    toast.success("تم حذف السياسة");
+    fetchPolicies();
   };
 
   const getFormAmount = (f: any) => {
@@ -628,9 +673,17 @@ export default function EmployeeFormsManagementPage() {
                           <Badge variant="outline" className="text-[9px] mt-1">{p.category}</Badge>
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="gap-1" onClick={() => window.open(p.file_url, "_blank")}>
-                        <Eye className="h-3 w-3" /> عرض
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => window.open(p.file_url, "_blank")}>
+                          <Eye className="h-3 w-3" /> عرض
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditPolicy(p)}>
+                          <Pencil className="h-3 w-3" /> تعديل
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => deletePolicy(p)}>
+                          <Trash2 className="h-3 w-3" /> حذف
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
@@ -808,12 +861,14 @@ export default function EmployeeFormsManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Upload Policy Dialog */}
-      <Dialog open={showUploadPolicy} onOpenChange={setShowUploadPolicy}>
+      {/* Upload/Edit Policy Dialog */}
+      <Dialog open={showUploadPolicy} onOpenChange={o => { if (!o) closePolicyDialog(); }}>
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>رفع سياسة جديدة</DialogTitle>
-            <DialogDescription className="text-xs">ارفع ملف PDF للسياسة ليظهر للموظفين</DialogDescription>
+            <DialogTitle>{editPolicyId ? "تعديل السياسة" : "رفع سياسة جديدة"}</DialogTitle>
+            <DialogDescription className="text-xs">
+              {editPolicyId ? "عدّل البيانات أو ارفع ملف PDF جديد لاستبدال الحالي" : "ارفع ملف PDF للسياسة ليظهر للموظفين"}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -839,14 +894,22 @@ export default function EmployeeFormsManagementPage() {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">ملف PDF *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                {editPolicyId ? "ملف PDF (اختياري — لاستبدال الحالي)" : "ملف PDF *"}
+              </label>
               <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
                 {uploadingPolicy ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-                  <><Upload className="h-6 w-6 text-muted-foreground" /><span className="text-xs text-primary">اختر ملف PDF</span></>
+                  <><Upload className="h-6 w-6 text-muted-foreground" /><span className="text-xs text-primary">{editPolicyId ? "اختر ملف PDF جديد" : "اختر ملف PDF"}</span></>
                 )}
                 <input type="file" className="hidden" accept=".pdf" onChange={handleUploadPolicy} disabled={!policyForm.title || !policyForm.category || uploadingPolicy} />
               </label>
             </div>
+            {editPolicyId && (
+              <Button className="w-full rounded-xl gap-2" onClick={savePolicyMeta} disabled={savingPolicy || !policyForm.title || !policyForm.category}>
+                {savingPolicy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                حفظ التعديلات بدون استبدال الملف
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
