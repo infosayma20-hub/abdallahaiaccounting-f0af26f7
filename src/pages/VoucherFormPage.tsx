@@ -986,6 +986,56 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name)).slice(0, 10);
   }, [contacts, contactSearch]);
 
+  // Inline quick-create contact — mirrors the invoice flow.
+  // When the user types a name not in the list, they can add it as a new
+  // contact directly from the dropdown without opening a separate dialog.
+  const handleQuickAddContactFromSearch = async () => {
+    const trimmed = contactSearch.trim();
+    if (!trimmed || trimmed.length < 2 || !user || !ownerId) return;
+    setCreatingContact(true);
+    try {
+      const contactType = isReceipt ? "عميل" : "مورد";
+      // Lookup first to avoid unique constraint errors on re-clicks
+      const { data: existing } = await supabase
+        .from("contacts")
+        .select("id, contact_name, contact_type, current_balance")
+        .eq("user_id", ownerId)
+        .eq("contact_name", trimmed)
+        .maybeSingle();
+      let created: any = existing;
+      if (!existing) {
+        const { data: upserted, error } = await supabase
+          .from("contacts")
+          .upsert(
+            { user_id: ownerId, contact_name: trimmed, contact_type: contactType, current_balance: 0 } as any,
+            { onConflict: "user_id,contact_name" }
+          )
+          .select("id, contact_name, contact_type, current_balance")
+          .single();
+        if (error) throw error;
+        created = upserted;
+      }
+      const newContact: Contact = {
+        id: created.id,
+        contact_name: created.contact_name,
+        contact_type: created.contact_type || contactType,
+        current_balance: Number(created.current_balance) || 0,
+        ledger_balance: 0,
+        open_invoices_balance: 0,
+      };
+      setContacts(prev => (prev.some(c => c.id === newContact.id) ? prev : [...prev, newContact]));
+      setSelectedContact(newContact);
+      setContactSearch("");
+      setShowContactDropdown(false);
+      toast.success(`تم إضافة ${contactType}: ${newContact.contact_name}`);
+      focusAmountField();
+    } catch (err: any) {
+      toast.error(err?.message || "تعذّر إضافة الجهة");
+    } finally {
+      setCreatingContact(false);
+    }
+  };
+
   const filteredEmployees = useMemo(() => {
     if (!employeeSearch.trim()) return employeeList.slice(0, 10);
     return employeeList.filter(e => multiWordMatchAny(employeeSearch, e.full_name)).slice(0, 10);
