@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface VoucherCancelModalProps {
   open: boolean;
@@ -78,7 +79,7 @@ const VoucherCancelModal = ({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       style={{
         position: "fixed",
@@ -318,7 +319,8 @@ const VoucherCancelModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
