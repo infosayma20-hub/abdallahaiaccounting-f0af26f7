@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrmLeads, useCrmOpportunities, useCrmActivities } from "./hooks/useCrmData";
+import { useCsTickets, useCsCalls, useCsMeetings, useCsSubscriptions, useCsFeatureRequests } from "./hooks/useCsData";
 import { STAGE_META, STAGES_ORDER, type CrmStage } from "./types";
-import { TrendingUp, Users, Target, AlertCircle, CheckCircle2, XCircle, Clock, BarChart3, ArrowLeft } from "lucide-react";
+import { TrendingUp, Users, Target, AlertCircle, CheckCircle2, XCircle, Clock, BarChart3, ArrowLeft, LifeBuoy, Phone, Calendar, Repeat, Lightbulb } from "lucide-react";
 
 const KpiCard = ({
   label, value, sub, icon: Icon, color, bg, onClick,
@@ -39,6 +40,11 @@ export default function CrmDashboard() {
   const { leads, loading: lLoad } = useCrmLeads();
   const { opportunities, loading: oLoad } = useCrmOpportunities();
   const { activities, loading: aLoad } = useCrmActivities();
+  const { items: tickets } = useCsTickets();
+  const { items: calls } = useCsCalls();
+  const { items: meetings } = useCsMeetings();
+  const { items: subs } = useCsSubscriptions();
+  const { items: featureRequests } = useCsFeatureRequests();
   const loading = lLoad || oLoad || aLoad;
 
   const stats = useMemo(() => {
@@ -91,6 +97,20 @@ export default function CrmDashboard() {
       conversionRate, dueToday, overdue, byStage, topSources,
     };
   }, [leads, opportunities, activities]);
+
+  const cs = useMemo(() => {
+    const t = today();
+    const openTickets = tickets.filter((x) => !["resolved", "closed"].includes(x.status));
+    const criticalTickets = openTickets.filter((x) => x.priority === "critical");
+    const callsToday = calls.filter((c) => c.called_at.startsWith(t));
+    const meetingsToday = meetings.filter((m) => m.meeting_date.startsWith(t));
+    const renewals30 = subs.filter((s) => {
+      const days = Math.ceil((new Date(s.renewal_date).getTime() - Date.now()) / 86400000);
+      return days >= 0 && days <= 30;
+    });
+    const topFR = [...featureRequests].sort((a, b) => b.votes - a.votes).slice(0, 5);
+    return { openTickets: openTickets.length, criticalTickets: criticalTickets.length, callsToday: callsToday.length, meetingsToday: meetingsToday.length, renewals30: renewals30.length, topFR };
+  }, [tickets, calls, meetings, subs, featureRequests]);
 
   if (loading) {
     return (
@@ -199,6 +219,34 @@ export default function CrmDashboard() {
       </div>
 
       {/* Quick actions */}
+      {/* Customer Success KPIs */}
+      <div>
+        <h2 className="text-sm font-bold text-slate-900 mb-3">مركز نجاح العملاء</h2>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <KpiCard label="تذاكر مفتوحة" value={fmt(cs.openTickets)} icon={LifeBuoy} color="#0369A1" bg="#E0F2FE" onClick={() => navigate("/crm/tickets")} />
+          <KpiCard label="تذاكر حرجة" value={fmt(cs.criticalTickets)} icon={AlertCircle} color={cs.criticalTickets > 0 ? "#B91C1C" : "#15803D"} bg={cs.criticalTickets > 0 ? "#FEE2E2" : "#DCFCE7"} onClick={() => navigate("/crm/tickets")} />
+          <KpiCard label="مكالمات اليوم" value={fmt(cs.callsToday)} icon={Phone} color="#7C3AED" bg="#EDE9FE" onClick={() => navigate("/crm/calls")} />
+          <KpiCard label="اجتماعات اليوم" value={fmt(cs.meetingsToday)} icon={Calendar} color="#C2410C" bg="#FFEDD5" onClick={() => navigate("/crm/meetings")} />
+          <KpiCard label="تجديدات خلال 30 يوم" value={fmt(cs.renewals30)} icon={Repeat} color="#A16207" bg="#FEF3C7" onClick={() => navigate("/crm/renewals")} />
+        </div>
+        {cs.topFR.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4 mt-3">
+            <h3 className="text-[13px] font-bold text-slate-900 mb-3 flex items-center gap-2"><Lightbulb className="h-4 w-4 text-amber-600" /> أكثر طلبات الميزات تصويتاً</h3>
+            <div className="space-y-2">
+              {cs.topFR.map((f) => (
+                <div key={f.id} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-[10px] text-slate-500">{f.fr_number}</span>
+                    <span className="text-[12px] text-slate-700 truncate">{f.title}</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-blue-700 shrink-0">👍 {f.votes}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="bg-gradient-to-l from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-5">
         <h2 className="text-sm font-bold text-slate-900 mb-3">إجراءات سريعة</h2>
         <div className="flex flex-wrap gap-2">
