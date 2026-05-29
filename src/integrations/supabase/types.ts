@@ -3452,6 +3452,527 @@ export type Database = {
           },
         ]
       }
+      cs_calls: {
+        Row: {
+          called_at: string
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          direction: Database["public"]["Enums"]["cs_call_direction"]
+          duration_sec: number
+          id: string
+          lead_id: string | null
+          outcome: Database["public"]["Enums"]["cs_call_outcome"]
+          purpose: string | null
+          recording_url: string | null
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          called_at?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: Database["public"]["Enums"]["cs_call_direction"]
+          duration_sec?: number
+          id?: string
+          lead_id?: string | null
+          outcome?: Database["public"]["Enums"]["cs_call_outcome"]
+          purpose?: string | null
+          recording_url?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          called_at?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: Database["public"]["Enums"]["cs_call_direction"]
+          duration_sec?: number
+          id?: string
+          lead_id?: string | null
+          outcome?: Database["public"]["Enums"]["cs_call_outcome"]
+          purpose?: string | null
+          recording_url?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_calls_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_contracts: {
+        Row: {
+          branches_count: number
+          contact_id: string
+          contract_number: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          pdf_url: string | null
+          plan: string | null
+          price: number
+          start_date: string
+          status: Database["public"]["Enums"]["cs_contract_status"]
+          updated_at: string
+          user_id: string
+          users_count: number
+        }
+        Insert: {
+          branches_count?: number
+          contact_id: string
+          contract_number: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          pdf_url?: string | null
+          plan?: string | null
+          price?: number
+          start_date: string
+          status?: Database["public"]["Enums"]["cs_contract_status"]
+          updated_at?: string
+          user_id: string
+          users_count?: number
+        }
+        Update: {
+          branches_count?: number
+          contact_id?: string
+          contract_number?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          pdf_url?: string | null
+          plan?: string | null
+          price?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["cs_contract_status"]
+          updated_at?: string
+          user_id?: string
+          users_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_contracts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_feature_requests: {
+        Row: {
+          business_justification: string | null
+          category: string | null
+          contact_id: string | null
+          created_at: string
+          fr_number: string
+          id: string
+          requested_by: string | null
+          status: Database["public"]["Enums"]["cs_feature_request_status"]
+          title: string
+          updated_at: string
+          user_id: string
+          votes: number
+        }
+        Insert: {
+          business_justification?: string | null
+          category?: string | null
+          contact_id?: string | null
+          created_at?: string
+          fr_number?: string
+          id?: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["cs_feature_request_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+          votes?: number
+        }
+        Update: {
+          business_justification?: string | null
+          category?: string | null
+          contact_id?: string | null
+          created_at?: string
+          fr_number?: string
+          id?: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["cs_feature_request_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+          votes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_feature_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_kb_articles: {
+        Row: {
+          category: string
+          cause: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          problem: string | null
+          published: boolean
+          solution: string | null
+          symptoms: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+          views_count: number
+        }
+        Insert: {
+          category?: string
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          problem?: string | null
+          published?: boolean
+          solution?: string | null
+          symptoms?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+          views_count?: number
+        }
+        Update: {
+          category?: string
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          problem?: string | null
+          published?: boolean
+          solution?: string | null
+          symptoms?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+          views_count?: number
+        }
+        Relationships: []
+      }
+      cs_meetings: {
+        Row: {
+          ai_summary: string | null
+          attendees: string[]
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          location: string | null
+          meeting_date: string
+          next_action: string | null
+          purpose: string | null
+          status: Database["public"]["Enums"]["cs_meeting_status"]
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          attendees?: string[]
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string | null
+          meeting_date: string
+          next_action?: string | null
+          purpose?: string | null
+          status?: Database["public"]["Enums"]["cs_meeting_status"]
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          attendees?: string[]
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string | null
+          meeting_date?: string
+          next_action?: string | null
+          purpose?: string | null
+          status?: Database["public"]["Enums"]["cs_meeting_status"]
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_meetings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_notes: {
+        Row: {
+          body: string | null
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note_type: Database["public"]["Enums"]["cs_note_type"]
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note_type?: Database["public"]["Enums"]["cs_note_type"]
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note_type?: Database["public"]["Enums"]["cs_note_type"]
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_subscriptions: {
+        Row: {
+          annual_value: number
+          contact_id: string
+          contract_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          monthly_value: number
+          notes: string | null
+          payment_status: Database["public"]["Enums"]["cs_payment_status"]
+          plan: string
+          renewal_date: string
+          start_date: string
+          status: Database["public"]["Enums"]["cs_subscription_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          annual_value?: number
+          contact_id: string
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          monthly_value?: number
+          notes?: string | null
+          payment_status?: Database["public"]["Enums"]["cs_payment_status"]
+          plan: string
+          renewal_date: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["cs_subscription_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          annual_value?: number
+          contact_id?: string
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          monthly_value?: number
+          notes?: string | null
+          payment_status?: Database["public"]["Enums"]["cs_payment_status"]
+          plan?: string
+          renewal_date?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["cs_subscription_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_subscriptions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_subscriptions_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "cs_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_support_tickets: {
+        Row: {
+          ai_summary: string | null
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["cs_ticket_category"]
+          closed_at: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          last_sentiment: string | null
+          priority: Database["public"]["Enums"]["cs_ticket_priority"]
+          resolution: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["cs_ticket_status"]
+          suggested_next_action: string | null
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["cs_ticket_category"]
+          closed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_sentiment?: string | null
+          priority?: Database["public"]["Enums"]["cs_ticket_priority"]
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["cs_ticket_status"]
+          suggested_next_action?: string | null
+          ticket_number?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["cs_ticket_category"]
+          closed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_sentiment?: string | null
+          priority?: Database["public"]["Enums"]["cs_ticket_priority"]
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["cs_ticket_status"]
+          suggested_next_action?: string | null
+          ticket_number?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_support_tickets_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_ticket_comments: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_internal: boolean
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_internal?: boolean
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_internal?: boolean
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_ticket_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "cs_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       currencies: {
         Row: {
           code: string
@@ -16853,6 +17374,20 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_customer_timeline_view: {
+        Row: {
+          contact_id: string | null
+          event_date: string | null
+          event_type: string | null
+          ref_id: string | null
+          status: string | null
+          sub_type: string | null
+          summary: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       employees_safe: {
         Row: {
           address: string | null
@@ -17405,6 +17940,7 @@ export type Database = {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
       }
+      calculate_health_score: { Args: { _contact_id: string }; Returns: number }
       cancel_cheque_deposit: {
         Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
         Returns: Json
@@ -17826,6 +18362,8 @@ export type Database = {
         }
         Returns: Json
       }
+      cs_generate_fr_number: { Args: never; Returns: string }
+      cs_generate_ticket_number: { Args: never; Returns: string }
       decrement_stock_safe: {
         Args: {
           p_product_id: string
@@ -18513,6 +19051,56 @@ export type Database = {
         | "lost"
         | "on_hold"
       crm_priority: "low" | "medium" | "high" | "urgent"
+      cs_call_direction: "inbound" | "outbound"
+      cs_call_outcome:
+        | "interested"
+        | "follow_up"
+        | "not_interested"
+        | "support_issue"
+        | "meeting_scheduled"
+        | "contract_sent"
+        | "no_answer"
+        | "other"
+      cs_contract_status:
+        | "draft"
+        | "active"
+        | "expired"
+        | "cancelled"
+        | "renewed"
+      cs_feature_request_status:
+        | "new"
+        | "under_review"
+        | "planned"
+        | "in_development"
+        | "released"
+        | "rejected"
+      cs_meeting_status: "scheduled" | "completed" | "cancelled"
+      cs_note_type: "general" | "sales" | "support" | "management"
+      cs_payment_status: "paid" | "due" | "overdue" | "pending"
+      cs_subscription_status:
+        | "active"
+        | "grace"
+        | "suspended"
+        | "cancelled"
+        | "trial"
+      cs_ticket_category:
+        | "accounting"
+        | "pos"
+        | "inventory"
+        | "hr"
+        | "reports"
+        | "printing"
+        | "mobile_app"
+        | "subscription"
+        | "other"
+      cs_ticket_priority: "low" | "medium" | "high" | "critical"
+      cs_ticket_status:
+        | "new"
+        | "in_progress"
+        | "waiting_customer"
+        | "waiting_dev"
+        | "resolved"
+        | "closed"
       payroll_status:
         | "submitted"
         | "approved"
@@ -18713,6 +19301,62 @@ export const Constants = {
         "on_hold",
       ],
       crm_priority: ["low", "medium", "high", "urgent"],
+      cs_call_direction: ["inbound", "outbound"],
+      cs_call_outcome: [
+        "interested",
+        "follow_up",
+        "not_interested",
+        "support_issue",
+        "meeting_scheduled",
+        "contract_sent",
+        "no_answer",
+        "other",
+      ],
+      cs_contract_status: [
+        "draft",
+        "active",
+        "expired",
+        "cancelled",
+        "renewed",
+      ],
+      cs_feature_request_status: [
+        "new",
+        "under_review",
+        "planned",
+        "in_development",
+        "released",
+        "rejected",
+      ],
+      cs_meeting_status: ["scheduled", "completed", "cancelled"],
+      cs_note_type: ["general", "sales", "support", "management"],
+      cs_payment_status: ["paid", "due", "overdue", "pending"],
+      cs_subscription_status: [
+        "active",
+        "grace",
+        "suspended",
+        "cancelled",
+        "trial",
+      ],
+      cs_ticket_category: [
+        "accounting",
+        "pos",
+        "inventory",
+        "hr",
+        "reports",
+        "printing",
+        "mobile_app",
+        "subscription",
+        "other",
+      ],
+      cs_ticket_priority: ["low", "medium", "high", "critical"],
+      cs_ticket_status: [
+        "new",
+        "in_progress",
+        "waiting_customer",
+        "waiting_dev",
+        "resolved",
+        "closed",
+      ],
       payroll_status: [
         "submitted",
         "approved",

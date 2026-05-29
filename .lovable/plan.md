@@ -1,62 +1,115 @@
-# خطة الإصلاحات الأربعة
 
-## 1) إزالة النصوص الإنجليزية من واجهة الفلاتر
-**المشكلة:** في popover "إضافة فلتر" تظهر كلمات `date`, `option`, `text`, `number` خام بجانب اسم الحقل.
-**الملف:** `src/components/finance/shell/FiltersPanel.tsx` (سطر 155)
-**الإصلاح:** خريطة `TYPE_LABELS_AR` → `date: تاريخ`, `option: قائمة`, `text: نص`, `number: رقم`. وإخفاء الـ badge أساساً إذا كان مكرراً مع label.
+# Customer Success Center — توسعة CRM الحالي
 
-## 2) تعديل سند القبض = Update فعلي (نفس الرقم)
-**التشخيص:** كود `handleSave` في edit mode (سطر 1320–1393) فعلياً يعمل update صحيح + Delete & Recreate transaction (مطابق لـ Accounting Integrity Policy). **السلوك المرئي للمستخدم** هو نتيجة:
-- `handleCancelVoucher` (سطر 2443) المرتبط بزر "إلغاء/حذف" في ActionPane يحدّث status=cancelled.
-- على الأرجح المستخدم ضغط حذف بدل حفظ، أو الصفحة فتحت read-only (isReadOnly default = true في FinanceShell) ولم ينتبه أن "تحديث السند" مطلوب صراحة.
+نبني على وحدة `/crm` الموجودة (CrmLayout + crm_leads/opportunities/activities + Customer360Page) بدلاً من إنشاء وحدة موازية. كل العملاء يبقون في جدول `contacts` الموحّد.
 
-**الإصلاح:**
-- التأكد أن action **"تحديث السند"** في ActionPane (وزر primary بداخل الـ form) يستدعي `handleSave(false)` ويُحدث الصف **بدون** تغيير `receipt_number`.
-- إضافة toast واضح بعد التحديث: `"تم تحديث السند REC-XXXX (5,000 → 10,000.4) ✓"`.
-- بعد التحديث، invalidate React Query + استدعاء `broadcastChange("receipt_voucher", "updated", id)` (موجود) — والتأكد أن `FinanceReceiptsPage` يستمع للـ broadcast ويعيد fetch تلقائياً (حالياً يحتاج refresh يدوي).
-- زر "حذف/إلغاء" في ActionPane أوضح بصرياً (variant=destructive) ليفرق عن "حفظ".
+## 1) قاعدة البيانات — جداول جديدة (Migration واحد)
 
-## 3) خيارات إخفاء الأعمدة في قوائم القبض/الصرف/الفواتير
-**التصميم:** مكوّن جديد `ColumnVisibilityMenu` يضاف بجانب زر الفلاتر:
-- يخزّن `Record<columnKey, boolean>` في `localStorage` تحت `cols-${storageKey}`.
-- يعرض dropdown بجميع الأعمدة، Checkbox لكل واحد + "إظهار الكل / إخفاء الكل".
-- الأعمدة الإلزامية (رقم السند، المبلغ، الإجراءات) غير قابلة للإخفاء.
+كل الجداول تربط بـ `contacts.id` وتحتوي `company_id` للعزل عبر RLS الحالي.
 
-**التطبيق:**
-- `src/components/finance/shell/ColumnVisibilityMenu.tsx` (جديد) + `useColumnVisibility(storageKey, defaults)` hook.
-- تمريره عبر `FinanceShell` كـ `columnsMenu?: ReactNode` أو slot في الـ toolbar.
-- استخدامه في: `FinanceReceiptsPage`, `FinanceVoucherPage` (سند الصرف), وصفحة الفواتير الرئيسية. الأعمدة الافتراضية المخفية: لا شيء؛ المستخدم يخفي يدوياً.
+- **`cs_notes`** — title, body (rich), note_type (general/sales/support/management), tags[], contact_id, created_by
+- **`cs_calls`** — direction (in/out), duration_sec, purpose, summary, outcome (interested/follow_up/not_interested/support/meeting_scheduled/contract_sent), contact_id, called_at, created_by
+- **`cs_meetings`** — date, location, attendees[], purpose, summary, next_action, status (scheduled/completed/cancelled), contact_id, created_by
+- **`cs_support_tickets`** — ticket_number (SUP-YYYY-XXXXX عبر sequence), category (accounting/pos/inventory/hr/reports/printing/mobile/subscription/other), priority (low/med/high/critical), status (new/in_progress/waiting_customer/waiting_dev/resolved/closed), description, assigned_to, contact_id, resolution
+- **`cs_ticket_comments`** — ticket_id, body, is_internal, created_by
+- **`cs_feature_requests`** — fr_number (FR-YYYY-XXXXX), title, business_justification, votes, status (new/under_review/planned/in_dev/released/rejected), contact_id, requested_by
+- **`cs_contracts`** — contract_number, plan, users_count, branches_count, price, start_date, end_date, status, pdf_url, contact_id (نتكامل لاحقاً مع `project_contracts` و ACT)
+- **`cs_subscriptions`** — contact_id, plan, monthly_value, annual_value, renewal_date, payment_status, status
+- **`cs_kb_articles`** — title, category, problem, symptoms, cause, solution, video_url, tags[], published, views_count
+- **`cs_kb_article_views`** (اختياري الآن — للإحصاء)
 
-## 4) طباعة بنمط كشف الحساب (بدون about:blank)
-**المشكلة الحالية:** `handlePrint = () => window.print()` يستخدم متصفح المعاينة → header/footer متصفح + URL في الذيل.
-**الحل:**
-- إنشاء component مشترك `PrintableSheet` بنفس تنسيق `AccountStatementPrint` (المرفق): header شركة + متاديتا + جدول نظيف + footer توقيع.
-- زرّ الطباعة يفتح نافذة جديدة (`window.open('', '_blank')`) ويحقن HTML مستقل (بدون chrome) + CSS مطبعي + `@page { margin: 12mm; size: A4 }` ثم `window.print()` تلقائياً.
-- يدعم وضعين:
-  - **قائمة** (للقوائم الثلاث): جدول جميع الصفوف المفلترة + مجموع.
-  - **سند فردي** (من داخل VoucherFormPage): قالب سند احترافي (شركة، تاريخ، رقم، الجهة، المبلغ بالحروف، توقيعات).
-- إخفاء عناوين/تذييلات المتصفح يتم من إعدادات المتصفح، لكن نزيل URL/title بضبط `document.title = ''` مؤقتاً قبل الطباعة ضمن النافذة الجديدة.
-- ملف جديد: `src/lib/print/openPrintWindow.ts` + `src/components/print/VoucherPrintTemplate.tsx` + `src/components/print/VoucherListPrintTemplate.tsx`.
+كل جدول:
+- `GRANT` لـ `authenticated` و `service_role`
+- `ENABLE RLS` + سياسات مبنية على `company_id`/`has_role`
+- Trigger لتوليد الرقم التسلسلي (SUP/FR) لكل سنة
+- Trigger `updated_at`
 
-## ملفات ستُعدّل/تُنشأ
-**جديد:**
-- `src/components/finance/shell/ColumnVisibilityMenu.tsx`
-- `src/components/finance/shell/useColumnVisibility.ts`
-- `src/lib/print/openPrintWindow.ts`
-- `src/components/print/VoucherListPrintTemplate.tsx`
-- `src/components/print/VoucherPrintTemplate.tsx`
+**Timeline موحّد:** View `cs_customer_timeline_view` يدمج (notes + calls + meetings + tickets + feature_requests + contracts + crm_activities + invoices) في صفوف موحّدة (event_type, event_date, title, summary, ref_id) مفلترة بـ contact_id.
 
-**معدّل:**
-- `src/components/finance/shell/FiltersPanel.tsx` (ترجمة type badges)
-- `src/components/finance/shell/FinanceShell.tsx` (slot للـ ColumnVisibilityMenu)
-- `src/pages/FinanceReceiptsPage.tsx` (column visibility + استبدال handlePrint + listener للـ broadcast)
-- `src/pages/FinanceVoucherPage.tsx` (نفس الـ 3)
-- صفحة الفواتير الرئيسية (سأحدد اسمها أثناء التنفيذ)
-- `src/pages/VoucherFormPage.tsx` (طباعة سند فردي عبر النموذج الجديد + توضيح زر التحديث)
+**Customer Health Score:** عمود محسوب `contacts.health_score` (دالة `calculate_health_score(contact_id)` تأخذ: open_tickets, days_since_last_contact, overdue_amount, NPS لاحقاً). placeholder الآن.
 
-## خارج النطاق
-- لن أعدل schema/migrations.
-- لن أغير منطق RPC أو journal posting.
-- التفضيلات في `localStorage` فقط (لا DB sync) حسب جوابك.
+**حقول AI placeholder:** `ai_summary`, `last_sentiment`, `suggested_next_action` على cs_support_tickets و cs_meetings و contacts (بدون تنفيذ AI).
 
-هل أبدأ التنفيذ؟
+**تنبيهات التجديد:** دالة مجدولة `notify_renewals()` تفحص cs_subscriptions يومياً (30/14/7/1 يوم) وتنشئ صفوف في `notifications` الحالي.
+
+## 2) الواجهة — توسعة CrmLayout
+
+نضيف تبويبات جديدة إلى `src/pages/crm/CrmLayout.tsx`:
+
+```text
+Dashboard | Customers | Leads | Pipeline | Activities | Calls | Meetings | Tickets | Feature Requests | Contracts | Knowledge Base | Renewals
+```
+
+صفحات جديدة تحت `src/pages/crm/`:
+
+- `CallsPage.tsx` + `CallFormDialog.tsx`
+- `MeetingsPage.tsx` + `MeetingFormDialog.tsx`
+- `SupportTicketsPage.tsx` + `TicketFormDialog.tsx` + `TicketDetailPage.tsx` (route: `/crm/ticket/:id`)
+- `FeatureRequestsPage.tsx` + `FeatureRequestFormDialog.tsx`
+- `ContractsPage.tsx` + `ContractFormDialog.tsx` (مع رفع PDF لـ Supabase Storage bucket `cs-contracts`)
+- `KnowledgeBasePage.tsx` + `KbArticlePage.tsx` + `KbArticleForm.tsx`
+- `RenewalCenterPage.tsx` — قائمة الاشتراكات المرتبة حسب أقرب تجديد + KPIs
+
+## 3) Customer 360 — إعادة هيكلة بتبويبات
+
+تحديث `src/pages/crm/Customer360Page.tsx` ليصبح بتبويبات (shadcn `Tabs`):
+
+```text
+Overview | Notes | Calls | Meetings | Tickets | Feature Requests | Contracts | Invoices | Devices | Subscription | Timeline
+```
+
+- **Overview:** بيانات الشركة + KPIs (Open Tickets, Closed, Calls, Meetings, Contracts, MRR, Health Score)
+- **Timeline:** يقرأ من `cs_customer_timeline_view` بترتيب زمني، أيقونة لكل نوع حدث
+- باقي التبويبات: قوائم مفلترة + زر إضافة سريع
+
+مكوّن جديد `CustomerUnifiedTimeline.tsx` يستبدل `CustomerActivityTimeline` الحالي.
+
+## 4) Dashboard CRM — تحديث
+
+`CrmDashboard.tsx` يضيف KPIs:
+- تذاكر مفتوحة حسب الأولوية
+- متوسط زمن حل التذكرة
+- تجديدات قادمة (30 يوم)
+- أكثر طلبات الميزات تصويتاً
+- Health Score منخفض (top 10)
+
+## 5) Hooks & Types
+
+`src/pages/crm/hooks/`:
+- `useCsNotes.ts`, `useCsCalls.ts`, `useCsMeetings.ts`, `useCsTickets.ts`, `useCsFeatureRequests.ts`, `useCsContracts.ts`, `useCsSubscriptions.ts`, `useCsKbArticles.ts`, `useCustomerTimeline.ts`
+
+`src/pages/crm/types.ts` — يُضاف لها أنواع وثوابت التسميات العربية.
+
+## 6) الصلاحيات
+
+نستخدم RBAC الحالي عبر `has_role`:
+- `sales_*` → Customers/Leads/Calls/Meetings/Pipeline/Contracts/Subscriptions (قراءة كاملة، كتابة)
+- `support_*` (جديد، أو ضمن `cashier`/`accountant_junior` مؤقتاً) → Tickets/Knowledge Base
+- `admin`, `accountant_senior`, owners → كل شيء
+
+سياسات RLS مبنية على `company_id` فقط (لا فلترة بـ user_id من الواجهة — حسب memory).
+
+## 7) ملاحظات تقنية
+
+- لا نُنشئ جدول عملاء جديد — كل شيء يربط بـ `contacts`
+- نُبقي `support_tickets` القديم كما هو (أداة داخلية لـ Amwali) ونضيف `cs_support_tickets` للعملاء
+- لاحقاً: ربط `sami_leads` و ACT contracts و `project_contracts` بـ `cs_contracts`
+- Mobile-first RTL، نفس نمط `CrmLayout` (gradient header + tab pills)
+- لا AI الآن — فقط حقول placeholder وخطافات جاهزة
+
+## 8) ترتيب التنفيذ
+
+1. Migration الجداول كلها + RLS + sequences + view + storage bucket
+2. Types + Hooks
+3. صفحات: Tickets, Calls, Meetings (الأولوية للدعم/المبيعات اليومية)
+4. Knowledge Base + Renewal Center
+5. Feature Requests + Contracts
+6. Customer360 إعادة هيكلة بالتبويبات + Unified Timeline
+7. Dashboard KPIs محدّثة
+8. تحديث CrmLayout بالتبويبات الجديدة
+
+---
+
+**ملاحظة:** بناءً على نصيحتك (SOP + Knowledge Base قبل AI)، الـ Knowledge Base + Tickets + Playbooks ستُبنى أولاً، وحقول AI ستبقى placeholder حتى تكتمل قاعدة المعرفة بـ 80+ مقالة، ثم نربط سامي بها كمساعد لا بديل.
+
+هل أبدأ بالـ Migration؟
