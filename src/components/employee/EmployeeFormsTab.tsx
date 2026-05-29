@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { validateEmployeeForm, diffDaysInclusive, diffHours } from "@/lib/employeeFormValidators";
 import { evaluateLoanEligibility, eligibilityBadgeClass, formatCurrency } from "@/lib/employeeFinancialDisplay";
+import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 
 interface Props {
   employeeId: string;
@@ -177,6 +178,12 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     } catch (e) {
       // silent — selects fall back to empty
     }
+  };
+
+  const openPolicyFile = (fileUrl?: string | null) => {
+    openEmployeeFormsStorageFile(fileUrl, (message) => {
+      toast({ title: "تعذر فتح الملف", description: message, variant: "destructive" });
+    });
   };
 
   // Auto-prefill loan form when opened
@@ -1001,7 +1008,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 key={card.id}
                 onClick={() => {
                   if (policyDoc?.file_url) {
-                    window.open(policyDoc.file_url, "_blank");
+                    openPolicyFile(policyDoc.file_url);
                   } else {
                     toast({ title: "قريباً", description: "سيتم إضافة هذه السياسة قريباً" });
                   }
