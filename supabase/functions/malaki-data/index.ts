@@ -211,15 +211,25 @@ Deno.serve(async (req) => {
           });
         }
         const cashBoxIds = [...new Set(Object.values(sessionMap).map(s => s.cashBoxId).filter(Boolean) as string[])];
-        const cashBoxMap: Record<string, { name: string; location: string }> = {};
+        const cashBoxMap: Record<string, { name: string; location: string; branchId: string | null }> = {};
         if (cashBoxIds.length > 0) {
           const { data: boxes } = await supabase
             .from("cash_boxes")
-            .select("id, name, branch_location")
+            .select("id, name, branch_location, branch_id")
             .in("id", cashBoxIds);
           (boxes || []).forEach((b: any) => {
-            cashBoxMap[b.id] = { name: b.name, location: b.branch_location };
+            cashBoxMap[b.id] = { name: b.name, location: b.branch_location, branchId: b.branch_id || null };
           });
+        }
+        // ── Branch names ──
+        const branchIds = [...new Set(Object.values(cashBoxMap).map(b => b.branchId).filter(Boolean) as string[])];
+        const branchNameMap: Record<string, string> = {};
+        if (branchIds.length > 0) {
+          const { data: brs } = await supabase
+            .from("branches")
+            .select("id, name")
+            .in("id", branchIds);
+          (brs || []).forEach((b: any) => { branchNameMap[b.id] = b.name; });
         }
 
         // ── POS lines (for item breakdown) ──
@@ -246,20 +256,24 @@ Deno.serve(async (req) => {
           if (data) invLines.push(...data);
         }
 
-        // ── Branch aggregation ──
+        // ── Branch aggregation (group cash boxes under their branch) ──
         const branchAgg: Record<string, { id: string; name: string; location: string; total: number; orderCount: number }> = {};
         for (const o of orderList) {
           const sess = sessionMap[o.session_id];
           const cbId = sess?.cashBoxId || "unknown";
           const box = cashBoxMap[cbId];
-          if (!branchAgg[cbId]) branchAgg[cbId] = {
-            id: cbId,
-            name: box?.name || "POS غير معروف",
+          const brId = box?.branchId || "__no_branch__";
+          const brName = box?.branchId
+            ? (branchNameMap[box.branchId] || "فرع غير مسمى")
+            : "بدون فرع";
+          if (!branchAgg[brId]) branchAgg[brId] = {
+            id: brId,
+            name: brName,
             location: box?.location || "",
             total: 0, orderCount: 0,
           };
-          branchAgg[cbId].total += o.total || 0;
-          branchAgg[cbId].orderCount += 1;
+          branchAgg[brId].total += o.total || 0;
+          branchAgg[brId].orderCount += 1;
         }
         if (invList.length > 0) {
           branchAgg["__invoices__"] = {
