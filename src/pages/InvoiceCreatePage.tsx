@@ -234,6 +234,7 @@ const InvoiceCreatePage = () => {
   });
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
+  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
   // Cache the next preview number per type so toggling sales/purchase recomputes locally.
@@ -357,9 +358,13 @@ const InvoiceCreatePage = () => {
     paymentMethod: "credit" as "credit", // ← always credit; no UI to change
     // Invoice kind exposed to the user via segmented control next to cost center.
     // "credit" (آجل) → posts to AR/AP, paid_amount=0. "cash" (نقدي) → immediately
-    // marked as paid (paid_amount=total) so payment_status="paid"; no separate
-    // receipt voucher needed. Stored in DB via payment_method field.
+    // posts to the chosen cash box / bank account (Dr cash / Cr revenue for sales,
+    // Dr purchases / Cr cash for purchases) so it actually moves cash. Stored in
+    // DB via payment_method = نقدي + cash_account_code (gl_account_code).
     invoiceKind: "credit" as "credit" | "cash",
+    // Required when invoiceKind === "cash" — gl_account_code of the chosen cash
+    // box or bank account. Used as the cash-side leg of the GL entry.
+    cashAccountCode: null as string | null,
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
