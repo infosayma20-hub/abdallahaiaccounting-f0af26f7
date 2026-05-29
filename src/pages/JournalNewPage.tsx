@@ -1349,36 +1349,6 @@ const JournalNewPage = () => {
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
                     <td className="p-3">
-                      {(() => {
-                        return (
-                          <JournalAccountPicker
-                            lineId={line.id}
-                            value={line.account_code}
-                            accountName={line.account_name}
-                            accounts={postableAccounts}
-                            invalid={invalidLineIds.has(line.id)}
-                            autoOpenOnFocus
-                            onSelect={(a) => {
-                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                                ...l,
-                                account_code: a.account_code,
-                                account_name: a.account_name || l.account_name,
-                              }));
-                            }}
-                            onClear={() => {
-                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                                ...l,
-                                account_code: "",
-                                account_name: "",
-                                contact_id: "",
-                                contact_name: "",
-                              }));
-                            }}
-                          />
-                        );
-                      })()}
-                    </td>
-                    <td className="p-3">
                       <Select 
                         value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
                         onValueChange={v => {
@@ -1411,7 +1381,7 @@ const JournalNewPage = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-11 text-sm">
+                        <SelectTrigger data-journal-code={line.id} className={`h-11 text-sm ${invalidLineIds.has(line.id) ? "ring-1 ring-destructive/40" : ""}`}>
                           {(line.account_code || (line.contact_id && line.contact_id !== "__none__")) ? (
                             <span className="truncate flex items-center gap-2">
                               {line.contact_id && line.contact_id !== "__none__" && (
