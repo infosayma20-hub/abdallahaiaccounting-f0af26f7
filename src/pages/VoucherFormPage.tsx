@@ -245,6 +245,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // effect from the ledger so the side panel shows "balance BEFORE this voucher".
   const [originalAmount, setOriginalAmount] = useState<number>(0);
   const contactDropdownRef = useRef<HTMLDivElement>(null);
+  const [creatingContact, setCreatingContact] = useState(false);
 
   // GL Account (for "account" party type)
   const [glAccounts, setGlAccounts] = useState<GLAccount[]>([]);
