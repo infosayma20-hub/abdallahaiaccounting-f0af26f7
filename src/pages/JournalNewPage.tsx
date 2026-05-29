@@ -1327,12 +1327,11 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-3.5 text-white font-semibold text-[13px] w-12">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "14%" }}>رقم الحساب</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "24%" }}>الحساب / الجهة</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>مدين ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "11%" }}>دائن ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>تعليق</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "16%" }}>مركز التكلفة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "36%" }}>الحساب أو الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "22%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>مركز التكلفة</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
@@ -1349,36 +1348,6 @@ const JournalNewPage = () => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
-                    <td className="p-3">
-                      {(() => {
-                        return (
-                          <JournalAccountPicker
-                            lineId={line.id}
-                            value={line.account_code}
-                            accountName={line.account_name}
-                            accounts={postableAccounts}
-                            invalid={invalidLineIds.has(line.id)}
-                            autoOpenOnFocus
-                            onSelect={(a) => {
-                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                                ...l,
-                                account_code: a.account_code,
-                                account_name: a.account_name || l.account_name,
-                              }));
-                            }}
-                            onClear={() => {
-                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
-                                ...l,
-                                account_code: "",
-                                account_name: "",
-                                contact_id: "",
-                                contact_name: "",
-                              }));
-                            }}
-                          />
-                        );
-                      })()}
-                    </td>
                     <td className="p-3">
                       <Select 
                         value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
@@ -1412,7 +1381,7 @@ const JournalNewPage = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-11 text-sm">
+                        <SelectTrigger data-journal-code={line.id} className={`h-11 text-sm ${invalidLineIds.has(line.id) ? "ring-1 ring-destructive/40" : ""}`}>
                           {(line.account_code || (line.contact_id && line.contact_id !== "__none__")) ? (
                             <span className="truncate flex items-center gap-2">
                               {line.contact_id && line.contact_id !== "__none__" && (
@@ -1634,7 +1603,7 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={3} className="p-3 text-sm font-bold">الإجمالي</td>
+                  <td colSpan={2} className="p-3 text-sm font-bold">الإجمالي</td>
                   <td className="p-3 font-mono text-sm">₪{formatAmount(totalDebit)}</td>
                   <td className="p-3 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td colSpan={3}></td>
