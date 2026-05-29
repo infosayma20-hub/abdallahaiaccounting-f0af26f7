@@ -234,6 +234,7 @@ const InvoiceCreatePage = () => {
   });
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
+  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
   // Cache the next preview number per type so toggling sales/purchase recomputes locally.
@@ -357,9 +358,13 @@ const InvoiceCreatePage = () => {
     paymentMethod: "credit" as "credit", // ← always credit; no UI to change
     // Invoice kind exposed to the user via segmented control next to cost center.
     // "credit" (آجل) → posts to AR/AP, paid_amount=0. "cash" (نقدي) → immediately
-    // marked as paid (paid_amount=total) so payment_status="paid"; no separate
-    // receipt voucher needed. Stored in DB via payment_method field.
+    // posts to the chosen cash box / bank account (Dr cash / Cr revenue for sales,
+    // Dr purchases / Cr cash for purchases) so it actually moves cash. Stored in
+    // DB via payment_method = نقدي + cash_account_code (gl_account_code).
     invoiceKind: "credit" as "credit" | "cash",
+    // Required when invoiceKind === "cash" — gl_account_code of the chosen cash
+    // box or bank account. Used as the cash-side leg of the GL entry.
+    cashAccountCode: null as string | null,
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
@@ -395,9 +400,13 @@ const InvoiceCreatePage = () => {
     (draft) => {
       const typedDraft = draft as typeof invoiceDraftSnapshot;
       if (typedDraft && typedDraft.form) {
-        // Back-compat: older drafts may lack invoiceKind — default to credit.
+        // Back-compat: older drafts may lack invoiceKind / cashAccountCode.
         const restored = typedDraft.form as typeof form;
-        setForm({ ...restored, invoiceKind: restored.invoiceKind || "credit" });
+        setForm({
+          ...restored,
+          invoiceKind: restored.invoiceKind || "credit",
+          cashAccountCode: restored.cashAccountCode ?? null,
+        });
         setContactSearch(typedDraft.contactSearch || typedDraft.form.contactName || "");
         setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
         setInvoiceTerms(typedDraft.invoiceTerms ?? "");
@@ -477,11 +486,14 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes, bRes, salesNumbersRes, purchaseNumbersRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
+      const [cRes, pRes, sRes, bRes, cbRes, salesNumbersRes, purchaseNumbersRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
+        // Cash boxes — combined with bank accounts in the cash-invoice picker so
+        // users can choose either to receive (sales) / pay (purchases) cash.
+        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
         // Include cancelled/voided invoices — the DB unique index covers them too,
         // so the next sequence must skip past any existing number regardless of status.
         supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "sale"),
@@ -502,6 +514,7 @@ const InvoiceCreatePage = () => {
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
+      setCashBoxes((cbRes.data || []) as any[]);
 
       // ─── Warehouses (used for stock attribution + advanced product picker) ───
       const { data: whData } = await supabase
@@ -775,6 +788,10 @@ const InvoiceCreatePage = () => {
           // Infer invoice kind from saved payment_method:
           // "نقدي"/"cash" → cash; anything else (incl. "آجل") → credit.
           invoiceKind: (data.payment_method === "نقدي" || data.payment_method === "cash") ? "cash" : "credit",
+          // Restore the saved cash account code so the picker reflects the
+          // original choice. NULL for legacy cash invoices saved before this
+          // column existed — the user must re-pick a cash account on save.
+          cashAccountCode: (data as any).cash_account_code || null,
           currency: data.currency || "شيكل",
           exchangeRate: Number(data.exchange_rate) || 1,
           notes: data.notes || "",
@@ -1120,6 +1137,13 @@ const InvoiceCreatePage = () => {
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" }); return false; }
     if (form.items.some(i => Number(i.bonusQuantity || 0) < 0)) { toast({ title: "الكمية البونص لا يمكن أن تكون سالبة", variant: "destructive" }); return false; }
     if (summary.total <= 0) { toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" }); return false; }
+    if (form.invoiceKind === "cash" && !form.cashAccountCode) {
+      toast({
+        title: "اختر الصندوق لاستلام/دفع قيمة الفاتورة النقدية",
+        variant: "destructive",
+      });
+      return false;
+    }
     return true;
   };
 
@@ -1196,15 +1220,28 @@ const InvoiceCreatePage = () => {
         terms: invoiceTerms.trim() || null,
         warehouse_id: form.warehouseId || null,
         workshop_id: form.workshopId || null,
-      };
+        cash_account_code: form.invoiceKind === "cash" ? form.cashAccountCode : null,
+      } as any;
 
       // ─── Accounting routing (credit-only invoices) ───
       // Sales invoice  → Dr 1130 (AR) / Cr 4100 (Revenue)
       // Purchase invoice → Dr 5110 (Purchases) / Cr 2110 (AP)
       // Note: payment-related debit codes (1110/1120/1150) are no longer used here;
       // payment is recorded later via receipt/payment vouchers.
-      const debitCode = "1130"; // AR for sales (purchase branch overrides below)
-      const transactionType = form.type === "sales" ? "sale_credit" : "purchase_credit";
+      // ─── Cash invoice GL routing ───
+      // Cash sales:    Dr cashAccountCode / Cr 4100 (revenue)
+      // Cash purchase: Dr 5110 (purchases)   / Cr cashAccountCode
+      // Credit sales:  Dr 1130 (AR)         / Cr 4100
+      // Credit purchase: Dr 5110             / Cr 2110 (AP)
+      const isCashInvoice = form.invoiceKind === "cash";
+      const cashCode = form.cashAccountCode || null;
+      const salesDebitCode = isCashInvoice && cashCode ? cashCode : "1130";
+      const salesCreditCode = "4100";
+      const purchaseDebitCode = "5110";
+      const purchaseCreditCode = isCashInvoice && cashCode ? cashCode : "2110";
+      const transactionType = isCashInvoice
+        ? (form.type === "sales" ? "sale_cash" : "purchase_cash")
+        : (form.type === "sales" ? "sale_credit" : "purchase_credit");
       const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
       const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
 
@@ -1293,8 +1330,8 @@ const InvoiceCreatePage = () => {
             user_id: user.id,
             transaction_date: form.date,
             description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} - ${form.contactName}`,
-            debit_account_code: form.type === "sales" ? debitCode : "5110",
-            credit_account_code: form.type === "sales" ? "4100" : debitCode === "1130" ? "2110" : debitCode,
+            debit_account_code: form.type === "sales" ? salesDebitCode : purchaseDebitCode,
+            credit_account_code: form.type === "sales" ? salesCreditCode : purchaseCreditCode,
             amount: amountILS,
             currency: form.currency,
             foreign_amount: isForeign ? summary.total : null,
@@ -1530,7 +1567,11 @@ const InvoiceCreatePage = () => {
         const headerWorkshop = form.workshopId
           ? workshops.find(w => w.id === form.workshopId)
           : null;
-        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings);
+        // Force the legacy direct-insert path for cash invoices: the RPC does
+        // not support overriding the cash leg with the user-selected
+        // gl_account_code, so we route cash invoices through the direct path
+        // where we can set debit/credit codes explicitly.
+        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings) && !isCashInvoice;
         let txDataId: string;
         if (useInvoiceRpc) {
           const rpcRes = await callCreateInvoiceLedgerRpc({
@@ -1559,8 +1600,8 @@ const InvoiceCreatePage = () => {
           user_id: user.id,
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
-          debit_account_code: form.type === "sales" ? "1130" : "5110",
-          credit_account_code: form.type === "sales" ? "4100" : "2110",
+          debit_account_code: form.type === "sales" ? salesDebitCode : purchaseDebitCode,
+          credit_account_code: form.type === "sales" ? salesCreditCode : purchaseCreditCode,
           amount: amountILS,
           currency: form.currency,
           foreign_amount: isForeign ? summary.total : null,
@@ -1802,6 +1843,7 @@ const InvoiceCreatePage = () => {
       paymentTerms: "net_30",
       paymentMethod: "credit",
       invoiceKind: "credit",
+      cashAccountCode: null,
       currency: "شيكل",
       exchangeRate: 1,
       notes: "",
@@ -2356,6 +2398,8 @@ const InvoiceCreatePage = () => {
                         invoiceKind: "credit",
                         // Restore a sensible default if user came from cash mode
                         paymentTerms: p.paymentTerms === "immediate" ? "net_30" : p.paymentTerms,
+                        // Cash account is irrelevant for credit invoices.
+                        cashAccountCode: null,
                       }))
                     }
                     className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
@@ -2371,13 +2415,22 @@ const InvoiceCreatePage = () => {
                     role="tab"
                     aria-selected={form.invoiceKind === "cash"}
                     onClick={() =>
-                      setForm(p => ({
-                        ...p,
-                        invoiceKind: "cash",
-                        // Force terms/due-date to match cash semantics
-                        paymentTerms: "immediate",
-                        dueDate: p.date,
-                      }))
+                      setForm(p => {
+                        // Default to the first cash box (else first bank account)
+                        // so users get a working selection out of the box.
+                        const defaultCash =
+                          cashBoxes.find(c => c.gl_account_code)?.gl_account_code ||
+                          bankAccounts.find(b => b.gl_account_code)?.gl_account_code ||
+                          null;
+                        return {
+                          ...p,
+                          invoiceKind: "cash",
+                          // Force terms/due-date to match cash semantics
+                          paymentTerms: "immediate",
+                          dueDate: p.date,
+                          cashAccountCode: p.cashAccountCode || defaultCash,
+                        };
+                      })
                     }
                     className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
                       form.invoiceKind === "cash"
@@ -2388,6 +2441,63 @@ const InvoiceCreatePage = () => {
                     نقدي
                   </button>
                 </div>
+                {/* Cash account picker — shown only when "نقدي" so the user can
+                    pick which cash box / bank account receives (sales) or
+                    pays (purchases) the invoice value. Required before save. */}
+                {form.invoiceKind === "cash" && (
+                  <div className="mt-2">
+                    <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                      {form.type === "sales" ? "الصندوق المستلم" : "الدفع من"}
+                      <span className="text-destructive mr-1">*</span>
+                    </label>
+                    <Select
+                      value={form.cashAccountCode || ""}
+                      onValueChange={v => setForm(p => ({ ...p, cashAccountCode: v }))}
+                    >
+                      <SelectTrigger
+                        className={`rounded-xl text-sm h-9 ${
+                          !form.cashAccountCode ? "border-destructive/60" : ""
+                        }`}
+                      >
+                        <SelectValue placeholder="اختر الصندوق / الحساب البنكي" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold">
+                            الصناديق النقدية
+                          </div>
+                        )}
+                        {cashBoxes
+                          .filter(c => c.gl_account_code)
+                          .map(c => (
+                            <SelectItem key={`cb-${c.id}`} value={c.gl_account_code as string}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        {bankAccounts.filter(b => b.gl_account_code).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold mt-1">
+                            الحسابات البنكية
+                          </div>
+                        )}
+                        {bankAccounts
+                          .filter(b => b.gl_account_code)
+                          .map(b => (
+                            <SelectItem key={`bk-${b.id}`} value={b.gl_account_code as string}>
+                              {b.bank_name ? `${b.name} — ${b.bank_name}` : b.name}
+                            </SelectItem>
+                          ))}
+                        {cashBoxes.length === 0 && bankAccounts.length === 0 && (
+                          <div className="px-3 py-2 text-[11px] text-muted-foreground">
+                            لا يوجد صناديق أو حسابات بنكية مفعّلة — أضِف صندوقاً أولاً.
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      ستتم حركة النقدية فوراً على الحساب المختار.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -7631,6 +7631,7 @@ export type Database = {
           amount_in_words: string | null
           attachments: Json | null
           billing_address: string | null
+          cash_account_code: string | null
           contact_id: string | null
           contact_name: string | null
           correction_reason: string | null
@@ -7677,6 +7678,7 @@ export type Database = {
           amount_in_words?: string | null
           attachments?: Json | null
           billing_address?: string | null
+          cash_account_code?: string | null
           contact_id?: string | null
           contact_name?: string | null
           correction_reason?: string | null
@@ -7723,6 +7725,7 @@ export type Database = {
           amount_in_words?: string | null
           attachments?: Json | null
           billing_address?: string | null
+          cash_account_code?: string | null
           contact_id?: string | null
           contact_name?: string | null
           correction_reason?: string | null
