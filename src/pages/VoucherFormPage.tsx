@@ -42,6 +42,7 @@ import {
   callCreatePaymentRpc,
   callAllocateVoucherRpc,
 } from "@/lib/voucher-rpc";
+import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import {
   AllocationMode,
   autoAllocate as engineAutoAllocate,
