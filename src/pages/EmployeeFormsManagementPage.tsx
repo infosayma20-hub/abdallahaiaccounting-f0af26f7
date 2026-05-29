@@ -704,7 +704,90 @@ export default function EmployeeFormsManagementPage() {
               <Badge variant={statusConfig[selectedForm?.status]?.variant || "outline"}>
                 {statusConfig[selectedForm?.status]?.label || selectedForm?.status}
               </Badge>
+              {selectedForm?.status === "pending" && selectedForm?.form_type === "employee_info" && (
+                <Button size="sm" variant="outline" className="mr-auto h-7 text-xs gap-1 rounded-lg" onClick={() => setEditMode(m => !m)}>
+                  {editMode ? "إلغاء التعديل" : "تعديل البيانات"}
+                </Button>
+              )}
             </div>
+            {editMode && selectedForm?.form_type === "employee_info" && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                <div className="text-xs font-semibold text-primary">تعديل بيانات الموظف قبل الاعتماد</div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">الاسم الكامل</label>
+                  <Input value={editedData.name || ""} onChange={e => setEditedData(p => ({ ...p, name: e.target.value }))} className="rounded-xl h-10" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">رقم الهوية</label>
+                    <Input value={editedData.id_number || ""} onChange={e => setEditedData(p => ({ ...p, id_number: e.target.value.replace(/\D/g, "").slice(0,9) }))} dir="ltr" className="rounded-xl h-10" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">تاريخ الميلاد</label>
+                    <Input type="date" value={editedData.date_of_birth || ""} onChange={e => setEditedData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl h-10" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">تاريخ بدء العمل</label>
+                  <Input type="date" value={editedData.malaky_start_date || ""} onChange={e => setEditedData(p => ({ ...p, malaky_start_date: e.target.value }))} dir="ltr" className="rounded-xl h-10" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
+                    <Select value={editedData.branch_id || ""} onValueChange={(v) => {
+                      const b = editBranches.find(x => x.id === v);
+                      setEditedData(p => ({ ...p, branch_id: v, branch: b?.name || "" }));
+                    }}>
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                      <SelectContent>{editBranches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
+                    <Select value={editedData.department_id || ""} onValueChange={(v) => {
+                      const d = editDepts.find(x => x.id === v);
+                      setEditedData(p => ({ ...p, department_id: v, department: d?.name || "" }));
+                    }}>
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                      <SelectContent>{editDepts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">المستوى التعليمي</label>
+                  <Select value={editedData.education || ""} onValueChange={(v) => setEditedData(p => ({ ...p, education: v }))}>
+                    <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختر المستوى" /></SelectTrigger>
+                    <SelectContent>
+                      {["ابتدائي","إعدادي","ثانوي","توجيهي","دبلوم","بكالوريوس","ماجستير","دكتوراه","أخرى"].map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">الحالة الاجتماعية</label>
+                    <Select value={editedData.marital_status || ""} onValueChange={(v) => setEditedData(p => ({ ...p, marital_status: v }))}>
+                      <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        {["أعزب","متزوج","مطلق","أرمل"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">عدد الأبناء</label>
+                    <Input type="number" min={0} value={editedData.children_count ?? ""} onChange={e => setEditedData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl h-10" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب</label>
+                  <Input value={editedData.whatsapp || ""} onChange={e => setEditedData(p => ({ ...p, whatsapp: e.target.value }))} dir="ltr" className="rounded-xl h-10" placeholder="+972..." />
+                </div>
+                <Button className="w-full gap-2 rounded-xl" onClick={saveEdits} disabled={savingEdit}>
+                  {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  حفظ التعديلات
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">احفظ التعديلات أولاً ثم اضغط "موافقة" لاعتماد البيانات الجديدة على ملف الموظف.</p>
+              </div>
+            )}
             {selectedForm?.status === "pending" && (
               <>
                 <div>
