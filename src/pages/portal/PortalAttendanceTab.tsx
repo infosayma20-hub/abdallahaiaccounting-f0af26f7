@@ -381,27 +381,74 @@ export default function PortalAttendanceTab({ theme }: Props) {
       )}
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
-        {[
-          { label: 'إجمالي', value: summary.totalEmployees, icon: Users, color: t.accent },
-          { label: 'حاضر', value: summary.present, icon: UserCheck, color: t.green },
-          { label: 'غائب', value: summary.absent, icon: UserX, color: t.red },
-          { label: 'غادر', value: summary.left, icon: Clock, color: t.amber },
-        ].map((kpi, i) => (
-          <div key={i} style={{
-            background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      {/* "الحاضرون الآن" header + filters */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 10, marginTop: 4,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', background: t.green,
+            boxShadow: `0 0 6px ${t.green}80`, animation: 'pulse 2s infinite',
+          }} />
+          <span style={{ fontSize: 14, fontWeight: 800, color: t.text }}>الحاضرون الآن</span>
+          <span style={{
+            background: `${t.green}15`, color: t.green, padding: '2px 8px',
+            borderRadius: 10, fontSize: 11, fontWeight: 700,
+          }}>{liveNow}</span>
+        </div>
+        <span style={{ fontSize: 10, color: t.textMuted }}>
+          {filteredEmployees.length} / {employees.length} ظاهر
+        </span>
+      </div>
+
+      {/* Status filter chips */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 8 }}>
+        {([
+          { key: 'all' as const, label: 'الكل', color: t.accent },
+          { key: 'present' as const, label: 'حاضر', color: t.green },
+          { key: 'on_break' as const, label: 'استراحة', color: '#f97316' },
+          { key: 'left' as const, label: 'غادر', color: t.amber },
+          { key: 'absent' as const, label: 'غائب', color: t.red },
+        ]).map(s => {
+          const active = statusFilter === s.key;
+          return (
+            <button key={s.key} onClick={() => setStatusFilter(s.key)} style={{
+              padding: '5px 12px', borderRadius: 16, fontSize: 11, fontWeight: active ? 700 : 500,
+              border: `1px solid ${active ? s.color : t.border}`,
+              background: active ? s.color : `${s.color}10`,
+              color: active ? '#fff' : s.color,
+              cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'Tajawal, sans-serif',
+            }}>{s.label}</button>
+          );
+        })}
+      </div>
+
+      {/* Search + branch filter */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{
+          flex: 1, minWidth: 140, display: 'flex', alignItems: 'center', gap: 6,
+          background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: '6px 10px',
+        }}>
+          <Search size={12} style={{ color: t.textMuted }} />
+          <input
+            type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            placeholder="بحث باسم الموظف..."
+            style={{
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              fontSize: 12, color: t.text, fontFamily: 'Tajawal, sans-serif',
+            }}
+          />
+        </div>
+        {branches.length > 1 && (
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} style={{
+            background: t.card, border: `1px solid ${t.border}`, borderRadius: 10,
+            padding: '6px 10px', fontSize: 11, color: t.text, fontFamily: 'Tajawal, sans-serif',
           }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: `${kpi.color}15`,
-            }}>
-              <kpi.icon size={16} style={{ color: kpi.color }} />
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
-            <div style={{ fontSize: 9, color: t.textMuted }}>{kpi.label}</div>
-          </div>
-        ))}
+            <option value="all">كل الأقسام</option>
+            {branches.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Employee List */}
