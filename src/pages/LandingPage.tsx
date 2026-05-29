@@ -166,6 +166,7 @@ const LandingPage = () => {
 
       {/* ============ REP MOBILE — HERO FEATURE ============ */}
       <section id="rep" className="py-20 px-6 bg-[#0D1B2E] text-white">
+        {/* Inserted above: WORKSPACES section moved before this */}
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <span className="text-xs font-black text-[#4A9EE8] tracking-widest">البائع المتجول · VAN SALES</span>
