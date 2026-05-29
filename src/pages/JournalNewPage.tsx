@@ -37,6 +37,7 @@ import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
+import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 
 const CURRENCIES = [
   { value: "ILS", label: "شيكل", symbol: "₪" },
