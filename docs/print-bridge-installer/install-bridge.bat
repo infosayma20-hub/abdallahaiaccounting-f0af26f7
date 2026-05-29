@@ -26,7 +26,7 @@ if %errorLevel% EQU 0 set "IS_WIN7=1"
 if "%IS_WIN7%"=="1" (
   echo [INFO] Windows 7 / Server 2008 detected — legacy install path enabled.
   echo [INFO]   - Node.js: bundled v13.14.0 ^(last version supporting Win7^)
-  echo [INFO]   - sharp:   0.32.6 ^(prebuilt binaries available for Node 13^)
+  echo [INFO]   - sharp:   0.30.7 ^(last version supporting Node 13 with prebuilt^)
   echo.
   REM Force TLS 1.2 on Win7 PowerShell so npm/Invoke-WebRequest work
   set "WIN7_TLS_FIX=[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls;"
@@ -102,24 +102,22 @@ if "%IS_WIN7%"=="1" (
   set "npm_config_sharp_libvips_binary_host=https://github.com/lovell/sharp-libvips/releases/download"
 )
 
+if "%IS_WIN7%"=="1" goto :install_explicit
 if exist "%BRIDGE_DIR%\package.json" goto :install_from_pkg
 goto :install_explicit
 
 :install_from_pkg
 echo [...] Installing dependencies from package.json...
-if "%IS_WIN7%"=="1" (
-  call npm install --no-audit --no-fund --ignore-scripts=false --silent
-) else (
-  call npm install --silent
-)
+call npm install --silent
 if %errorLevel% NEQ 0 goto :npm_failed
 goto :deps_done
 
 :install_explicit
-echo [...] Installing dependencies express cors body-parser sharp node-windows ...
 if "%IS_WIN7%"=="1" (
-  call npm install express@^4.19.2 cors@^2.8.5 body-parser@^1.20.2 sharp@0.32.6 node-windows@^1.0.0-beta.8 --no-audit --no-fund --silent
+  echo [...] Installing Win7-compatible deps ^(sharp 0.30.7 for Node 13^)...
+  call npm install express@4.19.2 cors@2.8.5 body-parser@1.20.2 sharp@0.30.7 node-windows@1.0.0-beta.8 --no-audit --no-fund --no-save --silent
 ) else (
+  echo [...] Installing dependencies express cors body-parser sharp node-windows ...
   call npm install express cors body-parser sharp node-windows --silent
 )
 if %errorLevel% NEQ 0 goto :npm_failed
