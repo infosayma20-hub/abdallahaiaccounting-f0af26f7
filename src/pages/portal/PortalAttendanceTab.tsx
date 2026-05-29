@@ -440,8 +440,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
         {([
           { key: 'all' as const, label: 'الكل', color: t.accent },
           { key: 'present' as const, label: 'حاضر', color: t.green },
-          { key: 'on_break' as const, label: 'استراحة', color: '#f97316' },
-          { key: 'left' as const, label: 'غادر', color: t.amber },
+          { key: 'on_break' as const, label: 'استراحة', color: t.orange },
+          { key: 'left' as const, label: 'غادر', color: t.neutral },
           { key: 'absent' as const, label: 'غائب', color: t.red },
         ]).map(s => {
           const active = statusFilter === s.key;
@@ -449,8 +449,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
             <button key={s.key} onClick={() => setStatusFilter(s.key)} style={{
               padding: '5px 12px', borderRadius: 16, fontSize: 11, fontWeight: active ? 700 : 500,
               border: `1px solid ${active ? s.color : t.border}`,
-              background: active ? s.color : `${s.color}10`,
-              color: active ? '#fff' : s.color,
+              background: active ? s.color : t.card,
+              color: active ? '#fff' : t.text,
               cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'Tajawal, sans-serif',
             }}>{s.label}</button>
           );
