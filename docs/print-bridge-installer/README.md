@@ -41,6 +41,39 @@
 
 ---
 
+## دعم Windows 7 / Server 2008 R2
+
+الحزمة تعمل **أوتوماتيكياً** على Windows 7 بدون أي تدخل يدوي وبدون أي تعديل على ملف البريدج (`print-bridge-v6.3.5-generic.js`).
+
+عند تشغيل `install-bridge.bat` كمسؤول على Win7، يقوم المثبّت تلقائياً بـ:
+
+1. **كشف نسخة ويندوز** (`ver | findstr 6.1`) → يُفعّل المسار القديم.
+2. **تفعيل TLS 1.2** في PowerShell — لأن Win7 افتراضياً TLS 1.0 وهذا يكسر كل تحميل من npm و nodejs.org (هذه السبب الجذري لرسالة `The underlying connection was closed`).
+3. **استخدام Node.js v13.14.0** المُرفقة في `node-v13.14.0-x64.msi` (آخر إصدار يدعم Win7). إذا لم تكن مرفقة يحاول تنزيلها من `https://nodejs.org/dist/v13.14.0/`.
+4. **تثبيت `sharp@0.32.6`** بدلاً من 0.33.x — هذا الإصدار عنده prebuilt binaries لـ Node 13 على Win7، فلا حاجة لـ node-gyp ولا Python ولا Visual Studio Build Tools ولا Chocolatey.
+5. ضبط `npm config` لاستخدام TLS 1.2 ومرايا GitHub الرسمية لـ sharp + libvips.
+
+### لو فشل التثبيت على Win7
+
+شغّل `check-windows.bat` للحصول على تشخيص فوري:
+- نسخة ويندوز
+- نسخة Node و npm المثبتة
+- هل TLS 1.2 متاح
+- هل `node_modules\sharp\build\Release\*.node` موجود (مؤشر نجاح/فشل sharp)
+- هل الخدمة شغّالة على `127.0.0.1:3001`
+
+### الأخطاء الشائعة على Win7 وحلولها
+
+| الخطأ | السبب | الحل |
+|---|---|---|
+| `choco is not recognized` + `DownloadString ... underlying connection was closed` | Node 24/20 لا يعمل على Win7 → فُرض على المستخدم تنزيل Node قديم → ثم `sharp 0.33` حاول البناء من المصدر → node-gyp استدعى Chocolatey → فشل لأن TLS 1.0 | استخدم `install-bridge.bat` الجديد (يستعمل sharp 0.32.6 prebuilt + TLS 1.2 تلقائياً) |
+| `node is not recognized` بعد التثبيت | متغير PATH لم يُحدّث في نفس الجلسة | أغلق CMD وافتحه من جديد ثم شغّل `install-bridge.bat` |
+| `sharp.node not found` | فشل تنزيل prebuilt من GitHub | تأكد من اتصال الإنترنت ثم: `cd C:\print-bridge && npm rebuild sharp` |
+
+> ⚠️ مهم: لا تشغّل `npm install` يدوياً على Win7 قبل ما تشغّل `install-bridge.bat` — لأنه لن يضبط TLS 1.2 ولن يفرض sharp 0.32.6 وستحصل على نفس الخطأ.
+
+---
+
 ## حل احتياطي: التشغيل عبر Startup (في حال فشل تثبيت الخدمة)
 
 الطريقة الأساسية والمفضّلة هي **Windows Service** عبر `install-bridge.bat`.
