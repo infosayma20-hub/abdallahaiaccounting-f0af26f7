@@ -252,7 +252,7 @@ function SummaryCard({ t, icon, label, value, accent, onClick, sub, alert }: any
       <div style={{ fontSize: 11, color: t.textMuted }}>{label}</div>
       <div style={{ fontSize: 17, fontWeight: 800, color: t.text, fontFamily: 'JetBrains Mono, monospace' }}>{value}</div>
       {alert ? (
-        <div style={{ fontSize: 10, fontWeight: 700, color: t.negative }}>⚠ {alert}</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: t.negative }}>{alert}</div>
       ) : sub ? (
         <div style={{ fontSize: 10, color: t.textFaint }}>{sub}</div>
       ) : null}

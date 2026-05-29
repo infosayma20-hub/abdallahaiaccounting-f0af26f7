@@ -973,7 +973,7 @@ Deno.serve(async (req) => {
       // Fetch active employees
       const { data: emps } = await supabase
         .from("employees")
-        .select("id, full_name, position, job_title, shift_start, shift_end")
+        .select("id, full_name, position, job_title, shift_start, shift_end, branch_id, department")
         .eq("user_id", linkedUserId)
         .eq("is_active", true)
         .order("full_name");
@@ -983,6 +983,13 @@ Deno.serve(async (req) => {
       }
 
       const empIds = emps.map((e: any) => e.id);
+
+      // Fetch branches for grouping
+      const { data: branchRows } = await supabase
+        .from("branches")
+        .select("id, name")
+        .eq("user_id", linkedUserId);
+      const branchMap = new Map<string, string>((branchRows || []).map((b: any) => [b.id, b.name]));
 
       // Fetch attendance for date range
       let attQuery = supabase
@@ -1053,6 +1060,9 @@ Deno.serve(async (req) => {
           id: emp.id,
           full_name: emp.full_name,
           position: emp.job_title || emp.position || "",
+          branch_id: emp.branch_id || null,
+          branch_name: emp.branch_id ? (branchMap.get(emp.branch_id) || null) : null,
+          department: emp.department || null,
           shift_start: emp.shift_start,
           shift_end: emp.shift_end,
           status,
