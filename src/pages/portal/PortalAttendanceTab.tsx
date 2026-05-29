@@ -341,7 +341,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
             WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
           }}>
             {notificationsEnabled ? <Bell size={11} /> : <BellOff size={11} />}
-            {notificationsEnabled ? 'إشعارات ✓' : 'تفعيل الإشعارات'}
+            {notificationsEnabled ? 'إشعارات' : 'تفعيل الإشعارات'}
           </button>
           <button onClick={fetchData} style={{
             background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
