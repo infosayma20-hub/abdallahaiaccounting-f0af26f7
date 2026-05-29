@@ -2394,6 +2394,8 @@ const InvoiceCreatePage = () => {
                         invoiceKind: "credit",
                         // Restore a sensible default if user came from cash mode
                         paymentTerms: p.paymentTerms === "immediate" ? "net_30" : p.paymentTerms,
+                        // Cash account is irrelevant for credit invoices.
+                        cashAccountCode: null,
                       }))
                     }
                     className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
@@ -2409,13 +2411,22 @@ const InvoiceCreatePage = () => {
                     role="tab"
                     aria-selected={form.invoiceKind === "cash"}
                     onClick={() =>
-                      setForm(p => ({
-                        ...p,
-                        invoiceKind: "cash",
-                        // Force terms/due-date to match cash semantics
-                        paymentTerms: "immediate",
-                        dueDate: p.date,
-                      }))
+                      setForm(p => {
+                        // Default to the first cash box (else first bank account)
+                        // so users get a working selection out of the box.
+                        const defaultCash =
+                          cashBoxes.find(c => c.gl_account_code)?.gl_account_code ||
+                          bankAccounts.find(b => b.gl_account_code)?.gl_account_code ||
+                          null;
+                        return {
+                          ...p,
+                          invoiceKind: "cash",
+                          // Force terms/due-date to match cash semantics
+                          paymentTerms: "immediate",
+                          dueDate: p.date,
+                          cashAccountCode: p.cashAccountCode || defaultCash,
+                        };
+                      })
                     }
                     className={`flex-1 px-3 py-2 text-xs rounded-lg font-medium transition-all ${
                       form.invoiceKind === "cash"
@@ -2426,6 +2437,63 @@ const InvoiceCreatePage = () => {
                     نقدي
                   </button>
                 </div>
+                {/* Cash account picker — shown only when "نقدي" so the user can
+                    pick which cash box / bank account receives (sales) or
+                    pays (purchases) the invoice value. Required before save. */}
+                {form.invoiceKind === "cash" && (
+                  <div className="mt-2">
+                    <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                      {form.type === "sales" ? "الصندوق المستلم" : "الدفع من"}
+                      <span className="text-destructive mr-1">*</span>
+                    </label>
+                    <Select
+                      value={form.cashAccountCode || ""}
+                      onValueChange={v => setForm(p => ({ ...p, cashAccountCode: v }))}
+                    >
+                      <SelectTrigger
+                        className={`rounded-xl text-sm h-9 ${
+                          !form.cashAccountCode ? "border-destructive/60" : ""
+                        }`}
+                      >
+                        <SelectValue placeholder="اختر الصندوق / الحساب البنكي" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cashBoxes.filter(c => c.gl_account_code).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold">
+                            الصناديق النقدية
+                          </div>
+                        )}
+                        {cashBoxes
+                          .filter(c => c.gl_account_code)
+                          .map(c => (
+                            <SelectItem key={`cb-${c.id}`} value={c.gl_account_code as string}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        {bankAccounts.filter(b => b.gl_account_code).length > 0 && (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground font-bold mt-1">
+                            الحسابات البنكية
+                          </div>
+                        )}
+                        {bankAccounts
+                          .filter(b => b.gl_account_code)
+                          .map(b => (
+                            <SelectItem key={`bk-${b.id}`} value={b.gl_account_code as string}>
+                              {b.bank_name ? `${b.name} — ${b.bank_name}` : b.name}
+                            </SelectItem>
+                          ))}
+                        {cashBoxes.length === 0 && bankAccounts.length === 0 && (
+                          <div className="px-3 py-2 text-[11px] text-muted-foreground">
+                            لا يوجد صناديق أو حسابات بنكية مفعّلة — أضِف صندوقاً أولاً.
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      ستتم حركة النقدية فوراً على الحساب المختار.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
