@@ -19,11 +19,7 @@ import hrManagerTools from "@/assets/screens/hr-manager-tools.png";
 import hrDashboard from "@/assets/screens/hr-dashboard.png";
 import finHub from "@/assets/screens/finance-hub.png";
 import finLinks from "@/assets/screens/finance-links.png";
-import finReports from "@/assets/screens/finance-reports.png";
-import finReportsGrid1 from "@/assets/screens/finance-reports-grid1.png";
-import finReportsGrid2 from "@/assets/screens/finance-reports-grid2.png";
 import finTemplates from "@/assets/screens/finance-templates.png";
-import finInvoiceCreate from "@/assets/screens/finance-invoice-create.png";
 import finInvoicePrint from "@/assets/screens/finance-invoice-print.png";
 import finPolicies from "@/assets/screens/finance-customer-policies.png";
 
@@ -394,10 +390,10 @@ const LandingPage = () => {
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="device-frame max-w-full">
-                  <img src={hrRosterWeek} alt="جدول الدوام الأسبوعي للفرع" loading="lazy" />
+                  <img src={hrRosterWeek} alt="جدول الدوام الأسبوعي للفرع" loading="lazy" className="aspect-[9/19] object-cover object-top" />
                 </div>
                 <div className="device-frame max-w-full">
-                  <img src={hrShiftDialog} alt="إسناد وردية لموظف — صباحي/ميد/مسائي" loading="lazy" />
+                  <img src={hrShiftDialog} alt="إسناد وردية لموظف — صباحي/ميد/مسائي" loading="lazy" className="aspect-[9/19] object-cover object-top" />
                 </div>
               </div>
             </div>
@@ -408,8 +404,8 @@ const LandingPage = () => {
               <p className="text-sm text-[#0D1B2E]/65 leading-relaxed mb-5">
                 لمّا الموظف يكون مدير فرع، بيظهر له قسم "إدارة الفريق" تلقائياً: حضور الفريق، جدول الدوام، تبديل ورديات، واعتماد/رفض طلبات موظفيه — بدون ما يشوف موظفين فروع تانية.
               </p>
-              <div className="device-frame max-w-[280px] mx-auto">
-                <img src={hrManagerTools} alt="أدوات مدير الفرع — حضور الفريق، الدوام، تبديل الورديات، اعتماد الطلبات" loading="lazy" />
+              <div className="device-frame max-w-[260px] mx-auto">
+                <img src={hrManagerTools} alt="أدوات مدير الفرع — حضور الفريق، الدوام، تبديل الورديات، اعتماد الطلبات" loading="lazy" className="aspect-[9/19] object-cover object-top" />
               </div>
             </div>
           </div>
@@ -503,14 +499,13 @@ const LandingPage = () => {
           {/* INVOICE FLOW */}
           <div className="mb-20">
             <div className="text-center mb-8">
-              <h3 className="text-2xl md:text-3xl font-black text-[#0D1B2E]">فاتورة احترافية — من الإدخال للطباعة</h3>
-              <p className="text-[13px] text-[#0D1B2E]/60 mt-2">إدخال ذرّي بالاختصارات · حساب الضريبة 16% تلقائي · معاينة وطباعة بقالب جاهز.</p>
+              <span className="text-[11px] font-black tracking-widest text-[#3b82f6]">الفاتورة</span>
+              <h3 className="text-2xl md:text-3xl font-black mt-2 text-[#0D1B2E]">فاتورة احترافية بشعارك — جاهزة للطباعة</h3>
+              <p className="text-[13px] text-[#0D1B2E]/60 mt-2 max-w-2xl mx-auto">
+                إدخال ذرّي بالاختصارات (Alt+N سطر جديد · Ctrl+Enter حفظ) · حساب ضريبة 16% تلقائي · مسوّدات محفوظة تلقائياً · معاينة وطباعة بقالب جاهز يحمل شعار شركتك.
+              </p>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="browser-frame">
-                <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
-                <img src={finInvoiceCreate} alt="إنشاء فاتورة مبيعات" className="w-full block"/>
-              </div>
+            <div className="max-w-3xl mx-auto">
               <div className="browser-frame">
                 <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
                 <img src={finInvoicePrint} alt="معاينة طباعة الفاتورة بشعار الشركة" className="w-full block"/>
@@ -544,28 +539,65 @@ const LandingPage = () => {
             <div className="text-center mb-8">
               <span className="text-[11px] font-black tracking-widest text-[#3b82f6]">التقارير</span>
               <h3 className="text-2xl md:text-3xl font-black mt-2 mb-2 text-[#0D1B2E]">90 تقرير جاهز + منشئ تقارير مخصّص</h3>
-              <p className="text-[13px] text-[#0D1B2E]/60">فلاتر زمنية، مؤشرات فترة، لوحات معلومات Drag-and-Drop، وتقارير محفوظة لكل مستخدم.</p>
+              <p className="text-[13px] text-[#0D1B2E]/60 max-w-2xl mx-auto">
+                فلاتر زمنية، مؤشرات فترة (إيرادات، صافي ربح، ذمم مدينة/دائنة، ضريبة، قيمة المخزون)، وتقارير محفوظة لكل مستخدم.
+              </p>
             </div>
-            <div className="browser-frame max-w-6xl mx-auto mb-6">
-              <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
-              <img src={finReports} alt="لوحة التقارير ومؤشرات الفترة" className="w-full block"/>
+
+            {/* 8 categories grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {[
+                { t: "المالية", n: "12", d: "ميزان مراجعة · ميزانية عمومية · أرباح وخسائر · دفتر الأستاذ · دفتر اليومية · كشف حساب · حركة الصندوق · حركة البنوك · الشيكات · أعمار الذمم · التدفقات النقدية" },
+                { t: "المبيعات", n: "9", d: "إجمالي المبيعات · سجل الفواتير · حسب الزبون · التحصيلات · يومية · مرتجعات · حسب الصنف · أداء المبيعات" },
+                { t: "المشتريات", n: "6", d: "إجمالي المشتريات · فواتير · حسب المورد · المدفوعات · مرتجعات · مقارنة أسعار الموردين" },
+                { t: "المخزون", n: "5", d: "جرد وتقييم · حركة المخزون · أصناف تحت الحد · أصناف راكدة · ربحية الأصناف" },
+                { t: "الموارد البشرية", n: "6", d: "الرواتب الشهرية · حضور وانصراف · رصيد الإجازات · بيانات الموظفين · مسحوبات · تكلفة الموظفين حسب القسم" },
+                { t: "الأصول الثابتة", n: "6", d: "سجل الأصول · استهلاك شهري · جدول تفصيلي · أصول مستهلكة · أرباح/خسائر بيع · الأصول حسب الموقع" },
+                { t: "تقارير الذمم والأداء", n: "11", d: "DSO · DPO · أعمار ذمم زبائن وموردين · كفاءة تحصيل · ربحية زبون · ربحية مورد · كشف موحّد · شيكات واردة/صادرة" },
+                { t: "البائع المتجول", n: "6", d: "ملخص يومي · ربحية حسب المندوب · حسب الصنف · حسب الزبون · حسب المورد · تقرير الطلبات" },
+              ].map(c => (
+                <div key={c.t} className="bg-white border border-[#e8ecf1] rounded-2xl p-4 hover:border-[#3b82f6]/50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-black text-[13px] text-[#0D1B2E]">{c.t}</h4>
+                    <span className="text-[10px] font-black bg-[#3b82f6]/10 text-[#3b82f6] px-2 py-0.5 rounded-full">{c.n} تقرير</span>
+                  </div>
+                  <p className="text-[11px] text-[#0D1B2E]/60 leading-relaxed">{c.d}</p>
+                </div>
+              ))}
             </div>
-            <div className="grid md:grid-cols-2 gap-5">
-              <div className="browser-frame">
-                <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
-                <img src={finReportsGrid1} alt="مجموعات تقارير: مالية، مبيعات، مشتريات، مخزون، موارد بشرية، أصول ثابتة" className="w-full block"/>
+
+            {/* 3 key capabilities */}
+            <div className="grid md:grid-cols-3 gap-5 mb-6">
+              <div className="bg-gradient-to-br from-[#3b82f6]/5 to-white border border-[#3b82f6]/20 rounded-2xl p-5">
+                <div className="text-[10px] font-black tracking-widest text-[#3b82f6] mb-2">جديد · NEW</div>
+                <h4 className="font-black text-[15px] mb-2 text-[#0D1B2E]">منشئ التقارير المخصّصة</h4>
+                <p className="text-[12px] text-[#0D1B2E]/65 leading-relaxed">
+                  صمّم تقريرك بنفسك: اختر الأعمدة، أضف فلاتر، اعمل Drill-down، جمّع حسب أي حقل، واحفظه باسمك للوصول السريع.
+                </p>
               </div>
-              <div className="browser-frame">
-                <div className="bar"><span className="dot bg-[#ff5f57]"/><span className="dot bg-[#febc2e]"/><span className="dot bg-[#28c840]"/></div>
-                <img src={finReportsGrid2} alt="تقارير الذمم والأداء، البائع المتجول، نقطة البيع، إدارة العملات" className="w-full block"/>
+              <div className="bg-gradient-to-br from-[#22C55E]/5 to-white border border-[#22C55E]/20 rounded-2xl p-5">
+                <div className="text-[10px] font-black tracking-widest text-[#22C55E] mb-2">DASHBOARDS</div>
+                <h4 className="font-black text-[15px] mb-2 text-[#0D1B2E]">لوحات المعلومات المخصّصة</h4>
+                <p className="text-[12px] text-[#0D1B2E]/65 leading-relaxed">
+                  اسحب وأفلت KPIs، رسومات، تقارير محفوظة، ونصوص ذكية. شارك اللوحة بلينك عام، أو صدّرها PDF/PNG.
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-[#F59E0B]/5 to-white border border-[#F59E0B]/20 rounded-2xl p-5">
+                <div className="text-[10px] font-black tracking-widest text-[#F59E0B] mb-2">SCHEDULED</div>
+                <h4 className="font-black text-[15px] mb-2 text-[#0D1B2E]">التقارير الدورية</h4>
+                <p className="text-[12px] text-[#0D1B2E]/65 leading-relaxed">
+                  قوالب جاهزة: يومي، أسبوعي، شهري، ربعي، نصف سنوي، سنوي — تصلك تلقائياً بالإيميل أو واتساب.
+                </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+
+            {/* KPI strip */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { t: "DSO / DPO", d: "متوسط أيام التحصيل والسداد" },
-                { t: "أعمار الذمم", d: "متأخر 30/60/90/+ يوم" },
-                { t: "كفاءة التحصيل", d: "ربحية الزبائن والموردين" },
-                { t: "تقارير POS", d: "ساعات الذروة، أداء الكاشيرين" },
+                { t: "أعمار الذمم", d: "متأخر 30 / 60 / 90 / +90 يوم" },
+                { t: "ربحية الزبون", d: "هامش لكل عميل ومورد" },
+                { t: "ساعات الذروة POS", d: "أداء الكاشيرين والمنتجات" },
               ].map(k => (
                 <div key={k.t} className="bg-white border border-[#e8ecf1] rounded-xl p-3 text-center">
                   <div className="text-[13px] font-black text-[#0D1B2E]">{k.t}</div>
