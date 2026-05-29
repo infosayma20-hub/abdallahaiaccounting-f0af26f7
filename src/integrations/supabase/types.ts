@@ -1988,7 +1988,7 @@ export type Database = {
           id?: string
           invoice_number_offset?: number
           is_active?: boolean
-          license_number: string
+          license_number?: string
           logo_url?: string | null
           name?: string
           owner_id: string
