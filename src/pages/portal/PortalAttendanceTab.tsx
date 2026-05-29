@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp, Bell, BellOff } from 'lucide-react';
+import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp, Bell, BellOff, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -40,6 +40,7 @@ interface Summary {
 }
 
 type DatePreset = 'today' | 'yesterday' | 'custom';
+type StatusFilter = 'all' | 'present' | 'on_break' | 'left' | 'absent';
 
 export default function PortalAttendanceTab({ theme }: Props) {
   const [employees, setEmployees] = useState<EmployeeAtt[]>([]);
@@ -50,6 +51,9 @@ export default function PortalAttendanceTab({ theme }: Props) {
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [audioUnlocked, setAudioUnlocked] = useState(true);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
