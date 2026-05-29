@@ -94,6 +94,7 @@ const LandingPage = () => {
               <a href="#workspaces" className="hover:text-[#3b82f6] transition-colors">مساحات العمل</a>
               <a href="#rep" className="hover:text-[#3b82f6] transition-colors">البائع المتجول</a>
               <a href="#attendance" className="hover:text-[#3b82f6] transition-colors">حضور الموظفين</a>
+              <a href="#hr" className="hover:text-[#3b82f6] transition-colors">لوحة HR</a>
               <a href="#features" className="hover:text-[#3b82f6] transition-colors">الميزات</a>
               <a href="#pricing" className="hover:text-[#3b82f6] transition-colors">الأسعار</a>
             </div>
