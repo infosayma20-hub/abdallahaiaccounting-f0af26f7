@@ -2043,6 +2043,9 @@ export default function SuperAdminDashboard() {
             {u.company_name && (
               <span className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>{u.company_name}</span>
             )}
+            {u.license_number && (
+              <span className="text-[11px] font-mono mr-2" style={{ color: "var(--sa-text-faint)" }}> · ترخيص: {u.license_number}</span>
+            )}
           </div>
         </div>
       </td>
