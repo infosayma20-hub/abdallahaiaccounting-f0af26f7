@@ -50,7 +50,7 @@
 1. **كشف نسخة ويندوز** (`ver | findstr 6.1`) → يُفعّل المسار القديم.
 2. **تفعيل TLS 1.2** في PowerShell — لأن Win7 افتراضياً TLS 1.0 وهذا يكسر كل تحميل من npm و nodejs.org (هذه السبب الجذري لرسالة `The underlying connection was closed`).
 3. **استخدام Node.js v13.14.0** المُرفقة في `node-v13.14.0-x64.msi` (آخر إصدار يدعم Win7). إذا لم تكن مرفقة يحاول تنزيلها من `https://nodejs.org/dist/v13.14.0/`.
-4. **تثبيت `sharp@0.32.6`** بدلاً من 0.33.x — هذا الإصدار عنده prebuilt binaries لـ Node 13 على Win7، فلا حاجة لـ node-gyp ولا Python ولا Visual Studio Build Tools ولا Chocolatey.
+4. **تثبيت `sharp@0.30.7`** على Win7 بدلاً من 0.33.x — هذا الإصدار يدعم Node 13 (الإصدارات الأحدث تتطلب Node ≥ 14.15) وعنده prebuilt binaries عبر Node-API، فلا حاجة لـ node-gyp ولا Python ولا Visual Studio Build Tools ولا Chocolatey. على Win10/11 يبقى `sharp@0.32.6` من `package.json`.
 5. ضبط `npm config` لاستخدام TLS 1.2 ومرايا GitHub الرسمية لـ sharp + libvips.
 
 ### لو فشل التثبيت على Win7
