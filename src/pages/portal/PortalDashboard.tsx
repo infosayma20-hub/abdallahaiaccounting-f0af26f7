@@ -229,6 +229,7 @@ export default function PortalDashboard() {
     setActiveTab(tab);
     setActiveIndex(tabIndexMap[tab] ?? 0);
     setShowTasksPage(false);
+    setShowSalesDetail(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
@@ -641,6 +642,7 @@ export default function PortalDashboard() {
                   setShowMore(false);
                   setShowTasksPage(false);
                   setShowEmployeeRequests(false);
+                  setShowSalesDetail(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
