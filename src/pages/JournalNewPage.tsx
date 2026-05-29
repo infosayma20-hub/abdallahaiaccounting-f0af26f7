@@ -1656,15 +1656,28 @@ const JournalNewPage = () => {
             </label>
           </div>
 
-          {/* Balance Status — high-visibility, color-coded */}
-          <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
         </CardContent>
       </Card>
 
-      {/* ═══ Description → Notes + Attachments ═══ */}
-      {/* Description Card — same style as Notes */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl">
-        <CardContent className="p-5">
+      {/* ═══ Description → Notes + Attachments (collapsed by default) ═══ */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setExtrasOpen(v => !v)}
+          className="w-full flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <FileText className="h-4 w-4 text-primary" />
+            الوصف والملاحظات والمرفقات
+            {(formDescription || formNotes || attachments.length > 0) && (
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                {[formDescription && "وصف", formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
+              </span>
+            )}
+          </span>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
+        </button>
+        {extrasOpen && (
+        <CardContent className="p-5 pt-0 space-y-4">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             الوصف *
           </Label>
@@ -1676,8 +1689,10 @@ const JournalNewPage = () => {
             className="resize-none"
           />
         </CardContent>
+        )}
       </Card>
 
+      {extrasOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <Card className="lg:col-span-7 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
