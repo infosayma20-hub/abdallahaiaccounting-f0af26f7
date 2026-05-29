@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import SamiChatbot from "@/components/SamiChatbot";
-import amwaliLogoFull from "@/assets/amwali-logo-full.png";
+import amwaliLogoFull from "@/assets/branding/logo-vertical.png";
 import amwaliMarkWhiteNavy from "@/assets/amwali-mark-white-navy.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -383,12 +383,12 @@ const AuthPage = () => {
         <div className="flex-1 flex flex-col items-center justify-start px-8 py-4 overflow-y-auto" style={{ background: '#FFFFFF' }} dir="rtl">
           <div className="w-full max-w-[380px]">
 
-            {/* Logo — transparent PNG sits directly on the white panel (no card, no shadow) */}
+            {/* Logo — vertical stacked mark on the white panel */}
             <div className="flex justify-center pt-2 pb-6">
               <img
                 src={amwaliLogoFull}
                 alt="AMWALI أموالي"
-                className="h-16 w-auto object-contain select-none"
+                className="h-28 w-auto object-contain select-none"
                 draggable={false}
                 style={{ background: 'transparent' }}
               />
