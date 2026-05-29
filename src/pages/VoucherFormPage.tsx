@@ -932,10 +932,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setSelectedBankAccount(baRes.data[0].id);
         setSelectedChequeBankAccount(baRes.data[0].id);
       }
-      await regenerateRefNumber();
+      if (!isEditMode) {
+        await regenerateRefNumber();
+      }
     };
     load();
-  }, [user, ownerId, isReceipt, regenerateRefNumber]);
+  }, [user, ownerId, isReceipt, regenerateRefNumber, isEditMode]);
 
   // Load invoices when contact is selected
   useEffect(() => {
