@@ -2754,6 +2754,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 </div>
                 {showContactDropdown && !selectedContact && (
                   <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {contactSearch.trim().length >= 2 &&
+                      !filteredContacts.some(c => c.contact_name.trim() === contactSearch.trim()) && (
+                        <button
+                          type="button"
+                          disabled={creatingContact}
+                          onMouseDown={(e) => { e.preventDefault(); handleQuickAddContactFromSearch(); }}
+                          className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 text-primary font-semibold border-b border-border hover:bg-primary/5 disabled:opacity-60"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          {creatingContact
+                            ? "جاري الإضافة..."
+                            : `+ إضافة "${contactSearch.trim()}" كـ${isReceipt ? "زبون" : "مورد"} جديد`}
+                        </button>
+                      )}
                     {filteredContacts.map(c => (
                       <button
                         key={c.id}
@@ -2775,7 +2789,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                         <span className="text-xs text-muted-foreground">دفتر: ₪{formatAmount(c.ledger_balance ?? c.current_balance ?? 0)} · مفتوح: ₪{formatAmount(c.open_invoices_balance ?? 0)}</span>
                       </button>
                     ))}
-                    {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                    {filteredContacts.length === 0 && contactSearch.trim().length < 2 && (
+                      <p className="text-center py-3 text-xs text-muted-foreground">ابدأ بكتابة اسم الجهة...</p>
+                    )}
+                    {filteredContacts.length === 0 && contactSearch.trim().length >= 2 && (
+                      <p className="text-center py-2 text-xs text-muted-foreground">لا توجد نتائج — يمكنك إضافة جهة جديدة من الأعلى</p>
+                    )}
                   </div>
                 )}
               </div>
