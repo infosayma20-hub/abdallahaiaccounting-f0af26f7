@@ -91,10 +91,8 @@ export function validateEmployeeForm(
       if (isEmpty(data.branch)) return { ok: false, error: "أدخل الفرع" };
       if (isEmpty(data.department)) return { ok: false, error: "أدخل القسم" };
       if (["متزوج", "مطلق", "أرمل"].includes(String(data.marital_status))) {
-        if (isEmpty(data.spouse_name)) return { ok: false, error: "أدخل اسم الزوج/الزوجة" };
         if (isEmpty(data.children_count)) return { ok: false, error: "أدخل عدد الأبناء" };
       }
-      if (isEmpty(data.attachment_url)) return { ok: false, error: "ارفق صورة الهوية" };
       return { ok: true };
     }
 
