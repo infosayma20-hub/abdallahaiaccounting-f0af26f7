@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
-import { Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, Banknote, Lock } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, Banknote, Search, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
@@ -13,15 +17,18 @@ import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog"
 import BankDepositDialog from "@/components/finance/BankDepositDialog";
 import CashBoxTransferDialog from "@/components/finance/CashBoxTransferDialog";
 
-// ─── Color config per type ───
-const TYPE_COLORS: Record<string, { bg: string; gradient: string; border: string; text: string; light: string }> = {
-  main:       { bg: "#1B3A5C", gradient: "linear-gradient(135deg, #1B3A5C, #2A5A8C)", border: "#1B3A5C", text: "#1B3A5C", light: "#EBF0F7" },
-  branch:     { bg: "#2D7A4F", gradient: "linear-gradient(135deg, #1E5C3A, #2D7A4F)", border: "#2D7A4F", text: "#2D7A4F", light: "#E8F5EE" },
-  pos:        { bg: "#6B3FA0", gradient: "linear-gradient(135deg, #4C1D95, #6B3FA0)", border: "#6B3FA0", text: "#6B3FA0", light: "#F0EBF8" },
-  petty:      { bg: "#C47A1E", gradient: "linear-gradient(135deg, #92400E, #C47A1E)", border: "#C47A1E", text: "#92400E", light: "#FDF3E3" },
-  petty_cash: { bg: "#C47A1E", gradient: "linear-gradient(135deg, #92400E, #C47A1E)", border: "#C47A1E", text: "#92400E", light: "#FDF3E3" },
-  bank:       { bg: "#1A5FA8", gradient: "linear-gradient(135deg, #0F4A8A, #1A5FA8)", border: "#1A5FA8", text: "#1A5FA8", light: "#E6F0FA" },
+// ─── Quiet accent color per type (used only as a small left-border + badge tint) ───
+const TYPE_ACCENT: Record<string, string> = {
+  main:       "#1B3A5C", // navy
+  branch:     "#2D7A4F", // green
+  pos:        "#6B3FA0", // purple
+  petty:      "#C47A1E", // orange
+  petty_cash: "#C47A1E",
+  bank:       "#1A5FA8", // blue
 };
+
+type SortKey = "name" | "balance" | "branch";
+type SortDir = "asc" | "desc";
 
 const CashBoxesPage = () => {
   const navigate = useNavigate();
@@ -37,6 +44,11 @@ const CashBoxesPage = () => {
   const [exchangeOpen, setExchangeOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    main: true, branch: true, pos: true, petty: false, bank: false,
+  });
+  const [sortBy, setSortBy] = useState<Record<string, { key: SortKey; dir: SortDir }>>({});
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -123,98 +135,188 @@ const CashBoxesPage = () => {
     setEditBox(null); setDrawerType(type); setDrawerOpen(true);
   };
 
-  // ─── Status badge ───
-  const StatusBadge = ({ box }: { box: any }) => {
-    if (!box.is_active) return <Badge className="text-[9px] h-5 px-1.5 shrink-0 whitespace-nowrap bg-red-100 text-red-700 border-red-300">متوقف 🔴</Badge>;
-    return <Badge className="text-[9px] h-5 px-1.5 shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-700 border-emerald-300">نشط 🟢</Badge>;
+  // ─── Search + sort helpers ───
+  const matchesSearch = (b: any) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return (
+      (b.name || b.bank_name || "").toLowerCase().includes(q) ||
+      (b.gl_account_code || b.account_number || "").toLowerCase().includes(q) ||
+      (b.branch_location || b.branch || "").toLowerCase().includes(q)
+    );
   };
 
-  // ─── Box Card ───
-  const BoxCard = ({ box, colorType }: { box: any; colorType: string }) => {
-    const colors = TYPE_COLORS[colorType] || TYPE_COLORS.branch;
-    const bal = balances[box.gl_account_code] || { balance: 0, inflow: 0, outflow: 0, foreignBalances: {} };
-    const foreignBals = bal.foreignBalances || {};
-    const hasForeign = Object.keys(foreignBals).some(k => Math.abs(foreignBals[k]) > 0.01);
-    const fxSymbols: Record<string, string> = { USD: "$", JOD: "JOD ", EUR: "€" };
-    const TypeIcon = colorType === "main" ? Landmark : colorType === "branch" ? Building2 : colorType === "pos" ? Monitor : colorType === "bank" ? Banknote : Wallet;
-    const isInactive = !box.is_active;
+  const sortRows = (rows: any[], section: string) => {
+    const sort = sortBy[section] || { key: "name" as SortKey, dir: "asc" as SortDir };
+    const sign = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (sort.key === "balance") {
+        return sign * (getBalance(a.gl_account_code) - getBalance(b.gl_account_code));
+      }
+      if (sort.key === "branch") {
+        return sign * ((a.branch_location || a.branch || "").localeCompare(b.branch_location || b.branch || "", "ar"));
+      }
+      return sign * ((a.name || a.bank_name || "").localeCompare(b.name || b.bank_name || "", "ar"));
+    });
+  };
 
+  const toggleSort = (section: string, key: SortKey) => {
+    setSortBy(prev => {
+      const cur = prev[section];
+      const dir: SortDir = cur?.key === key && cur.dir === "asc" ? "desc" : "asc";
+      return { ...prev, [section]: { key, dir } };
+    });
+  };
+
+  // ─── Filtered + sorted ───
+  const fMain   = useMemo(() => sortRows(mainBoxes.filter(matchesSearch),   "main"),   [mainBoxes,   balances, search, sortBy]);
+  const fBranch = useMemo(() => sortRows(branchBoxes.filter(matchesSearch), "branch"), [branchBoxes, balances, search, sortBy]);
+  const fPos    = useMemo(() => sortRows(posBoxes.filter(matchesSearch),    "pos"),    [posBoxes,    balances, search, sortBy]);
+  const fPetty  = useMemo(() => sortRows(pettyBoxes.filter(matchesSearch),  "petty"),  [pettyBoxes,  balances, search, sortBy]);
+  const fBank   = useMemo(() => sortRows(bankAccounts.filter(matchesSearch),"bank"),   [bankAccounts,balances, search, sortBy]);
+
+  // ─── Status badge ───
+  const StatusBadge = ({ box }: { box: any }) => {
+    if (!box.is_active) return <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-red-50 text-red-700 border-red-200">متوقف</Badge>;
+    return <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200">نشط</Badge>;
+  };
+
+  // ─── Row actions menu ───
+  const RowActions = ({ box, colorType }: { box: any; colorType: string }) => {
+    const code = box.gl_account_code || box.account_number;
     return (
-      <Card className={`overflow-hidden transition-all hover:shadow-md ${isInactive ? "opacity-60" : ""}`} style={{ borderColor: isInactive ? "#D1D5DB" : colors.border + "40" }}>
-        {/* Colored header */}
-        <div className="px-3 py-2.5 text-white flex items-center justify-between" style={{ background: colors.gradient }}>
-          <div className="flex items-center gap-2 min-w-0">
-            <TypeIcon className="h-4 w-4 shrink-0 opacity-80" />
-            <div className="min-w-0">
-              <p className="text-xs font-bold truncate">{box.name || box.bank_name}</p>
-              <p className="text-[10px] opacity-60 font-mono">{box.gl_account_code || box.account_number}</p>
-            </div>
-          </div>
-          <StatusBadge box={box} />
-        </div>
-
-        <CardContent className="p-3 space-y-2">
-          {/* Balance */}
-          <div className="flex items-baseline justify-between gap-1 min-w-0">
-            <span className="text-[10px] text-muted-foreground shrink-0">رصيد ₪</span>
-            <span className={`text-base font-bold font-mono min-w-0 break-all leading-tight ${bal.balance > 0 ? "" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`} style={bal.balance > 0 ? { color: colors.text } : {}}>
-              ₪{fmt(bal.balance)}
-            </span>
-          </div>
-
-          {/* Foreign balances — same money, shown in original currency (NOT additional) */}
-          {hasForeign && (
-            <div className="rounded-md bg-blue-50/60 border border-blue-100 px-2 py-1.5 space-y-1">
-              <div className="text-[9px] text-blue-700/80 leading-tight flex items-center gap-1">
-                <span>ℹ️</span>
-                <span>نفس المبلغ أعلاه — معروض بالعملة الأصلية للحركات</span>
-              </div>
-              {Object.entries(foreignBals).filter(([, v]) => Math.abs(v) > 0.01).map(([cur, val]) => (
-                <div key={cur} className="flex items-baseline justify-between">
-                  <span className="text-[10px] text-muted-foreground">≈ بالـ {cur}</span>
-                  <span className={`text-xs font-bold font-mono ${val < 0 ? "text-red-600" : "text-blue-600"}`}>
-                    {fxSymbols[cur] || cur}{fmt(val)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Branch name */}
-          {(box.branch_location || box.branch) && (
-            <div className="text-[10px] text-muted-foreground truncate">{box.branch_location || box.branch}</div>
-          )}
-
-          {/* Inflow / Outflow */}
-          <div className="text-[10px] space-y-0.5 pt-1.5 border-t border-border/50">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">↑ وارد</span>
-              <span className="text-emerald-600 font-mono">₪{fmt(bal.inflow)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">↓ صادر</span>
-              <span className="text-red-600 font-mono">₪{fmt(bal.outflow)}</span>
-            </div>
-          </div>
-        </CardContent>
-
-        {/* Actions footer */}
-        <div className="border-t border-border/50 px-2 py-1.5 flex gap-1 justify-end">
-          <Button variant="ghost" size="sm" className="text-[10px] gap-0.5 h-6 px-1.5" onClick={() => navigate(`/account-statement?code=${box.gl_account_code}`)}>
-            <FileText className="h-3 w-3" /> كشف
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => e.stopPropagation()}>
+            <MoreHorizontal className="h-4 w-4" />
           </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => navigate(`/account-statement?code=${code}`)}>
+            <FileText className="h-3.5 w-3.5 ml-2" /> كشف الحساب
+          </DropdownMenuItem>
           {colorType !== "main" && colorType !== "bank" && (
-            <Button variant="ghost" size="sm" className="text-[10px] gap-0.5 h-6 px-1.5" onClick={() => navigate(`/finance/cash-boxes/transfer?from=${box.id}`)}>
-              <ArrowUpRight className="h-3 w-3" /> ترحيل
-            </Button>
+            <DropdownMenuItem onClick={() => navigate(`/finance/cash-boxes/transfer?from=${box.id}`)}>
+              <ArrowUpRight className="h-3.5 w-3.5 ml-2" /> ترحيل
+            </DropdownMenuItem>
           )}
           {colorType !== "bank" && (
-            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-1.5" onClick={() => { setEditBox(box); setDrawerType(box.type); setDrawerOpen(true); }}>
-              <Settings className="h-3 w-3" />
-            </Button>
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { setEditBox(box); setDrawerType(box.type); setDrawerOpen(true); }}>
+                <Settings className="h-3.5 w-3.5 ml-2" /> تعديل
+              </DropdownMenuItem>
+            </>
           )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  // ─── Box Table ───
+  const BoxTable = ({ rows, colorType, section, isBank = false }: { rows: any[]; colorType: string; section: string; isBank?: boolean }) => {
+    const accent = TYPE_ACCENT[colorType] || "#475569";
+    const sort = sortBy[section] || { key: "name" as SortKey, dir: "asc" as SortDir };
+    const SortHead = ({ k, label, align = "right" }: { k: SortKey; label: string; align?: "right" | "left" }) => (
+      <button
+        onClick={() => toggleSort(section, k)}
+        className={`inline-flex items-center gap-1 hover:text-foreground ${align === "left" ? "flex-row-reverse" : ""}`}
+      >
+        <span>{label}</span>
+        {sort.key === k && <ChevronDown className={`h-3 w-3 transition-transform ${sort.dir === "desc" ? "" : "rotate-180"}`} />}
+      </button>
+    );
+
+    if (rows.length === 0) {
+      return (
+        <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-md">
+          لا توجد سجلات
         </div>
-      </Card>
+      );
+    }
+
+    return (
+      <>
+        {/* Desktop table */}
+        <div className="hidden md:block border rounded-md overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-right text-xs"><SortHead k="name" label="الاسم" /></TableHead>
+                <TableHead className="text-right text-xs"><SortHead k="branch" label="الفرع / الموقع" /></TableHead>
+                <TableHead className="text-right text-xs font-mono">الكود</TableHead>
+                <TableHead className="text-right text-xs">العملة</TableHead>
+                <TableHead className="text-left text-xs"><SortHead k="balance" label="الرصيد" align="left" /></TableHead>
+                <TableHead className="text-left text-xs">وارد الشهر</TableHead>
+                <TableHead className="text-left text-xs">صادر الشهر</TableHead>
+                <TableHead className="text-center text-xs">الحالة</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map(r => {
+                const code = r.gl_account_code || r.account_number;
+                const bal = balances[code] || { balance: 0, inflow: 0, outflow: 0, foreignBalances: {} };
+                return (
+                  <TableRow
+                    key={r.id}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      if (isBank) { navigate(`/account-statement?code=${code}`); return; }
+                      setEditBox(r); setDrawerType(r.type); setDrawerOpen(true);
+                    }}
+                    style={{ borderRight: `3px solid ${accent}` }}
+                  >
+                    <TableCell className="text-xs font-medium">{r.name || r.bank_name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.branch_location || r.branch || "—"}</TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">{code || "—"}</TableCell>
+                    <TableCell className="text-xs">{r.currency || "ILS"}</TableCell>
+                    <TableCell className={`text-xs font-mono font-bold text-left ${bal.balance < 0 ? "text-red-600" : ""}`} style={bal.balance >= 0 ? { color: accent } : {}}>
+                      ₪{fmt(bal.balance)}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-left text-emerald-600">₪{fmt(bal.inflow)}</TableCell>
+                    <TableCell className="text-xs font-mono text-left text-red-600">₪{fmt(bal.outflow)}</TableCell>
+                    <TableCell className="text-center"><StatusBadge box={isBank ? { is_active: true } : r} /></TableCell>
+                    <TableCell><RowActions box={r} colorType={isBank ? "bank" : colorType} /></TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile compact list */}
+        <div className="md:hidden space-y-1.5">
+          {rows.map(r => {
+            const code = r.gl_account_code || r.account_number;
+            const bal = balances[code] || { balance: 0, inflow: 0, outflow: 0, foreignBalances: {} };
+            return (
+              <button
+                key={r.id}
+                onClick={() => {
+                  if (isBank) { navigate(`/account-statement?code=${code}`); return; }
+                  setEditBox(r); setDrawerType(r.type); setDrawerOpen(true);
+                }}
+                className="w-full flex items-center justify-between gap-2 p-2.5 rounded-md border bg-card hover:bg-muted/30 text-right"
+                style={{ borderRight: `3px solid ${accent}` }}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-medium truncate">{r.name || r.bank_name}</span>
+                    <StatusBadge box={isBank ? { is_active: true } : r} />
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                    {r.branch_location || r.branch || code}
+                  </div>
+                </div>
+                <div className={`text-xs font-mono font-bold shrink-0 ${bal.balance < 0 ? "text-red-600" : ""}`} style={bal.balance >= 0 ? { color: accent } : {}}>
+                  ₪{fmt(bal.balance)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </>
     );
   };
 
@@ -234,33 +336,40 @@ const CashBoxesPage = () => {
     </Card>
   );
 
-  // ─── Section component ───
-  const Section = ({ icon, title, count, color, addLabel, onAdd, children, emptyText, description }: {
-    icon: string; title: string; count: number; color: string; addLabel: string; onAdd: () => void; children: React.ReactNode; emptyText: string; description?: string;
-  }) => (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{icon}</span>
-          <h2 className="text-sm font-bold" style={{ color }}>{title}</h2>
-          <Badge className="text-[10px]" style={{ background: color + "15", color, border: `1px solid ${color}30` }}>{count}</Badge>
-          {description && <span className="text-[10px] text-muted-foreground hidden md:inline">— {description}</span>}
-        </div>
-        <Button variant="outline" size="sm" className="text-xs gap-1" style={{ borderColor: color + "40", color }} onClick={onAdd}>
-          <Plus className="h-3 w-3" /> {addLabel}
-        </Button>
-      </div>
-      {count > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {children}
-        </div>
-      ) : (
-        <Card className="p-6 text-center border-dashed" style={{ borderColor: color + "40" }}>
-          <p className="text-sm text-muted-foreground">{emptyText}</p>
-        </Card>
-      )}
-    </section>
-  );
+  // ─── Collapsible section wrapper ───
+  const TableSection = ({
+    sectionKey, title, count, total, color, addLabel, onAdd, Icon, children,
+  }: {
+    sectionKey: string; title: string; count: number; total: number; color: string;
+    addLabel: string; onAdd: () => void; Icon: any; children: React.ReactNode;
+  }) => {
+    const open = openSections[sectionKey] ?? false;
+    return (
+      <Collapsible open={open} onOpenChange={(v) => setOpenSections(prev => ({ ...prev, [sectionKey]: v }))}>
+        <section className="border rounded-lg overflow-hidden bg-card">
+          <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b bg-muted/20">
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-2 min-w-0 flex-1 text-right">
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform shrink-0 ${open ? "" : "-rotate-90"}`} />
+                <Icon className="h-4 w-4 shrink-0" style={{ color }} />
+                <h2 className="text-sm font-bold truncate" style={{ color }}>{title}</h2>
+                <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">{count}</Badge>
+                <span className="text-[11px] text-muted-foreground font-mono mr-2 truncate">
+                  ₪{fmt(total)}
+                </span>
+              </button>
+            </CollapsibleTrigger>
+            <Button variant="outline" size="sm" className="text-xs gap-1 shrink-0 h-7" style={{ borderColor: color + "40", color }} onClick={onAdd}>
+              <Plus className="h-3 w-3" /> <span className="hidden sm:inline">{addLabel}</span>
+            </Button>
+          </div>
+          <CollapsibleContent>
+            <div className="p-3">{children}</div>
+          </CollapsibleContent>
+        </section>
+      </Collapsible>
+    );
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
@@ -287,130 +396,74 @@ const CashBoxesPage = () => {
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard label="إجمالي السيولة النقدية" value={totalBalance} sub="مجموع أرصدة كل الصناديق" icon="💰" color="#1B3A5C" />
-        <KpiCard label="صناديق POS" value={posBalance} sub={`${posBoxes.length} نشط`} icon="🖥️" color="#6B3FA0" />
-        <KpiCard label="صناديق الفروع" value={branchBalance} sub={`${branchBoxes.length} نشط`} icon="🏦" color="#2D7A4F" />
-        <KpiCard label="الصندوق الرئيسي" value={mainBalance} sub={mainBoxes[0]?.name || "غير معرّف"} icon="🏛️" color="#1B3A5C" />
-        <KpiCard label="إجمالي النثريات" value={pettyBalance} sub={`${pettyBoxes.length} نشط`} icon="🗃️" color="#C47A1E" />
+        <KpiCard label="إجمالي السيولة النقدية" value={totalBalance} sub="مجموع أرصدة كل الصناديق" icon="" color="#1B3A5C" />
+        <KpiCard label="صناديق POS" value={posBalance} sub={`${posBoxes.length} نشط`} icon="" color="#6B3FA0" />
+        <KpiCard label="صناديق الفروع" value={branchBalance} sub={`${branchBoxes.length} نشط`} icon="" color="#2D7A4F" />
+        <KpiCard label="الصندوق الرئيسي" value={mainBalance} sub={mainBoxes[0]?.name || "غير معرّف"} icon="" color="#1B3A5C" />
+        <KpiCard label="إجمالي النثريات" value={pettyBalance} sub={`${pettyBoxes.length} نشط`} icon="" color="#C47A1E" />
+      </div>
+
+      {/* Global search */}
+      <div className="relative max-w-md">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="بحث في كل الصناديق والبنوك..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pr-9 h-9 text-xs"
+        />
       </div>
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
-        <div className="space-y-8">
-          {/* Main Box */}
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">🏛️</span>
-              <h2 className="text-sm font-bold" style={{ color: "#1B3A5C" }}>الصندوق الرئيسي</h2>
-              <Badge className="text-[10px]" style={{ background: "#1B3A5C15", color: "#1B3A5C", border: "1px solid #1B3A5C30" }}>الصندوق الأم — تُرحَّل إليه كل الصناديق</Badge>
-            </div>
-            {mainBoxes.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {mainBoxes.map(b => <BoxCard key={b.id} box={b} colorType="main" />)}
-              </div>
-            ) : (
-              <Card className="p-8 text-center border-dashed" style={{ borderColor: "#1B3A5C40" }}>
-                <Landmark className="h-10 w-10 mx-auto mb-3" style={{ color: "#1B3A5C" }} />
+        <div className="space-y-4">
+          <TableSection
+            sectionKey="main" title="الصندوق الرئيسي" count={fMain.length} total={mainBalance}
+            color="#1B3A5C" addLabel="إنشاء الصندوق الرئيسي" onAdd={() => openAdd("main")} Icon={Landmark}
+          >
+            {mainBoxes.length === 0 ? (
+              <div className="text-center py-6 border border-dashed rounded-md">
+                <Landmark className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                 <p className="text-sm font-medium mb-1">لم يتم إنشاء الصندوق الرئيسي بعد</p>
-                <p className="text-xs text-muted-foreground mb-4">الصندوق الرئيسي هو الصندوق الأم الذي تُرحَّل إليه كل الصناديق</p>
+                <p className="text-xs text-muted-foreground mb-3">الصندوق الأم الذي تُرحَّل إليه كل الصناديق</p>
                 <Button size="sm" onClick={() => openAdd("main")} className="text-white" style={{ background: "#1B3A5C" }}>
                   <Plus className="h-4 w-4 ml-1" /> إنشاء الصندوق الرئيسي
                 </Button>
-              </Card>
-            )}
-          </section>
-
-          {/* Branch Boxes */}
-          <Section
-            icon="🏦" title="صناديق الفروع" count={branchBoxes.length} color="#2D7A4F"
-            addLabel="إضافة صندوق فرع" onAdd={() => openAdd("branch")}
-            emptyText="لا توجد صناديق فروع" description="خزائن الفروع الرئيسية"
-          >
-            {branchBoxes.map(b => <BoxCard key={b.id} box={b} colorType="branch" />)}
-          </Section>
-
-          {/* POS Boxes */}
-          <Section
-            icon="🖥️" title="صناديق نقاط البيع" count={posBoxes.length} color="#6B3FA0"
-            addLabel="إضافة صندوق POS" onAdd={() => openAdd("pos")}
-            emptyText="لا توجد صناديق نقاط بيع" description="صناديق الكاش في نقاط البيع"
-          >
-            {posBoxes.map(b => <BoxCard key={b.id} box={b} colorType="pos" />)}
-          </Section>
-
-          {/* Petty Cash */}
-          <Section
-            icon="🏷️" title="صناديق النثرية" count={pettyBoxes.length} color="#C47A1E"
-            addLabel="إضافة صندوق نثرية" onAdd={() => openAdd("petty_cash")}
-            emptyText="لا توجد صناديق نثرية" description="مصاريف نثرية يومية"
-          >
-            {pettyBoxes.map(b => <BoxCard key={b.id} box={b} colorType="petty" />)}
-          </Section>
-
-          {/* Bank Accounts */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🏛️</span>
-                <h2 className="text-sm font-bold" style={{ color: "#1A5FA8" }}>الحسابات البنكية</h2>
-                <Badge className="text-[10px]" style={{ background: "#1A5FA815", color: "#1A5FA8", border: "1px solid #1A5FA830" }}>{bankAccounts.length}</Badge>
-                <span className="text-[10px] text-muted-foreground hidden md:inline">— حسابات مصرفية مرتبطة</span>
-              </div>
-              <Button variant="outline" size="sm" className="text-xs gap-1" style={{ borderColor: "#1A5FA840", color: "#1A5FA8" }} onClick={() => navigate("/finance/bank-accounts")}>
-                <Plus className="h-3 w-3" /> إدارة الحسابات البنكية
-              </Button>
-            </div>
-            {bankAccounts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {bankAccounts.map(ba => {
-                  const bal = balances[ba.gl_account_code] || { balance: 0, inflow: 0, outflow: 0, foreignBalances: {} };
-                  return (
-                    <Card key={ba.id} className="overflow-hidden transition-all hover:shadow-md" style={{ borderColor: "#1A5FA840" }}>
-                      <div className="px-3 py-2.5 text-white flex items-center justify-between" style={{ background: TYPE_COLORS.bank.gradient }}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Banknote className="h-4 w-4 shrink-0 opacity-80" />
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold truncate">{ba.name}</p>
-                            <p className="text-[10px] opacity-60 font-mono">{ba.gl_account_code}</p>
-                          </div>
-                        </div>
-                        <Badge className="text-[9px] h-5 px-1.5 shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-700 border-emerald-300">نشط 🟢</Badge>
-                      </div>
-                      <CardContent className="p-3 space-y-2">
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-[10px] text-muted-foreground">رصيد</span>
-                          <span className={`text-base font-bold font-mono min-w-0 break-all leading-tight ${bal.balance < 0 ? "text-red-600" : ""}`} style={bal.balance >= 0 ? { color: "#1A5FA8" } : {}}>
-                            ₪{fmt(bal.balance)}
-                          </span>
-                        </div>
-                        {ba.bank_name && <div className="text-[10px] text-muted-foreground truncate">{ba.bank_name}{ba.branch ? ` - ${ba.branch}` : ""}</div>}
-                        <div className="text-[10px] space-y-0.5 pt-1.5 border-t border-border/50">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">↑ وارد</span>
-                            <span className="text-emerald-600 font-mono">₪{fmt(bal.inflow)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">↓ صادر</span>
-                            <span className="text-red-600 font-mono">₪{fmt(bal.outflow)}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <div className="border-t border-border/50 px-2 py-1.5 flex gap-1 justify-end">
-                        <Button variant="ghost" size="sm" className="text-[10px] gap-0.5 h-6 px-1.5" onClick={() => navigate(`/account-statement?code=${ba.gl_account_code}`)}>
-                          <FileText className="h-3 w-3" /> كشف
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })}
               </div>
             ) : (
-              <Card className="p-6 text-center border-dashed" style={{ borderColor: "#1A5FA840" }}>
-                <p className="text-sm text-muted-foreground">لا توجد حسابات بنكية مسجلة</p>
-              </Card>
+              <BoxTable rows={fMain} colorType="main" section="main" />
             )}
-          </section>
+          </TableSection>
+
+          <TableSection
+            sectionKey="branch" title="صناديق الفروع" count={fBranch.length} total={branchBalance}
+            color="#2D7A4F" addLabel="إضافة صندوق فرع" onAdd={() => openAdd("branch")} Icon={Building2}
+          >
+            <BoxTable rows={fBranch} colorType="branch" section="branch" />
+          </TableSection>
+
+          <TableSection
+            sectionKey="pos" title="صناديق نقاط البيع" count={fPos.length} total={posBalance}
+            color="#6B3FA0" addLabel="إضافة صندوق POS" onAdd={() => openAdd("pos")} Icon={Monitor}
+          >
+            <BoxTable rows={fPos} colorType="pos" section="pos" />
+          </TableSection>
+
+          <TableSection
+            sectionKey="petty" title="صناديق النثرية" count={fPetty.length} total={pettyBalance}
+            color="#C47A1E" addLabel="إضافة صندوق نثرية" onAdd={() => openAdd("petty_cash")} Icon={Wallet}
+          >
+            <BoxTable rows={fPetty} colorType="petty" section="petty" />
+          </TableSection>
+
+          <TableSection
+            sectionKey="bank" title="الحسابات البنكية" count={fBank.length}
+            total={bankAccounts.reduce((s, b) => s + getBalance(b.gl_account_code), 0)}
+            color="#1A5FA8" addLabel="إدارة الحسابات البنكية" onAdd={() => navigate("/finance/bank-accounts")} Icon={Banknote}
+          >
+            <BoxTable rows={fBank} colorType="bank" section="bank" isBank />
+          </TableSection>
         </div>
       )}
 
