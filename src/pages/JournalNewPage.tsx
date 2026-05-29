@@ -442,6 +442,15 @@ const JournalNewPage = () => {
         const c = contacts.find(c => c.id === cleanVal);
         return { ...l, contact_id: cleanVal, contact_name: c?.contact_name || "" };
       }
+      // Mutual exclusivity: a single line may only carry debit OR credit, never both.
+      if (field === "debit") {
+        const n = Number(value) || 0;
+        return { ...l, debit: n, credit: n > 0 ? 0 : l.credit };
+      }
+      if (field === "credit") {
+        const n = Number(value) || 0;
+        return { ...l, credit: n, debit: n > 0 ? 0 : l.debit };
+      }
       return { ...l, [field]: value };
     }));
   };
