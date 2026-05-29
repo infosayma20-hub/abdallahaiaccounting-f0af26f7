@@ -1749,6 +1749,7 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
       </div>
+      )}
 
       {/* ═══ END LEFT COLUMN ═══ */}
       </div>
