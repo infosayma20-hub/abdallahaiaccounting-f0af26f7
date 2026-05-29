@@ -770,6 +770,9 @@ const InvoiceCreatePage = () => {
           // Always force credit — invoices are accrual-only since payment UI was removed.
           // Existing non-credit invoices will be re-saved as credit with paid_amount=0.
           paymentMethod: "credit",
+          // Infer invoice kind from saved payment_method:
+          // "نقدي"/"cash" → cash; anything else (incl. "آجل") → credit.
+          invoiceKind: (data.payment_method === "نقدي" || data.payment_method === "cash") ? "cash" : "credit",
           currency: data.currency || "شيكل",
           exchangeRate: Number(data.exchange_rate) || 1,
           notes: data.notes || "",
