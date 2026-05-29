@@ -665,10 +665,10 @@ export default function PortalAttendanceTab({ theme }: Props) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {[
-            { label: 'إجمالي', value: summary.totalEmployees, icon: Users, color: t.accent },
+            { label: 'إجمالي', value: summary.totalEmployees, icon: Users, color: t.text },
             { label: 'حاضر', value: summary.present, icon: UserCheck, color: t.green },
             { label: 'غائب', value: summary.absent, icon: UserX, color: t.red },
-            { label: 'غادر', value: summary.left, icon: Clock, color: t.amber },
+            { label: 'غادر', value: summary.left, icon: Clock, color: t.neutral },
           ].map((kpi, i) => (
             <div key={i} style={{
               background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10,
