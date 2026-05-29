@@ -646,6 +646,35 @@ export default function PortalAttendanceTab({ theme }: Props) {
         )}
       </div>
 
+      {/* Summary KPI cards — moved to bottom */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, marginBottom: 8 }}>
+          ملخص الحضور
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {[
+            { label: 'إجمالي', value: summary.totalEmployees, icon: Users, color: t.accent },
+            { label: 'حاضر', value: summary.present, icon: UserCheck, color: t.green },
+            { label: 'غائب', value: summary.absent, icon: UserX, color: t.red },
+            { label: 'غادر', value: summary.left, icon: Clock, color: t.amber },
+          ].map((kpi, i) => (
+            <div key={i} style={{
+              background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: `${kpi.color}15`,
+              }}>
+                <kpi.icon size={16} style={{ color: kpi.color }} />
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
+              <div style={{ fontSize: 9, color: t.textMuted }}>{kpi.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
