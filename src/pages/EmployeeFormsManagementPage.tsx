@@ -861,12 +861,14 @@ export default function EmployeeFormsManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Upload Policy Dialog */}
-      <Dialog open={showUploadPolicy} onOpenChange={setShowUploadPolicy}>
+      {/* Upload/Edit Policy Dialog */}
+      <Dialog open={showUploadPolicy} onOpenChange={o => { if (!o) closePolicyDialog(); }}>
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>رفع سياسة جديدة</DialogTitle>
-            <DialogDescription className="text-xs">ارفع ملف PDF للسياسة ليظهر للموظفين</DialogDescription>
+            <DialogTitle>{editPolicyId ? "تعديل السياسة" : "رفع سياسة جديدة"}</DialogTitle>
+            <DialogDescription className="text-xs">
+              {editPolicyId ? "عدّل البيانات أو ارفع ملف PDF جديد لاستبدال الحالي" : "ارفع ملف PDF للسياسة ليظهر للموظفين"}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -892,14 +894,22 @@ export default function EmployeeFormsManagementPage() {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">ملف PDF *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                {editPolicyId ? "ملف PDF (اختياري — لاستبدال الحالي)" : "ملف PDF *"}
+              </label>
               <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
                 {uploadingPolicy ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-                  <><Upload className="h-6 w-6 text-muted-foreground" /><span className="text-xs text-primary">اختر ملف PDF</span></>
+                  <><Upload className="h-6 w-6 text-muted-foreground" /><span className="text-xs text-primary">{editPolicyId ? "اختر ملف PDF جديد" : "اختر ملف PDF"}</span></>
                 )}
                 <input type="file" className="hidden" accept=".pdf" onChange={handleUploadPolicy} disabled={!policyForm.title || !policyForm.category || uploadingPolicy} />
               </label>
             </div>
+            {editPolicyId && (
+              <Button className="w-full rounded-xl gap-2" onClick={savePolicyMeta} disabled={savingPolicy || !policyForm.title || !policyForm.category}>
+                {savingPolicy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                حفظ التعديلات بدون استبدال الملف
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
