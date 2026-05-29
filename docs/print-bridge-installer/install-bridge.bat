@@ -17,6 +17,23 @@ set "SERVICE_NAME=amwaliprintbridge.exe"
 if not exist "%BRIDGE_DIR%" goto :no_dir
 cd /d "%BRIDGE_DIR%"
 
+REM ── Detect Windows version (Win7 / Server 2008 R2 = 6.1) ─────────
+set "IS_WIN7=0"
+ver | findstr /C:" 6.1." >nul 2>&1
+if %errorLevel% EQU 0 set "IS_WIN7=1"
+ver | findstr /C:" 6.0." >nul 2>&1
+if %errorLevel% EQU 0 set "IS_WIN7=1"
+if "%IS_WIN7%"=="1" (
+  echo [INFO] Windows 7 / Server 2008 detected — legacy install path enabled.
+  echo [INFO]   - Node.js: bundled v13.14.0 ^(last version supporting Win7^)
+  echo [INFO]   - sharp:   0.32.6 ^(prebuilt binaries available for Node 13^)
+  echo.
+  REM Force TLS 1.2 on Win7 PowerShell so npm/Invoke-WebRequest work
+  set "WIN7_TLS_FIX=[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls;"
+) else (
+  set "WIN7_TLS_FIX="
+)
+
 set "BRIDGE_SCRIPT="
 if exist "%BRIDGE_DIR%\print-bridge-v6.3.5-generic.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.5-generic.js"
 if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.3.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.3.js"
@@ -33,16 +50,27 @@ goto :node_ok
 :try_install_node
 echo [...] Node.js not found. Looking for bundled MSI installer...
 set "NODE_MSI="
-for %%f in ("%BRIDGE_DIR%\node-v*-x64.msi") do set "NODE_MSI=%%f"
+if "%IS_WIN7%"=="1" (
+  REM Prefer Node 13.x on Win7 — never 20/24
+  for %%f in ("%BRIDGE_DIR%\node-v13.*-x64.msi") do set "NODE_MSI=%%f"
+  if "!NODE_MSI!"=="" for %%f in ("%BRIDGE_DIR%\node-v12.*-x64.msi") do set "NODE_MSI=%%f"
+) else (
+  for %%f in ("%BRIDGE_DIR%\node-v*-x64.msi") do set "NODE_MSI=%%f"
+)
 if "%NODE_MSI%"=="" goto :download_node
 echo [OK] Found bundled installer: %NODE_MSI%
 goto :run_msi
 
 :download_node
 echo [...] Bundled MSI not found. Downloading Node.js LTS from nodejs.org...
-set "NODE_MSI=%BRIDGE_DIR%\node-lts-x64.msi"
-set "NODE_URL=https://nodejs.org/dist/v20.18.1/node-v20.18.1-x64.msi"
-powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%NODE_URL%' -OutFile '%NODE_MSI%' -UseBasicParsing; exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
+if "%IS_WIN7%"=="1" (
+  set "NODE_MSI=%BRIDGE_DIR%\node-v13.14.0-x64.msi"
+  set "NODE_URL=https://nodejs.org/dist/v13.14.0/node-v13.14.0-x64.msi"
+) else (
+  set "NODE_MSI=%BRIDGE_DIR%\node-lts-x64.msi"
+  set "NODE_URL=https://nodejs.org/dist/v20.18.1/node-v20.18.1-x64.msi"
+)
+powershell -Command "try { %WIN7_TLS_FIX% [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%NODE_URL%' -OutFile '%NODE_MSI%' -UseBasicParsing; exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
 if %errorLevel% NEQ 0 goto :no_node
 if not exist "%NODE_MSI%" goto :no_node
 echo [OK] Downloaded Node.js installer to %NODE_MSI%
@@ -61,18 +89,39 @@ for /f "delims=" %%v in ('node -v') do set "NODE_VER=%%v"
 echo [OK] Node.js found - version: !NODE_VER!
 echo.
 
+REM ── On Win7, force npm to use TLS 1.2 and downgrade sharp ──────────
+if "%IS_WIN7%"=="1" (
+  echo [...] Configuring npm for Windows 7 ^(TLS 1.2, no audit, no fund^)...
+  call npm config set registry https://registry.npmjs.org/ >nul 2>&1
+  call npm config set strict-ssl true >nul 2>&1
+  call npm config set audit false >nul 2>&1
+  call npm config set fund false >nul 2>&1
+  call npm config set msvs_version 2017 >nul 2>&1
+  REM Ensure sharp prebuilt binary download succeeds on Win7
+  set "npm_config_sharp_binary_host=https://github.com/lovell/sharp/releases/download"
+  set "npm_config_sharp_libvips_binary_host=https://github.com/lovell/sharp-libvips/releases/download"
+)
+
 if exist "%BRIDGE_DIR%\package.json" goto :install_from_pkg
 goto :install_explicit
 
 :install_from_pkg
 echo [...] Installing dependencies from package.json...
-call npm install --silent
+if "%IS_WIN7%"=="1" (
+  call npm install --no-audit --no-fund --ignore-scripts=false --silent
+) else (
+  call npm install --silent
+)
 if %errorLevel% NEQ 0 goto :npm_failed
 goto :deps_done
 
 :install_explicit
 echo [...] Installing dependencies express cors body-parser sharp node-windows ...
-call npm install express cors body-parser sharp node-windows --silent
+if "%IS_WIN7%"=="1" (
+  call npm install express@^4.19.2 cors@^2.8.5 body-parser@^1.20.2 sharp@0.32.6 node-windows@^1.0.0-beta.8 --no-audit --no-fund --silent
+) else (
+  call npm install express cors body-parser sharp node-windows --silent
+)
 if %errorLevel% NEQ 0 goto :npm_failed
 goto :deps_done
 
