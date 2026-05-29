@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Search, X, BookOpen, User, Building2, Users, UserPlus } from "lucide-react";
 import { multiWordMatchAny } from "@/lib/utils";
 
@@ -60,7 +61,7 @@ export default function JournalEntityCombobox({
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [openUp, setOpenUp] = useState(false);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -96,20 +97,40 @@ export default function JournalEntityCombobox({
   // Reset active index on new results
   useEffect(() => { setActiveIndex(0); }, [debounced]);
 
-  // Decide open direction
+  // Position the floating popover via portal
   useEffect(() => {
     if (!open) return;
-    const el = wrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    setOpenUp(spaceBelow < 280 && rect.top > 280);
+    function compute() {
+      const el = wrapRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp = spaceBelow < 300 && rect.top > 300;
+      setPopoverStyle({
+        position: "fixed",
+        left: rect.left,
+        width: rect.width,
+        top: openUp ? undefined : rect.bottom + 4,
+        bottom: openUp ? window.innerHeight - rect.top + 4 : undefined,
+        zIndex: 60,
+      });
+    }
+    compute();
+    window.addEventListener("scroll", compute, true);
+    window.addEventListener("resize", compute);
+    return () => {
+      window.removeEventListener("scroll", compute, true);
+      window.removeEventListener("resize", compute);
+    };
   }, [open, flatItems.length]);
 
   // Click outside
   useEffect(() => {
     function onDown(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (listRef.current?.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
@@ -230,9 +251,12 @@ export default function JournalEntityCombobox({
         />
       </div>
 
-      {(showHint || showEmptyState || showResults) && (
+      {(showHint || showEmptyState || showResults) && createPortal(
         <div
-          className={`absolute z-50 left-0 right-0 ${openUp ? "bottom-full mb-1" : "top-full mt-1"} bg-popover border border-border rounded-md shadow-lg overflow-hidden`}
+          ref={listRef}
+          dir="rtl"
+          style={popoverStyle}
+          className="bg-popover border border-border rounded-md shadow-lg overflow-hidden"
         >
           {showHint && (
             <div className="px-3 py-2 text-xs text-muted-foreground">اكتب {MIN_CHARS} أحرف على الأقل للبحث</div>
@@ -253,7 +277,7 @@ export default function JournalEntityCombobox({
             </div>
           )}
           {showResults && (
-            <div ref={listRef} className="max-h-[320px] overflow-y-auto py-1">
+            <div className="max-h-[320px] overflow-y-auto py-1">
               {accountResults.length > 0 && (
                 <>
                   <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5 bg-secondary/30">
@@ -308,7 +332,8 @@ export default function JournalEntityCombobox({
               )}
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
