@@ -8,6 +8,7 @@ export const BRAND = {
   fullNameAr:   'أموالي — نظام إدارة الأعمال',
   domain:       'amwali.com',
   supportEmail: 'support@amwali.com',
+  version:      '1.0.0',
   copyright:    `© ${new Date().getFullYear()} AMWALI. جميع الحقوق محفوظة.`,
 
   logos: {

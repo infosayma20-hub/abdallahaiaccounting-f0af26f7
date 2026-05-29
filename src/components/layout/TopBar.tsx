@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LicenseAgreementDialog } from "@/components/license/LicenseAgreementDialog";
+import { BRAND } from "@/constants/brand";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
@@ -176,7 +178,29 @@ const ProfileDropdown = ({
   displayName, email, initials, avatarUrl, onNavigate, onSignOut,
 }: {
   displayName: string; email: string; initials: string; avatarUrl: string | null; onNavigate: (path: string) => void; onSignOut: () => void;
-}) => (
+}) => {
+  const [agreementOpen, setAgreementOpen] = useState(false);
+  const [info, setInfo] = useState<{ license: string | null; endDate: string | null; status: string | null }>({ license: null, endDate: null, status: null });
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [{ data: company }, { data: sub }] = await Promise.all([
+        supabase.from("companies").select("license_number").eq("owner_id", user.id).maybeSingle(),
+        supabase.from("subscriptions").select("current_period_end, status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      setInfo({
+        license: (company as any)?.license_number ?? null,
+        endDate: (sub as any)?.current_period_end ?? null,
+        status: (sub as any)?.status ?? null,
+      });
+    })();
+  }, []);
+
+  const isTrial = info.status === "trial";
+  return (
+  <>
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
       <button aria-label="الملف الشخصي" className="flex items-center gap-2 h-9 px-1.5 sm:px-2.5 rounded-lg transition-all duration-150 cursor-pointer flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}
@@ -193,16 +217,46 @@ const ProfileDropdown = ({
         )}
       </button>
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" sideOffset={8} collisionPadding={12} className="w-[min(14rem,calc(100vw-1.5rem))] rounded-xl shadow-elevated z-[80]">
+    <DropdownMenuContent align="end" sideOffset={8} collisionPadding={12} className="w-[min(18rem,calc(100vw-1.5rem))] rounded-xl shadow-elevated z-[80]">
       <div className="px-3 py-2.5"><p className="text-sm font-semibold text-foreground">{displayName}</p><p className="text-xs text-muted-foreground">{email}</p></div>
       <DropdownMenuSeparator />
+      {(info.license || info.endDate) && (
+        <>
+          <div className="px-3 py-2 space-y-1.5 text-xs">
+            {info.endDate && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">تاريخ انتهاء الاشتراك</span>
+                <span className="font-semibold text-foreground">{new Date(info.endDate).toLocaleDateString("en-CA")}</span>
+              </div>
+            )}
+            {info.license && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">رقم الترخيص {isTrial ? "— تجريبي" : ""}</span>
+                <span className="font-mono font-semibold text-foreground">{info.license}</span>
+              </div>
+            )}
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">الإصدار</span>
+              <span className="font-semibold text-foreground">{BRAND.version}</span>
+            </div>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setAgreementOpen(true)} className="gap-2.5 cursor-pointer rounded-lg mx-1">
+            <FileText className="h-4 w-4" strokeWidth={1.8} />اتفاقية الترخيص
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </>
+      )}
       <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><User className="h-4 w-4" strokeWidth={1.8} />الملف الشخصي</DropdownMenuItem>
       <DropdownMenuItem onClick={() => onNavigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><Settings className="h-4 w-4" strokeWidth={1.8} />الإعدادات</DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={onSignOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1"><LogOut className="h-4 w-4" strokeWidth={1.8} />تسجيل الخروج</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
-);
+  <LicenseAgreementDialog open={agreementOpen} onOpenChange={setAgreementOpen} />
+  </>
+  );
+};
 
 const QUICK_ITEMS = [
   { label: "فاتورة جديدة", icon: FileText, shortcut: "Alt+I", path: "/invoices/new" },
