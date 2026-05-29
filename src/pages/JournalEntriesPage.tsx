@@ -688,6 +688,12 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "debit_account_code" ? sortDir : null}
                     />
                   </th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold whitespace-nowrap">
+                    <ColumnHeaderMenu label="مدين"
+                      direction={sortKey === "amount" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("amount", d)}
+                    />
+                  </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
                     <ColumnHeaderMenu label="الحساب الدائن"
                       onSort={(d) => handleColumnSort("credit_account_code", d)}
@@ -695,6 +701,12 @@ const JournalEntriesPage = () => {
                       onClear={() => clearColumnFilter("credit_account_code")}
                       currentFilterValue={currentColumnFilter("credit_account_code")}
                       direction={sortKey === "credit_account_code" ? sortDir : null}
+                    />
+                  </th>
+                  <th className="text-left px-3 py-2 text-[11px] font-semibold whitespace-nowrap">
+                    <ColumnHeaderMenu label="دائن"
+                      direction={sortKey === "amount" ? sortDir : null}
+                      onSort={(d) => handleColumnSort("amount", d)}
                     />
                   </th>
                   <th className="text-right px-3 py-2 text-[11px] font-semibold">
@@ -733,18 +745,6 @@ const JournalEntriesPage = () => {
                       direction={sortKey === "is_deleted" ? sortDir : null}
                     />
                   </th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label="مدين"
-                      direction={sortKey === "amount" ? sortDir : null}
-                      onSort={(d) => handleColumnSort("amount", d)}
-                    />
-                  </th>
-                  <th className="text-left px-3 py-2 text-[11px] font-semibold">
-                    <ColumnHeaderMenu label="دائن"
-                      direction={sortKey === "amount" ? sortDir : null}
-                      onSort={(d) => handleColumnSort("amount", d)}
-                    />
-                  </th>
                   {(canUpdateJournal || canDeleteJournal) && (
                     <th className="px-3 py-2 w-20 print:hidden"></th>
                   )}
@@ -769,8 +769,14 @@ const JournalEntriesPage = () => {
                       <td className="px-3 py-1.5 text-xs text-foreground max-w-[200px]">
                         <SmartTextCell value={accountMap[tx.debit_account_code || ""] || tx.debit_account_code} title="الحساب المدين" />
                       </td>
+                      <td className="px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left whitespace-nowrap">
+                        ₪{(tx.amount || 0).toLocaleString()}
+                      </td>
                       <td className="px-3 py-1.5 text-xs text-foreground max-w-[200px]">
                         <SmartTextCell value={accountMap[tx.credit_account_code || ""] || tx.credit_account_code} title="الحساب الدائن" />
+                      </td>
+                      <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
+                        ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-3 py-1.5 text-[11px] text-muted-foreground max-w-[140px]">
                         <SmartTextCell value={tx.reference} title="المرجع" mono />
@@ -791,12 +797,6 @@ const JournalEntriesPage = () => {
                         ) : (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">نشط</span>
                         )}
-                      </td>
-                      <td className="px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left whitespace-nowrap">
-                        ₪{(tx.amount || 0).toLocaleString()}
-                      </td>
-                      <td className="px-3 py-1.5 text-xs font-bold text-destructive tabular-nums text-left whitespace-nowrap">
-                        ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       {(canUpdateJournal || canDeleteJournal) && (
                         <td className="px-3 py-1.5 print:hidden">
@@ -828,9 +828,11 @@ const JournalEntriesPage = () => {
               </tbody>
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
-                  <td colSpan={10} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
+                  <td colSpan={5} className="px-3 py-2 text-xs font-bold text-foreground text-right">الإجمالي</td>
                   <td className="px-3 py-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
+                  <td></td>
                   <td className="px-3 py-2 text-sm font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
+                  <td colSpan={4}></td>
                   {(canUpdateJournal || canDeleteJournal) && (
                     <td className="print:hidden"></td>
                   )}
