@@ -565,6 +565,18 @@ const JournalNewPage = () => {
     // - Active rows MUST have a postable account_code AND at least one of debit/credit > 0.
     const postableSet = new Set(postableAccounts.map((a: any) => a.account_code));
     const invalids: string[] = [];
+    // Hard rule: a line cannot carry both debit AND credit. Block save outright.
+    const dualSided = preparedLines.filter(
+      l => Number(l.debit) > 0 && Number(l.credit) > 0
+    );
+    if (dualSided.length > 0) {
+      setInvalidLineIds(new Set(dualSided.map(l => l.id)));
+      const rowNums = dualSided
+        .map(l => preparedLines.findIndex(x => x.id === l.id) + 1)
+        .join("، ");
+      toast.error(`لا يمكن إدخال مدين ودائن في نفس السطر (السطر ${rowNums})`);
+      return;
+    }
     const cleanLines = preparedLines.filter(l => {
       const hasAmount = Number(l.debit) > 0 || Number(l.credit) > 0;
       const hasAccount = !!l.account_code;
