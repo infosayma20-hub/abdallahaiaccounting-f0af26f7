@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LEAD_SOURCES, type CrmLead, PRIORITY_META } from "./types";
+import { LEAD_SOURCES, LEAD_STATUS_META, type CrmLead, PRIORITY_META } from "./types";
 
 interface Props {
   open: boolean;
@@ -18,6 +18,7 @@ export default function LeadFormDialog({ open, onClose, onSaved, lead }: Props) 
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() => ({
     title: lead?.title || "",
+    status: lead?.status || "new",
     contact_name: lead?.contact_name || "",
     company_name: lead?.company_name || "",
     phone: lead?.phone || "",
@@ -86,6 +87,14 @@ export default function LeadFormDialog({ open, onClose, onSaved, lead }: Props) 
                 <label className={lbl}>عنوان الفرصة / الاهتمام *</label>
                 <input className={fld} value={form.title} onChange={(e) => set("title", e.target.value)}
                   placeholder="مثال: استفسار عن نظام محاسبة" />
+              </div>
+              <div className="md:col-span-2">
+                <label className={lbl}>الحالة</label>
+                <select className={fld} value={form.status} onChange={(e) => set("status", e.target.value as any)}>
+                  {Object.entries(LEAD_STATUS_META).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={lbl}>اسم الشخص</label>
