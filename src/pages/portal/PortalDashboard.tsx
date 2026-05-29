@@ -20,6 +20,7 @@ import PortalReceivablesTab from './PortalReceivablesTab';
 import PortalStoreTab from './PortalStoreTab';
 import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
+import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#0D1B2E';
