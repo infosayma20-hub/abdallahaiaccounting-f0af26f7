@@ -516,11 +516,35 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs font-medium mb-1.5 block">الفرع <span className="text-destructive">*</span></label>
-                  <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
+                  <Select
+                    value={formData.branch_id || ""}
+                    onValueChange={(v) => {
+                      const b = branchOptions.find(x => x.id === v);
+                      setFormData(p => ({ ...p, branch_id: v, branch: b?.name || "" }));
+                    }}
+                  >
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                    <SelectContent>
+                      {branchOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد فروع</div>}
+                      {branchOptions.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs font-medium mb-1.5 block">القسم <span className="text-destructive">*</span></label>
-                  <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl h-11" placeholder="—" />
+                  <Select
+                    value={formData.department_id || ""}
+                    onValueChange={(v) => {
+                      const d = deptOptions.find(x => x.id === v);
+                      setFormData(p => ({ ...p, department_id: v, department: d?.name || "" }));
+                    }}
+                  >
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                    <SelectContent>
+                      {deptOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد أقسام</div>}
+                      {deptOptions.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div>
