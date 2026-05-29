@@ -390,10 +390,10 @@ const LandingPage = () => {
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="device-frame max-w-full">
-                  <img src={hrRosterWeek} alt="جدول الدوام الأسبوعي للفرع" loading="lazy" />
+                  <img src={hrRosterWeek} alt="جدول الدوام الأسبوعي للفرع" loading="lazy" className="aspect-[9/19] object-cover object-top" />
                 </div>
                 <div className="device-frame max-w-full">
-                  <img src={hrShiftDialog} alt="إسناد وردية لموظف — صباحي/ميد/مسائي" loading="lazy" />
+                  <img src={hrShiftDialog} alt="إسناد وردية لموظف — صباحي/ميد/مسائي" loading="lazy" className="aspect-[9/19] object-cover object-top" />
                 </div>
               </div>
             </div>
@@ -404,8 +404,8 @@ const LandingPage = () => {
               <p className="text-sm text-[#0D1B2E]/65 leading-relaxed mb-5">
                 لمّا الموظف يكون مدير فرع، بيظهر له قسم "إدارة الفريق" تلقائياً: حضور الفريق، جدول الدوام، تبديل ورديات، واعتماد/رفض طلبات موظفيه — بدون ما يشوف موظفين فروع تانية.
               </p>
-              <div className="device-frame max-w-[280px] mx-auto">
-                <img src={hrManagerTools} alt="أدوات مدير الفرع — حضور الفريق، الدوام، تبديل الورديات، اعتماد الطلبات" loading="lazy" />
+              <div className="device-frame max-w-[260px] mx-auto">
+                <img src={hrManagerTools} alt="أدوات مدير الفرع — حضور الفريق، الدوام، تبديل الورديات، اعتماد الطلبات" loading="lazy" className="aspect-[9/19] object-cover object-top" />
               </div>
             </div>
           </div>
