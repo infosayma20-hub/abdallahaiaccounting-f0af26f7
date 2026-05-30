@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Lock, Shield, Eye, EyeOff, KeyRound, Check, Loader2 } from "lucide-react";
+import { AlertTriangle, Lock, Shield, Eye, EyeOff, KeyRound, Check, Loader2, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
 import { supabase } from "@/integrations/supabase/client";
@@ -168,26 +170,46 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
       <Separator />
 
       {/* Auth */}
+      <TooltipProvider delayDuration={150}>
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-primary rounded-full" />
           <Shield className="h-4 w-4 text-primary" />
           المصادقة
+          <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border/60 mr-1">
+            يتطلب Backend
+          </Badge>
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-            <div>
-              <p className="font-medium text-sm">المصادقة الثنائية (2FA)</p>
-              <p className="text-xs text-muted-foreground">طلب رمز إضافي عند تسجيل الدخول</p>
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg opacity-70">
+            <div className="flex-1">
+              <p className="font-medium text-sm flex items-center gap-1.5">
+                المصادقة الثنائية (2FA)
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>قيد التحضير — تحتاج تفعيل Backend قبل الاستخدام</TooltipContent>
+                </Tooltip>
+              </p>
+              <p className="text-xs text-muted-foreground">قيد التحضير — تحتاج تفعيل Backend قبل الاستخدام</p>
             </div>
-            <Switch checked={settings.security_2fa_enabled ?? false} onCheckedChange={v => onChange({ security_2fa_enabled: v })} />
+            <Switch checked={settings.security_2fa_enabled ?? false} disabled />
           </div>
-          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-            <div>
-              <p className="font-medium text-sm">مفاتيح المرور (Passkeys)</p>
-              <p className="text-xs text-muted-foreground">تسجيل دخول ببصمة الإصبع أو الوجه</p>
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg opacity-70">
+            <div className="flex-1">
+              <p className="font-medium text-sm flex items-center gap-1.5">
+                مفاتيح المرور (Passkeys)
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>قيد التحضير — غير مفعلة حالياً</TooltipContent>
+                </Tooltip>
+              </p>
+              <p className="text-xs text-muted-foreground">قيد التحضير — غير مفعلة حالياً</p>
             </div>
-            <Switch checked={settings.security_passkeys_enabled ?? false} onCheckedChange={v => onChange({ security_passkeys_enabled: v })} />
+            <Switch checked={settings.security_passkeys_enabled ?? false} disabled />
           </div>
         </div>
       </div>
@@ -199,36 +221,60 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-primary rounded-full" />
           التحكم بالوصول
+          <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border/60 mr-1">
+            يتطلب Backend
+          </Badge>
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-            <div>
-              <p className="font-medium text-sm">تقييد الوصول بحسب IP</p>
-              <p className="text-xs text-muted-foreground">السماح فقط لعناوين IP محددة</p>
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg opacity-70">
+            <div className="flex-1">
+              <p className="font-medium text-sm flex items-center gap-1.5">
+                تقييد الوصول بحسب IP
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>يحتاج طبقة تحقق على الخادم قبل التفعيل</TooltipContent>
+                </Tooltip>
+              </p>
+              <p className="text-xs text-muted-foreground">يحتاج طبقة تحقق على الخادم قبل التفعيل</p>
             </div>
-            <Switch checked={settings.security_ip_restrict ?? false} onCheckedChange={v => onChange({ security_ip_restrict: v })} />
+            <Switch checked={settings.security_ip_restrict ?? false} disabled />
           </div>
-          {(settings.security_ip_restrict) && (
-            <div className="space-y-2 pr-4">
-              <Label>عناوين IP المسموح بها (سطر لكل عنوان)</Label>
-              <Input value={settings.security_allowed_ips ?? ""} onChange={e => onChange({ security_allowed_ips: e.target.value })} placeholder="192.168.1.1, 10.0.0.1" dir="ltr" />
-            </div>
-          )}
-          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-            <div>
-              <p className="font-medium text-sm">قفل الحساب بعد محاولات فاشلة</p>
-              <p className="text-xs text-muted-foreground">قفل تلقائي بعد عدد محاولات خاطئة</p>
-            </div>
-            <Switch checked={settings.security_lockout_enabled ?? true} onCheckedChange={v => onChange({ security_lockout_enabled: v })} />
+          <div className="space-y-2 pr-4 opacity-70">
+            <Label className="flex items-center gap-1.5">
+              عناوين IP المسموح بها
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>يتفعل بعد تفعيل تقييد IP</TooltipContent>
+              </Tooltip>
+            </Label>
+            <Input value={settings.security_allowed_ips ?? ""} placeholder="192.168.1.1, 10.0.0.1" dir="ltr" disabled readOnly />
           </div>
-          {(settings.security_lockout_enabled ?? true) && (
-            <div className="space-y-2 max-w-xs pr-4">
-              <Label>عدد المحاولات قبل القفل</Label>
-              <Input type="number" value={settings.security_max_attempts ?? 5} onChange={e => onChange({ security_max_attempts: Number(e.target.value) })} />
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg opacity-70">
+            <div className="flex-1">
+              <p className="font-medium text-sm flex items-center gap-1.5">
+                قفل الحساب بعد محاولات فاشلة
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>قيد التحضير — لا يتم فرضه حالياً</TooltipContent>
+                </Tooltip>
+              </p>
+              <p className="text-xs text-muted-foreground">قيد التحضير — لا يتم فرضه حالياً</p>
             </div>
-          )}
+            <Switch checked={settings.security_lockout_enabled ?? false} disabled />
+          </div>
+          <div className="space-y-2 max-w-xs pr-4 opacity-70">
+            <Label>عدد المحاولات قبل القفل</Label>
+            <Input type="number" value={settings.security_max_attempts ?? 5} disabled readOnly />
+          </div>
         </div>
       </div>
+      </TooltipProvider>
 
       <Separator />
 
