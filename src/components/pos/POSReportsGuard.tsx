@@ -39,15 +39,16 @@ export default function POSReportsGuard({ children }: { children: React.ReactNod
         }
 
         // Lookup pos_users record + permissions
-        const { data: posUser } = await supabase
+        const { data: posUserRaw } = await supabase
           .from("pos_users")
-          .select("id, is_admin")
+          .select("*")
           .eq("auth_user_id", uid)
           .eq("user_id", dataOwnerId)
           .eq("is_active", true)
           .maybeSingle();
+        const posUser = posUserRaw as any;
 
-        if ((posUser as any)?.is_admin) {
+        if (posUser?.is_admin) {
           if (!cancelled) setStatus("allowed");
           return;
         }
