@@ -141,7 +141,7 @@ export default function PortalSettingsSection() {
         body: { action: 'reset_password', user_id: resetTarget.id, new_password: newPassword },
       });
       if (error) throw error;
-      toast.success('تم تغيير كلمة المرور بنجاح ✅');
+      toast.success('تم تغيير كلمة المرور بنجاح');
       setResetTarget(null);
       setNewPassword('');
     } catch (err: any) {
