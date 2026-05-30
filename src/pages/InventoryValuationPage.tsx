@@ -98,7 +98,7 @@ const InventoryValuationPage = () => {
     { key: "quantity", label: "الكمية", type: "number", align: "center",
       format: (v) => (
         <span className={`font-mono text-xs font-bold ${v < 0 ? "text-destructive" : v === 0 ? "text-muted-foreground" : "text-foreground"}`}>
-          {v < 0 ? `⚠️ ${v}` : v}
+          {v < 0 ? <span className="inline-flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{v}</span> : v}
         </span>
       )
     },
