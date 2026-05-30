@@ -314,10 +314,10 @@ const ChequeActionModal = ({
                 <Label className="text-xs">رسوم البنك (إن وجدت)</Label>
                 <Input type="number" value={bankFees} onChange={e => setBankFees(e.target.value)} placeholder="0" className="h-9 mt-1 rounded-xl" />
               </div>
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs space-y-1">
-                <p className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> سيتم تلقائياً:</p>
-                <p className="text-amber-600 dark:text-amber-300">• إعادة ₪{chequeAmount.toLocaleString()} لذمم {partyName}</p>
-                <p className="text-amber-600 dark:text-amber-300">• قيد محاسبي عكسي</p>
+              <div className="bg-muted/40 border border-border rounded-xl p-3 text-xs space-y-1">
+                <p className="font-semibold text-foreground flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" /> سيتم تلقائياً:</p>
+                <p className="text-muted-foreground">• إعادة ₪{chequeAmount.toLocaleString()} لذمم {partyName}</p>
+                <p className="text-muted-foreground">• قيد محاسبي عكسي</p>
               </div>
             </>
           )}
