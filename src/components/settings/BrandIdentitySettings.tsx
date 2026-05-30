@@ -9,22 +9,22 @@ import {
   getTextColorForBg, lightenColor,
 } from "@/lib/color-utils";
 
-const PRESET_META: { key: string; label: string; emoji: string }[] = [
-  { key: "classic", label: "كلاسيك", emoji: "🟠" },
-  { key: "ocean", label: "بحري", emoji: "🔵" },
-  { key: "fresh", label: "نضارة", emoji: "🟢" },
-  { key: "warm", label: "دفء", emoji: "🟤" },
-  { key: "creative", label: "إبداع", emoji: "🟣" },
-  { key: "professional", label: "احترافي", emoji: "⚫" },
-  { key: "bold", label: "جرأة", emoji: "🔴" },
+const PRESET_META: { key: string; label: string }[] = [
+  { key: "classic", label: "كلاسيك" },
+  { key: "ocean", label: "بحري" },
+  { key: "fresh", label: "نضارة" },
+  { key: "warm", label: "دفء" },
+  { key: "creative", label: "إبداع" },
+  { key: "professional", label: "احترافي" },
+  { key: "bold", label: "جرأة" },
 ];
 
 const COLOR_ROLES = [
-  { key: "sidebar", label: "لون القائمة الجانبية", scope: "الشريط الجانبي وشريط التنقل", icon: "🎨" },
-  { key: "primary", label: "لون الأزرار الرئيسية", scope: "أزرار الحفظ والتأكيد والإجراءات", icon: "✦" },
-  { key: "accent", label: "لون التمييز والتفعيل", scope: "العناصر النشطة والروابط المميزة", icon: "💡" },
-  { key: "topbar", label: "لون الشريط العلوي", scope: "شريط التنقل في أعلى الشاشة", icon: "📊" },
-  { key: "cardAccent", label: "لون البطاقات المميزة", scope: "حدود وعناوين البطاقات الرئيسية", icon: "🏷️" },
+  { key: "sidebar", label: "لون القائمة الجانبية", scope: "الشريط الجانبي وشريط التنقل" },
+  { key: "primary", label: "لون الأزرار الرئيسية", scope: "أزرار الحفظ والتأكيد والإجراءات" },
+  { key: "accent", label: "لون التمييز والتفعيل", scope: "العناصر النشطة والروابط المميزة" },
+  { key: "topbar", label: "لون الشريط العلوي", scope: "شريط التنقل في أعلى الشاشة" },
+  { key: "cardAccent", label: "لون البطاقات المميزة", scope: "حدود وعناوين البطاقات الرئيسية" },
 ] as const;
 
 const PALETTE_COLORS = [
@@ -140,7 +140,7 @@ const BrandIdentitySettings = () => {
                 </div>
                 <div className="flex items-center justify-center gap-1">
                   {isActive && <Check className="h-3 w-3 text-accent" />}
-                  <span className="text-[10px] font-medium text-foreground">{p.emoji} {p.label}</span>
+                  <span className="text-[10px] font-medium text-foreground">{p.label}</span>
                 </div>
               </button>
             );
@@ -186,7 +186,7 @@ const BrandIdentitySettings = () => {
           {COLOR_ROLES.map((role) => (
             <div key={role.key} className="flex items-center justify-between py-3 border-b border-border last:border-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm">{role.icon}</span>
+                <span className="inline-block w-3.5 h-3.5 rounded-full border border-border" style={{ background: theme[role.key as keyof ThemeColors] as string }} />
                 <div>
                   <p className="text-[13px] font-bold text-foreground">{role.label}</p>
                   <p className="text-[11px] text-muted-foreground">{role.scope}</p>
