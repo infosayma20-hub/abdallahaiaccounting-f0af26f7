@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 
 interface Props {
@@ -12,13 +12,8 @@ interface Props {
 
 const InventorySettingsSection = ({ settings, onChange }: Props) => {
   return (
-    <div className="p-6 space-y-8">
-      {/* General */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          إعدادات عامة للمخزون
-        </h3>
+    <div className="space-y-4">
+      <SettingsSection title="إعدادات عامة للمخزون" description="طريقة احتساب التكلفة ووحدة القياس الافتراضية.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>طريقة التكلفة الافتراضية</Label>
@@ -45,16 +40,9 @@ const InventorySettingsSection = ({ settings, onChange }: Props) => {
             </Select>
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
-      <Separator />
-
-      {/* Alerts */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          التنبيهات والحدود
-        </h3>
+      <SettingsSection title="التنبيهات والحدود" description="تنبيهات نفاد المخزون وانتهاء الصلاحية.">
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
             <div>
@@ -87,16 +75,9 @@ const InventorySettingsSection = ({ settings, onChange }: Props) => {
             </div>
           )}
         </div>
-      </div>
+      </SettingsSection>
 
-      <Separator />
-
-      {/* Barcode */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          الباركود والتعريف
-        </h3>
+      <SettingsSection title="الباركود والتعريف" description="توليد الباركود وقواعد التعريف.">
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
             <span className="text-sm">توليد باركود تلقائي للمنتجات الجديدة</span>
@@ -107,16 +88,12 @@ const InventorySettingsSection = ({ settings, onChange }: Props) => {
             <Switch checked={settings.inventory_allow_no_barcode ?? true} onCheckedChange={v => onChange({ inventory_allow_no_barcode: v })} />
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
-      <Separator />
-
-      {/* Sales Reps (Van Sales) Stock Policy */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          سياسة المخزون لبورتال المندوبين (Van Sales)
-        </h3>
+      <SettingsSection
+        title="سياسة المخزون لبورتال المندوبين (Van Sales)"
+        description="يخص بورتال المندوب فقط ولا يؤثر على POS أو فواتير المبيعات."
+      >
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-muted/40 border border-border rounded-lg">
             <div>
@@ -132,7 +109,7 @@ const InventorySettingsSection = ({ settings, onChange }: Props) => {
             />
           </div>
         </div>
-      </div>
+      </SettingsSection>
     </div>
   );
 };
