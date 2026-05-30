@@ -200,7 +200,7 @@ const UsersSettingsSection = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`تم إنشاء حساب ${newName} بنجاح ✅`);
+      toast.success(`تم إنشاء حساب ${newName} بنجاح`);
       setShowAddUser(false);
       setNewName("");
       setNewEmail("");
@@ -260,7 +260,7 @@ const UsersSettingsSection = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       await navigator.clipboard.writeText(resetPassword).catch(() => undefined);
-      toast.success("تم تغيير كلمة المرور ونسخها للحافظة ✅");
+      toast.success("تم تغيير كلمة المرور ونسخها للحافظة");
       setResetTargetUserId("");
       setResetPassword(generatePassword());
     } catch (e: any) {
