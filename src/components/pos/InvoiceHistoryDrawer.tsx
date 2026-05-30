@@ -798,6 +798,8 @@ export default function InvoiceHistoryDrawer({
       handleManagerApprovedForRecall(managerName);
     } else if (pendingManagerAction === "cancel") {
       handleManagerApprovedForCancel(managerName);
+    } else if (pendingManagerAction === "return") {
+      handleManagerApprovedForReturn(managerName);
     }
   };
 
