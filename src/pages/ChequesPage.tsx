@@ -166,6 +166,12 @@ const ChequesPage = () => {
   ]), []);
   const colState = useColumnVisibility('cheques-page', columnDefs);
   const show = colState.isVisible;
+  // Always-visible required cells = 7 (select, type, party, amount, cheque_date, status, actions).
+  // Optional cells (cheque_number, bank_name, created_at, remaining) add when shown.
+  const visibleColCount = useMemo(
+    () => columnDefs.filter(c => colState.isVisible(c.key)).length,
+    [columnDefs, colState],
+  );
 
   interface ChequeRow {
     cheque_type: ChequeType;
