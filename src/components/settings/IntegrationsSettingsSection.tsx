@@ -86,7 +86,9 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
         </h3>
         <div className="bg-muted/40 rounded-lg p-4 border border-border">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">🔌</span>
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <Plug className="w-5 h-5 text-muted-foreground" />
+            </div>
             <div>
               <p className="font-medium text-sm">AMWALI API</p>
               <p className="text-xs text-muted-foreground">دمج AMWALI مع أنظمتك الخارجية</p>
