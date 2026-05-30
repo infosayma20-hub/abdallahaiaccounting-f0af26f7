@@ -2901,6 +2901,11 @@ const POSPage = () => {
               pos_customer_id: activeOrder.posCustomerId || null,
               order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
+              ...(markAsReplacement && lastCancelledOrder ? {
+                is_replacement: true,
+                replaces_order_id: lastCancelledOrder.id,
+                replaces_order_number: lastCancelledOrder.order_number,
+              } as any : {}),
             } as any)
           .select()
           .single();
@@ -3338,7 +3343,15 @@ const POSPage = () => {
           exchangeRate: rate,
           tenderedAmount: tendered,
           change: changeILS,
-          orderNote,
+          orderNote: (markAsReplacement && lastCancelledOrder)
+            ? [
+                `==================`,
+                `      طلب معدل`,
+                `بديل عن فاتورة: ${lastCancelledOrder.order_number || lastCancelledOrder.id.slice(0, 8)}`,
+                `==================`,
+                orderNote || "",
+              ].filter(Boolean).join("\n")
+            : orderNote,
         };
 
         const companyPrintInfo = {
@@ -3430,6 +3443,11 @@ const POSPage = () => {
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
+      // Consume replacement marker after a successful sale
+      if (markAsReplacement) {
+        setMarkAsReplacement(false);
+        setLastCancelledOrder(null);
+      }
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
