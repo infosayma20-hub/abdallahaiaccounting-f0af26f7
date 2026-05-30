@@ -1145,26 +1145,27 @@ const ChequesPage = () => {
               <colgroup>
                 <col style={{ width: 40 }} />
                 <col style={{ width: 80 }} />
-                <col style={{ width: 100 }} />
+                {show('cheque_number') && <col style={{ width: 100 }} />}
                 <col style={{ width: 'auto' }} />
-                <col style={{ width: 130 }} />
+                {show('bank_name') && <col style={{ width: 130 }} />}
                 <col style={{ width: 110 }} />
+                {show('created_at') && <col style={{ width: 100 }} />}
                 <col style={{ width: 100 }} />
-                <col style={{ width: 100 }} />
-                <col style={{ width: 85 }} />
+                {show('remaining') && <col style={{ width: 85 }} />}
+                <col style={{ width: 110 }} />
                 <col style={{ width: 110 }} />
               </colgroup>
               <thead>
                 <tr className="bg-primary text-primary-foreground">
                   <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">النوع</th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>
+                  {show('cheque_number') && <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الجهة" field="party_name" /></th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="البنك" field="bank_name" /></th>
+                  {show('bank_name') && <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="البنك" field="bank_name" /></th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold">الإصدار</th>
+                  {show('created_at') && <th className="px-2 py-3 text-right text-xs font-semibold">الإصدار</th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الاستحقاق" field="cheque_date" /></th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold">المتبقي</th>
+                  {show('remaining') && <th className="px-2 py-3 text-right text-xs font-semibold">المتبقي</th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">إجراءات</th>
                 </tr>
@@ -1177,37 +1178,47 @@ const ChequesPage = () => {
                   const isExpanded = expandedId === c.id;
                   const history = statusHistory[c.id] || [];
                   const isDueSoon = DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
+                  const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000);
+                  const remainingClass = days < 0 ? 'text-destructive font-bold' : days <= 7 ? 'text-amber-600 font-bold' : 'text-muted-foreground';
                   return (
                     <Fragment key={c.id}>
                       <tr
-                        className="border-b transition-colors cursor-pointer hover:bg-[#F8FAFC]"
-                        style={{
-                          borderColor: '#E2E8F0',
-                          background: isSelected ? '#EFF6FF' : i % 2 === 0 ? '#fff' : '#F8FAFC',
-                        }}
+                        className={`border-b border-border transition-colors cursor-pointer hover:bg-muted/40 ${
+                          isSelected ? 'bg-primary/5' : i % 2 === 0 ? 'bg-card' : 'bg-muted/20'
+                        }`}
                         onClick={() => toggleExpand(c.id)}
                       >
                         <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(c.id)} /></td>
                         <td className="px-2 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.cheque_type === 'وارد' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                            {c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground">
+                            {c.cheque_type === 'وارد'
+                              ? <ArrowDownCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                              : <ArrowUpCircle className="h-3.5 w-3.5 text-muted-foreground" />}
+                            {c.cheque_type}
                           </span>
                         </td>
-                        <td className="px-2 py-3 text-xs font-mono truncate text-muted-foreground" dir="ltr">{c.cheque_number || "—"}</td>
-                        <td className="px-2 py-3"><p className="text-sm font-semibold truncate" style={{ color: '#1E293B' }}>{c.party_name}</p></td>
-                        <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
-                        <td className="px-2 py-3 text-sm font-bold tabular-nums" style={{ color: '#1E293B' }}>{c.amount.toLocaleString()} ₪</td>
-                        <td className="px-2 py-3 text-[11px] tabular-nums text-muted-foreground">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
-                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: isDueSoon ? '#DC2626' : '#64748B', fontWeight: isDueSoon ? 700 : 400 }}>{fmtDate(c.cheque_date)}</td>
-                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days < 0 ? '#DC2626' : days <= 7 ? '#F59E0B' : '#64748B'; })(), fontWeight: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days <= 7 ? 700 : 400; })() }}>
-                          {(() => {
-                            if (!DUE_WATCH_STATUSES.includes(c.status)) return '—';
-                            const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000);
-                            if (days < 0) return `متأخر ${Math.abs(days)} يوم`;
-                            if (days === 0) return 'اليوم';
-                            return `${days} يوم`;
-                          })()}
-                        </td>
+                        {show('cheque_number') && (
+                          <td className="px-2 py-3 text-xs font-mono truncate text-muted-foreground" dir="ltr">{c.cheque_number || "—"}</td>
+                        )}
+                        <td className="px-2 py-3"><p className="text-sm font-semibold truncate text-foreground">{c.party_name}</p></td>
+                        {show('bank_name') && (
+                          <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
+                        )}
+                        <td className="px-2 py-3 text-sm font-bold tabular-nums text-foreground">{c.amount.toLocaleString()} ₪</td>
+                        {show('created_at') && (
+                          <td className="px-2 py-3 text-[11px] tabular-nums text-muted-foreground">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
+                        )}
+                        <td className={`px-2 py-3 text-[11px] tabular-nums ${isDueSoon ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>{fmtDate(c.cheque_date)}</td>
+                        {show('remaining') && (
+                          <td className={`px-2 py-3 text-[11px] tabular-nums ${remainingClass}`}>
+                            {(() => {
+                              if (!DUE_WATCH_STATUSES.includes(c.status)) return '—';
+                              if (days < 0) return `متأخر ${Math.abs(days)} يوم`;
+                              if (days === 0) return 'اليوم';
+                              return `${days} يوم`;
+                            })()}
+                          </td>
+                        )}
                         <td className="px-2 py-3">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.badgeClass}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${sc.color.replace('text-', 'bg-')}`} />{sc.label}
@@ -1218,16 +1229,16 @@ const ChequesPage = () => {
                             {actions.length > 0 && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <button className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all" style={{ background: '#EFF6FF', color: '#0D1B2E' }}>
-                                    <Zap className="h-3 w-3" />إجراء<ChevronDown className="h-3 w-3" />
-                                  </button>
+                                  <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px] px-2">
+                                    <Zap className="h-3 w-3" /> إجراء <ChevronDown className="h-3 w-3" />
+                                  </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="min-w-[180px]">
                                   {actions.map(actionId => {
                                     const ac = ACTION_CONFIGS[actionId];
                                     return (
-                                      <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }} className="gap-2 text-xs cursor-pointer">
-                                        <span>{ac.emoji}</span>{ac.label}
+                                      <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }} className="text-xs cursor-pointer">
+                                        {ac.label}
                                       </DropdownMenuItem>
                                     );
                                   })}
@@ -1235,34 +1246,39 @@ const ChequesPage = () => {
                               </DropdownMenu>
                             )}
                             {c.status === 'مظهر' && c.cheque_type === 'وارد' && (
-                              <button
+                              <Button
+                                size="sm" variant="ghost"
                                 onClick={() => setUnendorseTarget(c)}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:opacity-90"
-                                style={{ background: '#FEF3C7', color: '#92400E' }}
+                                className="h-7 gap-1 text-[11px] px-2"
                                 title="إلغاء التجيير وإرجاع الشيك إلى بحوزتك"
                               >
-                                <Undo2 className="h-3 w-3" />إلغاء التجيير
-                              </button>
+                                <Undo2 className="h-3 w-3" /> إلغاء التجيير
+                              </Button>
                             )}
                             {c.status === 'مودع' && c.cheque_type === 'وارد' && (
-                              <button
+                              <Button
+                                size="sm" variant="ghost"
                                 onClick={() => setUndepositTarget(c)}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:opacity-90"
-                                style={{ background: '#FEF3C7', color: '#92400E' }}
+                                className="h-7 gap-1 text-[11px] px-2"
                                 title="إلغاء الإيداع وإرجاع الشيك إلى بحوزتك"
                               >
-                                <Undo2 className="h-3 w-3" />إلغاء الإيداع
-                              </button>
+                                <Undo2 className="h-3 w-3" /> إلغاء الإيداع
+                              </Button>
                             )}
-                            <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-red-50 transition-colors" title="حذف">
-                              <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
-                            </button>
+                            <Button
+                              size="icon" variant="ghost"
+                              onClick={() => setDeleteTarget(c)}
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="حذف"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
                       {isExpanded && (
                         <tr key={`${c.id}-details`}>
-                          <td colSpan={10} className="border-b px-6 py-4" className="bg-muted/20 border-border">
+                          <td colSpan={11} className="border-b border-border bg-muted/20 px-6 py-4">
                             <ChequeTimeline cheque={c} history={history} />
                           </td>
                         </tr>
@@ -1272,10 +1288,10 @@ const ChequesPage = () => {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 font-bold text-sm" className="bg-muted/40 border-primary">
-                  <td colSpan={5} className="px-2 py-3 text-right" style={{ color: '#1E293B' }}>المجموع ({tabFiltered.length} شيك)</td>
-                  <td className="px-2 py-3 tabular-nums" style={{ color: '#1E293B' }}>₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={4} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
+                <tr className="border-t-2 border-primary bg-muted/40 font-bold text-sm">
+                  <td colSpan={3} className="px-2 py-3 text-right text-foreground">المجموع ({tabFiltered.length} شيك)</td>
+                  <td colSpan={2} className="px-2 py-3 tabular-nums text-foreground">₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
+                  <td colSpan={6} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
                 </tr>
               </tfoot>
             </table>
@@ -1283,7 +1299,7 @@ const ChequesPage = () => {
 
           {/* Pagination */}
           {tabSorted.length > PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t" className="border-border bg-muted/30">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30">
               <p className="text-xs text-muted-foreground">عرض {Math.min((page - 1) * PER_PAGE + 1, tabSorted.length)}–{Math.min(page * PER_PAGE, tabSorted.length)} من {tabSorted.length}</p>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
