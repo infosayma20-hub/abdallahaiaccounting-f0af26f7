@@ -1220,7 +1220,7 @@ const ContactsPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 
