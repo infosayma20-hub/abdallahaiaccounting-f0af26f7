@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import PageHeader from "@/components/layout/PageHeader";
-import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat, Camera, ScanLine, Barcode } from "lucide-react";
+import {
+  Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown,
+  Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight,
+  ClipboardList, ChefHat, Camera, ScanLine, Barcode, RefreshCw, Download,
+  Printer, Upload, FolderPlus, ClipboardCheck, Boxes, MoreVertical, Filter,
+} from "lucide-react";
 import BarcodePrintDialog from "@/components/inventory/BarcodePrintDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -10,11 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
+import {
+  FinanceShell, ColumnVisibilityMenu, useColumnVisibility, applyFilters,
+} from "@/components/finance/shell";
+import type { ActionTab, ColumnDef, FilterField, FilterCondition } from "@/components/finance/shell";
+import EmptyState from "@/components/EmptyState";
 
 interface Product {
   id: string;
