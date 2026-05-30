@@ -850,6 +850,9 @@ const POSPage = () => {
      can_affect_inventory_on_purchase: boolean;
      can_record_expenses: boolean;
      can_create_expense_category: boolean;
+      view_payment_details: boolean;
+      view_pos_reports: boolean;
+      require_manager_for_returns: boolean;
    }>({
      can_open_register: true, can_close_register: true, can_view_shift_details: true, can_view_profits: false,
       can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: true,
@@ -863,6 +866,7 @@ const POSPage = () => {
      can_add_inventory: false, can_create_product: false, can_record_purchases: false,
      can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false,
      can_record_expenses: false, can_create_expense_category: false,
+      view_payment_details: false, view_pos_reports: false, require_manager_for_returns: true,
    });
 
    // Financial operation modals
