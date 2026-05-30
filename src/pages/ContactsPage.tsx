@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -956,186 +956,312 @@ const ContactsPage = () => {
 
       {/* Add Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir="rtl">
-          <DialogHeader><DialogTitle>إضافة جهة اتصال جديدة</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label className="text-xs">الاسم *</Label>
-              <Input placeholder="اسم جهة الاتصال" value={newContact.name} onChange={(e) => setNewContact(p => ({ ...p, name: e.target.value }))} dir="rtl" />
-            </div>
-            <div>
-              <Label className="text-xs">النوع</Label>
-              <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v, balance_direction: v === "مورد" ? "credit" : "debit" }))} dir="rtl">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  {contactTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">التصنيف</Label>
-              <Select value={newContact.contact_class} onValueChange={(v) => setNewContact(p => ({ ...p, contact_class: v }))} dir="rtl">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="A">A - مميز</SelectItem>
-                  <SelectItem value="B">B - جيد</SelectItem>
-                  <SelectItem value="C">C - عادي</SelectItem>
-                  <SelectItem value="D">D - مخاطرة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">الهاتف</Label>
-              <Input placeholder="رقم الهاتف" value={newContact.phone} onChange={(e) => setNewContact(p => ({ ...p, phone: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">البريد الإلكتروني</Label>
-              <Input placeholder="email@example.com" value={newContact.email} onChange={(e) => setNewContact(p => ({ ...p, email: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">سقف الائتمان ₪</Label>
-              <Input type="number" placeholder="0" value={newContact.credit_limit} onChange={(e) => setNewContact(p => ({ ...p, credit_limit: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">أيام الدفع</Label>
-              <Input type="number" placeholder="30" value={newContact.payment_terms_days} onChange={(e) => setNewContact(p => ({ ...p, payment_terms_days: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">الرقم الضريبي</Label>
-              <Input placeholder="رقم ضريبي" value={newContact.tax_number} onChange={(e) => setNewContact(p => ({ ...p, tax_number: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">القطاع</Label>
-              <Input placeholder="مثال: تجزئة" value={newContact.industry} onChange={(e) => setNewContact(p => ({ ...p, industry: e.target.value }))} dir="rtl" />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">العنوان</Label>
-              <Input placeholder="العنوان" value={newContact.address} onChange={(e) => setNewContact(p => ({ ...p, address: e.target.value }))} dir="rtl" />
-            </div>
-            <div>
-              <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
-              <Input type="number" placeholder="0" value={newContact.opening_balance} onChange={(e) => setNewContact(p => ({ ...p, opening_balance: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">طبيعة الرصيد</Label>
-              <Select value={newContact.balance_direction} onValueChange={(v: "debit" | "credit") => setNewContact(p => ({ ...p, balance_direction: v }))} dir="rtl">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="debit">مدين (إلنا رصيد)</SelectItem>
-                  <SelectItem value="credit">دائن (علينا دين)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">ملاحظات</Label>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0" dir="rtl">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <UserPlus className="h-5 w-5 text-primary" />
+              إضافة جهة اتصال جديدة
+            </DialogTitle>
+            <DialogDescription>
+              أنشئ زبوناً أو مورداً جديداً مع بيانات التواصل والشروط المالية والرصيد الافتتاحي.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 space-y-6">
+            {/* معلومات أساسية */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <ContactRound className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">معلومات أساسية</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-xs">الاسم *</Label>
+                  <Input placeholder="اسم جهة الاتصال" value={newContact.name} onChange={(e) => setNewContact(p => ({ ...p, name: e.target.value }))} dir="rtl" />
+                </div>
+                <div>
+                  <Label className="text-xs">النوع</Label>
+                  <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v, balance_direction: v === "مورد" ? "credit" : "debit" }))} dir="rtl">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover z-[60]">
+                      {contactTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">التصنيف</Label>
+                  <Select value={newContact.contact_class} onValueChange={(v) => setNewContact(p => ({ ...p, contact_class: v }))} dir="rtl">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover z-[60]">
+                      <SelectItem value="A">A - مميز</SelectItem>
+                      <SelectItem value="B">B - جيد</SelectItem>
+                      <SelectItem value="C">C - عادي</SelectItem>
+                      <SelectItem value="D">D - مخاطرة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">القطاع</Label>
+                  <Input placeholder="مثال: تجزئة" value={newContact.industry} onChange={(e) => setNewContact(p => ({ ...p, industry: e.target.value }))} dir="rtl" />
+                </div>
+              </div>
+            </section>
+
+            {/* بيانات التواصل */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">بيانات التواصل</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">الهاتف</Label>
+                  <Input placeholder="رقم الهاتف" value={newContact.phone} onChange={(e) => setNewContact(p => ({ ...p, phone: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">البريد الإلكتروني</Label>
+                  <Input placeholder="email@example.com" value={newContact.email} onChange={(e) => setNewContact(p => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">العنوان</Label>
+                  <Input placeholder="العنوان" value={newContact.address} onChange={(e) => setNewContact(p => ({ ...p, address: e.target.value }))} dir="rtl" />
+                </div>
+              </div>
+            </section>
+
+            {/* بيانات ضريبية */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">بيانات ضريبية</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">الرقم الضريبي</Label>
+                  <Input placeholder="رقم ضريبي" value={newContact.tax_number} onChange={(e) => setNewContact(p => ({ ...p, tax_number: e.target.value }))} />
+                </div>
+              </div>
+            </section>
+
+            {/* سياسة الائتمان */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <Hand className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">سياسة الائتمان</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">سقف الائتمان ₪</Label>
+                  <Input type="number" placeholder="0" value={newContact.credit_limit} onChange={(e) => setNewContact(p => ({ ...p, credit_limit: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">أيام الدفع</Label>
+                  <Input type="number" placeholder="30" value={newContact.payment_terms_days} onChange={(e) => setNewContact(p => ({ ...p, payment_terms_days: e.target.value }))} />
+                </div>
+              </div>
+            </section>
+
+            {/* الرصيد الافتتاحي */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">الرصيد الافتتاحي</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
+                  <Input type="number" placeholder="0" value={newContact.opening_balance} onChange={(e) => setNewContact(p => ({ ...p, opening_balance: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">طبيعة الرصيد</Label>
+                  <Select value={newContact.balance_direction} onValueChange={(v: "debit" | "credit") => setNewContact(p => ({ ...p, balance_direction: v }))} dir="rtl">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover z-[60]">
+                      <SelectItem value="debit">مدين (إلنا رصيد)</SelectItem>
+                      <SelectItem value="credit">دائن (علينا دين)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            {/* ملاحظات */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">ملاحظات</h3>
+              </div>
               <Textarea placeholder="ملاحظات..." value={newContact.notes} onChange={(e) => setNewContact(p => ({ ...p, notes: e.target.value }))} dir="rtl" rows={2} />
-            </div>
-            <div className="col-span-2">
-              <Button onClick={handleAddContact} disabled={adding || !newContact.name.trim()} className="w-full">
-                {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "إضافة"}
-              </Button>
-            </div>
+            </section>
           </div>
+          <DialogFooter className="px-6 py-3 border-t bg-muted/30 flex-row-reverse gap-2 sm:justify-start">
+            <Button onClick={handleAddContact} disabled={adding || !newContact.name.trim()}>
+              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 ml-1" /> إضافة</>}
+            </Button>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={adding}>إلغاء</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editContact} onOpenChange={(o) => !o && setEditContact(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir="rtl">
-          <DialogHeader><DialogTitle>تعديل جهة الاتصال</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label className="text-xs">الاسم</Label>
-              <Input value={editData.contact_name || ""} onChange={(e) => setEditData((p: any) => ({ ...p, contact_name: e.target.value }))} dir="rtl" />
-            </div>
-            <div>
-              <Label className="text-xs">النوع</Label>
-              <Select value={editData.contact_type || "عميل"} onValueChange={(v) => setEditData((p: any) => ({ ...p, contact_type: v }))} dir="rtl">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  {contactTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">التصنيف</Label>
-              <Select value={editData.contact_class || "C"} onValueChange={(v) => setEditData((p: any) => ({ ...p, contact_class: v }))} dir="rtl">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="A">A - مميز</SelectItem>
-                  <SelectItem value="B">B - جيد</SelectItem>
-                  <SelectItem value="C">C - عادي</SelectItem>
-                  <SelectItem value="D">D - مخاطرة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">الهاتف</Label>
-              <Input value={editData.phone || ""} onChange={(e) => setEditData((p: any) => ({ ...p, phone: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">البريد</Label>
-              <Input value={editData.email || ""} onChange={(e) => setEditData((p: any) => ({ ...p, email: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">سقف الائتمان ₪</Label>
-              <Input type="number" value={editData.credit_limit || ""} onChange={(e) => setEditData((p: any) => ({ ...p, credit_limit: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">أيام الدفع</Label>
-              <Input type="number" value={editData.payment_terms_days || ""} onChange={(e) => setEditData((p: any) => ({ ...p, payment_terms_days: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">خصم الدفع المبكر %</Label>
-              <Input type="number" value={editData.early_pay_discount || ""} onChange={(e) => setEditData((p: any) => ({ ...p, early_pay_discount: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">الشريحة</Label>
-              <Select value={editData.contact_segment || ""} onValueChange={(v) => setEditData((p: any) => ({ ...p, contact_segment: v }))} dir="rtl">
-                <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="VIP">VIP</SelectItem>
-                  <SelectItem value="عادي">عادي</SelectItem>
-                  <SelectItem value="مخاطرة عالية">مخاطرة عالية</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">الرقم الضريبي</Label>
-              <Input value={editData.tax_number || ""} onChange={(e) => setEditData((p: any) => ({ ...p, tax_number: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">القطاع</Label>
-              <Input value={editData.industry || ""} onChange={(e) => setEditData((p: any) => ({ ...p, industry: e.target.value }))} dir="rtl" />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">العنوان</Label>
-              <Input value={editData.address || ""} onChange={(e) => setEditData((p: any) => ({ ...p, address: e.target.value }))} dir="rtl" />
-            </div>
-            <div>
-              <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
-              <Input type="number" placeholder="0" value={editData.opening_balance || ""} onChange={(e) => setEditData((p: any) => ({ ...p, opening_balance: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">طبيعة الرصيد</Label>
-              <Select value={editData.balance_direction || "credit"} onValueChange={(v) => setEditData((p: any) => ({ ...p, balance_direction: v }))} dir="rtl">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="debit">مدين (إلنا رصيد)</SelectItem>
-                  <SelectItem value="credit">دائن (علينا دين)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">ملاحظات</Label>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0" dir="rtl">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Pencil className="h-5 w-5 text-primary" />
+              تعديل جهة الاتصال
+            </DialogTitle>
+            <DialogDescription>
+              عدّل البيانات الأساسية وبيانات التواصل والشروط المالية. لا يؤثر التعديل على الحركات السابقة.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 space-y-6">
+            {/* معلومات أساسية */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <ContactRound className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">معلومات أساسية</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-xs">الاسم</Label>
+                  <Input value={editData.contact_name || ""} onChange={(e) => setEditData((p: any) => ({ ...p, contact_name: e.target.value }))} dir="rtl" />
+                </div>
+                <div>
+                  <Label className="text-xs">النوع</Label>
+                  <Select value={editData.contact_type || "عميل"} onValueChange={(v) => setEditData((p: any) => ({ ...p, contact_type: v }))} dir="rtl">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover z-[60]">
+                      {contactTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">التصنيف</Label>
+                  <Select value={editData.contact_class || "C"} onValueChange={(v) => setEditData((p: any) => ({ ...p, contact_class: v }))} dir="rtl">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover z-[60]">
+                      <SelectItem value="A">A - مميز</SelectItem>
+                      <SelectItem value="B">B - جيد</SelectItem>
+                      <SelectItem value="C">C - عادي</SelectItem>
+                      <SelectItem value="D">D - مخاطرة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">الشريحة</Label>
+                  <Select value={editData.contact_segment || ""} onValueChange={(v) => setEditData((p: any) => ({ ...p, contact_segment: v }))} dir="rtl">
+                    <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                    <SelectContent className="bg-popover z-[60]">
+                      <SelectItem value="VIP">VIP</SelectItem>
+                      <SelectItem value="عادي">عادي</SelectItem>
+                      <SelectItem value="مخاطرة عالية">مخاطرة عالية</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">القطاع</Label>
+                  <Input value={editData.industry || ""} onChange={(e) => setEditData((p: any) => ({ ...p, industry: e.target.value }))} dir="rtl" />
+                </div>
+              </div>
+            </section>
+
+            {/* بيانات التواصل */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">بيانات التواصل</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">الهاتف</Label>
+                  <Input value={editData.phone || ""} onChange={(e) => setEditData((p: any) => ({ ...p, phone: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">البريد</Label>
+                  <Input value={editData.email || ""} onChange={(e) => setEditData((p: any) => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">العنوان</Label>
+                  <Input value={editData.address || ""} onChange={(e) => setEditData((p: any) => ({ ...p, address: e.target.value }))} dir="rtl" />
+                </div>
+              </div>
+            </section>
+
+            {/* بيانات ضريبية */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">بيانات ضريبية</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">الرقم الضريبي</Label>
+                  <Input value={editData.tax_number || ""} onChange={(e) => setEditData((p: any) => ({ ...p, tax_number: e.target.value }))} />
+                </div>
+              </div>
+            </section>
+
+            {/* سياسة الائتمان */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <Hand className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">سياسة الائتمان</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">سقف الائتمان ₪</Label>
+                  <Input type="number" value={editData.credit_limit || ""} onChange={(e) => setEditData((p: any) => ({ ...p, credit_limit: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">أيام الدفع</Label>
+                  <Input type="number" value={editData.payment_terms_days || ""} onChange={(e) => setEditData((p: any) => ({ ...p, payment_terms_days: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">خصم الدفع المبكر %</Label>
+                  <Input type="number" value={editData.early_pay_discount || ""} onChange={(e) => setEditData((p: any) => ({ ...p, early_pay_discount: e.target.value }))} />
+                </div>
+              </div>
+            </section>
+
+            {/* الرصيد الافتتاحي */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">الرصيد الافتتاحي</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
+                  <Input type="number" placeholder="0" value={editData.opening_balance || ""} onChange={(e) => setEditData((p: any) => ({ ...p, opening_balance: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">طبيعة الرصيد</Label>
+                  <Select value={editData.balance_direction || "credit"} onValueChange={(v) => setEditData((p: any) => ({ ...p, balance_direction: v }))} dir="rtl">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover z-[60]">
+                      <SelectItem value="debit">مدين (إلنا رصيد)</SelectItem>
+                      <SelectItem value="credit">دائن (علينا دين)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            {/* ملاحظات */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">ملاحظات</h3>
+              </div>
               <Textarea value={editData.notes || ""} onChange={(e) => setEditData((p: any) => ({ ...p, notes: e.target.value }))} dir="rtl" rows={2} />
-            </div>
-            <div className="col-span-2">
-              <Button onClick={handleEditContact} disabled={editing} className="w-full">
-                {editing ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
-              </Button>
-            </div>
+            </section>
           </div>
+          <DialogFooter className="px-6 py-3 border-t bg-muted/30 flex-row-reverse gap-2 sm:justify-start">
+            <Button onClick={handleEditContact} disabled={editing}>
+              {editing ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+            </Button>
+            <Button variant="outline" onClick={() => setEditContact(null)} disabled={editing}>إلغاء</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1178,9 +1304,10 @@ const ContactsPage = () => {
         <DialogContent className="sm:max-w-lg" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               الفواتير المتأخرة — {overdueContact?.contact_name}
             </DialogTitle>
+            <DialogDescription>قائمة الفواتير التي تجاوز تاريخ استحقاقها مع المبلغ المتبقي وعدد أيام التأخير.</DialogDescription>
           </DialogHeader>
           {overdueLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
@@ -1202,8 +1329,8 @@ const ContactsPage = () => {
                       <tr key={inv.id} className="border-b hover:bg-muted/20">
                         <td className="p-2 text-xs font-mono">{inv.invoice_number}</td>
                         <td className="p-2 text-xs">{inv.due_date}</td>
-                        <td className="p-2 text-xs font-bold text-red-600 tabular-nums">₪{Number(inv.remaining_amount).toLocaleString()}</td>
-                        <td className="p-2 text-xs font-bold text-red-600 tabular-nums">{daysLate} يوم</td>
+                        <td className="p-2 text-xs font-bold text-destructive tabular-nums">₪{Number(inv.remaining_amount).toLocaleString()}</td>
+                        <td className="p-2 text-xs font-bold text-destructive tabular-nums">{daysLate} يوم</td>
                       </tr>
                     );
                   })}
