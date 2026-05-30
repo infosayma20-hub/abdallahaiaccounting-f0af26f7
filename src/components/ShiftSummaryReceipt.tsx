@@ -246,7 +246,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             </div>
 
             {/* Currency Breakdown */}
-            {Object.keys(cb).length > 0 && (
+            {!cashierMode && Object.keys(cb).length > 0 && (
               <>
                 <hr style={dashed} />
                 <div style={sectionTitle}>تفاصيل العملات المقبوضة</div>
@@ -260,7 +260,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             )}
 
             {/* Non-cash payment methods */}
-            {nonCashMethods.length > 0 && (
+            {!cashierMode && nonCashMethods.length > 0 && (
               <>
                 <hr style={dashed} />
                 <div style={sectionTitle}>مبيعات غير نقدية</div>
@@ -282,15 +282,17 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             <div style={sectionTitle}>تسليم النقدية</div>
 
             {/* ILS row: expected / delivered / variance */}
-            <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
-              <span>المتوقع (شيكل)</span>
-              <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
-            </div>
+            {!cashierMode && (
+              <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
+                <span>المتوقع (شيكل)</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
+              </div>
+            )}
             <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
-            {(data.varianceILS !== undefined && data.varianceILS !== 0) && (
+            {!cashierMode && (data.varianceILS !== undefined && data.varianceILS !== 0) && (
               <div style={{ ...rowStyle, fontSize: 13, fontWeight: 900, color: "#000" }}>
                 <span>{(data.varianceILS || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (شيكل)</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{Math.abs(data.varianceILS || 0).toFixed(2)}</span>
@@ -298,7 +300,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             )}
 
             {/* USD row: expected / delivered / variance */}
-            {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
+            {!cashierMode && ((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
@@ -319,7 +321,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             )}
 
             {/* JOD row: expected / delivered / variance */}
-            {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
+            {!cashierMode && ((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
