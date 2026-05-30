@@ -365,7 +365,7 @@ const ChequesPage = () => {
           from_status: null, to_status: chequeStatus, action_type: 'register',
         });
       }
-      toast.success(`تم تسجيل ${newCheques.length} شيك ${addType} وإنشاء القيود ✅`);
+      toast.success(`تم تسجيل ${newCheques.length} شيك ${addType} وإنشاء القيود`);
       setAddOpen(false);
       setNewCheques([emptyChequeRow(addType)]);
       setPartySearch('');
@@ -530,7 +530,7 @@ const ChequesPage = () => {
       }
 
       if (data.action === 'endorse') {
-        // ✅ Endorsement MUST go through the unified RPC
+        // Endorsement MUST go through the unified RPC
         // (preserves original_contact_id, prevents duplicate endorsements,
         //  enforces fiscal-period lock, validates supplier contact_id).
         if (!data.endorsedToContactId) {
@@ -550,7 +550,7 @@ const ChequesPage = () => {
         if (!result.success) throw new Error(result.error || 'فشل تنفيذ التجيير');
         // RPC already updated cheque + history; just refresh UI
         setStatusHistory(prev => { const n = { ...prev }; delete n[cheque.id]; return n; });
-        toast.success(`تم: 📤 تظهير لمورد`);
+        toast.success(`تم تظهير الشيك للمورد`);
         setActionTarget(null);
         setActionType(null);
         fetchCheques();
@@ -845,7 +845,7 @@ const ChequesPage = () => {
       const parts: string[] = [];
       if (overdueEndorsed.length) parts.push(`${overdueEndorsed.length} مظهَّر متأخر`);
       if (dueEndorsed.length) parts.push(`${dueEndorsed.length} مظهَّر مستحق خلال 7 أيام`);
-      toast.warning(`⚠️ شيكات مظهَّرة بحاجة متابعة: ${parts.join(' • ')}`, {
+      toast.warning(`شيكات مظهَّرة بحاجة متابعة: ${parts.join(' • ')}`, {
         description: 'أنت ضامن لها أمام المظهَّر إليه إذا ارتدّت.',
         duration: 8000,
       });
