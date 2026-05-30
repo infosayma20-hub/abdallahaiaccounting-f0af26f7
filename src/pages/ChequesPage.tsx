@@ -29,7 +29,18 @@ import UnendorseChequeDialog from "@/components/cheques/UnendorseChequeDialog";
 import UndepositChequeDialog from "@/components/cheques/UndepositChequeDialog";
 
 import { setNextExportBranding } from "@/lib/excel-export";
-import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import {
+  FinanceShell,
+  applyFilters,
+  type ActionTab,
+  type FilterCondition,
+  type FilterField,
+} from "@/components/finance/shell";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import {
+  useColumnVisibility,
+  type ColumnDef,
+} from "@/components/finance/shell/useColumnVisibility";
 import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
@@ -137,6 +148,30 @@ const ChequesPage = () => {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('all');
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+
+  // ============ COLUMN VISIBILITY ============
+  const columnDefs: ColumnDef[] = useMemo(() => ([
+    { key: 'select', label: 'تحديد', required: true },
+    { key: 'cheque_type', label: 'النوع', required: true },
+    { key: 'cheque_number', label: 'رقم الشيك' },
+    { key: 'party_name', label: 'الجهة', required: true },
+    { key: 'bank_name', label: 'البنك' },
+    { key: 'amount', label: 'المبلغ', required: true },
+    { key: 'created_at', label: 'تاريخ الإصدار', defaultVisible: false },
+    { key: 'cheque_date', label: 'تاريخ الاستحقاق', required: true },
+    { key: 'remaining', label: 'المتبقي' },
+    { key: 'status', label: 'الحالة', required: true },
+    { key: 'actions', label: 'إجراءات', required: true },
+  ]), []);
+  const colState = useColumnVisibility('cheques-page', columnDefs);
+  const show = colState.isVisible;
+  // Always-visible required cells = 7 (select, type, party, amount, cheque_date, status, actions).
+  // Optional cells (cheque_number, bank_name, created_at, remaining) add when shown.
+  const visibleColCount = useMemo(
+    () => columnDefs.filter(c => colState.isVisible(c.key)).length,
+    [columnDefs, colState],
+  );
 
   interface ChequeRow {
     cheque_type: ChequeType;
@@ -765,7 +800,7 @@ const ChequesPage = () => {
 
   // =================== FILTERING ===================
   const filtered = useMemo(() => {
-    return cheques.filter(c => {
+    const base = cheques.filter(c => {
       if (filterType !== 'all' && c.cheque_type !== filterType) return false;
       if (filterStatus !== 'الكل' && c.status !== filterStatus) return false;
       if (dateFrom && c.cheque_date < dateFrom) return false;
@@ -776,7 +811,8 @@ const ChequesPage = () => {
       }
       return true;
     });
-  }, [cheques, filterType, filterStatus, search, dateFrom, dateTo]);
+    return applyFilters(base, shellFilters);
+  }, [cheques, filterType, filterStatus, search, dateFrom, dateTo, shellFilters]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -954,12 +990,60 @@ const ChequesPage = () => {
     ],
   }];
 
+  // ============ FILTER FIELDS (FiltersPanel) ============
+  const bankOptions = useMemo(() => {
+    const s = new Set<string>();
+    cheques.forEach(c => { if (c.bank_name) s.add(c.bank_name); });
+    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+  }, [cheques]);
+  const partyOptions = useMemo(() => {
+    const s = new Set<string>();
+    cheques.forEach(c => { if (c.party_name) s.add(c.party_name); });
+    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+  }, [cheques]);
+  const currencyOptions = useMemo(() => {
+    const s = new Set<string>();
+    cheques.forEach(c => { if (c.currency) s.add(c.currency); });
+    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+  }, [cheques]);
+  const statusOptions = (Object.keys(statusConfig) as ChequeStatus[])
+    .map(s => ({ value: s, label: statusConfig[s].label }));
+  const filterFields: FilterField[] = useMemo(() => ([
+    { key: 'cheque_type', label: 'النوع', type: 'option', options: [
+      { value: 'وارد', label: 'وارد' }, { value: 'صادر', label: 'صادر' },
+    ]},
+    { key: 'status', label: 'الحالة', type: 'option', options: statusOptions },
+    { key: 'bank_name', label: 'البنك', type: 'option', options: bankOptions },
+    { key: 'party_name', label: 'الطرف', type: 'option', options: partyOptions },
+    { key: 'cheque_date', label: 'تاريخ الاستحقاق', type: 'date' },
+    { key: 'currency', label: 'العملة', type: 'option', options: currencyOptions },
+    { key: 'amount', label: 'المبلغ', type: 'number' },
+  ]), [bankOptions, partyOptions, currencyOptions]);
+
   return (
     <FinanceShell
       title="إدارة الشيكات"
       subtitle="تتبع شيكاتك الواردة والصادرة وعمليات التحصيل والصرف والتظهير."
       breadcrumb={[{ label: "المالية", href: "/accounting-center" }, { label: "الشيكات" }]}
       actionTabs={actionTabs}
+      filterFields={filterFields}
+      filters={shellFilters}
+      onFiltersChange={setShellFilters}
+      storageKey="cheques-page"
+      rightSlot={
+        <div className="flex items-center gap-1.5">
+          <div className="relative">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="رقم الشيك، الجهة، البنك..."
+              className="h-8 w-56 pr-8 text-xs"
+            />
+          </div>
+          <ColumnVisibilityMenu state={colState} />
+        </div>
+      }
     >
     <div className="space-y-5" dir="rtl">
 
@@ -1006,25 +1090,7 @@ const ChequesPage = () => {
         ))}
       </div>
 
-      {/* ============ SEARCH + DATE FILTERS ============ */}
-      {cheques.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground/60" />
-            <Input placeholder="رقم الشيك، اسم الجهة، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-lg bg-background" />
-            {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Label className="text-[10px] whitespace-nowrap text-muted-foreground">من:</Label>
-            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" />
-            <Label className="text-[10px] whitespace-nowrap text-muted-foreground">إلى:</Label>
-            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" />
-            {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Search and advanced filters are in the shell header / FiltersPanel */}
 
       {/* ============ DUE ALERT ============ */}
       {dueWithin7.filter(c => c.cheque_date <= today).length > 0 && (
@@ -1051,12 +1117,20 @@ const ChequesPage = () => {
 
       {/* Empty */}
       {!loading && cheques.length === 0 && (
-        <div className="text-center py-20">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-muted">
-            <Banknote className="h-10 w-10 text-muted-foreground" />
+        <div className="text-center py-16 space-y-3 border border-dashed border-border rounded-lg bg-card">
+          <Banknote className="h-10 w-10 mx-auto text-muted-foreground/40" />
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">لا توجد شيكات بعد</h3>
+            <p className="text-xs text-muted-foreground mt-1">سجّل أول شيك لبدء تتبع الشيكات الواردة والصادرة.</p>
           </div>
-          <h3 className="text-base font-semibold mb-1 text-foreground">لا توجد شيكات بعد</h3>
-          <p className="text-xs text-muted-foreground">سجّل أول شيك لبدء التتبع</p>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <Button size="sm" onClick={() => openAddDialog('وارد')} className="gap-1.5">
+              <ArrowDownCircle className="h-3.5 w-3.5" /> تسجيل شيك وارد
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => openAddDialog('صادر')} className="gap-1.5">
+              <ArrowUpCircle className="h-3.5 w-3.5" /> تسجيل شيك صادر
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1065,7 +1139,7 @@ const ChequesPage = () => {
         <div className="text-center py-12 space-y-2">
           <Search className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); handleTab('all'); }}>مسح الفلاتر</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); setShellFilters([]); handleTab('all'); }}>مسح الفلاتر</Button>
         </div>
       )}
 
@@ -1077,26 +1151,27 @@ const ChequesPage = () => {
               <colgroup>
                 <col style={{ width: 40 }} />
                 <col style={{ width: 80 }} />
-                <col style={{ width: 100 }} />
+                {show('cheque_number') && <col style={{ width: 100 }} />}
                 <col style={{ width: 'auto' }} />
-                <col style={{ width: 130 }} />
+                {show('bank_name') && <col style={{ width: 130 }} />}
                 <col style={{ width: 110 }} />
+                {show('created_at') && <col style={{ width: 100 }} />}
                 <col style={{ width: 100 }} />
-                <col style={{ width: 100 }} />
-                <col style={{ width: 85 }} />
+                {show('remaining') && <col style={{ width: 85 }} />}
+                <col style={{ width: 110 }} />
                 <col style={{ width: 110 }} />
               </colgroup>
               <thead>
                 <tr className="bg-primary text-primary-foreground">
                   <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">النوع</th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>
+                  {show('cheque_number') && <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الجهة" field="party_name" /></th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="البنك" field="bank_name" /></th>
+                  {show('bank_name') && <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="البنك" field="bank_name" /></th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold">الإصدار</th>
+                  {show('created_at') && <th className="px-2 py-3 text-right text-xs font-semibold">الإصدار</th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الاستحقاق" field="cheque_date" /></th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold">المتبقي</th>
+                  {show('remaining') && <th className="px-2 py-3 text-right text-xs font-semibold">المتبقي</th>}
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">إجراءات</th>
                 </tr>
@@ -1109,37 +1184,47 @@ const ChequesPage = () => {
                   const isExpanded = expandedId === c.id;
                   const history = statusHistory[c.id] || [];
                   const isDueSoon = DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
+                  const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000);
+                  const remainingClass = days < 0 ? 'text-destructive font-bold' : days <= 7 ? 'text-amber-600 font-bold' : 'text-muted-foreground';
                   return (
                     <Fragment key={c.id}>
                       <tr
-                        className="border-b transition-colors cursor-pointer hover:bg-[#F8FAFC]"
-                        style={{
-                          borderColor: '#E2E8F0',
-                          background: isSelected ? '#EFF6FF' : i % 2 === 0 ? '#fff' : '#F8FAFC',
-                        }}
+                        className={`border-b border-border transition-colors cursor-pointer hover:bg-muted/40 ${
+                          isSelected ? 'bg-primary/5' : i % 2 === 0 ? 'bg-card' : 'bg-muted/20'
+                        }`}
                         onClick={() => toggleExpand(c.id)}
                       >
                         <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(c.id)} /></td>
                         <td className="px-2 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.cheque_type === 'وارد' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                            {c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground">
+                            {c.cheque_type === 'وارد'
+                              ? <ArrowDownCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                              : <ArrowUpCircle className="h-3.5 w-3.5 text-muted-foreground" />}
+                            {c.cheque_type}
                           </span>
                         </td>
-                        <td className="px-2 py-3 text-xs font-mono truncate text-muted-foreground" dir="ltr">{c.cheque_number || "—"}</td>
-                        <td className="px-2 py-3"><p className="text-sm font-semibold truncate" style={{ color: '#1E293B' }}>{c.party_name}</p></td>
-                        <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
-                        <td className="px-2 py-3 text-sm font-bold tabular-nums" style={{ color: '#1E293B' }}>{c.amount.toLocaleString()} ₪</td>
-                        <td className="px-2 py-3 text-[11px] tabular-nums text-muted-foreground">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
-                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: isDueSoon ? '#DC2626' : '#64748B', fontWeight: isDueSoon ? 700 : 400 }}>{fmtDate(c.cheque_date)}</td>
-                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days < 0 ? '#DC2626' : days <= 7 ? '#F59E0B' : '#64748B'; })(), fontWeight: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days <= 7 ? 700 : 400; })() }}>
-                          {(() => {
-                            if (!DUE_WATCH_STATUSES.includes(c.status)) return '—';
-                            const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000);
-                            if (days < 0) return `متأخر ${Math.abs(days)} يوم`;
-                            if (days === 0) return 'اليوم';
-                            return `${days} يوم`;
-                          })()}
-                        </td>
+                        {show('cheque_number') && (
+                          <td className="px-2 py-3 text-xs font-mono truncate text-muted-foreground" dir="ltr">{c.cheque_number || "—"}</td>
+                        )}
+                        <td className="px-2 py-3"><p className="text-sm font-semibold truncate text-foreground">{c.party_name}</p></td>
+                        {show('bank_name') && (
+                          <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
+                        )}
+                        <td className="px-2 py-3 text-sm font-bold tabular-nums text-foreground">{c.amount.toLocaleString()} ₪</td>
+                        {show('created_at') && (
+                          <td className="px-2 py-3 text-[11px] tabular-nums text-muted-foreground">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
+                        )}
+                        <td className={`px-2 py-3 text-[11px] tabular-nums ${isDueSoon ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>{fmtDate(c.cheque_date)}</td>
+                        {show('remaining') && (
+                          <td className={`px-2 py-3 text-[11px] tabular-nums ${remainingClass}`}>
+                            {(() => {
+                              if (!DUE_WATCH_STATUSES.includes(c.status)) return '—';
+                              if (days < 0) return `متأخر ${Math.abs(days)} يوم`;
+                              if (days === 0) return 'اليوم';
+                              return `${days} يوم`;
+                            })()}
+                          </td>
+                        )}
                         <td className="px-2 py-3">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.badgeClass}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${sc.color.replace('text-', 'bg-')}`} />{sc.label}
@@ -1150,16 +1235,16 @@ const ChequesPage = () => {
                             {actions.length > 0 && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <button className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all" style={{ background: '#EFF6FF', color: '#0D1B2E' }}>
-                                    <Zap className="h-3 w-3" />إجراء<ChevronDown className="h-3 w-3" />
-                                  </button>
+                                  <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px] px-2">
+                                    <Zap className="h-3 w-3" /> إجراء <ChevronDown className="h-3 w-3" />
+                                  </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="min-w-[180px]">
                                   {actions.map(actionId => {
                                     const ac = ACTION_CONFIGS[actionId];
                                     return (
-                                      <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }} className="gap-2 text-xs cursor-pointer">
-                                        <span>{ac.emoji}</span>{ac.label}
+                                      <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }} className="text-xs cursor-pointer">
+                                        {ac.label}
                                       </DropdownMenuItem>
                                     );
                                   })}
@@ -1167,34 +1252,39 @@ const ChequesPage = () => {
                               </DropdownMenu>
                             )}
                             {c.status === 'مظهر' && c.cheque_type === 'وارد' && (
-                              <button
+                              <Button
+                                size="sm" variant="ghost"
                                 onClick={() => setUnendorseTarget(c)}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:opacity-90"
-                                style={{ background: '#FEF3C7', color: '#92400E' }}
+                                className="h-7 gap-1 text-[11px] px-2"
                                 title="إلغاء التجيير وإرجاع الشيك إلى بحوزتك"
                               >
-                                <Undo2 className="h-3 w-3" />إلغاء التجيير
-                              </button>
+                                <Undo2 className="h-3 w-3" /> إلغاء التجيير
+                              </Button>
                             )}
                             {c.status === 'مودع' && c.cheque_type === 'وارد' && (
-                              <button
+                              <Button
+                                size="sm" variant="ghost"
                                 onClick={() => setUndepositTarget(c)}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:opacity-90"
-                                style={{ background: '#FEF3C7', color: '#92400E' }}
+                                className="h-7 gap-1 text-[11px] px-2"
                                 title="إلغاء الإيداع وإرجاع الشيك إلى بحوزتك"
                               >
-                                <Undo2 className="h-3 w-3" />إلغاء الإيداع
-                              </button>
+                                <Undo2 className="h-3 w-3" /> إلغاء الإيداع
+                              </Button>
                             )}
-                            <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-red-50 transition-colors" title="حذف">
-                              <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
-                            </button>
+                            <Button
+                              size="icon" variant="ghost"
+                              onClick={() => setDeleteTarget(c)}
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="حذف"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
                       {isExpanded && (
                         <tr key={`${c.id}-details`}>
-                          <td colSpan={10} className="border-b px-6 py-4" className="bg-muted/20 border-border">
+                          <td colSpan={visibleColCount} className="border-b border-border bg-muted/20 px-6 py-4">
                             <ChequeTimeline cheque={c} history={history} />
                           </td>
                         </tr>
@@ -1204,10 +1294,10 @@ const ChequesPage = () => {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 font-bold text-sm" className="bg-muted/40 border-primary">
-                  <td colSpan={5} className="px-2 py-3 text-right" style={{ color: '#1E293B' }}>المجموع ({tabFiltered.length} شيك)</td>
-                  <td className="px-2 py-3 tabular-nums" style={{ color: '#1E293B' }}>₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={4} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
+                <tr className="border-t-2 border-primary bg-muted/40 font-bold text-sm">
+                  <td colSpan={Math.max(1, Math.floor(visibleColCount / 2))} className="px-2 py-3 text-right text-foreground">المجموع ({tabFiltered.length} شيك)</td>
+                  <td className="px-2 py-3 tabular-nums text-foreground">₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
+                  <td colSpan={Math.max(1, visibleColCount - Math.floor(visibleColCount / 2) - 1)} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
                 </tr>
               </tfoot>
             </table>
@@ -1215,7 +1305,7 @@ const ChequesPage = () => {
 
           {/* Pagination */}
           {tabSorted.length > PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t" className="border-border bg-muted/30">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30">
               <p className="text-xs text-muted-foreground">عرض {Math.min((page - 1) * PER_PAGE + 1, tabSorted.length)}–{Math.min(page * PER_PAGE, tabSorted.length)} من {tabSorted.length}</p>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
@@ -1233,24 +1323,25 @@ const ChequesPage = () => {
 
       {/* ============ BULK ACTION BAR ============ */}
       {selected.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-primary/30 rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
-          <span className="text-sm font-bold text-foreground">✓ {selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-xl shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
+          <span className="text-sm font-semibold text-foreground">{selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
           {bulkSameStatus && bulkActions.length > 0 ? (
             <div className="flex items-center gap-2">
               {bulkActions.slice(0, 4).map(actionId => {
                 const ac = ACTION_CONFIGS[actionId];
                 return (
-                  <button key={actionId} onClick={() => handleBulkAction(actionId)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all">
-                    {ac.emoji} {ac.label}
-                  </button>
+                  <Button key={actionId} size="sm" variant="outline"
+                    onClick={() => handleBulkAction(actionId)}
+                    className="h-7 text-xs">
+                    {ac.label}
+                  </Button>
                 );
               })}
             </div>
           ) : (
             <span className="text-xs text-muted-foreground">يجب أن تكون بنفس الحالة</span>
           )}
-          <button onClick={() => setSelected(new Set())} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+          <Button size="icon" variant="ghost" onClick={() => setSelected(new Set())} className="h-7 w-7 text-muted-foreground"><X className="h-4 w-4" /></Button>
         </div>
       )}
 
@@ -1258,8 +1349,11 @@ const ChequesPage = () => {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-center text-lg">
-              {addType === 'وارد' ? '⬇ تسجيل شيك وارد' : '⬆ تسجيل شيك صادر'}
+            <DialogTitle className="text-center text-lg flex items-center justify-center gap-2">
+              {addType === 'وارد'
+                ? <ArrowDownCircle className="h-5 w-5 text-muted-foreground" />
+                : <ArrowUpCircle className="h-5 w-5 text-muted-foreground" />}
+              {addType === 'وارد' ? 'تسجيل شيك وارد' : 'تسجيل شيك صادر'}
             </DialogTitle>
           </DialogHeader>
 
