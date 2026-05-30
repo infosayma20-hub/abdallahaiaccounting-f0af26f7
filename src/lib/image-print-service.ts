@@ -353,7 +353,10 @@ function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
     })),
     total: order.total,
     createdAt: order.date ? `${order.date}T${order.time || '00:00'}` : new Date().toISOString(),
-    orderNote: order.orderNote,
+    // Kitchen tickets get the optional kitchen-only banner prepended to the
+    // regular order note. The customer receipt (toBridgeReceiptOrder) does
+    // NOT include kitchenNote, so banners like "طلب معدل" stay internal.
+    orderNote: [order.kitchenNote, order.orderNote].filter(Boolean).join('\n') || undefined,
   };
 }
 
