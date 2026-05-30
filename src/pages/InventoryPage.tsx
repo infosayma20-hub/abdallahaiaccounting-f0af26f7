@@ -1297,7 +1297,8 @@ const InventoryPage = () => {
         onOpenChange={(o) => !o && setBarcodePrintProduct(null)}
         product={barcodePrintProduct}
       />
-    </div>
+    </FinanceShell>
+    </>
   );
 };
 
