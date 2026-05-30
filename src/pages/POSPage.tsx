@@ -6453,6 +6453,12 @@ const POSPage = () => {
             requireManagerForCancel={!isAdmin && posPerms.require_manager_for_invoices}
             requireManagerForReturn={!isAdmin && posPerms.require_manager_for_returns}
             cashierMode={!isAdmin && !posPerms.view_payment_details}
+            cancelWindowMinutes={cashierCancelWindowMin}
+            amountVisibleMinutes={cashierAmountVisibleMin}
+            onInvoiceCancelled={(orderId, orderNumber) => {
+              setLastCancelledOrder({ id: orderId, order_number: orderNumber, at: Date.now() });
+              setMarkAsReplacement(true); // auto-suggest for the very next sale
+            }}
             allowOrderTransfer={posAllowOrderTransfer}
             printInvoices={isAdmin || posPerms.print_invoices}
             resendInvoice={isAdmin || posPerms.resend_invoice}
