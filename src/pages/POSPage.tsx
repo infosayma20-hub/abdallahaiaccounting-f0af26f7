@@ -4215,7 +4215,7 @@ const POSPage = () => {
               title="سجل الفواتير"
             >
               <FileText className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
-              {session && session.total_orders > 0 && (
+              {(isAdmin || posPerms.can_view_profits) && session && session.total_orders > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: "#dc2626" }} />
               )}
             </button>
