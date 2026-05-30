@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Plus, ArrowLeftRight, Truck, Building2, Warehouse, Box,
   CheckCircle2, XCircle, Trash2, Loader2, Package, Search, X, FileText,
@@ -81,7 +80,6 @@ const STATUS_META: Record<TransferStatus, { label: string; cls: string }> = {
 const WH_ICON: Record<string, any> = { main: Warehouse, branch: Building2, van: Truck, virtual: Box };
 
 const StockTransfersPage = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
