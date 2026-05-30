@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import KitchenStationsManager from "./KitchenStationsManager";
 import NetworkPrintersManager from "./NetworkPrintersManager";
@@ -67,29 +67,23 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
         <span className="text-xs text-primary shrink-0">فتح المعالج ←</span>
       </button>
 
-      {/* General */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          الإعداد العام
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Accordion type="multiple" defaultValue={["general", "payment"]} className="space-y-2">
+        <AccordionItem value="general" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">الإعداد العام</AccordionTrigger>
+          <AccordionContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
           <div className="space-y-2">
             <Label>اسم نقطة البيع</Label>
             <Input value={settings.pos_name} onChange={e => onChange({ pos_name: e.target.value })} />
           </div>
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Payment */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          طرق الدفع المقبولة
-        </h3>
-        <div className="space-y-2">
+        <AccordionItem value="payment" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">طرق الدفع المقبولة</AccordionTrigger>
+          <AccordionContent>
+        <div className="space-y-2 pt-2">
           {paymentMethods.map(pm => (
             <div key={pm.code} className="flex items-center gap-2">
               <Checkbox
@@ -100,17 +94,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             </div>
           ))}
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Shift */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          الوردية
-        </h3>
-        <div className="space-y-4">
+        <AccordionItem value="shift" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">الوردية</AccordionTrigger>
+          <AccordionContent>
+        <div className="space-y-4 pt-2">
           <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
             <span className="text-sm">فتح وردية إلزامي قبل البيع</span>
             <Switch checked={settings.pos_require_shift} onCheckedChange={v => onChange({ pos_require_shift: v })} />
@@ -150,25 +140,21 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
               الورديات التي تُفتح قبل هذه الساعة تُسجَّل محاسبياً على اليوم السابق
             </p>
           </div>
-        </div>
-        <div className="mt-4 flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
           <div>
             <span className="text-sm font-medium">السماح بنقل الطلب بين الموظفين</span>
             <p className="text-[10px] text-muted-foreground mt-0.5">يتيح نقل فاتورة من كاشير لآخر في أوقات الذروة</p>
           </div>
           <Switch checked={settings.pos_allow_order_transfer} onCheckedChange={v => onChange({ pos_allow_order_transfer: v })} />
+          </div>
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Receipt - Customer */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          وصل الزبون (الفاتورة)
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AccordionItem value="receipt" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">وصل الزبون (الفاتورة)</AccordionTrigger>
+          <AccordionContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
           <div className="space-y-2">
             <Label>حجم ورقة وصل الزبون</Label>
             <Select value={settings.pos_receipt_size} onValueChange={v => onChange({ pos_receipt_size: v })}>
@@ -203,17 +189,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             </div>
           ))}
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Kitchen Tickets */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          تذاكر المطبخ / المحطات
-        </h3>
-        <p className="text-xs text-muted-foreground mb-3">
+        <AccordionItem value="kitchen-tickets" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">تذاكر المطبخ / المحطات</AccordionTrigger>
+          <AccordionContent>
+        <p className="text-xs text-muted-foreground mb-3 pt-2">
           تذاكر المحطات أصغر من وصل الزبون وتحتوي فقط على اسم المحطة ورقم الطلب والأصناف. يتم إرسالها مباشرة لطابعة المحطة المربوطة.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -237,17 +219,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             <Switch checked={settings.pos_kitchen_auto_print} onCheckedChange={v => onChange({ pos_kitchen_auto_print: v })} />
           </div>
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Return Policy */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          سياسة المرتجعات
-        </h3>
-        <div className="space-y-3">
+        <AccordionItem value="returns" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">سياسة المرتجعات</AccordionTrigger>
+          <AccordionContent>
+        <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
             <span className="text-sm">إظهار سياسة المرتجعات على الإيصال</span>
             <Switch checked={settings.pos_show_return_policy} onCheckedChange={v => onChange({ pos_show_return_policy: v })} />
@@ -259,17 +237,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             </div>
           )}
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Stock */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          المخزون
-        </h3>
-        <div className="space-y-3">
+        <AccordionItem value="stock" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">المخزون</AccordionTrigger>
+          <AccordionContent>
+        <div className="space-y-3 pt-2">
           {[
             { key: "pos_auto_update_stock" as const, label: "تحديث المخزون تلقائياً عند البيع" },
             { key: "pos_warn_out_of_stock" as const, label: "تحذير عند نفاد المخزون" },
@@ -281,17 +255,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             </div>
           ))}
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Accounting Impact */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-destructive rounded-full" />
-          التأثير المحاسبي
-        </h3>
-        <p className="text-xs text-muted-foreground mb-3">
+        <AccordionItem value="accounting" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">التأثير المحاسبي</AccordionTrigger>
+          <AccordionContent>
+        <p className="text-xs text-muted-foreground mb-3 pt-2">
           تحكّم في تأثير نقطة البيع على القيود المحاسبية والمخزون. تعطيل هذه الخيارات يعني أن عمليات البيع لن تولّد قيوداً تلقائية.
         </p>
         <div className="space-y-3">
@@ -310,17 +280,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             <Switch checked={settings.pos_disable_stock_deduction} onCheckedChange={v => onChange({ pos_disable_stock_deduction: v })} />
           </div>
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Device Fingerprint */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          بصمة الجهاز
-        </h3>
-        <div className="space-y-3">
+        <AccordionItem value="fingerprint" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">بصمة الجهاز</AccordionTrigger>
+          <AccordionContent>
+        <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
             <div>
               <span className="text-sm font-medium">تفعيل بصمة الجهاز</span>
@@ -329,25 +295,33 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             <Switch checked={settings.pos_require_device_fingerprint} onCheckedChange={v => onChange({ pos_require_device_fingerprint: v })} />
           </div>
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Kitchen Stations */}
-      <KitchenStationsManager />
+        <AccordionItem value="stations" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">محطات المطبخ</AccordionTrigger>
+          <AccordionContent className="pt-2"><KitchenStationsManager /></AccordionContent>
+        </AccordionItem>
 
-      <Separator />
+        <AccordionItem value="printers" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">طابعات الشبكة</AccordionTrigger>
+          <AccordionContent className="pt-2"><NetworkPrintersManager /></AccordionContent>
+        </AccordionItem>
 
-      {/* Network Printers */}
-      <NetworkPrintersManager />
+        {dataOwnerId && (
+          <AccordionItem value="delivery-apps" className="border border-border rounded-lg px-4 bg-card">
+            <AccordionTrigger className="text-sm font-semibold hover:no-underline">تطبيقات التوصيل</AccordionTrigger>
+            <AccordionContent className="pt-2"><DeliveryAppsManager userId={dataOwnerId} /></AccordionContent>
+          </AccordionItem>
+        )}
 
-      <Separator />
-
-      {/* Delivery Apps */}
-      {dataOwnerId && <DeliveryAppsManager userId={dataOwnerId} />}
-
-      <Separator />
-
-      {/* KDS & Customer Display */}
-      <KdsDisplaySection settings={settings} onChange={onChange} ownerId={dataOwnerId} />
+        <AccordionItem value="kds" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">KDS وشاشة الزبون</AccordionTrigger>
+          <AccordionContent className="pt-2">
+            <KdsDisplaySection settings={settings} onChange={onChange} ownerId={dataOwnerId} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };

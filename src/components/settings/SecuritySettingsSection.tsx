@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Lock, Shield, Eye, EyeOff, KeyRound, Check, Loader2 } from "lucide-react";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
@@ -136,12 +137,12 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
             </Select>
 
             {timeoutValue === 0 && (
-              <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-destructive font-medium leading-relaxed">
+              <Alert variant="destructive" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs leading-relaxed">
                   غير موصى به — بياناتك المالية قد تكون في خطر إذا تركت الجهاز مفتوحاً دون رقابة
-                </p>
-              </div>
+                </AlertDescription>
+              </Alert>
             )}
           </div>
 
