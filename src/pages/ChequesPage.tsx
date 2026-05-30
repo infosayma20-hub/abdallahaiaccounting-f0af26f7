@@ -1472,7 +1472,7 @@ const ChequesPage = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-    </AccountingShell>
+    </FinanceShell>
   );
 };
 
