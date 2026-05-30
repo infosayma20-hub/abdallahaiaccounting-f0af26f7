@@ -794,7 +794,7 @@ const ChequesPage = () => {
 
   // =================== FILTERING ===================
   const filtered = useMemo(() => {
-    return cheques.filter(c => {
+    const base = cheques.filter(c => {
       if (filterType !== 'all' && c.cheque_type !== filterType) return false;
       if (filterStatus !== 'الكل' && c.status !== filterStatus) return false;
       if (dateFrom && c.cheque_date < dateFrom) return false;
@@ -805,7 +805,8 @@ const ChequesPage = () => {
       }
       return true;
     });
-  }, [cheques, filterType, filterStatus, search, dateFrom, dateTo]);
+    return applyFilters(base, shellFilters);
+  }, [cheques, filterType, filterStatus, search, dateFrom, dateTo, shellFilters]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
