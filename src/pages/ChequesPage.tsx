@@ -1159,7 +1159,7 @@ const ChequesPage = () => {
                 <col style={{ width: 100 }} />
                 {show('remaining') && <col style={{ width: 85 }} />}
                 <col style={{ width: 110 }} />
-                <col style={{ width: 110 }} />
+                <col style={{ width: 140 }} />
               </colgroup>
               <thead>
                 <tr className="bg-primary text-primary-foreground">
@@ -1231,54 +1231,40 @@ const ChequesPage = () => {
                           </span>
                         </td>
                         <td className="px-2 py-3" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-1">
-                            {actions.length > 0 && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px] px-2">
-                                    <Zap className="h-3 w-3" /> إجراء <ChevronDown className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="min-w-[180px]">
-                                  {actions.map(actionId => {
-                                    const ac = ACTION_CONFIGS[actionId];
-                                    return (
-                                      <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }} className="text-xs cursor-pointer">
-                                        {ac.label}
-                                      </DropdownMenuItem>
-                                    );
-                                  })}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                            {c.status === 'مظهر' && c.cheque_type === 'وارد' && (
-                              <Button
-                                size="sm" variant="ghost"
-                                onClick={() => setUnendorseTarget(c)}
-                                className="h-7 gap-1 text-[11px] px-2"
-                                title="إلغاء التجيير وإرجاع الشيك إلى بحوزتك"
-                              >
-                                <Undo2 className="h-3 w-3" /> إلغاء التجيير
-                              </Button>
-                            )}
-                            {c.status === 'مودع' && c.cheque_type === 'وارد' && (
-                              <Button
-                                size="sm" variant="ghost"
-                                onClick={() => setUndepositTarget(c)}
-                                className="h-7 gap-1 text-[11px] px-2"
-                                title="إلغاء الإيداع وإرجاع الشيك إلى بحوزتك"
-                              >
-                                <Undo2 className="h-3 w-3" /> إلغاء الإيداع
-                              </Button>
-                            )}
-                            <Button
-                              size="icon" variant="ghost"
-                              onClick={() => setDeleteTarget(c)}
-                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              title="حذف"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                          <div className="flex items-center gap-1 justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px] px-2">
+                                  <Zap className="h-3 w-3" /> إجراء <ChevronDown className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="min-w-[200px]">
+                                {actions.map(actionId => {
+                                  const ac = ACTION_CONFIGS[actionId];
+                                  return (
+                                    <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }} className="text-xs cursor-pointer">
+                                      {ac.label}
+                                    </DropdownMenuItem>
+                                  );
+                                })}
+                                {c.status === 'مظهر' && c.cheque_type === 'وارد' && (
+                                  <DropdownMenuItem onClick={() => setUnendorseTarget(c)} className="text-xs cursor-pointer">
+                                    <Undo2 className="ml-2 h-3.5 w-3.5" /> إلغاء التجيير
+                                  </DropdownMenuItem>
+                                )}
+                                {c.status === 'مودع' && c.cheque_type === 'وارد' && (
+                                  <DropdownMenuItem onClick={() => setUndepositTarget(c)} className="text-xs cursor-pointer">
+                                    <Undo2 className="ml-2 h-3.5 w-3.5" /> إلغاء الإيداع
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteTarget(c)}
+                                  className="text-xs cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="ml-2 h-3.5 w-3.5" /> حذف
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </td>
                       </tr>
