@@ -1239,10 +1239,31 @@ const InventoryPage = () => {
             </TabsContent>
           </Tabs>
 
-          <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl gap-2 shadow-md shadow-primary/20 mt-4">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {editMode ? "حفظ التعديلات" : "إضافة المنتج"}
-          </Button>
+          <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border">
+            <div>
+              {editMode && selectedProduct && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="rounded-xl gap-2"
+                  disabled={saving}
+                  onClick={() => { handleDelete(selectedProduct); setShowProductDialog(false); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  حذف المنتج
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" className="rounded-xl" onClick={() => setShowProductDialog(false)} disabled={saving}>
+                إلغاء
+              </Button>
+              <Button onClick={handleSave} disabled={saving} className="rounded-xl gap-2 shadow-md shadow-primary/20">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {editMode ? "حفظ التعديلات" : "إضافة المنتج"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
