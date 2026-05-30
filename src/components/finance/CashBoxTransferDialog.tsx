@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FinanceModal } from "@/components/finance/shell";
 
 interface Box {
   id: string;
@@ -99,15 +98,17 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <ArrowLeftRight className="h-5 w-5 text-purple-600" />
-            تحويل بين الصناديق
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 mt-2">
+    <FinanceModal
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={ArrowLeftRight}
+      title="تحويل بين الصناديق"
+      description="تحويل مبلغ من صندوق إلى آخر مع قيد محاسبي مزدوج"
+      primaryLabel="تأكيد التحويل"
+      primaryLoading={saving}
+      primaryDisabled={!fromId || !toId || fromId === toId || !amount || Number(amount) <= 0}
+      onPrimary={handleSubmit}
+    >
           <div className="space-y-1.5">
             <Label className="text-xs">من صندوق</Label>
             <Select value={fromId} onValueChange={setFromId}>
@@ -162,8 +163,8 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
 
           {/* Preview journal entry */}
           {fromBox && toBox && Number(amount) > 0 && (
-            <div className="rounded-lg p-3 border bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-xs space-y-1">
-              <p className="font-bold text-purple-700 dark:text-purple-400 mb-1.5">القيد المحاسبي:</p>
+            <div className="rounded-md p-3 border border-border bg-muted/40 text-xs space-y-1">
+              <p className="font-semibold text-foreground mb-1.5">القيد المحاسبي:</p>
               <div className="flex justify-between">
                 <span>مدين: {toBox.name} ({toBox.gl_account_code})</span>
                 <span className="font-mono font-bold">{curSymbol}{fmt(Number(amount))}</span>
@@ -179,18 +180,6 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
             <Label className="text-xs">ملاحظة (اختياري)</Label>
             <Textarea className="text-sm resize-none" rows={2} placeholder="سبب التحويل..." value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
-
-          <Button
-            className="w-full gap-2"
-            style={{ background: "linear-gradient(135deg, #4C1D95, #7C3AED)" }}
-            disabled={saving || !fromId || !toId || fromId === toId || !amount || Number(amount) <= 0}
-            onClick={handleSubmit}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeftRight className="h-4 w-4" />}
-            تأكيد التحويل
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </FinanceModal>
   );
 }

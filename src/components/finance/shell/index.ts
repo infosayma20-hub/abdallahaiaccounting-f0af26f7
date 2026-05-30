@@ -1,5 +1,9 @@
 export { FinanceShell } from "./FinanceShell";
 export { ActionPane, ActionOverflowMenu } from "./ActionPane";
+export { FinanceModal } from "./FinanceModal";
+export type { FinanceModalProps } from "./FinanceModal";
+export { SegmentedTypeSelect } from "./SegmentedTypeSelect";
+export type { SegmentedTypeOption } from "./SegmentedTypeSelect";
 export { FastTabs } from "./FastTabs";
 export type { FastTabItem } from "./FastTabs";
 export { FiltersPanel, applyFilters } from "./FiltersPanel";

@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowDown, Wallet } from "lucide-react";
+import { ArrowDown, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FinanceModal } from "@/components/finance/shell";
 
 interface CashBox {
   id: string;
@@ -97,16 +96,17 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-foreground">
-            <Wallet className="h-5 w-5 text-amber-600" />
-            تغذية صندوق النثرية
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-2">
+    <FinanceModal
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={Wallet}
+      title="تغذية صندوق النثرية"
+      description="تحويل مبلغ من صندوق رئيسي/فرع إلى صندوق نثرية"
+      primaryLabel="تنفيذ التغذية"
+      primaryLoading={saving}
+      primaryDisabled={!fromBoxId || !toBoxId || !amount || Number(amount) <= 0}
+      onPrimary={handleSubmit}
+    >
           {/* From Box */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">من الصندوق</Label>
@@ -118,7 +118,6 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
                 {sourceBoxes.map(b => (
                   <SelectItem key={b.id} value={b.id}>
                     <span className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${b.type === "main" ? "bg-[#0A2342]" : "bg-emerald-600"}`} />
                       {b.name}
                       <span className="text-muted-foreground text-[10px]">({b.gl_account_code})</span>
                     </span>
@@ -130,9 +129,7 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
 
           {/* Arrow */}
           <div className="flex justify-center">
-            <div className="bg-amber-100 text-amber-700 rounded-full p-2">
-              <ArrowDown className="h-4 w-4" />
-            </div>
+            <ArrowDown className="h-4 w-4 text-muted-foreground" />
           </div>
 
           {/* To Box */}
@@ -146,7 +143,6 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
                 {targetBoxes.map(b => (
                   <SelectItem key={b.id} value={b.id}>
                     <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-500" />
                       {b.name}
                       <span className="text-muted-foreground text-[10px]">({b.gl_account_code})</span>
                     </span>
@@ -184,7 +180,7 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
 
           {/* Summary */}
           {fromBox && toBox && amount && Number(amount) > 0 && (
-            <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1 border border-border/50">
+            <div className="bg-muted/40 rounded-md p-3 text-xs space-y-1 border border-border">
               <p className="font-semibold text-foreground">ملخص القيد المحاسبي:</p>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">مدين: {toBox.name} ({toBox.gl_account_code})</span>
@@ -192,17 +188,10 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">دائن: {fromBox.name} ({fromBox.gl_account_code})</span>
-                <span className="font-mono font-bold text-emerald-600">₪{Number(amount).toFixed(2)}</span>
+                <span className="font-mono font-bold text-foreground">₪{Number(amount).toFixed(2)}</span>
               </div>
             </div>
           )}
-
-          <Button onClick={handleSubmit} disabled={saving || !fromBoxId || !toBoxId || !amount || Number(amount) <= 0} className="w-full gap-2" style={{ background: "#D97706" }}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-            {saving ? "جارٍ التنفيذ..." : "تنفيذ التغذية"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </FinanceModal>
   );
 }

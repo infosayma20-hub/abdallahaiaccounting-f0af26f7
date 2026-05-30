@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Landmark, ArrowUpFromLine } from "lucide-react";
+import { Landmark, ArrowUpFromLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FinanceModal } from "@/components/finance/shell";
 
 interface CashBox {
   id: string;
@@ -120,16 +119,17 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Landmark className="h-5 w-5 text-emerald-600" />
-            إيداع بنكي
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-2">
+    <FinanceModal
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={ArrowUpFromLine}
+      title="إيداع بنكي"
+      description="تحويل من صندوق نقدي إلى حساب بنكي"
+      primaryLabel="تنفيذ الإيداع البنكي"
+      primaryLoading={saving}
+      primaryDisabled={!fromBoxId || !bankAccountId || !amount || Number(amount) <= 0}
+      onPrimary={handleSubmit}
+    >
           {/* Source box */}
           <div className="space-y-1.5">
             <Label className="text-xs">من صندوق</Label>
@@ -216,7 +216,7 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
 
           {/* Preview */}
           {Number(amount) > 0 && fromBox && bankAccount && (
-            <div className="rounded-lg p-3 border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800">
+            <div className="rounded-md p-3 border border-border bg-muted/40">
               <div className="text-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">من:</span>
@@ -226,9 +226,9 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
                   <span className="text-muted-foreground">إلى:</span>
                   <span className="font-medium">{bankAccount.name} ({bankAccount.gl_account_code || "1120"})</span>
                 </div>
-                <div className="flex justify-between border-t pt-1 mt-1">
+                <div className="flex justify-between border-t border-border pt-1 mt-1">
                   <span className="text-muted-foreground">المبلغ:</span>
-                  <span className="font-bold font-mono text-emerald-700 dark:text-emerald-400 text-sm">
+                  <span className="font-bold font-mono text-foreground text-sm">
                     {curInfo?.symbol}{fmt(Number(amount))}
                   </span>
                 </div>
@@ -247,18 +247,6 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
               onChange={e => setNotes(e.target.value)}
             />
           </div>
-
-          <Button
-            className="w-full gap-2"
-            style={{ background: "linear-gradient(135deg, #065F46, #059669)" }}
-            disabled={saving || !fromBoxId || !bankAccountId || !amount || Number(amount) <= 0}
-            onClick={handleSubmit}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpFromLine className="h-4 w-4" />}
-            تنفيذ الإيداع البنكي
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </FinanceModal>
   );
 }
