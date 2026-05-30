@@ -591,6 +591,16 @@ const POSPage = () => {
   const [posAutoPrint, setPosAutoPrint] = useState(true);
   const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
+  // Cashier policy windows (loaded from company_settings, see fetch below).
+  const [cashierCancelWindowMin, setCashierCancelWindowMin] = useState(30);
+  const [cashierAmountVisibleMin, setCashierAmountVisibleMin] = useState(60);
+  // Replacement-invoice flow: remember the last invoice the cashier just
+  // cancelled in THIS session so we can offer a "هذه فاتورة معدّلة" toggle on
+  // the next sale. Auto-suggested ON for the first sale after a cancel; the
+  // cashier can untick it. Cleared after the next sale completes (or after a
+  // reasonable timeout/window).
+  const [lastCancelledOrder, setLastCancelledOrder] = useState<{ id: string; order_number: string | null; at: number } | null>(null);
+  const [markAsReplacement, setMarkAsReplacement] = useState(false);
   const [detectedBranchId, setDetectedBranchId] = useState<string | null>(null);
   // ── Device-level config (per-machine, stored in localStorage) ──
   const [deviceConfig, setDeviceConfig] = useState(() => getDeviceConfig());
