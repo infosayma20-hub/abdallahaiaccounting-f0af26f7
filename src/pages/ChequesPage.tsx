@@ -984,12 +984,60 @@ const ChequesPage = () => {
     ],
   }];
 
+  // ============ FILTER FIELDS (FiltersPanel) ============
+  const bankOptions = useMemo(() => {
+    const s = new Set<string>();
+    cheques.forEach(c => { if (c.bank_name) s.add(c.bank_name); });
+    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+  }, [cheques]);
+  const partyOptions = useMemo(() => {
+    const s = new Set<string>();
+    cheques.forEach(c => { if (c.party_name) s.add(c.party_name); });
+    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+  }, [cheques]);
+  const currencyOptions = useMemo(() => {
+    const s = new Set<string>();
+    cheques.forEach(c => { if (c.currency) s.add(c.currency); });
+    return Array.from(s).sort().map(v => ({ value: v, label: v }));
+  }, [cheques]);
+  const statusOptions = (Object.keys(statusConfig) as ChequeStatus[])
+    .map(s => ({ value: s, label: statusConfig[s].label }));
+  const filterFields: FilterField[] = useMemo(() => ([
+    { key: 'cheque_type', label: 'النوع', type: 'option', options: [
+      { value: 'وارد', label: 'وارد' }, { value: 'صادر', label: 'صادر' },
+    ]},
+    { key: 'status', label: 'الحالة', type: 'option', options: statusOptions },
+    { key: 'bank_name', label: 'البنك', type: 'option', options: bankOptions },
+    { key: 'party_name', label: 'الطرف', type: 'option', options: partyOptions },
+    { key: 'cheque_date', label: 'تاريخ الاستحقاق', type: 'date' },
+    { key: 'currency', label: 'العملة', type: 'option', options: currencyOptions },
+    { key: 'amount', label: 'المبلغ', type: 'number' },
+  ]), [bankOptions, partyOptions, currencyOptions]);
+
   return (
     <FinanceShell
       title="إدارة الشيكات"
       subtitle="تتبع شيكاتك الواردة والصادرة وعمليات التحصيل والصرف والتظهير."
       breadcrumb={[{ label: "المالية", href: "/accounting-center" }, { label: "الشيكات" }]}
       actionTabs={actionTabs}
+      filterFields={filterFields}
+      filters={shellFilters}
+      onFiltersChange={setShellFilters}
+      storageKey="cheques-page"
+      rightSlot={
+        <div className="flex items-center gap-1.5">
+          <div className="relative">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="رقم الشيك، الجهة، البنك..."
+              className="h-8 w-56 pr-8 text-xs"
+            />
+          </div>
+          <ColumnVisibilityMenu state={colState} />
+        </div>
+      }
     >
     <div className="space-y-5" dir="rtl">
 
