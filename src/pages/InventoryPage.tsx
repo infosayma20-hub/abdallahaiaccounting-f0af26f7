@@ -588,7 +588,63 @@ const InventoryPage = () => {
           },
           { key: "print", label: "طباعة", icon: Printer, disabled: filtered.length === 0,
             tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined,
-            onClick: () => window.print() },
+            onClick: () => {
+              const fmt = (n: number) => n === 0 ? "—" : `₪${n.toLocaleString()}`;
+              const filteredValue = filtered.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
+              const fLow = filtered.filter(p => stockStatus(p) === "منخفض").length;
+              const fOut = filtered.filter(p => stockStatus(p) === "نفد").length;
+              const rowsHtml = filtered.map(p => {
+                const st = stockStatus(p);
+                const stClass = st === "نفد" ? "text-red" : st === "منخفض" ? "text-primary" : "text-green";
+                const lineValue = p.quantity * (p.buy_price || p.sell_price);
+                return `<tr>
+                  <td class="font-mono">${p.sku || "—"}</td>
+                  <td>${p.name}</td>
+                  <td>${p.category || "—"}</td>
+                  <td class="font-mono">${p.quantity.toLocaleString()}</td>
+                  <td class="font-mono text-muted">${p.min_quantity || "—"}</td>
+                  <td>${p.unit || "—"}</td>
+                  <td class="font-mono">${fmt(p.buy_price || 0)}</td>
+                  <td class="font-mono">${fmt(p.sell_price || 0)}</td>
+                  <td class="font-mono font-bold">${fmt(lineValue)}</td>
+                  <td class="${stClass}">${st}</td>
+                </tr>`;
+              }).join("");
+              const contentHtml = `
+                <div class="print-header">
+                  <div>
+                    <div class="company-name">${settings.company_name || "الشركة"}</div>
+                    <div class="report-title">تقرير المخزون</div>
+                  </div>
+                  <div class="print-date">${filtered.length} صنف</div>
+                </div>
+                <div class="summary-row">
+                  <div class="summary-card"><div class="summary-label">إجمالي الأصناف</div><div class="summary-value">${filtered.length}</div></div>
+                  <div class="summary-card"><div class="summary-label">قيمة المخزون</div><div class="summary-value">₪${filteredValue.toLocaleString()}</div></div>
+                  <div class="summary-card"><div class="summary-label">مخزون منخفض</div><div class="summary-value">${fLow}</div></div>
+                  <div class="summary-card"><div class="summary-label">نفد المخزون</div><div class="summary-value red">${fOut}</div></div>
+                </div>
+                <table>
+                  <thead><tr>
+                    <th>الكود</th><th>اسم الصنف</th><th>الفئة</th><th>الكمية</th><th>الحد الأدنى</th><th>الوحدة</th><th>سعر الشراء</th><th>سعر البيع</th><th>قيمة المخزون</th><th>الحالة</th>
+                  </tr></thead>
+                  <tbody>${rowsHtml}</tbody>
+                  <tfoot><tr>
+                    <td colspan="8" style="text-align:right">إجمالي قيمة المخزون (${filtered.length} صنف)</td>
+                    <td class="font-mono font-bold">₪${filteredValue.toLocaleString()}</td>
+                    <td></td>
+                  </tr></tfoot>
+                </table>
+              `;
+              import("@/lib/printUtils").then(({ printReport }) => {
+                printReport({
+                  title: "تقرير المخزون",
+                  companyName: settings.company_name || "الشركة",
+                  contentHtml,
+                });
+              });
+            },
+          },
         ],
       },
     ],
