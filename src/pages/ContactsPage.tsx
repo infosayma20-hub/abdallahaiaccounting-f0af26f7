@@ -621,14 +621,7 @@ const ContactsPage = () => {
           </button>
         )}
       </div>
-      <ColumnVisibilityMenu
-        columns={cols.columns}
-        isVisible={cols.isVisible}
-        toggle={cols.toggle}
-        showAll={cols.showAll}
-        hideAllOptional={cols.hideAllOptional}
-        hiddenCount={cols.hiddenCount}
-      />
+      <ColumnVisibilityMenu state={cols} />
       <DropdownMenu open={showAlerts} onOpenChange={setShowAlerts}>
         <DropdownMenuTrigger asChild>
           <Button size="sm" variant="outline" className="h-8 relative px-2">
