@@ -503,6 +503,32 @@ export default function InvoiceHistoryDrawer({
     }
     try { await assertPermission("pos", "sell", "refund"); } catch { return; }
     setReturningOrder(order);
+    if (requireManagerForReturn) {
+      setPendingManagerAction("return");
+      setManagerOverrideVariant("destructive");
+      setManagerOverrideTitle("موافقة المدير — ارتجاع فاتورة");
+      setManagerOverrideDesc(`ارتجاع الفاتورة #${order.order_number || "---"} بقيمة ₪${order.total.toFixed(2)} يتطلب موافقة المدير`);
+      setShowManagerOverride(true);
+    } else {
+      setShowReturnDialog(true);
+    }
+  };
+
+  const handleManagerApprovedForReturn = async (managerName: string) => {
+    setShowManagerOverride(false);
+    setReturnApprovedBy(managerName);
+    setPendingManagerAction(null);
+    // Log sensitive action
+    try {
+      await (supabase.from("pos_sensitive_actions_log" as any) as any).insert({
+        company_id: dataOwnerId,
+        action: "manager_override_return",
+        invoice_id: returningOrder?.id || null,
+        session_id: sessionId,
+        notes: `موافقة مدير لارتجاع فاتورة #${returningOrder?.order_number || ""}`,
+        metadata: { manager_name: managerName, cashier_name: cashierName },
+      });
+    } catch { /* ignore */ }
     setShowReturnDialog(true);
   };
 
