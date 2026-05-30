@@ -45,6 +45,12 @@ interface ShiftSummaryReceiptProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: ShiftSummaryData | null;
+  /**
+   * When true (default false), hides expected-cash rows, currency breakdown,
+   * and non-cash payment-method breakdown. The total variance box stays visible
+   * read-only so the cashier sees only the final difference.
+   */
+  cashierMode?: boolean;
 }
 
 const CURRENCIES = ["ILS", "USD", "JOD"] as const;
@@ -97,7 +103,7 @@ const shiftSummaryPrintStyles = `
   .footer-text { font-size: 9px; color: #94a3b8; text-align: center; line-height: 1.6; }
 `;
 
-export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftSummaryReceiptProps) {
+export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierMode = false }: ShiftSummaryReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const autoPrintDone = useRef(false);
 
