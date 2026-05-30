@@ -145,7 +145,7 @@ const BackupSettingsSection = () => {
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       const totalRows = Object.values(allData).reduce((s, a) => s + a.length, 0);
-      toast({ title: "تم تصدير النسخة الاحتياطية ✅", description: `${totalRows} سجل في ملف Excel` });
+      toast({ title: "تم تصدير النسخة الاحتياطية", description: `${totalRows} سجل في ملف Excel` });
     } catch (err: any) {
       toast({ title: "خطأ في التصدير", description: err.message, variant: "destructive" });
     } finally {
