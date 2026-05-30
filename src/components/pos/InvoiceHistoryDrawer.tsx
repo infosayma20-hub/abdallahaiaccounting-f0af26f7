@@ -105,6 +105,25 @@ interface InvoiceHistoryDrawerProps {
    * canEditInvoices/canCancelInvoices/requireManagerFor*).
    */
   cashierMode?: boolean;
+  /**
+   * Grace window (minutes) where a CASHIER can cancel their own freshly-printed
+   * invoice WITHOUT manager approval. Outside this window, the normal
+   * requireManagerForCancel rule applies. Only meaningful when cashierMode=true.
+   * Default: 30 minutes.
+   */
+  cancelWindowMinutes?: number;
+  /**
+   * In cashierMode, the invoice total is shown only for this many minutes after
+   * the invoice was created. After that the amount is masked ("—") in the
+   * cashier's history list. Default: 60 minutes.
+   */
+  amountVisibleMinutes?: number;
+  /**
+   * Fires after a successful invoice cancellation so the parent (POS page)
+   * can remember the cancelled invoice and offer a "Replacement invoice"
+   * checkbox on the very next sale.
+   */
+  onInvoiceCancelled?: (orderId: string, orderNumber: string | null) => void;
   allowOrderTransfer?: boolean;
   printInvoices?: boolean;
   resendInvoice?: boolean;
@@ -136,11 +155,26 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, cancelWindowMinutes = 30, amountVisibleMinutes = 60, onInvoiceCancelled, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
 }: InvoiceHistoryDrawerProps) {
   // Use specific flags if provided, otherwise fall back to general flag
   const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
   const needsManagerForCancel = requireManagerForCancel ?? requireManagerForInvoices;
+
+  // ── Cashier grace windows ──
+  // Re-evaluated each render so the grace window naturally expires as time passes
+  // (the drawer is mounted live and re-renders on user interactions).
+  const isWithinCancelGrace = (order: InvoiceOrder) => {
+    if (!order.created_at) return false;
+    const ageMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+    return ageMin <= cancelWindowMinutes;
+  };
+  const canCashierSeeAmount = (order: InvoiceOrder) => {
+    if (!cashierMode) return true;
+    if (!order.created_at) return false;
+    const ageMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+    return ageMin <= amountVisibleMinutes;
+  };
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -683,16 +717,21 @@ export default function InvoiceHistoryDrawer({
   const handleCancelConfirm = () => {
     if (!cancelReason.trim()) { toast.error("اختر سبب الإلغاء"); return; }
     setShowCancelConfirm(false);
-    if (needsManagerForCancel) {
+    // Cashier grace window: within N minutes of issuance, allow cancel without
+    // manager override. Outside the window → fall back to manager approval.
+    const inGrace = cashierMode && cancellingOrder && isWithinCancelGrace(cancellingOrder);
+    if (needsManagerForCancel && !inGrace) {
       setPendingManagerAction("cancel");
       setManagerOverrideVariant("destructive");
       setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
       setManagerOverrideDesc(`إلغاء الفاتورة #${cancellingOrder?.order_number || "---"} بقيمة ₪${cancellingOrder?.total.toFixed(2)} — السبب: ${cancelReason}`);
       setShowManagerOverride(true);
     } else {
-      // No manager approval needed
       if (cancellingOrder) {
-        executeCancel(cancellingOrder, cancelReason, "بدون موافقة مدير");
+        const approver = inGrace
+          ? `الكاشير (ضمن مهلة ${cancelWindowMinutes} دقيقة)`
+          : "بدون موافقة مدير";
+        executeCancel(cancellingOrder, cancelReason, approver);
       }
     }
   };
@@ -784,6 +823,9 @@ export default function InvoiceHistoryDrawer({
         (wasReversed ? " — تم إنشاء قيد عكسي" : "") +
         " — أُرسلت تذكرة إلغاء للمطبخ"
       );
+      // Notify parent so it can offer a "replacement invoice" toggle on the
+      // next sale (links the new invoice to this cancelled one).
+      try { onInvoiceCancelled?.(order.id, order.order_number); } catch { /* ignore */ }
       setSelectedOrder(null);
       setCancellingOrder(null);
       setCancelReason("");
