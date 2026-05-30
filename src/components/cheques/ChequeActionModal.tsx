@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  Building2, CheckCircle2, AlertTriangle, Banknote, ArrowDownToLine, ArrowUpFromLine,
+  Building2, CheckCircle2, AlertTriangle, ArrowDownToLine, ArrowUpFromLine,
   Undo2, Ban, CircleDollarSign, RefreshCw, User, X, UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
