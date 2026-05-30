@@ -100,17 +100,16 @@ const PrintSettingsSection = ({ settings, onChange }: Props) => {
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[
-            { name: "فاتورة مبيعات", icon: "🧾" },
-            { name: "سند قبض", icon: "📥" },
-            { name: "سند صرف", icon: "📤" },
-            { name: "قسيمة راتب", icon: "💰" },
-            { name: "كشف حساب", icon: "📊" },
+            { name: "فاتورة مبيعات" },
+            { name: "سند قبض" },
+            { name: "سند صرف" },
+            { name: "قسيمة راتب" },
+            { name: "كشف حساب" },
           ].map(template => (
             <div
               key={template.name}
               className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/40 cursor-pointer transition-colors"
             >
-              <span className="text-xl">{template.icon}</span>
               <div>
                 <p className="text-sm font-medium">{template.name}</p>
                 <p className="text-xs text-muted-foreground">معاينة</p>
