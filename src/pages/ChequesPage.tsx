@@ -1284,7 +1284,7 @@ const ChequesPage = () => {
                       </tr>
                       {isExpanded && (
                         <tr key={`${c.id}-details`}>
-                          <td colSpan={11} className="border-b border-border bg-muted/20 px-6 py-4">
+                          <td colSpan={visibleColCount} className="border-b border-border bg-muted/20 px-6 py-4">
                             <ChequeTimeline cheque={c} history={history} />
                           </td>
                         </tr>
@@ -1295,9 +1295,9 @@ const ChequesPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-primary bg-muted/40 font-bold text-sm">
-                  <td colSpan={3} className="px-2 py-3 text-right text-foreground">المجموع ({tabFiltered.length} شيك)</td>
-                  <td colSpan={2} className="px-2 py-3 tabular-nums text-foreground">₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={6} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
+                  <td colSpan={Math.max(1, Math.floor(visibleColCount / 2))} className="px-2 py-3 text-right text-foreground">المجموع ({tabFiltered.length} شيك)</td>
+                  <td className="px-2 py-3 tabular-nums text-foreground">₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
+                  <td colSpan={Math.max(1, visibleColCount - Math.floor(visibleColCount / 2) - 1)} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
                 </tr>
               </tfoot>
             </table>
