@@ -57,10 +57,10 @@ export function SettingsActionPane({ groups }: { groups: SettingsActionGroup[] }
 
   return (
     <div className="border-b border-border bg-card" dir="rtl">
-      <div className="flex items-start gap-1 px-3 py-2 overflow-x-auto">
+      <div className="flex items-start gap-1 px-3 py-2 overflow-x-auto scrollbar-thin">
         {visible.map((g, gi) => (
           <div key={g.key} className="flex items-stretch">
-            <div className="flex flex-col items-stretch min-w-[100px]">
+            <div className="flex flex-col items-stretch min-w-[88px] md:min-w-[100px]">
               <div className="flex items-center gap-0.5">
                 {g.items.map((it) => (
                   <Button
@@ -71,7 +71,7 @@ export function SettingsActionPane({ groups }: { groups: SettingsActionGroup[] }
                     onClick={() => handle(it)}
                     title={it.tooltip || it.label}
                     className={cn(
-                      "h-8 gap-1.5 text-[12.5px] font-normal",
+                      "h-8 gap-1.5 text-[12.5px] font-normal whitespace-nowrap shrink-0",
                       variantClass(it.variant)
                     )}
                     data-testid={`settings-action-${it.key}`}
@@ -81,11 +81,11 @@ export function SettingsActionPane({ groups }: { groups: SettingsActionGroup[] }
                   </Button>
                 ))}
               </div>
-              <div className="text-[10.5px] text-muted-foreground text-center mt-0.5 select-none">
+              <div className="text-[10.5px] text-muted-foreground text-center mt-0.5 select-none whitespace-nowrap">
                 {g.label}
               </div>
             </div>
-            {gi < visible.length - 1 && <div className="w-px bg-border mx-1 my-1" />}
+            {gi < visible.length - 1 && <div className="w-px bg-border mx-1 my-1 shrink-0" />}
           </div>
         ))}
       </div>

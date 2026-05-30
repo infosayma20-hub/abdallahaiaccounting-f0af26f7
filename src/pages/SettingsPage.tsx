@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield,
   Link2, Printer, Brain, RotateCcw, Monitor, GitBranch, Receipt, HardDrive,
-  Save, RefreshCw, Inbox,
+  Save, RefreshCw, Inbox, Menu,
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +37,8 @@ import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
 import BackupSettingsSection from "@/components/settings/BackupSettingsSection";
 import { multiWordMatchAny } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 /** Section catalog — ordered to match the navigation spec. */
 const SECTIONS = [
@@ -73,6 +75,7 @@ const SettingsPage = () => {
   const { settings, loading, saving, hasChanges, updateSettings, saveSettings, resetToDefaults, loadSettings } =
     useCompanySettings();
   const settingsPerm = usePermission("settings");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +101,7 @@ const SettingsPage = () => {
     const next = new URLSearchParams(searchParams);
     next.set("section", id);
     setSearchParams(next, { replace: true });
+    setMobileNavOpen(false);
   };
 
   const sidebarItems: SettingsSidebarItem[] = useMemo(() => {
@@ -268,17 +272,43 @@ const SettingsPage = () => {
     }
   };
 
+  const activeLabel = SECTIONS.find((s) => s.id === activeSection)?.label ?? "الإعدادات";
+  const mobileTrigger = (
+    <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm" className="md:hidden h-8 gap-1.5 text-[12.5px]">
+          <Menu className="h-3.5 w-3.5" />
+          <span className="truncate max-w-[120px]">{activeLabel}</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-72 p-0 flex flex-col" dir="rtl">
+        <SheetHeader className="p-3 border-b border-border text-right">
+          <SheetTitle className="text-[14px]">أقسام الإعدادات</SheetTitle>
+        </SheetHeader>
+        <SettingsSidebar
+          bare
+          items={sidebarItems}
+          activeId={activeSection}
+          onSelect={handleSelect}
+          search={search}
+          onSearchChange={setSearch}
+        />
+      </SheetContent>
+    </Sheet>
+  );
+
   return (
     <SettingsShell
       title="الإعدادات"
       subtitle="إدارة إعدادات الشركة، المالية، الفواتير، التشغيل، الأمان والتكاملات."
       breadcrumb={[{ label: "النظام" }, { label: "الإعدادات" }]}
       actionGroups={actionGroups}
+      rightSlot={mobileTrigger}
     >
       <div className="flex h-full min-h-0">
         {/* Content (RTL: appears to the left of sidebar) */}
         <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-auto p-4">
+          <div className="flex-1 min-h-0 overflow-auto p-3 sm:p-4">
             {renderContent()}
           </div>
           <UnsavedChangesBar
@@ -289,14 +319,16 @@ const SettingsPage = () => {
           />
         </main>
 
-        {/* Sidebar (right side in RTL) */}
-        <SettingsSidebar
-          items={sidebarItems}
-          activeId={activeSection}
-          onSelect={handleSelect}
-          search={search}
-          onSearchChange={setSearch}
-        />
+        {/* Sidebar (right side in RTL) — hidden below md, replaced by Sheet trigger */}
+        <div className="hidden md:flex">
+          <SettingsSidebar
+            items={sidebarItems}
+            activeId={activeSection}
+            onSelect={handleSelect}
+            search={search}
+            onSearchChange={setSearch}
+          />
+        </div>
       </div>
 
       <AlertDialog open={confirmReset} onOpenChange={setConfirmReset}>
