@@ -1159,7 +1159,7 @@ const ChequesPage = () => {
                 <col style={{ width: 100 }} />
                 {show('remaining') && <col style={{ width: 85 }} />}
                 <col style={{ width: 110 }} />
-                <col style={{ width: 110 }} />
+                <col style={{ width: 140 }} />
               </colgroup>
               <thead>
                 <tr className="bg-primary text-primary-foreground">
