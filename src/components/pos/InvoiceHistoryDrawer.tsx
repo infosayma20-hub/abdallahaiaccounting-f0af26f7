@@ -451,9 +451,13 @@ export default function InvoiceHistoryDrawer({
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return orders;
-    return orders.filter(o => multiWordMatchAny(searchQuery, o.order_number, o.customer_name));
-  }, [orders, searchQuery]);
+    let list = orders;
+    if (cashierMode) {
+      list = list.filter(o => o.state !== "cancelled");
+    }
+    if (!searchQuery.trim()) return list;
+    return list.filter(o => multiWordMatchAny(searchQuery, o.order_number, o.customer_name));
+  }, [orders, searchQuery, cashierMode]);
 
   const isTransferredOut = (order: InvoiceOrder) => 
     order.transferred_from_session_id === sessionId && order.session_id !== sessionId;
@@ -899,7 +903,7 @@ export default function InvoiceHistoryDrawer({
         <div className="flex items-center justify-between px-5 py-2.5 text-xs" style={{ background: "#F8FAFC", fontFamily: "Tajawal, sans-serif" }}>
           <span style={{ color: "#64748B" }}>إجمالي: <strong style={{ color: "#0A2342", fontFamily: "JetBrains Mono, monospace" }}>₪{summary.totalToday.toFixed(2)}</strong></span>
           <span style={{ color: "#64748B" }}>الفواتير: <strong style={{ color: "#0A2342" }}>{summary.count}</strong></span>
-          <span style={{ color: "#DC2626" }}>ملغية: <strong>{summary.cancelled}</strong></span>
+          {!cashierMode && <span style={{ color: "#DC2626" }}>ملغية: <strong>{summary.cancelled}</strong></span>}
         </div>
 
         {/* Invoice list */}
@@ -945,7 +949,7 @@ export default function InvoiceHistoryDrawer({
                         {order.contacts?.phone && (
                           <span className="font-mono text-[10px]" dir="ltr">{order.contacts.phone}</span>
                         )}
-                        {order.pos_payments && order.pos_payments.length > 0 && (
+                        {!cashierMode && order.pos_payments && order.pos_payments.length > 0 && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#F1F5F9", color: "#475569" }}>
                             {order.pos_payments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).filter((v, i, a) => a.indexOf(v) === i).join(" + ")}
                           </span>
@@ -1039,10 +1043,12 @@ export default function InvoiceHistoryDrawer({
                     <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
                   )}
                 </div>
-                <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
-                  {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
-                </div>
+                {!cashierMode && (
+                  <div>
+                    <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
+                    {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
+                  </div>
+                )}
                 {selectedOrder.recall_status && (
                   <div>
                     <span className="block text-[10px]" style={{ color: "#94A3B8" }}>سبب التعديل</span>
