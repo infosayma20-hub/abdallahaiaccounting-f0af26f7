@@ -552,10 +552,10 @@ const FinanceJournalPage = () => {
             <SelectContent className="bg-background z-50">
               <SelectItem value="active">بدون الملغية</SelectItem>
               <SelectItem value="all">جميع الحالات</SelectItem>
-              <SelectItem value="posted">✅ مرحّل</SelectItem>
-              <SelectItem value="draft">📝 مسودة</SelectItem>
-              <SelectItem value="deferred">⏳ مؤجل</SelectItem>
-              <SelectItem value="cancelled">🔴 ملغي فقط</SelectItem>
+              <SelectItem value="posted">مرحّل</SelectItem>
+              <SelectItem value="draft">مسودة</SelectItem>
+              <SelectItem value="deferred">مؤجل</SelectItem>
+              <SelectItem value="cancelled">ملغي فقط</SelectItem>
             </SelectContent>
           </Select>
         </div>

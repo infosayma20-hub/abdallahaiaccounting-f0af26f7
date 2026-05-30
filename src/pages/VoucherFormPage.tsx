@@ -3234,7 +3234,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     <span>تاريخ الاستحقاق</span>
                     <span>المبلغ</span>
                     <span>رقم الحساب</span>
-                    <span className="text-center">📝</span>
+                    <span className="text-center">ملاحظات</span>
                     <span></span>
                   </div>
                   <div className="space-y-1.5">

@@ -488,9 +488,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
               <SelectContent className="bg-background z-50">
                 <SelectItem value="active">بدون الملغية</SelectItem>
                 <SelectItem value="all">كل الحالات</SelectItem>
-                <SelectItem value="مرحّل">✅ مرحّل</SelectItem>
-                <SelectItem value="مسودة">📝 مسودة</SelectItem>
-                <SelectItem value="ملغي">🔴 ملغي فقط</SelectItem>
+                <SelectItem value="مرحّل">مرحّل</SelectItem>
+                <SelectItem value="مسودة">مسودة</SelectItem>
+                <SelectItem value="ملغي">ملغي فقط</SelectItem>
               </SelectContent>
             </Select>
             <span className="text-[11px] text-muted-foreground mr-auto">{filtered.length} سند</span>
