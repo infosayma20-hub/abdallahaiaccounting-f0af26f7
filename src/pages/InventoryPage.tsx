@@ -494,15 +494,15 @@ const InventoryPage = () => {
 
   // ============ COLUMN VISIBILITY ============
   const INVENTORY_COLUMNS: ColumnDef[] = [
-    { key: "sku", label: "الكود", default: true },
+    { key: "sku", label: "الكود", defaultVisible: true },
     { key: "name", label: "اسم الصنف", required: true },
-    { key: "category", label: "الفئة", default: true },
+    { key: "category", label: "الفئة", defaultVisible: true },
     { key: "quantity", label: "الكمية", required: true },
-    { key: "min_quantity", label: "الحد الأدنى", default: true },
-    { key: "buy_price", label: "سعر الشراء", default: true },
-    { key: "sell_price", label: "سعر البيع", default: true },
-    { key: "unit", label: "الوحدة", default: false },
-    { key: "stock_value", label: "قيمة المخزون", default: false },
+    { key: "min_quantity", label: "الحد الأدنى", defaultVisible: true },
+    { key: "buy_price", label: "سعر الشراء", defaultVisible: true },
+    { key: "sell_price", label: "سعر البيع", defaultVisible: true },
+    { key: "unit", label: "الوحدة", defaultVisible: false },
+    { key: "stock_value", label: "قيمة المخزون", defaultVisible: false },
     { key: "status", label: "الحالة", required: true },
     { key: "actions", label: "إجراءات", required: true },
   ];
@@ -712,11 +712,11 @@ const InventoryPage = () => {
       {/* Empty */}
       {!loading && products.length === 0 && (
         <EmptyState
-          icon={Package}
+          icon={<Package className="h-16 w-16" />}
           title="لا توجد أصناف بعد"
           description="أضف أول منتج لبدء تتبع المخزون والحركات."
-          primaryAction={{ label: "إضافة منتج", onClick: () => { resetForm(); setShowProductDialog(true); }, icon: Plus }}
-          secondaryAction={{ label: "استيراد منتجات", onClick: () => toast({ title: "غير مفعّل حالياً" }), icon: Upload }}
+          primaryAction={{ label: "إضافة منتج", onClick: () => { resetForm(); setShowProductDialog(true); }, icon: <Plus className="h-4 w-4" /> }}
+          secondaryAction={{ label: "استيراد منتجات", onClick: () => toast({ title: "غير مفعّل حالياً" }), icon: <Upload className="h-4 w-4" /> }}
         />
       )}
 
