@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import TeamAccountManager from "./TeamAccountManager";
 
@@ -13,13 +13,8 @@ interface Props {
 
 const HRSettingsSection = ({ settings, onChange }: Props) => {
   return (
-    <div className="p-6 space-y-8">
-      {/* Work Schedule */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          جدول العمل
-        </h3>
+    <div className="space-y-4">
+      <SettingsSection title="جدول العمل" description="أيام وساعات وأوقات الدوام الافتراضية.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>أيام العمل في الأسبوع</Label>
@@ -45,16 +40,9 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
             <Input type="time" value={settings.hr_shift_end ?? "16:00"} onChange={e => onChange({ hr_shift_end: e.target.value })} dir="ltr" />
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
-      <Separator />
-
-      {/* Attendance */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          الحضور والانصراف
-        </h3>
+      <SettingsSection title="الحضور والانصراف" description="قواعد التأخير وآلية تسجيل الحضور.">
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
             <div>
@@ -72,16 +60,9 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
             <Switch checked={settings.hr_require_gps ?? true} onCheckedChange={v => onChange({ hr_require_gps: v })} />
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
-      <Separator />
-
-      {/* Leaves */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          الإجازات
-        </h3>
+      <SettingsSection title="الإجازات" description="رصيد الإجازات السنوية والمرضية وقواعد الترحيل.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>رصيد الإجازات السنوية (أيام)</Label>
@@ -96,16 +77,9 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
           <span className="text-sm">ترحيل الإجازات غير المستخدمة للسنة التالية</span>
           <Switch checked={settings.hr_carry_over_leave ?? false} onCheckedChange={v => onChange({ hr_carry_over_leave: v })} />
         </div>
-      </div>
+      </SettingsSection>
 
-      <Separator />
-
-      {/* Salary */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          الرواتب
-        </h3>
+      <SettingsSection title="الرواتب" description="موعد الصرف والعملة وخصومات افتراضية.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>يوم صرف الرواتب الشهري</Label>
@@ -137,8 +111,11 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
           </div>
           <Switch checked={settings.hr_social_security ?? false} onCheckedChange={v => onChange({ hr_social_security: v })} />
         </div>
-      </div>
-      <TeamAccountManager type="hr_manager" />
+      </SettingsSection>
+
+      <SettingsSection title="حساب مدير الموارد البشرية" description="إنشاء حساب مدير HR مرتبط بالشركة.">
+        <TeamAccountManager type="hr_manager" />
+      </SettingsSection>
     </div>
   );
 };
