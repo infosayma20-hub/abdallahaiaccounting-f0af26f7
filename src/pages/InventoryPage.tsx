@@ -1155,7 +1155,7 @@ const InventoryPage = () => {
                     <Textarea placeholder="شروط الكفالة، الاستثناءات، طريقة المطالبة..." value={form.warranty_notes} onChange={e => setForm(p => ({ ...p, warranty_notes: e.target.value }))} className="rounded-xl min-h-[70px] resize-none" rows={3} />
                   </div>
 
-                  <div className="text-[11px] text-muted-foreground bg-blue-50 dark:bg-blue-950/20 border border-blue-200/40 dark:border-blue-800/30 rounded-xl p-2.5">
+                  <div className="text-[11px] text-muted-foreground bg-muted/40 border border-border rounded-xl p-2.5">
                     سيتم عرض معلومات الكفالة (المدة + النوع) تلقائياً في الفاتورة عند بيع هذا المنتج، ويمكنك إنشاء بطاقة كفالة لاحقاً من موديول إدارة الكفالات.
                   </div>
                 </>
@@ -1239,10 +1239,31 @@ const InventoryPage = () => {
             </TabsContent>
           </Tabs>
 
-          <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl gap-2 shadow-md shadow-primary/20 mt-4">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {editMode ? "حفظ التعديلات" : "إضافة المنتج"}
-          </Button>
+          <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border">
+            <div>
+              {editMode && selectedProduct && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="rounded-xl gap-2"
+                  disabled={saving}
+                  onClick={() => { handleDelete(selectedProduct); setShowProductDialog(false); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  حذف المنتج
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" className="rounded-xl" onClick={() => setShowProductDialog(false)} disabled={saving}>
+                إلغاء
+              </Button>
+              <Button onClick={handleSave} disabled={saving} className="rounded-xl gap-2 shadow-md shadow-primary/20">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {editMode ? "حفظ التعديلات" : "إضافة المنتج"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1260,7 +1281,7 @@ const InventoryPage = () => {
               <History className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">لا توجد حركات مسجلة بعد</p>
               {selectedProduct && selectedProduct.quantity > 0 && (
-                <p className="text-xs text-yellow-600 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   الكمية الحالية ({selectedProduct.quantity}) تم إدخالها يدوياً عند إنشاء/تعديل المنتج ولم تُسجل كحركة مخزون
                 </p>
               )}
