@@ -462,7 +462,7 @@ const ChequesPage = () => {
 
           // RPC already wrote cheque_status_history; just refresh UI
           setStatusHistory(prev => { const n = { ...prev }; delete n[cheque.id]; return n; });
-          toast.success(`تم: ${config.emoji} ${config.label} (RPC)`);
+          toast.success(`تم: ${config.label} (RPC)`);
           setActionTarget(null);
           setActionType(null);
           fetchCheques();
@@ -681,7 +681,7 @@ const ChequesPage = () => {
       });
 
       setStatusHistory(prev => { const n = { ...prev }; delete n[cheque.id]; return n; });
-      toast.success(`تم: ${config.emoji} ${config.label}`);
+      toast.success(`تم: ${config.label}`);
       setActionTarget(null);
       setActionType(null);
       fetchCheques();
