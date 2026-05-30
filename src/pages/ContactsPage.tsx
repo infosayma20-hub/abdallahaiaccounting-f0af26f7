@@ -959,6 +959,7 @@ const ContactsPage = () => {
           </div>
         </div>
       )}
+      </FinanceShell>
 
       {/* Add Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
