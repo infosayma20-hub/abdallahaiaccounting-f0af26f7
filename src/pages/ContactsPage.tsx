@@ -545,172 +545,237 @@ const ContactsPage = () => {
     a.href = url; a.download = "contacts.csv"; a.click();
   };
 
-  return (
-    <div className="p-4 md:p-6 space-y-4" dir="rtl">
-      <PageHeader title="جهات الاتصال" breadcrumb={["الرئيسية", "جهات الاتصال"]} />
-      {/* Actions */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-xs text-muted-foreground">{contacts.length} جهة اتصال</p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
-            <Download className="h-4 w-4" /> تصدير
+  const openAddDialog = (type?: "عميل" | "مورد") => {
+    setNewContact({
+      name: "", type: type ?? "عميل", phone: "", email: "", address: "", tax_number: "",
+      contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "",
+      opening_balance: "", balance_direction: type === "مورد" ? "credit" : "debit",
+    });
+    setShowAddDialog(true);
+  };
+
+  const cols = useColumnVisibility("contacts:cols-v1", CONTACT_COLUMNS);
+  const show = cols.isVisible;
+
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home", label: "عام",
+      groups: [
+        {
+          key: "new", label: "جديد", items: [
+            { key: "new-contact",  label: "جهة جديدة", icon: Plus,       variant: "primary", onClick: () => openAddDialog() },
+            { key: "new-customer", label: "زبون جديد", icon: UserPlus,   onClick: () => openAddDialog("عميل") },
+            { key: "new-supplier", label: "مورد جديد", icon: Truck,      onClick: () => openAddDialog("مورد") },
+          ],
+        },
+        {
+          key: "actions", label: "إجراءات", items: [
+            {
+              key: "soa", label: "إرسال كشف", icon: FileText,
+              disabled: selectedIds.size !== 1,
+              tooltip: selectedIds.size === 1 ? undefined : "اختر جهة واحدة فقط",
+              onClick: () => {
+                const id = Array.from(selectedIds)[0];
+                const c = contacts.find(x => x.id === id);
+                if (!c) return;
+                navigate(`/account-statement?contact_id=${c.id}&contact_name=${encodeURIComponent(c.contact_name)}&contact_type=${encodeURIComponent(c.contact_type)}`);
+              },
+            },
+            { key: "policies", label: "سياسات الائتمان", icon: Settings, onClick: () => navigate("/contacts/policies") },
+            { key: "refresh",  label: "تحديث",         icon: RefreshCw, onClick: fetchContacts, disabled: loading },
+          ],
+        },
+        {
+          key: "view", label: "عرض", items: [
+            {
+              key: "archived", label: showArchived ? `إخفاء المؤرشفين` : `إظهار المؤرشفين${archivedCount ? ` (${archivedCount})` : ""}`,
+              icon: showArchived ? ArchiveRestore : Archive,
+              onClick: () => setShowArchived(v => !v),
+            },
+          ],
+        },
+        {
+          key: "export", label: "تصدير وطباعة", items: [
+            { key: "excel", label: "Excel",  icon: Download, onClick: exportCSV, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للتصدير" : undefined },
+            { key: "print", label: "طباعة", icon: Printer,  onClick: () => window.print(), disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const rightSlot = (
+    <>
+      <div className="relative">
+        <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="بحث اسم، هاتف، رقم ضريبي..."
+          className="h-8 w-64 pr-8 text-[12.5px]"
+          dir="rtl"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <ColumnVisibilityMenu
+        columns={cols.columns}
+        isVisible={cols.isVisible}
+        toggle={cols.toggle}
+        showAll={cols.showAll}
+        hideAllOptional={cols.hideAllOptional}
+        hiddenCount={cols.hiddenCount}
+      />
+      <DropdownMenu open={showAlerts} onOpenChange={setShowAlerts}>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="outline" className="h-8 relative px-2">
+            <Bell className="h-3.5 w-3.5" />
+            {alerts.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] px-1 flex items-center justify-center font-bold">
+                {alerts.length}
+              </span>
+            )}
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/contacts/policies")}>
-            <Settings className="h-4 w-4" /> السياسات
-          </Button>
-          <div className="relative">
-            <Button variant="outline" size="icon" className="relative" onClick={() => setShowAlerts(!showAlerts)}>
-              <Bell className="h-4 w-4" />
-              {alerts.length > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
-                  {alerts.length}
-                </span>
-              )}
-            </Button>
-            {showAlerts && (
-              <div className="absolute left-0 top-10 w-80 bg-background border rounded-xl shadow-lg z-50 max-h-96 overflow-auto">
-                <div className="flex items-center justify-between p-3 border-b">
-                  <span className="text-sm font-semibold">التنبيهات</span>
-                  {alerts.length > 0 && (
-                    <Button variant="ghost" size="sm" className="text-xs" onClick={markAllAlertsRead}>تحديد الكل كمقروء</Button>
-                  )}
-                </div>
-                {alerts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">لا توجد تنبيهات</p>
-                ) : alerts.map(alert => {
-                  const config = alertConfig[alert.alert_type] || alertConfig.credit_limit_exceeded;
-                  const Icon = config.icon;
-                  return (
-                    <div key={alert.id} className={`flex items-start gap-3 p-3 border-b hover:bg-muted/50 cursor-pointer ${config.bg}`}>
-                      <Icon className={`h-4 w-4 mt-0.5 ${config.color}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold">{config.title}</p>
-                        <p className="text-xs text-muted-foreground">{alert.contact_name} — ₪{alert.amount?.toLocaleString()}</p>
-                      </div>
-                      <Button variant="ghost" size="sm" className="text-xs" onClick={() => markAlertRead(alert.id)}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-auto">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <span className="text-sm font-semibold">التنبيهات</span>
+            {alerts.length > 0 && (
+              <Button variant="ghost" size="sm" className="text-xs h-6" onClick={markAllAlertsRead}>تحديد الكل كمقروء</Button>
             )}
           </div>
-          <Button size="sm" className="gap-1.5" onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4" /> إضافة
-          </Button>
-          <Button variant="ghost" size="icon" onClick={fetchContacts} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      {!loading && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {[
-            { icon: <Users className="h-5 w-5" />, value: contacts.length, label: "الكل", onClick: () => setFilterType(null) },
-            { icon: <Users className="h-5 w-5" />, value: customerCount, label: "زبائن", onClick: () => setFilterType("عميل") },
-            { icon: <ShoppingBag className="h-5 w-5" />, value: supplierCount, label: "موردين", onClick: () => setFilterType("مورد") },
-            { icon: <AlertTriangle className="h-5 w-5" />, value: `₪${totalOverdue.toLocaleString()}`, label: "متأخر", isNegative: totalOverdue > 0 },
-            { icon: <AlertTriangle className="h-5 w-5" />, value: overLimitCount, label: "تجاوز السقف", isNegative: overLimitCount > 0 },
-          ].map((kpi, i) => (
-            <Card key={i} className="cursor-pointer hover:shadow-md transition-shadow" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12 }} onClick={kpi.onClick}>
-              <CardContent className="p-3 text-center">
-                <div className="w-9 h-9 rounded-lg mx-auto mb-1 flex items-center justify-center" style={{ background: "#F0F4F8", color: "#1B3A5C" }}>{kpi.icon}</div>
-                <p className="text-lg font-semibold tabular-nums" style={{ color: kpi.isNegative ? "#EF4444" : "#1B3A5C" }}>{kpi.value}</p>
-                <p className="text-[10px]" style={{ color: "#6B7280" }}>{kpi.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Filters */}
-      {!loading && contacts.length > 0 && (
-        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-          <CardContent className="p-3 space-y-3">
-            {/* Search & Filters */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="بحث اسم، هاتف، رقم ضريبي..." className="pr-9 text-sm rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20" dir="rtl" />
-                {searchQuery && (
-                  <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <Select value={filterType || "all"} onValueChange={v => setFilterType(v === "all" ? null : v)}>
-                <SelectTrigger className="w-[120px] rounded-xl text-xs h-9">
-                  <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="all">الكل</SelectItem>
-                  {contactTypeOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterClass || "all"} onValueChange={v => setFilterClass(v === "all" ? null : v)}>
-                <SelectTrigger className="w-[90px] rounded-xl text-xs h-9">
-                  <SelectValue placeholder="الفئة" />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="all">كل الفئات</SelectItem>
-                  {["A","B","C","D"].map(cls => (
-                    <SelectItem key={cls} value={cls}>فئة {cls}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button 
-                variant={showArchived ? "default" : "outline"} 
-                size="sm" 
-                className="text-xs gap-1.5 rounded-xl h-9"
-                onClick={() => setShowArchived(!showArchived)}
-              >
-                <Archive className="h-3.5 w-3.5" />
-                {showArchived ? `المؤرشفون (${archivedCount})` : `مؤرشف`}
-                {!showArchived && archivedCount > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{archivedCount}</Badge>
-                )}
-              </Button>
-              <DateRangeFilter
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                onDateFromChange={setDateFrom}
-                onDateToChange={setDateTo}
-                onClear={() => { setDateFrom(""); setDateTo(""); }}
-                compact
-              />
-              {(filterType || filterClass || dateFrom || dateTo) && (
-                <Button variant="ghost" size="sm" className="text-xs gap-1 h-9" onClick={() => { setFilterType(null); setFilterClass(null); setDateFrom(""); setDateTo(""); }}>
-                  <X className="h-3 w-3" /> مسح
+          <DropdownMenuSeparator />
+          {alerts.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">لا توجد تنبيهات</p>
+          ) : alerts.map(alert => {
+            const config = alertConfig[alert.alert_type] || alertConfig.credit_limit_exceeded;
+            const Icon = config.icon;
+            return (
+              <div key={alert.id} className="flex items-start gap-2 px-2 py-2 hover:bg-muted/50">
+                <Icon className={`h-4 w-4 mt-0.5 ${config.color} shrink-0`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold">{config.title}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{alert.contact_name} — ₪{alert.amount?.toLocaleString()}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => markAlertRead(alert.id)}>
+                  <X className="h-3 w-3" />
                 </Button>
-              )}
-            </div>
+              </div>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
 
-            {/* Results count */}
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] text-muted-foreground">{filtered.length} جهة اتصال</span>
-              {selectedIds.size > 0 && (
-                <span className="text-[11px] text-primary font-medium">{selectedIds.size} محدد</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+  return (
+    <>
+      <FinanceShell
+        title="جهات الاتصال"
+        subtitle="إدارة الزبائن والموردين والجهات المالية"
+        breadcrumb={[{ label: "الرئيسية", href: "/" }, { label: "جهات الاتصال" }]}
+        actionTabs={actionTabs}
+        rightSlot={rightSlot}
+      >
+      {/* KPI quick filters */}
+      {!loading && contacts.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+          {[
+            { icon: Users,         value: contacts.length,   label: "الكل",        active: !filterType,                  onClick: () => setFilterType(null)    },
+            { icon: Users,         value: customerCount,     label: "زبائن",       active: filterType === "عميل",        onClick: () => setFilterType("عميل")  },
+            { icon: ShoppingBag,   value: supplierCount,     label: "موردين",      active: filterType === "مورد",        onClick: () => setFilterType("مورد")  },
+            { icon: AlertTriangle, value: `₪${totalOverdue.toLocaleString()}`, label: "متأخر",      negative: totalOverdue > 0 },
+            { icon: AlertTriangle, value: overLimitCount,    label: "تجاوز السقف", negative: overLimitCount > 0 },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={kpi.onClick}
+                className={`flex items-center gap-2 px-3 py-2 rounded border text-right transition-colors ${
+                  kpi.active ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/40"
+                } ${kpi.onClick ? "cursor-pointer" : "cursor-default"}`}
+              >
+                <div className="w-8 h-8 rounded flex items-center justify-center bg-muted text-muted-foreground shrink-0">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-sm font-semibold tabular-nums truncate ${kpi.negative ? "text-destructive" : "text-foreground"}`}>{kpi.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       )}
 
-      {/* Table */}
+      {/* Secondary filters bar */}
+      {!loading && contacts.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap mb-3 px-1">
+          <Select value={filterType || "all"} onValueChange={v => setFilterType(v === "all" ? null : v)}>
+            <SelectTrigger className="w-[130px] text-xs h-8">
+              <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">كل الأنواع</SelectItem>
+              {contactTypeOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterClass || "all"} onValueChange={v => setFilterClass(v === "all" ? null : v)}>
+            <SelectTrigger className="w-[110px] text-xs h-8">
+              <SelectValue placeholder="الفئة" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">كل الفئات</SelectItem>
+              {["A","B","C","D"].map(cls => (
+                <SelectItem key={cls} value={cls}>فئة {cls}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            onClear={() => { setDateFrom(""); setDateTo(""); }}
+            compact
+          />
+          {(filterType || filterClass || dateFrom || dateTo) && (
+            <Button variant="ghost" size="sm" className="text-xs gap-1 h-8" onClick={() => { setFilterType(null); setFilterClass(null); setDateFrom(""); setDateTo(""); }}>
+              <X className="h-3 w-3" /> مسح الفلاتر
+            </Button>
+          )}
+          <div className="mr-auto flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span>{filtered.length} جهة</span>
+            {selectedIds.size > 0 && <span className="text-primary font-medium">{selectedIds.size} محدد</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Table / Empty / Loading */}
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+      ) : contacts.length === 0 ? (
+        <EmptyState
+          icon={<ContactRound className="h-20 w-20" />}
+          title="لا توجد جهات اتصال بعد"
+          description="أضف زبائنك ومورديك لتتبع الأرصدة وكشوف الحساب وسياسات الائتمان."
+          primaryAction={{ label: "إضافة زبون",   onClick: () => openAddDialog("عميل"), icon: <UserPlus className="h-4 w-4" /> }}
+          secondaryAction={{ label: "إضافة مورد", onClick: () => openAddDialog("مورد"), icon: <Truck className="h-4 w-4" /> }}
+        />
       ) : (
-        <div className="border rounded-xl overflow-hidden bg-card">
+        <div className="border rounded-lg overflow-hidden bg-card">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted/50 border-b">
+                <tr className="bg-primary text-primary-foreground">
                   <th className="p-3 text-right font-semibold w-8">
                     <Checkbox
                       checked={selectedIds.size === filtered.length && filtered.length > 0}
@@ -718,18 +783,19 @@ const ContactsPage = () => {
                         if (checked) setSelectedIds(new Set(filtered.map(c => c.id)));
                         else setSelectedIds(new Set());
                       }}
+                      className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary"
                     />
                   </th>
-                  <th className="p-3 text-right font-semibold sticky right-0 bg-muted/50">الاسم</th>
-                  <th className="p-3 text-right font-semibold">النوع</th>
-                  <th className="p-3 text-center font-semibold">المصدر</th>
-                  <th className="p-3 text-center font-semibold">فئة</th>
-                  <th className="p-3 text-right font-semibold">الرصيد</th>
-                  <th className="p-3 text-right font-semibold">السقف</th>
-                  <th className="p-3 text-right font-semibold">المتأخر</th>
-                  <th className="p-3 text-right font-semibold">آخر حركة</th>
-                  <th className="p-3 text-center font-semibold">أيام الدفع</th>
-                  <th className="p-3 text-center font-semibold w-10"></th>
+                  <th className="p-3 text-right text-xs font-semibold">الاسم</th>
+                  {show("type") && <th className="p-3 text-right text-xs font-semibold">النوع</th>}
+                  {show("source") && <th className="p-3 text-center text-xs font-semibold">المصدر</th>}
+                  {show("class") && <th className="p-3 text-center text-xs font-semibold">الفئة</th>}
+                  <th className="p-3 text-right text-xs font-semibold">الرصيد</th>
+                  {show("limit") && <th className="p-3 text-right text-xs font-semibold">السقف</th>}
+                  {show("overdue") && <th className="p-3 text-right text-xs font-semibold">المتأخر</th>}
+                  {show("last_tx") && <th className="p-3 text-right text-xs font-semibold">آخر حركة</th>}
+                  {show("payment_days") && <th className="p-3 text-center text-xs font-semibold">أيام الدفع</th>}
+                  <th className="p-3 text-center text-xs font-semibold w-10">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
