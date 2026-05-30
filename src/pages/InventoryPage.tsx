@@ -126,6 +126,7 @@ const InventoryPage = () => {
   const [perPage, setPerPage] = useState(15);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [kitchenStations, setKitchenStations] = useState<KitchenStation[]>([]);
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
   const [form, setForm] = useState({
     name: "", category: "بضاعة عامة", skuPrefix: "GEN",
@@ -343,7 +344,7 @@ const InventoryPage = () => {
   const handleDelete = async (product: Product) => {
     const { error } = await supabase.from("products").delete().eq("id", product.id);
     if (error) toast({ title: "خطأ في حذف المنتج", variant: "destructive" });
-    else { toast({ title: "تم حذف المنتج 🗑️" }); fetchProducts(); }
+    else { toast({ title: "تم حذف المنتج" }); fetchProducts(); }
   };
 
   const openMovements = async (product: Product) => {
@@ -424,8 +425,8 @@ const InventoryPage = () => {
     }
     if (dateFrom) data = data.filter(p => (p.created_at?.split("T")[0] || "") >= dateFrom);
     if (dateTo) data = data.filter(p => (p.created_at?.split("T")[0] || "") <= dateTo);
-    return data;
-  }, [products, filterCategory, stockFilter, searchQuery, dateFrom, dateTo]);
+    return applyFilters(data, shellFilters);
+  }, [products, filterCategory, stockFilter, searchQuery, dateFrom, dateTo, shellFilters]);
 
   // Sorting
   const sorted = useMemo(() => {
