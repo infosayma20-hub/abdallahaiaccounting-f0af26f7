@@ -1317,24 +1317,25 @@ const ChequesPage = () => {
 
       {/* ============ BULK ACTION BAR ============ */}
       {selected.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-primary/30 rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
-          <span className="text-sm font-bold text-foreground">✓ {selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-xl shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
+          <span className="text-sm font-semibold text-foreground">{selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
           {bulkSameStatus && bulkActions.length > 0 ? (
             <div className="flex items-center gap-2">
               {bulkActions.slice(0, 4).map(actionId => {
                 const ac = ACTION_CONFIGS[actionId];
                 return (
-                  <button key={actionId} onClick={() => handleBulkAction(actionId)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all">
-                    {ac.emoji} {ac.label}
-                  </button>
+                  <Button key={actionId} size="sm" variant="outline"
+                    onClick={() => handleBulkAction(actionId)}
+                    className="h-7 text-xs">
+                    {ac.label}
+                  </Button>
                 );
               })}
             </div>
           ) : (
             <span className="text-xs text-muted-foreground">يجب أن تكون بنفس الحالة</span>
           )}
-          <button onClick={() => setSelected(new Set())} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+          <Button size="icon" variant="ghost" onClick={() => setSelected(new Set())} className="h-7 w-7 text-muted-foreground"><X className="h-4 w-4" /></Button>
         </div>
       )}
 
@@ -1342,8 +1343,11 @@ const ChequesPage = () => {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-center text-lg">
-              {addType === 'وارد' ? '⬇ تسجيل شيك وارد' : '⬆ تسجيل شيك صادر'}
+            <DialogTitle className="text-center text-lg flex items-center justify-center gap-2">
+              {addType === 'وارد'
+                ? <ArrowDownCircle className="h-5 w-5 text-muted-foreground" />
+                : <ArrowUpCircle className="h-5 w-5 text-muted-foreground" />}
+              {addType === 'وارد' ? 'تسجيل شيك وارد' : 'تسجيل شيك صادر'}
             </DialogTitle>
           </DialogHeader>
 
