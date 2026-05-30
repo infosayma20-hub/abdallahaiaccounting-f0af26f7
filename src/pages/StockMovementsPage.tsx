@@ -1,5 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X, LayoutGrid, Table2, ArrowUpDown, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Minus, ExternalLink, Warehouse as WarehouseIcon } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X,
+  LayoutGrid, Table2, ArrowUpDown, ChevronLeft, ChevronRight, ArrowUp, ArrowDown,
+  Minus, ExternalLink, Warehouse as WarehouseIcon, Plus, RefreshCw, Printer, Columns3,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +19,9 @@ import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
+import { FinanceShell, ActionPane } from "@/components/finance/shell";
+import type { ActionTab } from "@/components/finance/shell";
+import EmptyState from "@/components/EmptyState";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface Product {
@@ -81,6 +88,7 @@ const StockMovementsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
@@ -91,22 +99,21 @@ const StockMovementsPage = () => {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user || !dataOwnerId) return;
-    const load = async () => {
-      setLoading(true);
-      const [movRes, prodRes, whRes] = await Promise.all([
-        supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }),
-        supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId),
-        supabase.from("warehouses").select("id, name, code").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
-      ]);
-      setMovements(movRes.data || []);
-      setProducts(prodRes.data || []);
-      setWarehouses(whRes.data || []);
-      setLoading(false);
-    };
-    load();
+    setLoading(true);
+    const [movRes, prodRes, whRes] = await Promise.all([
+      supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }),
+      supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId),
+      supabase.from("warehouses").select("id, name, code").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
+    ]);
+    setMovements(movRes.data || []);
+    setProducts(prodRes.data || []);
+    setWarehouses(whRes.data || []);
+    setLoading(false);
   }, [user, dataOwnerId]);
+
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const productMap = useMemo(() => {
     const m = new Map<string, Product>();
@@ -217,7 +224,7 @@ const StockMovementsPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, "حركات المخزون");
     setNextExportBranding({ title: "حركات المخزون" });
     XLSX.writeFile(wb, `حركات_المخزون_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast({ title: "تم تصدير التقرير ✅" });
+    toast({ title: "تم تصدير التقرير" });
   };
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
@@ -227,33 +234,56 @@ const StockMovementsPage = () => {
     </button>
   );
 
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home", label: "عام",
+      groups: [
+        {
+          key: "new", label: "جديد", items: [
+            {
+              key: "new-movement", label: "حركة مخزون", icon: Plus, variant: "primary",
+              disabled: true,
+              tooltip: "حركات المخزون تُنشأ تلقائياً من الفواتير وسندات التحويل وتسويات المخزون.",
+            },
+          ],
+        },
+        {
+          key: "actions", label: "إجراءات", items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => setRefreshKey(k => k + 1), disabled: loading },
+          ],
+        },
+        {
+          key: "view", label: "عرض", items: [
+            {
+              key: "view-mode", label: viewMode === "table" ? "عرض كبطاقات" : "عرض كجدول",
+              icon: viewMode === "table" ? LayoutGrid : Table2,
+              onClick: () => setViewMode(m => m === "table" ? "cards" : "table"),
+            },
+            { key: "filters", label: "فلاتر", icon: Filter, disabled: true, tooltip: "استخدم شريط الفلاتر أعلى الجدول." },
+            { key: "columns", label: "أعمدة", icon: Columns3, disabled: true, tooltip: "إدارة الأعمدة الديناميكية غير مفعّلة في هذه الشاشة." },
+          ],
+        },
+        {
+          key: "export", label: "تصدير وطباعة", items: [
+            { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للتصدير" : undefined },
+            { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
+          ],
+        },
+      ],
+    },
+  ];
+
   return (
-    <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">حركات المخزون</h1>
-            <p className="text-xs text-muted-foreground">{filtered.length} حركة</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-muted/50 rounded-xl p-0.5">
-            <button onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-lg transition-all ${viewMode === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
-              <Table2 className="h-4 w-4" />
-            </button>
-          </div>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
-          </Button>
-        </div>
-      </div>
+    <FinanceShell
+      title="حركات المخزون"
+      subtitle={`${filtered.length} حركة`}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: "المخزون", href: "/inventory" },
+        { label: "حركات المخزون" },
+      ]}
+      actionTabs={actionTabs}
+    >
 
       {/* Summary */}
       {movements.length > 0 && (
@@ -399,10 +429,11 @@ const StockMovementsPage = () => {
 
       {/* Empty */}
       {!loading && movements.length === 0 && (
-        <div className="text-center py-16">
-          <TrendingUp className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">لا توجد حركات مخزون مسجلة</p>
-        </div>
+        <EmptyState
+          icon={<TrendingUp className="h-20 w-20" />}
+          title="لا توجد حركات مخزون"
+          description="ستظهر هنا حركات الإدخال والإخراج المسجلة تلقائياً من الفواتير والتسويات."
+        />
       )}
 
       {/* No results */}
@@ -582,7 +613,7 @@ const StockMovementsPage = () => {
           </Button>
         </div>
       )}
-    </div>
+    </FinanceShell>
   );
 };
 

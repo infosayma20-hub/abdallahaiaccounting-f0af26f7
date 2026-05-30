@@ -1,20 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  ArrowRight, Plus, ArrowLeftRight, Truck, Building2, Warehouse, Box,
+  Plus, ArrowLeftRight, Truck, Building2, Warehouse, Box,
   CheckCircle2, XCircle, Trash2, Loader2, Package, Search, X, FileText,
+  RefreshCw, FileSpreadsheet, Printer, Info, User as UserIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
+import { FinanceShell, ActionPane } from "@/components/finance/shell";
+import type { ActionTab } from "@/components/finance/shell";
+import EmptyState from "@/components/EmptyState";
 
 type TransferType = "load_van" | "return_van" | "transfer" | "adjustment";
 type TransferStatus = "draft" | "confirmed" | "cancelled";
@@ -62,22 +65,21 @@ interface ProductRow {
 }
 
 const TYPE_META: Record<TransferType, { label: string; icon: any; color: string }> = {
-  load_van: { label: "تحميل بائع", icon: Truck, color: "text-amber-600" },
-  return_van: { label: "إرجاع من بائع", icon: ArrowLeftRight, color: "text-orange-600" },
-  transfer: { label: "تحويل بين مستودعات", icon: ArrowLeftRight, color: "text-blue-600" },
-  adjustment: { label: "تسوية / تعديل", icon: Box, color: "text-purple-600" },
+  load_van: { label: "تحميل بائع", icon: Truck, color: "text-muted-foreground" },
+  return_van: { label: "إرجاع من بائع", icon: ArrowLeftRight, color: "text-muted-foreground" },
+  transfer: { label: "تحويل بين مستودعات", icon: ArrowLeftRight, color: "text-muted-foreground" },
+  adjustment: { label: "تسوية / تعديل", icon: Box, color: "text-muted-foreground" },
 };
 
 const STATUS_META: Record<TransferStatus, { label: string; cls: string }> = {
-  draft: { label: "مسودة", cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300" },
-  confirmed: { label: "مؤكد", cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300" },
-  cancelled: { label: "ملغى", cls: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-300" },
+  draft:     { label: "مسودة", cls: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400" },
+  confirmed: { label: "مؤكد",  cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400" },
+  cancelled: { label: "ملغى",  cls: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const WH_ICON: Record<string, any> = { main: Warehouse, branch: Building2, van: Truck, virtual: Box };
 
 const StockTransfersPage = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -104,7 +106,7 @@ const StockTransfersPage = () => {
   const [productSearch, setProductSearch] = useState("");
   const [showProdDropdown, setShowProdDropdown] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const [w, r, t, p] = await Promise.all([
@@ -128,9 +130,9 @@ const StockTransfersPage = () => {
     setTransfers(((t.data as any) || []) as TransferRow[]);
     setProducts(((p.data as any) || []) as ProductRow[]);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   // Auto-suggest from/to warehouses based on transfer type
   useEffect(() => {
@@ -255,7 +257,7 @@ const StockTransfersPage = () => {
           .rpc("confirm_stock_transfer" as any, { p_transfer_id: tid });
         if (rErr) throw rErr;
         if ((rpcRes as any)?.success === false) throw new Error((rpcRes as any).error);
-        toast({ title: "تم تأكيد السند ✅", description: "تم تحديث المخزون في المستودعين" });
+        toast({ title: "تم تأكيد السند", description: "تم تحديث المخزون في المستودعين" });
       } else {
         toast({ title: "تم حفظ المسودة" });
       }
@@ -277,7 +279,7 @@ const StockTransfersPage = () => {
       toast({ title: "خطأ", description: error?.message || (data as any).error, variant: "destructive" });
       return;
     }
-    toast({ title: "تم التأكيد ✅" });
+    toast({ title: "تم التأكيد" });
     load();
   };
 
@@ -303,31 +305,68 @@ const StockTransfersPage = () => {
 
   const wName = (id: string | null | undefined) => warehouses.find(w => w.id === id)?.name || "—";
 
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home", label: "عام",
+      groups: [
+        {
+          key: "new", label: "جديد", items: [
+            { key: "new-transfer", label: "تحويل مخزون", icon: Plus, variant: "primary", onClick: openNew },
+          ],
+        },
+        {
+          key: "actions", label: "إجراءات", items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: load, disabled: loading },
+            {
+              key: "confirm", label: "اعتماد", icon: CheckCircle2,
+              disabled: true,
+              tooltip: "استخدم زر «تأكيد» داخل سطر السند نفسه.",
+            },
+            {
+              key: "cancel", label: "إلغاء", icon: XCircle,
+              disabled: true,
+              tooltip: "استخدم زر «إلغاء» داخل سطر السند نفسه.",
+            },
+          ],
+        },
+        {
+          key: "view", label: "عرض", items: [
+            { key: "filters", label: "فلاتر", icon: Info, disabled: true, tooltip: "استخدم شريط الحالة أعلى القائمة." },
+            { key: "columns", label: "أعمدة", icon: Info, disabled: true, tooltip: "العرض على شكل بطاقات — لا توجد أعمدة قابلة للإخفاء." },
+          ],
+        },
+        {
+          key: "export", label: "تصدير وطباعة", items: [
+            { key: "excel", label: "Excel",  icon: FileSpreadsheet, disabled: true, tooltip: "تصدير سندات التحويل غير متاح حالياً." },
+            { key: "print", label: "طباعة", icon: Printer,         onClick: () => window.print(), disabled: filteredTransfers.length === 0, tooltip: filteredTransfers.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
+          ],
+        },
+      ],
+    },
+  ];
+
   return (
-    <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">سندات تحويل المخزون</h1>
-            <p className="text-xs text-muted-foreground">{transfers.length} سند — تحميل بائعين • تحويل بين فروع</p>
-          </div>
-        </div>
-        <Button onClick={openNew} className="rounded-xl gap-1.5">
-          <Plus className="h-4 w-4" /> سند جديد
-        </Button>
-      </div>
+    <FinanceShell
+      title="سندات تحويل المخزون"
+      subtitle={`${transfers.length} سند — تحميل بائعين وتحويل بين فروع`}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: "المخزون", href: "/inventory" },
+        { label: "سندات تحويل المخزون" },
+      ]}
+      actionTabs={actionTabs}
+    >
 
       {/* Info banner */}
-      <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 text-xs text-primary/80 leading-relaxed">
-        💡 <strong>سند التحويل</strong> يحرّك البضاعة بين المستودعات (مثلاً: تحميل بائع متجول صباحاً، إرجاع المتبقي مساءً). عند التأكيد يتم تسجيل حركة "صادر" من المستودع المصدر و"وارد" للوجهة تلقائياً.
+      <div className="rounded-lg bg-primary/5 border border-primary/10 p-3 mb-3 text-xs text-primary/80 leading-relaxed flex items-start gap-2">
+        <Info className="h-4 w-4 mt-0.5 shrink-0" />
+        <span>
+          <strong>سند التحويل</strong> يحرّك البضاعة بين المستودعات (مثلاً: تحميل بائع متجول صباحاً، إرجاع المتبقي مساءً). عند التأكيد يتم تسجيل حركة "صادر" من المستودع المصدر و"وارد" للوجهة تلقائياً.
+        </span>
       </div>
 
       {/* Status filter */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap mb-3">
         {(["all", "draft", "confirmed", "cancelled"] as const).map(s => (
           <button
             key={s}
@@ -350,12 +389,14 @@ const StockTransfersPage = () => {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : filteredTransfers.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <ArrowLeftRight className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">لا توجد سندات</p>
-        </div>
+        <EmptyState
+          icon={<ArrowLeftRight className="h-20 w-20" />}
+          title="لا توجد سندات تحويل"
+          description="أنشئ سند تحويل لتحريك البضاعة بين المستودعات والبائعين المتجولين."
+          primaryAction={{ label: "تحويل جديد", onClick: openNew, icon: <Plus className="h-4 w-4" /> }}
+        />
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2.5 overflow-x-auto">
           {filteredTransfers.map(t => {
             const TM = TYPE_META[t.transfer_type];
             const SM = STATUS_META[t.status];
@@ -381,7 +422,7 @@ const StockTransfersPage = () => {
                         {t.sales_rep && (
                           <>
                             <span className="opacity-50">•</span>
-                            <span>👤 {t.sales_rep.full_name}</span>
+                            <span className="flex items-center gap-1"><UserIcon className="w-3 h-3" />{t.sales_rep.full_name}</span>
                           </>
                         )}
                         <span className="opacity-50">•</span>
@@ -397,16 +438,16 @@ const StockTransfersPage = () => {
                   <div className="flex flex-col gap-1">
                     {t.status === "draft" && (
                       <>
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600" onClick={() => confirmExisting(t.id)}>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600 dark:text-emerald-400" onClick={() => confirmExisting(t.id)}>
                           <CheckCircle2 className="w-4 h-4 ml-1" />تأكيد
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-rose-600" onClick={() => deleteDraft(t.id)}>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={() => deleteDraft(t.id)}>
                           <Trash2 className="w-4 h-4 ml-1" />حذف
                         </Button>
                       </>
                     )}
                     {t.status === "confirmed" && (
-                      <Button size="sm" variant="ghost" className="h-7 px-2 text-rose-600" onClick={() => cancelTransfer(t.id)}>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={() => cancelTransfer(t.id)}>
                         <XCircle className="w-4 h-4 ml-1" />إلغاء
                       </Button>
                     )}
@@ -429,6 +470,9 @@ const StockTransfersPage = () => {
               <ArrowLeftRight className="w-5 h-5" />
               سند تحويل مخزون جديد
             </DialogTitle>
+            <DialogDescription>
+              حدّد نوع التحويل والمستودعات والأصناف. عند التأكيد ستُسجَّل الحركات تلقائياً في كلا المستودعين.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -578,7 +622,7 @@ const StockTransfersPage = () => {
                             ₪{(it.quantity * it.unit_cost).toFixed(2)}
                           </td>
                           <td className="px-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => removeItem(idx)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeItem(idx)}>
                               <X className="w-3.5 h-3.5" />
                             </Button>
                           </td>
@@ -616,7 +660,7 @@ const StockTransfersPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </FinanceShell>
   );
 };
 

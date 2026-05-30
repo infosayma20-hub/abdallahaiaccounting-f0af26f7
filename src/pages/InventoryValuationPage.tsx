@@ -1,13 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, Package, FileSpreadsheet } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Loader2, Package, FileSpreadsheet, RefreshCw, Printer,
+  Calculator, AlertTriangle, TrendingUp,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import SortableReportTable, { ColumnDef } from "@/components/reports/SortableReportTable";
+import { FinanceShell, ActionPane } from "@/components/finance/shell";
+import type { ActionTab } from "@/components/finance/shell";
+import EmptyState from "@/components/EmptyState";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface Product {
@@ -25,28 +29,27 @@ interface Product {
 const fmtAmt = (n: number) => `₪${Math.abs(n).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const InventoryValuationPage = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user || !dataOwnerId) return;
-    const load = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("products")
-        .select("id, name, category, sku, buy_price, sell_price, quantity, min_quantity, unit")
-        .eq("user_id", dataOwnerId)
-        .order("name");
-      setProducts(data || []);
-      setLoading(false);
-    };
-    load();
+    setLoading(true);
+    const { data } = await supabase
+      .from("products")
+      .select("id, name, category, sku, buy_price, sell_price, quantity, min_quantity, unit")
+      .eq("user_id", dataOwnerId)
+      .order("name");
+    setProducts(data || []);
+    setLoading(false);
   }, [user, dataOwnerId]);
+
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const categories = useMemo(() => [...new Set(products.map(p => p.category))].filter(Boolean), [products]);
 
@@ -95,7 +98,7 @@ const InventoryValuationPage = () => {
     { key: "quantity", label: "الكمية", type: "number", align: "center",
       format: (v) => (
         <span className={`font-mono text-xs font-bold ${v < 0 ? "text-destructive" : v === 0 ? "text-muted-foreground" : "text-foreground"}`}>
-          {v < 0 ? `⚠️ ${v}` : v}
+          {v < 0 ? <span className="inline-flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{v}</span> : v}
         </span>
       )
     },
@@ -111,9 +114,9 @@ const InventoryValuationPage = () => {
       filterOptions: ["متوفر", "منخفض", "نفد"],
       format: (v) => {
         const cfg: Record<string, string> = {
-          "متوفر": "bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400",
-          "منخفض": "bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400",
-          "نفد": "bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400",
+          "متوفر": "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+          "منخفض": "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+          "نفد":   "bg-destructive/10 text-destructive",
         };
         return <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${cfg[v] || ""}`}>{v}</span>;
       }
@@ -131,45 +134,70 @@ const InventoryValuationPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, "جرد المخزون");
     setNextExportBranding({ title: "جرد المخزون" });
     XLSX.writeFile(wb, `جرد_المخزون_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast({ title: "تم تصدير تقرير الجرد ✅" });
+    toast({ title: "تم تصدير تقرير الجرد" });
   };
 
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home", label: "عام",
+      groups: [
+        {
+          key: "actions", label: "إجراءات", items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => setRefreshKey(k => k + 1), disabled: loading },
+            {
+              key: "recalc", label: "إعادة احتساب", icon: Calculator,
+              disabled: true,
+              tooltip: "احتساب التكاليف يتم تلقائياً من حركات المخزون — لا يوجد إجراء يدوي حالياً.",
+            },
+          ],
+        },
+        {
+          key: "view", label: "عرض", items: [
+            { key: "filters", label: "فلاتر", icon: Package, disabled: true, tooltip: "تتم الفلترة من رؤوس الأعمدة في الجدول." },
+            { key: "columns", label: "أعمدة", icon: Package, disabled: true, tooltip: "تتم إدارة الأعمدة من قائمة رأس الجدول." },
+          ],
+        },
+        {
+          key: "export", label: "تصدير وطباعة", items: [
+            { key: "excel", label: "Excel",  icon: FileSpreadsheet, onClick: handleExport,  disabled: products.length === 0, tooltip: products.length === 0 ? "لا توجد بيانات للتصدير" : undefined },
+            { key: "print", label: "طباعة", icon: Printer,         onClick: () => window.print(), disabled: products.length === 0, tooltip: products.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
+          ],
+        },
+      ],
+    },
+  ];
+
   return (
-    <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">تقييم وجرد المخزون</h1>
-            <p className="text-xs text-muted-foreground">{products.length} منتج • {new Date().toLocaleDateString("ar-EG")}</p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={products.length === 0}>
-          <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
-        </Button>
-      </div>
+    <FinanceShell
+      title="تقييم وجرد المخزون"
+      subtitle={`${products.length} منتج • ${new Date().toLocaleDateString("ar-EG")}`}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: "المخزون", href: "/inventory" },
+        { label: "تقييم وجرد المخزون" },
+      ]}
+      actionTabs={actionTabs}
+    >
 
       {/* Summary Cards */}
       {products.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-2xl bg-primary/5 border border-primary/10 p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="rounded-lg bg-primary/5 border border-primary/10 p-4">
             <p className="text-[10px] text-primary/70 font-medium mb-1">قيمة المخزون (تكلفة)</p>
             <p className="text-lg font-bold text-primary tabular-nums">₪{totalCostValue.toLocaleString()}</p>
           </div>
-          <div className="rounded-2xl bg-accent border border-border/30 p-4">
+          <div className="rounded-lg bg-accent border border-border/30 p-4">
             <p className="text-[10px] text-accent-foreground/70 font-medium mb-1">قيمة المخزون (بيع)</p>
             <p className="text-lg font-bold text-accent-foreground tabular-nums">₪{totalSellValue.toLocaleString()}</p>
           </div>
-          <div className="rounded-2xl bg-muted/50 border border-border/30 p-4">
+          <div className="rounded-lg bg-muted/50 border border-border/30 p-4">
             <p className="text-[10px] text-muted-foreground font-medium mb-1">إجمالي الوحدات</p>
             <p className="text-lg font-bold text-foreground tabular-nums">{totalItems.toLocaleString()}</p>
           </div>
-          <div className={`rounded-2xl p-4 border ${lowStockCount > 0 || negativeCount > 0 ? "bg-destructive/5 border-destructive/10" : "bg-muted/50 border-border/30"}`}>
-            <p className={`text-[10px] font-medium mb-1 ${lowStockCount > 0 ? "text-destructive/70" : "text-muted-foreground"}`}>
-              {negativeCount > 0 ? "⚠️ أرصدة سالبة" : "منخفض المخزون"}
+          <div className={`rounded-lg p-4 border ${lowStockCount > 0 || negativeCount > 0 ? "bg-destructive/5 border-destructive/10" : "bg-muted/50 border-border/30"}`}>
+            <p className={`text-[10px] font-medium mb-1 flex items-center gap-1 ${lowStockCount > 0 ? "text-destructive/70" : "text-muted-foreground"}`}>
+              {negativeCount > 0 && <AlertTriangle className="h-3 w-3" />}
+              {negativeCount > 0 ? "أرصدة سالبة" : "منخفض المخزون"}
             </p>
             <p className={`text-lg font-bold tabular-nums ${lowStockCount > 0 || negativeCount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
               {negativeCount > 0 ? negativeCount : lowStockCount}
@@ -180,8 +208,9 @@ const InventoryValuationPage = () => {
 
       {/* Negative stock warning */}
       {negativeCount > 0 && (
-        <div className="px-4 py-2.5 rounded-xl bg-destructive/5 border border-destructive/20 text-xs text-destructive font-medium">
-          ⚠️ تحذير: {negativeCount} أصناف بكمية سالبة — يحتاج مراجعة وتعديل يدوي للمخزون
+        <div className="px-4 py-2.5 mb-3 rounded-lg bg-destructive/5 border border-destructive/20 text-xs text-destructive font-medium flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          تحذير: {negativeCount} أصناف بكمية سالبة — يحتاج مراجعة وتعديل يدوي للمخزون
         </div>
       )}
 
@@ -194,15 +223,16 @@ const InventoryValuationPage = () => {
 
       {/* Empty */}
       {!loading && products.length === 0 && (
-        <div className="text-center py-16">
-          <Package className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">لا توجد منتجات لجرد المخزون</p>
-        </div>
+        <EmptyState
+          icon={<Package className="h-20 w-20" />}
+          title="لا توجد منتجات للجرد"
+          description="أضف منتجات من شاشة المخزون لتظهر هنا في تقرير التقييم والجرد."
+        />
       )}
 
       {/* Sortable Table */}
       {!loading && tableData.length > 0 && (
-        <div className="rounded-2xl border border-border/50 overflow-hidden">
+        <div className="rounded-lg border border-border/50 overflow-x-auto">
           <SortableReportTable
             columns={columns}
             data={tableData}
@@ -215,11 +245,11 @@ const InventoryValuationPage = () => {
             reportTitle="تقييم وجرد المخزون"
             storageKey="inventory-valuation"
             defaultSort={[{ key: "value", dir: "desc" }]}
-            rowClassName={(row) => row.quantity < 0 ? "!bg-red-50 dark:!bg-red-950/20" : ""}
+            rowClassName={(row) => row.quantity < 0 ? "!bg-destructive/5" : ""}
           />
         </div>
       )}
-    </div>
+    </FinanceShell>
   );
 };
 
