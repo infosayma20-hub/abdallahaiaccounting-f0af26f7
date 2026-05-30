@@ -98,7 +98,7 @@ export default function PortalSettingsSection() {
 
       if (error) throw error;
       if (data?.success) {
-        toast.success('تم إنشاء الحساب بنجاح ✅');
+        toast.success('تم إنشاء الحساب بنجاح');
         setPortalEmail(''); setPassword(''); setFullName('');
         setNewRole('viewer'); setNewCanSeeSales(true); setNewCanSeeLiquidity(true); setNewCanSeeAllBranches(true);
         setShowAddForm(false);
