@@ -3456,11 +3456,10 @@ const POSPage = () => {
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
-      // Consume replacement marker after a successful sale
-      if (markAsReplacement) {
-        setMarkAsReplacement(false);
-        setLastCancelledOrder(null);
-      }
+      // Always clear replacement marker after a successful sale, so the next
+      // sale starts clean (checkbox will only reappear after a fresh cancel).
+      setMarkAsReplacement(false);
+      setLastCancelledOrder(null);
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
