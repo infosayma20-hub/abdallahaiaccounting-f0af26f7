@@ -85,6 +85,26 @@ const contactTypeOptions = [
   { value: "عميل ومورد", label: "زبون ومورد" },
 ];
 
+const CONTACT_COLUMNS: ColumnDef[] = [
+  { key: "name", label: "الاسم", required: true },
+  { key: "type", label: "النوع" },
+  { key: "source", label: "المصدر", defaultVisible: false },
+  { key: "class", label: "الفئة" },
+  { key: "balance", label: "الرصيد", required: true },
+  { key: "limit", label: "السقف" },
+  { key: "overdue", label: "المتأخر" },
+  { key: "last_tx", label: "آخر حركة" },
+  { key: "payment_days", label: "أيام الدفع", defaultVisible: false },
+  { key: "actions", label: "إجراءات", required: true },
+];
+
+const sourceConfig: Record<string, { label: string; icon: typeof Hand }> = {
+  "e-commerce": { label: "متجر إلكتروني", icon: ShoppingCart },
+  whatsapp:    { label: "واتساب",       icon: MessageCircle },
+  instagram:   { label: "انستغرام",     icon: Instagram },
+  manual:      { label: "يدوي",         icon: Hand },
+};
+
 const alertConfig: Record<string, { icon: typeof AlertTriangle; color: string; bg: string; title: string }> = {
   credit_limit_exceeded: { icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30", title: "تجاوز سقف الائتمان" },
   invoice_overdue_30: { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", title: "فاتورة متأخرة 30 يوم" },
