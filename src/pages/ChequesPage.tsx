@@ -148,6 +148,24 @@ const ChequesPage = () => {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('all');
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+
+  // ============ COLUMN VISIBILITY ============
+  const columnDefs: ColumnDef[] = useMemo(() => ([
+    { key: 'select', label: 'تحديد', required: true },
+    { key: 'cheque_type', label: 'النوع', required: true },
+    { key: 'cheque_number', label: 'رقم الشيك' },
+    { key: 'party_name', label: 'الجهة', required: true },
+    { key: 'bank_name', label: 'البنك' },
+    { key: 'amount', label: 'المبلغ', required: true },
+    { key: 'created_at', label: 'تاريخ الإصدار', defaultVisible: false },
+    { key: 'cheque_date', label: 'تاريخ الاستحقاق', required: true },
+    { key: 'remaining', label: 'المتبقي' },
+    { key: 'status', label: 'الحالة', required: true },
+    { key: 'actions', label: 'إجراءات', required: true },
+  ]), []);
+  const colState = useColumnVisibility('cheques-page', columnDefs);
+  const show = colState.isVisible;
 
   interface ChequeRow {
     cheque_type: ChequeType;
