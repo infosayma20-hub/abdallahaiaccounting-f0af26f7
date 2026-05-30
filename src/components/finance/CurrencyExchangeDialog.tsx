@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowLeftRight, TrendingUp } from "lucide-react";
+import { ArrowLeftRight, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FinanceModal } from "@/components/finance/shell";
 
 interface CashBox {
   id: string;
@@ -136,16 +135,17 @@ export default function CurrencyExchangeDialog({ open, onOpenChange, boxes, onSu
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <ArrowLeftRight className="h-5 w-5 text-blue-600" />
-            صرف عملة
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-2">
+    <FinanceModal
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={ArrowLeftRight}
+      title="صرف عملة"
+      description="تبديل عملة داخل نفس الصندوق بسعر صرف محدد"
+      primaryLabel="تنفيذ صرف العملة"
+      primaryLoading={saving}
+      primaryDisabled={!boxId || !amount || !rate || Number(amount) <= 0 || Number(rate) <= 0}
+      onPrimary={handleSubmit}
+    >
           {/* Box selection */}
           <div className="space-y-1.5">
             <Label className="text-xs">الصندوق</Label>
@@ -226,10 +226,10 @@ export default function CurrencyExchangeDialog({ open, onOpenChange, boxes, onSu
 
           {/* Result preview */}
           {Number(amount) > 0 && Number(rate) > 0 && (
-            <div className="rounded-lg p-3 border bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+            <div className="rounded-md p-3 border border-border bg-muted/40">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">المبلغ المحوّل:</span>
-                <span className="font-bold font-mono text-blue-700 dark:text-blue-400 text-base">
+                <span className="font-bold font-mono text-foreground text-base">
                   {toCur?.symbol}{fmt(Number(convertedAmount))}
                 </span>
               </div>
@@ -250,18 +250,6 @@ export default function CurrencyExchangeDialog({ open, onOpenChange, boxes, onSu
               onChange={e => setNotes(e.target.value)}
             />
           </div>
-
-          <Button
-            className="w-full gap-2"
-            style={{ background: "linear-gradient(135deg, #1E40AF, #3B82F6)" }}
-            disabled={saving || !boxId || !amount || !rate || Number(amount) <= 0 || Number(rate) <= 0}
-            onClick={handleSubmit}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeftRight className="h-4 w-4" />}
-            تنفيذ صرف العملة
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </FinanceModal>
   );
 }
