@@ -591,6 +591,16 @@ const POSPage = () => {
   const [posAutoPrint, setPosAutoPrint] = useState(true);
   const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
+  // Cashier policy windows (loaded from company_settings, see fetch below).
+  const [cashierCancelWindowMin, setCashierCancelWindowMin] = useState(30);
+  const [cashierAmountVisibleMin, setCashierAmountVisibleMin] = useState(60);
+  // Replacement-invoice flow: remember the last invoice the cashier just
+  // cancelled in THIS session so we can offer a "هذه فاتورة معدّلة" toggle on
+  // the next sale. Auto-suggested ON for the first sale after a cancel; the
+  // cashier can untick it. Cleared after the next sale completes (or after a
+  // reasonable timeout/window).
+  const [lastCancelledOrder, setLastCancelledOrder] = useState<{ id: string; order_number: string | null; at: number } | null>(null);
+  const [markAsReplacement, setMarkAsReplacement] = useState(false);
   const [detectedBranchId, setDetectedBranchId] = useState<string | null>(null);
   // ── Device-level config (per-machine, stored in localStorage) ──
   const [deviceConfig, setDeviceConfig] = useState(() => getDeviceConfig());
@@ -1230,7 +1240,7 @@ const POSPage = () => {
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
           .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url")
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url, pos_cashier_cancel_window_minutes, pos_cashier_invoice_amount_visible_minutes")
           .eq("user_id", dataOwnerId)
           .maybeSingle();
 
@@ -1247,6 +1257,10 @@ const POSPage = () => {
           setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
           setPosRequireCashBox((posSettings as any).pos_require_cash_box ?? false);
           setPosAutoPrint((posSettings as any).pos_auto_print ?? true);
+          const cw = Number((posSettings as any).pos_cashier_cancel_window_minutes);
+          if (Number.isFinite(cw) && cw > 0) setCashierCancelWindowMin(cw);
+          const av = Number((posSettings as any).pos_cashier_invoice_amount_visible_minutes);
+          if (Number.isFinite(av) && av > 0) setCashierAmountVisibleMin(av);
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
@@ -2887,6 +2901,11 @@ const POSPage = () => {
               pos_customer_id: activeOrder.posCustomerId || null,
               order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
+              ...(markAsReplacement && lastCancelledOrder ? {
+                is_replacement: true,
+                replaces_order_id: lastCancelledOrder.id,
+                replaces_order_number: lastCancelledOrder.order_number,
+              } as any : {}),
             } as any)
           .select()
           .single();
@@ -3324,7 +3343,15 @@ const POSPage = () => {
           exchangeRate: rate,
           tenderedAmount: tendered,
           change: changeILS,
-          orderNote,
+          orderNote: (markAsReplacement && lastCancelledOrder)
+            ? [
+                `==================`,
+                `      طلب معدل`,
+                `بديل عن فاتورة: ${lastCancelledOrder.order_number || lastCancelledOrder.id.slice(0, 8)}`,
+                `==================`,
+                orderNote || "",
+              ].filter(Boolean).join("\n")
+            : orderNote,
         };
 
         const companyPrintInfo = {
@@ -3416,6 +3443,11 @@ const POSPage = () => {
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
+      // Consume replacement marker after a successful sale
+      if (markAsReplacement) {
+        setMarkAsReplacement(false);
+        setLastCancelledOrder(null);
+      }
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
@@ -6439,6 +6471,12 @@ const POSPage = () => {
             requireManagerForCancel={!isAdmin && posPerms.require_manager_for_invoices}
             requireManagerForReturn={!isAdmin && posPerms.require_manager_for_returns}
             cashierMode={!isAdmin && !posPerms.view_payment_details}
+            cancelWindowMinutes={cashierCancelWindowMin}
+            amountVisibleMinutes={cashierAmountVisibleMin}
+            onInvoiceCancelled={(orderId, orderNumber) => {
+              setLastCancelledOrder({ id: orderId, order_number: orderNumber, at: Date.now() });
+              setMarkAsReplacement(true); // auto-suggest for the very next sale
+            }}
             allowOrderTransfer={posAllowOrderTransfer}
             printInvoices={isAdmin || posPerms.print_invoices}
             resendInvoice={isAdmin || posPerms.resend_invoice}
