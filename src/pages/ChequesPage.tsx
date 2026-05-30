@@ -1087,8 +1087,8 @@ const ChequesPage = () => {
                 <col style={{ width: 110 }} />
               </colgroup>
               <thead>
-                <tr style={{ background: '#0D1B2E', color: '#fff' }}>
-                  <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-[#0D1B2E]" /></th>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">النوع</th>
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الجهة" field="party_name" /></th>
@@ -1125,11 +1125,11 @@ const ChequesPage = () => {
                             {c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
                           </span>
                         </td>
-                        <td className="px-2 py-3 text-xs font-mono truncate" dir="ltr" style={{ color: '#64748B' }}>{c.cheque_number || "—"}</td>
+                        <td className="px-2 py-3 text-xs font-mono truncate text-muted-foreground" dir="ltr">{c.cheque_number || "—"}</td>
                         <td className="px-2 py-3"><p className="text-sm font-semibold truncate" style={{ color: '#1E293B' }}>{c.party_name}</p></td>
-                        <td className="px-2 py-3 text-xs truncate" style={{ color: '#64748B' }}>{c.bank_name || '—'}</td>
+                        <td className="px-2 py-3 text-xs truncate text-muted-foreground">{c.bank_name || '—'}</td>
                         <td className="px-2 py-3 text-sm font-bold tabular-nums" style={{ color: '#1E293B' }}>{c.amount.toLocaleString()} ₪</td>
-                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: '#64748B' }}>{fmtDate(c.created_at?.split('T')[0] || '')}</td>
+                        <td className="px-2 py-3 text-[11px] tabular-nums text-muted-foreground">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: isDueSoon ? '#DC2626' : '#64748B', fontWeight: isDueSoon ? 700 : 400 }}>{fmtDate(c.cheque_date)}</td>
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days < 0 ? '#DC2626' : days <= 7 ? '#F59E0B' : '#64748B'; })(), fontWeight: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days <= 7 ? 700 : 400; })() }}>
                           {(() => {
@@ -1194,7 +1194,7 @@ const ChequesPage = () => {
                       </tr>
                       {isExpanded && (
                         <tr key={`${c.id}-details`}>
-                          <td colSpan={10} className="border-b px-6 py-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+                          <td colSpan={10} className="border-b px-6 py-4" className="bg-muted/20 border-border">
                             <ChequeTimeline cheque={c} history={history} />
                           </td>
                         </tr>
@@ -1204,10 +1204,10 @@ const ChequesPage = () => {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 font-bold text-sm" style={{ background: '#F8FAFC', borderColor: '#0D1B2E' }}>
+                <tr className="border-t-2 font-bold text-sm" className="bg-muted/40 border-primary">
                   <td colSpan={5} className="px-2 py-3 text-right" style={{ color: '#1E293B' }}>المجموع ({tabFiltered.length} شيك)</td>
                   <td className="px-2 py-3 tabular-nums" style={{ color: '#1E293B' }}>₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={4} className="px-2 py-3 text-xs font-normal" style={{ color: '#64748B' }}>إجمالي قيمة الشيكات</td>
+                  <td colSpan={4} className="px-2 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الشيكات</td>
                 </tr>
               </tfoot>
             </table>
@@ -1215,8 +1215,8 @@ const ChequesPage = () => {
 
           {/* Pagination */}
           {tabSorted.length > PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
-              <p className="text-xs" style={{ color: '#64748B' }}>عرض {Math.min((page - 1) * PER_PAGE + 1, tabSorted.length)}–{Math.min(page * PER_PAGE, tabSorted.length)} من {tabSorted.length}</p>
+            <div className="flex items-center justify-between px-4 py-3 border-t" className="border-border bg-muted/30">
+              <p className="text-xs text-muted-foreground">عرض {Math.min((page - 1) * PER_PAGE + 1, tabSorted.length)}–{Math.min(page * PER_PAGE, tabSorted.length)} من {tabSorted.length}</p>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
                 {Array.from({ length: tabTotalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(tabTotalPages, page + 2)).map(n => (
@@ -1224,7 +1224,7 @@ const ChequesPage = () => {
                 ))}
                 <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= tabTotalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
               </div>
-              <p className="text-xs" style={{ color: '#64748B' }}>{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${tabTotalPages}`}</p>
+              <p className="text-xs text-muted-foreground">{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${tabTotalPages}`}</p>
             </div>
           )}
         </div>
