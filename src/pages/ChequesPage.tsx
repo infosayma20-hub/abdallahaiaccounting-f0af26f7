@@ -135,7 +135,9 @@ const ChequesPage = () => {
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [partySearch, setPartySearch] = useState("");
-  const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
+  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const [partyHighlight, setPartyHighlight] = useState(0);
+  const partyDropdownRef = useRef<HTMLDivElement>(null);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
   const [actionTarget, setActionTarget] = useState<Cheque | null>(null);
   const [unendorseTarget, setUnendorseTarget] = useState<Cheque | null>(null);
