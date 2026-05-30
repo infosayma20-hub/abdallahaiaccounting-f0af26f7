@@ -857,14 +857,14 @@ export default function InvoiceHistoryDrawer({
 
           {/* Status filter */}
           <div className="flex flex-wrap gap-1.5">
-            {([
+            {(([
               { key: "all", label: "كل الفواتير" },
               { key: "paid", label: "مكتملة" },
               { key: "draft", label: "معلقة" },
               { key: "cancelled", label: "ملغية" },
               { key: "recalled", label: "معدّلة" },
               { key: "transferred", label: "منقولة" },
-            ] as { key: StatusFilter; label: string }[]).map(f => (
+            ] as { key: StatusFilter; label: string }[]).filter(f => !(cashierMode && f.key === "cancelled"))).map(f => (
               <button
                 key={f.key}
                 onClick={() => setStatusFilter(f.key)}
