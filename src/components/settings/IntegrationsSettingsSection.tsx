@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, MessageCircle, Table, Mail, Cloud, MessageSquare, Plug } from "lucide-react";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 
 interface Props {
@@ -13,35 +13,35 @@ const integrations = [
     id: "whatsapp",
     name: "واتساب",
     desc: "إرسال الفواتير والتذكيرات عبر واتساب",
-    icon: "💬",
+    icon: MessageCircle,
     key: "integration_whatsapp",
   },
   {
     id: "google_sheets",
     name: "جوجل شيتس",
     desc: "تصدير البيانات تلقائياً لجداول بيانات Google",
-    icon: "📊",
+    icon: Table,
     key: "integration_google_sheets",
   },
   {
     id: "email_smtp",
     name: "البريد الإلكتروني (SMTP)",
     desc: "إرسال الفواتير والتقارير بالبريد الإلكتروني",
-    icon: "📧",
+    icon: Mail,
     key: "integration_email_smtp",
   },
   {
     id: "cloud_backup",
     name: "النسخ الاحتياطي السحابي",
     desc: "نسخ احتياطي تلقائي يومي للبيانات",
-    icon: "☁️",
+    icon: Cloud,
     key: "integration_cloud_backup",
   },
   {
     id: "sms",
     name: "الرسائل النصية (SMS)",
     desc: "إرسال تذكيرات الدفع والتنبيهات عبر SMS",
-    icon: "📱",
+    icon: MessageSquare,
     key: "integration_sms",
   },
 ];
