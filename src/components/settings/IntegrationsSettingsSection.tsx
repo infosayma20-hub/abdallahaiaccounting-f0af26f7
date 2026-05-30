@@ -56,18 +56,23 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
           الخدمات المتصلة
         </h3>
         <div className="space-y-3">
-          {integrations.map(item => (
-            <div key={item.id} className="flex items-center justify-between p-4 bg-muted/40 rounded-lg border border-border">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{item.icon}</span>
-                <div>
-                  <p className="font-medium text-sm">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+          {integrations.map(item => {
+            const Icon = item.icon;
+            return (
+              <div key={item.id} className="flex items-center justify-between p-4 bg-muted/40 rounded-lg border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
                 </div>
+                <Switch checked={(settings as any)[item.key] ?? false} onCheckedChange={v => onChange({ [item.key]: v })} />
               </div>
-              <Switch checked={(settings as any)[item.key] ?? false} onCheckedChange={v => onChange({ [item.key]: v })} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
