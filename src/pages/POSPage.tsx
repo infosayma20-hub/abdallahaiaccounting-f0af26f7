@@ -6436,6 +6436,8 @@ const POSPage = () => {
             canCancelInvoices={isAdmin || posPerms.can_cancel_invoices || posPerms.edit_cancel_invoices}
             requireManagerForRecall={!isAdmin && !(posPerms.can_edit_invoices) && posPerms.require_manager_for_invoices}
             requireManagerForCancel={!isAdmin && posPerms.require_manager_for_invoices}
+            requireManagerForReturn={!isAdmin && posPerms.require_manager_for_returns}
+            cashierMode={!isAdmin && !posPerms.view_payment_details}
             allowOrderTransfer={posAllowOrderTransfer}
             printInvoices={isAdmin || posPerms.print_invoices}
             resendInvoice={isAdmin || posPerms.resend_invoice}
