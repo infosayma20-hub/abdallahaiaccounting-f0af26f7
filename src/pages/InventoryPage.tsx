@@ -1260,7 +1260,7 @@ const InventoryPage = () => {
               <History className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">لا توجد حركات مسجلة بعد</p>
               {selectedProduct && selectedProduct.quantity > 0 && (
-                <p className="text-xs text-yellow-600 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   الكمية الحالية ({selectedProduct.quantity}) تم إدخالها يدوياً عند إنشاء/تعديل المنتج ولم تُسجل كحركة مخزون
                 </p>
               )}
