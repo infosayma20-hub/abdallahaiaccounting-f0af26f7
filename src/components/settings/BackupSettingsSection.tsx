@@ -104,7 +104,7 @@ const BackupSettingsSection = () => {
       saveAs(blob, `amwali_backup_${getTimestamp()}.json`);
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
-      toast({ title: "تم تصدير النسخة الاحتياطية ✅", description: `${backup._meta.total_rows} سجل في ${backup._meta.tables} جدول` });
+      toast({ title: "تم تصدير النسخة الاحتياطية", description: `${backup._meta.total_rows} سجل في ${backup._meta.tables} جدول` });
     } catch (err: any) {
       toast({ title: "خطأ في التصدير", description: err.message, variant: "destructive" });
     } finally {
@@ -145,7 +145,7 @@ const BackupSettingsSection = () => {
       localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       const totalRows = Object.values(allData).reduce((s, a) => s + a.length, 0);
-      toast({ title: "تم تصدير النسخة الاحتياطية ✅", description: `${totalRows} سجل في ملف Excel` });
+      toast({ title: "تم تصدير النسخة الاحتياطية", description: `${totalRows} سجل في ملف Excel` });
     } catch (err: any) {
       toast({ title: "خطأ في التصدير", description: err.message, variant: "destructive" });
     } finally {
@@ -174,8 +174,8 @@ const BackupSettingsSection = () => {
         {/* JSON */}
         <div className="border rounded-xl p-5 space-y-3 bg-muted/20 hover:border-primary/30 transition-colors">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <FileJson className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+              <FileJson className="w-5 h-5 text-foreground" />
             </div>
             <div>
               <p className="font-medium text-sm">تصدير JSON</p>
@@ -191,8 +191,8 @@ const BackupSettingsSection = () => {
         {/* Excel */}
         <div className="border rounded-xl p-5 space-y-3 bg-muted/20 hover:border-primary/30 transition-colors">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <FileSpreadsheet className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5 text-foreground" />
             </div>
             <div>
               <p className="font-medium text-sm">تصدير Excel</p>

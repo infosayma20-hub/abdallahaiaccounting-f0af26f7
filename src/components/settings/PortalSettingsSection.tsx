@@ -98,7 +98,7 @@ export default function PortalSettingsSection() {
 
       if (error) throw error;
       if (data?.success) {
-        toast.success('تم إنشاء الحساب بنجاح ✅');
+        toast.success('تم إنشاء الحساب بنجاح');
         setPortalEmail(''); setPassword(''); setFullName('');
         setNewRole('viewer'); setNewCanSeeSales(true); setNewCanSeeLiquidity(true); setNewCanSeeAllBranches(true);
         setShowAddForm(false);
@@ -141,7 +141,7 @@ export default function PortalSettingsSection() {
         body: { action: 'reset_password', user_id: resetTarget.id, new_password: newPassword },
       });
       if (error) throw error;
-      toast.success('تم تغيير كلمة المرور بنجاح ✅');
+      toast.success('تم تغيير كلمة المرور بنجاح');
       setResetTarget(null);
       setNewPassword('');
     } catch (err: any) {
@@ -268,7 +268,7 @@ export default function PortalSettingsSection() {
                   </p>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="sm" onClick={() => toggleActive(member)} className="h-7 px-2 text-xs gap-1" title={member.is_active ? 'تعطيل' : 'تفعيل'}>
-                      {member.is_active ? <ToggleRight className="h-3.5 w-3.5 text-green-600" /> : <ToggleLeft className="h-3.5 w-3.5" />}
+                      {member.is_active ? <ToggleRight className="h-3.5 w-3.5 text-primary" /> : <ToggleLeft className="h-3.5 w-3.5" />}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => { setResetTarget(member); setNewPassword(''); }} className="h-7 px-2 text-xs gap-1">
                       <KeyRound className="h-3.5 w-3.5" />

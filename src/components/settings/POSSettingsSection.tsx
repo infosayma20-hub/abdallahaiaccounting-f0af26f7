@@ -210,7 +210,7 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
       {/* Kitchen Tickets */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-orange-500 rounded-full" />
+          <span className="w-1 h-5 bg-primary rounded-full" />
           تذاكر المطبخ / المحطات
         </h3>
         <p className="text-xs text-muted-foreground mb-3">

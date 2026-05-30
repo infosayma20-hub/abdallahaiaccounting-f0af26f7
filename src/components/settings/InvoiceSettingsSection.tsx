@@ -18,9 +18,9 @@ const InvoiceSettingsSection = ({ settings, onChange }: Props) => {
     <div className="p-6 space-y-6">
       <Tabs defaultValue="template" dir="rtl">
         <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="template">🎨 تصميم الفاتورة</TabsTrigger>
-          <TabsTrigger value="defaults">⚙️ إعدادات عامة</TabsTrigger>
-          <TabsTrigger value="advanced">📄 متقدم</TabsTrigger>
+          <TabsTrigger value="template">تصميم الفاتورة</TabsTrigger>
+          <TabsTrigger value="defaults">إعدادات عامة</TabsTrigger>
+          <TabsTrigger value="advanced">متقدم</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Template Customizer */}

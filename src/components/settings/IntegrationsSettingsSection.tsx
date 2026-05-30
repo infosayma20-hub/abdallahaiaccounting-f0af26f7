@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, MessageCircle, Table, Mail, Cloud, MessageSquare, Plug } from "lucide-react";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 
 interface Props {
@@ -13,35 +13,35 @@ const integrations = [
     id: "whatsapp",
     name: "واتساب",
     desc: "إرسال الفواتير والتذكيرات عبر واتساب",
-    icon: "💬",
+    icon: MessageCircle,
     key: "integration_whatsapp",
   },
   {
     id: "google_sheets",
     name: "جوجل شيتس",
     desc: "تصدير البيانات تلقائياً لجداول بيانات Google",
-    icon: "📊",
+    icon: Table,
     key: "integration_google_sheets",
   },
   {
     id: "email_smtp",
     name: "البريد الإلكتروني (SMTP)",
     desc: "إرسال الفواتير والتقارير بالبريد الإلكتروني",
-    icon: "📧",
+    icon: Mail,
     key: "integration_email_smtp",
   },
   {
     id: "cloud_backup",
     name: "النسخ الاحتياطي السحابي",
     desc: "نسخ احتياطي تلقائي يومي للبيانات",
-    icon: "☁️",
+    icon: Cloud,
     key: "integration_cloud_backup",
   },
   {
     id: "sms",
     name: "الرسائل النصية (SMS)",
     desc: "إرسال تذكيرات الدفع والتنبيهات عبر SMS",
-    icon: "📱",
+    icon: MessageSquare,
     key: "integration_sms",
   },
 ];
@@ -56,18 +56,23 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
           الخدمات المتصلة
         </h3>
         <div className="space-y-3">
-          {integrations.map(item => (
-            <div key={item.id} className="flex items-center justify-between p-4 bg-muted/40 rounded-lg border border-border">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{item.icon}</span>
-                <div>
-                  <p className="font-medium text-sm">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+          {integrations.map(item => {
+            const Icon = item.icon;
+            return (
+              <div key={item.id} className="flex items-center justify-between p-4 bg-muted/40 rounded-lg border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
                 </div>
+                <Switch checked={(settings as any)[item.key] ?? false} onCheckedChange={v => onChange({ [item.key]: v })} />
               </div>
-              <Switch checked={(settings as any)[item.key] ?? false} onCheckedChange={v => onChange({ [item.key]: v })} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -81,7 +86,9 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
         </h3>
         <div className="bg-muted/40 rounded-lg p-4 border border-border">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">🔌</span>
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <Plug className="w-5 h-5 text-muted-foreground" />
+            </div>
             <div>
               <p className="font-medium text-sm">AMWALI API</p>
               <p className="text-xs text-muted-foreground">دمج AMWALI مع أنظمتك الخارجية</p>
