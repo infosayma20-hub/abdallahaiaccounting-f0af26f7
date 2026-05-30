@@ -659,7 +659,7 @@ const App = () => (
                       
                       <Route path="/pos-users" element={<ModuleGuard><FeatureGuard app="settings" feature="users" perm="manage" label="إدارة مستخدمي نقطة البيع"><POSUserManagementPage /></FeatureGuard></ModuleGuard>} />
                       <Route path="/pos-customers" element={<ModuleGuard><POSCustomerDatabasePage /></ModuleGuard>} />
-                      <Route path="/pos-reports" element={<ModuleGuard><POSReportsPage /></ModuleGuard>} />
+                      <Route path="/pos-reports" element={<ModuleGuard><POSReportsGuard><POSReportsPage /></POSReportsGuard></ModuleGuard>} />
                       <Route path="/printer-settings" element={<PrinterSettingsPage />} />
                       <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
