@@ -29,7 +29,18 @@ import UnendorseChequeDialog from "@/components/cheques/UnendorseChequeDialog";
 import UndepositChequeDialog from "@/components/cheques/UndepositChequeDialog";
 
 import { setNextExportBranding } from "@/lib/excel-export";
-import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import {
+  FinanceShell,
+  applyFilters,
+  type ActionTab,
+  type FilterCondition,
+  type FilterField,
+} from "@/components/finance/shell";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import {
+  useColumnVisibility,
+  type ColumnDef,
+} from "@/components/finance/shell/useColumnVisibility";
 import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
