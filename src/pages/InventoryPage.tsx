@@ -239,7 +239,7 @@ const InventoryPage = () => {
             if (barcodes.length > 0) {
               setForm(p => ({ ...p, barcode: barcodes[0].rawValue }));
               stopBarcodeScanner();
-              toast({ title: "تم مسح الباركود ✅" });
+              toast({ title: "تم مسح الباركود" });
               return;
             }
           } catch {}
@@ -329,11 +329,11 @@ const InventoryPage = () => {
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
       if (error) toast({ title: "خطأ في تحديث المنتج", variant: "destructive" });
-      else toast({ title: "تم تحديث المنتج ✅" });
+      else toast({ title: "تم تحديث المنتج" });
     } else {
       const { error } = await supabase.from("products").insert(payload);
       if (error) toast({ title: "خطأ في إضافة المنتج", description: error.message, variant: "destructive" });
-      else toast({ title: "تم إضافة المنتج ✅" });
+      else toast({ title: "تم إضافة المنتج" });
     }
     setSaving(false);
     setShowProductDialog(false);
@@ -1026,8 +1026,8 @@ const InventoryPage = () => {
                 <Select value={form.product_type} onValueChange={v => setForm(p => ({ ...p, product_type: v, service_direction: v === "product" ? "" : p.service_direction }))}>
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="product">📦 منتج (له مخزون)</SelectItem>
-                    <SelectItem value="service">🔧 خدمة (بدون مخزون)</SelectItem>
+                    <SelectItem value="product">منتج (له مخزون)</SelectItem>
+                    <SelectItem value="service">خدمة (بدون مخزون)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1156,7 +1156,7 @@ const InventoryPage = () => {
                   </div>
 
                   <div className="text-[11px] text-muted-foreground bg-blue-50 dark:bg-blue-950/20 border border-blue-200/40 dark:border-blue-800/30 rounded-xl p-2.5">
-                    💡 سيتم عرض معلومات الكفالة (المدة + النوع) تلقائياً في الفاتورة عند بيع هذا المنتج، ويمكنك إنشاء بطاقة كفالة لاحقاً من موديول إدارة الكفالات.
+                    سيتم عرض معلومات الكفالة (المدة + النوع) تلقائياً في الفاتورة عند بيع هذا المنتج، ويمكنك إنشاء بطاقة كفالة لاحقاً من موديول إدارة الكفالات.
                   </div>
                 </>
               )}
@@ -1171,7 +1171,7 @@ const InventoryPage = () => {
 
             {/* ============ TAB 4: Advanced ============ */}
             <TabsContent value="advanced" className="space-y-4 mt-4">
-            <p className="text-[11px] text-muted-foreground">⚙️ هذه إعدادات محاسبية متقدمة، القيم الافتراضية تعمل لمعظم الحالات.</p>
+            <p className="text-[11px] text-muted-foreground">هذه إعدادات محاسبية متقدمة، القيم الافتراضية تعمل لمعظم الحالات.</p>
 
             {/* Sales Account */}
             {form.is_sold && (
@@ -1261,7 +1261,7 @@ const InventoryPage = () => {
               <p className="text-sm text-muted-foreground">لا توجد حركات مسجلة بعد</p>
               {selectedProduct && selectedProduct.quantity > 0 && (
                 <p className="text-xs text-yellow-600 mt-2">
-                  ⚠️ الكمية الحالية ({selectedProduct.quantity}) تم إدخالها يدوياً عند إنشاء/تعديل المنتج ولم تُسجل كحركة مخزون
+                  الكمية الحالية ({selectedProduct.quantity}) تم إدخالها يدوياً عند إنشاء/تعديل المنتج ولم تُسجل كحركة مخزون
                 </p>
               )}
             </div>
