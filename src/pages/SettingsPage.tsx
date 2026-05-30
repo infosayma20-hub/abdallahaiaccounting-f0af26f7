@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,7 @@ import BranchesSettingsSection from "@/components/settings/BranchesSettingsSecti
 import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
 import BackupSettingsSection from "@/components/settings/BackupSettingsSection";
 import { multiWordMatchAny } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 /** Section catalog — ordered to match the navigation spec. */
 const SECTIONS = [
@@ -86,6 +87,13 @@ const SettingsPage = () => {
   }, [searchParams]);
 
   const handleSelect = (id: string) => {
+    if (showUnsavedBar) {
+      const ok = window.confirm(
+        "لديك تغييرات غير محفوظة في هذا القسم. هل تريد المتابعة وفقدانها؟"
+      );
+      if (!ok) return;
+      loadSettings();
+    }
     setActiveSection(id as SectionId);
     const next = new URLSearchParams(searchParams);
     next.set("section", id);
@@ -106,8 +114,25 @@ const SettingsPage = () => {
   const actionGroups: SettingsActionGroup[] = useMemo(() => {
     const groups: SettingsActionGroup[] = [];
 
-    // Save group — only meaningful for sections that share the company_settings save flow
-    if (!activeIsSelfSaved) {
+    // Save group — visible for both flows. For self-saved sections we show a
+    // disabled button with a tooltip so users know save lives inside the section.
+    if (activeIsSelfSaved) {
+      groups.push({
+        key: "save",
+        label: "حفظ",
+        items: [
+          {
+            key: "save",
+            label: "حفظ التغييرات",
+            icon: Save,
+            variant: "primary",
+            onClick: () => {},
+            disabled: true,
+            tooltip: "هذا القسم يحفظ بياناته من داخله",
+          },
+        ],
+      });
+    } else {
       groups.push({
         key: "save",
         label: "حفظ",
@@ -120,7 +145,7 @@ const SettingsPage = () => {
             onClick: saveSettings,
             disabled: !hasChanges || saving,
             loading: saving,
-            tooltip: hasChanges ? "حفظ التغييرات" : "لا توجد تغييرات",
+            tooltip: hasChanges ? "حفظ التغييرات (Ctrl+S)" : "لا توجد تغييرات",
           },
         ],
       });
@@ -153,6 +178,35 @@ const SettingsPage = () => {
 
     return groups;
   }, [activeIsSelfSaved, hasChanges, saving, loading, saveSettings, loadSettings]);
+
+  // Ctrl+S → save central settings. Skips when inside textarea/contenteditable,
+  // when the section saves itself, when there are no changes, or while saving.
+  const saveRef = useRef(saveSettings);
+  useEffect(() => { saveRef.current = saveSettings; }, [saveSettings]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isSave = (e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S");
+      if (!isSave) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const editable = target?.isContentEditable;
+      // Allow Ctrl+S to fire from textareas/inputs/contenteditable too — but
+      // always prevent the browser "save page" dialog.
+      e.preventDefault();
+      if (activeIsSelfSaved) {
+        toast({ title: "هذا القسم يحفظ من داخله", description: "استخدم زر الحفظ داخل القسم." });
+        return;
+      }
+      if (!hasChanges || saving || loading) return;
+      // Commit any pending input change before saving
+      if (tag === "INPUT" || tag === "TEXTAREA" || editable) {
+        (target as HTMLElement).blur();
+      }
+      saveRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeIsSelfSaved, hasChanges, saving, loading]);
 
   const renderContent = () => {
     if (loading) {
