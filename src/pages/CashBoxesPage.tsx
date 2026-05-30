@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
-import { Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, Banknote, Search, ChevronDown, MoreHorizontal } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import {
+  Plus, Loader2, Settings, FileText, Wallet, Building2, Monitor, Landmark,
+  ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, Banknote, Search,
+  ChevronDown, MoreHorizontal, RefreshCw, Printer, FileSpreadsheet,
+  Calculator,
+} from "lucide-react";
+import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,19 +20,24 @@ import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDia
 import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog";
 import BankDepositDialog from "@/components/finance/BankDepositDialog";
 import CashBoxTransferDialog from "@/components/finance/CashBoxTransferDialog";
-
-// ─── Quiet accent color per type (used only as a small left-border + badge tint) ───
-const TYPE_ACCENT: Record<string, string> = {
-  main:       "#1B3A5C", // navy
-  branch:     "#2D7A4F", // green
-  pos:        "#6B3FA0", // purple
-  petty:      "#C47A1E", // orange
-  petty_cash: "#C47A1E",
-  bank:       "#1A5FA8", // blue
-};
+import {
+  FinanceShell, applyFilters,
+  type ActionTab, type FilterCondition, type FilterField,
+} from "@/components/finance/shell";
+import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
+import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
 
 type SortKey = "name" | "balance" | "branch";
 type SortDir = "asc" | "desc";
+
+const TYPE_LABELS: Record<string, string> = {
+  main: "الصندوق الرئيسي",
+  branch: "صندوق فرع",
+  pos: "صندوق POS",
+  petty: "صندوق نثرية",
+  petty_cash: "صندوق نثرية",
+  bank: "حساب بنكي",
+};
 
 const CashBoxesPage = () => {
   const navigate = useNavigate();
