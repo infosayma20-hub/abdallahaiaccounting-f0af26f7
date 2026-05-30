@@ -3456,11 +3456,10 @@ const POSPage = () => {
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
-      // Consume replacement marker after a successful sale
-      if (markAsReplacement) {
-        setMarkAsReplacement(false);
-        setLastCancelledOrder(null);
-      }
+      // Always clear replacement marker after a successful sale, so the next
+      // sale starts clean (checkbox will only reappear after a fresh cancel).
+      setMarkAsReplacement(false);
+      setLastCancelledOrder(null);
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
@@ -5941,6 +5940,34 @@ const POSPage = () => {
               {/* Bottom spacing */}
               <div className="h-3" />
             </div>
+
+            {/* Replacement-invoice banner (shows only after a recent cancel) */}
+            {lastCancelledOrder && (
+              <div
+                className="shrink-0"
+                style={{ padding: '10px 16px', borderTop: '1px solid #fde68a', background: '#fffbeb' }}
+              >
+                <label
+                  className="flex items-start gap-2 cursor-pointer"
+                  title="يستخدم فقط عندما تكون هذه الفاتورة بديلة عن فاتورة ألغيت قبل قليل."
+                >
+                  <input
+                    type="checkbox"
+                    checked={markAsReplacement}
+                    onChange={(e) => setMarkAsReplacement(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 cursor-pointer accent-amber-600"
+                  />
+                  <div className="flex-1">
+                    <div className="text-[13px] font-semibold" style={{ color: '#92400e' }}>
+                      هذه فاتورة معدّلة عن فاتورة رقم #{lastCancelledOrder.order_number || lastCancelledOrder.id.slice(0, 8)}
+                    </div>
+                    <div className="text-[11px] mt-0.5" style={{ color: '#a16207' }}>
+                      يستخدم فقط عندما تكون هذه الفاتورة بديلة عن فاتورة ألغيت قبل قليل. تظهر علامة "طلب معدل" على تذاكر المطبخ فقط، ولا تظهر على إيصال الزبون.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            )}
 
             {/* Footer — Confirm button */}
             <div className="shrink-0" style={{ padding: '14px 16px 16px', borderTop: '1px solid #e5e7eb', background: '#ffffff' }}>
