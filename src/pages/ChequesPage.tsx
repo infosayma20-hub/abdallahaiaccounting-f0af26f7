@@ -288,7 +288,7 @@ const ChequesPage = () => {
       toast.success(`تم إضافة "${name.trim()}" كـ${contactType} جديد`);
       setNewCheques(prev => prev.map(r => ({ ...r, party_name: name.trim() })));
       setPartySearch(name.trim());
-      setPartyPopoverOpen(false);
+      setPartyDropdownOpen(false);
       fetchContacts();
     } catch { toast.error("خطأ في إضافة جهة الاتصال"); }
     finally { setQuickAddingContact(false); }
