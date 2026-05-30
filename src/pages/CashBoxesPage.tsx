@@ -4,7 +4,7 @@ import {
   Plus, Loader2, Settings, FileText, Wallet, Building2, Monitor, Landmark,
   ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, Banknote, Search,
   ChevronDown, MoreHorizontal, RefreshCw, Printer, FileSpreadsheet,
-  Calculator,
+  Calculator, ChevronsDownUp, ChevronsUpDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Badge } from "@/components/ui/badge";
@@ -76,9 +76,31 @@ const CashBoxesPage = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    main: true, branch: true, pos: true, petty: false, bank: false,
+  const SECTIONS_STORAGE_KEY = "malaky:finance:cash-boxes:sections";
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") {
+      return { main: true, branch: true, pos: true, petty: false, bank: false };
+    }
+    try {
+      const raw = window.localStorage.getItem(SECTIONS_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return { main: true, branch: true, pos: true, petty: false, bank: false };
   });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify(openSections));
+    } catch {}
+  }, [openSections]);
+
+  const expandAllSections = useCallback(() => {
+    setOpenSections({ main: true, branch: true, pos: true, petty: true, bank: true });
+  }, []);
+  const collapseAllSections = useCallback(() => {
+    setOpenSections({ main: false, branch: false, pos: false, petty: false, bank: false });
+  }, []);
+
   const [sortBy, setSortBy] = useState<Record<string, { key: SortKey; dir: SortDir }>>({});
 
   const fetchData = useCallback(async () => {
@@ -352,11 +374,13 @@ const CashBoxesPage = () => {
         { key: "center", label: "مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
       ]},
       { key: "view", label: "عرض", items: [
+        { key: "expand-all", label: "توسيع الكل", icon: ChevronsUpDown, onClick: expandAllSections },
+        { key: "collapse-all", label: "ضم الكل", icon: ChevronsDownUp, onClick: collapseAllSections },
         { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filteredRows.length === 0 },
         { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filteredRows.length === 0 },
       ]},
     ],
-  }]), [fetchData, navigate, hasMainBox, filteredRows.length]);
+  }]), [fetchData, navigate, hasMainBox, filteredRows.length, expandAllSections, collapseAllSections]);
 
   // ─── Status badge ───
   const StatusBadge = ({ status }: { status: "active" | "inactive" }) => {
