@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator, Wallet, Utensils, TrendingDown, ShoppingCart, Truck, ShieldAlert, NotebookPen } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import EndorseChequeModal, { type EndorsedCheque } from "@/components/EndorseChequeModal";
 import VoucherCancelModal from "@/components/VoucherCancelModal";
@@ -117,14 +117,14 @@ const PAYMENT_METHODS = [
 ];
 
 const EMP_TRANSACTION_CATEGORIES = [
-  { value: "سلفة", label: "سلفة", emoji: "💰" },
-  { value: "رواتب", label: "رواتب وأجور", emoji: "💵" },
-  { value: "أكل", label: "أكل / وجبات", emoji: "🍽️" },
-  { value: "عجز", label: "عجز صندوق", emoji: "📉" },
-  { value: "مشتريات", label: "مشتريات", emoji: "🛒" },
-  { value: "توصيل", label: "توصيل", emoji: "🚗" },
-  { value: "مخالفة", label: "مخالفة", emoji: "⚠️" },
-  { value: "أخرى", label: "أخرى", emoji: "📝" },
+  { value: "سلفة", label: "سلفة", icon: Wallet },
+  { value: "رواتب", label: "رواتب وأجور", icon: Banknote },
+  { value: "أكل", label: "أكل / وجبات", icon: Utensils },
+  { value: "عجز", label: "عجز صندوق", icon: TrendingDown },
+  { value: "مشتريات", label: "مشتريات", icon: ShoppingCart },
+  { value: "توصيل", label: "توصيل", icon: Truck },
+  { value: "مخالفة", label: "مخالفة", icon: ShieldAlert },
+  { value: "أخرى", label: "أخرى", icon: NotebookPen },
 ];
 
 // B3.4: Map the Arabic empCategory chosen on the voucher form to the
