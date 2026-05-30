@@ -183,7 +183,8 @@ export default function InvoiceHistoryDrawer({
   const [recallReason, setRecallReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [recallingOrder, setRecallingOrder] = useState<InvoiceOrder | null>(null);
-  const [pendingManagerAction, setPendingManagerAction] = useState<"recall" | "cancel" | null>(null);
+  const [pendingManagerAction, setPendingManagerAction] = useState<"recall" | "cancel" | "return" | null>(null);
+  const [returnApprovedBy, setReturnApprovedBy] = useState<string | null>(null);
 
   // Cancel flow
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
