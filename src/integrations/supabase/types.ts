@@ -10790,6 +10790,45 @@ export type Database = {
           },
         ]
       }
+      pos_sensitive_actions_log: {
+        Row: {
+          action: string
+          company_id: string
+          created_at: string
+          id: string
+          invoice_id: string | null
+          manager_user_id: string | null
+          metadata: Json | null
+          notes: string | null
+          pos_user_id: string | null
+          session_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id: string
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          manager_user_id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          pos_user_id?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          manager_user_id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          pos_user_id?: string | null
+          session_id?: string | null
+        }
+        Relationships: []
+      }
       pos_sessions: {
         Row: {
           approved_by_pos_user_id: string | null
@@ -11143,12 +11182,15 @@ export type Database = {
           print_invoices: boolean
           require_manager_approval: boolean
           require_manager_for_invoices: boolean
+          require_manager_for_returns: boolean
           resend_invoice: boolean
           updated_at: string
           user_id: string
           view_customers: boolean
           view_inventory: boolean
           view_invoice_log: boolean
+          view_payment_details: boolean
+          view_pos_reports: boolean
           view_sales_report: boolean
         }
         Insert: {
@@ -11189,12 +11231,15 @@ export type Database = {
           print_invoices?: boolean
           require_manager_approval?: boolean
           require_manager_for_invoices?: boolean
+          require_manager_for_returns?: boolean
           resend_invoice?: boolean
           updated_at?: string
           user_id: string
           view_customers?: boolean
           view_inventory?: boolean
           view_invoice_log?: boolean
+          view_payment_details?: boolean
+          view_pos_reports?: boolean
           view_sales_report?: boolean
         }
         Update: {
@@ -11235,12 +11280,15 @@ export type Database = {
           print_invoices?: boolean
           require_manager_approval?: boolean
           require_manager_for_invoices?: boolean
+          require_manager_for_returns?: boolean
           resend_invoice?: boolean
           updated_at?: string
           user_id?: string
           view_customers?: boolean
           view_inventory?: boolean
           view_invoice_log?: boolean
+          view_payment_details?: boolean
+          view_pos_reports?: boolean
           view_sales_report?: boolean
         }
         Relationships: [

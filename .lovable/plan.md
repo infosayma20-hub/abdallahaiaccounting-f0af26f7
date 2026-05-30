@@ -1,105 +1,86 @@
+# خطة: تقييد صلاحيات الكاشير في POS (مطعم الملكي)
 
-# توحيد شاشات المالية على نمط Dynamics 365 (FinanceShell + ActionPane)
+الهدف: منع الكاشير من معرفة "كم لازم يكون بالصندوق" قبل التسكير، وإخفاء تفاصيل الفيزا والملغاة، وإلزام مدير لكل ارتجاع. بدون أي تغيير على RPCs الحفظ/الإغلاق/الأرصدة.
 
-نطاق العمل واسع جداً ويشمل صفحات، مودالات، طباعة. سأقسّمه إلى **5 مراحل** قابلة للتنفيذ والمراجعة بشكل مستقل، حتى لا تتحول لتعديل ضخم واحد يصعب اختباره.
+## النطاق
+تغييرات UI + Guards + 4 صلاحيات جديدة في `pos_user_permissions`. لا يوجد أي تغيير على منطق `close_pos_session_atomic` أو `process_pos_return` أو القيود المحاسبية.
 
----
+## المرحلة 1 — إخفاء المؤشرات الفورية من شاشة البيع
+**ملف:** `src/pages/POSPage.tsx`
 
-## المرحلة 1 — تثبيت نظام مرئي موحد للمودالات المالية
+1. **Badge مبيعات الوردية** (سطر ~4211): يظهر فقط إذا `isAdmin || posPerms.can_view_profits`.
+2. **تمرير `sessionBalance` لـ ExpenseModal** (سطر ~6488): يُمرَّر فقط للأدمن. الكاشير يرى رسالة خطأ عامة بدون رقم الرصيد.
+3. **زر "تفاصيل الوردية"** إن وُجد: يستخدم `can_view_shift_details` فعلياً.
 
-**ملف جديد:** `src/components/finance/shell/FinanceModal.tsx`
-- Header موحد: أيقونة Lucide صغيرة + عنوان + وصف قصير + زر إغلاق.
-- Body بـ spacing موحد.
-- Footer ثابت أسفل المودال: زر أساسي (Primary واحد) + زر "إلغاء" Outline. بدون ألوان صارخة.
-- يدعم scroll داخلي + يمنع تغطية الحقول على الموبايل.
+**ملف:** `src/components/pos/ExpenseModal.tsx`
+- إخفاء أي عرض للـ `sessionBalance` في رسائل الخطأ للكاشير.
 
-**ملف جديد:** `src/components/finance/shell/SegmentedTypeSelect.tsx`
-- بديل رسمي لكروت "نوع الصندوق" مع إيموجي.
-- Radio cards بنص + أيقونة Lucide فقط، بدون 🏦💰🖥️🏪.
+## المرحلة 2 — تقييد سجل الفواتير
+**ملف:** `src/components/pos/InvoiceHistoryDrawer.tsx`
 
-**ملف جديد:** `src/components/finance/shell/CollapsibleSection.tsx`
-- قسم قابل للطي مع: عنوان + badge عدد + إجمالي رصيد + زر إضافة + سهم.
-- يدعم controlled state حتى تعمل أزرار "توسيع/ضم الكل".
+- إضافة prop `cashierMode: boolean` (= ليس أدمن وليس عنده `view_payment_details`).
+- في `cashierMode`:
+  - فرض الفلتر الزمني على **الوردية الحالية فقط** (`session_id = currentSession.id`) — تعطيل أزرار today/yesterday/week/month.
+  - إخفاء تبويب/فلتر "ملغاة" + إخفاء أي صف status=`cancelled`.
+  - في الجدول: إخفاء عمود "طريقة الدفع" وتفاصيل `pos_payments` (لا فيزا/نقد/آجل).
+  - في detail modal: عرض رقم الفاتورة + الوقت + الأصناف + الإجمالي فقط، بدون breakdown الدفع.
 
----
+## المرحلة 3 — حماية تقارير POS و إلزام مدير للارتجاع
+**ملف:** `src/App.tsx` (Route `/pos-reports`)
+- إضافة Guard: `isAdmin || posPerms.view_pos_reports` (الافتراضي false). إذا الكاشير فتح الرابط مباشرة → redirect لـ `/pos` مع toast.
 
-## المرحلة 2 — صفحة الصناديق `/finance/cash-boxes`
+**ملف:** `src/pages/POSPage.tsx` + `src/components/pos/ReturnDialog.tsx`
+- زر "ارتجاع" يفتح `ManagerOverrideDialog` أولاً (مثل الإلغاء)، إذا الكاشير. الأدمن يمر مباشرة.
+- إضافة prop `requireManagerForReturn={!isAdmin && posPerms.require_manager_for_returns}`.
 
-**تعديل:** `src/pages/CashBoxesPage.tsx`
-1. حذف بطاقات KPI الكبيرة الملوّنة، استبدالها بشريط Quiet KPI رمادي هادئ.
-2. ActionPane مقسّم لمجموعات:
-   - **جديد:** صندوق جديد
-   - **حركات:** تحويل / إيداع بنكي / صرف عملة / تغذية نثرية
-   - **إجراءات:** تحديث / جرد / تسوية / إدارة البنوك / مركز المالية
-   - **عرض:** الفلاتر / الأعمدة / **توسيع الكل** / **ضم الكل** / Excel / طباعة
-3. عرض الأقسام عبر `CollapsibleSection` الجديد (رئيسي / فروع / POS / نثرية / بنوك).
-4. حالة فتح/إغلاق الأقسام تُحفظ في localStorage (`malaky:cash-boxes:sections`).
-5. Empty state موحد: نص + زر إجراء واحد، بدون أيقونات ضخمة.
+## المرحلة 4 — إيصال إغلاق الوردية (Read-only للفرق)
+**ملف:** `src/pages/POSPage.tsx` `handleCloseShift()` + `src/components/ShiftSummaryReceipt.tsx`
 
----
+السلوك المطلوب من المستخدم: **الكاشير يشوف الفرق لكن بعد إقفال نهائي فقط (read-only)** — أي:
+- في dialog الإغلاق قبل التأكيد: الكاشير ما يرى المتوقع/الفرق (الوضع الحالي صحيح، نتركه).
+- بعد ضغط "تأكيد الإغلاق" → ينفذ `close_pos_session_atomic` (بدون تغيير) → ثم تظهر `ShiftSummaryReceipt` بنسختين:
+  - **نسخة كاشير (تُطبع تلقائياً)**: إيصال مبيعات + النقد المُدخل + الفرق فقط (read-only، بدون breakdown المتوقع).
+  - **نسخة مدير (تتطلب فتح override أو الأدمن)**: التفصيل الكامل (المتوقع لكل عملة + breakdown + الفرق).
+- إضافة prop `cashierMode` لـ `ShiftSummaryReceipt` يخفي صفوف "المتوقع" و breakdown الدفع.
 
-## المرحلة 3 — توحيد مودالات الصناديق
+## المرحلة 5 — إضافة الصلاحيات الجديدة في DB
+Migration على `pos_user_permissions` (3 أعمدة جديدة boolean):
+- `view_payment_details` default `false`
+- `view_pos_reports` default `false`
+- `require_manager_for_returns` default `true`
 
-تعديل المودالات لتستخدم `FinanceModal` + `SegmentedTypeSelect`:
-- `CreateCashBoxDialog` (إنشاء صندوق) — إزالة 🏦💰🖥️🏪 من كروت النوع، Header كحلي يصبح موحّداً.
-- `TransferDialog` (تحويل بين الصناديق) — زر تأكيد بنفسجي → Primary موحد.
-- `BankDepositDialog` (إيداع بنكي) — أيقونة Header الخضراء → Lucide موحدة.
-- `CurrencyExchangeDialog` (صرف عملة) — زر تنفيذ بنفسجي → Primary موحد.
-- `PettyCashReplenishDialog` (تغذية النثرية) — نفس المعالجة.
+(الصلاحيات الموجودة `can_view_profits` و `can_view_shift_details` نستعملها بدل ما نضيف جدد.)
 
-> أسماء الملفات الفعلية ستُحدَّد بقراءة `src/components/cash-boxes/` أول المرحلة.
-> المنطق المحاسبي (الأرصدة، القيود، الترحيل، RPCs) **لا يتغير إطلاقاً** — تعديل واجهة فقط.
+## المرحلة 6 — سجل تدقيق خفيف (اختياري لكن موصى به)
+جدول جديد `pos_sensitive_actions_log`:
+- `action` (manager_override_cancel / manager_override_return / unauthorized_reports_access)
+- `pos_user_id`, `manager_user_id`, `session_id`, `invoice_id`, `created_at`, `notes`
+- يُكتب من `ManagerOverrideDialog` بعد نجاح المصادقة، ومن Guard `/pos-reports` عند المحاولات الفاشلة.
+- يظهر للأدمن في `/pos-reports` كتبويب "سجل العمليات الحساسة".
 
----
+## ما لن يتغير (مناطق عالية المخاطر)
+- ❌ `close_pos_session_atomic` RPC
+- ❌ `process_pos_return` RPC
+- ❌ حساب `variance`/قيود HR/قيود `1130/1110`
+- ❌ ربط `card_bank_account_id` و `delivery_apps.visa_gl_account_code`
+- ❌ منطق الجلسات المفتوحة/المغلقة و IndexedDB
+- ❌ الافتراضيات لباقي الصلاحيات (تبقى زي ما هي)
 
-## المرحلة 4 — تطبيق نفس النمط على باقي الشاشات المالية
+## التأثير التشغيلي
+| العملية | قبل | بعد |
+|---|---|---|
+| كاشير يشيك على فاتورة زبون من ورديته | ✅ يقدر | ✅ يقدر |
+| كاشير يعرف إجمالي مبيعاته خلال الوردية | ✅ يعرف | ❌ مخفي |
+| كاشير يعرف كم فيزا اليوم | ✅ يعرف | ❌ مخفي |
+| كاشير يلغي فاتورة | يحتاج مدير | يحتاج مدير (نفس الوضع) |
+| كاشير يعمل ارتجاع | ✅ مباشرة | يحتاج مدير |
+| كاشير يفتح /pos-reports | ✅ يقدر | ❌ ممنوع |
+| إيصال الإغلاق للكاشير | يشوف المتوقع + الفرق | يشوف الفرق فقط بدون breakdown |
+| الأدمن/المدير | كل شي | كل شي (لا تغيير) |
 
-مراجعة سريعة وتنظيف الأزرار/الإيموجي/الألوان في:
-- `FinanceReceiptsPage` (سندات القبض)
-- `FinancePaymentsPage` (سندات الصرف)
-- `JournalEntriesPage` (دفتر اليومية) + شاشة سند القيد
-- `InvoiceCreatePage` و قوائم الفواتير
+## ترتيب التنفيذ
+1. Migration (3 أعمدة + جدول التدقيق) — يحتاج موافقتك.
+2. تعديل `POSPage.tsx` + `InvoiceHistoryDrawer.tsx` + `ExpenseModal.tsx` + `ShiftSummaryReceipt.tsx` + `ReturnDialog.tsx` + Guard على `/pos-reports`.
+3. اختبار: سيناريو كاشير كامل (بيع → ارتجاع → إغلاق) + سيناريو أدمن.
 
-التعديلات هنا محدودة (هذه الصفحات تستخدم FinanceShell أصلاً)، فقط:
-- إزالة أي زر بلون شاذ خارج النظام.
-- نقل أزرار الطباعة داخل مجموعة "عرض" بالـ ActionPane إذا كانت خارجها.
-- توحيد مودالاتها على `FinanceModal`.
-
----
-
-## المرحلة 5 — قوالب الطباعة المالية
-
-مراجعة قوالب: سند قبض / سند صرف / سند قيد / فاتورة / كشف صندوق / دفتر يومية.
-- Header موحد (شعار + اسم الشركة + رقم المستند).
-- جدول بيانات بسيط، إجماليات كسطر رسمي بدون بطاقات ملوّنة.
-- حذف أي Emoji.
-- تواقيع و Footer موحدين، مناسب A4 بدون قطع الجداول.
-
-> هذه المرحلة الأكبر بعد المودالات؛ سأنفذها بعد اعتماد المراحل 1–3.
-
----
-
-## ما لن أمسّه
-
-- منطق احتساب الأرصدة، الترحيل، القيود، RLS، RPCs، مصادر البيانات.
-- بنية قاعدة البيانات.
-- صلاحيات الأدوار.
-
----
-
-## تفاصيل تقنية مختصرة
-
-- ألوان الأزرار: `variant="default"` (Primary واحد فقط لكل modal)، `outline` للإلغاء، `ghost` داخل ActionPane.
-- الأيقونات: Lucide حصراً، حجم `h-3.5 w-3.5` داخل ActionPane و`h-4 w-4` داخل Modal Header.
-- Badges النوع: `bg-muted text-foreground` صغير، بدون تعبئة ملوّنة.
-- وارد/صادر: نص أخضر/أحمر خفيف فقط على الأرقام، بدون خلفية.
-- Saved Views: عبر `useMyViews` الموجود مسبقاً.
-- Persistence: `localStorage` بمفتاح موحّد `malaky:finance:<page>:<key>`.
-
----
-
-## ترتيب التنفيذ المقترح
-
-أبدأ فوراً بـ **المرحلة 1 + المرحلة 2 + المرحلة 3** معاً (لأنها مترابطة ولا معنى للمكوّنات الجديدة بدون استخدامها)، ثم أعود لك لاعتماد المرحلتين 4 و 5 كل واحدة على حدة.
-
-هل تعتمد هذه الخطة لأبدأ التنفيذ؟
+وافق على الخطة أو حدد أي مرحلة تبدأ بها فقط (مثلاً مرحلة 1+2+4 الآن وتأجيل سجل التدقيق).

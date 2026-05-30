@@ -850,6 +850,9 @@ const POSPage = () => {
      can_affect_inventory_on_purchase: boolean;
      can_record_expenses: boolean;
      can_create_expense_category: boolean;
+      view_payment_details: boolean;
+      view_pos_reports: boolean;
+      require_manager_for_returns: boolean;
    }>({
      can_open_register: true, can_close_register: true, can_view_shift_details: true, can_view_profits: false,
       can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: true,
@@ -863,6 +866,7 @@ const POSPage = () => {
      can_add_inventory: false, can_create_product: false, can_record_purchases: false,
      can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false,
      can_record_expenses: false, can_create_expense_category: false,
+      view_payment_details: false, view_pos_reports: false, require_manager_for_returns: true,
    });
 
    // Financial operation modals
@@ -1035,6 +1039,9 @@ const POSPage = () => {
           can_affect_inventory_on_purchase: p.can_affect_inventory_on_purchase ?? false,
           can_record_expenses: p.can_record_expenses ?? false,
           can_create_expense_category: p.can_create_expense_category ?? false,
+          view_payment_details: p.view_payment_details ?? false,
+          view_pos_reports: p.view_pos_reports ?? false,
+          require_manager_for_returns: p.require_manager_for_returns ?? true,
          });
       }
     };
@@ -4208,7 +4215,7 @@ const POSPage = () => {
               title="سجل الفواتير"
             >
               <FileText className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
-              {session && session.total_orders > 0 && (
+              {(isAdmin || posPerms.can_view_profits) && session && session.total_orders > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: "#dc2626" }} />
               )}
             </button>
@@ -5981,6 +5988,7 @@ const POSPage = () => {
           if (!open) handleShiftSummaryClosed();
         }}
         data={shiftSummaryData}
+        cashierMode={!isAdmin}
       />
 
       {/* Logout after Shift Close — cashier must log out, admin can stay */}
@@ -6429,6 +6437,8 @@ const POSPage = () => {
             canCancelInvoices={isAdmin || posPerms.can_cancel_invoices || posPerms.edit_cancel_invoices}
             requireManagerForRecall={!isAdmin && !(posPerms.can_edit_invoices) && posPerms.require_manager_for_invoices}
             requireManagerForCancel={!isAdmin && posPerms.require_manager_for_invoices}
+            requireManagerForReturn={!isAdmin && posPerms.require_manager_for_returns}
+            cashierMode={!isAdmin && !posPerms.view_payment_details}
             allowOrderTransfer={posAllowOrderTransfer}
             printInvoices={isAdmin || posPerms.print_invoices}
             resendInvoice={isAdmin || posPerms.resend_invoice}
@@ -6485,7 +6495,7 @@ const POSPage = () => {
         userId={userId || ""}
         sessionId={session?.id}
         canCreateCategory={isAdmin || posPerms.can_create_expense_category}
-        sessionBalance={session ? session.opening_cash + session.total_sales : 0}
+        sessionBalance={isAdmin && session ? session.opening_cash + session.total_sales : 0}
       />
       <SyncLogSheet open={showSyncLog} onOpenChange={setShowSyncLog} />
       

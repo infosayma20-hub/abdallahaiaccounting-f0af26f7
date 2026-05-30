@@ -45,6 +45,12 @@ interface ShiftSummaryReceiptProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: ShiftSummaryData | null;
+  /**
+   * When true (default false), hides expected-cash rows, currency breakdown,
+   * and non-cash payment-method breakdown. The total variance box stays visible
+   * read-only so the cashier sees only the final difference.
+   */
+  cashierMode?: boolean;
 }
 
 const CURRENCIES = ["ILS", "USD", "JOD"] as const;
@@ -97,13 +103,13 @@ const shiftSummaryPrintStyles = `
   .footer-text { font-size: 9px; color: #94a3b8; text-align: center; line-height: 1.6; }
 `;
 
-export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftSummaryReceiptProps) {
+export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierMode = false }: ShiftSummaryReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const autoPrintDone = useRef(false);
 
   const printSummary = () => {
     if (!data) return;
-    printShiftSummaryImage({
+    const payload: any = {
       companyName: data.companyName,
       logoUrl: data.logoUrl,
       terminalName: data.terminalName,
@@ -118,16 +124,18 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
       closingCash: data.closingCash,
       closingCashUSD: data.closingCashUSD,
       closingCashJOD: data.closingCashJOD,
-      expectedCash: data.expectedCash,
-      expectedCashUSD: data.expectedCashUSD,
-      expectedCashJOD: data.expectedCashJOD,
+      // Cashier mode: hide expected/breakdowns, keep only total variance
+      expectedCash: cashierMode ? data.closingCash : data.expectedCash,
+      expectedCashUSD: cashierMode ? (data.closingCashUSD || 0) : data.expectedCashUSD,
+      expectedCashJOD: cashierMode ? (data.closingCashJOD || 0) : data.expectedCashJOD,
       variance: data.variance,
-      varianceILS: data.varianceILS,
-      varianceUSD: data.varianceUSD,
-      varianceJOD: data.varianceJOD,
-      currencyBreakdown: data.currencyBreakdown,
-      paymentMethodBreakdown: data.paymentMethodBreakdown,
-    }).catch(() => {
+      varianceILS: cashierMode ? undefined : data.varianceILS,
+      varianceUSD: cashierMode ? undefined : data.varianceUSD,
+      varianceJOD: cashierMode ? undefined : data.varianceJOD,
+      currencyBreakdown: cashierMode ? undefined : data.currencyBreakdown,
+      paymentMethodBreakdown: cashierMode ? undefined : data.paymentMethodBreakdown,
+    };
+    printShiftSummaryImage(payload).catch(() => {
       console.warn("Print bridge unavailable");
     });
   };
@@ -238,7 +246,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             </div>
 
             {/* Currency Breakdown */}
-            {Object.keys(cb).length > 0 && (
+            {!cashierMode && Object.keys(cb).length > 0 && (
               <>
                 <hr style={dashed} />
                 <div style={sectionTitle}>تفاصيل العملات المقبوضة</div>
@@ -252,7 +260,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             )}
 
             {/* Non-cash payment methods */}
-            {nonCashMethods.length > 0 && (
+            {!cashierMode && nonCashMethods.length > 0 && (
               <>
                 <hr style={dashed} />
                 <div style={sectionTitle}>مبيعات غير نقدية</div>
@@ -274,15 +282,17 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             <div style={sectionTitle}>تسليم النقدية</div>
 
             {/* ILS row: expected / delivered / variance */}
-            <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
-              <span>المتوقع (شيكل)</span>
-              <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
-            </div>
+            {!cashierMode && (
+              <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
+                <span>المتوقع (شيكل)</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
+              </div>
+            )}
             <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
-            {(data.varianceILS !== undefined && data.varianceILS !== 0) && (
+            {!cashierMode && (data.varianceILS !== undefined && data.varianceILS !== 0) && (
               <div style={{ ...rowStyle, fontSize: 13, fontWeight: 900, color: "#000" }}>
                 <span>{(data.varianceILS || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (شيكل)</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{Math.abs(data.varianceILS || 0).toFixed(2)}</span>
@@ -290,7 +300,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             )}
 
             {/* USD row: expected / delivered / variance */}
-            {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
+            {!cashierMode && ((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
@@ -311,7 +321,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             )}
 
             {/* JOD row: expected / delivered / variance */}
-            {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
+            {!cashierMode && ((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>

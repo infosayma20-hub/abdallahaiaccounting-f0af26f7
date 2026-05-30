@@ -97,6 +97,14 @@ interface InvoiceHistoryDrawerProps {
   requireManagerForInvoices?: boolean;
   requireManagerForRecall?: boolean;
   requireManagerForCancel?: boolean;
+  requireManagerForReturn?: boolean;
+  /**
+   * Cashier-restricted mode: hides payment-method badges, payment-method row
+   * in detail modal, and the "cancelled" status filter + cancelled rows in list.
+   * Does NOT change recall/cancel/return entitlements (those are controlled by
+   * canEditInvoices/canCancelInvoices/requireManagerFor*).
+   */
+  cashierMode?: boolean;
   allowOrderTransfer?: boolean;
   printInvoices?: boolean;
   resendInvoice?: boolean;
@@ -128,7 +136,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
 }: InvoiceHistoryDrawerProps) {
   // Use specific flags if provided, otherwise fall back to general flag
   const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
@@ -175,7 +183,8 @@ export default function InvoiceHistoryDrawer({
   const [recallReason, setRecallReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [recallingOrder, setRecallingOrder] = useState<InvoiceOrder | null>(null);
-  const [pendingManagerAction, setPendingManagerAction] = useState<"recall" | "cancel" | null>(null);
+  const [pendingManagerAction, setPendingManagerAction] = useState<"recall" | "cancel" | "return" | null>(null);
+  const [returnApprovedBy, setReturnApprovedBy] = useState<string | null>(null);
 
   // Cancel flow
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -442,9 +451,13 @@ export default function InvoiceHistoryDrawer({
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return orders;
-    return orders.filter(o => multiWordMatchAny(searchQuery, o.order_number, o.customer_name));
-  }, [orders, searchQuery]);
+    let list = orders;
+    if (cashierMode) {
+      list = list.filter(o => o.state !== "cancelled");
+    }
+    if (!searchQuery.trim()) return list;
+    return list.filter(o => multiWordMatchAny(searchQuery, o.order_number, o.customer_name));
+  }, [orders, searchQuery, cashierMode]);
 
   const isTransferredOut = (order: InvoiceOrder) => 
     order.transferred_from_session_id === sessionId && order.session_id !== sessionId;
@@ -494,6 +507,32 @@ export default function InvoiceHistoryDrawer({
     }
     try { await assertPermission("pos", "sell", "refund"); } catch { return; }
     setReturningOrder(order);
+    if (requireManagerForReturn) {
+      setPendingManagerAction("return");
+      setManagerOverrideVariant("destructive");
+      setManagerOverrideTitle("موافقة المدير — ارتجاع فاتورة");
+      setManagerOverrideDesc(`ارتجاع الفاتورة #${order.order_number || "---"} بقيمة ₪${order.total.toFixed(2)} يتطلب موافقة المدير`);
+      setShowManagerOverride(true);
+    } else {
+      setShowReturnDialog(true);
+    }
+  };
+
+  const handleManagerApprovedForReturn = async (managerName: string) => {
+    setShowManagerOverride(false);
+    setReturnApprovedBy(managerName);
+    setPendingManagerAction(null);
+    // Log sensitive action
+    try {
+      await (supabase.from("pos_sensitive_actions_log" as any) as any).insert({
+        company_id: dataOwnerId,
+        action: "manager_override_return",
+        invoice_id: returningOrder?.id || null,
+        session_id: sessionId,
+        notes: `موافقة مدير لارتجاع فاتورة #${returningOrder?.order_number || ""}`,
+        metadata: { manager_name: managerName, cashier_name: cashierName },
+      });
+    } catch { /* ignore */ }
     setShowReturnDialog(true);
   };
 
@@ -763,6 +802,8 @@ export default function InvoiceHistoryDrawer({
       handleManagerApprovedForRecall(managerName);
     } else if (pendingManagerAction === "cancel") {
       handleManagerApprovedForCancel(managerName);
+    } else if (pendingManagerAction === "return") {
+      handleManagerApprovedForReturn(managerName);
     }
   };
 
@@ -820,14 +861,14 @@ export default function InvoiceHistoryDrawer({
 
           {/* Status filter */}
           <div className="flex flex-wrap gap-1.5">
-            {([
+            {(([
               { key: "all", label: "كل الفواتير" },
               { key: "paid", label: "مكتملة" },
               { key: "draft", label: "معلقة" },
               { key: "cancelled", label: "ملغية" },
               { key: "recalled", label: "معدّلة" },
               { key: "transferred", label: "منقولة" },
-            ] as { key: StatusFilter; label: string }[]).map(f => (
+            ] as { key: StatusFilter; label: string }[]).filter(f => !(cashierMode && f.key === "cancelled"))).map(f => (
               <button
                 key={f.key}
                 onClick={() => setStatusFilter(f.key)}
@@ -862,7 +903,7 @@ export default function InvoiceHistoryDrawer({
         <div className="flex items-center justify-between px-5 py-2.5 text-xs" style={{ background: "#F8FAFC", fontFamily: "Tajawal, sans-serif" }}>
           <span style={{ color: "#64748B" }}>إجمالي: <strong style={{ color: "#0A2342", fontFamily: "JetBrains Mono, monospace" }}>₪{summary.totalToday.toFixed(2)}</strong></span>
           <span style={{ color: "#64748B" }}>الفواتير: <strong style={{ color: "#0A2342" }}>{summary.count}</strong></span>
-          <span style={{ color: "#DC2626" }}>ملغية: <strong>{summary.cancelled}</strong></span>
+          {!cashierMode && <span style={{ color: "#DC2626" }}>ملغية: <strong>{summary.cancelled}</strong></span>}
         </div>
 
         {/* Invoice list */}
@@ -908,7 +949,7 @@ export default function InvoiceHistoryDrawer({
                         {order.contacts?.phone && (
                           <span className="font-mono text-[10px]" dir="ltr">{order.contacts.phone}</span>
                         )}
-                        {order.pos_payments && order.pos_payments.length > 0 && (
+                        {!cashierMode && order.pos_payments && order.pos_payments.length > 0 && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#F1F5F9", color: "#475569" }}>
                             {order.pos_payments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).filter((v, i, a) => a.indexOf(v) === i).join(" + ")}
                           </span>
@@ -1002,10 +1043,12 @@ export default function InvoiceHistoryDrawer({
                     <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
                   )}
                 </div>
-                <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
-                  {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
-                </div>
+                {!cashierMode && (
+                  <div>
+                    <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
+                    {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
+                  </div>
+                )}
                 {selectedOrder.recall_status && (
                   <div>
                     <span className="block text-[10px]" style={{ color: "#94A3B8" }}>سبب التعديل</span>
