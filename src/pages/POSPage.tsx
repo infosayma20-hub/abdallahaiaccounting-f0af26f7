@@ -1039,6 +1039,9 @@ const POSPage = () => {
           can_affect_inventory_on_purchase: p.can_affect_inventory_on_purchase ?? false,
           can_record_expenses: p.can_record_expenses ?? false,
           can_create_expense_category: p.can_create_expense_category ?? false,
+          view_payment_details: p.view_payment_details ?? false,
+          view_pos_reports: p.view_pos_reports ?? false,
+          require_manager_for_returns: p.require_manager_for_returns ?? true,
          });
       }
     };
