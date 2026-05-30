@@ -2,15 +2,23 @@ import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/layout/PageHeader";
-import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor, GitBranch, Receipt, HardDrive } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield,
+  Link2, Printer, Brain, RotateCcw, Monitor, GitBranch, Receipt, HardDrive,
+  Save, RefreshCw, Inbox,
+} from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePermission } from "@/hooks/usePermission";
 import LockedModulePage from "@/components/layout/LockedModulePage";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  SettingsShell, SettingsSidebar, UnsavedChangesBar, SettingsEmptyState,
+  type SettingsSidebarItem, type SettingsActionGroup,
+} from "@/components/settings/shell";
 import CompanySettingsSection from "@/components/settings/CompanySettingsSection";
 import FinanceSettingsSection from "@/components/settings/FinanceSettingsSection";
 import InvoiceSettingsSection from "@/components/settings/InvoiceSettingsSection";
@@ -29,58 +37,130 @@ import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
 import BackupSettingsSection from "@/components/settings/BackupSettingsSection";
 import { multiWordMatchAny } from "@/lib/utils";
 
-const sections = [
-  { id: "company", label: "الشركة", icon: Building2, ready: true, keywords: "شركة اسم عنوان هاتف بريد ضريبة عملة تقويم سنة مالية لوغو" },
-  { id: "branches", label: "الأفرع", icon: GitBranch, ready: true, keywords: "فرع أفرع موقع فروع سفيان فيصل رام الله" },
-  { id: "user", label: "المستخدمون", icon: User, ready: true, keywords: "مستخدم صلاحيات دور موظف فريق" },
-  { id: "finance", label: "المالية", icon: Wallet, ready: true, keywords: "مالية حسابات قيود محاسبة ميزان" },
-  { id: "invoices", label: "الفواتير", icon: FileText, ready: true, keywords: "فاتورة فواتير قالب ضريبة خصم" },
-  { id: "pos", label: "نقطة البيع", icon: ShoppingCart, ready: true, keywords: "كاشير نقطة بيع طاولات محطات مطبخ طابعة طابعات شبكة" },
-  { id: "inventory", label: "المخزون", icon: Package, ready: true, keywords: "مخزون منتج صنف كمية مستودع" },
-  { id: "hr", label: "الموارد البشرية", icon: Users, ready: true, keywords: "موظفين رواتب حضور إجازات فروع" },
-  { id: "notifications", label: "الإشعارات", icon: Bell, ready: true, keywords: "إشعار تنبيه رسالة" },
-  { id: "security", label: "الأمان", icon: Shield, ready: true, keywords: "أمان كلمة مرور مصادقة حماية" },
-  { id: "integrations", label: "التكاملات", icon: Link2, ready: true, keywords: "تكامل ربط API واتساب" },
-  { id: "print", label: "الطباعة", icon: Printer, ready: true, keywords: "طباعة طابعة ورق إيصال فاتورة" },
-  { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true, keywords: "بوابة إدارة تقارير مراقبة" },
-  { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: true, keywords: "ذكاء اصطناعي مساعد حسيب" },
-  { id: "tax", label: "الضريبة", icon: Receipt, ready: true, keywords: "ضريبة قيمة مضافة VAT تقرير دوري" },
-  { id: "backup", label: "النسخ الاحتياطي", icon: HardDrive, ready: true, keywords: "نسخة احتياطية تصدير بيانات backup export" },
-];
+/** Section catalog — ordered to match the navigation spec. */
+const SECTIONS = [
+  { id: "company", label: "الشركة", icon: Building2, keywords: "شركة اسم عنوان هاتف بريد عملة تقويم سنة مالية شعار لوغو" },
+  { id: "branches", label: "الأفرع", icon: GitBranch, keywords: "فرع أفرع موقع فروع رام الله" },
+  { id: "user", label: "المستخدمون والصلاحيات", icon: User, keywords: "مستخدم صلاحيات دور موظف فريق" },
+  { id: "finance", label: "المالية", icon: Wallet, keywords: "مالية حسابات قيود محاسبة ميزان ترقيم فترات" },
+  { id: "invoices", label: "الفواتير", icon: FileText, keywords: "فاتورة فواتير قالب خصم دفع آجل" },
+  { id: "pos", label: "نقطة البيع", icon: ShoppingCart, keywords: "كاشير نقطة بيع طاولات محطات مطبخ طابعة شبكة وردية" },
+  { id: "inventory", label: "المخزون", icon: Package, keywords: "مخزون منتج صنف كمية مستودع باركود" },
+  { id: "hr", label: "الموارد البشرية", icon: Users, keywords: "موظفين رواتب حضور إجازات HR دوام" },
+  { id: "notifications", label: "الإشعارات", icon: Bell, keywords: "إشعار تنبيه رسالة بريد" },
+  { id: "security", label: "الأمان", icon: Shield, keywords: "أمان كلمة مرور مصادقة حماية" },
+  { id: "integrations", label: "التكاملات", icon: Link2, keywords: "تكامل ربط API واتساب SMTP SMS" },
+  { id: "print", label: "الطباعة", icon: Printer, keywords: "طباعة طابعة ورق إيصال قالب فاتورة" },
+  { id: "portal", label: "بوابة الإدارة", icon: Monitor, keywords: "بوابة إدارة تقارير مراقبة" },
+  { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, keywords: "ذكاء اصطناعي مساعد حسيب OCR" },
+  { id: "tax", label: "الضريبة", icon: Receipt, keywords: "ضريبة قيمة مضافة VAT تقرير دوري" },
+  { id: "backup", label: "النسخ الاحتياطي", icon: HardDrive, keywords: "نسخة احتياطية تصدير بيانات backup export" },
+] as const;
+
+type SectionId = (typeof SECTIONS)[number]["id"];
+
+/** Sections that aren't part of the central company_settings save flow. */
+const SELF_SAVED: SectionId[] = ["tax", "backup", "branches", "user", "portal"];
 
 const SettingsPage = () => {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
-  const [activeSection, setActiveSection] = useState("company");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeSection, setActiveSection] = useState<SectionId>("company");
   const [search, setSearch] = useState("");
   const [taxOwnerId, setTaxOwnerId] = useState("");
-  const { settings, loading, saving, hasChanges, updateSettings, saveSettings, resetToDefaults } = useCompanySettings();
+  const [confirmReset, setConfirmReset] = useState(false);
+  const { settings, loading, saving, hasChanges, updateSettings, saveSettings, resetToDefaults, loadSettings } =
+    useCompanySettings();
   const settingsPerm = usePermission("settings");
 
   useEffect(() => {
     if (!user) return;
-    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => setTaxOwnerId(data || user.id));
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) =>
+      setTaxOwnerId(data || user.id)
+    );
   }, [user]);
 
   useEffect(() => {
-    const section = searchParams.get("section");
-    if (section && sections.some(s => s.id === section)) setActiveSection(section);
+    const section = searchParams.get("section") as SectionId | null;
+    if (section && SECTIONS.some((s) => s.id === section)) setActiveSection(section);
   }, [searchParams]);
 
-  const filteredSections = useMemo(() => {
-    const base = sections.filter(s => {
-      if (s.id === "user") return settingsPerm.can("users", "manage");
-      return true;
-    });
-    if (!search) return base;
-    return base.filter(s => multiWordMatchAny(search, s.label, s.keywords));
+  const handleSelect = (id: string) => {
+    setActiveSection(id as SectionId);
+    const next = new URLSearchParams(searchParams);
+    next.set("section", id);
+    setSearchParams(next, { replace: true });
+  };
+
+  const sidebarItems: SettingsSidebarItem[] = useMemo(() => {
+    const base = SECTIONS.filter((s) => (s.id === "user" ? settingsPerm.can("users", "manage") : true));
+    const filtered = search
+      ? base.filter((s) => multiWordMatchAny(search, s.label, s.keywords))
+      : base;
+    return filtered.map((s) => ({ id: s.id, label: s.label, icon: s.icon }));
   }, [search, settingsPerm]);
+
+  const activeIsSelfSaved = SELF_SAVED.includes(activeSection);
+  const showUnsavedBar = !activeIsSelfSaved && hasChanges;
+
+  const actionGroups: SettingsActionGroup[] = useMemo(() => {
+    const groups: SettingsActionGroup[] = [];
+
+    // Save group — only meaningful for sections that share the company_settings save flow
+    if (!activeIsSelfSaved) {
+      groups.push({
+        key: "save",
+        label: "حفظ",
+        items: [
+          {
+            key: "save",
+            label: "حفظ التغييرات",
+            icon: Save,
+            variant: "primary",
+            onClick: saveSettings,
+            disabled: !hasChanges || saving,
+            loading: saving,
+            tooltip: hasChanges ? "حفظ التغييرات" : "لا توجد تغييرات",
+          },
+        ],
+      });
+    }
+
+    groups.push({
+      key: "actions",
+      label: "إجراءات",
+      items: [
+        {
+          key: "reload",
+          label: "إعادة تحميل",
+          icon: RefreshCw,
+          onClick: () => loadSettings(),
+          disabled: loading,
+        },
+        {
+          key: "reset",
+          label: "استعادة الافتراضي",
+          icon: RotateCcw,
+          variant: "danger",
+          onClick: () => setConfirmReset(true),
+          disabled: activeIsSelfSaved || loading,
+          tooltip: activeIsSelfSaved
+            ? "هذا القسم يحفظ بياناته بشكل منفصل"
+            : "استعادة جميع إعدادات الشركة إلى الافتراضي",
+        },
+      ],
+    });
+
+    return groups;
+  }, [activeIsSelfSaved, hasChanges, saving, loading, saveSettings, loadSettings]);
 
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="space-y-6 p-6">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+        <div className="space-y-4 p-5">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+          ))}
         </div>
       );
     }
@@ -123,118 +203,71 @@ const SettingsPage = () => {
         return <BackupSettingsSection />;
       default:
         return (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <div className="text-center space-y-2">
-              <div className="text-4xl">🚧</div>
-              <p className="font-medium">قريباً</p>
-              <p className="text-sm">هذا القسم قيد التطوير</p>
-            </div>
+          <div className="p-6">
+            <SettingsEmptyState
+              icon={Inbox}
+              title="القسم غير متوفر"
+              description="هذا القسم غير متاح حالياً."
+            />
           </div>
         );
     }
   };
 
-  const activeLabel = sections.find(s => s.id === activeSection)?.label || "";
-
   return (
-    <div className="space-y-6" dir="rtl">
-      <PageHeader title="الإعدادات" breadcrumb={["النظام", "الإعدادات"]} />
+    <SettingsShell
+      title="الإعدادات"
+      subtitle="إدارة إعدادات الشركة، المالية، الفواتير، التشغيل، الأمان والتكاملات."
+      breadcrumb={[{ label: "النظام" }, { label: "الإعدادات" }]}
+      actionGroups={actionGroups}
+    >
+      <div className="flex h-full min-h-0">
+        {/* Content (RTL: appears to the left of sidebar) */}
+        <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-auto p-4">
+            {renderContent()}
+          </div>
+          <UnsavedChangesBar
+            visible={showUnsavedBar}
+            saving={saving}
+            onSave={saveSettings}
+            onDiscard={() => loadSettings()}
+          />
+        </main>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-        <Input
-          placeholder="ابحث في الإعدادات..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pr-9 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+        {/* Sidebar (right side in RTL) */}
+        <SettingsSidebar
+          items={sidebarItems}
+          activeId={activeSection}
+          onSelect={handleSelect}
+          search={search}
+          onSearchChange={setSearch}
         />
       </div>
 
-      {/* Main Layout */}
-      <div className="flex gap-6 min-h-[calc(100vh-220px)]">
-        {/* Sidebar */}
-        <div className="w-56 shrink-0">
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <ScrollArea className="h-[calc(100vh-260px)]">
-              <div className="p-2 space-y-0.5">
-                {filteredSections.map(section => {
-                  const Icon = section.icon;
-                  const isActive = activeSection === section.id;
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => setActiveSection(section.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-foreground hover:bg-muted/60"
-                      } ${!section.ready && !isActive ? "opacity-60" : ""}`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span>{section.label}</span>
-                      {!section.ready && (
-                        <span className="mr-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">قريباً</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            {/* Section Header */}
-            <div className="border-b border-border px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">{activeLabel}</h2>
-              {hasChanges && (
-                <span className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-full">
-                  تغييرات غير محفوظة
-                </span>
-              )}
-            </div>
-
-            {/* Section Content */}
-            <ScrollArea className="h-[calc(100vh-370px)]">
-              {renderContent()}
-            </ScrollArea>
-
-            {/* Footer Actions */}
-            {activeSection !== "tax" && (
-            <div className="border-t border-border px-6 py-3 flex items-center justify-between bg-muted/30">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetToDefaults}
-                className="text-muted-foreground gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                استعادة الافتراضي
-              </Button>
-              <div className="flex gap-2">
-                {hasChanges && (
-                  <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                    إهمال
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  onClick={saveSettings}
-                  disabled={!hasChanges || saving}
-                  className="gap-2 min-w-24"
-                >
-                  {saving ? "جارِ الحفظ..." : "💾 حفظ"}
-                </Button>
-              </div>
-            </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+      <AlertDialog open={confirmReset} onOpenChange={setConfirmReset}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>استعادة الإعدادات الافتراضية؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم استبدال إعدادات الشركة الحالية بالقيم الافتراضية. لن يتم الحفظ حتى تضغط
+              "حفظ التغييرات" من شريط الأوامر.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                resetToDefaults();
+                setConfirmReset(false);
+              }}
+            >
+              استعادة
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </SettingsShell>
   );
 };
 
