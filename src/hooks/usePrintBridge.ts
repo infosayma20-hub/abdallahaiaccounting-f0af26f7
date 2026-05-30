@@ -51,6 +51,12 @@ export interface PrintOrder {
   tenderedAmount?: number;
   change?: number;
   orderNote?: string;
+  /**
+   * Kitchen-only banner (e.g. "طلب معدل — بديل عن فاتورة #...").
+   * Printed ONLY on KOT / kitchen / grill / pizza tickets.
+   * NEVER printed on the customer receipt.
+   */
+  kitchenNote?: string;
   /** Station ID — used by bridge to route to the correct printer */
   stationId?: string;
   /** Station name — used by bridge to map to printer key */
