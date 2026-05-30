@@ -325,21 +325,75 @@ const ChequeActionModal = ({
           {/* ENDORSE fields */}
           {action === 'endorse' && (
             <>
-              <div>
+              <div className="relative" ref={endorsedRef}>
                 <Label className="text-xs font-semibold">تظهير لـ (المورد) *</Label>
-                <Select value={endorsedToContactId} onValueChange={(v) => {
-                  setEndorsedToContactId(v);
-                  const c = contacts.find(c => c.id === v);
-                  if (c) setEndorsedToName(c.contact_name);
-                }}>
-                  <SelectTrigger className="h-9 mt-1 rounded-xl"><SelectValue placeholder="اختر المورد" /></SelectTrigger>
-                  <SelectContent>
-                    {contacts.filter(c => c.contact_type === 'مورد' || c.contact_type === 'عميل ومورد').map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input value={endorsedToName} onChange={e => setEndorsedToName(e.target.value)} placeholder="أو أدخل اسم المورد يدوياً" className="h-9 mt-2 rounded-xl" />
+                <div className="relative mt-1">
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="h-9 rounded-xl pr-9"
+                    value={endorsedSearch}
+                    placeholder="ابحث باسم المورد (حرفين على الأقل)..."
+                    onChange={e => {
+                      setEndorsedSearch(e.target.value);
+                      setEndorsedToName(e.target.value);
+                      setEndorsedToContactId("");
+                      setEndorsedDropdownOpen(true);
+                      setEndorsedHighlight(0);
+                    }}
+                    onFocus={() => setEndorsedDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setEndorsedDropdownOpen(false), 150)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') { e.preventDefault(); setEndorsedDropdownOpen(false); return; }
+                      if (!showEndorsedDropdown) return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setEndorsedHighlight(h => Math.min(h + 1, Math.max(filteredEndorsed.length - 1, 0)));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setEndorsedHighlight(h => Math.max(h - 1, 0));
+                      } else if (e.key === 'Enter') {
+                        if (filteredEndorsed[endorsedHighlight]) {
+                          e.preventDefault();
+                          commitEndorsed(filteredEndorsed[endorsedHighlight]);
+                        } else if (!endorsedExact && endorsedQuery.length >= 2) {
+                          e.preventDefault();
+                          handleQuickAddSupplier();
+                        }
+                      }
+                    }}
+                  />
+                  {endorsedSearch && (
+                    <button type="button" onMouseDown={e => { e.preventDefault(); setEndorsedSearch(''); setEndorsedToName(''); setEndorsedToContactId(''); setEndorsedDropdownOpen(false); }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {showEndorsedDropdown && (
+                  <div className="absolute z-[60] top-full mt-1 left-0 right-0 bg-popover border border-border rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                    {filteredEndorsed.length > 0 ? filteredEndorsed.map((c, i) => (
+                      <button key={c.id} type="button"
+                        onMouseDown={e => { e.preventDefault(); commitEndorsed(c); }}
+                        onMouseEnter={() => setEndorsedHighlight(i)}
+                        className={`w-full text-right px-3 py-2 text-sm flex items-center gap-2 transition-colors ${i === endorsedHighlight ? 'bg-secondary' : 'hover:bg-muted'}`}>
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="flex-1 truncate">{c.contact_name}</span>
+                        <span className="text-[10px] text-muted-foreground">{c.contact_type}</span>
+                      </button>
+                    )) : (
+                      <p className="text-xs text-muted-foreground text-center py-3">لا توجد نتائج</p>
+                    )}
+                    {endorsedQuery.length >= 2 && !endorsedExact && (
+                      <button type="button" disabled={creatingContact}
+                        onMouseDown={e => { e.preventDefault(); handleQuickAddSupplier(); }}
+                        className="w-full text-right px-3 py-2 text-sm flex items-center gap-2 text-primary font-medium border-t border-border hover:bg-primary/5 disabled:opacity-60">
+                        <UserPlus className="h-3.5 w-3.5" />
+                        {creatingContact ? 'جاري الإضافة...' : `إضافة "${endorsedSearch.trim()}" كمورد جديد`}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-1.5">يجب اختيار المورد من القائمة (مطلوب contact_id للتظهير)</p>
               </div>
             </>
           )}
