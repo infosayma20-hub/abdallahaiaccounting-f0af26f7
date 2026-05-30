@@ -139,6 +139,7 @@ const SupportAdminPage = lazy(() => import("./pages/SupportAdminPage"));
 const POSPage = lazy(() => import("./pages/POSPage"));
 const POSUserManagementPage = lazy(() => import("./pages/POSUserManagementPage"));
 const POSReportsPage = lazy(() => import("./pages/POSReportsPage"));
+import POSReportsGuard from "./components/pos/POSReportsGuard";
 const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
