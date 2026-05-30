@@ -19,15 +19,18 @@ interface Props {
   onSelect: (id: string) => void;
   search: string;
   onSearchChange: (v: string) => void;
+  /** Render without the outer aside wrapper (e.g. inside a mobile Sheet). */
+  bare?: boolean;
+  className?: string;
 }
 
 /**
  * Quiet right-aligned sidebar (RTL). One section per row, search on top,
  * subtle active highlight matching the Finance sidebar pattern.
  */
-export function SettingsSidebar({ items, activeId, onSelect, search, onSearchChange }: Props) {
-  return (
-    <aside className="w-56 shrink-0 border-l border-border bg-card flex flex-col h-full" dir="rtl">
+export function SettingsSidebar({ items, activeId, onSelect, search, onSearchChange, bare, className }: Props) {
+  const body = (
+    <>
       <div className="p-2 border-b border-border">
         <div className="relative">
           <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
@@ -81,6 +84,16 @@ export function SettingsSidebar({ items, activeId, onSelect, search, onSearchCha
           )}
         </nav>
       </ScrollArea>
+    </>
+  );
+
+  if (bare) {
+    return <div className={cn("flex flex-col h-full bg-card", className)} dir="rtl">{body}</div>;
+  }
+
+  return (
+    <aside className={cn("w-56 shrink-0 border-l border-border bg-card flex flex-col h-full", className)} dir="rtl">
+      {body}
     </aside>
   );
 }
