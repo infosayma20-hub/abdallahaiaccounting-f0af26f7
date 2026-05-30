@@ -15,7 +15,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -1342,6 +1342,9 @@ const ChequesPage = () => {
                 : <ArrowUpCircle className="h-5 w-5 text-muted-foreground" />}
               {addType === 'وارد' ? 'تسجيل شيك وارد' : 'تسجيل شيك صادر'}
             </DialogTitle>
+            <DialogDescription className="text-center text-xs text-muted-foreground">
+              {addType === 'وارد' ? 'أدخل بيانات الشيك الوارد من العميل أو الجهة.' : 'أدخل بيانات الشيك الصادر للمورد أو الجهة.'}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 mt-2">
