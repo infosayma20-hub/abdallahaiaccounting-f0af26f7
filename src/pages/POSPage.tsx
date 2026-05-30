@@ -5988,6 +5988,7 @@ const POSPage = () => {
           if (!open) handleShiftSummaryClosed();
         }}
         data={shiftSummaryData}
+        cashierMode={!isAdmin}
       />
 
       {/* Logout after Shift Close — cashier must log out, admin can stay */}
