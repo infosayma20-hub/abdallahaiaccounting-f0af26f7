@@ -3353,15 +3353,18 @@ const POSPage = () => {
           exchangeRate: rate,
           tenderedAmount: tendered,
           change: changeILS,
-          orderNote: (markAsReplacement && lastCancelledOrder)
+          orderNote,
+          // Replacement banner is printed ONLY on kitchen tickets, never on
+          // the customer receipt. Kept separate so the customer never sees
+          // internal cancel/replace operations.
+          kitchenNote: (markAsReplacement && lastCancelledOrder)
             ? [
                 `==================`,
                 `      طلب معدل`,
                 `بديل عن فاتورة: ${lastCancelledOrder.order_number || lastCancelledOrder.id.slice(0, 8)}`,
                 `==================`,
-                orderNote || "",
-              ].filter(Boolean).join("\n")
-            : orderNote,
+              ].join("\n")
+            : undefined,
         };
 
         const companyPrintInfo = {
