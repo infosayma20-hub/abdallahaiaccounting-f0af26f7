@@ -23,6 +23,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { fetchManyContactBalances } from "@/lib/contact-balance";
 import { FinanceShell, ActionPane, ColumnVisibilityMenu, useColumnVisibility } from "@/components/finance/shell";
 import type { ActionTab, ColumnDef } from "@/components/finance/shell";
@@ -160,6 +161,7 @@ const ContactsPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useCompanySettings();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -545,6 +547,77 @@ const ContactsPage = () => {
     a.href = url; a.download = "contacts.csv"; a.click();
   };
 
+  const handlePrint = () => {
+    if (filtered.length === 0) { toast({ title: "لا توجد بيانات للطباعة", variant: "destructive" }); return; }
+    const typeLabel = (t: string) =>
+      ["عميل", "زبون", "customer"].includes(t) ? "زبون"
+      : ["مورد", "supplier"].includes(t) ? "مورد"
+      : t === "عميل ومورد" ? "زبون ومورد"
+      : t || "—";
+    const fmt = (n: number | null | undefined) => {
+      const v = n || 0;
+      if (v === 0) return "—";
+      return `₪${Math.abs(v).toLocaleString()}${v < 0 ? "-" : ""}`;
+    };
+    const lastMove = (c: Contact) => (c.last_transaction_date || "").split("T")[0] || "—";
+
+    const rowsHtml = filtered.map(c => `
+      <tr>
+        <td>${c.contact_name || "—"}</td>
+        <td>${typeLabel(c.contact_type)}</td>
+        <td>${c.contact_class || "C"}</td>
+        <td class="font-mono ${(c.current_balance || 0) < 0 ? "text-red" : ""}">${fmt(c.current_balance)}</td>
+        <td class="font-mono">${fmt(c.credit_limit)}</td>
+        <td class="font-mono ${(c.overdue_amount || 0) > 0 ? "text-red" : ""}">${fmt(c.overdue_amount)}</td>
+        <td>${lastMove(c)}</td>
+        <td>${c.avg_payment_days ? `${c.avg_payment_days} يوم` : "—"}</td>
+      </tr>
+    `).join("");
+
+    const customers = filtered.filter(c => ["عميل", "عميل ومورد", "زبون", "customer"].includes(c.contact_type)).length;
+    const suppliers = filtered.filter(c => ["مورد", "عميل ومورد", "supplier"].includes(c.contact_type)).length;
+    const overdueRows = filtered.filter(c => (c.overdue_amount || 0) > 0).length;
+    const overLimitRows = filtered.filter(c => c.credit_limit && c.current_balance && c.current_balance > c.credit_limit).length;
+
+    const contentHtml = `
+      <div class="print-header">
+        <div>
+          <div class="company-name">${settings.company_name || "الشركة"}</div>
+          <div class="report-title">تقرير جهات الاتصال</div>
+        </div>
+        <div class="print-date">${filtered.length} جهة</div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-card"><div class="summary-label">الإجمالي</div><div class="summary-value">${filtered.length}</div></div>
+        <div class="summary-card"><div class="summary-label">الزبائن</div><div class="summary-value">${customers}</div></div>
+        <div class="summary-card"><div class="summary-label">الموردين</div><div class="summary-value">${suppliers}</div></div>
+        <div class="summary-card"><div class="summary-label">متأخر</div><div class="summary-value red">${overdueRows}</div></div>
+        <div class="summary-card"><div class="summary-label">تجاوز السقف</div><div class="summary-value red">${overLimitRows}</div></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>الاسم</th><th>النوع</th><th>الفئة</th><th>الرصيد</th><th>السقف</th><th>المتأخر</th><th>آخر حركة</th><th>أيام الدفع</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr>
+          <td colspan="3" style="text-align:right">الإجمالي (${filtered.length} جهة)</td>
+          <td class="font-mono font-bold ${totalBalance < 0 ? "text-red" : ""}">${fmt(totalBalance)}</td>
+          <td></td>
+          <td class="font-mono font-bold ${totalOverdueFiltered > 0 ? "text-red" : ""}">${fmt(totalOverdueFiltered)}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>
+      </table>
+    `;
+
+    import("@/lib/printUtils").then(({ printReport }) => {
+      printReport({
+        title: "تقرير جهات الاتصال",
+        companyName: settings.company_name || "الشركة",
+        contentHtml,
+      });
+    });
+  };
+
   const openAddDialog = (type?: "عميل" | "مورد") => {
     setNewContact({
       name: "", type: type ?? "عميل", phone: "", email: "", address: "", tax_number: "",
@@ -597,7 +670,7 @@ const ContactsPage = () => {
         {
           key: "export", label: "تصدير وطباعة", items: [
             { key: "excel", label: "Excel",  icon: Download, onClick: exportCSV, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للتصدير" : undefined },
-            { key: "print", label: "طباعة", icon: Printer,  onClick: () => window.print(), disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
+            { key: "print", label: "طباعة", icon: Printer,  onClick: handlePrint, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
           ],
         },
       ],
