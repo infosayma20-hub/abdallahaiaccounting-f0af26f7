@@ -66,7 +66,7 @@ const FiscalPeriodsManager = () => {
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "تم إنشاء الفترة ✅" });
+      toast({ title: "تم إنشاء الفترة " });
       setShowCreate(false);
       setNewPeriod({ period_name: "", start_date: "", end_date: "", notes: "" });
       fetchPeriods();
@@ -88,7 +88,7 @@ const FiscalPeriodsManager = () => {
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `تم ${action === "reopen" ? "إعادة فتح" : action === "close" ? "إغلاق" : "قفل"} الفترة ✅` });
+      toast({ title: `تم ${action === "reopen" ? "إعادة فتح" : action === "close" ? "إغلاق" : "قفل"} الفترة ` });
       fetchPeriods();
     }
   };
@@ -112,7 +112,7 @@ const FiscalPeriodsManager = () => {
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `تم إنشاء 12 فترة شهرية لسنة ${year} ✅` });
+      toast({ title: `تم إنشاء 12 فترة شهرية لسنة ${year} ` });
       fetchPeriods();
     }
   };

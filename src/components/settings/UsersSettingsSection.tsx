@@ -285,7 +285,7 @@ const UsersSettingsSection = () => {
       toast.error("فشل تحديث الصلاحية");
       loadData();
     } else {
-      toast.success("تم حفظ الصلاحية ✓");
+      toast.success("تم حفظ الصلاحية");
     }
   };
 
@@ -425,10 +425,10 @@ const UsersSettingsSection = () => {
                       return (
                         <div className="flex gap-1">
                           {c.allow > 0 && (
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 text-xs">✓ {c.allow}</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 text-xs">{c.allow}</Badge>
                           )}
                           {c.deny > 0 && (
-                            <Badge className="bg-red-100 text-red-700 border-red-300 text-xs">✗ {c.deny}</Badge>
+                            <Badge className="bg-red-100 text-red-700 border-red-300 text-xs">{c.deny}</Badge>
                           )}
                         </div>
                       );
@@ -672,7 +672,7 @@ const UsersSettingsSection = () => {
                   variant="outline"
                   onClick={() => setNewPassword(generatePassword())}
                 >
-                  🔄
+                  ↻
                 </Button>
               </div>
             </div>

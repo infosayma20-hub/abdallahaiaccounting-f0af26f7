@@ -157,7 +157,7 @@ const PasswordManagementSection = () => {
 
       reset();
       toast({
-        title: mode === "add" ? "✅ تمت إضافة كلمة المرور بنجاح" : "✅ تم تغيير كلمة المرور بنجاح",
+        title: mode === "add" ? "تمت إضافة كلمة المرور بنجاح" : "تم تغيير كلمة المرور بنجاح",
         description:
           mode === "add"
             ? "يمكنك الآن تسجيل الدخول بالبريد وكلمة المرور إلى جانب Google."

@@ -232,7 +232,7 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
   const permGroups = type === "accountant" ? ACCOUNTANT_PERMS : HR_PERMS;
   const tableName = type === "accountant" ? "accountant_permissions" : "hr_manager_permissions";
   const title = type === "accountant" ? "إدارة المحاسبين" : "إدارة فريق الموارد البشرية";
-  const icon = type === "accountant" ? "🧮" : "👥";
+  const icon = type === "accountant" ? "محاسب" : "فريق";
 
   useEffect(() => {
     if (user) loadMembers();
@@ -449,7 +449,7 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>إلغاء</Button>
             <Button size="sm" onClick={handleCreate} disabled={creating}>
-              {creating ? "جارِ الإنشاء..." : "✅ إنشاء الحساب"}
+              {creating ? "جارِ الإنشاء..." : "إنشاء الحساب"}
             </Button>
           </div>
         </div>
@@ -460,7 +460,7 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
         <p className="text-sm text-muted-foreground">جارِ التحميل...</p>
       ) : members.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          <p className="text-2xl mb-2">{type === "accountant" ? "🧮" : "👥"}</p>
+          <p className="text-2xl mb-2">{type === "accountant" ? "محاسب" : "فريق"}</p>
           <p className="text-sm">لم يتم إضافة {type === "accountant" ? "محاسبين" : "مديري HR"} بعد</p>
         </div>
       ) : (

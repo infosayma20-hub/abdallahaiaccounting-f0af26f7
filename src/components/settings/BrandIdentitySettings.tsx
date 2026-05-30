@@ -71,7 +71,7 @@ const BrandIdentitySettings = () => {
       const roles = assignColorRoles(palette);
       const safe = ensureAccessibility(roles);
       await updateTheme(safe);
-      toast.success("✨ تم استخراج الألوان وتطبيقها من شعارك");
+      toast.success("تم استخراج الألوان وتطبيقها من شعارك");
     } catch {
       toast.error("فشل استخراج الألوان من الشعار");
     } finally {
@@ -98,7 +98,7 @@ const BrandIdentitySettings = () => {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
             style={{ background: lightenColor(theme.primary, 0.85) }}>
-            🎨
+            <span className="text-xs font-medium">ألوان</span>
           </div>
           <div>
             <h3 className="text-[15px] font-bold text-foreground">هوية الشركة البصرية</h3>
@@ -165,7 +165,7 @@ const BrandIdentitySettings = () => {
             </div>
             <div className="flex items-center justify-center gap-1 mt-1.5">
               {theme.extractedFromLogo && <Check className="h-3 w-3 text-accent" />}
-              <span className="text-[10px] font-medium text-foreground">✨ شعارك</span>
+              <span className="text-[10px] font-medium text-foreground">شعارك</span>
             </div>
           </button>
         </div>
@@ -283,7 +283,7 @@ const BrandIdentitySettings = () => {
 
           {/* Locked notice */}
           <div className="flex items-center gap-2 py-2 text-[11px] text-muted-foreground">
-            <span>🔒</span>
+            <span>—</span>
             <span>ألوان النصوص والحالات والجداول ثابتة لضمان سهولة القراءة</span>
           </div>
         </div>

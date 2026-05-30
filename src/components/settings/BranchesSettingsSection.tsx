@@ -161,7 +161,7 @@ export default function BranchesSettingsSection() {
                 </p>
               )}
               <p className="text-[10px] text-muted-foreground mt-0.5 font-mono" dir="ltr">
-                📍 {b.latitude.toFixed(4)}, {b.longitude.toFixed(4)} • نطاق {b.radius_meters}م
+                {b.latitude.toFixed(4)}, {b.longitude.toFixed(4)} • نطاق {b.radius_meters}م
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline" className="text-[10px]">

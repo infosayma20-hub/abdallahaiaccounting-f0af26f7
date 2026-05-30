@@ -221,12 +221,12 @@ export default function NetworkPrintersManager() {
       const result = await res.json();
 
       if (result.success) {
-        toast.success(`✅ تم طباعة صفحة اختبار على ${printer.name}`);
+        toast.success(`تم طباعة صفحة اختبار على ${printer.name}`);
         setBridgeOnline(true);
         const synced = await syncPrinterSettingsToBridge(printer.branch_id).catch(() => false);
         if (synced) toast.success("تم اعتماد IP الطابعة داخل Print Bridge");
       } else {
-        toast.warning(`⚠️ تم الوصول إلى Bridge لكن الطابعة ${printer.name} لم تستجب: ${result.error || ""}`);
+        toast.warning(`تم الوصول إلى Bridge لكن الطابعة ${printer.name} لم تستجب: ${result.error || ""}`);
       }
     } catch (error) {
       setBridgeOnline(false);
@@ -297,7 +297,7 @@ export default function NetworkPrintersManager() {
 
       <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          💡 يمكنك تعريف الطابعات وربطها بمحطات المطبخ، لكن الاختبار والطباعة الفعلية يمران دائمًا عبر Print Bridge المحلي فقط.
+          يمكنك تعريف الطابعات وربطها بمحطات المطبخ، لكن الاختبار والطباعة الفعلية يمران دائمًا عبر Print Bridge المحلي فقط.
         </p>
       </div>
 
