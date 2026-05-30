@@ -1084,25 +1084,7 @@ const ChequesPage = () => {
         ))}
       </div>
 
-      {/* ============ SEARCH + DATE FILTERS ============ */}
-      {cheques.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground/60" />
-            <Input placeholder="رقم الشيك، اسم الجهة، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-lg bg-background" />
-            {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Label className="text-[10px] whitespace-nowrap text-muted-foreground">من:</Label>
-            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" />
-            <Label className="text-[10px] whitespace-nowrap text-muted-foreground">إلى:</Label>
-            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" />
-            {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Search and advanced filters are in the shell header / FiltersPanel */}
 
       {/* ============ DUE ALERT ============ */}
       {dueWithin7.filter(c => c.cheque_date <= today).length > 0 && (
@@ -1129,12 +1111,20 @@ const ChequesPage = () => {
 
       {/* Empty */}
       {!loading && cheques.length === 0 && (
-        <div className="text-center py-20">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-muted">
-            <Banknote className="h-10 w-10 text-muted-foreground" />
+        <div className="text-center py-16 space-y-3 border border-dashed border-border rounded-lg bg-card">
+          <Banknote className="h-10 w-10 mx-auto text-muted-foreground/40" />
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">لا توجد شيكات بعد</h3>
+            <p className="text-xs text-muted-foreground mt-1">سجّل أول شيك لبدء تتبع الشيكات الواردة والصادرة.</p>
           </div>
-          <h3 className="text-base font-semibold mb-1 text-foreground">لا توجد شيكات بعد</h3>
-          <p className="text-xs text-muted-foreground">سجّل أول شيك لبدء التتبع</p>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <Button size="sm" onClick={() => openAddDialog('وارد')} className="gap-1.5">
+              <ArrowDownCircle className="h-3.5 w-3.5" /> تسجيل شيك وارد
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => openAddDialog('صادر')} className="gap-1.5">
+              <ArrowUpCircle className="h-3.5 w-3.5" /> تسجيل شيك صادر
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1143,7 +1133,7 @@ const ChequesPage = () => {
         <div className="text-center py-12 space-y-2">
           <Search className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); handleTab('all'); }}>مسح الفلاتر</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); setShellFilters([]); handleTab('all'); }}>مسح الفلاتر</Button>
         </div>
       )}
 
