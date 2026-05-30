@@ -34,15 +34,15 @@ export function UnsavedChangesBar({ visible, saving, onSave, onDiscard }: Props)
   return (
     <>
     <div
-      className="sticky bottom-0 left-0 right-0 z-20 border-t border-border bg-card/95 backdrop-blur px-5 py-2.5 flex items-center justify-between gap-3 shadow-[0_-4px_12px_-8px_rgba(0,0,0,0.15)]"
+      className="sticky bottom-0 left-0 right-0 z-20 border-t border-border bg-card/95 backdrop-blur px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 sm:gap-3 shadow-[0_-4px_12px_-8px_rgba(0,0,0,0.15)] pb-[max(0.625rem,env(safe-area-inset-bottom))]"
       dir="rtl"
       role="status"
     >
-      <div className="flex items-center gap-2 text-[12.5px] text-foreground">
+      <div className="flex items-center gap-2 text-[12.5px] text-foreground min-w-0">
         <span className="inline-block w-2 h-2 rounded-full bg-amber-500" aria-hidden />
-        لديك تغييرات غير محفوظة
+        <span className="truncate">لديك تغييرات غير محفوظة</span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ms-auto">
         {onDiscard && (
           <Button variant="ghost" size="sm" onClick={() => setConfirmDiscard(true)} disabled={saving} className="h-8 gap-1.5 text-[12.5px]">
             <X className="h-3.5 w-3.5" />
