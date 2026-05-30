@@ -492,93 +492,212 @@ const InventoryPage = () => {
     </button>
   );
 
-  return (
-    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      <PageHeader title="المخزون" breadcrumb={["إدارة المخزون", "المنتجات"]} />
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">{filtered.length} صنف من أصل {products.length}</p>
-        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => { resetForm(); setShowProductDialog(true); }}>
-          <Plus className="h-4 w-4" /> إضافة منتج
-        </Button>
-      </div>
+  // ============ COLUMN VISIBILITY ============
+  const INVENTORY_COLUMNS: ColumnDef[] = [
+    { key: "sku", label: "الكود", default: true },
+    { key: "name", label: "اسم الصنف", required: true },
+    { key: "category", label: "الفئة", default: true },
+    { key: "quantity", label: "الكمية", required: true },
+    { key: "min_quantity", label: "الحد الأدنى", default: true },
+    { key: "buy_price", label: "سعر الشراء", default: true },
+    { key: "sell_price", label: "سعر البيع", default: true },
+    { key: "unit", label: "الوحدة", default: false },
+    { key: "stock_value", label: "قيمة المخزون", default: false },
+    { key: "status", label: "الحالة", required: true },
+    { key: "actions", label: "إجراءات", required: true },
+  ];
+  const cols = useColumnVisibility("inventory:cols-v1", INVENTORY_COLUMNS);
+  const show = cols.isVisible;
 
-      {/* KPI Cards */}
+  // ============ FILTER FIELDS ============
+  const categoryOptions = useMemo(
+    () => CATEGORIES.map(c => ({ value: c, label: c })),
+    [CATEGORIES]
+  );
+  const unitOptions = useMemo(
+    () => UNITS.map(u => ({ value: u, label: u })),
+    [UNITS]
+  );
+  const filterFields: FilterField[] = useMemo(() => ([
+    { key: "category", label: "الفئة", type: "option", options: categoryOptions },
+    { key: "unit", label: "الوحدة", type: "option", options: unitOptions },
+    { key: "quantity", label: "الكمية", type: "number" },
+    { key: "buy_price", label: "سعر الشراء", type: "number" },
+    { key: "sell_price", label: "سعر البيع", type: "number" },
+    { key: "sku", label: "الكود", type: "text" },
+    { key: "barcode", label: "الباركود", type: "text" },
+    { key: "created_at", label: "تاريخ الإضافة", type: "date" },
+  ]), [categoryOptions, unitOptions]);
+
+  // Count visible columns for proper colSpan in footer / empty rows
+  const optionalVisible = ["sku","category","min_quantity","buy_price","sell_price","unit","stock_value"]
+    .filter(k => show(k)).length;
+  const visibleColCount = 1 /* checkbox */ + 1 /* name */ + optionalVisible + 2 /* status + actions */;
+
+  // ============ ACTION TABS ============
+  const oneSelected = selected.size === 1;
+  const selectedProductFromSet = useMemo(() => {
+    if (selected.size !== 1) return null;
+    const id = Array.from(selected)[0];
+    return products.find(p => p.id === id) || null;
+  }, [selected, products]);
+
+  const actionTabs: ActionTab[] = [{
+    key: "home", label: "عام",
+    groups: [
+      {
+        key: "new", label: "جديد", items: [
+          { key: "new-product",  label: "إضافة منتج", icon: Plus,        variant: "primary", onClick: () => { resetForm(); setShowProductDialog(true); } },
+          { key: "new-category", label: "إضافة فئة",  icon: FolderPlus,  disabled: true, tooltip: "أضف الفئة من نموذج المنتج" },
+        ],
+      },
+      {
+        key: "movements", label: "حركات", items: [
+          { key: "stock-mov",    label: "حركة مخزون",    icon: Boxes,           onClick: () => navigate("/stock-movements") },
+          { key: "stock-count",  label: "جرد",          icon: ClipboardCheck,  disabled: true, tooltip: "غير مفعّل حالياً" },
+          { key: "adjust-qty",   label: "تعديل كميات",   icon: Pencil,          disabled: true, tooltip: "غير مفعّل حالياً" },
+          {
+            key: "print-barcode", label: "طباعة باركود", icon: Barcode,
+            disabled: !oneSelected,
+            tooltip: oneSelected ? undefined : "اختر منتجاً واحداً",
+            onClick: () => { if (selectedProductFromSet) setBarcodePrintProduct(selectedProductFromSet); },
+          },
+        ],
+      },
+      {
+        key: "actions", label: "إجراءات", items: [
+          { key: "refresh", label: "تحديث",  icon: RefreshCw, onClick: fetchProducts, disabled: loading },
+          { key: "import",  label: "استيراد", icon: Upload,    disabled: true, tooltip: "غير مفعّل حالياً" },
+        ],
+      },
+      {
+        key: "export", label: "تصدير وطباعة", items: [
+          { key: "excel", label: "Excel",  icon: Download, disabled: filtered.length === 0,
+            tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined,
+            onClick: () => {
+              const headers = ["الكود","الاسم","الفئة","الكمية","الحد الأدنى","سعر الشراء","سعر البيع","الوحدة","الحالة"];
+              const rows = filtered.map(p => [p.sku || "", p.name, p.category, p.quantity, p.min_quantity, p.buy_price, p.sell_price, p.unit, stockStatus(p)]);
+              const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = "inventory.csv"; a.click();
+            },
+          },
+          { key: "print", label: "طباعة", icon: Printer, disabled: filtered.length === 0,
+            tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined,
+            onClick: () => window.print() },
+        ],
+      },
+    ],
+  }];
+
+  const rightSlot = (
+    <div className="flex items-center gap-1.5">
+      <div className="relative">
+        <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="اسم، كود، باركود..."
+          className="h-8 w-56 pr-8 text-xs"
+          dir="rtl"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <ColumnVisibilityMenu state={cols} />
+    </div>
+  );
+
+  const statusBadge = (st: string) => {
+    const cls =
+      st === "متوفر" ? "bg-primary/10 text-primary border-primary/20" :
+      st === "منخفض" ? "bg-muted text-foreground border-border" :
+      "bg-destructive/10 text-destructive border-destructive/20";
+    const Icon = st === "نفد" ? AlertTriangle : st === "منخفض" ? AlertTriangle : Package;
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold ${cls}`}>
+        <Icon className="h-3 w-3" />
+        {st}
+      </span>
+    );
+  };
+
+  return (
+    <>
+    <FinanceShell
+      title="المخزون"
+      subtitle="إدارة الأصناف والكميات والتنبيهات وحركات المخزون."
+      breadcrumb={[{ label: "إدارة المخزون", href: "/inventory" }, { label: "المنتجات" }]}
+      actionTabs={actionTabs}
+      filterFields={filterFields}
+      filters={shellFilters}
+      onFiltersChange={setShellFilters}
+      storageKey="inventory-page"
+      rightSlot={rightSlot}
+    >
+    <div className="space-y-4" dir="rtl">
+
+      {/* KPI Cards — neutral, can act as quick filters */}
       {products.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
-            { label: "إجمالي الأصناف", value: products.length, icon: Package, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-            { label: "قيمة المخزون", value: `₪${totalValue.toLocaleString()}`, icon: Package, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-            { label: "مخزون منخفض", value: lowStock, icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800" },
-            { label: "نفد المخزون", value: outStock, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/10" },
-          ].map((k, i) => (
-            <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
-                  <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+            { label: "إجمالي الأصناف", value: products.length,                  icon: Package,        onClick: () => setStockFilter("all"),     active: stockFilter === "all" },
+            { label: "قيمة المخزون",   value: `₪${totalValue.toLocaleString()}`, icon: Boxes,          onClick: undefined,                       active: false },
+            { label: "مخزون منخفض",    value: lowStock,                          icon: AlertTriangle,  onClick: () => setStockFilter("منخفض"),  active: stockFilter === "منخفض" },
+            { label: "نفد المخزون",    value: outStock,                          icon: AlertTriangle,  onClick: () => setStockFilter("نفد"),    active: stockFilter === "نفد",  negative: outStock > 0 },
+          ].map((k, i) => {
+            const Icon = k.icon;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={k.onClick}
+                disabled={!k.onClick}
+                className={`flex items-center gap-2 px-3 py-2 rounded border text-right transition-colors ${
+                  k.active ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/40"
+                } ${k.onClick ? "cursor-pointer" : "cursor-default"}`}
+              >
+                <div className="w-8 h-8 rounded flex items-center justify-center bg-muted text-muted-foreground shrink-0">
+                  <Icon className="h-4 w-4" />
                 </div>
-                <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
-              </div>
-            </div>
-          ))}
+                <div className="min-w-0">
+                  <p className={`text-sm font-semibold tabular-nums truncate ${k.negative ? "text-destructive" : "text-foreground"}`}>{k.value}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{k.label}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Toolbar */}
+      {/* Secondary toolbar: category pills + date + selection count */}
       {products.length > 0 && (
-        <div className="space-y-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-            <Input
-              placeholder="ابحث باسم الصنف أو الكود..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pr-10 rounded-xl bg-muted/30"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 flex-1 min-w-0">
+            <button onClick={() => setFilterCategory("all")} className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${filterCategory === "all" ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"}`}>
+              الكل
+            </button>
+            {CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => setFilterCategory(cat)} className={`px-3 py-1 rounded border text-[11px] font-semibold whitespace-nowrap transition-colors ${filterCategory === cat ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/40"}`}>
+                {cat}
               </button>
-            )}
+            ))}
           </div>
-
-          {/* Category pills + stock filter */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-              <button onClick={() => setFilterCategory("all")} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterCategory === "all" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                الكل
-              </button>
-              {CATEGORIES.map(cat => (
-                <button key={cat} onClick={() => setFilterCategory(cat)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterCategory === cat ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                  {cat}
-                </button>
-              ))}
-            </div>
-            <Select value={stockFilter} onValueChange={setStockFilter}>
-              <SelectTrigger className="w-[140px] rounded-xl text-xs">
-                <SelectValue placeholder="حالة المخزون" />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                <SelectItem value="all">كل الحالات</SelectItem>
-                <SelectItem value="متوفر">✅ متوفر</SelectItem>
-                <SelectItem value="منخفض">⚠️ منخفض</SelectItem>
-                <SelectItem value="نفد">🔴 نفد</SelectItem>
-              </SelectContent>
-            </Select>
-            <DateRangeFilter
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              onDateFromChange={setDateFrom}
-              onDateToChange={setDateTo}
-              onClear={() => { setDateFrom(""); setDateTo(""); }}
-              compact
-            />
-          </div>
-
+          <DateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            onClear={() => { setDateFrom(""); setDateTo(""); }}
+            compact
+          />
           {selected.size > 0 && (
-            <div className="text-xs text-primary font-semibold">{selected.size} صنف محدد</div>
+            <span className="text-[11px] text-primary font-semibold">{selected.size} صنف محدد</span>
           )}
         </div>
       )}
@@ -592,48 +711,45 @@ const InventoryPage = () => {
 
       {/* Empty */}
       {!loading && products.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-            <Package className="h-10 w-10 text-muted-foreground/40" />
-          </div>
-          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد منتجات بعد</h3>
-          <p className="text-xs text-muted-foreground mb-4">أضف أول منتج لبدء تتبع المخزون</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { resetForm(); setShowProductDialog(true); }}>
-            <Plus className="h-4 w-4" /> إضافة منتج
-          </Button>
-        </div>
+        <EmptyState
+          icon={Package}
+          title="لا توجد أصناف بعد"
+          description="أضف أول منتج لبدء تتبع المخزون والحركات."
+          primaryAction={{ label: "إضافة منتج", onClick: () => { resetForm(); setShowProductDialog(true); }, icon: Plus }}
+          secondaryAction={{ label: "استيراد منتجات", onClick: () => toast({ title: "غير مفعّل حالياً" }), icon: Upload }}
+        />
       )}
 
       {/* No results */}
       {!loading && products.length > 0 && filtered.length === 0 && (
-        <div className="text-center py-12 space-y-2">
-          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+        <div className="text-center py-12 space-y-2 border border-border rounded bg-card">
+          <Search className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <p className="text-sm text-muted-foreground">لا توجد أصناف تطابق البحث</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterCategory("all"); setStockFilter("all"); }}>مسح الفلاتر</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterCategory("all"); setStockFilter("all"); setShellFilters([]); }}>مسح الفلاتر</Button>
         </div>
       )}
 
       {/* TABLE */}
       {!loading && paged.length > 0 && (
-        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
+        <div className="rounded border border-border overflow-hidden bg-card">
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              {/* Header */}
               <thead>
                 <tr className="bg-primary text-primary-foreground">
-                  <th className="px-3 py-3 text-right w-10">
+                  <th className="px-3 py-2.5 text-right w-10">
                     <Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="سعر الشراء" field="buy_price" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="سعر البيع" field="sell_price" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوحدة" field="unit" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
+                  {show("sku") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>}
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
+                  {show("category") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>}
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
+                  {show("min_quantity") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>}
+                  {show("buy_price") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="سعر الشراء" field="buy_price" /></th>}
+                  {show("sell_price") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="سعر البيع" field="sell_price" /></th>}
+                  {show("unit") && <th className="px-3 py-2.5 text-right text-xs font-semibold"><SortHeader label="الوحدة" field="unit" /></th>}
+                  {show("stock_value") && <th className="px-3 py-2.5 text-right text-xs font-semibold">قيمة المخزون</th>}
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold">الحالة</th>
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold w-[80px]">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -642,16 +758,6 @@ const InventoryPage = () => {
                   const isSelected = selected.has(p.id);
                   const margin = p.buy_price > 0 && p.sell_price > 0
                     ? Math.round(((p.sell_price - p.buy_price) / p.sell_price) * 100) : null;
-                  const stStyles = {
-                    "متوفر": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                    "منخفض": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-                    "نفد": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                  }[st];
-                  const dotColor = {
-                    "متوفر": "bg-green-500",
-                    "منخفض": "bg-yellow-500",
-                    "نفد": "bg-red-500",
-                  }[st];
                   return (
                     <tr
                       key={p.id}
@@ -659,64 +765,80 @@ const InventoryPage = () => {
                         isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"
                       } hover:bg-primary/5`}
                     >
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-2">
                         <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(p.id)} />
                       </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground font-mono" dir="ltr">{p.sku || "—"}</td>
-                      <td className="px-3 py-3">
+                      {show("sku") && <td className="px-3 py-2 text-xs text-muted-foreground font-mono" dir="ltr">{p.sku || "—"}</td>}
+                      <td className="px-3 py-2">
                         <button onClick={() => openMovements(p)} className="text-sm font-semibold text-foreground hover:text-primary hover:underline transition-colors text-right">
                           {p.name}
                         </button>
                       </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">{p.category}</td>
-                      <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{p.quantity.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{p.min_quantity}</td>
-                      <td className="px-3 py-3 text-xs tabular-nums">{fmtPrice(p.buy_price)}</td>
-                      <td className="px-3 py-3">
-                        <p className="text-xs tabular-nums">{fmtPrice(p.sell_price)}</p>
-                        {margin !== null && (
-                          <p className={`text-[10px] ${margin > 30 ? "text-green-600" : "text-yellow-600"}`}>هامش {margin}%</p>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">{p.unit}</td>
-                      <td className="px-3 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${stStyles}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                          {st}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
-                            <Pencil className="h-3.5 w-3.5 text-primary" />
-                          </button>
-                          <button onClick={() => openMovements(p)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="حركات المخزون">
-                            <ClipboardList className="h-3.5 w-3.5 text-accent-foreground" />
-                          </button>
-                          <button onClick={() => navigate(`/stock-movements?product=${p.id}`)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="تفاصيل الحركات">
-                            <History className="h-3.5 w-3.5 text-accent-foreground" />
-                          </button>
-                          <button onClick={() => setBarcodePrintProduct(p)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="طباعة باركود">
-                            <Barcode className="h-3.5 w-3.5 text-primary" />
-                          </button>
-                          <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </button>
+                      {show("category") && <td className="px-3 py-2 text-xs text-muted-foreground">{p.category}</td>}
+                      <td className="px-3 py-2 text-sm font-bold tabular-nums text-foreground">{p.quantity.toLocaleString()}</td>
+                      {show("min_quantity") && <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">{p.min_quantity}</td>}
+                      {show("buy_price") && <td className="px-3 py-2 text-xs tabular-nums">{fmtPrice(p.buy_price)}</td>}
+                      {show("sell_price") && (
+                        <td className="px-3 py-2">
+                          <p className="text-xs tabular-nums">{fmtPrice(p.sell_price)}</p>
+                          {margin !== null && (
+                            <p className={`text-[10px] ${margin > 30 ? "text-primary" : "text-muted-foreground"}`}>هامش {margin}%</p>
+                          )}
+                        </td>
+                      )}
+                      {show("unit") && <td className="px-3 py-2 text-xs text-muted-foreground">{p.unit}</td>}
+                      {show("stock_value") && (
+                        <td className="px-3 py-2 text-xs tabular-nums text-foreground">
+                          ₪{(p.quantity * (p.buy_price || p.sell_price)).toLocaleString()}
+                        </td>
+                      )}
+                      <td className="px-3 py-2">{statusBadge(st)}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => openEdit(p)}>
+                                <Pencil className="h-3.5 w-3.5 ml-2" /> تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openMovements(p)}>
+                                <ClipboardList className="h-3.5 w-3.5 ml-2" /> حركات المخزون
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/stock-movements?product=${p.id}`)}>
+                                <History className="h-3.5 w-3.5 ml-2" /> تفاصيل الحركات
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setBarcodePrintProduct(p)}>
+                                <Barcode className="h-3.5 w-3.5 ml-2" /> طباعة باركود
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDelete(p)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
-              {/* Footer totals */}
               <tfoot>
-                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                  <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} صنف)</td>
-                  <td className="px-3 py-3 tabular-nums text-foreground">{filtered.reduce((s, p) => s + p.quantity, 0).toLocaleString()}</td>
-                  <td className="px-3 py-3" />
-                  <td className="px-3 py-3" />
-                  <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, p) => s + p.sell_price * p.quantity, 0).toLocaleString()}</td>
-                  <td colSpan={3} className="px-3 py-3 text-xs text-muted-foreground font-normal">قيمة البيع الإجمالية</td>
+                <tr className="bg-muted/40 border-t border-border font-bold text-sm">
+                  <td colSpan={visibleColCount} className="px-3 py-2.5 text-right text-foreground">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <span>المجموع: {filtered.length} صنف</span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        إجمالي الكميات: <span className="text-foreground font-semibold tabular-nums">{filtered.reduce((s, p) => s + p.quantity, 0).toLocaleString()}</span>
+                      </span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        قيمة البيع: <span className="text-foreground font-semibold tabular-nums">₪{filtered.reduce((s, p) => s + p.sell_price * p.quantity, 0).toLocaleString()}</span>
+                      </span>
+                    </div>
+                  </td>
                 </tr>
               </tfoot>
             </table>
@@ -724,7 +846,7 @@ const InventoryPage = () => {
 
           {/* Pagination */}
           {sorted.length > perPage && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+            <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted/20 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground">
                   عرض {Math.min((page - 1) * perPage + 1, sorted.length)}–{Math.min(page * perPage, sorted.length)} من {sorted.length}
@@ -737,27 +859,28 @@ const InventoryPage = () => {
                 </Select>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                   <ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق
                 </Button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
                   Math.max(0, page - 3), Math.min(totalPages, page + 2)
                 ).map(n => (
-                  <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>
+                  <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="h-7 w-7 text-xs p-0" onClick={() => setPage(n)}>
                     {n}
                   </Button>
                 ))}
-                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
                   التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" />
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                {selected.size > 0 ? `${selected.size} صنف محدد` : `صفحة ${page} من ${totalPages}`}
+                صفحة {page} من {totalPages}
               </p>
             </div>
           )}
         </div>
       )}
+    </div>
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={showProductDialog} onOpenChange={(o) => { setShowProductDialog(o); if (!o) resetForm(); }}>
