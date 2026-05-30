@@ -66,7 +66,7 @@ const FiscalPeriodsManager = () => {
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "تم إنشاء الفترة ✅" });
+      toast({ title: "تم إنشاء الفترة " });
       setShowCreate(false);
       setNewPeriod({ period_name: "", start_date: "", end_date: "", notes: "" });
       fetchPeriods();

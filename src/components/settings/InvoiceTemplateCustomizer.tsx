@@ -39,7 +39,7 @@ const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
         {/* Section 1: Logo & Colors */}
         <div>
           <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <span className="text-lg">🖼️</span> الشعار والألوان
+            الشعار والألوان
           </h4>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -54,7 +54,7 @@ const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">🎨 اللون الرئيسي للفاتورة</Label>
+              <Label className="text-xs text-muted-foreground">اللون الرئيسي للفاتورة</Label>
               <div className="grid grid-cols-2 gap-2">
                 {COLOR_PRESETS.map(preset => (
                   <button
@@ -105,7 +105,7 @@ const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
         {/* Section 2: Header Layout */}
         <div>
           <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <span className="text-lg">📐</span> تخطيط الهيدر
+            تخطيط الهيدر
           </h4>
           <div className="grid grid-cols-3 gap-2">
             {LAYOUT_OPTIONS.map(opt => (
@@ -130,7 +130,7 @@ const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
         {/* Section 3: Additional Info */}
         <div>
           <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <span className="text-lg">📋</span> معلومات إضافية
+            معلومات إضافية
           </h4>
           <div className="space-y-2.5">
             {[
@@ -228,15 +228,15 @@ const InvoicePreview = ({ settings, color, layout }: { settings: CompanySettings
                 {settings.logo_url ? (
                   <img src={settings.logo_url} alt="" className="w-8 h-8 object-contain" />
                 ) : (
-                  <span className="text-white/60 text-lg">🏢</span>
+                  <span className="text-white/60 text-[10px] font-medium">LOGO</span>
                 )}
               </div>
             )}
             <div className={`flex-1 ${layout === "no_logo" ? "text-center" : ""}`}>
               <p className="text-white font-bold text-xs">{companyName}</p>
               {settings.address && <p className="text-white/70 text-[8px]">{settings.address}</p>}
-              {settings.phone && <p className="text-white/70 text-[8px]">☎ {settings.phone}</p>}
-              {settings.phone2 && <p className="text-white/70 text-[8px]">☎ {settings.phone2}</p>}
+              {settings.phone && <p className="text-white/70 text-[8px]">{settings.phone}</p>}
+              {settings.phone2 && <p className="text-white/70 text-[8px]">{settings.phone2}</p>}
             </div>
           </div>
         </div>
@@ -350,7 +350,7 @@ const InvoicePreview = ({ settings, color, layout }: { settings: CompanySettings
               exit={{ height: 0, opacity: 0 }}
               className="px-4 py-1.5 text-[8px] text-gray-400 border-t border-gray-50 overflow-hidden"
             >
-              🏦 بنك القدس — فرع رام الله — حساب 1234567890
+              بنك القدس — فرع رام الله — حساب 1234567890
             </motion.div>
           )}
         </AnimatePresence>

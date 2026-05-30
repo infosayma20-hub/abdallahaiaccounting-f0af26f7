@@ -297,7 +297,7 @@ export default function NetworkPrintersManager() {
 
       <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          💡 يمكنك تعريف الطابعات وربطها بمحطات المطبخ، لكن الاختبار والطباعة الفعلية يمران دائمًا عبر Print Bridge المحلي فقط.
+          يمكنك تعريف الطابعات وربطها بمحطات المطبخ، لكن الاختبار والطباعة الفعلية يمران دائمًا عبر Print Bridge المحلي فقط.
         </p>
       </div>
 
