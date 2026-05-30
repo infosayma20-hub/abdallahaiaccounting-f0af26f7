@@ -88,7 +88,7 @@ const FiscalPeriodsManager = () => {
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `تم ${action === "reopen" ? "إعادة فتح" : action === "close" ? "إغلاق" : "قفل"} الفترة ✅` });
+      toast({ title: `تم ${action === "reopen" ? "إعادة فتح" : action === "close" ? "إغلاق" : "قفل"} الفترة ` });
       fetchPeriods();
     }
   };
@@ -112,7 +112,7 @@ const FiscalPeriodsManager = () => {
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `تم إنشاء 12 فترة شهرية لسنة ${year} ✅` });
+      toast({ title: `تم إنشاء 12 فترة شهرية لسنة ${year} ` });
       fetchPeriods();
     }
   };

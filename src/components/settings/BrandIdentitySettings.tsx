@@ -98,7 +98,7 @@ const BrandIdentitySettings = () => {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
             style={{ background: lightenColor(theme.primary, 0.85) }}>
-            🎨
+            <span className="text-xs font-medium">ألوان</span>
           </div>
           <div>
             <h3 className="text-[15px] font-bold text-foreground">هوية الشركة البصرية</h3>
