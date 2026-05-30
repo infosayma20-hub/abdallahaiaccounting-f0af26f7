@@ -1240,7 +1240,7 @@ const POSPage = () => {
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
           .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url")
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url, pos_cashier_cancel_window_minutes, pos_cashier_invoice_amount_visible_minutes")
           .eq("user_id", dataOwnerId)
           .maybeSingle();
 
@@ -1257,6 +1257,10 @@ const POSPage = () => {
           setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
           setPosRequireCashBox((posSettings as any).pos_require_cash_box ?? false);
           setPosAutoPrint((posSettings as any).pos_auto_print ?? true);
+          const cw = Number((posSettings as any).pos_cashier_cancel_window_minutes);
+          if (Number.isFinite(cw) && cw > 0) setCashierCancelWindowMin(cw);
+          const av = Number((posSettings as any).pos_cashier_invoice_amount_visible_minutes);
+          if (Number.isFinite(av) && av > 0) setCashierAmountVisibleMin(av);
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
