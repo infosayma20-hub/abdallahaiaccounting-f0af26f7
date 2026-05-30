@@ -815,85 +815,87 @@ const ContactsPage = () => {
                           }}
                         />
                       </td>
-                      <td className="p-3 sticky right-0 bg-card">
+                      <td className="p-3">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                            contact.contact_type === "مورد" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40"
-                          }`}>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 bg-muted text-foreground">
                             {getInitials(contact.contact_name)}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
                               <p className="text-sm font-semibold truncate">{contact.contact_name}</p>
                               {contact.is_archived && (
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">مؤرشف</Badge>
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">مؤرشف</Badge>
                               )}
                             </div>
                             {contact.phone && <p className="text-[10px] text-muted-foreground tabular-nums">{contact.phone}</p>}
                           </div>
                         </div>
                       </td>
-                      <td className="p-3">
-                        <Badge variant="secondary" className={`text-[10px] ${
-                          contact.contact_type === "مورد" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40" : 
-                          contact.contact_type === "عميل ومورد" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40" : 
-                          "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40"
-                        }`}>
-                          {contact.contact_type === "عميل" ? "زبون" : contact.contact_type}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-center">
-                        {(() => {
-                          const src = (contact as any).source || "manual";
-                          const map: Record<string, { label: string; icon: string; bg: string; color: string; border: string }> = {
-                            "e-commerce": { label: "متجر إلكتروني", icon: "🛒", bg: "#FEF3C7", color: "#92400E", border: "#FDE68A" },
-                            "whatsapp": { label: "واتساب", icon: "💬", bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0" },
-                            "instagram": { label: "انستغرام", icon: "📸", bg: "#FDF2F8", color: "#9D174D", border: "#FBCFE8" },
-                            "manual": { label: "يدوي", icon: "✏️", bg: "#F1F5F9", color: "#475569", border: "#E2E8F0" },
-                          };
-                          const s = map[src] || map["manual"];
-                          return (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", borderRadius: "10px", fontSize: "10px", fontWeight: "600", background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
-                              {s.icon} {s.label}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="p-3 text-center">
-                        <ClassBadge cls={contact.contact_class || "C"} />
-                      </td>
+                      {show("type") && (
+                        <td className="p-3">
+                          <Badge variant="outline" className="text-[10px] font-normal">
+                            {contact.contact_type === "عميل" ? "زبون" : contact.contact_type}
+                          </Badge>
+                        </td>
+                      )}
+                      {show("source") && (
+                        <td className="p-3 text-center">
+                          {(() => {
+                            const src = (contact as any).source || "manual";
+                            const cfg = sourceConfig[src] || sourceConfig.manual;
+                            const Icon = cfg.icon;
+                            return (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                                <Icon className="h-3 w-3" /> {cfg.label}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                      )}
+                      {show("class") && (
+                        <td className="p-3 text-center">
+                          <ClassBadge cls={contact.contact_class || "C"} />
+                        </td>
+                      )}
                       <td className="p-3">
                         <CreditBar balance={contact.current_balance || 0} limit={contact.credit_limit || 0} />
                       </td>
-                      <td className="p-3">
-                        <span className="text-xs tabular-nums">
-                          {contact.credit_limit ? `₪${contact.credit_limit.toLocaleString()}` : "—"}
-                        </span>
-                      </td>
-                      <td className="p-3" onClick={e => e.stopPropagation()}>
-                        {hasOverdue ? (
-                          <button
-                            className="text-xs font-semibold tabular-nums text-red-600 hover:underline cursor-pointer flex items-center gap-1"
-                            onClick={() => { setOverdueContact(contact); setOverdueDialogOpen(true); }}
-                          >
-                            ₪{(contact.overdue_amount || 0).toLocaleString()}
-                            <AlertTriangle className="h-3 w-3 text-red-500" />
-                          </button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {contact.last_transaction_date ? new Date(contact.last_transaction_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }) : "—"}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className={`text-xs font-semibold tabular-nums ${(contact.avg_payment_days || 0) > 45 ? 'text-amber-600' : 'text-foreground'}`}>
-                          {contact.avg_payment_days || 0} يوم
-                          {(contact.avg_payment_days || 0) > 45 && <AlertTriangle className="inline h-3 w-3 mr-1" />}
-                        </span>
-                      </td>
+                      {show("limit") && (
+                        <td className="p-3">
+                          <span className="text-xs tabular-nums">
+                            {contact.credit_limit ? `₪${contact.credit_limit.toLocaleString()}` : "—"}
+                          </span>
+                        </td>
+                      )}
+                      {show("overdue") && (
+                        <td className="p-3" onClick={e => e.stopPropagation()}>
+                          {hasOverdue ? (
+                            <button
+                              className="text-xs font-semibold tabular-nums text-destructive hover:underline cursor-pointer inline-flex items-center gap-1"
+                              onClick={() => { setOverdueContact(contact); setOverdueDialogOpen(true); }}
+                            >
+                              ₪{(contact.overdue_amount || 0).toLocaleString()}
+                              <AlertTriangle className="h-3 w-3" />
+                            </button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      )}
+                      {show("last_tx") && (
+                        <td className="p-3">
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {contact.last_transaction_date ? new Date(contact.last_transaction_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }) : "—"}
+                          </span>
+                        </td>
+                      )}
+                      {show("payment_days") && (
+                        <td className="p-3 text-center">
+                          <span className={`text-xs font-semibold tabular-nums ${(contact.avg_payment_days || 0) > 45 ? 'text-amber-600' : 'text-foreground'}`}>
+                            {contact.avg_payment_days || 0} يوم
+                          </span>
+                        </td>
+                      )}
                       <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
