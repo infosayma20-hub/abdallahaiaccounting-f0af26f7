@@ -1,8 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import PageHeader from "@/components/layout/PageHeader";
 import { multiWordMatchAny } from "@/lib/utils";
-import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X, Archive, ArchiveRestore } from "lucide-react";
+import {
+  Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye,
+  Download, Settings, Bell, AlertTriangle, Users, ShoppingBag, Filter, X,
+  Archive, ArchiveRestore, Printer, ShoppingCart, MessageCircle, Instagram, Hand,
+  UserPlus, Truck, ContactRound, Columns3,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +24,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { fetchManyContactBalances } from "@/lib/contact-balance";
+import { FinanceShell, ActionPane, ColumnVisibilityMenu, useColumnVisibility } from "@/components/finance/shell";
+import type { ActionTab, ColumnDef } from "@/components/finance/shell";
+import EmptyState from "@/components/EmptyState";
 
 interface Contact {
   id: string;
