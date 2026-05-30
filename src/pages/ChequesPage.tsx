@@ -912,104 +912,115 @@ const ChequesPage = () => {
   const tabTotalPages = Math.max(1, Math.ceil(tabSorted.length / PER_PAGE));
   const tabPaged = tabSorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+  // ============ ACTION PANE (D365 ribbon) ============
+  const hasSelection = selected.size > 0;
+  const bulkActionAvailable = (a: ActionType) => hasSelection && bulkActions.includes(a);
+  const bulkTooltip = (a: ActionType) =>
+    !hasSelection
+      ? "حدد شيك أو أكثر من القائمة"
+      : !bulkSameType || !bulkSameStatus
+      ? "يجب أن تكون جميع الشيكات بنفس النوع والحالة"
+      : !bulkActions.includes(a)
+      ? "غير متاح لهذه الحالة"
+      : undefined;
+
+  const actionTabs: ActionTab[] = [{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "incoming", label: "شيك وارد", icon: ArrowDownCircle, variant: "primary", onClick: () => openAddDialog('وارد') },
+        { key: "outgoing", label: "شيك صادر", icon: ArrowUpCircle, onClick: () => openAddDialog('صادر') },
+      ]},
+      { key: "actions", label: "إجراءات", items: [
+        { key: "collect", label: "تحصيل", icon: CheckCircle2, onClick: () => handleBulkAction('collected'),
+          disabled: !bulkActionAvailable('collected'), tooltip: bulkTooltip('collected') },
+        { key: "cash", label: "صرف", icon: Banknote, onClick: () => handleBulkAction('cashed'),
+          disabled: !bulkActionAvailable('cashed'), tooltip: bulkTooltip('cashed') },
+        { key: "endorse", label: "تظهير", icon: Send, onClick: () => handleBulkAction('endorse'),
+          disabled: !bulkActionAvailable('endorse'), tooltip: bulkTooltip('endorse') },
+        { key: "return", label: "إرجاع/رفض", icon: Undo2, onClick: () => handleBulkAction('bounced'),
+          disabled: !bulkActionAvailable('bounced'), tooltip: bulkTooltip('bounced') },
+        { key: "cancel", label: "إلغاء", icon: Ban, variant: "danger", onClick: () => handleBulkAction('cancel'),
+          disabled: !bulkActionAvailable('cancel'), tooltip: bulkTooltip('cancel') },
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchCheques() },
+      ]},
+      { key: "export", label: "تصدير وطباعة", items: [
+        { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: exportExcel, disabled: filtered.length === 0,
+          tooltip: filtered.length === 0 ? "لا توجد بيانات للتصدير" : undefined },
+        { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filtered.length === 0,
+          tooltip: filtered.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
+      ]},
+    ],
+  }];
+
   return (
-    <AccountingShell>
-    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      {/* ============ HEADER ============ */}
-      <div>
-        <div className="mb-3 flex items-center gap-1 justify-start flex-wrap" style={{ fontSize: 13 }}>
-          <button onClick={() => {}} className="hover:underline transition-colors cursor-pointer" style={{ color: "#6B7280" }}>المالية</button>
-          <span className="mx-1" style={{ color: "#9CA3AF" }}>/</span>
-          <span style={{ color: "#1B3A5C", fontWeight: 500 }}>الشيكات</span>
-        </div>
-        <div
-          className="w-full flex items-center justify-between overflow-hidden"
-          style={{ backgroundColor: "#1B3A5C", borderRadius: 12, borderTop: "3px solid #5B9BD5", padding: "10px 20px", height: 44 }}
-        >
-          <h1 style={{ fontFamily: "Tajawal, sans-serif", fontSize: 18, fontWeight: 500, color: "#FFFFFF", lineHeight: 1 }}>
-            إدارة الشيكات
-          </h1>
-          <div className="flex items-center gap-2">
-            <Button size="sm" className="gap-1.5 rounded-lg text-xs h-8" style={{ background: "#0D1B2E", color: "#fff" }} onClick={() => openAddDialog('وارد')}>
-              <ArrowDownCircle className="h-3.5 w-3.5" /> شيك وارد
-            </Button>
-            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg text-xs h-8 border-white/30 text-white hover:bg-white/10 hover:text-white" onClick={() => openAddDialog('صادر')}>
-              <ArrowUpCircle className="h-3.5 w-3.5" /> شيك صادر
-            </Button>
-          </div>
-        </div>
-      </div>
+    <FinanceShell
+      title="إدارة الشيكات"
+      subtitle="تتبع شيكاتك الواردة والصادرة وعمليات التحصيل والصرف والتظهير."
+      breadcrumb={[{ label: "المالية", href: "/accounting-center" }, { label: "الشيكات" }]}
+      actionTabs={actionTabs}
+    >
+    <div className="space-y-5" dir="rtl">
 
       {/* ============ STATS CARDS ============ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'واردة معلقة', amount: pendingIncoming.reduce((s, c) => s + c.amount, 0), count: pendingIncoming.length, icon: ArrowDownCircle, iconColor: '#0D1B2E', amountColor: '#0D1B2E' },
-          { label: 'صادرة معلقة', amount: pendingOutgoing.reduce((s, c) => s + c.amount, 0), count: pendingOutgoing.length, icon: ArrowUpCircle, iconColor: '#0D1B2E', amountColor: '#0D1B2E' },
-          { label: 'مستحقة خلال 7 أيام', amount: dueWithin7.reduce((s, c) => s + c.amount, 0), count: dueWithin7.length, icon: AlertTriangle, iconColor: '#D97706', amountColor: '#D97706' },
-          { label: 'محصّلة هذا الشهر', amount: collectedThisMonth.reduce((s, c) => s + c.amount, 0), count: collectedThisMonth.length, icon: CheckCircle2, iconColor: '#0D1B2E', amountColor: '#0D1B2E' },
+          { label: 'واردة معلقة', amount: pendingIncoming.reduce((s, c) => s + c.amount, 0), count: pendingIncoming.length, icon: ArrowDownCircle, tone: 'foreground' as const },
+          { label: 'صادرة معلقة', amount: pendingOutgoing.reduce((s, c) => s + c.amount, 0), count: pendingOutgoing.length, icon: ArrowUpCircle, tone: 'foreground' as const },
+          { label: 'مستحقة خلال 7 أيام', amount: dueWithin7.reduce((s, c) => s + c.amount, 0), count: dueWithin7.length, icon: AlertTriangle, tone: 'warning' as const },
+          { label: 'محصّلة هذا الشهر', amount: collectedThisMonth.reduce((s, c) => s + c.amount, 0), count: collectedThisMonth.length, icon: CheckCircle2, tone: 'foreground' as const },
         ].map((card, i) => (
-          <div key={i} className="bg-white rounded-lg border p-4" style={{ borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div key={i} className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>{card.label}</p>
-                <p className="text-xl font-bold" style={{ color: card.amountColor }}>₪{card.amount.toLocaleString()}</p>
-                <p className="text-[10px] mt-1" style={{ color: '#94A3B8' }}>{card.count} شيك</p>
+                <p className="text-xs font-medium mb-1.5 text-muted-foreground">{card.label}</p>
+                <p className={`text-xl font-bold tabular-nums ${card.tone === 'warning' ? 'text-amber-600' : 'text-foreground'}`}>₪{card.amount.toLocaleString()}</p>
+                <p className="text-[10px] mt-1 text-muted-foreground">{card.count} شيك</p>
               </div>
-              <card.icon className="h-5 w-5 mt-0.5" style={{ color: card.iconColor, opacity: 0.6 }} />
+              <card.icon className={`h-5 w-5 mt-0.5 ${card.tone === 'warning' ? 'text-amber-600' : 'text-muted-foreground'}`} />
             </div>
           </div>
         ))}
       </div>
 
       {/* ============ FILTER TABS ============ */}
-      <div className="flex items-center gap-1 border-b" style={{ borderColor: '#E2E8F0' }}>
+      <div className="flex items-center gap-1 border-b border-border">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => handleTab(t.key)}
-            className="px-4 py-2.5 text-xs font-medium transition-all relative"
-            style={{
-              color: activeTab === t.key ? '#0D1B2E' : '#64748B',
-              borderBottom: activeTab === t.key ? '2px solid #0D1B2E' : '2px solid transparent',
-              fontWeight: activeTab === t.key ? 600 : 400,
-            }}
+            className={`px-4 py-2.5 text-xs font-medium transition-all relative border-b-2 ${
+              activeTab === t.key
+                ? 'text-foreground border-primary font-semibold'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
+            }`}
           >
             {t.label}
             {t.count > 0 && (
-              <span className="mr-1.5 text-[9px] px-1.5 py-0.5 rounded-full" style={{
-                background: activeTab === t.key ? '#0D1B2E' : '#F1F5F9',
-                color: activeTab === t.key ? '#fff' : '#64748B',
-              }}>{t.count}</span>
+              <span className={`mr-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${
+                activeTab === t.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+              }`}>{t.count}</span>
             )}
           </button>
         ))}
-        {cheques.length > 0 && (
-          <div className="mr-auto flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={handlePrint}>
-              <Printer className="h-3.5 w-3.5" /> طباعة
-            </Button>
-            <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={exportExcel}>
-              <Download className="h-3.5 w-3.5" /> Excel
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* ============ SEARCH + DATE FILTERS ============ */}
       {cheques.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#94A3B8' }} />
-            <Input placeholder="رقم الشيك، اسم الجهة، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-lg" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }} />
-            {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }}><X className="h-3.5 w-3.5" /></button>}
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground/60" />
+            <Input placeholder="رقم الشيك، اسم الجهة، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-lg bg-background" />
+            {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
           </div>
           <div className="flex items-center gap-1.5">
-            <Label className="text-[10px] whitespace-nowrap" style={{ color: '#64748B' }}>من:</Label>
-            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" style={{ borderColor: '#E2E8F0' }} />
-            <Label className="text-[10px] whitespace-nowrap" style={{ color: '#64748B' }}>إلى:</Label>
-            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" style={{ borderColor: '#E2E8F0' }} />
+            <Label className="text-[10px] whitespace-nowrap text-muted-foreground">من:</Label>
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" />
+            <Label className="text-[10px] whitespace-nowrap text-muted-foreground">إلى:</Label>
+            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" />
             {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(''); setDateTo(''); }} style={{ color: '#94A3B8' }}><X className="h-3.5 w-3.5" /></button>
+              <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
             )}
           </div>
         </div>
@@ -1017,18 +1028,18 @@ const ChequesPage = () => {
 
       {/* ============ DUE ALERT ============ */}
       {dueWithin7.filter(c => c.cheque_date <= today).length > 0 && (
-        <div className="rounded-lg border-2 p-3.5" style={{ borderColor: '#FBBF24', background: '#FFFBEB' }}>
+        <div className="rounded-lg border border-amber-500/40 bg-amber-50 dark:bg-amber-950/20 p-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#FEF3C7' }}>
-                <AlertTriangle className="h-5 w-5" style={{ color: '#D97706' }} />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-100 dark:bg-amber-900/40">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-sm font-bold" style={{ color: '#92400E' }}>{dueWithin7.filter(c => c.cheque_date <= today).length} شيك مستحق اليوم</p>
-                <p className="text-xs" style={{ color: '#B45309' }}>بقيمة {dueWithin7.filter(c => c.cheque_date <= today).reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
+                <p className="text-sm font-bold text-amber-900 dark:text-amber-200">{dueWithin7.filter(c => c.cheque_date <= today).length} شيك مستحق اليوم</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">بقيمة {dueWithin7.filter(c => c.cheque_date <= today).reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="rounded-lg text-xs" style={{ borderColor: '#D97706', color: '#92400E' }} onClick={() => { handleTab('مستحقة'); }}>
+            <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => { handleTab('مستحقة'); }}>
               <Eye className="h-3.5 w-3.5 ml-1" />عرض
             </Button>
           </div>
@@ -1036,31 +1047,31 @@ const ChequesPage = () => {
       )}
 
       {/* Loading */}
-      {loading && <div className="flex items-center justify-center py-20"><Loader2 className="h-10 w-10 animate-spin" style={{ color: '#0D1B2E' }} /></div>}
+      {loading && <div className="flex items-center justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}
 
       {/* Empty */}
       {!loading && cheques.length === 0 && (
         <div className="text-center py-20">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#F1F5F9' }}>
-            <Banknote className="h-10 w-10" style={{ color: '#94A3B8' }} />
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-muted">
+            <Banknote className="h-10 w-10 text-muted-foreground" />
           </div>
-          <h3 className="text-base font-semibold mb-1" style={{ color: '#1E293B' }}>لا توجد شيكات بعد</h3>
-          <p className="text-xs" style={{ color: '#64748B' }}>سجّل أول شيك لبدء التتبع</p>
+          <h3 className="text-base font-semibold mb-1 text-foreground">لا توجد شيكات بعد</h3>
+          <p className="text-xs text-muted-foreground">سجّل أول شيك لبدء التتبع</p>
         </div>
       )}
 
       {/* No results */}
       {!loading && cheques.length > 0 && tabFiltered.length === 0 && (
         <div className="text-center py-12 space-y-2">
-          <Search className="h-10 w-10 mx-auto" style={{ color: '#CBD5E1' }} />
-          <p className="text-sm" style={{ color: '#64748B' }}>لا توجد شيكات تطابق البحث</p>
+          <Search className="h-10 w-10 mx-auto text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
           <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); handleTab('all'); }}>مسح الفلاتر</Button>
         </div>
       )}
 
       {/* ============ TABLE ============ */}
       {!loading && tabPaged.length > 0 && (
-        <div className="rounded-lg border overflow-hidden" style={{ borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
               <colgroup>
