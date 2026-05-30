@@ -23,6 +23,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { fetchManyContactBalances } from "@/lib/contact-balance";
 import { FinanceShell, ActionPane, ColumnVisibilityMenu, useColumnVisibility } from "@/components/finance/shell";
 import type { ActionTab, ColumnDef } from "@/components/finance/shell";
@@ -160,6 +161,7 @@ const ContactsPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useCompanySettings();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
