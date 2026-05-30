@@ -2180,6 +2180,8 @@ export type Database = {
           pos_call_max_repeats: number
           pos_call_number_strategy: string
           pos_call_repeat_seconds: number
+          pos_cashier_cancel_window_minutes: number
+          pos_cashier_invoice_amount_visible_minutes: number
           pos_count: number | null
           pos_customer_display_enabled: boolean
           pos_day_cutoff_hour: number | null
@@ -2341,6 +2343,8 @@ export type Database = {
           pos_call_max_repeats?: number
           pos_call_number_strategy?: string
           pos_call_repeat_seconds?: number
+          pos_cashier_cancel_window_minutes?: number
+          pos_cashier_invoice_amount_visible_minutes?: number
           pos_count?: number | null
           pos_customer_display_enabled?: boolean
           pos_day_cutoff_hour?: number | null
@@ -2502,6 +2506,8 @@ export type Database = {
           pos_call_max_repeats?: number
           pos_call_number_strategy?: string
           pos_call_repeat_seconds?: number
+          pos_cashier_cancel_window_minutes?: number
+          pos_cashier_invoice_amount_visible_minutes?: number
           pos_count?: number | null
           pos_customer_display_enabled?: boolean
           pos_day_cutoff_hour?: number | null
@@ -10324,6 +10330,7 @@ export type Database = {
           id: string
           ils_equivalent: number | null
           is_delivery: boolean | null
+          is_replacement: boolean
           is_return: boolean
           kds_auto_called_at: string | null
           linked_transaction_id: string | null
@@ -10345,6 +10352,8 @@ export type Database = {
           recalled_approved_by: string | null
           recalled_at: string | null
           recalled_by: string | null
+          replaces_order_id: string | null
+          replaces_order_number: string | null
           return_currency: string | null
           return_currency_amount: number | null
           return_exchange_rate: number | null
@@ -10399,6 +10408,7 @@ export type Database = {
           id?: string
           ils_equivalent?: number | null
           is_delivery?: boolean | null
+          is_replacement?: boolean
           is_return?: boolean
           kds_auto_called_at?: string | null
           linked_transaction_id?: string | null
@@ -10420,6 +10430,8 @@ export type Database = {
           recalled_approved_by?: string | null
           recalled_at?: string | null
           recalled_by?: string | null
+          replaces_order_id?: string | null
+          replaces_order_number?: string | null
           return_currency?: string | null
           return_currency_amount?: number | null
           return_exchange_rate?: number | null
@@ -10474,6 +10486,7 @@ export type Database = {
           id?: string
           ils_equivalent?: number | null
           is_delivery?: boolean | null
+          is_replacement?: boolean
           is_return?: boolean
           kds_auto_called_at?: string | null
           linked_transaction_id?: string | null
@@ -10495,6 +10508,8 @@ export type Database = {
           recalled_approved_by?: string | null
           recalled_at?: string | null
           recalled_by?: string | null
+          replaces_order_id?: string | null
+          replaces_order_number?: string | null
           return_currency?: string | null
           return_currency_amount?: number | null
           return_exchange_rate?: number | null
