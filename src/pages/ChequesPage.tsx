@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, Fragment, useCallback } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -9,7 +8,7 @@ import {
   Clock, AlertTriangle, Ban, RefreshCw, ChevronDown,
   Building2, Calendar, Hash, User, Banknote,
   ArrowDownCircle, ArrowUpCircle, Eye, Trash2,
-  ArrowUpDown, Zap, Download, Printer,
+  ArrowUpDown, Zap, Download, Printer, FileSpreadsheet,
   ChevronLeft, ChevronRight, Loader2, X, Send, Undo2
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -30,7 +29,7 @@ import UnendorseChequeDialog from "@/components/cheques/UnendorseChequeDialog";
 import UndepositChequeDialog from "@/components/cheques/UndepositChequeDialog";
 
 import { setNextExportBranding } from "@/lib/excel-export";
-import AccountingShell from "@/components/layout/AccountingShell";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
