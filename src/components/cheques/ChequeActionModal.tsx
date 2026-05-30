@@ -1,35 +1,40 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMemo, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Building2, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
+import {
+  Building2, CheckCircle2, AlertTriangle, ArrowDownToLine, ArrowUpFromLine,
+  Undo2, Ban, CircleDollarSign, RefreshCw, User, X, UserPlus,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export type ActionType = 'deposit' | 'collected' | 'bounced' | 'endorse' | 'return_to_customer' | 'cancel' | 'cashed' | 'outgoing_bounced' | 'recover';
 
 interface ActionConfig {
   id: ActionType;
   label: string;
-  emoji: string;
-  color: string;
+  icon: LucideIcon;
   nextStatus: string;
   description?: string;
 }
 
 export const ACTION_CONFIGS: Record<ActionType, ActionConfig> = {
   // Incoming cheque actions
-  deposit: { id: 'deposit', label: 'إيداع في البنك', emoji: '🏦', color: 'text-blue-600', nextStatus: 'مودع' },
-  collected: { id: 'collected', label: 'تم التحصيل', emoji: '✅', color: 'text-emerald-600', nextStatus: 'محصل', description: 'يُنشئ قيد محاسبي تلقائي' },
-  bounced: { id: 'bounced', label: 'شيك مرتجع (بدون رصيد)', emoji: '⛔', color: 'text-red-600', nextStatus: 'مرتجع', description: 'يُعيد الذمة للزبون تلقائياً' },
-  endorse: { id: 'endorse', label: 'تظهير لمورد', emoji: '📤', color: 'text-purple-600', nextStatus: 'مظهر' },
-  return_to_customer: { id: 'return_to_customer', label: 'إرجاع للزبون', emoji: '↩️', color: 'text-amber-600', nextStatus: 'ملغي', description: 'يُعيد الذمة للزبون تلقائياً' },
-  cancel: { id: 'cancel', label: 'إلغاء الشيك', emoji: '🚫', color: 'text-red-600', nextStatus: 'ملغي' },
+  deposit: { id: 'deposit', label: 'إيداع في البنك', icon: ArrowDownToLine, nextStatus: 'مودع' },
+  collected: { id: 'collected', label: 'تم التحصيل', icon: CheckCircle2, nextStatus: 'محصل', description: 'يُنشئ قيد محاسبي تلقائي' },
+  bounced: { id: 'bounced', label: 'شيك مرتجع (بدون رصيد)', icon: AlertTriangle, nextStatus: 'مرتجع', description: 'يُعيد الذمة للزبون تلقائياً' },
+  endorse: { id: 'endorse', label: 'تظهير لمورد', icon: ArrowUpFromLine, nextStatus: 'مظهر' },
+  return_to_customer: { id: 'return_to_customer', label: 'إرجاع للزبون', icon: Undo2, nextStatus: 'ملغي', description: 'يُعيد الذمة للزبون تلقائياً' },
+  cancel: { id: 'cancel', label: 'إلغاء الشيك', icon: Ban, nextStatus: 'ملغي' },
   // Outgoing cheque actions
-  cashed: { id: 'cashed', label: 'صُرف في البنك', emoji: '💸', color: 'text-emerald-600', nextStatus: 'مصروف', description: 'خصم من حساب البنك المصدر' },
-  outgoing_bounced: { id: 'outgoing_bounced', label: 'مرتجع من البنك', emoji: '⛔', color: 'text-red-600', nextStatus: 'مرتجع', description: 'يُعيد الالتزام للمورد' },
-  recover: { id: 'recover', label: 'استرداد الشيك', emoji: '🔄', color: 'text-amber-600', nextStatus: 'ملغي', description: 'استرداد الشيك قبل صرفه' },
+  cashed: { id: 'cashed', label: 'صُرف في البنك', icon: CircleDollarSign, nextStatus: 'مصروف', description: 'خصم من حساب البنك المصدر' },
+  outgoing_bounced: { id: 'outgoing_bounced', label: 'مرتجع من البنك', icon: AlertTriangle, nextStatus: 'مرتجع', description: 'يُعيد الالتزام للمورد' },
+  recover: { id: 'recover', label: 'استرداد الشيك', icon: RefreshCw, nextStatus: 'ملغي', description: 'استرداد الشيك قبل صرفه' },
 };
 
 interface BankAccount {
@@ -89,6 +94,7 @@ const ChequeActionModal = ({
   open, onOpenChange, action, chequeNumber, chequeAmount, chequeCurrency,
   chequeType, partyName, bankAccounts, contacts, sourceBankAccount, onConfirm, submitting
 }: ChequeActionModalProps) => {
+  const { user } = useAuth();
   const [bankAccountId, setBankAccountId] = useState("");
   const [depositDate, setDepositDate] = useState(new Date().toISOString().split('T')[0]);
   const [collectionDate, setCollectionDate] = useState(new Date().toISOString().split('T')[0]);
@@ -98,6 +104,12 @@ const ChequeActionModal = ({
   const [bankFees, setBankFees] = useState("");
   const [endorsedToName, setEndorsedToName] = useState("");
   const [endorsedToContactId, setEndorsedToContactId] = useState("");
+  const [endorsedSearch, setEndorsedSearch] = useState("");
+  const [endorsedDropdownOpen, setEndorsedDropdownOpen] = useState(false);
+  const [endorsedHighlight, setEndorsedHighlight] = useState(0);
+  const [extraContacts, setExtraContacts] = useState<Contact[]>([]);
+  const [creatingContact, setCreatingContact] = useState(false);
+  const endorsedRef = useRef<HTMLDivElement>(null);
   const [returnReason, setReturnReason] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cashedDate, setCashedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -106,6 +118,59 @@ const ChequeActionModal = ({
 
   if (!action) return null;
   const config = ACTION_CONFIGS[action];
+  const Icon = config.icon;
+
+  const allContacts = useMemo(() => [...extraContacts, ...contacts], [extraContacts, contacts]);
+  const supplierContacts = useMemo(
+    () => allContacts.filter(c => c.contact_type === 'مورد' || c.contact_type === 'عميل ومورد'),
+    [allContacts],
+  );
+  const endorsedQuery = endorsedSearch.trim().toLowerCase();
+  const filteredEndorsed = endorsedQuery.length >= 2
+    ? supplierContacts.filter(c => c.contact_name.toLowerCase().includes(endorsedQuery)).slice(0, 20)
+    : [];
+  const endorsedExact = endorsedQuery.length > 0 &&
+    supplierContacts.some(c => c.contact_name.trim().toLowerCase() === endorsedQuery);
+  const showEndorsedDropdown = endorsedDropdownOpen && endorsedQuery.length >= 2;
+
+  const commitEndorsed = (c: Contact) => {
+    setEndorsedToContactId(c.id);
+    setEndorsedToName(c.contact_name);
+    setEndorsedSearch(c.contact_name);
+    setEndorsedDropdownOpen(false);
+  };
+
+  const handleQuickAddSupplier = async () => {
+    const name = endorsedSearch.trim();
+    if (!name || name.length < 2 || !user) return;
+    setCreatingContact(true);
+    try {
+      const { data: existing } = await supabase
+        .from('contacts')
+        .select('id, contact_name, contact_type')
+        .eq('user_id', user.id)
+        .eq('contact_name', name)
+        .maybeSingle();
+      let created: any = existing;
+      if (!existing) {
+        const { data, error } = await supabase
+          .from('contacts')
+          .insert({ user_id: user.id, contact_name: name, contact_type: 'مورد' })
+          .select('id, contact_name, contact_type')
+          .single();
+        if (error) throw error;
+        created = data;
+      }
+      const newC: Contact = { id: created.id, contact_name: created.contact_name, contact_type: created.contact_type };
+      setExtraContacts(prev => prev.some(p => p.id === newC.id) ? prev : [newC, ...prev]);
+      commitEndorsed(newC);
+      toast.success(`تم إضافة "${name}" كمورد جديد`);
+    } catch {
+      toast.error('تعذّر إضافة المورد');
+    } finally {
+      setCreatingContact(false);
+    }
+  };
 
   const handleSubmit = () => {
     onConfirm({
@@ -167,9 +232,12 @@ const ChequeActionModal = ({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <span>{config.emoji}</span>
+            <Icon className="h-4 w-4 text-muted-foreground" />
             {config.label}
           </DialogTitle>
+          <DialogDescription>
+            {config.description || `إجراء على الشيك ${chequeNumber ? `#${chequeNumber}` : ''}`}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -246,10 +314,10 @@ const ChequeActionModal = ({
                 <Label className="text-xs">رسوم البنك (إن وجدت)</Label>
                 <Input type="number" value={bankFees} onChange={e => setBankFees(e.target.value)} placeholder="0" className="h-9 mt-1 rounded-xl" />
               </div>
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs space-y-1">
-                <p className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> سيتم تلقائياً:</p>
-                <p className="text-amber-600 dark:text-amber-300">• إعادة ₪{chequeAmount.toLocaleString()} لذمم {partyName}</p>
-                <p className="text-amber-600 dark:text-amber-300">• قيد محاسبي عكسي</p>
+              <div className="bg-muted/40 border border-border rounded-xl p-3 text-xs space-y-1">
+                <p className="font-semibold text-foreground flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" /> سيتم تلقائياً:</p>
+                <p className="text-muted-foreground">• إعادة ₪{chequeAmount.toLocaleString()} لذمم {partyName}</p>
+                <p className="text-muted-foreground">• قيد محاسبي عكسي</p>
               </div>
             </>
           )}
@@ -257,21 +325,75 @@ const ChequeActionModal = ({
           {/* ENDORSE fields */}
           {action === 'endorse' && (
             <>
-              <div>
+              <div className="relative" ref={endorsedRef}>
                 <Label className="text-xs font-semibold">تظهير لـ (المورد) *</Label>
-                <Select value={endorsedToContactId} onValueChange={(v) => {
-                  setEndorsedToContactId(v);
-                  const c = contacts.find(c => c.id === v);
-                  if (c) setEndorsedToName(c.contact_name);
-                }}>
-                  <SelectTrigger className="h-9 mt-1 rounded-xl"><SelectValue placeholder="اختر المورد" /></SelectTrigger>
-                  <SelectContent>
-                    {contacts.filter(c => c.contact_type === 'مورد' || c.contact_type === 'عميل ومورد').map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input value={endorsedToName} onChange={e => setEndorsedToName(e.target.value)} placeholder="أو أدخل اسم المورد يدوياً" className="h-9 mt-2 rounded-xl" />
+                <div className="relative mt-1">
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="h-9 rounded-xl pr-9"
+                    value={endorsedSearch}
+                    placeholder="ابحث باسم المورد (حرفين على الأقل)..."
+                    onChange={e => {
+                      setEndorsedSearch(e.target.value);
+                      setEndorsedToName(e.target.value);
+                      setEndorsedToContactId("");
+                      setEndorsedDropdownOpen(true);
+                      setEndorsedHighlight(0);
+                    }}
+                    onFocus={() => setEndorsedDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setEndorsedDropdownOpen(false), 150)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') { e.preventDefault(); setEndorsedDropdownOpen(false); return; }
+                      if (!showEndorsedDropdown) return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setEndorsedHighlight(h => Math.min(h + 1, Math.max(filteredEndorsed.length - 1, 0)));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setEndorsedHighlight(h => Math.max(h - 1, 0));
+                      } else if (e.key === 'Enter') {
+                        if (filteredEndorsed[endorsedHighlight]) {
+                          e.preventDefault();
+                          commitEndorsed(filteredEndorsed[endorsedHighlight]);
+                        } else if (!endorsedExact && endorsedQuery.length >= 2) {
+                          e.preventDefault();
+                          handleQuickAddSupplier();
+                        }
+                      }
+                    }}
+                  />
+                  {endorsedSearch && (
+                    <button type="button" onMouseDown={e => { e.preventDefault(); setEndorsedSearch(''); setEndorsedToName(''); setEndorsedToContactId(''); setEndorsedDropdownOpen(false); }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {showEndorsedDropdown && (
+                  <div className="absolute z-[60] top-full mt-1 left-0 right-0 bg-popover border border-border rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                    {filteredEndorsed.length > 0 ? filteredEndorsed.map((c, i) => (
+                      <button key={c.id} type="button"
+                        onMouseDown={e => { e.preventDefault(); commitEndorsed(c); }}
+                        onMouseEnter={() => setEndorsedHighlight(i)}
+                        className={`w-full text-right px-3 py-2 text-sm flex items-center gap-2 transition-colors ${i === endorsedHighlight ? 'bg-secondary' : 'hover:bg-muted'}`}>
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="flex-1 truncate">{c.contact_name}</span>
+                        <span className="text-[10px] text-muted-foreground">{c.contact_type}</span>
+                      </button>
+                    )) : (
+                      <p className="text-xs text-muted-foreground text-center py-3">لا توجد نتائج</p>
+                    )}
+                    {endorsedQuery.length >= 2 && !endorsedExact && (
+                      <button type="button" disabled={creatingContact}
+                        onMouseDown={e => { e.preventDefault(); handleQuickAddSupplier(); }}
+                        className="w-full text-right px-3 py-2 text-sm flex items-center gap-2 text-primary font-medium border-t border-border hover:bg-primary/5 disabled:opacity-60">
+                        <UserPlus className="h-3.5 w-3.5" />
+                        {creatingContact ? 'جاري الإضافة...' : `إضافة "${endorsedSearch.trim()}" كمورد جديد`}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-1.5">يجب اختيار المورد من القائمة (مطلوب contact_id للتظهير)</p>
               </div>
             </>
           )}
