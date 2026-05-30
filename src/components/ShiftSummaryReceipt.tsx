@@ -46,9 +46,11 @@ interface ShiftSummaryReceiptProps {
   onOpenChange: (open: boolean) => void;
   data: ShiftSummaryData | null;
   /**
-   * When true (default false), hides expected-cash rows, currency breakdown,
-   * and non-cash payment-method breakdown. The total variance box stays visible
-   * read-only so the cashier sees only the final difference.
+   * When true (default false), hides only the payment-method breakdown
+   * (visa / credit / employee_account) and the sales currency breakdown.
+   * The cashier still sees per-currency expected cash, delivered cash,
+   * and the variance (surplus / deficit) so they know exactly what to
+   * deposit at close.
    */
   cashierMode?: boolean;
 }
@@ -124,14 +126,15 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
       closingCash: data.closingCash,
       closingCashUSD: data.closingCashUSD,
       closingCashJOD: data.closingCashJOD,
-      // Cashier mode: hide expected/breakdowns, keep only total variance
-      expectedCash: cashierMode ? data.closingCash : data.expectedCash,
-      expectedCashUSD: cashierMode ? (data.closingCashUSD || 0) : data.expectedCashUSD,
-      expectedCashJOD: cashierMode ? (data.closingCashJOD || 0) : data.expectedCashJOD,
+      // Cashier still needs to see expected vs delivered + variance per currency.
+      expectedCash: data.expectedCash,
+      expectedCashUSD: data.expectedCashUSD,
+      expectedCashJOD: data.expectedCashJOD,
       variance: data.variance,
-      varianceILS: cashierMode ? undefined : data.varianceILS,
-      varianceUSD: cashierMode ? undefined : data.varianceUSD,
-      varianceJOD: cashierMode ? undefined : data.varianceJOD,
+      varianceILS: data.varianceILS,
+      varianceUSD: data.varianceUSD,
+      varianceJOD: data.varianceJOD,
+      // Only payment-method + sales-currency breakdowns are hidden from the cashier.
       currencyBreakdown: cashierMode ? undefined : data.currencyBreakdown,
       paymentMethodBreakdown: cashierMode ? undefined : data.paymentMethodBreakdown,
     };
@@ -282,17 +285,15 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             <div style={sectionTitle}>تسليم النقدية</div>
 
             {/* ILS row: expected / delivered / variance */}
-            {!cashierMode && (
-              <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
-                <span>المتوقع (شيكل)</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
-              </div>
-            )}
+            <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
+              <span>المتوقع (شيكل)</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
+            </div>
             <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
-            {!cashierMode && (data.varianceILS !== undefined && data.varianceILS !== 0) && (
+            {(data.varianceILS !== undefined && data.varianceILS !== 0) && (
               <div style={{ ...rowStyle, fontSize: 13, fontWeight: 900, color: "#000" }}>
                 <span>{(data.varianceILS || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (شيكل)</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{Math.abs(data.varianceILS || 0).toFixed(2)}</span>
@@ -300,7 +301,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             )}
 
             {/* USD row: expected / delivered / variance */}
-            {!cashierMode && ((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
+            {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
@@ -321,7 +322,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
             )}
 
             {/* JOD row: expected / delivered / variance */}
-            {!cashierMode && ((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
+            {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
               <>
                 <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
                 <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
