@@ -2841,6 +2841,11 @@ const POSPage = () => {
             order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
+            ...(markAsReplacement && lastCancelledOrder ? {
+              is_replacement: true,
+              replaces_order_id: lastCancelledOrder.id,
+              replaces_order_number: lastCancelledOrder.order_number,
+            } as any : {}),
           } as any).eq("id", existingOrder.id);
           orderId = existingOrder.id;
           orderObj = { id: existingOrder.id };
@@ -2871,6 +2876,11 @@ const POSPage = () => {
                 pos_customer_id: activeOrder.posCustomerId || null,
                 order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
                 ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
+                ...(markAsReplacement && lastCancelledOrder ? {
+                  is_replacement: true,
+                  replaces_order_id: lastCancelledOrder.id,
+                  replaces_order_number: lastCancelledOrder.order_number,
+                } as any : {}),
               } as any)
             .select()
             .single();
