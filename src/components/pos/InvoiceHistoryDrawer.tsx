@@ -97,6 +97,14 @@ interface InvoiceHistoryDrawerProps {
   requireManagerForInvoices?: boolean;
   requireManagerForRecall?: boolean;
   requireManagerForCancel?: boolean;
+  requireManagerForReturn?: boolean;
+  /**
+   * Cashier-restricted mode: hides payment-method badges, payment-method row
+   * in detail modal, and the "cancelled" status filter + cancelled rows in list.
+   * Does NOT change recall/cancel/return entitlements (those are controlled by
+   * canEditInvoices/canCancelInvoices/requireManagerFor*).
+   */
+  cashierMode?: boolean;
   allowOrderTransfer?: boolean;
   printInvoices?: boolean;
   resendInvoice?: boolean;
@@ -128,7 +136,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, requireManagerForReturn = false, cashierMode = false, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
 }: InvoiceHistoryDrawerProps) {
   // Use specific flags if provided, otherwise fall back to general flag
   const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
