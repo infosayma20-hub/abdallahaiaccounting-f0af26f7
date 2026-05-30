@@ -109,7 +109,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
 
   const printSummary = () => {
     if (!data) return;
-    printShiftSummaryImage({
+    const payload: any = {
       companyName: data.companyName,
       logoUrl: data.logoUrl,
       terminalName: data.terminalName,
@@ -124,16 +124,18 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
       closingCash: data.closingCash,
       closingCashUSD: data.closingCashUSD,
       closingCashJOD: data.closingCashJOD,
-      expectedCash: data.expectedCash,
-      expectedCashUSD: data.expectedCashUSD,
-      expectedCashJOD: data.expectedCashJOD,
+      // Cashier mode: hide expected/breakdowns, keep only total variance
+      expectedCash: cashierMode ? data.closingCash : data.expectedCash,
+      expectedCashUSD: cashierMode ? (data.closingCashUSD || 0) : data.expectedCashUSD,
+      expectedCashJOD: cashierMode ? (data.closingCashJOD || 0) : data.expectedCashJOD,
       variance: data.variance,
-      varianceILS: data.varianceILS,
-      varianceUSD: data.varianceUSD,
-      varianceJOD: data.varianceJOD,
-      currencyBreakdown: data.currencyBreakdown,
-      paymentMethodBreakdown: data.paymentMethodBreakdown,
-    }).catch(() => {
+      varianceILS: cashierMode ? undefined : data.varianceILS,
+      varianceUSD: cashierMode ? undefined : data.varianceUSD,
+      varianceJOD: cashierMode ? undefined : data.varianceJOD,
+      currencyBreakdown: cashierMode ? undefined : data.currencyBreakdown,
+      paymentMethodBreakdown: cashierMode ? undefined : data.paymentMethodBreakdown,
+    };
+    printShiftSummaryImage(payload).catch(() => {
       console.warn("Print bridge unavailable");
     });
   };
