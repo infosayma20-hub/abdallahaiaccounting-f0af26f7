@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Receipt, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
@@ -47,6 +49,7 @@ const AccountSelect = ({ value, onValueChange, label }: { value: string; onValue
 
 const FinanceSettingsSection = ({ settings, onChange }: Props) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string }[]>([]);
 
   useEffect(() => {
@@ -89,59 +92,28 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
 
       <Separator />
 
-      {/* Tax */}
+      {/* Tax — link to dedicated section */}
       <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+        <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
           <span className="w-1 h-5 bg-primary rounded-full" />
           الضرائب
         </h3>
-        <div className="space-y-5">
-          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+        <button
+          type="button"
+          onClick={() => navigate("/settings?section=tax")}
+          className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors text-right"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+              <Receipt className="h-4 w-4 text-primary" />
+            </div>
             <div>
-              <p className="font-medium text-sm">ضريبة القيمة المضافة (VAT)</p>
-              <p className="text-xs text-muted-foreground">تفعيل احتساب ضريبة القيمة المضافة</p>
+              <p className="text-sm font-medium">إعدادات الضريبة</p>
+              <p className="text-[11px] text-muted-foreground">VAT، ضريبة الدخل، حسابات الضريبة والتقارير الدورية</p>
             </div>
-            <Switch checked={settings.vat_enabled} onCheckedChange={v => onChange({ vat_enabled: v })} />
           </div>
-
-          {settings.vat_enabled && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
-              <div className="space-y-2">
-                <Label>نسبة الضريبة الافتراضية (%)</Label>
-                <Input type="number" value={settings.vat_rate} onChange={e => onChange({ vat_rate: Number(e.target.value) })} />
-              </div>
-              <div className="space-y-2">
-                <Label>طريقة احتساب الضريبة</Label>
-                <Select value={settings.vat_inclusive ? "inclusive" : "exclusive"} onValueChange={v => onChange({ vat_inclusive: v === "inclusive" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inclusive">شاملة في السعر</SelectItem>
-                    <SelectItem value="exclusive">تضاف فوق السعر</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <AccountSelect label="حساب ضريبة المبيعات" value={settings.vat_sales_account} onValueChange={v => onChange({ vat_sales_account: v })} />
-              <AccountSelect label="حساب ضريبة المشتريات" value={settings.vat_purchases_account} onValueChange={v => onChange({ vat_purchases_account: v })} />
-            </div>
-          )}
-
-          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-            <div>
-              <p className="font-medium text-sm">ضريبة الدخل</p>
-              <p className="text-xs text-muted-foreground">تفعيل حساب ضريبة الدخل تلقائياً</p>
-            </div>
-            <Switch checked={settings.income_tax_enabled} onCheckedChange={v => onChange({ income_tax_enabled: v })} />
-          </div>
-
-          {settings.income_tax_enabled && (
-            <div className="pr-4">
-              <div className="space-y-2 max-w-xs">
-                <Label>نسبة الاستقطاع (%)</Label>
-                <Input type="number" value={settings.income_tax_rate} onChange={e => onChange({ income_tax_rate: Number(e.target.value) })} />
-              </div>
-            </div>
-          )}
-        </div>
+          <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+        </button>
       </div>
 
       <Separator />
