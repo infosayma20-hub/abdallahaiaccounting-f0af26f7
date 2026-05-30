@@ -6033,7 +6033,7 @@ const POSPage = () => {
           if (!open) handleShiftSummaryClosed();
         }}
         data={shiftSummaryData}
-        cashierMode={!isAdmin}
+        cashierMode={!isAdmin && !posPerms.view_payment_details}
       />
 
       {/* Logout after Shift Close — cashier must log out, admin can stay */}
