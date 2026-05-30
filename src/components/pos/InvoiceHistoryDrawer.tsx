@@ -1006,9 +1006,18 @@ export default function InvoiceHistoryDrawer({
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
-                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: "#0A2342" }}>
-                        ₪{order.total.toFixed(2)}
-                      </span>
+                      {canCashierSeeAmount(order) ? (
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: "#0A2342" }}>
+                          ₪{order.total.toFixed(2)}
+                        </span>
+                      ) : (
+                        <span
+                          style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: "#94A3B8" }}
+                          title={`المبلغ متاح للكاشير لأول ${amountVisibleMinutes} دقيقة فقط`}
+                        >
+                          —
+                        </span>
+                      )}
                       <div className="flex items-center gap-1">
                         <button
                           onClick={e => { e.stopPropagation(); loadDetail(order); }}
