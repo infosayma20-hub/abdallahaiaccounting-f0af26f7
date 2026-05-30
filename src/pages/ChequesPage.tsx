@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, Fragment, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -19,7 +19,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -136,7 +135,9 @@ const ChequesPage = () => {
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [partySearch, setPartySearch] = useState("");
-  const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
+  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const [partyHighlight, setPartyHighlight] = useState(0);
+  const partyDropdownRef = useRef<HTMLDivElement>(null);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
   const [actionTarget, setActionTarget] = useState<Cheque | null>(null);
   const [unendorseTarget, setUnendorseTarget] = useState<Cheque | null>(null);
@@ -287,7 +288,7 @@ const ChequesPage = () => {
       toast.success(`تم إضافة "${name.trim()}" كـ${contactType} جديد`);
       setNewCheques(prev => prev.map(r => ({ ...r, party_name: name.trim() })));
       setPartySearch(name.trim());
-      setPartyPopoverOpen(false);
+      setPartyDropdownOpen(false);
       fetchContacts();
     } catch { toast.error("خطأ في إضافة جهة الاتصال"); }
     finally { setQuickAddingContact(false); }
@@ -1345,43 +1346,98 @@ const ChequesPage = () => {
 
           <div className="space-y-3 mt-2">
             {/* Party */}
-            <div>
+            <div className="relative" ref={partyDropdownRef}>
               <Label className="text-xs font-semibold">الجهة ({addType === 'وارد' ? 'من' : 'إلى'}) *</Label>
-              <Popover open={partyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Input className="h-9 rounded-xl" value={partySearch} onChange={e => {
-                    setPartySearch(e.target.value);
-                    setNewCheques(prev => prev.map(r => ({ ...r, party_name: e.target.value })));
-                    setPartyPopoverOpen(true);
-                  }} onFocus={() => setPartyPopoverOpen(true)} placeholder="ابحث عن زبون أو مورد..." />
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
-                  {(() => {
-                    const fc = contacts.filter(c => !partySearch || c.contact_name.toLowerCase().includes(partySearch.toLowerCase()));
-                    const exact = contacts.some(c => c.contact_name === partySearch.trim());
-                    return (
-                      <>
-                        {fc.length > 0 ? fc.slice(0, 20).map(c => (
-                          <button key={c.id} className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center gap-2" onClick={() => {
-                            setNewCheques(prev => prev.map(r => ({ ...r, party_name: c.contact_name })));
-                            setPartySearch(c.contact_name);
-                            setPartyPopoverOpen(false);
-                          }}>
+              {(() => {
+                const preferred = addType === 'وارد' ? 'عميل' : 'مورد';
+                const q = partySearch.trim().toLowerCase();
+                const filtered = q.length >= 2
+                  ? contacts
+                      .filter(c => c.contact_name.toLowerCase().includes(q))
+                      .sort((a, b) => {
+                        const ap = a.contact_type === preferred || a.contact_type === 'عميل ومورد' ? 0 : 1;
+                        const bp = b.contact_type === preferred || b.contact_type === 'عميل ومورد' ? 0 : 1;
+                        return ap - bp;
+                      })
+                      .slice(0, 20)
+                  : [];
+                const exact = q.length > 0 && contacts.some(c => c.contact_name.trim().toLowerCase() === q);
+                const showDropdown = partyDropdownOpen && q.length >= 2;
+                const commit = (name: string) => {
+                  setPartySearch(name);
+                  setNewCheques(prev => prev.map(r => ({ ...r, party_name: name })));
+                  setPartyDropdownOpen(false);
+                };
+                return (
+                  <>
+                    <div className="relative">
+                      <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        className="h-9 rounded-xl pr-9"
+                        value={partySearch}
+                        placeholder="ابحث باسم الجهة (حرفين على الأقل)..."
+                        onChange={e => {
+                          setPartySearch(e.target.value);
+                          setNewCheques(prev => prev.map(r => ({ ...r, party_name: e.target.value })));
+                          setPartyDropdownOpen(true);
+                          setPartyHighlight(0);
+                        }}
+                        onFocus={() => setPartyDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setPartyDropdownOpen(false), 150)}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') { e.preventDefault(); setPartyDropdownOpen(false); return; }
+                          if (!showDropdown) return;
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setPartyHighlight(h => Math.min(h + 1, Math.max(filtered.length - 1, 0)));
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setPartyHighlight(h => Math.max(h - 1, 0));
+                          } else if (e.key === 'Enter') {
+                            if (filtered[partyHighlight]) {
+                              e.preventDefault();
+                              commit(filtered[partyHighlight].contact_name);
+                            } else if (!exact && q.length >= 2) {
+                              e.preventDefault();
+                              handleQuickAddContact(partySearch);
+                            }
+                          }
+                        }}
+                      />
+                      {partySearch && (
+                        <button type="button" onMouseDown={e => { e.preventDefault(); setPartySearch(''); setNewCheques(prev => prev.map(r => ({ ...r, party_name: '' }))); setPartyDropdownOpen(false); }}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {showDropdown && (
+                      <div className="absolute z-[60] top-full mt-1 left-0 right-0 bg-popover border border-border rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                        {filtered.length > 0 ? filtered.map((c, i) => (
+                          <button key={c.id} type="button"
+                            onMouseDown={e => { e.preventDefault(); commit(c.contact_name); }}
+                            onMouseEnter={() => setPartyHighlight(i)}
+                            className={`w-full text-right px-3 py-2 text-sm flex items-center gap-2 transition-colors ${i === partyHighlight ? 'bg-secondary' : 'hover:bg-muted'}`}>
                             <User className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span>{c.contact_name}</span>
-                            <Badge variant="outline" className="text-[9px] mr-auto">{c.contact_type}</Badge>
+                            <span className="flex-1 truncate">{c.contact_name}</span>
+                            <span className="text-[10px] text-muted-foreground">{c.contact_type}</span>
                           </button>
-                        )) : <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>}
-                        {partySearch.trim() && !exact && (
-                          <button className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2 text-primary font-medium border-t border-border mt-1 pt-2" onClick={() => handleQuickAddContact(partySearch)} disabled={quickAddingContact}>
-                            <UserPlus className="h-3.5 w-3.5" />إضافة "{partySearch.trim()}" كجهة جديدة
+                        )) : (
+                          <p className="text-xs text-muted-foreground text-center py-3">لا توجد نتائج</p>
+                        )}
+                        {q.length >= 2 && !exact && (
+                          <button type="button" disabled={quickAddingContact}
+                            onMouseDown={e => { e.preventDefault(); handleQuickAddContact(partySearch); }}
+                            className="w-full text-right px-3 py-2 text-sm flex items-center gap-2 text-primary font-medium border-t border-border hover:bg-primary/5 disabled:opacity-60">
+                            <UserPlus className="h-3.5 w-3.5" />
+                            {quickAddingContact ? 'جاري الإضافة...' : `إضافة "${partySearch.trim()}" كـ${addType === 'وارد' ? 'عميل' : 'مورد'} جديد`}
                           </button>
                         )}
-                      </>
-                    );
-                  })()}
-                </PopoverContent>
-              </Popover>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Source bank for outgoing */}
