@@ -203,6 +203,15 @@ const DeliveryAppsManager = ({ userId }: Props) => {
       </p>
 
       <div className="space-y-3 mb-4">
+        {apps.length === 0 && (
+          <div className="border border-dashed border-border rounded-lg p-6 text-center">
+            <Truck className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+            <p className="text-[13px] font-medium text-foreground">لا توجد تطبيقات توصيل بعد</p>
+            <p className="text-[11.5px] text-muted-foreground mt-1">
+              أضف تطبيقاً من الأسفل ليظهر كطريقة دفع في الكول سنتر.
+            </p>
+          </div>
+        )}
         {apps.map((app) => (
           <div key={app.id} className="p-3 bg-muted/40 rounded-lg border border-border space-y-2">
             <div className="flex items-center justify-between">
