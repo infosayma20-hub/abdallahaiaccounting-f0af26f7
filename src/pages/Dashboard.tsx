@@ -16,6 +16,7 @@ import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 // OnboardingFlow removed — handled by AppsLauncher
 import SetupWizard from "@/components/SetupWizard";
+import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 import ExecutiveKPICards from "@/components/ExecutiveKPICards";
 import SavedCommands from "@/components/SavedCommands";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
