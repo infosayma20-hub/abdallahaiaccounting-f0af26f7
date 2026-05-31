@@ -162,40 +162,86 @@ serve(async (req) => {
     }
 
     // ──────────────────────────────────────────────────────────────────
-    // TENANT-OWNER GUARD (defense in depth)
+    // TENANT-OWNER GUARD (defense in depth, strict)
     // The company-registration wizard is for brand-new tenant owners ONLY.
-    // Refuse if the caller is already linked to another tenant as an
-    // employee, OR holds a non-owner role (cashier / sales_rep /
-    // employee / portal / worker / store_tracker). Without this guard,
-    // any non-owner UI bug can leak 100+ orphan accounts under the
-    // employee's own auth UID.
-    // Exception: an admin (or super_admin) is always allowed through —
-    // even if they happen to also have an employees row, they are the
-    // owner of their own tenant.
+    // A "tenant owner" is a user that has NO existing connection to any
+    // other tenant. The wizard creates a brand-new chart-of-accounts under
+    // the caller's own auth UID; if that caller is already an employee /
+    // cashier / call-center / HR / accountant / sales rep / portal /
+    // worker / store-tracker / feedback agent of ANOTHER company, the
+    // resulting data is permanently orphaned. So we refuse.
+    //
+    // The only callers allowed through are:
+    //   (1) super_admin (Lovable team), OR
+    //   (2) a user with NO employees row, NO pos_users row, NO non-owner
+    //       role, and NO granted feature permissions. (`admin` role or
+    //       no role at all is fine — fresh tenant owner.)
     // ──────────────────────────────────────────────────────────────────
-    const [{ data: rolesRows }, { data: empRow }] = await Promise.all([
+    const [
+      { data: rolesRows },
+      { data: empRow },
+      { data: posUserRow },
+      { data: featurePermRows },
+    ] = await Promise.all([
       supabaseAdmin.from('user_roles').select('role').eq('user_id', userId),
       supabaseAdmin
         .from('employees')
         .select('id, user_id, is_active, is_terminated')
         .eq('auth_user_id', userId)
         .maybeSingle(),
+      supabaseAdmin
+        .from('pos_users')
+        .select('id, user_id, is_active, is_call_center')
+        .eq('auth_user_id', userId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('user_feature_permissions')
+        .select('id')
+        .eq('target_user_id', userId)
+        .eq('access_state', 'allow')
+        .limit(1),
     ]);
+
     const roles: string[] = (rolesRows || []).map((r: any) => r.role);
-    const isOwnerRole =
-      roles.includes('admin') ||
-      roles.includes('super_admin') ||
-      roles.includes('hr_manager') ||
-      roles.some((r) => r.startsWith('accountant'));
+
+    // super_admin always allowed
+    const isSuperAdmin = roles.includes('super_admin');
+
+    // ANY role other than admin / super_admin = non-owner role.
+    // This covers hr_manager, accountant_senior/sales/purchases, cashier,
+    // sales_rep, employee, portal, worker, store_tracker, and anything
+    // future. Tenant owners only ever hold `admin` (or no role).
+    const NON_OWNER_ROLES = new Set([
+      'hr_manager',
+      'accountant_senior', 'accountant_sales', 'accountant_purchases',
+      'cashier', 'sales_rep', 'employee', 'portal', 'worker', 'store_tracker',
+      'branch_scheduler', 'call_center',
+    ]);
+    const hasNonOwnerRole = roles.some((r) => NON_OWNER_ROLES.has(r));
+
+    // Linked as an active employee of a DIFFERENT tenant
     const isLinkedEmployee =
       !!empRow && empRow.is_active && !empRow.is_terminated && empRow.user_id !== userId;
-    const hasNonOwnerRole = roles.some((r) =>
-      ['cashier', 'sales_rep', 'employee', 'portal', 'worker', 'store_tracker'].includes(r),
-    );
 
-    if (!isOwnerRole && (isLinkedEmployee || hasNonOwnerRole)) {
-      console.warn('[setup-accounts] blocked non-owner caller', {
-        userId, roles, isLinkedEmployee, tenantOwner: empRow?.user_id,
+    // Cashier / Call-Center / Waiter — any pos_users row tied to another tenant
+    const isLinkedPosUser =
+      !!posUserRow && posUserRow.is_active !== false && posUserRow.user_id !== userId;
+
+    // Feedback / portal grants from another tenant
+    const hasGrantedFeaturePerm = !!featurePermRows && featurePermRows.length > 0;
+
+    const isTenantBound =
+      isLinkedEmployee || isLinkedPosUser || hasNonOwnerRole || hasGrantedFeaturePerm;
+
+    if (isTenantBound && !isSuperAdmin) {
+      console.warn('[setup-accounts] blocked tenant-bound caller', {
+        userId,
+        roles,
+        isLinkedEmployee,
+        isLinkedPosUser,
+        hasNonOwnerRole,
+        hasGrantedFeaturePerm,
+        tenantOwner: empRow?.user_id ?? posUserRow?.user_id,
       });
       return new Response(
         JSON.stringify({
