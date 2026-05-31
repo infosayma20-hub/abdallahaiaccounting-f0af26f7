@@ -195,11 +195,12 @@ export function useRoleRedirect() {
               nextPath = !count || count === 0 ? "/setup" : "/apps";
             }
           } else {
-            const { count } = await supabase
-              .from("accounts")
-              .select("id", { count: "exact", head: true })
-              .eq("user_id", user.id);
-            nextPath = !count || count === 0 ? "/setup" : "/apps";
+            // TENANT-OWNER GUARD: this user is an active employee of an
+            // existing tenant. NEVER route them to /setup — the wizard
+            // would seed a stray tenant under their own auth UID. Send
+            // them to the employee portal instead (their default home
+            // when they don't have a non-owner role like cashier/rep).
+            nextPath = "/employee";
           }
         }
 

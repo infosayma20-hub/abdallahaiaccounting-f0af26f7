@@ -161,6 +161,51 @@ serve(async (req) => {
       });
     }
 
+    // ──────────────────────────────────────────────────────────────────
+    // TENANT-OWNER GUARD (defense in depth)
+    // The company-registration wizard is for brand-new tenant owners ONLY.
+    // Refuse if the caller is already linked to another tenant as an
+    // employee, OR holds a non-owner role (cashier / sales_rep /
+    // employee / portal / worker / store_tracker). Without this guard,
+    // any non-owner UI bug can leak 100+ orphan accounts under the
+    // employee's own auth UID.
+    // Exception: an admin (or super_admin) is always allowed through —
+    // even if they happen to also have an employees row, they are the
+    // owner of their own tenant.
+    // ──────────────────────────────────────────────────────────────────
+    const [{ data: rolesRows }, { data: empRow }] = await Promise.all([
+      supabaseAdmin.from('user_roles').select('role').eq('user_id', userId),
+      supabaseAdmin
+        .from('employees')
+        .select('id, user_id, is_active, is_terminated')
+        .eq('auth_user_id', userId)
+        .maybeSingle(),
+    ]);
+    const roles: string[] = (rolesRows || []).map((r: any) => r.role);
+    const isOwnerRole =
+      roles.includes('admin') ||
+      roles.includes('super_admin') ||
+      roles.includes('hr_manager') ||
+      roles.some((r) => r.startsWith('accountant'));
+    const isLinkedEmployee =
+      !!empRow && empRow.is_active && !empRow.is_terminated && empRow.user_id !== userId;
+    const hasNonOwnerRole = roles.some((r) =>
+      ['cashier', 'sales_rep', 'employee', 'portal', 'worker', 'store_tracker'].includes(r),
+    );
+
+    if (!isOwnerRole && (isLinkedEmployee || hasNonOwnerRole)) {
+      console.warn('[setup-accounts] blocked non-owner caller', {
+        userId, roles, isLinkedEmployee, tenantOwner: empRow?.user_id,
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'هذا الحساب تابع لشركة مسجلة مسبقاً ولا يمكنه إنشاء شركة جديدة',
+          code: 'NOT_TENANT_OWNER',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // Upsert all default accounts (skip duplicates gracefully)
     const accountsToInsert = DEFAULT_ACCOUNTS.map(a => ({
       user_id: userId,
