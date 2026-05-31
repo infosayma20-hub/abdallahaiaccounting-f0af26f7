@@ -73,7 +73,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
-      const [{ data: profileData }, { count: accountsCount }] = await Promise.all([
+      const [{ data: profileData }, { count: accountsCount }, { data: rolesData }, { data: empRow }] = await Promise.all([
         supabase
           .from("profiles")
           .select("display_name, company_name, setup_completed")
@@ -83,9 +83,34 @@ const Dashboard = () => {
           .from("accounts")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id),
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase
+          .from("employees")
+          .select("id, user_id, is_active, is_terminated")
+          .eq("auth_user_id", user.id)
+          .maybeSingle(),
       ]);
 
       if (profileData) setProfileData(profileData);
+
+      // TENANT-OWNER GUARD: never auto-open the company-registration wizard
+      // for a user that is already an active employee of another tenant or
+      // holds a non-owner role. They reached /apps by mistake (cached route,
+      // shared link, etc) — don't seed a stray tenant under their auth UID.
+      const roles = (rolesData || []).map((r: any) => r.role as string);
+      const isOwnerRole =
+        roles.includes("admin") ||
+        roles.includes("super_admin") ||
+        roles.includes("hr_manager") ||
+        roles.some((r) => r.startsWith("accountant"));
+      const isLinkedEmployee =
+        !!empRow && (empRow as any).is_active && !(empRow as any).is_terminated && (empRow as any).user_id !== user.id;
+      const hasNonOwnerRole = roles.some((r) =>
+        ["cashier", "sales_rep", "employee", "portal", "worker", "store_tracker"].includes(r),
+      );
+      if (!isOwnerRole && (isLinkedEmployee || hasNonOwnerRole)) {
+        return;
+      }
 
       const hasNoAccounts = !accountsCount || accountsCount === 0;
       const setupIncomplete = !!profileData && !profileData.setup_completed;
