@@ -69,6 +69,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   accepted: { label: "مقبول", color: "bg-blue-500", icon: CheckCircle2 },
   completed: { label: "مكتمل", color: "bg-green-600", icon: CheckCircle2 },
   cancelled: { label: "ملغي", color: "bg-red-500", icon: XCircle },
+  cancelled_after_acceptance: { label: "أُلغيت بعد القبول", color: "bg-red-700", icon: XCircle },
 };
 
 function getBusinessDayStart(): string {
@@ -112,14 +113,15 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
       .order("created_at", { ascending: false });
 
     if (filter === "cancelled") {
-      // Admin-only archive view — show ONLY cancelled orders.
-      query = query.eq("status", "cancelled");
+      // Admin-only archive view — show ONLY cancelled orders
+      // (both pre-acceptance cancellations and post-acceptance cash invoice voids).
+      query = query.in("status", ["cancelled", "cancelled_after_acceptance"]);
     } else if (filter !== "all") {
       query = query.eq("status", filter);
     } else {
-      // Default "all" view hides cancelled orders from staff and from
-      // counters — they live in the admin-only archive tab.
-      query = query.neq("status", "cancelled");
+      // Default "all" view hides any kind of cancelled order from staff and
+      // from counters — they live in the admin-only archive tab.
+      query = query.not("status", "in", "(cancelled,cancelled_after_acceptance)");
     }
 
     const { data } = await query;
@@ -236,7 +238,9 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   const pendingCount = orders.filter(o => o.status === "pending").length;
   const acceptedCount = orders.filter(o => o.status === "accepted").length;
   const completedCount = orders.filter(o => o.status === "completed").length;
-  const cancelledCount = orders.filter(o => o.status === "cancelled").length;
+  const cancelledCount = orders.filter(
+    o => o.status === "cancelled" || o.status === "cancelled_after_acceptance"
+  ).length;
 
   // Unique agent list for the per-employee filter chips.
   const agents = Array.from(
@@ -265,7 +269,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
 
         <div className="flex gap-1.5 p-2 border-b border-border">
           {[
-            { key: "all" as const, label: "الكل", count: orders.filter(o => o.status !== "cancelled").length },
+            { key: "all" as const, label: "الكل", count: orders.filter(o => o.status !== "cancelled" && o.status !== "cancelled_after_acceptance").length },
             { key: "pending" as const, label: "معلّق", count: pendingCount },
             { key: "accepted" as const, label: "مقبول", count: acceptedCount },
             { key: "completed" as const, label: "مكتمل", count: completedCount },
@@ -371,11 +375,13 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                     )}
 
                     {/* Admin-only cancellation archive details */}
-                    {order.status === "cancelled" && (
+                    {(order.status === "cancelled" || order.status === "cancelled_after_acceptance") && (
                       <div className="rounded border border-red-500/30 bg-red-500/5 px-2 py-1.5 text-[10px] text-red-800 dark:text-red-300 space-y-0.5">
                         <div className="flex items-center gap-1 font-bold">
                           <XCircle className="h-3 w-3" />
-                          تم الإلغاء
+                          {order.status === "cancelled_after_acceptance"
+                            ? "أُلغيت بعد قبولها من الكاش"
+                            : "تم الإلغاء قبل القبول"}
                           {order.cancelled_at && (
                             <span className="font-normal opacity-80">
                               — {new Date(order.cancelled_at).toLocaleString("ar-PS", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}

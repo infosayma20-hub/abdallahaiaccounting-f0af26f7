@@ -57,7 +57,7 @@ const CallCenterReportsPage = () => {
       .from("call_center_orders" as any)
       .select("*")
       .eq("user_id", dataOwnerId)
-      .neq("status", "cancelled")
+      .not("status", "in", "(cancelled,cancelled_after_acceptance)")
       .gte("created_at", dateFrom + "T00:00:00")
       .lte("created_at", dateTo + "T23:59:59")
       .order("created_at", { ascending: false })
