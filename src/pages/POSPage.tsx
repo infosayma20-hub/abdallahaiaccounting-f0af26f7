@@ -3258,6 +3258,8 @@ const POSPage = () => {
         orderNote,
         orderType: activeOrder.orderType,
         deliveryAddress: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : "",
+        deliveryFee: cartTotals.deliveryFee || 0,
+        deliveryInfo: activeOrder.callCenterDeliveryInfo || null,
       };
 
       setReceiptData(receiptInfo);
