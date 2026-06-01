@@ -578,9 +578,13 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         <span className="text-muted-foreground">بواسطة: {order.dispatched_by_name}</span>
                       </div>
 
-                      {order.order_note && (
-                        <p className="text-[10px] text-muted-foreground bg-muted/30 rounded p-1.5">📝 {order.order_note}</p>
-                      )}
+                      {(() => {
+                        const clean = extractBaseNote(order.order_note);
+                        if (!clean) return null;
+                        return (
+                          <p className="text-[10px] text-muted-foreground bg-muted/30 rounded p-1.5">📝 {clean}</p>
+                        );
+                      })()}
 
                       {/* Accept Button */}
                       <Button
