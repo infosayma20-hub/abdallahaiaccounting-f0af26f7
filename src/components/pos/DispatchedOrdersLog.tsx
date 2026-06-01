@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users } from "lucide-react";
+import { CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import EditOrderDialog from "./EditOrderDialog";
@@ -321,6 +322,40 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                         </Badge>
                       </div>
                     </div>
+
+                    {/* Payment method — explicit chip so the call-center user
+                        can see how each dispatched order will be collected
+                        without having to open the edit dialog. Cash vs. Visa
+                        comes from `payment_method`; the specific visa-via-app
+                        label (Wheels App Visa, Yummy …) is carried by
+                        `source_app`, so we surface both when relevant. */}
+                    {(() => {
+                      const pm = String(order.payment_method || "").toLowerCase();
+                      const isVisa = pm.startsWith("visa");
+                      const src = String(order.source_app || "").trim();
+                      const isVisaApp = isVisa && src && src !== "طلب مباشر";
+                      const label = !isVisa
+                        ? "نقدي"
+                        : isVisaApp
+                          ? `فيزا — ${src}`
+                          : "فيزا";
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-muted-foreground">طريقة الدفع:</span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 h-5 gap-1 ${
+                              isVisa
+                                ? "border-purple-500/40 text-purple-700 bg-purple-500/5"
+                                : "border-green-500/40 text-green-700 bg-green-500/5"
+                            }`}
+                          >
+                            {isVisa ? <CreditCard className="h-2.5 w-2.5" /> : <Banknote className="h-2.5 w-2.5" />}
+                            {label}
+                          </Badge>
+                        </div>
+                      );
+                    })()}
 
                     {/* Items list — show per-item notes (e.g. حار / عادي) explicitly. */}
                     <div className="text-[10px] text-muted-foreground space-y-0.5">
