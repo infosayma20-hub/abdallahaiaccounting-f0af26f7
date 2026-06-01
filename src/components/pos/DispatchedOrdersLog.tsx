@@ -30,6 +30,8 @@ interface DispatchedOrder {
   pos_order_id: string | null;
   is_editing?: boolean | null;
   editing_by_name?: string | null;
+  delivery_fee?: number | null;
+  delivery_info?: any | null;
 }
 
 interface Props {
