@@ -130,6 +130,11 @@ interface OrderTab {
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
+  /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
+  isEditingDispatch?: boolean;
+  /** Locked branch for the order being edited (cannot be changed during edit). */
+  callCenterBranchId?: string | null;
+  callCenterBranchName?: string | null;
 }
 
 interface POSCustomer {
