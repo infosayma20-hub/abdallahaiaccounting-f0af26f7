@@ -432,7 +432,7 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      const selectFields = "id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, pos_payments(payment_method), contacts:customer_id(phone)";
+      const selectFields = "id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, order_note, notes, pos_payments(payment_method), contacts:customer_id(phone)";
 
       // Main query: orders belonging to this session
       let query = supabase
