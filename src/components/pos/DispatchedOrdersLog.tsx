@@ -254,7 +254,6 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
               visibleOrders.map((order) => {
                 const cfg = statusConfig[order.status] || statusConfig.pending;
                 const StatusIcon = cfg.icon;
-                const itemsWithNotes = (order.items || []).filter((it: any) => it && it.note && String(it.note).trim());
                 return (
                   <div
                     key={order.id}
