@@ -4534,7 +4534,7 @@ const POSPage = () => {
           {/* ── Category Cards Section ── */}
           <div className="pos-categories-bar px-3 py-2.5 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
             {isSortMode && (
-              <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
+              <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded border text-[10px]" style={{ borderColor: "#475569", color: posDarkMode ? "#cbd5e1" : "#475569", background: posDarkMode ? "rgba(255,255,255,0.04)" : "#f8fafc" }}>
                 <GripVertical className="h-3 w-3" />
                 <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات</span>
               </div>
