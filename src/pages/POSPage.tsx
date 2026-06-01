@@ -2387,14 +2387,10 @@ const POSPage = () => {
           if (p.preference_key.startsWith("product_order_")) {
             const orderIds = (p.preference_value as any)?.order;
             if (Array.isArray(orderIds) && orderIds.length > 0) {
-              setProducts(prev => {
-                const updated = [...prev];
-                orderIds.forEach((id: string, i: number) => {
-                  const idx = updated.findIndex(u => u.id === id);
-                  if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: i } as any;
-                });
-                return updated.sort((a, b) => ((a as any).sort_order || 0) - ((b as any).sort_order || 0));
-              });
+              // Store per-category order separately so categories don't clobber each other.
+              // Key format: "product_order_<categoryName>" or "product_order_all"
+              const catKey = p.preference_key.replace(/^product_order_/, "");
+              setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds as string[] }));
             }
           }
         }
