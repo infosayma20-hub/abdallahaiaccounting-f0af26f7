@@ -1262,6 +1262,7 @@ export default function InvoiceHistoryDrawer({
 
                 {canCancelInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>
+                    {!cashierMode && (
                     <Button
                       size="sm"
                       className="gap-1.5 text-xs"
@@ -1271,7 +1272,8 @@ export default function InvoiceHistoryDrawer({
                       <Lock className="h-3 w-3" />
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
-                    {selectedOrder.state === "paid" && !selectedOrder.is_return && (
+                    )}
+                    {!cashierMode && selectedOrder.state === "paid" && !selectedOrder.is_return && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1281,6 +1283,7 @@ export default function InvoiceHistoryDrawer({
                         <RotateCcw className="h-3.5 w-3.5" /> ارتجاع
                       </Button>
                     )}
+                    {(!cashierMode || isWithinCancelGrace(selectedOrder)) ? (
                     <Button
                       variant="destructive"
                       size="sm"
@@ -1290,6 +1293,11 @@ export default function InvoiceHistoryDrawer({
                       <Lock className="h-3 w-3" />
                       <Ban className="h-3.5 w-3.5" /> إلغاء الفاتورة
                     </Button>
+                    ) : (
+                      <span className="text-[11px] flex items-center gap-1" style={{ color: "#94A3B8" }}>
+                        <Lock className="h-3 w-3" /> انتهت مدة السماح لإلغاء هذه الفاتورة
+                      </span>
+                    )}
                   </>
                 )}
                 {allowOrderTransfer && selectedOrder.state === "paid" && (
