@@ -4311,11 +4311,30 @@ const POSPage = () => {
               newOrder.callCenterOrderId = order.id;
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
               newOrder.callCenterSourceApp = order.source_app || null;
+              // Build a clean delivery info block from structured data so
+              // cashier + kitchen prints get the same info without injecting
+              // a synthetic cart line.
+              const _info: any = (order as any).delivery_info || null;
+              const _fee = Number((order as any).delivery_fee || 0);
+              const deliveryBlock = _info ? [
+                `توصيل: ${_info.city || ""} - ${_info.area || ""}`,
+                _info.branch_name ? `الفرع: ${_info.branch_name}` : "",
+                _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info.manually_adjusted ? " (معدّل)" : ""}` : "",
+                order.customer_name ? `الزبون: ${order.customer_name}` : "",
+                order.customer_phone ? `جوال: ${order.customer_phone}` : "",
+              ].filter(Boolean).join(" | ") : "";
               newOrder.orderNote = [
                 order.source_app ? `مصدر: ${order.source_app}` : "",
-                order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
+                order.payment_method === "visa" ? "فيزا" : "نقدي",
+                deliveryBlock,
                 order.order_note || "",
               ].filter(Boolean).join(" | ");
+              // Persist the delivery fee + structured info on the order tab so
+              // cartTotals adds it to the final total exactly once, and so the
+              // print/receipt path can render it as its own line — without it
+              // ever becoming a sales item.
+              newOrder.callCenterDeliveryFee = _fee > 0 ? _fee : null;
+              newOrder.callCenterDeliveryInfo = _info;
               newOrder.cart = (order.items || []).map((item: any, i: number) => ({
                 id: crypto.randomUUID(),
                 product_id: item.product_id || null,
@@ -4329,27 +4348,7 @@ const POSPage = () => {
                 total: item.total || item.unit_price * item.qty,
                 note: item.note || "",
               }));
-              // 🚚 Inject delivery fee as a cart line so it flows through totals,
-              // invoice persistence and print. The line is clearly labelled so the
-              // cashier and kitchen can identify it.
-              const _fee = Number((order as any).delivery_fee || 0);
-              const _info: any = (order as any).delivery_info || null;
-              if (_fee > 0) {
-                newOrder.cart.push({
-                  id: crypto.randomUUID(),
-                  product_id: null,
-                  name: `🚚 توصيل${_info?.area ? ` - ${_info.area}` : ""}`,
-                  qty: 1,
-                  unit_price: _fee,
-                  cost_price: 0,
-                  discount_pct: 0,
-                  tax_rate: 0,
-                  unit: "خدمة",
-                  total: _fee,
-                  note: _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
-                } as any);
-              }
-              newOrder.name = `📞 ${order.customer_name}`;
+              newOrder.name = order.customer_name || "طلب كول سنتر";
               setOrders(prev => [...prev, newOrder]);
               setActiveOrderIndex(orders.length);
             }}
