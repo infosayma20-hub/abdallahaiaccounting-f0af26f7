@@ -18637,21 +18637,39 @@ export type Database = {
           was_created: boolean
         }[]
       }
-      finish_editing_call_center_order: {
-        Args: {
-          p_customer_name: string
-          p_customer_phone: string
-          p_delivery_address: string
-          p_delivery_type: string
-          p_items: Json
-          p_order_id: string
-          p_order_note: string
-          p_payment_method: string
-          p_source_app: string
-          p_total: number
-        }
-        Returns: Json
-      }
+      finish_editing_call_center_order:
+        | {
+            Args: {
+              p_customer_name: string
+              p_customer_phone: string
+              p_delivery_address: string
+              p_delivery_type: string
+              p_items: Json
+              p_order_id: string
+              p_order_note: string
+              p_payment_method: string
+              p_source_app: string
+              p_total: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_customer_name: string
+              p_customer_phone: string
+              p_delivery_address: string
+              p_delivery_fee?: number
+              p_delivery_info?: Json
+              p_delivery_type: string
+              p_items: Json
+              p_order_id: string
+              p_order_note: string
+              p_payment_method: string
+              p_source_app: string
+              p_total: number
+            }
+            Returns: Json
+          }
       generate_company_license_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       generate_return_number: {
