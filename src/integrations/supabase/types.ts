@@ -4735,6 +4735,60 @@ export type Database = {
           },
         ]
       }
+      delivery_zones: {
+        Row: {
+          area_name: string
+          branch_id: string
+          branch_name: string
+          city: string
+          created_at: string
+          id: string
+          is_active: boolean
+          price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area_name: string
+          branch_id: string
+          branch_name: string
+          city: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area_name?: string
+          branch_id?: string
+          branch_name?: string
+          city?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_zones_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_zones_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           code: string | null
