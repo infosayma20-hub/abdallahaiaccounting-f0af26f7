@@ -2088,7 +2088,7 @@ const POSPage = () => {
       return;
     }
     toast.success("تم حفظ ترتيب المنتجات");
-  }, [filteredProducts, userId, isAdmin, selectedCategory]);
+  }, [filteredProducts, userId, isAdmin, selectedCategory, visiblePosCategories]);
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
