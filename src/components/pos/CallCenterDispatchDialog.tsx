@@ -26,6 +26,16 @@ interface Props {
   deliveryAddress: string;
   orderNote: string;
   onSuccess: () => void;
+  /**
+   * When set, the dialog is operating in EDIT mode: instead of inserting a new
+   * call_center_orders row, F12 updates the existing one with the same id.
+   * Branch is locked, status is re-checked just before update.
+   */
+  editingOrderId?: string | null;
+  editingBranchId?: string | null;
+  editingBranchName?: string | null;
+  editingPaymentMethod?: string | null;
+  editingSourceApp?: string | null;
 }
 
 interface Branch {
@@ -51,6 +61,7 @@ type PaymentOption = {
 const CallCenterDispatchDialog = ({
   open, onOpenChange, dataOwnerId, cart, total,
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
+  editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -96,6 +107,16 @@ const CallCenterDispatchDialog = ({
         
         // Check active sessions for each branch
         checkBranchSessions(filtered);
+
+        // 🔒 Edit mode: pre-select the locked branch from the original order.
+        if (editingOrderId && editingBranchId) {
+          const match = filtered.find(b => b.id === editingBranchId);
+          if (match) {
+            setSelectedBranch(match);
+          } else if (editingBranchName) {
+            setSelectedBranch({ id: editingBranchId, name: editingBranchName });
+          }
+        }
       });
 
     // Load delivery apps
@@ -107,12 +128,19 @@ const CallCenterDispatchDialog = ({
       .order("display_order")
       .then(({ data }) => setDeliveryApps((data as any) || []));
 
+    // 🔒 Edit mode: also restore source app + payment method from original.
+    if (editingOrderId) {
+      if (editingSourceApp) setSourceApp(editingSourceApp);
+      if (editingPaymentMethod) setPaymentMethod(editingPaymentMethod);
+      setDeliveryType((deliveryAddress ? "delivery" : "pickup"));
+    }
+
     return () => {
       // Cleanup tracking
       if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
       if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
     };
-  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote]);
+  }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp]);
 
   const checkBranchSessions = async (branchList: Branch[]) => {
     // Check which branches have active POS sessions (cashiers online)
@@ -259,40 +287,74 @@ const CallCenterDispatchDialog = ({
         .eq("user_id", user?.id || "")
         .maybeSingle();
 
-      const { data: insertedOrder, error } = await supabase
-        .from("call_center_orders" as any)
-        .insert({
-          user_id: dataOwnerId,
-          source_app: sourceApp,
-          target_branch_id: selectedBranch!.id,
-          target_branch_name: selectedBranch!.name,
-          customer_name: name.trim(),
-          customer_phone: phone.trim(),
-          delivery_type: deliveryType,
-          delivery_address: deliveryType === "delivery" ? address.trim() : null,
-          payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
-          items: cart.map(item => ({
-            name: item.name,
-            qty: item.qty,
-            unit_price: item.unit_price,
-            total: item.total,
-            product_id: item.product_id || null,
-            note: item.note || "",
-          })),
-          total,
-          order_note: note.trim() || null,
-          dispatched_by: user?.id,
-          dispatched_by_name: profile?.display_name || user?.email || "كول سنتر",
-          status: "pending",
-        } as any)
-        .select("id")
-        .single();
+      const payload = {
+        source_app: sourceApp,
+        customer_name: name.trim(),
+        customer_phone: phone.trim(),
+        delivery_type: deliveryType,
+        delivery_address: deliveryType === "delivery" ? address.trim() : null,
+        payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
+        items: cart.map(item => ({
+          name: item.name,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          total: item.total,
+          product_id: item.product_id || null,
+          note: item.note || "",
+        })),
+        total,
+        order_note: note.trim() || null,
+      };
 
-      if (error) throw error;
+      let orderId: string | null = null;
 
-      const orderId = (insertedOrder as any)?.id;
-      
-      toast.success(`✅ تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
+      if (editingOrderId) {
+        // ── EDIT MODE: update same row, but only if branch hasn't accepted yet.
+        const { data: current, error: fetchErr } = await supabase
+          .from("call_center_orders" as any)
+          .select("status")
+          .eq("id", editingOrderId)
+          .maybeSingle();
+        if (fetchErr) throw fetchErr;
+        const currentStatus = (current as any)?.status;
+        if (!current) {
+          toast.error("⛔ الطلبية لم تعد موجودة — تعذّر التحديث");
+          setSending(false);
+          return;
+        }
+        if (currentStatus !== "pending") {
+          toast.error("⛔ لا يمكن التعديل — الطلبية تم قبولها من الفرع بالفعل");
+          setSending(false);
+          onOpenChange(false);
+          return;
+        }
+        const { error: updErr } = await supabase
+          .from("call_center_orders" as any)
+          .update(payload as any)
+          .eq("id", editingOrderId)
+          .eq("status", "pending"); // race-safe guard
+        if (updErr) throw updErr;
+        orderId = editingOrderId;
+        toast.success(`✅ تم تحديث الطلبية في فرع ${selectedBranch!.name}`, { duration: 4000 });
+      } else {
+        const { data: insertedOrder, error } = await supabase
+          .from("call_center_orders" as any)
+          .insert({
+            ...payload,
+            user_id: dataOwnerId,
+            target_branch_id: selectedBranch!.id,
+            target_branch_name: selectedBranch!.name,
+            dispatched_by: user?.id,
+            dispatched_by_name: profile?.display_name || user?.email || "كول سنتر",
+            status: "pending",
+          } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        orderId = (insertedOrder as any)?.id;
+        toast.success(`✅ تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
+      }
+
       onSuccess();
       
       // Start tracking if we got an order ID
