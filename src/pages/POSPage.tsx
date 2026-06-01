@@ -6669,11 +6669,14 @@ const POSPage = () => {
             total: item.total || item.unit_price * item.qty,
             note: item.note || "",
           }));
-          newOrder.name = `✏️ تعديل: ${order.customer_name || "طلبية"}`;
+          newOrder.name = `تعديل: ${order.customer_name || "طلبية"}`;
           setOrders(prev => [...prev, newOrder]);
           setActiveOrderIndex(orders.length);
           setShowDispatchLog(false);
-          toast.info("✏️ تم تحميل الطلبية للتعديل — عدّل الأصناف ثم اضغط F12 لتحديثها", { duration: 6000 });
+          toast.info(
+            "تم قفل الطلبية للتعديل — مخفية الآن عن الفرع. عدّل الأصناف ثم اضغط F12 لتحديثها بنفس الـ ID.",
+            { duration: 6000 }
+          );
         }}
       />
 
