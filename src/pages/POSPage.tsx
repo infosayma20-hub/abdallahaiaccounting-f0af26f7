@@ -35,6 +35,7 @@ import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
+import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
