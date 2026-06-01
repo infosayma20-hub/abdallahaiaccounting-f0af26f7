@@ -1036,7 +1036,7 @@ export default function InvoiceHistoryDrawer({
                         >
                           <Eye className="h-3 w-3" /> عرض
                         </button>
-                        {canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
+                        {!cashierMode && canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -1045,7 +1045,7 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> استدعاء
                           </button>
                         )}
-                        {canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
+                        {!cashierMode && canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateReturn(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -1055,7 +1055,7 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> ارتجاع
                           </button>
                         )}
-                        {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (
+                        {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (!cashierMode || isWithinCancelGrace(order)) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateCancel(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
