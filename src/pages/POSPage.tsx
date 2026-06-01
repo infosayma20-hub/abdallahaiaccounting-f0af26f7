@@ -6632,7 +6632,18 @@ const POSPage = () => {
         open={showCallCenterDispatch}
         onOpenChange={setShowCallCenterDispatch}
         dataOwnerId={dataOwnerId || ""}
-        cart={cart.map(item => ({ name: item.name, qty: item.qty, unit_price: item.unit_price, total: item.total, note: item.note, product_id: item.product_id }))}
+        cart={cart.map(item => ({
+          name: item.name,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          total: item.total,
+          note: item.note,
+          product_id: item.product_id,
+          modifiers: (item.modifiers || []).map((m: any) => ({
+            option_name: m.option_name,
+            extra_price: Number(m.extra_price) || 0,
+          })),
+        }))}
         total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
         customerName={customerName}
         customerPhone={activeOrder.customerPhone}
