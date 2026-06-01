@@ -2063,11 +2063,17 @@ const POSPage = () => {
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(currentProducts, oldIndex, newIndex);
     const orderIds = reordered.map(p => p.id);
-    const catKey = selectedCategory === "الكل"
-      ? "all"
-      : selectedCategory === "__uncategorized__"
-        ? "__uncategorized__"
-        : selectedCategory;
+    // Stable key per category: use category_id when possible so renaming
+    // the category doesn't lose the saved order.
+    let catKey: string;
+    if (selectedCategory === "الكل") {
+      catKey = "all";
+    } else if (selectedCategory === "__uncategorized__") {
+      catKey = "__uncategorized__";
+    } else {
+      const cat = visiblePosCategories.find(c => c.name === selectedCategory);
+      catKey = cat?.id || selectedCategory;
+    }
     const prefKey = `product_order_${catKey}`;
     // Update local per-category order map immediately (optimistic, scoped to this category only)
     setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds }));
