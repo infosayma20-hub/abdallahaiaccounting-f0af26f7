@@ -370,6 +370,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                       </div>
                     )}
 
+                    {/* Admin-only cancellation archive details */}
+                    {order.status === "cancelled" && (
+                      <div className="rounded border border-red-500/30 bg-red-500/5 px-2 py-1.5 text-[10px] text-red-800 dark:text-red-300 space-y-0.5">
+                        <div className="flex items-center gap-1 font-bold">
+                          <XCircle className="h-3 w-3" />
+                          تم الإلغاء
+                          {order.cancelled_at && (
+                            <span className="font-normal opacity-80">
+                              — {new Date(order.cancelled_at).toLocaleString("ar-PS", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                        {order.cancelled_by_name && (
+                          <div>ألغاها: <b>{order.cancelled_by_name}</b></div>
+                        )}
+                        {order.cancel_reason && (
+                          <div>السبب: <b>{order.cancel_reason}</b></div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Who dispatched this order — surface the call-center agent's name. */}
                     {order.dispatched_by_name && (
                       <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
