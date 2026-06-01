@@ -25,7 +25,7 @@ interface Branch {
 }
 
 export default function DeliveryZonesPage() {
-  const dataOwnerId = useDataOwnerId();
+  const { dataOwnerId } = useDataOwnerId();
   const [zones, setZones] = useState<Zone[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
