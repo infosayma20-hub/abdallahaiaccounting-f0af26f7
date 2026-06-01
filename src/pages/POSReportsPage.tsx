@@ -187,12 +187,28 @@ const POSReportsPage = () => {
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-lg" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KPICard title="المبيعات الصافية" value={data.totalSales} prefix="₪" />
-            <KPICard title="عدد الطلبات" value={data.totalOrders} />
-            <KPICard title="متوسط قيمة الفاتورة" value={Math.round(data.avgOrderValue)} prefix="₪" />
-            <KPICard title="هامش الربح الإجمالي" value={data.grossMargin} suffix="%" decimals={1} />
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPICard title="مبيعات المطعم (بدون التوصيل)" value={data.totalSales} prefix="₪" />
+              <KPICard title="عدد الطلبات" value={data.totalOrders} />
+              <KPICard title="متوسط قيمة الفاتورة" value={Math.round(data.avgOrderValue)} prefix="₪" />
+              <KPICard title="هامش الربح الإجمالي" value={data.grossMargin} suffix="%" decimals={1} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <KPICard
+                title="رسوم التوصيل المحصلة"
+                value={data.deliveryCollected}
+                prefix="₪"
+                hint="تُحصّل لصالح شركة التوصيل — غير محسوبة ضمن مبيعات المطعم"
+              />
+              <KPICard
+                title="إجمالي التحصيل من الزبائن"
+                value={data.customerCollected}
+                prefix="₪"
+                hint="مبيعات المطعم + رسوم التوصيل"
+              />
+            </div>
+          </>
         )}
 
         {/* ── Navigation Tabs ── */}
@@ -253,8 +269,8 @@ const POSReportsPage = () => {
 };
 
 // ── KPI Card ──
-const KPICard = ({ title, value, prefix, suffix, decimals = 0 }: {
-  title: string; value: number; prefix?: string; suffix?: string; decimals?: number;
+const KPICard = ({ title, value, prefix, suffix, decimals = 0, hint }: {
+  title: string; value: number; prefix?: string; suffix?: string; decimals?: number; hint?: string;
 }) => (
   <div className="bg-card border border-border rounded-lg p-4">
     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
@@ -263,6 +279,7 @@ const KPICard = ({ title, value, prefix, suffix, decimals = 0 }: {
       {decimals > 0 ? value.toFixed(decimals) : value.toLocaleString()}
       {suffix && <span className="text-base mr-0.5">{suffix}</span>}
     </p>
+    {hint && <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{hint}</p>}
   </div>
 );
 
