@@ -2193,15 +2193,20 @@ const POSPage = () => {
     const canOrderDiscount = posFeatPerm.can("sell", "discount");
     const effOrderDiscount = canOrderDiscount ? orderDiscount : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
-    const total = subtotal + taxAmount - discountAmt;
+    // 🚚 Delivery fee is a SEPARATE financial line — never part of items[] (so
+    // it can't pollute item/sales reports). It's added once to the final total
+    // and printed as its own row. Source of truth = activeOrder.callCenterDeliveryFee.
+    const deliveryFee = Number(activeOrder?.callCenterDeliveryFee || 0);
+    const total = subtotal + taxAmount - discountAmt + deliveryFee;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
       tax: Math.round(taxAmount * 100) / 100,
       discount: Math.round(discountAmt * 100) / 100,
+      deliveryFee: Math.round(deliveryFee * 100) / 100,
       total: Math.round(total * 100) / 100,
       itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
     };
-  }, [cart, orderDiscount, orderDiscountType, posFeatPerm]);
+  }, [cart, orderDiscount, orderDiscountType, posFeatPerm, activeOrder?.callCenterDeliveryFee]);
 
   // Open session
   const handleOpenShift = async () => {
