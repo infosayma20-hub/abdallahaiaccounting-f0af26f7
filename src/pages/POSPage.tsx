@@ -1988,8 +1988,20 @@ const POSPage = () => {
       });
     } else if (!debouncedSearch) {
       // Apply per-category saved order (overrides db sort_order for this user).
-      const catKey = selectedCategory === "__uncategorized__" ? "__uncategorized__" : selectedCategory;
-      const savedOrder = productOrderByCategory[catKey];
+      // Key by category_id for stability (renaming a category won't break order).
+      let catKey: string;
+      if (selectedCategory === "__uncategorized__") {
+        catKey = "__uncategorized__";
+      } else if (selectedCategory === "الكل") {
+        catKey = "all";
+      } else {
+        const cat = visiblePosCategories.find(c => c.name === selectedCategory);
+        catKey = cat?.id || selectedCategory; // fallback to name for legacy
+      }
+      const savedOrder =
+        productOrderByCategory[catKey] ||
+        // Backward-compat: older keys stored by category name
+        productOrderByCategory[selectedCategory];
       if (savedOrder && savedOrder.length > 0) {
         const indexMap = new Map<string, number>();
         savedOrder.forEach((id, i) => indexMap.set(id, i));
@@ -1997,8 +2009,10 @@ const POSPage = () => {
           const ai = indexMap.has(a.id) ? indexMap.get(a.id)! : 9999;
           const bi = indexMap.has(b.id) ? indexMap.get(b.id)! : 9999;
           if (ai !== bi) return ai - bi;
-          // Fallback: new items not yet in saved order keep db sort_order, then name
-          return ((a as any).sort_order || 0) - ((b as any).sort_order || 0);
+          // New items not in saved order → appended at end, preserving db sort_order then name
+          const so = ((a as any).sort_order || 0) - ((b as any).sort_order || 0);
+          if (so !== 0) return so;
+          return (a.name || "").localeCompare(b.name || "", "ar");
         });
       }
     }
