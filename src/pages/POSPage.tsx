@@ -426,6 +426,9 @@ const POSPage = () => {
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  // Per-category product order map: { [categoryName | "__uncategorized__" | "الكل"]: string[] of product ids }
+  // Persisted via pos_user_preferences keys: product_order_<categoryName> / product_order_all
+  const [productOrderByCategory, setProductOrderByCategory] = useState<Record<string, string[]>>({});
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
