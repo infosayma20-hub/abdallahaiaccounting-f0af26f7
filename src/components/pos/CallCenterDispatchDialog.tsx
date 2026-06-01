@@ -103,6 +103,10 @@ const CallCenterDispatchDialog = ({
   const [sending, setSending] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null);
+  // Track the last auto-filled "City - Area" prefix so we can update it when the
+  // zone changes without wiping any manual details (street, building, landmark)
+  // the agent typed afterwards.
+  const [autoFilledPrefix, setAutoFilledPrefix] = useState<string>("");
 
   // When the zone picker chooses a branch, auto-bind the dispatch target branch
   // (but only when not in edit mode — branch is locked there).
@@ -115,6 +119,32 @@ const CallCenterDispatchDialog = ({
       setErrors(p => ({ ...p, branch: false, zone: false }));
     }
   }, [deliveryInfo, branches, editingOrderId, deliveryType, selectedBranch?.id]);
+
+  // Auto-populate the delivery address whenever the agent picks/changes a zone.
+  // Rules:
+  //  - Empty address → fill with "City - Area".
+  //  - Address starts with the previously auto-filled prefix → swap only that prefix,
+  //    keeping any manual tail (street, building, landmark) intact.
+  //  - Otherwise (agent typed a fully custom address) → leave as-is.
+  useEffect(() => {
+    if (deliveryType !== "delivery") return;
+    if (!deliveryInfo) return;
+    const newPrefix = `${deliveryInfo.city} - ${deliveryInfo.area}`.trim();
+    setAddress(prev => {
+      const cur = (prev || "").trim();
+      if (!cur) {
+        setAutoFilledPrefix(newPrefix);
+        setErrors(p => ({ ...p, address: false }));
+        return newPrefix;
+      }
+      if (autoFilledPrefix && cur.startsWith(autoFilledPrefix)) {
+        const tail = cur.slice(autoFilledPrefix.length);
+        setAutoFilledPrefix(newPrefix);
+        return newPrefix + tail;
+      }
+      return prev;
+    });
+  }, [deliveryInfo, deliveryType]);
   
   // Branch active sessions tracking
   const [branchSessions, setBranchSessions] = useState<Record<string, number>>({});
@@ -132,6 +162,7 @@ const CallCenterDispatchDialog = ({
     setAddress(deliveryAddress);
     setNote(orderNote);
     setErrors({});
+    setAutoFilledPrefix("");
     setDispatchedOrderId(null);
     setDispatchStatus(null);
     setDeliveryInfo(
