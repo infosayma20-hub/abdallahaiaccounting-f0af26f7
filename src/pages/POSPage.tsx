@@ -3841,15 +3841,15 @@ const POSPage = () => {
     setActiveOrderIndex(0);
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
-    // Call center users sign out completely — they live on the auth screen
-    // between shifts. Admins go back to the apps grid; others to /employee.
-    if (isCallCenter) {
-      await supabase.auth.signOut();
-      navigate("/auth", { replace: true });
-    } else if (isAdmin) {
+    // Admins go back to the apps grid; everyone else (cashier / call-center /
+    // employee+cashier) lands on the workspace chooser so they can pick again
+    // (POS / Employee / Call Center) instead of being forced into one screen.
+    try { if (userId) sessionStorage.removeItem(`workspace-choice:${userId}`); } catch {}
+    try { clearRoleRedirectCache(userId || undefined); } catch {}
+    if (isAdmin) {
       navigate("/apps", { replace: true });
     } else {
-      navigate("/employee", { replace: true });
+      navigate("/choose-workspace", { replace: true });
     }
   };
 
@@ -3876,10 +3876,12 @@ const POSPage = () => {
     setActiveOrderIndex(0);
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
+    try { if (userId) sessionStorage.removeItem(`workspace-choice:${userId}`); } catch {}
+    try { clearRoleRedirectCache(userId || undefined); } catch {}
     if (isAdmin) {
       navigate("/apps", { replace: true });
     } else {
-      navigate("/employee", { replace: true });
+      navigate("/choose-workspace", { replace: true });
     }
   };
 
