@@ -2027,11 +2027,15 @@ const POSPage = () => {
     setPosCategories(reordered);
     // Save per-user category order preference
     const orderIds = reordered.map(c => c.id);
-    await supabase.from("pos_user_preferences").upsert({
+    const { error } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: "category_order",
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
+    if (error) {
+      toast.error("تعذّر حفظ ترتيب التصنيفات");
+      return;
+    }
     toast.success("تم حفظ ترتيب التصنيفات");
   }, [posCategories, userId]);
 
