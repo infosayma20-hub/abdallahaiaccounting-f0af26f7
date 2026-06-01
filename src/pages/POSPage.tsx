@@ -6690,6 +6690,7 @@ const POSPage = () => {
         open={showDispatchLog}
         onClose={() => setShowDispatchLog(false)}
         dataOwnerId={dataOwnerId || ""}
+        isAdmin={isAdmin}
         onEditInCart={(order) => {
           // 🔧 Edit a not-yet-accepted dispatched order: load it into a fresh
           // POS tab so the call-center user can adjust items, then F12 updates

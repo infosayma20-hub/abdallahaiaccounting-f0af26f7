@@ -45,12 +45,17 @@ interface DispatchedOrder {
   editing_by_name?: string | null;
   delivery_fee?: number | null;
   delivery_info?: any | null;
+  cancelled_at?: string | null;
+  cancelled_by_name?: string | null;
+  cancel_reason?: string | null;
 }
 
 interface Props {
   open: boolean;
   onClose: () => void;
   dataOwnerId: string;
+  /** When true, exposes the admin-only "ملغاة" archive tab. */
+  isAdmin?: boolean;
   /**
    * Optional: when provided, the "تعديل الطلبية" button on a *pending* order
    * loads it back into the POS cart so the call-center user can edit items.
@@ -79,10 +84,10 @@ function getBusinessDayStart(): string {
   return businessDate.toISOString();
 }
 
-export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEditInCart }: Props) {
+export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmin, onEditInCart }: Props) {
   const [orders, setOrders] = useState<DispatchedOrder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed" | "cancelled">("all");
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<DispatchedOrder | null>(null);
   const [editsByOrder, setEditsByOrder] = useState<Record<string, { pending: number; lastStatus?: string }>>({});
@@ -104,13 +109,17 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
       .select("*")
       .eq("user_id", dataOwnerId)
       .gte("created_at", businessStart)
-      // Cancelled orders are hidden from the default log, the counters and
-      // the cashier — they should not appear anywhere operational.
-      .neq("status", "cancelled")
       .order("created_at", { ascending: false });
 
-    if (filter !== "all") {
+    if (filter === "cancelled") {
+      // Admin-only archive view — show ONLY cancelled orders.
+      query = query.eq("status", "cancelled");
+    } else if (filter !== "all") {
       query = query.eq("status", filter);
+    } else {
+      // Default "all" view hides cancelled orders from staff and from
+      // counters — they live in the admin-only archive tab.
+      query = query.neq("status", "cancelled");
     }
 
     const { data } = await query;
@@ -227,6 +236,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
   const pendingCount = orders.filter(o => o.status === "pending").length;
   const acceptedCount = orders.filter(o => o.status === "accepted").length;
   const completedCount = orders.filter(o => o.status === "completed").length;
+  const cancelledCount = orders.filter(o => o.status === "cancelled").length;
 
   // Unique agent list for the per-employee filter chips.
   const agents = Array.from(
@@ -255,17 +265,20 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
 
         <div className="flex gap-1.5 p-2 border-b border-border">
           {[
-            { key: "all" as const, label: "الكل", count: orders.length },
+            { key: "all" as const, label: "الكل", count: orders.filter(o => o.status !== "cancelled").length },
             { key: "pending" as const, label: "معلّق", count: pendingCount },
             { key: "accepted" as const, label: "مقبول", count: acceptedCount },
             { key: "completed" as const, label: "مكتمل", count: completedCount },
+            ...(isAdmin
+              ? [{ key: "cancelled" as const, label: "ملغاة", count: cancelledCount }]
+              : []),
           ].map(tab => (
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
                 filter === tab.key
-                  ? "bg-primary text-primary-foreground"
+                  ? (tab.key === "cancelled" ? "bg-red-600 text-white" : "bg-primary text-primary-foreground")
                   : "bg-muted/40 text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -354,6 +367,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                       <div className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded px-1.5 py-0.5">
                         <Pencil className="h-3 w-3" />
                         قيد التعديل من {order.editing_by_name || "الكول سنتر"} — مخفية عن الفرع
+                      </div>
+                    )}
+
+                    {/* Admin-only cancellation archive details */}
+                    {order.status === "cancelled" && (
+                      <div className="rounded border border-red-500/30 bg-red-500/5 px-2 py-1.5 text-[10px] text-red-800 dark:text-red-300 space-y-0.5">
+                        <div className="flex items-center gap-1 font-bold">
+                          <XCircle className="h-3 w-3" />
+                          تم الإلغاء
+                          {order.cancelled_at && (
+                            <span className="font-normal opacity-80">
+                              — {new Date(order.cancelled_at).toLocaleString("ar-PS", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                        {order.cancelled_by_name && (
+                          <div>ألغاها: <b>{order.cancelled_by_name}</b></div>
+                        )}
+                        {order.cancel_reason && (
+                          <div>السبب: <b>{order.cancel_reason}</b></div>
+                        )}
                       </div>
                     )}
 
