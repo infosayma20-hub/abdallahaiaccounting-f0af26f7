@@ -1986,9 +1986,24 @@ const POSPage = () => {
         const bOrder = catOrderMap.get(bCatId) ?? 9999;
         return aOrder - bOrder;
       });
+    } else if (!debouncedSearch) {
+      // Apply per-category saved order (overrides db sort_order for this user).
+      const catKey = selectedCategory === "__uncategorized__" ? "__uncategorized__" : selectedCategory;
+      const savedOrder = productOrderByCategory[catKey];
+      if (savedOrder && savedOrder.length > 0) {
+        const indexMap = new Map<string, number>();
+        savedOrder.forEach((id, i) => indexMap.set(id, i));
+        filtered.sort((a, b) => {
+          const ai = indexMap.has(a.id) ? indexMap.get(a.id)! : 9999;
+          const bi = indexMap.has(b.id) ? indexMap.get(b.id)! : 9999;
+          if (ai !== bi) return ai - bi;
+          // Fallback: new items not yet in saved order keep db sort_order, then name
+          return ((a as any).sort_order || 0) - ((b as any).sort_order || 0);
+        });
+      }
     }
     return filtered;
-  }, [products, selectedCategory, debouncedSearch, posCategories]);
+  }, [products, selectedCategory, debouncedSearch, posCategories, productOrderByCategory, visiblePosCategories]);
 
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
