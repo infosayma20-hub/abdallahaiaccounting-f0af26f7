@@ -6698,7 +6698,10 @@ const POSPage = () => {
           newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
           newOrder.orderTypeChosen = true;
           newOrder.deliveryAddress = order.delivery_address || "";
-          newOrder.orderNote = order.order_note || "";
+          // Strip the auto-composed delivery prefix so reopening the dispatch
+          // dialog doesn't append it a second/third time. The dialog will
+          // rebuild the full note from delivery_info + this base note on save.
+          newOrder.orderNote = extractBaseNote(order.order_note);
           newOrder.callCenterOrderId = order.id;
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
           newOrder.callCenterSourceApp = order.source_app || null;
