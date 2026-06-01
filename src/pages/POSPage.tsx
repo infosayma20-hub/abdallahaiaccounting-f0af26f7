@@ -501,12 +501,20 @@ const POSPage = () => {
 
   const removeOrder = useCallback((index: number) => {
     if (orders.length <= 1) return;
+    // If the tab being closed is in dispatch-edit mode, release the lock so
+    // the cashier can see / accept the original order again.
+    const closing = orders[index];
+    if (closing?.isEditingDispatch && closing?.callCenterOrderId) {
+      supabase
+        .rpc("cancel_editing_call_center_order" as any, { p_order_id: closing.callCenterOrderId } as any)
+        .then(() => {});
+    }
     setOrders(prev => prev.filter((_, i) => i !== index));
     setActiveOrderIndex(prev => {
       if (prev >= index && prev > 0) return prev - 1;
       return Math.min(prev, orders.length - 2);
     });
-  }, [orders.length]);
+  }, [orders]);
 
   // Bottom panel toggles
   const [showCustomerInput, setShowCustomerInput] = useState(false);
@@ -6661,11 +6669,14 @@ const POSPage = () => {
             total: item.total || item.unit_price * item.qty,
             note: item.note || "",
           }));
-          newOrder.name = `✏️ تعديل: ${order.customer_name || "طلبية"}`;
+          newOrder.name = `تعديل: ${order.customer_name || "طلبية"}`;
           setOrders(prev => [...prev, newOrder]);
           setActiveOrderIndex(orders.length);
           setShowDispatchLog(false);
-          toast.info("✏️ تم تحميل الطلبية للتعديل — عدّل الأصناف ثم اضغط F12 لتحديثها", { duration: 6000 });
+          toast.info(
+            "تم قفل الطلبية للتعديل — مخفية الآن عن الفرع. عدّل الأصناف ثم اضغط F12 لتحديثها بنفس الـ ID.",
+            { duration: 6000 }
+          );
         }}
       />
 

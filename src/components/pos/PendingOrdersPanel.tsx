@@ -117,6 +117,9 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
       .eq("user_id", dataOwnerId)
       .eq("status", "pending")
       .eq("target_branch_id", branchId)
+      // 🔒 Hide orders that the call-center is currently editing so the
+      // cashier cannot see or accept a half-edited version.
+      .eq("is_editing", false)
       .order("created_at", { ascending: false });
 
     const { data } = await query;
@@ -194,6 +197,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
             branchId &&
             newRow?.target_branch_id === branchId &&
             newRow?.status === "pending" &&
+            !newRow?.is_editing &&
             !newRow?.delivered_at
           ) {
             const deviceTag =

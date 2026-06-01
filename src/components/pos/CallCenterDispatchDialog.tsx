@@ -243,7 +243,7 @@ const CallCenterDispatchDialog = ({
           const newStatus = (payload.new as any).status;
           if (newStatus === "accepted") {
             setDispatchStatus("accepted");
-            toast.success(`✅ تم قبول الطلب في فرع ${selectedBranch?.name}!`, { duration: 5000 });
+            toast.success(`تم قبول الطلب في فرع ${selectedBranch?.name}`, { duration: 5000 });
             // Auto-close after 2s
             setTimeout(() => {
               setDispatchedOrderId(null);
@@ -260,7 +260,7 @@ const CallCenterDispatchDialog = ({
     trackingTimeoutRef.current = setTimeout(() => {
       setDispatchStatus((prev) => {
         if (prev === "pending") {
-          toast.warning(`⚠️ الطلب لم يتم قبوله بعد في فرع ${selectedBranch?.name}! تأكد أن الفرع مفتوح.`, { duration: 10000 });
+            toast.warning(`الطلب لم يتم قبوله بعد في فرع ${selectedBranch?.name}. تأكد أن الفرع مفتوح.`, { duration: 10000 });
         }
         return prev;
       });
@@ -309,33 +309,43 @@ const CallCenterDispatchDialog = ({
       let orderId: string | null = null;
 
       if (editingOrderId) {
-        // ── EDIT MODE: update same row, but only if branch hasn't accepted yet.
-        const { data: current, error: fetchErr } = await supabase
-          .from("call_center_orders" as any)
-          .select("status")
-          .eq("id", editingOrderId)
-          .maybeSingle();
-        if (fetchErr) throw fetchErr;
-        const currentStatus = (current as any)?.status;
-        if (!current) {
-          toast.error("⛔ الطلبية لم تعد موجودة — تعذّر التحديث");
-          setSending(false);
-          return;
-        }
-        if (currentStatus !== "pending") {
-          toast.error("⛔ لا يمكن التعديل — الطلبية تم قبولها من الفرع بالفعل");
+        // EDIT MODE: atomic RPC — updates same row only if still pending
+        // and the edit lock is still owned by this user. The branch cannot
+        // see / accept this order while the lock is held.
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+          "finish_editing_call_center_order" as any,
+          {
+            p_order_id: editingOrderId,
+            p_customer_name: payload.customer_name,
+            p_customer_phone: payload.customer_phone,
+            p_delivery_type: payload.delivery_type,
+            p_delivery_address: payload.delivery_address,
+            p_payment_method: paymentMethod,
+            p_source_app: payload.source_app,
+            p_items: payload.items as any,
+            p_total: payload.total,
+            p_order_note: payload.order_note,
+          } as any
+        );
+        if (rpcErr) throw rpcErr;
+        const res = (rpcRes as any) || {};
+        if (!res.ok) {
+          const reason = res.reason || "";
+          const msg =
+            reason === "already_accepted"
+              ? "لا يمكن حفظ التعديل — الطلبية تم قبولها من الفرع"
+              : reason === "lock_lost"
+                ? "انتهت صلاحية قفل التعديل — افتح الطلبية من السجل مرة أخرى"
+                : reason === "not_found"
+                  ? "الطلبية لم تعد موجودة"
+                  : "تعذّر حفظ التعديل: " + reason;
+          toast.error(msg);
           setSending(false);
           onOpenChange(false);
           return;
         }
-        const { error: updErr } = await supabase
-          .from("call_center_orders" as any)
-          .update(payload as any)
-          .eq("id", editingOrderId)
-          .eq("status", "pending"); // race-safe guard
-        if (updErr) throw updErr;
         orderId = editingOrderId;
-        toast.success(`✅ تم تحديث الطلبية في فرع ${selectedBranch!.name}`, { duration: 4000 });
+        toast.success(`تم تحديث الطلبية في فرع ${selectedBranch!.name}`, { duration: 4000 });
       } else {
         const { data: insertedOrder, error } = await supabase
           .from("call_center_orders" as any)
@@ -352,7 +362,7 @@ const CallCenterDispatchDialog = ({
           .single();
         if (error) throw error;
         orderId = (insertedOrder as any)?.id;
-        toast.success(`✅ تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
+        toast.success(`تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
       }
 
       onSuccess();
@@ -388,7 +398,7 @@ const CallCenterDispatchDialog = ({
       setDispatchedOrderId(null);
       setDispatchStatus(null);
       onOpenChange(false);
-      toast.success("✅ تم إرسال الطلب — يمكنك متابعته من سجل الفواتير المحوّلة");
+      toast.success("تم إرسال الطلب — يمكنك متابعته من سجل الفواتير المحوّلة");
     }
   }, [dispatchStatus]);
 
@@ -403,7 +413,7 @@ const CallCenterDispatchDialog = ({
         </DialogHeader>
         {editingOrderId && (
           <div className="mx-6 -mt-1 mb-1 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
-            ✏️ وضع التعديل — سيتم تحديث نفس الطلبية بدون إنشاء طلبية جديدة. الفرع: <b>{editingBranchName || selectedBranch?.name}</b> (مقفل).
+            وضع التعديل — سيتم تحديث نفس الطلبية بنفس الـ ID. الفرع مقفل: <b>{editingBranchName || selectedBranch?.name}</b>. الطلبية مخفية عن الفرع حتى ينتهي التعديل.
           </div>
         )}
 
