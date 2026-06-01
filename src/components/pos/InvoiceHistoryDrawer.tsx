@@ -1022,17 +1022,17 @@ export default function InvoiceHistoryDrawer({
                         </div>
                       )}
                       {Number(order.delivery_fee || 0) > 0 && canCashierSeeAmount(order) && (
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[10px]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                          <span className="px-1.5 py-0.5 rounded" style={{ background: "#F1F5F9", color: "#475569" }}>
-                            أصناف ₪{(Number(order.total) - Number(order.delivery_fee || 0)).toFixed(2)}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded" style={{ background: "#FEF3C7", color: "#92400E" }}>
-                            توصيل ₪{Number(order.delivery_fee).toFixed(2)}
-                          </span>
+                        <div className="mt-1 flex items-center gap-1 flex-wrap text-[10px]" style={{ color: "#64748B" }}>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>أصناف ₪{(Number(order.total) - Number(order.delivery_fee || 0)).toFixed(2)}</span>
+                          <span style={{ color: "#CBD5E1" }}>·</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>توصيل ₪{Number(order.delivery_fee).toFixed(2)}</span>
                           {(order.area_name || order.delivery_address) && (
-                            <span className="text-[10px] truncate max-w-[180px]" style={{ fontFamily: "Tajawal, sans-serif", color: "#64748B" }} title={order.delivery_address || order.area_name || ""}>
-                              {order.area_name || order.delivery_address}
-                            </span>
+                            <>
+                              <span style={{ color: "#CBD5E1" }}>·</span>
+                              <span className="truncate max-w-[180px]" title={order.delivery_address || order.area_name || ""}>
+                                {order.area_name || order.delivery_address}
+                              </span>
+                            </>
                           )}
                         </div>
                       )}
@@ -1050,7 +1050,7 @@ export default function InvoiceHistoryDrawer({
                             ₪{order.total.toFixed(2)}
                           </span>
                           {Number(order.delivery_fee || 0) > 0 && (
-                            <span className="text-[9px]" style={{ color: "#92400E" }}>يشمل التوصيل</span>
+                            <span className="text-[9px]" style={{ color: "#94A3B8" }}>يشمل التوصيل</span>
                           )}
                         </div>
                       ) : (
