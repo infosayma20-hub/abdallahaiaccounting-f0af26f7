@@ -1062,11 +1062,18 @@ const POSPage = () => {
   useEffect(() => {
     if (!isCallCenter || !dataOwnerId) return;
     const loadCount = async () => {
+      // Same business-day cutoff (06:00 AM) used by the log itself, so the
+      // badge count and the open log always agree.
+      const now = new Date();
+      const businessStart = new Date(now);
+      if (now.getHours() < 6) businessStart.setDate(businessStart.getDate() - 1);
+      businessStart.setHours(6, 0, 0, 0);
       const { count } = await supabase
         .from("call_center_orders" as any)
         .select("id", { count: "exact", head: true })
         .eq("user_id", dataOwnerId)
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .gte("created_at", businessStart.toISOString());
       setPendingDispatchCount(count || 0);
     };
     loadCount();
