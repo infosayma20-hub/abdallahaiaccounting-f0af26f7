@@ -3,12 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users, Trash2 } from "lucide-react";
 import { CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import EditOrderDialog from "./EditOrderDialog";
 import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DispatchedOrder {
   id: string;
@@ -77,6 +88,10 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
   const [editsByOrder, setEditsByOrder] = useState<Record<string, { pending: number; lastStatus?: string }>>({});
   /** Filter by call-center agent (dispatched_by_name). `null` = الكل. */
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
+  /** Cancel-confirmation dialog state. */
+  const [cancelTarget, setCancelTarget] = useState<DispatchedOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -89,6 +104,9 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
       .select("*")
       .eq("user_id", dataOwnerId)
       .gte("created_at", businessStart)
+      // Cancelled orders are hidden from the default log, the counters and
+      // the cashier — they should not appear anywhere operational.
+      .neq("status", "cancelled")
       .order("created_at", { ascending: false });
 
     if (filter !== "all") {
@@ -162,6 +180,48 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
       toast.success("تم إعادة الطلب لقائمة الانتظار");
     }
     setResettingId(null);
+  };
+
+  /** Soft-cancel a still-pending dispatched order. Permission + race-safety
+      enforced server-side by `cancel_dispatched_call_center_order`. */
+  const handleConfirmCancel = async () => {
+    if (!cancelTarget) return;
+    const reason = cancelReason.trim();
+    if (reason.length < 2) {
+      toast.error("الرجاء كتابة سبب الإلغاء");
+      return;
+    }
+    setCancelling(true);
+    const { data, error } = await supabase.rpc(
+      "cancel_dispatched_call_center_order" as any,
+      { p_order_id: cancelTarget.id, p_reason: reason } as any,
+    );
+    setCancelling(false);
+    if (error) {
+      toast.error("تعذّر الإلغاء: " + (error.message || ""));
+      return;
+    }
+    const res = (data as any) || {};
+    if (!res.ok) {
+      const r = res.reason || "";
+      if (r === "already_accepted") {
+        toast.error("لا يمكن إلغاء الطلبية لأنها قُبلت من الفرع");
+      } else if (r === "not_owner") {
+        toast.error("يمكن للموظفة التي حوّلت الطلبية أو للأدمن فقط إلغاؤها");
+      } else if (r === "reason_required") {
+        toast.error("سبب الإلغاء مطلوب");
+      } else if (r === "not_found") {
+        toast.error("الطلبية لم تعد موجودة");
+      } else {
+        toast.error("تعذّر الإلغاء: " + r);
+      }
+      loadOrders();
+      return;
+    }
+    toast.success("تم إلغاء الطلبية وإخفاؤها من جميع الشاشات");
+    setCancelTarget(null);
+    setCancelReason("");
+    loadOrders();
   };
 
   const pendingCount = orders.filter(o => o.status === "pending").length;
@@ -528,6 +588,20 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                               ? "قيد التعديل"
                               : "تعديل الطلبية"}
                         </Button>
+                        {/* Cancel — only for pending, not-yet-accepted, not-invoiced orders.
+                            Server-side RPC enforces "dispatcher OR admin" + race safety. */}
+                        {order.status === "pending" && !order.pos_order_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[11px] gap-1.5 border-red-500/40 text-red-700 hover:bg-red-500/10"
+                            onClick={() => { setCancelReason(""); setCancelTarget(order); }}
+                            disabled={(editsByOrder[order.id]?.pending || 0) > 0}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            إلغاء
+                          </Button>
+                        )}
                         {editsByOrder[order.id]?.lastStatus === "rejected" && (
                           <Badge variant="outline" className="text-[9px] border-red-400/40 text-red-600">آخر تعديل: مرفوض</Badge>
                         )}
@@ -551,6 +625,41 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
       dataOwnerId={dataOwnerId}
       onSubmitted={() => { loadOrders(); loadEdits(); }}
     />
+    <AlertDialog
+      open={!!cancelTarget}
+      onOpenChange={(v) => { if (!v && !cancelling) { setCancelTarget(null); setCancelReason(""); } }}
+    >
+      <AlertDialogContent dir="rtl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>إلغاء الطلبية المحوّلة</AlertDialogTitle>
+          <AlertDialogDescription>
+            هل أنت متأكد من إلغاء هذه الطلبية؟ سيتم إخفاؤها من الكاش والسجل والتقارير ولا يمكن قبولها من الفرع.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-foreground">
+            سبب الإلغاء <span className="text-red-600">*</span>
+          </label>
+          <Textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            placeholder="مثال: طلبية اختبار، زبون ألغى، خطأ في التحويل…"
+            rows={3}
+            disabled={cancelling}
+          />
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={cancelling}>تراجع</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); handleConfirmCancel(); }}
+            disabled={cancelling || cancelReason.trim().length < 2}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            {cancelling ? "جاري الإلغاء…" : "تأكيد الإلغاء"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
