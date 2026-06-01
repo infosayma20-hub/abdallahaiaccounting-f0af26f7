@@ -319,7 +319,6 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                         <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 ${order.delivery_type === "delivery" ? "text-orange-600" : "text-blue-600"}`}>
                           {order.delivery_type === "delivery" ? <Truck className="h-2.5 w-2.5" /> : <ShoppingBag className="h-2.5 w-2.5" />}
                         </Badge>
-                        <span className="font-mono text-xs font-bold">₪{order.total.toFixed(0)}</span>
                       </div>
                     </div>
 
@@ -352,13 +351,49 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                       ))}
                     </div>
 
-                    {/* Order-level note (الزبون/الطلبية). */}
-                    {order.order_note && order.order_note.trim() && (
-                      <div className="flex items-start gap-1 text-[10px] rounded bg-amber-500/10 border border-amber-500/30 px-1.5 py-1 text-amber-800 dark:text-amber-300">
-                        <StickyNote className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                        <span><b>ملاحظة الطلبية:</b> {order.order_note}</span>
-                      </div>
-                    )}
+                    {/* Price breakdown — explicitly split items vs. delivery so
+                        the cashier knows what's restaurant sales and what's
+                        collected on behalf of the delivery company. The big
+                        number stays the customer total (المطلوب تحصيله). */}
+                    {(() => {
+                      const fee = Number((order as any).delivery_fee || 0);
+                      const { items, delivery, total } = deliveryBreakdown({
+                        total: Number(order.total) || 0,
+                        deliveryFee: fee,
+                      });
+                      return (
+                        <div className="rounded border border-border bg-muted/30 px-2 py-1.5 space-y-0.5 text-[11px]">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">سعر الطلبية</span>
+                            <span className="font-mono">₪{items.toFixed(2)}</span>
+                          </div>
+                          {delivery > 0 && (
+                            <div className="flex justify-between text-orange-700 dark:text-orange-400">
+                              <span>رسوم التوصيل{(order as any).delivery_info?.area ? ` (${(order as any).delivery_info.area})` : ""}</span>
+                              <span className="font-mono">₪{delivery.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-bold text-xs border-t border-border pt-1 mt-0.5">
+                            <span>الإجمالي للتحصيل</span>
+                            <span className="font-mono">₪{total.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Customer-side free-text note only — auto-composed
+                        delivery/customer/phone fields are stripped to avoid
+                        the long duplicated block we used to render. */}
+                    {(() => {
+                      const clean = extractBaseNote(order.order_note);
+                      if (!clean) return null;
+                      return (
+                        <div className="flex items-start gap-1 text-[10px] rounded bg-amber-500/10 border border-amber-500/30 px-1.5 py-1 text-amber-800 dark:text-amber-300">
+                          <StickyNote className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                          <span><b>ملاحظة الطلبية:</b> {clean}</span>
+                        </div>
+                      );
+                    })()}
 
                     {order.status === "pending" && (
                       <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
