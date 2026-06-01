@@ -131,6 +131,8 @@ interface OrderTab {
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
+  callCenterDeliveryInfo?: any | null;
+  callCenterDeliveryFee?: number | null;
   /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
   isEditingDispatch?: boolean;
   /** Locked branch for the order being edited (cannot be changed during edit). */
@@ -6615,6 +6617,8 @@ const POSPage = () => {
         editingBranchName={activeOrder.isEditingDispatch ? (activeOrder.callCenterBranchName || null) : null}
         editingPaymentMethod={activeOrder.isEditingDispatch ? (activeOrder.callCenterPaymentMethod || null) : null}
         editingSourceApp={activeOrder.isEditingDispatch ? (activeOrder.callCenterSourceApp || null) : null}
+        editingDeliveryInfo={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryInfo || null) : null}
+        editingDeliveryFee={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryFee || null) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
