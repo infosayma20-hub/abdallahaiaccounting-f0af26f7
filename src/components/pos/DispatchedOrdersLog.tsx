@@ -323,12 +323,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                     {/* Items list — show per-item notes (e.g. حار / عادي) explicitly. */}
                     <div className="text-[10px] text-muted-foreground space-y-0.5">
                       {(order.items || []).map((item: any, idx: number) => (
-                        <div key={idx} className="flex flex-wrap items-baseline gap-x-1">
-                          <span className="text-foreground/80">{item.name} × {item.qty}</span>
-                          {item.note && String(item.note).trim() && (
-                            <span className="text-amber-700 dark:text-amber-400 font-medium">
-                              — ملاحظة: {item.note}
-                            </span>
+                        <div key={idx} className="space-y-0.5">
+                          <div className="flex flex-wrap items-baseline gap-x-1">
+                            <span className="text-foreground/80">{item.name} × {item.qty}</span>
+                            {item.note && String(item.note).trim() && (
+                              <span className="text-amber-700 dark:text-amber-400 font-medium">
+                                — ملاحظة: {item.note}
+                              </span>
+                            )}
+                          </div>
+                          {Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
+                            <ul className="pr-3 space-y-0.5">
+                              {item.modifiers.map((m: any, mi: number) => (
+                                <li key={mi} className="flex items-baseline gap-1 text-[10px] text-foreground/70">
+                                  <span className="text-muted-foreground">+</span>
+                                  <span>{m.option_name}</span>
+                                  {Number(m.extra_price) > 0 && (
+                                    <span className="text-muted-foreground">(₪{Number(m.extra_price).toFixed(2)})</span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
                           )}
                         </div>
                       ))}

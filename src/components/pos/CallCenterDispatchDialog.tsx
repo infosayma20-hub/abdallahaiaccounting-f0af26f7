@@ -13,6 +13,7 @@ interface CartItem {
   total: number;
   note?: string;
   product_id?: string | null;
+  modifiers?: Array<{ option_name: string; extra_price: number }>;
 }
 
 interface Props {
@@ -301,6 +302,10 @@ const CallCenterDispatchDialog = ({
           total: item.total,
           product_id: item.product_id || null,
           note: item.note || "",
+          modifiers: (item.modifiers || []).map((m: any) => ({
+            option_name: m.option_name,
+            extra_price: Number(m.extra_price) || 0,
+          })),
         })),
         total,
         order_note: note.trim() || null,
@@ -444,7 +449,7 @@ const CallCenterDispatchDialog = ({
                     : "bg-muted/40 text-muted-foreground border-border hover:border-primary/30"
                 }`}
               >
-                📞 طلب مباشر
+                طلب مباشر
               </button>
             </div>
           </div>
@@ -467,7 +472,7 @@ const CallCenterDispatchDialog = ({
                     }`}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      🏪 {branch.name}
+                      {branch.name}
                     </div>
                     {/* Online/Offline indicator */}
                     <div className={`flex items-center justify-center gap-1 mt-1.5 text-[10px] font-medium ${
@@ -495,7 +500,7 @@ const CallCenterDispatchDialog = ({
             {selectedBranch && (branchSessions[selectedBranch.id] || 0) === 0 && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-medium">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>📥 لا يوجد كاشير مفتوح وردية الآن — الطلب سيُحفظ في قائمة انتظار الفرع ويظهر فور فتح أول وردية.</span>
+                <span>لا يوجد كاشير مفتوح وردية الآن — الطلب سيُحفظ في قائمة انتظار الفرع ويظهر فور فتح أول وردية.</span>
               </div>
             )}
           </div>
