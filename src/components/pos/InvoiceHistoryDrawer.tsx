@@ -185,6 +185,8 @@ export default function InvoiceHistoryDrawer({
     const ageMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
     return ageMin <= amountVisibleMinutes;
   };
+  // نفس مدة السماح للأمبر تُستخدم لإخفاء التفاصيل الحساسة عن الكاشير بعد ساعة
+  const canSeeDetails = (order: InvoiceOrder) => canCashierSeeAmount(order);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
