@@ -29,6 +29,8 @@ interface CallCenterOrder {
   status: string;
   dispatched_by_name: string;
   created_at: string;
+  delivery_fee?: number | null;
+  delivery_info?: any | null;
 }
 
 interface OrderEdit {
@@ -530,6 +532,12 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                             <span className="font-mono">₪{(item.total || 0).toFixed(2)}</span>
                           </div>
                         ))}
+                        {Number(order.delivery_fee || 0) > 0 && (
+                          <div className="flex justify-between text-[11px] text-orange-700 font-semibold">
+                            <span>🚚 توصيل {order.delivery_info?.area ? `(${order.delivery_info.area})` : ""}</span>
+                            <span className="font-mono">₪{Number(order.delivery_fee).toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between font-bold text-xs border-t border-border pt-1 mt-1">
                           <span>المجموع</span>
                           <span className="font-mono">₪{order.total.toFixed(2)}</span>
