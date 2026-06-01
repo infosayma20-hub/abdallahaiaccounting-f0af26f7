@@ -6667,6 +6667,7 @@ const POSPage = () => {
             unit: "قطعة",
             total: item.total || item.unit_price * item.qty,
             note: item.note || "",
+            modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
           }));
           newOrder.name = `تعديل: ${order.customer_name || "طلبية"}`;
           setOrders(prev => [...prev, newOrder]);
