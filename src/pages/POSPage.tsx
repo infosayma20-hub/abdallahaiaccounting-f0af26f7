@@ -20,7 +20,7 @@ import {
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
-  Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
+  Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical, Check,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList, Settings,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
@@ -426,6 +426,9 @@ const POSPage = () => {
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  // Per-category product order map: { [categoryName | "__uncategorized__" | "الكل"]: string[] of product ids }
+  // Persisted via pos_user_preferences keys: product_order_<categoryName> / product_order_all
+  const [productOrderByCategory, setProductOrderByCategory] = useState<Record<string, string[]>>({});
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
@@ -1983,9 +1986,24 @@ const POSPage = () => {
         const bOrder = catOrderMap.get(bCatId) ?? 9999;
         return aOrder - bOrder;
       });
+    } else if (!debouncedSearch) {
+      // Apply per-category saved order (overrides db sort_order for this user).
+      const catKey = selectedCategory === "__uncategorized__" ? "__uncategorized__" : selectedCategory;
+      const savedOrder = productOrderByCategory[catKey];
+      if (savedOrder && savedOrder.length > 0) {
+        const indexMap = new Map<string, number>();
+        savedOrder.forEach((id, i) => indexMap.set(id, i));
+        filtered.sort((a, b) => {
+          const ai = indexMap.has(a.id) ? indexMap.get(a.id)! : 9999;
+          const bi = indexMap.has(b.id) ? indexMap.get(b.id)! : 9999;
+          if (ai !== bi) return ai - bi;
+          // Fallback: new items not yet in saved order keep db sort_order, then name
+          return ((a as any).sort_order || 0) - ((b as any).sort_order || 0);
+        });
+      }
     }
     return filtered;
-  }, [products, selectedCategory, debouncedSearch, posCategories]);
+  }, [products, selectedCategory, debouncedSearch, posCategories, productOrderByCategory, visiblePosCategories]);
 
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
@@ -2009,11 +2027,15 @@ const POSPage = () => {
     setPosCategories(reordered);
     // Save per-user category order preference
     const orderIds = reordered.map(c => c.id);
-    await supabase.from("pos_user_preferences").upsert({
+    const { error } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: "category_order",
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
+    if (error) {
+      toast.error("تعذّر حفظ ترتيب التصنيفات");
+      return;
+    }
     toast.success("تم حفظ ترتيب التصنيفات");
   }, [posCategories, userId]);
 
@@ -2026,23 +2048,25 @@ const POSPage = () => {
     const newIndex = currentProducts.findIndex(p => p.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(currentProducts, oldIndex, newIndex);
-    // Update local state
-    setProducts(prev => {
-      const updated = [...prev];
-      reordered.forEach((p, i) => {
-        const idx = updated.findIndex(u => u.id === p.id);
-        if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: i } as any;
-      });
-      return updated.sort((a, b) => ((a as any).sort_order || 0) - ((b as any).sort_order || 0));
-    });
-    // Save per-user product order preference
     const orderIds = reordered.map(p => p.id);
-    const prefKey = selectedCategory === "الكل" ? "product_order_all" : `product_order_${selectedCategory}`;
-    await supabase.from("pos_user_preferences").upsert({
+    const catKey = selectedCategory === "الكل"
+      ? "all"
+      : selectedCategory === "__uncategorized__"
+        ? "__uncategorized__"
+        : selectedCategory;
+    const prefKey = `product_order_${catKey}`;
+    // Update local per-category order map immediately (optimistic, scoped to this category only)
+    setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds }));
+    // Persist preference for this category only — does not touch other categories
+    const { error } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: prefKey,
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
+    if (error) {
+      toast.error("تعذّر حفظ الترتيب، حاول مرة أخرى");
+      return;
+    }
     toast.success("تم حفظ ترتيب المنتجات");
   }, [filteredProducts, userId, isAdmin, selectedCategory]);
 
@@ -2384,14 +2408,10 @@ const POSPage = () => {
           if (p.preference_key.startsWith("product_order_")) {
             const orderIds = (p.preference_value as any)?.order;
             if (Array.isArray(orderIds) && orderIds.length > 0) {
-              setProducts(prev => {
-                const updated = [...prev];
-                orderIds.forEach((id: string, i: number) => {
-                  const idx = updated.findIndex(u => u.id === id);
-                  if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: i } as any;
-                });
-                return updated.sort((a, b) => ((a as any).sort_order || 0) - ((b as any).sort_order || 0));
-              });
+              // Store per-category order separately so categories don't clobber each other.
+              // Key format: "product_order_<categoryName>" or "product_order_all"
+              const catKey = p.preference_key.replace(/^product_order_/, "");
+              setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds as string[] }));
             }
           }
         }
@@ -4473,12 +4493,13 @@ const POSPage = () => {
             onClick={() => setIsSortMode(!isSortMode)}
             className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all shrink-0"
             style={{
-              background: isSortMode ? "#f59e0b" : "rgba(255,255,255,0.08)",
+              background: isSortMode ? "#334155" : "rgba(255,255,255,0.08)",
               color: isSortMode ? "white" : "rgba(255,255,255,0.7)",
             }}
+            title={isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب"}
           >
-            <GripVertical className="h-3.5 w-3.5" />
-            {isSortMode ? "✅" : "ترتيب"}
+            {isSortMode ? <Check className="h-3.5 w-3.5" /> : <GripVertical className="h-3.5 w-3.5" />}
+            {isSortMode ? "تم" : "ترتيب"}
           </button>
 
           {/* Close shift */}
@@ -4513,7 +4534,7 @@ const POSPage = () => {
           {/* ── Category Cards Section ── */}
           <div className="pos-categories-bar px-3 py-2.5 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
             {isSortMode && (
-              <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
+              <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded border text-[10px]" style={{ borderColor: "#475569", color: posDarkMode ? "#cbd5e1" : "#475569", background: posDarkMode ? "rgba(255,255,255,0.04)" : "#f8fafc" }}>
                 <GripVertical className="h-3 w-3" />
                 <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات</span>
               </div>
