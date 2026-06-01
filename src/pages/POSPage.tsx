@@ -2860,6 +2860,7 @@ const POSPage = () => {
             area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
             order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+            delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
             ...(markAsReplacement && lastCancelledOrder ? {
@@ -2896,6 +2897,7 @@ const POSPage = () => {
                 area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
                 pos_customer_id: activeOrder.posCustomerId || null,
                 order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+                delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
                 ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
                 ...(markAsReplacement && lastCancelledOrder ? {
                   is_replacement: true,
@@ -2931,6 +2933,7 @@ const POSPage = () => {
               area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
               pos_customer_id: activeOrder.posCustomerId || null,
               order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+              delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
               ...(markAsReplacement && lastCancelledOrder ? {
                 is_replacement: true,
