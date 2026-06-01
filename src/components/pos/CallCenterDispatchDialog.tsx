@@ -243,7 +243,7 @@ const CallCenterDispatchDialog = ({
           const newStatus = (payload.new as any).status;
           if (newStatus === "accepted") {
             setDispatchStatus("accepted");
-            toast.success(`✅ تم قبول الطلب في فرع ${selectedBranch?.name}!`, { duration: 5000 });
+            toast.success(`تم قبول الطلب في فرع ${selectedBranch?.name}`, { duration: 5000 });
             // Auto-close after 2s
             setTimeout(() => {
               setDispatchedOrderId(null);
@@ -260,7 +260,7 @@ const CallCenterDispatchDialog = ({
     trackingTimeoutRef.current = setTimeout(() => {
       setDispatchStatus((prev) => {
         if (prev === "pending") {
-          toast.warning(`⚠️ الطلب لم يتم قبوله بعد في فرع ${selectedBranch?.name}! تأكد أن الفرع مفتوح.`, { duration: 10000 });
+            toast.warning(`الطلب لم يتم قبوله بعد في فرع ${selectedBranch?.name}. تأكد أن الفرع مفتوح.`, { duration: 10000 });
         }
         return prev;
       });
@@ -398,7 +398,7 @@ const CallCenterDispatchDialog = ({
       setDispatchedOrderId(null);
       setDispatchStatus(null);
       onOpenChange(false);
-      toast.success("✅ تم إرسال الطلب — يمكنك متابعته من سجل الفواتير المحوّلة");
+      toast.success("تم إرسال الطلب — يمكنك متابعته من سجل الفواتير المحوّلة");
     }
   }, [dispatchStatus]);
 
@@ -413,7 +413,7 @@ const CallCenterDispatchDialog = ({
         </DialogHeader>
         {editingOrderId && (
           <div className="mx-6 -mt-1 mb-1 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
-            ✏️ وضع التعديل — سيتم تحديث نفس الطلبية بدون إنشاء طلبية جديدة. الفرع: <b>{editingBranchName || selectedBranch?.name}</b> (مقفل).
+            وضع التعديل — سيتم تحديث نفس الطلبية بنفس الـ ID. الفرع مقفل: <b>{editingBranchName || selectedBranch?.name}</b>. الطلبية مخفية عن الفرع حتى ينتهي التعديل.
           </div>
         )}
 
