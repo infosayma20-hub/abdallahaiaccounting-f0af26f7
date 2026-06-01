@@ -1036,7 +1036,7 @@ export default function InvoiceHistoryDrawer({
                           )}
                         </div>
                       )}
-                      {(order.order_note || order.notes) && (
+                      {(order.order_note || order.notes) && canSeeDetails(order) && (
                         <div className="text-[10px] mt-0.5 truncate max-w-full" style={{ color: "#94A3B8" }} title={order.order_note || order.notes || ""}>
                           ملاحظة: {(order.order_note || order.notes || "").split("\n")[0].slice(0, 60)}{((order.order_note || order.notes || "").length > 60 || (order.order_note || order.notes || "").includes("\n")) ? "…" : ""}
                         </div>
