@@ -4956,18 +4956,25 @@ const POSPage = () => {
                         transition={{ duration: 0.2 }}
                         className="py-3 cursor-pointer transition-all"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-                        onClick={() => setSelectedCartIndex(isSelected ? null : index)}
+                        onClick={(e) => {
+                          // Ignore clicks bubbling from interactive children (X button, qty +/-, price input)
+                          const target = e.target as HTMLElement;
+                          if (target.closest('button, input')) return;
+                          setSelectedCartIndex(isSelected ? null : index);
+                        }}
                       >
                         {/* Item name + remove */}
                         <div className="flex items-start justify-between gap-1 mb-1.5">
                           <p className="text-[14px] font-medium truncate leading-tight" style={{ color: 'white' }}>{item.name}</p>
                           {(isAdmin || posPerms.can_remove_cart_items) && (
                             <button
-                              className="p-0.5 transition-colors shrink-0"
-                              style={{ color: 'rgba(255,255,255,0.3)' }}
-                              onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
+                              type="button"
+                              aria-label="حذف المنتج"
+                              className="p-2 -m-1 transition-colors shrink-0 hover:text-red-400 active:text-red-500 touch-manipulation"
+                              style={{ color: 'rgba(255,255,255,0.55)' }}
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromCart(index); }}
                             >
-                              <X className="h-3.5 w-3.5" />
+                              <X className="h-5 w-5" />
                             </button>
                           )}
                         </div>
