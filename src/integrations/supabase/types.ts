@@ -1434,7 +1434,11 @@ export type Database = {
           delivery_type: string | null
           dispatched_by: string | null
           dispatched_by_name: string | null
+          editing_by: string | null
+          editing_by_name: string | null
+          editing_started_at: string | null
           id: string
+          is_editing: boolean
           items: Json
           order_note: string | null
           payment_method: string | null
@@ -1460,7 +1464,11 @@ export type Database = {
           delivery_type?: string | null
           dispatched_by?: string | null
           dispatched_by_name?: string | null
+          editing_by?: string | null
+          editing_by_name?: string | null
+          editing_started_at?: string | null
           id?: string
+          is_editing?: boolean
           items?: Json
           order_note?: string | null
           payment_method?: string | null
@@ -1486,7 +1494,11 @@ export type Database = {
           delivery_type?: string | null
           dispatched_by?: string | null
           dispatched_by_name?: string | null
+          editing_by?: string | null
+          editing_by_name?: string | null
+          editing_started_at?: string | null
           id?: string
+          is_editing?: boolean
           items?: Json
           order_note?: string | null
           payment_method?: string | null
@@ -18015,6 +18027,10 @@ export type Database = {
         Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
         Returns: Json
       }
+      cancel_editing_call_center_order: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       cancel_stock_transfer: {
         Args: { p_reason?: string; p_transfer_id: string }
         Returns: Json
@@ -18561,6 +18577,21 @@ export type Database = {
           was_created: boolean
         }[]
       }
+      finish_editing_call_center_order: {
+        Args: {
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_address: string
+          p_delivery_type: string
+          p_items: Json
+          p_order_id: string
+          p_order_note: string
+          p_payment_method: string
+          p_source_app: string
+          p_total: number
+        }
+        Returns: Json
+      }
       generate_company_license_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       generate_return_number: {
@@ -18997,6 +19028,10 @@ export type Database = {
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
+      }
+      start_editing_call_center_order: {
+        Args: { p_order_id: string }
+        Returns: Json
       }
       sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
       uaao_can_admin_target: {
