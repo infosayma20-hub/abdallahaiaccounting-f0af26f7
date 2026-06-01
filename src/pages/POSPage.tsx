@@ -2044,23 +2044,25 @@ const POSPage = () => {
     const newIndex = currentProducts.findIndex(p => p.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(currentProducts, oldIndex, newIndex);
-    // Update local state
-    setProducts(prev => {
-      const updated = [...prev];
-      reordered.forEach((p, i) => {
-        const idx = updated.findIndex(u => u.id === p.id);
-        if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: i } as any;
-      });
-      return updated.sort((a, b) => ((a as any).sort_order || 0) - ((b as any).sort_order || 0));
-    });
-    // Save per-user product order preference
     const orderIds = reordered.map(p => p.id);
-    const prefKey = selectedCategory === "الكل" ? "product_order_all" : `product_order_${selectedCategory}`;
-    await supabase.from("pos_user_preferences").upsert({
+    const catKey = selectedCategory === "الكل"
+      ? "all"
+      : selectedCategory === "__uncategorized__"
+        ? "__uncategorized__"
+        : selectedCategory;
+    const prefKey = `product_order_${catKey}`;
+    // Update local per-category order map immediately (optimistic, scoped to this category only)
+    setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds }));
+    // Persist preference for this category only — does not touch other categories
+    const { error } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: prefKey,
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
+    if (error) {
+      toast.error("تعذّر حفظ الترتيب، حاول مرة أخرى");
+      return;
+    }
     toast.success("تم حفظ ترتيب المنتجات");
   }, [filteredProducts, userId, isAdmin, selectedCategory]);
 
