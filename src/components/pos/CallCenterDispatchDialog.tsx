@@ -398,9 +398,14 @@ const CallCenterDispatchDialog = ({
         <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Send className="h-5 w-5 text-primary" />
-            تحويل الطلب إلى الفرع
+            {editingOrderId ? "تحديث الطلبية المحوّلة" : "تحويل الطلب إلى الفرع"}
           </DialogTitle>
         </DialogHeader>
+        {editingOrderId && (
+          <div className="mx-6 -mt-1 mb-1 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
+            ✏️ وضع التعديل — سيتم تحديث نفس الطلبية بدون إنشاء طلبية جديدة. الفرع: <b>{editingBranchName || selectedBranch?.name}</b> (مقفل).
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-6">
         <div className="space-y-4 py-2">
