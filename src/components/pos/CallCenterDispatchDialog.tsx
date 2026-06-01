@@ -47,6 +47,28 @@ interface Branch {
   name: string;
 }
 
+/**
+ * Build a human-readable order note from structured delivery info + base note.
+ * This is what cashier + kitchen will see in print and on the receipt.
+ */
+export function buildOrderNote(args: {
+  baseNote: string;
+  name: string;
+  phone: string;
+  info: DeliveryInfo | null;
+}): string | null {
+  const parts: string[] = [];
+  if (args.info) {
+    parts.push(`🚚 توصيل: ${args.info.city} - ${args.info.area}`);
+    parts.push(`الفرع: ${args.info.branch_name}`);
+    parts.push(`سعر التوصيل: ₪${Number(args.info.final_fee).toFixed(2)}${args.info.manually_adjusted ? " (معدّل)" : ""}`);
+  }
+  if (args.name) parts.push(`الزبون: ${args.name}`);
+  if (args.phone) parts.push(`جوال: ${args.phone}`);
+  if (args.baseNote) parts.push(`ملاحظة: ${args.baseNote}`);
+  return parts.length ? parts.join(" | ") : null;
+}
+
 interface DeliveryApp {
   id: string;
   name: string;
