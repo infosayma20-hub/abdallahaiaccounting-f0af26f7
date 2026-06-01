@@ -522,7 +522,7 @@ export default function InvoiceHistoryDrawer({
     setLoadingDetail(true);
     try {
       const [linesRes, paymentsRes] = await Promise.all([
-        supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount").eq("order_id", order.id),
+        supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
         supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency").eq("order_id", order.id),
       ]);
       setOrderLines((linesRes.data || []) as InvoiceLine[]);
