@@ -185,6 +185,8 @@ export default function InvoiceHistoryDrawer({
     const ageMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
     return ageMin <= amountVisibleMinutes;
   };
+  // نفس مدة السماح للأمبر تُستخدم لإخفاء التفاصيل الحساسة عن الكاشير بعد ساعة
+  const canSeeDetails = (order: InvoiceOrder) => canCashierSeeAmount(order);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -997,9 +999,15 @@ export default function InvoiceHistoryDrawer({
                         <span>{time} — {date}</span>
                       </div>
                       <div className="text-[11px] mt-0.5 flex items-center gap-2" style={{ color: "#64748B" }}>
-                        <span>{order.customer_name || "زبون"}</span>
-                        {order.contacts?.phone && (
-                          <span className="font-mono text-[10px]" dir="ltr">{order.contacts.phone}</span>
+                        {canSeeDetails(order) ? (
+                          <>
+                            <span>{order.customer_name || "زبون"}</span>
+                            {order.contacts?.phone && (
+                              <span className="font-mono text-[10px]" dir="ltr">{order.contacts.phone}</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[10px]" style={{ color: "#94A3B8" }}>انتهت مدة عرض التفاصيل</span>
                         )}
                         {!cashierMode && order.pos_payments && order.pos_payments.length > 0 && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#F1F5F9", color: "#475569" }}>
@@ -1028,7 +1036,7 @@ export default function InvoiceHistoryDrawer({
                           )}
                         </div>
                       )}
-                      {(order.order_note || order.notes) && (
+                      {(order.order_note || order.notes) && canSeeDetails(order) && (
                         <div className="text-[10px] mt-0.5 truncate max-w-full" style={{ color: "#94A3B8" }} title={order.order_note || order.notes || ""}>
                           ملاحظة: {(order.order_note || order.notes || "").split("\n")[0].slice(0, 60)}{((order.order_note || order.notes || "").length > 60 || (order.order_note || order.notes || "").includes("\n")) ? "…" : ""}
                         </div>
@@ -1124,9 +1132,15 @@ export default function InvoiceHistoryDrawer({
                 </div>
                 <div>
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الزبون</span>
-                  {selectedOrder.customer_name || "زبون نقدي"}
-                  {selectedOrder.contacts?.phone && (
-                    <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
+                  {canSeeDetails(selectedOrder) ? (
+                    <>
+                      {selectedOrder.customer_name || "زبون نقدي"}
+                      {selectedOrder.contacts?.phone && (
+                        <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{ color: "#94A3B8" }}>—</span>
                   )}
                 </div>
                 <div>
@@ -1141,7 +1155,7 @@ export default function InvoiceHistoryDrawer({
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الفرع</span>
                   {terminalName || "---"}
                 </div>
-                {(selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name) && (
+                {canSeeDetails(selectedOrder) && (selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name) && (
                   <div className="col-span-2 rounded-md p-2" style={{ background: "#F8FAFC" }}>
                     <span className="block text-[10px] font-semibold" style={{ color: "#0A2342" }}>بيانات التوصيل</span>
                     {selectedOrder.area_name && (
@@ -1155,7 +1169,7 @@ export default function InvoiceHistoryDrawer({
                     )}
                   </div>
                 )}
-                {(selectedOrder.order_note || selectedOrder.notes) && (
+                {canSeeDetails(selectedOrder) && (selectedOrder.order_note || selectedOrder.notes) && (
                   <div className="col-span-2 rounded-md p-2" style={{ background: "#FEF9C3" }}>
                     <span className="block text-[10px] font-semibold" style={{ color: "#854D0E" }}>ملاحظة الطلبية</span>
                     <div className="mt-1 whitespace-pre-wrap" style={{ color: "#713F12" }}>{selectedOrder.order_note || selectedOrder.notes}</div>
@@ -1167,12 +1181,17 @@ export default function InvoiceHistoryDrawer({
                     <span style={{ color: "#CA8A04" }}>{selectedOrder.recall_reason}</span>
                   </div>
                 )}
+                {!canSeeDetails(selectedOrder) && (
+                  <div className="col-span-2 rounded-md p-2 text-center text-[11px]" style={{ background: "#FEF3C7", color: "#92400E" }}>
+                    انتهت مدة عرض التفاصيل الكاملة لهذه الفاتورة ({amountVisibleMinutes} دقيقة من وقت الإصدار).
+                  </div>
+                )}
               </div>
 
               {/* Items table */}
               {loadingDetail ? (
                 <div className="py-8 text-center text-sm text-gray-400">جاري التحميل...</div>
-              ) : (
+              ) : canSeeDetails(selectedOrder) ? (
                 <div className="mt-2 rounded-xl border border-border overflow-hidden">
                   <table className="w-full text-xs border-collapse">
                     <thead>
@@ -1213,6 +1232,19 @@ export default function InvoiceHistoryDrawer({
                       )}
                       <tr style={{ background: "#0A2342" }}>
                         <td colSpan={3} className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي للتحصيل</td>
+                        <td className="py-2.5 px-3 text-left font-bold text-white rounded-bl-lg" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                          ₪{selectedOrder.total.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <div className="mt-2 rounded-xl border border-border overflow-hidden">
+                  <table className="w-full text-xs border-collapse">
+                    <tfoot>
+                      <tr style={{ background: "#0A2342" }}>
+                        <td className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي للتحصيل</td>
                         <td className="py-2.5 px-3 text-left font-bold text-white rounded-bl-lg" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                           ₪{selectedOrder.total.toFixed(2)}
                         </td>
