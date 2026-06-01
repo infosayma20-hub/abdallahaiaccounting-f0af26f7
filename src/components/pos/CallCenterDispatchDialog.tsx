@@ -13,6 +13,7 @@ interface CartItem {
   total: number;
   note?: string;
   product_id?: string | null;
+  modifiers?: Array<{ option_name: string; extra_price: number }>;
 }
 
 interface Props {
