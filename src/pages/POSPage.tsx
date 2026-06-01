@@ -4493,12 +4493,13 @@ const POSPage = () => {
             onClick={() => setIsSortMode(!isSortMode)}
             className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all shrink-0"
             style={{
-              background: isSortMode ? "#f59e0b" : "rgba(255,255,255,0.08)",
+              background: isSortMode ? "#334155" : "rgba(255,255,255,0.08)",
               color: isSortMode ? "white" : "rgba(255,255,255,0.7)",
             }}
+            title={isSortMode ? "إنهاء وضع الترتيب" : "وضع الترتيب"}
           >
-            <GripVertical className="h-3.5 w-3.5" />
-            {isSortMode ? "✅" : "ترتيب"}
+            {isSortMode ? <Check className="h-3.5 w-3.5" /> : <GripVertical className="h-3.5 w-3.5" />}
+            {isSortMode ? "تم" : "ترتيب"}
           </button>
 
           {/* Close shift */}
