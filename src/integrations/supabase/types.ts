@@ -1425,6 +1425,10 @@ export type Database = {
         Row: {
           accepted_at: string | null
           accepted_by: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_name: string | null
           created_at: string | null
           customer_name: string | null
           customer_phone: string | null
@@ -1457,6 +1461,10 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           accepted_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_by_name?: string | null
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
@@ -1489,6 +1497,10 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           accepted_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_by_name?: string | null
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
@@ -18088,6 +18100,10 @@ export type Database = {
       }
       cancel_cheque_endorsement: {
         Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
+      cancel_dispatched_call_center_order: {
+        Args: { p_order_id: string; p_reason: string }
         Returns: Json
       }
       cancel_editing_call_center_order: {
