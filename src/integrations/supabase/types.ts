@@ -10391,6 +10391,7 @@ export type Database = {
           daily_display_number: number | null
           delivery_accepted_at: string | null
           delivery_address: string | null
+          delivery_fee: number
           delivery_requested_at: string | null
           delivery_status: string | null
           digital_receipt_sent: boolean | null
@@ -10469,6 +10470,7 @@ export type Database = {
           daily_display_number?: number | null
           delivery_accepted_at?: string | null
           delivery_address?: string | null
+          delivery_fee?: number
           delivery_requested_at?: string | null
           delivery_status?: string | null
           digital_receipt_sent?: boolean | null
@@ -10547,6 +10549,7 @@ export type Database = {
           daily_display_number?: number | null
           delivery_accepted_at?: string | null
           delivery_address?: string | null
+          delivery_fee?: number
           delivery_requested_at?: string | null
           delivery_status?: string | null
           digital_receipt_sent?: boolean | null
