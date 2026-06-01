@@ -6,6 +6,7 @@ import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
 import { usePermission } from "@/hooks/usePermission";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { usePosMode } from "@/hooks/usePosMode";
