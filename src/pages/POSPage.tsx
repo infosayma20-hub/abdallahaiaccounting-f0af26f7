@@ -4349,6 +4349,7 @@ const POSPage = () => {
                 unit: "قطعة",
                 total: item.total || item.unit_price * item.qty,
                 note: item.note || "",
+                modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
               }));
               newOrder.name = order.customer_name || "طلب كول سنتر";
               setOrders(prev => [...prev, newOrder]);
