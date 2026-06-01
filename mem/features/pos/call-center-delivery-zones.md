@@ -22,3 +22,13 @@ type: feature
 - Never compute totals only from `order_note`; the truth is `delivery_fee` + `delivery_info`.
 - Never delete a zone if it's historically used — disable it.
 - Avoid double counting: items[] never contains the delivery line; the cashier-side injection happens once at `onAcceptOrder`.
+
+## Note duplication guard (v2)
+`order_note` is auto-composed by `buildOrderNote(...)` from delivery_info + base note. When a dispatched order is re-opened (cashier `onAcceptOrder` or call-center `onEditInCart`), the orderNote field MUST be set from `extractBaseNote(order.order_note)` (in `src/lib/order-note-utils.ts`) — NOT from the raw composed string — otherwise the delivery prefix gets prepended again on every save (was visible as 3× duplicated delivery blocks). Display surfaces (`DispatchedOrdersLog`, `PendingOrdersPanel`) also render via `extractBaseNote` to keep the UI clean even for legacy rows.
+
+## Reports separation (v2)
+`pos_orders.delivery_fee numeric default 0` mirrors the dispatch-time fee on the cashier-side invoice. Customer-facing `total` still INCLUDES delivery (so cash collection stays accurate), but every "restaurant sales" KPI in `usePOSReportsData` subtracts `delivery_fee`:
+- `restaurant_sales = total − delivery_fee` (per order)
+- `delivery_collected = delivery_fee`
+- `customer_total = total`
+`pos_order_lines` never contain a delivery line, so item/product/profit reports stay clean automatically. `DispatchedOrdersLog` card shows the explicit split (سعر الطلبية / رسوم التوصيل / الإجمالي للتحصيل).

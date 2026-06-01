@@ -35,6 +35,7 @@ import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
+import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
@@ -2859,6 +2860,7 @@ const POSPage = () => {
             area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
             order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+            delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
             ...(markAsReplacement && lastCancelledOrder ? {
@@ -2895,6 +2897,7 @@ const POSPage = () => {
                 area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
                 pos_customer_id: activeOrder.posCustomerId || null,
                 order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+                delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
                 ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
                 ...(markAsReplacement && lastCancelledOrder ? {
                   is_replacement: true,
@@ -2930,6 +2933,7 @@ const POSPage = () => {
               area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
               pos_customer_id: activeOrder.posCustomerId || null,
               order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+              delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
               ...(markAsReplacement && lastCancelledOrder ? {
                 is_replacement: true,
@@ -4329,7 +4333,11 @@ const POSPage = () => {
                 order.source_app ? `مصدر: ${order.source_app}` : "",
                 order.payment_method === "visa" ? "فيزا" : "نقدي",
                 deliveryBlock,
-                order.order_note || "",
+                // Use only the customer's free-text portion of the note — the
+                // structured delivery/customer/phone fields are rebuilt above
+                // from `delivery_info`, so re-feeding the composed note here
+                // would duplicate them on every re-accept / re-edit cycle.
+                extractBaseNote(order.order_note),
               ].filter(Boolean).join(" | ");
               // Persist the delivery fee + structured info on the order tab so
               // cartTotals adds it to the final total exactly once, and so the
@@ -6693,7 +6701,10 @@ const POSPage = () => {
           newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
           newOrder.orderTypeChosen = true;
           newOrder.deliveryAddress = order.delivery_address || "";
-          newOrder.orderNote = order.order_note || "";
+          // Strip the auto-composed delivery prefix so reopening the dispatch
+          // dialog doesn't append it a second/third time. The dialog will
+          // rebuild the full note from delivery_info + this base note on save.
+          newOrder.orderNote = extractBaseNote(order.order_note);
           newOrder.callCenterOrderId = order.id;
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
           newOrder.callCenterSourceApp = order.source_app || null;
