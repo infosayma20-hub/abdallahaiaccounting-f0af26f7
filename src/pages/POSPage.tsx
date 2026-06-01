@@ -130,6 +130,11 @@ interface OrderTab {
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
+  /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
+  isEditingDispatch?: boolean;
+  /** Locked branch for the order being edited (cannot be changed during edit). */
+  callCenterBranchId?: string | null;
+  callCenterBranchName?: string | null;
 }
 
 interface POSCustomer {
@@ -1062,11 +1067,18 @@ const POSPage = () => {
   useEffect(() => {
     if (!isCallCenter || !dataOwnerId) return;
     const loadCount = async () => {
+      // Same business-day cutoff (06:00 AM) used by the log itself, so the
+      // badge count and the open log always agree.
+      const now = new Date();
+      const businessStart = new Date(now);
+      if (now.getHours() < 6) businessStart.setDate(businessStart.getDate() - 1);
+      businessStart.setHours(6, 0, 0, 0);
       const { count } = await supabase
         .from("call_center_orders" as any)
         .select("id", { count: "exact", head: true })
         .eq("user_id", dataOwnerId)
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .gte("created_at", businessStart.toISOString());
       setPendingDispatchCount(count || 0);
     };
     loadCount();
@@ -6588,12 +6600,28 @@ const POSPage = () => {
         customerPhone={activeOrder.customerPhone}
         deliveryAddress={activeOrder.deliveryAddress}
         orderNote={orderNote}
+        editingOrderId={activeOrder.isEditingDispatch ? (activeOrder.callCenterOrderId || null) : null}
+        editingBranchId={activeOrder.isEditingDispatch ? (activeOrder.callCenterBranchId || null) : null}
+        editingBranchName={activeOrder.isEditingDispatch ? (activeOrder.callCenterBranchName || null) : null}
+        editingPaymentMethod={activeOrder.isEditingDispatch ? (activeOrder.callCenterPaymentMethod || null) : null}
+        editingSourceApp={activeOrder.isEditingDispatch ? (activeOrder.callCenterSourceApp || null) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
           setCustomerDataDiscount(null);
           setCustomerName("", null, "", null);
-          updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "" }));
+          updateActiveOrder(o => ({
+            ...o,
+            orderType: "dine_in",
+            orderTypeChosen: false,
+            deliveryAddress: "",
+            isEditingDispatch: false,
+            callCenterOrderId: null,
+            callCenterBranchId: null,
+            callCenterBranchName: null,
+            callCenterPaymentMethod: null,
+            callCenterSourceApp: null,
+          }));
         }}
       />
 
@@ -6602,6 +6630,43 @@ const POSPage = () => {
         open={showDispatchLog}
         onClose={() => setShowDispatchLog(false)}
         dataOwnerId={dataOwnerId || ""}
+        onEditInCart={(order) => {
+          // 🔧 Edit a not-yet-accepted dispatched order: load it into a fresh
+          // POS tab so the call-center user can adjust items, then F12 updates
+          // the same call_center_orders row in-place.
+          orderCounter.current += 1;
+          const newOrder = createNewOrder(orderCounter.current);
+          newOrder.customerName = order.customer_name || "";
+          newOrder.customerPhone = order.customer_phone || "";
+          newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+          newOrder.orderTypeChosen = true;
+          newOrder.deliveryAddress = order.delivery_address || "";
+          newOrder.orderNote = order.order_note || "";
+          newOrder.callCenterOrderId = order.id;
+          newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+          newOrder.callCenterSourceApp = order.source_app || null;
+          newOrder.callCenterBranchId = order.target_branch_id || null;
+          newOrder.callCenterBranchName = order.target_branch_name || null;
+          newOrder.isEditingDispatch = true;
+          newOrder.cart = (order.items || []).map((item: any) => ({
+            id: crypto.randomUUID(),
+            product_id: item.product_id || null,
+            name: item.name,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            cost_price: 0,
+            discount_pct: 0,
+            tax_rate: 0,
+            unit: "قطعة",
+            total: item.total || item.unit_price * item.qty,
+            note: item.note || "",
+          }));
+          newOrder.name = `✏️ تعديل: ${order.customer_name || "طلبية"}`;
+          setOrders(prev => [...prev, newOrder]);
+          setActiveOrderIndex(orders.length);
+          setShowDispatchLog(false);
+          toast.info("✏️ تم تحميل الطلبية للتعديل — عدّل الأصناف ثم اضغط F12 لتحديثها", { duration: 6000 });
+        }}
       />
 
       {/* Confirm Delete Product Dialog */}
