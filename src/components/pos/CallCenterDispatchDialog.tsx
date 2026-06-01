@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff } from "lucide-react";
+import DeliveryZonePicker, { DeliveryInfo } from "./DeliveryZonePicker";
 
 interface CartItem {
   name: string;
@@ -37,6 +38,8 @@ interface Props {
   editingBranchName?: string | null;
   editingPaymentMethod?: string | null;
   editingSourceApp?: string | null;
+  editingDeliveryInfo?: any | null;
+  editingDeliveryFee?: number | null;
 }
 
 interface Branch {
@@ -63,6 +66,7 @@ const CallCenterDispatchDialog = ({
   open, onOpenChange, dataOwnerId, cart, total,
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
+  editingDeliveryInfo, editingDeliveryFee,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -76,6 +80,7 @@ const CallCenterDispatchDialog = ({
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null);
   
   // Branch active sessions tracking
   const [branchSessions, setBranchSessions] = useState<Record<string, number>>({});
@@ -95,6 +100,19 @@ const CallCenterDispatchDialog = ({
     setErrors({});
     setDispatchedOrderId(null);
     setDispatchStatus(null);
+    setDeliveryInfo(
+      editingDeliveryInfo && editingDeliveryInfo.area
+        ? {
+            city: editingDeliveryInfo.city || "",
+            area: editingDeliveryInfo.area || "",
+            branch_id: editingDeliveryInfo.branch_id || editingBranchId || "",
+            branch_name: editingDeliveryInfo.branch_name || editingBranchName || "",
+            original_fee: Number(editingDeliveryInfo.original_fee ?? editingDeliveryFee ?? 0),
+            final_fee: Number(editingDeliveryInfo.final_fee ?? editingDeliveryFee ?? 0),
+            manually_adjusted: !!editingDeliveryInfo.manually_adjusted,
+          }
+        : null,
+    );
 
     // Load branches
     supabase
@@ -218,6 +236,7 @@ const CallCenterDispatchDialog = ({
     if (!name.trim()) newErrors.name = true;
     if (!phone.trim()) newErrors.phone = true;
     if (deliveryType === "delivery" && !address.trim()) newErrors.address = true;
+    if (deliveryType === "delivery" && !deliveryInfo) newErrors.zone = true;
     if (!paymentMethod) newErrors.payment = true;
     if (!sourceApp) newErrors.source = true;
     setErrors(newErrors);
@@ -307,8 +326,17 @@ const CallCenterDispatchDialog = ({
             extra_price: Number(m.extra_price) || 0,
           })),
         })),
-        total,
-        order_note: note.trim() || null,
+        total: total + (deliveryType === "delivery" && deliveryInfo ? Number(deliveryInfo.final_fee) || 0 : 0),
+        order_note: buildOrderNote({
+          baseNote: note.trim(),
+          name: name.trim(),
+          phone: phone.trim(),
+          info: deliveryType === "delivery" ? deliveryInfo : null,
+        }),
+        delivery_fee: deliveryType === "delivery" && deliveryInfo ? Number(deliveryInfo.final_fee) || 0 : 0,
+        delivery_info: deliveryType === "delivery" && deliveryInfo
+          ? { ...deliveryInfo, caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
+          : null,
       };
 
       let orderId: string | null = null;
@@ -330,6 +358,8 @@ const CallCenterDispatchDialog = ({
             p_items: payload.items as any,
             p_total: payload.total,
             p_order_note: payload.order_note,
+            p_delivery_fee: payload.delivery_fee,
+            p_delivery_info: payload.delivery_info as any,
           } as any
         );
         if (rpcErr) throw rpcErr;
