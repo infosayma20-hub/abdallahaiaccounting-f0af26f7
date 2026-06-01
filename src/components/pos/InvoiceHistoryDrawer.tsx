@@ -999,9 +999,15 @@ export default function InvoiceHistoryDrawer({
                         <span>{time} — {date}</span>
                       </div>
                       <div className="text-[11px] mt-0.5 flex items-center gap-2" style={{ color: "#64748B" }}>
-                        <span>{order.customer_name || "زبون"}</span>
-                        {order.contacts?.phone && (
-                          <span className="font-mono text-[10px]" dir="ltr">{order.contacts.phone}</span>
+                        {canSeeDetails(order) ? (
+                          <>
+                            <span>{order.customer_name || "زبون"}</span>
+                            {order.contacts?.phone && (
+                              <span className="font-mono text-[10px]" dir="ltr">{order.contacts.phone}</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[10px]" style={{ color: "#94A3B8" }}>انتهت مدة عرض التفاصيل</span>
                         )}
                         {!cashierMode && order.pos_payments && order.pos_payments.length > 0 && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#F1F5F9", color: "#475569" }}>
