@@ -133,6 +133,7 @@ const TemplateDesignerPage = lazy(() => import("./pages/TemplateDesignerPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const IndustryTemplatesPage = lazy(() => import("./pages/IndustryTemplatesPage"));
 const CustomizationRequestPage = lazy(() => import("./pages/CustomizationRequestPage"));
+const DeliveryZonesPage = lazy(() => import("./pages/DeliveryZonesPage"));
 const SupportTicketsPage = lazy(() => import("./pages/SupportTicketsPage"));
 const TicketDetailPage = lazy(() => import("./pages/TicketDetailPage"));
 const SupportAdminPage = lazy(() => import("./pages/SupportAdminPage"));
@@ -401,6 +402,7 @@ const App = () => (
               <Route path="/pos/order-display" element={<CustomerOrderDisplayPage />} />
               <Route path="/pos/kitchen-display" element={<KitchenDisplayPublicPage />} />
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/delivery-zones" element={<ProtectedRoute><ModuleGuard><DeliveryZonesPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />

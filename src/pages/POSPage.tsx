@@ -131,6 +131,8 @@ interface OrderTab {
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
+  callCenterDeliveryInfo?: any | null;
+  callCenterDeliveryFee?: number | null;
   /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
   isEditingDispatch?: boolean;
   /** Locked branch for the order being edited (cannot be changed during edit). */
@@ -4322,6 +4324,26 @@ const POSPage = () => {
                 total: item.total || item.unit_price * item.qty,
                 note: item.note || "",
               }));
+              // 🚚 Inject delivery fee as a cart line so it flows through totals,
+              // invoice persistence and print. The line is clearly labelled so the
+              // cashier and kitchen can identify it.
+              const _fee = Number((order as any).delivery_fee || 0);
+              const _info: any = (order as any).delivery_info || null;
+              if (_fee > 0) {
+                newOrder.cart.push({
+                  id: crypto.randomUUID(),
+                  product_id: null,
+                  name: `🚚 توصيل${_info?.area ? ` - ${_info.area}` : ""}`,
+                  qty: 1,
+                  unit_price: _fee,
+                  cost_price: 0,
+                  discount_pct: 0,
+                  tax_rate: 0,
+                  unit: "خدمة",
+                  total: _fee,
+                  note: _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
+                } as any);
+              }
               newOrder.name = `📞 ${order.customer_name}`;
               setOrders(prev => [...prev, newOrder]);
               setActiveOrderIndex(orders.length);
@@ -6615,6 +6637,8 @@ const POSPage = () => {
         editingBranchName={activeOrder.isEditingDispatch ? (activeOrder.callCenterBranchName || null) : null}
         editingPaymentMethod={activeOrder.isEditingDispatch ? (activeOrder.callCenterPaymentMethod || null) : null}
         editingSourceApp={activeOrder.isEditingDispatch ? (activeOrder.callCenterSourceApp || null) : null}
+        editingDeliveryInfo={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryInfo || null) : null}
+        editingDeliveryFee={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryFee || null) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
@@ -6657,6 +6681,8 @@ const POSPage = () => {
           newOrder.callCenterSourceApp = order.source_app || null;
           newOrder.callCenterBranchId = order.target_branch_id || null;
           newOrder.callCenterBranchName = order.target_branch_name || null;
+          newOrder.callCenterDeliveryInfo = (order as any).delivery_info || null;
+          newOrder.callCenterDeliveryFee = Number((order as any).delivery_fee || 0);
           newOrder.isEditingDispatch = true;
           newOrder.cart = (order.items || []).map((item: any) => ({
             id: crypto.randomUUID(),
