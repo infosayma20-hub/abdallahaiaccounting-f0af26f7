@@ -402,7 +402,7 @@ const App = () => (
               <Route path="/pos/order-display" element={<CustomerOrderDisplayPage />} />
               <Route path="/pos/kitchen-display" element={<KitchenDisplayPublicPage />} />
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
-              <Route path="/pos/delivery-zones" element={<ProtectedRoute><ModuleGuard><DeliveryZonesPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/delivery-zones" element={<ProtectedRoute><ModuleGuard><RoleGuard allowedRoles={["admin", "accountant_senior"]}><DeliveryZonesPage /></RoleGuard></ModuleGuard></ProtectedRoute>} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />

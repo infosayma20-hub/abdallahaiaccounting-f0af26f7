@@ -59,9 +59,9 @@ export function buildOrderNote(args: {
 }): string | null {
   const parts: string[] = [];
   if (args.info) {
-    parts.push(`🚚 توصيل: ${args.info.city} - ${args.info.area}`);
+    parts.push(`توصيل: ${args.info.city} - ${args.info.area}`);
     parts.push(`الفرع: ${args.info.branch_name}`);
-    parts.push(`سعر التوصيل: ₪${Number(args.info.final_fee).toFixed(2)}${args.info.manually_adjusted ? " (معدّل)" : ""}`);
+    parts.push(`رسوم التوصيل: ₪${Number(args.info.final_fee).toFixed(2)}${args.info.manually_adjusted ? " (معدّل)" : ""}`);
   }
   if (args.name) parts.push(`الزبون: ${args.name}`);
   if (args.phone) parts.push(`جوال: ${args.phone}`);
@@ -684,7 +684,7 @@ const CallCenterDispatchDialog = ({
             {deliveryType === "delivery" && deliveryInfo && (
               <>
                 <div className="flex justify-between text-xs text-orange-700 dark:text-orange-300">
-                  <span>🚚 توصيل ({deliveryInfo.area})</span>
+                  <span>رسوم توصيل ({deliveryInfo.area})</span>
                   <span className="font-mono">₪{Number(deliveryInfo.final_fee).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-sm border-t border-border pt-2">

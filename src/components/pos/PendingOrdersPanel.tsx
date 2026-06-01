@@ -534,7 +534,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         ))}
                         {Number(order.delivery_fee || 0) > 0 && (
                           <div className="flex justify-between text-[11px] text-orange-700 font-semibold">
-                            <span>🚚 توصيل {order.delivery_info?.area ? `(${order.delivery_info.area})` : ""}</span>
+                            <span>توصيل {order.delivery_info?.area ? `(${order.delivery_info.area})` : ""}</span>
                             <span className="font-mono">₪{Number(order.delivery_fee).toFixed(2)}</span>
                           </div>
                         )}
