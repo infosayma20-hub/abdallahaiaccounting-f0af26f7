@@ -1273,7 +1273,7 @@ export default function InvoiceHistoryDrawer({
               })()}
 
               {/* Action buttons */}
-              <div className="flex items-center gap-2 pt-4 border-t mt-3" style={{ borderColor: "#E2E8F0" }}>
+              <div className="flex items-center gap-2 flex-wrap pt-4 border-t mt-4" style={{ borderColor: "#E5E7EB" }}>
                 {selectedOrder.state === "draft" && onLoadDraftToCart && (
                   <Button
                     size="sm"
@@ -1340,11 +1340,10 @@ export default function InvoiceHistoryDrawer({
                     {!cashierMode && (
                     <Button
                       size="sm"
+                      variant="outline"
                       className="gap-1.5 text-xs"
-                      style={{ background: "#4A9EE8", color: "#0A2342" }}
                       onClick={() => initiateRecall(selectedOrder)}
                     >
-                      <Lock className="h-3 w-3" />
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
                     )}
