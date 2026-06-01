@@ -6600,12 +6600,28 @@ const POSPage = () => {
         customerPhone={activeOrder.customerPhone}
         deliveryAddress={activeOrder.deliveryAddress}
         orderNote={orderNote}
+        editingOrderId={activeOrder.isEditingDispatch ? (activeOrder.callCenterOrderId || null) : null}
+        editingBranchId={activeOrder.isEditingDispatch ? (activeOrder.callCenterBranchId || null) : null}
+        editingBranchName={activeOrder.isEditingDispatch ? (activeOrder.callCenterBranchName || null) : null}
+        editingPaymentMethod={activeOrder.isEditingDispatch ? (activeOrder.callCenterPaymentMethod || null) : null}
+        editingSourceApp={activeOrder.isEditingDispatch ? (activeOrder.callCenterSourceApp || null) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
           setCustomerDataDiscount(null);
           setCustomerName("", null, "", null);
-          updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "" }));
+          updateActiveOrder(o => ({
+            ...o,
+            orderType: "dine_in",
+            orderTypeChosen: false,
+            deliveryAddress: "",
+            isEditingDispatch: false,
+            callCenterOrderId: null,
+            callCenterBranchId: null,
+            callCenterBranchName: null,
+            callCenterPaymentMethod: null,
+            callCenterSourceApp: null,
+          }));
         }}
       />
 
@@ -6614,6 +6630,43 @@ const POSPage = () => {
         open={showDispatchLog}
         onClose={() => setShowDispatchLog(false)}
         dataOwnerId={dataOwnerId || ""}
+        onEditInCart={(order) => {
+          // 🔧 Edit a not-yet-accepted dispatched order: load it into a fresh
+          // POS tab so the call-center user can adjust items, then F12 updates
+          // the same call_center_orders row in-place.
+          orderCounter.current += 1;
+          const newOrder = createNewOrder(orderCounter.current);
+          newOrder.customerName = order.customer_name || "";
+          newOrder.customerPhone = order.customer_phone || "";
+          newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+          newOrder.orderTypeChosen = true;
+          newOrder.deliveryAddress = order.delivery_address || "";
+          newOrder.orderNote = order.order_note || "";
+          newOrder.callCenterOrderId = order.id;
+          newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+          newOrder.callCenterSourceApp = order.source_app || null;
+          newOrder.callCenterBranchId = order.target_branch_id || null;
+          newOrder.callCenterBranchName = order.target_branch_name || null;
+          newOrder.isEditingDispatch = true;
+          newOrder.cart = (order.items || []).map((item: any) => ({
+            id: crypto.randomUUID(),
+            product_id: item.product_id || null,
+            name: item.name,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            cost_price: 0,
+            discount_pct: 0,
+            tax_rate: 0,
+            unit: "قطعة",
+            total: item.total || item.unit_price * item.qty,
+            note: item.note || "",
+          }));
+          newOrder.name = `✏️ تعديل: ${order.customer_name || "طلبية"}`;
+          setOrders(prev => [...prev, newOrder]);
+          setActiveOrderIndex(orders.length);
+          setShowDispatchLog(false);
+          toast.info("✏️ تم تحميل الطلبية للتعديل — عدّل الأصناف ثم اضغط F12 لتحديثها", { duration: 6000 });
+        }}
       />
 
       {/* Confirm Delete Product Dialog */}
