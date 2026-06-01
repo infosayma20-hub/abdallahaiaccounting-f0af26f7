@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import EditOrderDialog from "./EditOrderDialog";
@@ -34,6 +34,12 @@ interface Props {
   open: boolean;
   onClose: () => void;
   dataOwnerId: string;
+  /**
+   * Optional: when provided, the "تعديل الطلبية" button on a *pending* order
+   * loads it back into the POS cart so the call-center user can edit items.
+   * For accepted orders the legacy EditOrderDialog flow is kept.
+   */
+  onEditInCart?: (order: DispatchedOrder) => void;
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -56,13 +62,15 @@ function getBusinessDayStart(): string {
   return businessDate.toISOString();
 }
 
-export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Props) {
+export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEditInCart }: Props) {
   const [orders, setOrders] = useState<DispatchedOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<DispatchedOrder | null>(null);
   const [editsByOrder, setEditsByOrder] = useState<Record<string, { pending: number; lastStatus?: string }>>({});
+  /** Filter by call-center agent (dispatched_by_name). `null` = الكل. */
+  const [agentFilter, setAgentFilter] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -154,6 +162,17 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
   const acceptedCount = orders.filter(o => o.status === "accepted").length;
   const completedCount = orders.filter(o => o.status === "completed").length;
 
+  // Unique agent list for the per-employee filter chips.
+  const agents = Array.from(
+    new Set(orders.map(o => (o.dispatched_by_name || "").trim()).filter(Boolean))
+  ).sort();
+
+  // Apply both status + agent filters at render time. (Status is already
+  // filtered at the query level when not "all".)
+  const visibleOrders = orders.filter(o =>
+    agentFilter ? (o.dispatched_by_name || "") === agentFilter : true
+  );
+
   return (
     <>
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
@@ -189,17 +208,53 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
           ))}
         </div>
 
+        {/* Per-agent filter — appears only when ≥2 different agents dispatched today. */}
+        {agents.length >= 2 && (
+          <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-border bg-muted/20">
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+              <Users className="h-3 w-3" /> الموظفة:
+            </span>
+            <button
+              onClick={() => setAgentFilter(null)}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                agentFilter === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              الكل ({orders.length})
+            </button>
+            {agents.map(agent => {
+              const count = orders.filter(o => (o.dispatched_by_name || "") === agent).length;
+              return (
+                <button
+                  key={agent}
+                  onClick={() => setAgentFilter(agent)}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                    agentFilter === agent
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {agent} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <ScrollArea className="h-[calc(100vh-110px)]">
           <div className="p-3 space-y-2">
-            {orders.length === 0 ? (
+            {visibleOrders.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-30" />
                 <p className="text-sm">لا توجد فواتير محوّلة اليوم</p>
               </div>
             ) : (
-              orders.map((order) => {
+              visibleOrders.map((order) => {
                 const cfg = statusConfig[order.status] || statusConfig.pending;
                 const StatusIcon = cfg.icon;
+                const itemsWithNotes = (order.items || []).filter((it: any) => it && it.note && String(it.note).trim());
                 return (
                   <div
                     key={order.id}
@@ -230,6 +285,14 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                       </Badge>
                     </div>
 
+                    {/* Who dispatched this order — surface the call-center agent's name. */}
+                    {order.dispatched_by_name && (
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Users className="h-2.5 w-2.5" />
+                        <span>حوّلتها: <b className="text-foreground/80">{order.dispatched_by_name}</b></span>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <User className="h-3 w-3 text-muted-foreground" />
@@ -249,9 +312,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-muted-foreground truncate">
-                      {(order.items || []).map((item: any) => `${item.name}×${item.qty}`).join(" • ")}
+                    {/* Items list — show per-item notes (e.g. حار / عادي) explicitly. */}
+                    <div className="text-[10px] text-muted-foreground space-y-0.5">
+                      {(order.items || []).map((item: any, idx: number) => (
+                        <div key={idx} className="flex flex-wrap items-baseline gap-x-1">
+                          <span className="text-foreground/80">• {item.name}×{item.qty}</span>
+                          {item.note && String(item.note).trim() && (
+                            <span className="text-amber-700 dark:text-amber-400 font-medium">
+                              — 🌶 {item.note}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
+
+                    {/* Order-level note (الزبون/الطلبية). */}
+                    {order.order_note && order.order_note.trim() && (
+                      <div className="flex items-start gap-1 text-[10px] rounded bg-amber-500/10 border border-amber-500/30 px-1.5 py-1 text-amber-800 dark:text-amber-300">
+                        <StickyNote className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <span><b>ملاحظة الطلبية:</b> {order.order_note}</span>
+                      </div>
+                    )}
 
                     {order.status === "pending" && (
                       <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
@@ -306,7 +387,15 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                           variant="outline"
                           size="sm"
                           className="flex-1 h-7 text-[11px] gap-1.5 border-blue-500/40 text-blue-700 hover:bg-blue-500/10"
-                          onClick={() => setEditTarget(order)}
+                          onClick={() => {
+                            // 🆕 Pending orders → open in POS cart (full item edit).
+                            // Accepted orders → keep legacy proposal dialog.
+                            if (order.status === "pending" && onEditInCart) {
+                              onEditInCart(order);
+                            } else {
+                              setEditTarget(order);
+                            }
+                          }}
                           disabled={(editsByOrder[order.id]?.pending || 0) > 0}
                         >
                           <Pencil className="h-3 w-3" />
