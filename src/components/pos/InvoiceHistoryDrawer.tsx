@@ -1013,13 +1013,38 @@ export default function InvoiceHistoryDrawer({
                           <span>نُقلت إلى: {order.transferred_to_name}</span>
                         </div>
                       )}
+                      {Number(order.delivery_fee || 0) > 0 && canCashierSeeAmount(order) && (
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[10px]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                          <span className="px-1.5 py-0.5 rounded" style={{ background: "#F1F5F9", color: "#475569" }}>
+                            أصناف ₪{(Number(order.total) - Number(order.delivery_fee || 0)).toFixed(2)}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded" style={{ background: "#FEF3C7", color: "#92400E" }}>
+                            توصيل ₪{Number(order.delivery_fee).toFixed(2)}
+                          </span>
+                          {(order.area_name || order.delivery_address) && (
+                            <span className="text-[10px] truncate max-w-[180px]" style={{ fontFamily: "Tajawal, sans-serif", color: "#64748B" }} title={order.delivery_address || order.area_name || ""}>
+                              {order.area_name || order.delivery_address}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {(order.order_note || order.notes) && (
+                        <div className="text-[10px] mt-0.5 truncate max-w-full" style={{ color: "#94A3B8" }} title={order.order_note || order.notes || ""}>
+                          ملاحظة: {(order.order_note || order.notes || "").split("\n")[0].slice(0, 60)}{((order.order_note || order.notes || "").length > 60 || (order.order_note || order.notes || "").includes("\n")) ? "…" : ""}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
                       {canCashierSeeAmount(order) ? (
-                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: "#0A2342" }}>
-                          ₪{order.total.toFixed(2)}
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: "#0A2342" }}>
+                            ₪{order.total.toFixed(2)}
+                          </span>
+                          {Number(order.delivery_fee || 0) > 0 && (
+                            <span className="text-[9px]" style={{ color: "#92400E" }}>يشمل التوصيل</span>
+                          )}
+                        </div>
                       ) : (
                         <span
                           style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: "#94A3B8" }}
