@@ -7,6 +7,7 @@ import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone,
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import EditOrderDialog from "./EditOrderDialog";
+import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
 
 interface DispatchedOrder {
   id: string;
