@@ -12,6 +12,7 @@ import {
   Bell, Phone, MapPin, Truck, ShoppingBag, CreditCard, Banknote,
   CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle,
 } from "lucide-react";
+import { extractBaseNote } from "@/lib/order-note-utils";
 
 interface CallCenterOrder {
   id: string;
