@@ -527,9 +527,29 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                       {/* Items compact */}
                       <div className="bg-background/60 rounded p-2 space-y-0.5">
                         {(order.items || []).map((item: any, i: number) => (
-                          <div key={i} className="flex justify-between text-[11px]">
-                            <span>{item.name} × {item.qty}</span>
-                            <span className="font-mono">₪{(item.total || 0).toFixed(2)}</span>
+                          <div key={i} className="text-[11px]">
+                            <div className="flex justify-between">
+                              <span>{item.name} × {item.qty}</span>
+                              <span className="font-mono">₪{(item.total || 0).toFixed(2)}</span>
+                            </div>
+                            {item.note && String(item.note).trim() && (
+                              <div className="text-amber-700 dark:text-amber-400 text-[10px] pr-2">
+                                — ملاحظة: {item.note}
+                              </div>
+                            )}
+                            {Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
+                              <ul className="pr-3 text-[10px] text-foreground/70">
+                                {item.modifiers.map((m: any, mi: number) => (
+                                  <li key={mi} className="flex items-baseline gap-1">
+                                    <span className="text-muted-foreground">+</span>
+                                    <span>{m.option_name}</span>
+                                    {Number(m.extra_price) > 0 && (
+                                      <span className="text-muted-foreground">(₪{Number(m.extra_price).toFixed(2)})</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </div>
                         ))}
                         {Number(order.delivery_fee || 0) > 0 && (
