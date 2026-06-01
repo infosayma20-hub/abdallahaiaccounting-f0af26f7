@@ -1878,22 +1878,14 @@ const POSPage = () => {
   // Filter categories by current cash box restrictions
   const visiblePosCategories = useMemo(() => {
     const currentBoxId = session?.cash_box_id;
-    
-    // Check if current box is targeted by any restricted category
-    const boxIsTargeted = currentBoxId && posCategories.some(
-      cat => cat.restricted_cash_box_ids?.length && cat.restricted_cash_box_ids.includes(currentBoxId)
-    );
-    
+
+    // Show: all unrestricted categories + restricted categories that explicitly
+    // include this cash box. (A restricted category is hidden from boxes not in
+    // its allow-list.)
     return posCategories.filter(cat => {
       const hasRestriction = cat.restricted_cash_box_ids && cat.restricted_cash_box_ids.length > 0;
-      
-      if (boxIsTargeted) {
-        // This box is targeted: show ONLY categories that explicitly include it
-        return hasRestriction && currentBoxId ? cat.restricted_cash_box_ids!.includes(currentBoxId) : false;
-      } else {
-        // This box is NOT targeted: show only unrestricted categories
-        return !hasRestriction;
-      }
+      if (!hasRestriction) return true;
+      return !!currentBoxId && cat.restricted_cash_box_ids!.includes(currentBoxId);
     });
   }, [posCategories, session?.cash_box_id]);
 
