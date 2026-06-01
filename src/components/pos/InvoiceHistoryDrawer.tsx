@@ -46,6 +46,15 @@ interface InvoiceOrder {
   transferred_from_session_id: string | null;
   transferred_to_name: string | null;
   pos_payments?: { payment_method: string }[];
+  order_type?: string | null;
+  is_delivery?: boolean | null;
+  delivery_address?: string | null;
+  customer_address?: string | null;
+  area_name?: string | null;
+  zone_code?: string | null;
+  delivery_fee?: number | null;
+  order_note?: string | null;
+  notes?: string | null;
 }
 
 interface InvoiceLine {
@@ -59,6 +68,7 @@ interface InvoiceLine {
   subtotal: number;
   total: number;
   discount_amount: number;
+  notes?: string | null;
 }
 
 interface InvoicePayment {
