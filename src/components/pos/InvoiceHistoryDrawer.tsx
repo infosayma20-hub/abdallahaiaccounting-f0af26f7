@@ -1022,17 +1022,17 @@ export default function InvoiceHistoryDrawer({
                         </div>
                       )}
                       {Number(order.delivery_fee || 0) > 0 && canCashierSeeAmount(order) && (
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[10px]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                          <span className="px-1.5 py-0.5 rounded" style={{ background: "#F1F5F9", color: "#475569" }}>
-                            أصناف ₪{(Number(order.total) - Number(order.delivery_fee || 0)).toFixed(2)}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded" style={{ background: "#FEF3C7", color: "#92400E" }}>
-                            توصيل ₪{Number(order.delivery_fee).toFixed(2)}
-                          </span>
+                        <div className="mt-1 flex items-center gap-1 flex-wrap text-[10px]" style={{ color: "#64748B" }}>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>أصناف ₪{(Number(order.total) - Number(order.delivery_fee || 0)).toFixed(2)}</span>
+                          <span style={{ color: "#CBD5E1" }}>·</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>توصيل ₪{Number(order.delivery_fee).toFixed(2)}</span>
                           {(order.area_name || order.delivery_address) && (
-                            <span className="text-[10px] truncate max-w-[180px]" style={{ fontFamily: "Tajawal, sans-serif", color: "#64748B" }} title={order.delivery_address || order.area_name || ""}>
-                              {order.area_name || order.delivery_address}
-                            </span>
+                            <>
+                              <span style={{ color: "#CBD5E1" }}>·</span>
+                              <span className="truncate max-w-[180px]" title={order.delivery_address || order.area_name || ""}>
+                                {order.area_name || order.delivery_address}
+                              </span>
+                            </>
                           )}
                         </div>
                       )}
@@ -1050,7 +1050,7 @@ export default function InvoiceHistoryDrawer({
                             ₪{order.total.toFixed(2)}
                           </span>
                           {Number(order.delivery_fee || 0) > 0 && (
-                            <span className="text-[9px]" style={{ color: "#92400E" }}>يشمل التوصيل</span>
+                            <span className="text-[9px]" style={{ color: "#94A3B8" }}>يشمل التوصيل</span>
                           )}
                         </div>
                       ) : (
@@ -1109,153 +1109,171 @@ export default function InvoiceHistoryDrawer({
 
       {/* ══════ DETAIL MODAL ══════ */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100]" style={{ fontFamily: "Tajawal, sans-serif" }}>
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100] bg-white" style={{ fontFamily: "Tajawal, sans-serif", color: "#0F172A" }}>
           {selectedOrder && (
             <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <span style={{ fontFamily: "JetBrains Mono, monospace", color: "#0A2342" }}>
-                    فاتورة رقم #{selectedOrder.order_number || "---"}
-                  </span>
-                  {(() => {
-                    const st = getStatusDisplay(selectedOrder);
-                    return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: st.bg, color: st.text }}>{st.label}</span>;
-                  })()}
-                </DialogTitle>
-              </DialogHeader>
-
-              {/* Metadata */}
-              <div className="grid grid-cols-2 gap-3 text-xs py-3 border-b" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
-                <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>التاريخ والوقت</span>
-                  {format(new Date(selectedOrder.created_at), "dd/MM/yyyy HH:mm")}
-                </div>
-                <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الزبون</span>
-                  {canSeeDetails(selectedOrder) ? (
-                    <>
-                      {selectedOrder.customer_name || "زبون نقدي"}
-                      {selectedOrder.contacts?.phone && (
-                        <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
-                      )}
-                    </>
-                  ) : (
-                    <span style={{ color: "#94A3B8" }}>—</span>
-                  )}
-                </div>
-                <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
-                  {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
-                </div>
-                <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>نوع الطلب</span>
-                  {({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "---"))}
-                </div>
-                <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الفرع</span>
-                  {terminalName || "---"}
-                </div>
-                {canSeeDetails(selectedOrder) && (selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name) && (
-                  <div className="col-span-2 rounded-md p-2" style={{ background: "#F8FAFC" }}>
-                    <span className="block text-[10px] font-semibold" style={{ color: "#0A2342" }}>بيانات التوصيل</span>
-                    {selectedOrder.area_name && (
-                      <div className="mt-1"><span className="text-[10px]" style={{ color: "#94A3B8" }}>المنطقة: </span>{selectedOrder.area_name}</div>
-                    )}
-                    {(selectedOrder.delivery_address || selectedOrder.customer_address) && (
-                      <div className="mt-0.5"><span className="text-[10px]" style={{ color: "#94A3B8" }}>العنوان: </span>{selectedOrder.delivery_address || selectedOrder.customer_address}</div>
-                    )}
-                    {Number(selectedOrder.delivery_fee || 0) > 0 && (
-                      <div className="mt-0.5"><span className="text-[10px]" style={{ color: "#94A3B8" }}>رسوم التوصيل: </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>₪{Number(selectedOrder.delivery_fee).toFixed(2)}</span></div>
-                    )}
-                  </div>
-                )}
-                {canSeeDetails(selectedOrder) && (selectedOrder.order_note || selectedOrder.notes) && (
-                  <div className="col-span-2 rounded-md p-2" style={{ background: "#FEF9C3" }}>
-                    <span className="block text-[10px] font-semibold" style={{ color: "#854D0E" }}>ملاحظة الطلبية</span>
-                    <div className="mt-1 whitespace-pre-wrap" style={{ color: "#713F12" }}>{selectedOrder.order_note || selectedOrder.notes}</div>
-                  </div>
-                )}
-                {selectedOrder.recall_status && (
+              {(() => {
+                const st = getStatusDisplay(selectedOrder);
+                const orderTypeLabel = ({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "—"));
+                const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join("، ") || "—";
+                const deliveryFee = Number(selectedOrder.delivery_fee || 0);
+                const itemsSubtotal = Number(selectedOrder.total) - deliveryFee;
+                const showDelivery = canSeeDetails(selectedOrder) && (selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name);
+                const showNote = canSeeDetails(selectedOrder) && (selectedOrder.order_note || selectedOrder.notes);
+                // Neutral cell wrapper
+                const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
                   <div>
-                    <span className="block text-[10px]" style={{ color: "#94A3B8" }}>سبب التعديل</span>
-                    <span style={{ color: "#CA8A04" }}>{selectedOrder.recall_reason}</span>
+                    <div className="text-[10px] mb-0.5" style={{ color: "#94A3B8" }}>{label}</div>
+                    <div className="text-[12px]" style={{ color: "#0F172A" }}>{children}</div>
                   </div>
-                )}
-                {!canSeeDetails(selectedOrder) && (
-                  <div className="col-span-2 rounded-md p-2 text-center text-[11px]" style={{ background: "#FEF3C7", color: "#92400E" }}>
-                    انتهت مدة عرض التفاصيل الكاملة لهذه الفاتورة ({amountVisibleMinutes} دقيقة من وقت الإصدار).
-                  </div>
-                )}
-              </div>
+                );
+                return (
+                  <>
+                    {/* Header */}
+                    <DialogHeader className="pb-3 border-b" style={{ borderColor: "#E5E7EB" }}>
+                      <DialogTitle className="flex items-center gap-2 text-right">
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", color: "#0F172A", fontSize: 14, fontWeight: 600 }}>
+                          #{selectedOrder.order_number || "---"}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium border" style={{ borderColor: "#E5E7EB", background: "#F8FAFC", color: "#475569" }}>
+                          {st.label}
+                        </span>
+                        <span className="text-[11px] mr-auto" style={{ color: "#94A3B8" }}>
+                          {format(new Date(selectedOrder.created_at), "dd/MM/yyyy · HH:mm")}
+                        </span>
+                      </DialogTitle>
+                    </DialogHeader>
 
-              {/* Items table */}
-              {loadingDetail ? (
-                <div className="py-8 text-center text-sm text-gray-400">جاري التحميل...</div>
-              ) : canSeeDetails(selectedOrder) ? (
-                <div className="mt-2 rounded-xl border border-border overflow-hidden">
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr style={{ background: "#0A2342", color: "white" }}>
-                        <th className="py-2 px-3 text-right font-medium">الصنف</th>
-                        <th className="py-2 px-3 text-center font-medium">الكمية</th>
-                        <th className="py-2 px-3 text-center font-medium">السعر</th>
-                        <th className="py-2 px-3 text-left font-medium">الإجمالي</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderLines.map(line => (
-                        <tr key={line.id} className="border-b" style={{ borderColor: "#F1F5F9" }}>
-                          <td className="py-2 px-3 text-right" style={{ color: "#0A2342" }}>
-                            <div>{line.product_name}</div>
-                            {line.notes && (
-                              <div className="text-[10px] mt-0.5 whitespace-pre-wrap" style={{ color: "#7C3AED" }}>📝 {line.notes}</div>
-                            )}
-                          </td>
-                          <td className="py-2 px-3 text-center" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>{line.qty}</td>
-                          <td className="py-2 px-3 text-center" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{line.unit_price.toFixed(2)}</td>
-                          <td className="py-2 px-3 text-left" style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600, color: "#0A2342" }}>₪{line.total.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      {Number(selectedOrder.delivery_fee || 0) > 0 && (
-                        <>
-                          <tr style={{ background: "#F8FAFC" }}>
-                            <td colSpan={3} className="py-1.5 px-3 text-right text-[11px]" style={{ color: "#64748B" }}>سعر الأصناف</td>
-                            <td className="py-1.5 px-3 text-left text-[11px]" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{(Number(selectedOrder.total) - Number(selectedOrder.delivery_fee || 0)).toFixed(2)}</td>
-                          </tr>
-                          <tr style={{ background: "#F8FAFC" }}>
-                            <td colSpan={3} className="py-1.5 px-3 text-right text-[11px]" style={{ color: "#64748B" }}>رسوم التوصيل</td>
-                            <td className="py-1.5 px-3 text-left text-[11px]" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{Number(selectedOrder.delivery_fee).toFixed(2)}</td>
-                          </tr>
-                        </>
-                      )}
-                      <tr style={{ background: "#0A2342" }}>
-                        <td colSpan={3} className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي للتحصيل</td>
-                        <td className="py-2.5 px-3 text-left font-bold text-white rounded-bl-lg" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                          ₪{selectedOrder.total.toFixed(2)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              ) : (
-                <div className="mt-2 rounded-xl border border-border overflow-hidden">
-                  <table className="w-full text-xs border-collapse">
-                    <tfoot>
-                      <tr style={{ background: "#0A2342" }}>
-                        <td className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي للتحصيل</td>
-                        <td className="py-2.5 px-3 text-left font-bold text-white rounded-bl-lg" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                          ₪{selectedOrder.total.toFixed(2)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
+                    {/* Section: identity */}
+                    <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
+                      <Field label="الفرع">{terminalName || "—"}</Field>
+                      <Field label="طريقة الدفع">{paymentLabel}</Field>
+                      <Field label="نوع الطلب">{orderTypeLabel}</Field>
+                    </div>
+
+                    {/* Section: customer */}
+                    {canSeeDetails(selectedOrder) ? (
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
+                        <Field label="اسم الزبون">{selectedOrder.customer_name || "زبون نقدي"}</Field>
+                        <Field label="رقم الجوال">
+                          {selectedOrder.contacts?.phone ? (
+                            <span className="font-mono" dir="ltr">{selectedOrder.contacts.phone}</span>
+                          ) : "—"}
+                        </Field>
+                        {selectedOrder.recall_status && (
+                          <Field label="سبب التعديل">{selectedOrder.recall_reason || "—"}</Field>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="py-3 border-b text-[11px]" style={{ borderColor: "#F1F5F9", color: "#94A3B8" }}>
+                        انتهت مدة عرض تفاصيل الزبون لهذه الفاتورة (بعد {amountVisibleMinutes} دقيقة من الإصدار).
+                      </div>
+                    )}
+
+                    {/* Section: delivery */}
+                    {showDelivery && (
+                      <div className="py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
+                        <div className="text-[10px] mb-2" style={{ color: "#94A3B8" }}>بيانات التوصيل</div>
+                        <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-[12px]" style={{ color: "#0F172A" }}>
+                          {selectedOrder.area_name && (
+                            <div><span className="text-[10px]" style={{ color: "#94A3B8" }}>المنطقة · </span>{selectedOrder.area_name}</div>
+                          )}
+                          {(selectedOrder.delivery_address || selectedOrder.customer_address) && (
+                            <div className="col-span-2"><span className="text-[10px]" style={{ color: "#94A3B8" }}>العنوان · </span>{selectedOrder.delivery_address || selectedOrder.customer_address}</div>
+                          )}
+                          {deliveryFee > 0 && (
+                            <div><span className="text-[10px]" style={{ color: "#94A3B8" }}>رسوم التوصيل · </span><span style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{deliveryFee.toFixed(2)}</span></div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section: note */}
+                    {showNote && (
+                      <div className="py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
+                        <div className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>ملاحظة الطلبية</div>
+                        <div className="text-[12px] whitespace-pre-wrap leading-relaxed break-words" style={{ color: "#334155" }}>
+                          {selectedOrder.order_note || selectedOrder.notes}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section: items */}
+                    {loadingDetail ? (
+                      <div className="py-8 text-center text-sm" style={{ color: "#94A3B8" }}>جاري التحميل...</div>
+                    ) : canSeeDetails(selectedOrder) ? (
+                      <div className="mt-3">
+                        <div className="text-[10px] mb-1.5" style={{ color: "#94A3B8" }}>الأصناف</div>
+                        <table className="w-full text-[12px] border-collapse">
+                          <thead>
+                            <tr className="border-y" style={{ borderColor: "#E5E7EB" }}>
+                              <th className="py-1.5 px-2 text-right font-medium" style={{ color: "#64748B" }}>الصنف</th>
+                              <th className="py-1.5 px-2 text-center font-medium w-14" style={{ color: "#64748B" }}>الكمية</th>
+                              <th className="py-1.5 px-2 text-center font-medium w-20" style={{ color: "#64748B" }}>السعر</th>
+                              <th className="py-1.5 px-2 text-left font-medium w-24" style={{ color: "#64748B" }}>الإجمالي</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {orderLines.map(line => (
+                              <tr key={line.id} className="border-b" style={{ borderColor: "#F1F5F9" }}>
+                                <td className="py-2 px-2 text-right align-top" style={{ color: "#0F172A" }}>
+                                  <div>{line.product_name}</div>
+                                  {line.notes && (
+                                    <div className="text-[10px] mt-0.5 whitespace-pre-wrap" style={{ color: "#94A3B8" }}>{line.notes}</div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 text-center align-top" style={{ fontFamily: "JetBrains Mono, monospace", color: "#475569" }}>{line.qty}</td>
+                                <td className="py-2 px-2 text-center align-top" style={{ fontFamily: "JetBrains Mono, monospace", color: "#475569" }}>₪{line.unit_price.toFixed(2)}</td>
+                                <td className="py-2 px-2 text-left align-top" style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600, color: "#0F172A" }}>₪{line.total.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        {/* Financial summary */}
+                        <div className="mt-3 space-y-1.5 text-[12px]" style={{ color: "#475569" }}>
+                          {deliveryFee > 0 && (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span>سعر الأصناف</span>
+                                <span style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{itemsSubtotal.toFixed(2)}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>رسوم التوصيل</span>
+                                <span style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{deliveryFee.toFixed(2)}</span>
+                              </div>
+                            </>
+                          )}
+                          {Number(selectedOrder.discount_amount || 0) > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span>الخصم</span>
+                              <span style={{ fontFamily: "JetBrains Mono, monospace" }}>−₪{Number(selectedOrder.discount_amount).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {Number(selectedOrder.tax_amount || 0) > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span>الضريبة</span>
+                              <span style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{Number(selectedOrder.tax_amount).toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between pt-2 mt-1 border-t" style={{ borderColor: "#E5E7EB", color: "#0F172A" }}>
+                            <span className="text-[13px] font-semibold">الإجمالي للتحصيل</span>
+                            <span className="text-[15px] font-bold" style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{selectedOrder.total.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 pt-3 border-t flex items-center justify-between text-[12px]" style={{ borderColor: "#E5E7EB", color: "#0F172A" }}>
+                        <span className="font-semibold">الإجمالي للتحصيل</span>
+                        <span className="text-[15px] font-bold" style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{selectedOrder.total.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Action buttons */}
-              <div className="flex items-center gap-2 pt-4 border-t mt-3" style={{ borderColor: "#E2E8F0" }}>
+              <div className="flex items-center gap-2 flex-wrap pt-4 border-t mt-4" style={{ borderColor: "#E5E7EB" }}>
                 {selectedOrder.state === "draft" && onLoadDraftToCart && (
                   <Button
                     size="sm"
@@ -1322,11 +1340,10 @@ export default function InvoiceHistoryDrawer({
                     {!cashierMode && (
                     <Button
                       size="sm"
+                      variant="outline"
                       className="gap-1.5 text-xs"
-                      style={{ background: "#4A9EE8", color: "#0A2342" }}
                       onClick={() => initiateRecall(selectedOrder)}
                     >
-                      <Lock className="h-3 w-3" />
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
                     )}
