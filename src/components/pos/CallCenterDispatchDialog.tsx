@@ -103,6 +103,18 @@ const CallCenterDispatchDialog = ({
   const [sending, setSending] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null);
+
+  // When the zone picker chooses a branch, auto-bind the dispatch target branch
+  // (but only when not in edit mode — branch is locked there).
+  useEffect(() => {
+    if (editingOrderId) return;
+    if (!deliveryInfo || deliveryType !== "delivery") return;
+    const match = branches.find(b => b.id === deliveryInfo.branch_id);
+    if (match && selectedBranch?.id !== match.id) {
+      setSelectedBranch(match);
+      setErrors(p => ({ ...p, branch: false, zone: false }));
+    }
+  }, [deliveryInfo, branches, editingOrderId, deliveryType, selectedBranch?.id]);
   
   // Branch active sessions tracking
   const [branchSessions, setBranchSessions] = useState<Record<string, number>>({});
@@ -610,6 +622,21 @@ const CallCenterDispatchDialog = ({
             </div>
           )}
 
+          {/* Delivery Zone Picker */}
+          {deliveryType === "delivery" && (
+            <div className={errors.zone ? "ring-2 ring-destructive/50 rounded-xl" : ""}>
+              <DeliveryZonePicker
+                dataOwnerId={dataOwnerId}
+                value={deliveryInfo}
+                onChange={setDeliveryInfo}
+                lockedBranchId={editingOrderId ? editingBranchId : null}
+              />
+              {errors.zone && (
+                <p className="text-[10px] text-destructive mt-1">يرجى اختيار منطقة التوصيل</p>
+              )}
+            </div>
+          )}
+
           {/* Payment Method */}
           <div className="space-y-2">
             <label className="text-sm font-medium">طريقة الدفع *</label>
@@ -654,6 +681,18 @@ const CallCenterDispatchDialog = ({
               <span>المجموع</span>
               <span className="font-mono">₪{total.toFixed(2)}</span>
             </div>
+            {deliveryType === "delivery" && deliveryInfo && (
+              <>
+                <div className="flex justify-between text-xs text-orange-700 dark:text-orange-300">
+                  <span>🚚 توصيل ({deliveryInfo.area})</span>
+                  <span className="font-mono">₪{Number(deliveryInfo.final_fee).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm border-t border-border pt-2">
+                  <span>الإجمالي النهائي</span>
+                  <span className="font-mono">₪{(total + Number(deliveryInfo.final_fee)).toFixed(2)}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
         </div>
