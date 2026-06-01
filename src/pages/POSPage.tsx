@@ -20,7 +20,7 @@ import {
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
-  Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
+  Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical, Check,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList, Settings,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
