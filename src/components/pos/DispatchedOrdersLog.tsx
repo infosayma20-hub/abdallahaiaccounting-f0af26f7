@@ -28,6 +28,8 @@ interface DispatchedOrder {
   delivered_at: string | null;
   delivered_to_device: string | null;
   pos_order_id: string | null;
+  is_editing?: boolean | null;
+  editing_by_name?: string | null;
 }
 
 interface Props {
@@ -276,13 +278,20 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                           {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
                         </span>
                         <span className="text-[10px] text-muted-foreground">→</span>
-                        <span className="text-[10px] font-semibold text-primary">🏪 {order.target_branch_name}</span>
+                        <span className="text-[10px] font-semibold text-primary">{order.target_branch_name}</span>
                       </div>
                       <Badge className={`text-[10px] px-1.5 py-0 h-5 gap-0.5 ${cfg.color}`}>
                         <StatusIcon className="h-2.5 w-2.5" />
                         {cfg.label}
                       </Badge>
                     </div>
+
+                    {order.is_editing && (
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded px-1.5 py-0.5">
+                        <Pencil className="h-3 w-3" />
+                        قيد التعديل من {order.editing_by_name || "الكول سنتر"} — مخفية عن الفرع
+                      </div>
+                    )}
 
                     {/* Who dispatched this order — surface the call-center agent's name. */}
                     {order.dispatched_by_name && (
@@ -315,10 +324,10 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                     <div className="text-[10px] text-muted-foreground space-y-0.5">
                       {(order.items || []).map((item: any, idx: number) => (
                         <div key={idx} className="flex flex-wrap items-baseline gap-x-1">
-                          <span className="text-foreground/80">• {item.name}×{item.qty}</span>
+                          <span className="text-foreground/80">{item.name} × {item.qty}</span>
                           {item.note && String(item.note).trim() && (
                             <span className="text-amber-700 dark:text-amber-400 font-medium">
-                              — 🌶 {item.note}
+                              — ملاحظة: {item.note}
                             </span>
                           )}
                         </div>
@@ -386,19 +395,50 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, onEdit
                           variant="outline"
                           size="sm"
                           className="flex-1 h-7 text-[11px] gap-1.5 border-blue-500/40 text-blue-700 hover:bg-blue-500/10"
-                          onClick={() => {
-                            // 🆕 Pending orders → open in POS cart (full item edit).
+                          onClick={async () => {
+                            // Pending orders → acquire the atomic edit lock via RPC,
+                            // then open in POS cart for full item-level edit.
                             // Accepted orders → keep legacy proposal dialog.
                             if (order.status === "pending" && onEditInCart) {
+                              const { data, error } = await supabase.rpc(
+                                "start_editing_call_center_order" as any,
+                                { p_order_id: order.id } as any
+                              );
+                              if (error) {
+                                toast.error("تعذّر بدء التعديل: " + (error.message || ""));
+                                return;
+                              }
+                              const res = (data as any) || {};
+                              if (!res.ok) {
+                                const reason = res.reason || "";
+                                if (reason === "already_accepted") {
+                                  toast.error("لا يمكن التعديل — الطلبية تم قبولها من الفرع");
+                                } else if (reason === "locked_by_other") {
+                                  toast.error(`الطلبية قيد التعديل حالياً من ${res.editing_by_name || "موظفة أخرى"}`);
+                                } else if (reason === "not_found") {
+                                  toast.error("الطلبية لم تعد موجودة");
+                                } else {
+                                  toast.error("تعذّر بدء التعديل: " + reason);
+                                }
+                                loadOrders();
+                                return;
+                              }
                               onEditInCart(order);
                             } else {
                               setEditTarget(order);
                             }
                           }}
-                          disabled={(editsByOrder[order.id]?.pending || 0) > 0}
+                          disabled={
+                            (editsByOrder[order.id]?.pending || 0) > 0 ||
+                            (order.is_editing === true)
+                          }
                         >
                           <Pencil className="h-3 w-3" />
-                          {(editsByOrder[order.id]?.pending || 0) > 0 ? "تعديل قيد المراجعة" : "تعديل الطلبية"}
+                          {(editsByOrder[order.id]?.pending || 0) > 0
+                            ? "تعديل قيد المراجعة"
+                            : order.is_editing
+                              ? "قيد التعديل"
+                              : "تعديل الطلبية"}
                         </Button>
                         {editsByOrder[order.id]?.lastStatus === "rejected" && (
                           <Badge variant="outline" className="text-[9px] border-red-400/40 text-red-600">آخر تعديل: مرفوض</Badge>
