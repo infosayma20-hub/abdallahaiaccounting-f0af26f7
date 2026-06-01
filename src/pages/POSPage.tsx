@@ -4330,7 +4330,11 @@ const POSPage = () => {
                 order.source_app ? `مصدر: ${order.source_app}` : "",
                 order.payment_method === "visa" ? "فيزا" : "نقدي",
                 deliveryBlock,
-                order.order_note || "",
+                // Use only the customer's free-text portion of the note — the
+                // structured delivery/customer/phone fields are rebuilt above
+                // from `delivery_info`, so re-feeding the composed note here
+                // would duplicate them on every re-accept / re-edit cycle.
+                extractBaseNote(order.order_note),
               ].filter(Boolean).join(" | ");
               // Persist the delivery fee + structured info on the order tab so
               // cartTotals adds it to the final total exactly once, and so the
