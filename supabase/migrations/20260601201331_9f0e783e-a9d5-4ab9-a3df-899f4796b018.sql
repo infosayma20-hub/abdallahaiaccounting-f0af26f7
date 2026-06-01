@@ -1,0 +1,1 @@
+DELETE FROM public.product_modifier_groups WHERE id = '0d3ed587-132f-4cbc-8c92-7b6e670607c0';
