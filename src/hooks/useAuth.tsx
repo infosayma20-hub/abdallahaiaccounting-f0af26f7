@@ -65,6 +65,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
 
       if (event === "SIGNED_IN") {
+        // Clear any stale workspace-choice from a previous user in this tab
+        // so the chooser screen re-appears after every fresh login (e.g. when
+        // a cashier signs out and another employee signs in on the same
+        // browser tab).
+        try {
+          for (const key of Object.keys(sessionStorage)) {
+            if (key.startsWith("workspace-choice:")) sessionStorage.removeItem(key);
+          }
+        } catch {}
         setTimeout(() => logEvent("login_success", session), 0);
       } else if (event === "PASSWORD_RECOVERY") {
         setTimeout(() => logEvent("password_recovery", session), 0);
