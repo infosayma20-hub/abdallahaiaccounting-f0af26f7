@@ -46,6 +46,15 @@ interface InvoiceOrder {
   transferred_from_session_id: string | null;
   transferred_to_name: string | null;
   pos_payments?: { payment_method: string }[];
+  order_type?: string | null;
+  is_delivery?: boolean | null;
+  delivery_address?: string | null;
+  customer_address?: string | null;
+  area_name?: string | null;
+  zone_code?: string | null;
+  delivery_fee?: number | null;
+  order_note?: string | null;
+  notes?: string | null;
 }
 
 interface InvoiceLine {
@@ -59,6 +68,7 @@ interface InvoiceLine {
   subtotal: number;
   total: number;
   discount_amount: number;
+  notes?: string | null;
 }
 
 interface InvoicePayment {
@@ -422,7 +432,7 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      const selectFields = "id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, pos_payments(payment_method), contacts:customer_id(phone)";
+      const selectFields = "id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, order_note, notes, pos_payments(payment_method), contacts:customer_id(phone)";
 
       // Main query: orders belonging to this session
       let query = supabase
@@ -512,7 +522,7 @@ export default function InvoiceHistoryDrawer({
     setLoadingDetail(true);
     try {
       const [linesRes, paymentsRes] = await Promise.all([
-        supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount").eq("order_id", order.id),
+        supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
         supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency").eq("order_id", order.id),
       ]);
       setOrderLines((linesRes.data || []) as InvoiceLine[]);
@@ -1026,7 +1036,7 @@ export default function InvoiceHistoryDrawer({
                         >
                           <Eye className="h-3 w-3" /> عرض
                         </button>
-                        {canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
+                        {!cashierMode && canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -1035,7 +1045,7 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> استدعاء
                           </button>
                         )}
-                        {canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
+                        {!cashierMode && canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateReturn(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -1045,7 +1055,7 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> ارتجاع
                           </button>
                         )}
-                        {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (
+                        {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (!cashierMode || isWithinCancelGrace(order)) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateCancel(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -1094,10 +1104,36 @@ export default function InvoiceHistoryDrawer({
                     <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
                   )}
                 </div>
-                {!cashierMode && (
-                  <div>
-                    <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
-                    {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
+                <div>
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
+                  {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
+                </div>
+                <div>
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>نوع الطلب</span>
+                  {({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "---"))}
+                </div>
+                <div>
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الفرع</span>
+                  {terminalName || "---"}
+                </div>
+                {(selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name) && (
+                  <div className="col-span-2 rounded-md p-2" style={{ background: "#F8FAFC" }}>
+                    <span className="block text-[10px] font-semibold" style={{ color: "#0A2342" }}>بيانات التوصيل</span>
+                    {selectedOrder.area_name && (
+                      <div className="mt-1"><span className="text-[10px]" style={{ color: "#94A3B8" }}>المنطقة: </span>{selectedOrder.area_name}</div>
+                    )}
+                    {(selectedOrder.delivery_address || selectedOrder.customer_address) && (
+                      <div className="mt-0.5"><span className="text-[10px]" style={{ color: "#94A3B8" }}>العنوان: </span>{selectedOrder.delivery_address || selectedOrder.customer_address}</div>
+                    )}
+                    {Number(selectedOrder.delivery_fee || 0) > 0 && (
+                      <div className="mt-0.5"><span className="text-[10px]" style={{ color: "#94A3B8" }}>رسوم التوصيل: </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>₪{Number(selectedOrder.delivery_fee).toFixed(2)}</span></div>
+                    )}
+                  </div>
+                )}
+                {(selectedOrder.order_note || selectedOrder.notes) && (
+                  <div className="col-span-2 rounded-md p-2" style={{ background: "#FEF9C3" }}>
+                    <span className="block text-[10px] font-semibold" style={{ color: "#854D0E" }}>ملاحظة الطلبية</span>
+                    <div className="mt-1 whitespace-pre-wrap" style={{ color: "#713F12" }}>{selectedOrder.order_note || selectedOrder.notes}</div>
                   </div>
                 )}
                 {selectedOrder.recall_status && (
@@ -1125,7 +1161,12 @@ export default function InvoiceHistoryDrawer({
                     <tbody>
                       {orderLines.map(line => (
                         <tr key={line.id} className="border-b" style={{ borderColor: "#F1F5F9" }}>
-                          <td className="py-2 px-3 text-right" style={{ color: "#0A2342" }}>{line.product_name}</td>
+                          <td className="py-2 px-3 text-right" style={{ color: "#0A2342" }}>
+                            <div>{line.product_name}</div>
+                            {line.notes && (
+                              <div className="text-[10px] mt-0.5 whitespace-pre-wrap" style={{ color: "#7C3AED" }}>📝 {line.notes}</div>
+                            )}
+                          </td>
                           <td className="py-2 px-3 text-center" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>{line.qty}</td>
                           <td className="py-2 px-3 text-center" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{line.unit_price.toFixed(2)}</td>
                           <td className="py-2 px-3 text-left" style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600, color: "#0A2342" }}>₪{line.total.toFixed(2)}</td>
@@ -1133,8 +1174,20 @@ export default function InvoiceHistoryDrawer({
                       ))}
                     </tbody>
                     <tfoot>
+                      {Number(selectedOrder.delivery_fee || 0) > 0 && (
+                        <>
+                          <tr style={{ background: "#F8FAFC" }}>
+                            <td colSpan={3} className="py-1.5 px-3 text-right text-[11px]" style={{ color: "#64748B" }}>سعر الأصناف</td>
+                            <td className="py-1.5 px-3 text-left text-[11px]" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{(Number(selectedOrder.total) - Number(selectedOrder.delivery_fee || 0)).toFixed(2)}</td>
+                          </tr>
+                          <tr style={{ background: "#F8FAFC" }}>
+                            <td colSpan={3} className="py-1.5 px-3 text-right text-[11px]" style={{ color: "#64748B" }}>رسوم التوصيل</td>
+                            <td className="py-1.5 px-3 text-left text-[11px]" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{Number(selectedOrder.delivery_fee).toFixed(2)}</td>
+                          </tr>
+                        </>
+                      )}
                       <tr style={{ background: "#0A2342" }}>
-                        <td colSpan={3} className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي</td>
+                        <td colSpan={3} className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي للتحصيل</td>
                         <td className="py-2.5 px-3 text-left font-bold text-white rounded-bl-lg" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                           ₪{selectedOrder.total.toFixed(2)}
                         </td>
@@ -1209,6 +1262,7 @@ export default function InvoiceHistoryDrawer({
 
                 {canCancelInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>
+                    {!cashierMode && (
                     <Button
                       size="sm"
                       className="gap-1.5 text-xs"
@@ -1218,7 +1272,8 @@ export default function InvoiceHistoryDrawer({
                       <Lock className="h-3 w-3" />
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
-                    {selectedOrder.state === "paid" && !selectedOrder.is_return && (
+                    )}
+                    {!cashierMode && selectedOrder.state === "paid" && !selectedOrder.is_return && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1228,6 +1283,7 @@ export default function InvoiceHistoryDrawer({
                         <RotateCcw className="h-3.5 w-3.5" /> ارتجاع
                       </Button>
                     )}
+                    {(!cashierMode || isWithinCancelGrace(selectedOrder)) ? (
                     <Button
                       variant="destructive"
                       size="sm"
@@ -1237,6 +1293,11 @@ export default function InvoiceHistoryDrawer({
                       <Lock className="h-3 w-3" />
                       <Ban className="h-3.5 w-3.5" /> إلغاء الفاتورة
                     </Button>
+                    ) : (
+                      <span className="text-[11px] flex items-center gap-1" style={{ color: "#94A3B8" }}>
+                        <Lock className="h-3 w-3" /> انتهت مدة السماح لإلغاء هذه الفاتورة
+                      </span>
+                    )}
                   </>
                 )}
                 {allowOrderTransfer && selectedOrder.state === "paid" && (
