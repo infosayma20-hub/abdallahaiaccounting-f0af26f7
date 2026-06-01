@@ -1104,10 +1104,36 @@ export default function InvoiceHistoryDrawer({
                     <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
                   )}
                 </div>
-                {!cashierMode && (
-                  <div>
-                    <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
-                    {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
+                <div>
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
+                  {orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---"}
+                </div>
+                <div>
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>نوع الطلب</span>
+                  {({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "---"))}
+                </div>
+                <div>
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الفرع</span>
+                  {terminalName || "---"}
+                </div>
+                {(selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name) && (
+                  <div className="col-span-2 rounded-md p-2" style={{ background: "#F8FAFC" }}>
+                    <span className="block text-[10px] font-semibold" style={{ color: "#0A2342" }}>بيانات التوصيل</span>
+                    {selectedOrder.area_name && (
+                      <div className="mt-1"><span className="text-[10px]" style={{ color: "#94A3B8" }}>المنطقة: </span>{selectedOrder.area_name}</div>
+                    )}
+                    {(selectedOrder.delivery_address || selectedOrder.customer_address) && (
+                      <div className="mt-0.5"><span className="text-[10px]" style={{ color: "#94A3B8" }}>العنوان: </span>{selectedOrder.delivery_address || selectedOrder.customer_address}</div>
+                    )}
+                    {Number(selectedOrder.delivery_fee || 0) > 0 && (
+                      <div className="mt-0.5"><span className="text-[10px]" style={{ color: "#94A3B8" }}>رسوم التوصيل: </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600 }}>₪{Number(selectedOrder.delivery_fee).toFixed(2)}</span></div>
+                    )}
+                  </div>
+                )}
+                {(selectedOrder.order_note || selectedOrder.notes) && (
+                  <div className="col-span-2 rounded-md p-2" style={{ background: "#FEF9C3" }}>
+                    <span className="block text-[10px] font-semibold" style={{ color: "#854D0E" }}>ملاحظة الطلبية</span>
+                    <div className="mt-1 whitespace-pre-wrap" style={{ color: "#713F12" }}>{selectedOrder.order_note || selectedOrder.notes}</div>
                   </div>
                 )}
                 {selectedOrder.recall_status && (
@@ -1135,7 +1161,12 @@ export default function InvoiceHistoryDrawer({
                     <tbody>
                       {orderLines.map(line => (
                         <tr key={line.id} className="border-b" style={{ borderColor: "#F1F5F9" }}>
-                          <td className="py-2 px-3 text-right" style={{ color: "#0A2342" }}>{line.product_name}</td>
+                          <td className="py-2 px-3 text-right" style={{ color: "#0A2342" }}>
+                            <div>{line.product_name}</div>
+                            {line.notes && (
+                              <div className="text-[10px] mt-0.5 whitespace-pre-wrap" style={{ color: "#7C3AED" }}>📝 {line.notes}</div>
+                            )}
+                          </td>
                           <td className="py-2 px-3 text-center" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>{line.qty}</td>
                           <td className="py-2 px-3 text-center" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{line.unit_price.toFixed(2)}</td>
                           <td className="py-2 px-3 text-left" style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 600, color: "#0A2342" }}>₪{line.total.toFixed(2)}</td>
@@ -1143,8 +1174,20 @@ export default function InvoiceHistoryDrawer({
                       ))}
                     </tbody>
                     <tfoot>
+                      {Number(selectedOrder.delivery_fee || 0) > 0 && (
+                        <>
+                          <tr style={{ background: "#F8FAFC" }}>
+                            <td colSpan={3} className="py-1.5 px-3 text-right text-[11px]" style={{ color: "#64748B" }}>سعر الأصناف</td>
+                            <td className="py-1.5 px-3 text-left text-[11px]" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{(Number(selectedOrder.total) - Number(selectedOrder.delivery_fee || 0)).toFixed(2)}</td>
+                          </tr>
+                          <tr style={{ background: "#F8FAFC" }}>
+                            <td colSpan={3} className="py-1.5 px-3 text-right text-[11px]" style={{ color: "#64748B" }}>رسوم التوصيل</td>
+                            <td className="py-1.5 px-3 text-left text-[11px]" style={{ fontFamily: "JetBrains Mono, monospace", color: "#64748B" }}>₪{Number(selectedOrder.delivery_fee).toFixed(2)}</td>
+                          </tr>
+                        </>
+                      )}
                       <tr style={{ background: "#0A2342" }}>
-                        <td colSpan={3} className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي</td>
+                        <td colSpan={3} className="py-2.5 px-3 text-right font-bold text-white rounded-br-lg">الإجمالي للتحصيل</td>
                         <td className="py-2.5 px-3 text-left font-bold text-white rounded-bl-lg" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                           ₪{selectedOrder.total.toFixed(2)}
                         </td>
