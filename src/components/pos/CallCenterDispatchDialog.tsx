@@ -663,7 +663,9 @@ const CallCenterDispatchDialog = ({
                 lockedBranchId={editingOrderId ? editingBranchId : null}
               />
               {errors.zone && (
-                <p className="text-[10px] text-destructive mt-1">يرجى اختيار منطقة التوصيل</p>
+                <p className="text-[11px] font-bold text-destructive mt-1">
+                  يرجى اختيار الفرع لأن سعر التوصيل قد يكون متساوٍ بين أكثر من فرع.
+                </p>
               )}
             </div>
           )}

@@ -41,6 +41,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
   const [search, setSearch] = useState<string>(value?.area || "");
   const [feeInput, setFeeInput] = useState<string>(value?.final_fee?.toString() || "");
   const [showOptions, setShowOptions] = useState(false);
+  const [tiePending, setTiePending] = useState<{ city: string; area: string; options: Zone[] } | null>(null);
 
   useEffect(() => {
     if (!dataOwnerId) return;
@@ -95,6 +96,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     setCity(zone.city);
     setFeeInput(String(zone.price));
     setShowOptions(false);
+    setTiePending(null);
   };
 
   const handleAreaPick = (group: { city: string; area: string; options: Zone[]; cheapest: Zone; tie: boolean }) => {
@@ -103,10 +105,11 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       if (match) return selectZone(match);
     }
     if (group.tie) {
-      // Don't auto-select on tie — open inline list below
+      // Don't auto-select on tie — surface branch picker
       setSearch(group.area);
       setCity(group.city);
-      setShowOptions(true);
+      setShowOptions(false);
+      setTiePending({ city: group.city, area: group.area, options: group.options });
       onChange(null);
       return;
     }
@@ -179,7 +182,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
                 <span className="font-semibold truncate">{g.area}</span>
                 {g.tie && (
                   <span className="text-[9px] text-amber-600 font-bold shrink-0 flex items-center gap-0.5">
-                    <AlertTriangle className="h-2.5 w-2.5" /> اختيار يدوي
+                    <AlertTriangle className="h-2.5 w-2.5" /> السعر متساوٍ - اختر الفرع
                   </span>
                 )}
               </div>
@@ -192,6 +195,35 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       )}
       {showOptions && !loading && areaGroups.length === 0 && search && (
         <div className="text-[11px] text-muted-foreground p-2">لا توجد نتائج</div>
+      )}
+
+      {/* Tie branch picker (shown when user taps an area with equal prices) */}
+      {tiePending && !value && (
+        <div className="rounded-lg border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/20 p-2.5 space-y-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            السعر متساوٍ بين أكثر من فرع — يرجى اختيار الفرع
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {tiePending.city} — {tiePending.area}
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {tiePending.options.map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={!!lockedBranchId && lockedBranchId !== opt.branch_id}
+                onClick={() => selectZone(opt)}
+                className={`px-2.5 py-2 rounded-lg text-[11px] font-bold border-2 transition bg-background hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 text-right ${
+                  !!lockedBranchId && lockedBranchId !== opt.branch_id ? "opacity-40 cursor-not-allowed" : "border-border"
+                }`}
+              >
+                <div className="font-bold">{opt.branch_name}</div>
+                <div className="text-[10px] font-mono text-muted-foreground">₪{opt.price}</div>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Selected zone summary + branch override + fee edit */}
