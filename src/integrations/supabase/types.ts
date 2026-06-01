@@ -1431,6 +1431,8 @@ export type Database = {
           delivered_at: string | null
           delivered_to_device: string | null
           delivery_address: string | null
+          delivery_fee: number
+          delivery_info: Json | null
           delivery_type: string | null
           dispatched_by: string | null
           dispatched_by_name: string | null
@@ -1461,6 +1463,8 @@ export type Database = {
           delivered_at?: string | null
           delivered_to_device?: string | null
           delivery_address?: string | null
+          delivery_fee?: number
+          delivery_info?: Json | null
           delivery_type?: string | null
           dispatched_by?: string | null
           dispatched_by_name?: string | null
@@ -1491,6 +1495,8 @@ export type Database = {
           delivered_at?: string | null
           delivered_to_device?: string | null
           delivery_address?: string | null
+          delivery_fee?: number
+          delivery_info?: Json | null
           delivery_type?: string | null
           dispatched_by?: string | null
           dispatched_by_name?: string | null
