@@ -1923,7 +1923,7 @@ const POSPage = () => {
     );
 
     const missingCategoryRows = productCategoryNames
-      .filter((name) => !visiblePosCategories.some((c) => c.name === name))
+      .filter((name) => name !== "عام" && !visiblePosCategories.some((c) => c.name === name))
       .map((name) => ({
         id: `legacy-${name}`,
         name,
@@ -1942,7 +1942,7 @@ const POSPage = () => {
     }));
 
     const uncategorized = posProducts.filter(p =>
-      !p.pos_category_id && !mergedCategories.some(c => c.name === p.category)
+      !p.pos_category_id && p.category !== "عام" && !mergedCategories.some(c => c.name === p.category)
     ).length;
 
     return { all: totalCount, categories: catCounts, uncategorized };
