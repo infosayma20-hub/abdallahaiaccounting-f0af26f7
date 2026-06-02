@@ -386,7 +386,12 @@ const CallCenterDispatchDialog = ({
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         delivery_type: deliveryType,
-        delivery_address: deliveryType === "delivery" ? address.trim() : null,
+        delivery_address:
+          deliveryType === "delivery"
+            ? address.trim()
+            : deliveryType === "dine_in"
+              ? `طاولة: ${tableLabel.trim()}`
+              : null,
         payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
         items: cart.map(item => ({
           name: item.name,
@@ -402,15 +407,21 @@ const CallCenterDispatchDialog = ({
         })),
         total: total + (deliveryType === "delivery" && deliveryInfo ? Number(deliveryInfo.final_fee) || 0 : 0),
         order_note: buildOrderNote({
-          baseNote: note.trim(),
+          baseNote: [
+            deliveryType === "dine_in" && tableLabel.trim() ? `طاولة: ${tableLabel.trim()}` : "",
+            note.trim(),
+          ].filter(Boolean).join(" | "),
           name: name.trim(),
           phone: phone.trim(),
           info: deliveryType === "delivery" ? deliveryInfo : null,
         }),
         delivery_fee: deliveryType === "delivery" && deliveryInfo ? Number(deliveryInfo.final_fee) || 0 : 0,
-        delivery_info: deliveryType === "delivery" && deliveryInfo
-          ? { ...deliveryInfo, caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
-          : null,
+        delivery_info:
+          deliveryType === "delivery" && deliveryInfo
+            ? { ...deliveryInfo, caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
+            : deliveryType === "dine_in"
+              ? { delivery_type: "dine_in", table_label: tableLabel.trim(), caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
+              : null,
       };
 
       let orderId: string | null = null;
