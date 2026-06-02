@@ -96,9 +96,8 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   // accounting are untouched.
   const deliveryFee = Math.max(0, Number((order as any).deliveryFee || 0));
   const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee);
-  const printedSubtotal = order.subtotal != null
-    ? Math.max(0, Number(order.subtotal) - deliveryFee)
-    : undefined;
+  // order.subtotal already excludes delivery fee in POSPage — keep as-is.
+  const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;
   const deliveryNoteLine = deliveryFee > 0
     ? `سعر التوصيل: ₪${deliveryFee.toFixed(2)} يخص شركة التوصيل وليس ضمن إجمالي الفاتورة`
     : '';
