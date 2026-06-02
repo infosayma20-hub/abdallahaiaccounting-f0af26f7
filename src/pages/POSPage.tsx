@@ -1942,7 +1942,7 @@ const POSPage = () => {
     }));
 
     const uncategorized = posProducts.filter(p =>
-      !p.pos_category_id && !mergedCategories.some(c => c.name === p.category)
+      !p.pos_category_id && p.category !== "عام" && !mergedCategories.some(c => c.name === p.category)
     ).length;
 
     return { all: totalCount, categories: catCounts, uncategorized };
