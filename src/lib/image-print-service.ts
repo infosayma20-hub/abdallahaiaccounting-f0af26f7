@@ -532,6 +532,11 @@ export async function printAllImage(
     // Skipped for delivery orders (kitchen-only printing).
     const jobs: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [];
     if (!options?.skipReceipt) {
+      // Mark the shared receipt key so any concurrent printReceiptImage()
+      // call for the same order is blocked at the source. We only block
+      // additional CALLS — this first one proceeds normally.
+      const sharedKey = _receiptSharedKey(order);
+      _shouldBlockDuplicate(sharedKey); // stamps timestamp; first call returns false
       jobs.push(
         bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
           .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
