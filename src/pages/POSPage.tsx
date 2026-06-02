@@ -1923,7 +1923,7 @@ const POSPage = () => {
     );
 
     const missingCategoryRows = productCategoryNames
-      .filter((name) => !visiblePosCategories.some((c) => c.name === name))
+      .filter((name) => name !== "عام" && !visiblePosCategories.some((c) => c.name === name))
       .map((name) => ({
         id: `legacy-${name}`,
         name,
