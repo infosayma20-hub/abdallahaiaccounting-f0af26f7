@@ -60,7 +60,18 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   const dateStr = now.toLocaleDateString('en-GB');
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  const qNum = order.queueNumber || order.orderNumber || '---';
+  // Strip leading zeros so "000005" → "5", "POS-20260602-0005" → "5".
+  const qNumRaw = order.queueNumber || order.orderNumber || '---';
+  const qNum = (() => {
+    const s = String(qNumRaw).trim();
+    if (!s) return '---';
+    if (/[-_/\s]/.test(s)) {
+      const parts = s.split(/[-_/\s]+/);
+      const last = parts[parts.length - 1] || '';
+      return /^\d+$/.test(last) ? (last.replace(/^0+(?=\d)/, '') || last) : s;
+    }
+    return /^\d+$/.test(s) ? (s.replace(/^0+(?=\d)/, '') || s) : s;
+  })();
 
   const orderTypeLabel = order.orderType === 'takeaway' ? '🛍️ استلام'
     : order.orderType === 'delivery' ? '🚚 توصيل'
