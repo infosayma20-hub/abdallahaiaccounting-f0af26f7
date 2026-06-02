@@ -233,10 +233,10 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
               </tr>
             );
           })}
-          {order.subtotal != null && (
+          {printedSubtotal != null && (
             <tr style={{ borderTop: '1px solid #999' }}>
               <td colSpan={3} style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>المجموع الفرعي</td>
-              <td style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 800, textAlign: 'left' }}>₪{Number(order.subtotal).toFixed(2)}</td>
+              <td style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 800, textAlign: 'left' }}>₪{printedSubtotal.toFixed(2)}</td>
             </tr>
           )}
           {order.discount != null && Number(order.discount) > 0 && (
@@ -254,7 +254,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
         <tbody>
           <tr>
             <td style={{ padding: '10px 6px', fontSize: '36px', fontWeight: 900, textAlign: 'right', lineHeight: 1.1, border: '3px solid #000' }}>الإجمالي</td>
-            <td style={{ padding: '10px 6px', fontSize: '36px', fontWeight: 900, textAlign: 'left', lineHeight: 1.1, border: '3px solid #000' }}>₪{Number(order.total || 0).toFixed(2)}</td>
+            <td style={{ padding: '10px 6px', fontSize: '36px', fontWeight: 900, textAlign: 'left', lineHeight: 1.1, border: '3px solid #000' }}>₪{printedTotal.toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -286,7 +286,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       </table>
 
       {/* ═══ ORDER NOTE — always visible, white background, bold frame ═══ */}
-      {order.orderNote && (
+      {mergedOrderNote && (
         <div style={{
           border: '2px solid #000',
           background: '#fff',
@@ -297,7 +297,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
           borderRadius: '4px',
           ...box,
         }}>
-          <span style={{ fontWeight: 900 }}>📝 ملاحظة:</span> {order.orderNote}
+          <span style={{ fontWeight: 900 }}>📝 ملاحظة:</span> {mergedOrderNote}
         </div>
       )}
 
