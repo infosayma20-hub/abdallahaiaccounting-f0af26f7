@@ -1,0 +1,1 @@
+UPDATE public.products SET is_pos_available=false, is_pos_product=false WHERE id='262c936c-743c-41ba-b57e-b6da226f1228';
