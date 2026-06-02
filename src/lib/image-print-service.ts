@@ -440,6 +440,14 @@ export async function printReceiptImage(
     _clearInFlight(dedupeKey);
     return { success: true, error: 'duplicate_blocked' };
   }
+  // Shared guard — blocks if printAllImage() already fired the receipt
+  // for this order within the dedupe window (or vice versa).
+  const sharedKey = _receiptSharedKey(order);
+  if (_shouldBlockDuplicate(sharedKey)) {
+    _clearInFlight(dedupeKey);
+    console.warn(`[frontend-print-blocked-shared] receipt sharedKey=${sharedKey}`);
+    return { success: true, error: 'duplicate_blocked_shared' };
+  }
   try {
     console.log(`[frontend-print-request] receipt key=${dedupeKey}`);
     const bridgeOrder = toBridgeReceiptOrder(order, companyInfo);
