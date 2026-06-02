@@ -2489,11 +2489,30 @@ const POSPage = () => {
       if (activeOrder.tableId) {
         const { data } = await supabase
           .from("pos_orders")
-          .select("id")
+          .select("id, customer_name")
           .eq("table_id", activeOrder.tableId)
           .in("state", ["draft", "open"] as any)
           .maybeSingle();
         existingOrder = data;
+      }
+
+      // 🚫 Block silent overwrite: if a different order is already saved on
+      // this table, refuse to save and tell the cashier to open the original.
+      if (existingOrder && activeOrder.savedOrderId && existingOrder.id !== activeOrder.savedOrderId) {
+        toast.error(
+          `🚫 الطاولة ${activeOrder.tableName || ""} محجوزة بطلب آخر${(existingOrder as any).customer_name ? ` (${(existingOrder as any).customer_name})` : ""}. افتحي الطلب الأصلي من قائمة الطاولات.`,
+          { duration: 6000 }
+        );
+        setSavingToTable(false);
+        return;
+      }
+      if (existingOrder && !activeOrder.savedOrderId) {
+        toast.error(
+          `🚫 الطاولة ${activeOrder.tableName || ""} محجوزة مسبقاً بطلب${(existingOrder as any).customer_name ? ` للزبون ${(existingOrder as any).customer_name}` : ""}. افتحي الطلب الأصلي بدل ما تعملي طلب جديد.`,
+          { duration: 6000 }
+        );
+        setSavingToTable(false);
+        return;
       }
 
       if (existingOrder) {
@@ -2592,6 +2611,21 @@ const POSPage = () => {
             .from("call_center_orders" as any)
             .update({ pos_order_id: order.id } as any)
             .eq("id", activeOrder.callCenterOrderId);
+        }
+
+        // 🔒 Reserve the table so it shows as "مشغولة" for the next cashier
+        // and any other call-center operator. Released only after payment
+        // or by an explicit "إلغاء الطاولة" action.
+        if (activeOrder.tableId) {
+          await supabase
+            .from("restaurant_tables")
+            .update({
+              status: "occupied",
+              current_order_id: order.id,
+              current_guests: activeOrder.guestCount || 1,
+              occupied_at: new Date().toISOString(),
+            } as any)
+            .eq("id", activeOrder.tableId);
         }
       }
 
@@ -5223,7 +5257,17 @@ const POSPage = () => {
                   <button
                     key={t.id}
                     onClick={async () => {
-                      if (t.status === "occupied") {
+                      // Defensive: even if the cached status says "available",
+                      // double-check pos_orders so we never silently overwrite
+                      // an existing draft on this table.
+                      const { data: openOrder } = await supabase
+                        .from("pos_orders")
+                        .select("id")
+                        .eq("table_id", t.id)
+                        .in("state", ["draft", "open"] as any)
+                        .maybeSingle();
+                      if (openOrder || t.status === "occupied") {
+                        toast.info(`🪑 الطاولة ${t.name} محجوزة — جاري فتح الطلب الأصلي`);
                         await loadTableOrder(t.id, t.name);
                         setShowTablePicker(false);
                         return;
