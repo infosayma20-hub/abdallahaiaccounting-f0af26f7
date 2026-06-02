@@ -639,7 +639,7 @@ const CallCenterDispatchDialog = ({
           {/* Delivery Type */}
           <div className="space-y-2">
             <label className="text-sm font-medium">نوع الطلب *</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setDeliveryType("delivery")}
                 className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
@@ -660,8 +660,36 @@ const CallCenterDispatchDialog = ({
               >
                 <ShoppingBag className="h-4 w-4" /> استلام
               </button>
+              <button
+                onClick={() => setDeliveryType("dine_in")}
+                className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
+                  deliveryType === "dine_in"
+                    ? "bg-emerald-500 text-white border-emerald-500 shadow-md"
+                    : "bg-muted/30 border-border hover:border-emerald-300"
+                }`}
+              >
+                <Utensils className="h-4 w-4" /> طاولة
+              </button>
             </div>
           </div>
+
+          {/* Table label (dine-in only) */}
+          {deliveryType === "dine_in" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium flex items-center gap-1">
+                <Utensils className="h-3 w-3" /> رقم / اسم الطاولة *
+              </label>
+              <Input
+                value={tableLabel}
+                onChange={e => { setTableLabel(e.target.value); setErrors(p => ({ ...p, table: false })); }}
+                placeholder="مثال: T5 — صالة علوية"
+                className={`h-10 ${fieldError("table")}`}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                الكاشير في الفرع رح يحجز الطاولة يدوياً بعد قبول الطلبية.
+              </p>
+            </div>
+          )}
 
           {/* Delivery Address */}
           {deliveryType === "delivery" && (
