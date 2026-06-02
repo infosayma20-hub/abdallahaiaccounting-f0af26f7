@@ -73,6 +73,12 @@ export interface PrintOrder {
   customerPhone?: string;
   /** Pickup note — e.g. "استلام من فيصل" */
   pickupBy?: string;
+  /**
+   * Delivery fee (external courier fee). NEVER part of items[] and NEVER
+   * counted as revenue. The customer receipt subtracts it from total/subtotal
+   * and prints it only as a note line.
+   */
+  deliveryFee?: number;
 }
 
 export function usePrintBridge() {
