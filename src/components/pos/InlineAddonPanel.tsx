@@ -245,7 +245,7 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose }
                               }}
                             />
                             <span
-                              className="truncate text-xs"
+                              className="text-xs whitespace-normal break-words leading-tight"
                               style={{
                                 fontWeight: isSelected ? 700 : 500,
                                 color: isSelected ? optColor : "hsl(var(--foreground))",
