@@ -107,6 +107,38 @@ function _clearInFlight(key: string): void {
   _inFlightJobs.delete(key);
 }
 
+// ──────────────────────────────────────────
+// Shared receipt dedupe key.
+// Both printReceiptImage() and the receipt sub-job inside printAllImage()
+// hit the SAME physical /print-receipt endpoint, so they must share a
+// single dedupe key — otherwise a payment-success path that calls
+// printAllImage() followed by any receipt-only path (dialog auto-print,
+// retry, etc.) prints the customer receipt twice.
+//
+// The key normalizes the order number (strips a trailing all-zero pad
+// like "000005" → "5") so display-formatting changes don't accidentally
+// create a new key and bypass the guard.
+// ──────────────────────────────────────────
+function _normalizeOrderNumberForKey(raw: any): string {
+  const s = String(raw ?? '').trim();
+  if (!s) return 'noorder';
+  // If the WHOLE value is digits, drop leading zeros ("000005" → "5", "0" → "0")
+  if (/^\d+$/.test(s)) return s.replace(/^0+(?=\d)/, '');
+  // If the last "-" segment is digits, normalize that segment only
+  // ("POS-20260602-0005" → "POS-20260602-5")
+  const parts = s.split('-');
+  const last = parts[parts.length - 1];
+  if (parts.length > 1 && /^\d+$/.test(last)) {
+    parts[parts.length - 1] = last.replace(/^0+(?=\d)/, '');
+    return parts.join('-');
+  }
+  return s;
+}
+
+function _receiptSharedKey(order: { orderNumber?: any; id?: string }): string {
+  return `receipt-shared|${_normalizeOrderNumberForKey(order.orderNumber)}|${order.id || 'noid'}`;
+}
+
 /** Build diagnostic meta payload sent with every print request */
 function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHeight?: number; debug?: boolean } = {}) {
   return {
@@ -408,6 +440,14 @@ export async function printReceiptImage(
     _clearInFlight(dedupeKey);
     return { success: true, error: 'duplicate_blocked' };
   }
+  // Shared guard — blocks if printAllImage() already fired the receipt
+  // for this order within the dedupe window (or vice versa).
+  const sharedKey = _receiptSharedKey(order);
+  if (_shouldBlockDuplicate(sharedKey)) {
+    _clearInFlight(dedupeKey);
+    console.warn(`[frontend-print-blocked-shared] receipt sharedKey=${sharedKey}`);
+    return { success: true, error: 'duplicate_blocked_shared' };
+  }
   try {
     console.log(`[frontend-print-request] receipt key=${dedupeKey}`);
     const bridgeOrder = toBridgeReceiptOrder(order, companyInfo);
@@ -492,6 +532,11 @@ export async function printAllImage(
     // Skipped for delivery orders (kitchen-only printing).
     const jobs: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [];
     if (!options?.skipReceipt) {
+      // Mark the shared receipt key so any concurrent printReceiptImage()
+      // call for the same order is blocked at the source. We only block
+      // additional CALLS — this first one proceeds normally.
+      const sharedKey = _receiptSharedKey(order);
+      _shouldBlockDuplicate(sharedKey); // stamps timestamp; first call returns false
       jobs.push(
         bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
           .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))

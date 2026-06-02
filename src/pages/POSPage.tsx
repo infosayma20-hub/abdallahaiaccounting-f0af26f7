@@ -6481,7 +6481,15 @@ const POSPage = () => {
       </Dialog>
 
       {/* ── Receipt Dialog ── */}
-      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} autoPrint={posAutoPrint} />
+      {/*
+        autoPrint is intentionally FORCED to false here.
+        The silent print for the customer receipt is fired from the payment
+        success path via printAllImage() (single source of truth for fresh
+        sales). Letting the dialog auto-print again caused the receipt to
+        print twice on the cashier printer. Manual re-print stays available
+        via the dialog's own "طباعة" button.
+      */}
+      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} autoPrint={false} />
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
