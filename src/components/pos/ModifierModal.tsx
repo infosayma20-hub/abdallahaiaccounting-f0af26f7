@@ -86,7 +86,7 @@ function ModifierGroupSection({
               <button
                 key={opt.id}
                 onClick={() => onToggle(opt.id)}
-                className="relative flex items-center justify-center gap-2 py-3 px-2.5 rounded-[10px] text-[13px] text-center transition-all"
+                className="relative flex flex-wrap items-center justify-center gap-1.5 py-3 px-2 rounded-[10px] text-[13px] text-center transition-all min-h-[48px]"
                 style={{
                   background: isSelected ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.06)',
                   border: isSelected ? '1.5px solid #3b82f6' : '1.5px solid rgba(255,255,255,0.1)',
@@ -105,7 +105,7 @@ function ModifierGroupSection({
                   }
                 }}
               >
-                <span>{opt.name}</span>
+                <span className="whitespace-normal break-words leading-tight">{opt.name}</span>
                 {opt.color && (
                   <div
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
