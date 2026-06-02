@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users, Trash2 } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users, Trash2, Utensils } from "lucide-react";
 import { CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -417,9 +417,24 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 ${order.delivery_type === "delivery" ? "text-orange-600" : "text-blue-600"}`}>
-                          {order.delivery_type === "delivery" ? <Truck className="h-2.5 w-2.5" /> : <ShoppingBag className="h-2.5 w-2.5" />}
-                        </Badge>
+                        {(() => {
+                          const dt = String(order.delivery_type || "").toLowerCase();
+                          const isDelivery = dt === "delivery";
+                          const isDineIn = dt === "dine_in" || dt === "table";
+                          const Icon = isDelivery ? Truck : isDineIn ? Utensils : ShoppingBag;
+                          const label = isDelivery ? "توصيل" : isDineIn ? "طاولة" : "استلام";
+                          const cls = isDelivery
+                            ? "border-orange-500/40 text-orange-700 bg-orange-500/5"
+                            : isDineIn
+                              ? "border-emerald-500/40 text-emerald-700 bg-emerald-500/5"
+                              : "border-blue-500/40 text-blue-700 bg-blue-500/5";
+                          return (
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 gap-1 ${cls}`}>
+                              <Icon className="h-2.5 w-2.5" />
+                              {label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </div>
 

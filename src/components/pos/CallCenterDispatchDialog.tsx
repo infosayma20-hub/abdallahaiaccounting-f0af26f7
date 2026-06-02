@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff } from "lucide-react";
+import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils } from "lucide-react";
 import DeliveryZonePicker, { DeliveryInfo } from "./DeliveryZonePicker";
 
 interface CartItem {
@@ -94,7 +94,8 @@ const CallCenterDispatchDialog = ({
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [sourceApp, setSourceApp] = useState("طلب مباشر");
-  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup" | "dine_in">("delivery");
+  const [tableLabel, setTableLabel] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -165,6 +166,7 @@ const CallCenterDispatchDialog = ({
     setAutoFilledPrefix("");
     setDispatchedOrderId(null);
     setDispatchStatus(null);
+    setTableLabel("");
     setDeliveryInfo(
       editingDeliveryInfo && editingDeliveryInfo.area
         ? {
@@ -216,7 +218,13 @@ const CallCenterDispatchDialog = ({
     if (editingOrderId) {
       if (editingSourceApp) setSourceApp(editingSourceApp);
       if (editingPaymentMethod) setPaymentMethod(editingPaymentMethod);
-      setDeliveryType((deliveryAddress ? "delivery" : "pickup"));
+      const rawType = (editingDeliveryInfo as any)?.delivery_type;
+      if (rawType === "dine_in" || rawType === "table") {
+        setDeliveryType("dine_in");
+        setTableLabel((editingDeliveryInfo as any)?.table_label || "");
+      } else {
+        setDeliveryType(deliveryAddress ? "delivery" : "pickup");
+      }
     }
 
     return () => {
@@ -302,6 +310,7 @@ const CallCenterDispatchDialog = ({
     if (!phone.trim()) newErrors.phone = true;
     if (deliveryType === "delivery" && !address.trim()) newErrors.address = true;
     if (deliveryType === "delivery" && !deliveryInfo) newErrors.zone = true;
+    if (deliveryType === "dine_in" && !tableLabel.trim()) newErrors.table = true;
     if (!paymentMethod) newErrors.payment = true;
     if (!sourceApp) newErrors.source = true;
     setErrors(newErrors);
@@ -377,7 +386,12 @@ const CallCenterDispatchDialog = ({
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         delivery_type: deliveryType,
-        delivery_address: deliveryType === "delivery" ? address.trim() : null,
+        delivery_address:
+          deliveryType === "delivery"
+            ? address.trim()
+            : deliveryType === "dine_in"
+              ? `طاولة: ${tableLabel.trim()}`
+              : null,
         payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
         items: cart.map(item => ({
           name: item.name,
@@ -393,15 +407,21 @@ const CallCenterDispatchDialog = ({
         })),
         total: total + (deliveryType === "delivery" && deliveryInfo ? Number(deliveryInfo.final_fee) || 0 : 0),
         order_note: buildOrderNote({
-          baseNote: note.trim(),
+          baseNote: [
+            deliveryType === "dine_in" && tableLabel.trim() ? `طاولة: ${tableLabel.trim()}` : "",
+            note.trim(),
+          ].filter(Boolean).join(" | "),
           name: name.trim(),
           phone: phone.trim(),
           info: deliveryType === "delivery" ? deliveryInfo : null,
         }),
         delivery_fee: deliveryType === "delivery" && deliveryInfo ? Number(deliveryInfo.final_fee) || 0 : 0,
-        delivery_info: deliveryType === "delivery" && deliveryInfo
-          ? { ...deliveryInfo, caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
-          : null,
+        delivery_info:
+          deliveryType === "delivery" && deliveryInfo
+            ? { ...deliveryInfo, caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
+            : deliveryType === "dine_in"
+              ? { delivery_type: "dine_in", table_label: tableLabel.trim(), caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
+              : null,
       };
 
       let orderId: string | null = null;
@@ -619,7 +639,7 @@ const CallCenterDispatchDialog = ({
           {/* Delivery Type */}
           <div className="space-y-2">
             <label className="text-sm font-medium">نوع الطلب *</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setDeliveryType("delivery")}
                 className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
@@ -640,8 +660,36 @@ const CallCenterDispatchDialog = ({
               >
                 <ShoppingBag className="h-4 w-4" /> استلام
               </button>
+              <button
+                onClick={() => setDeliveryType("dine_in")}
+                className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
+                  deliveryType === "dine_in"
+                    ? "bg-emerald-500 text-white border-emerald-500 shadow-md"
+                    : "bg-muted/30 border-border hover:border-emerald-300"
+                }`}
+              >
+                <Utensils className="h-4 w-4" /> طاولة
+              </button>
             </div>
           </div>
+
+          {/* Table label (dine-in only) */}
+          {deliveryType === "dine_in" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium flex items-center gap-1">
+                <Utensils className="h-3 w-3" /> رقم / اسم الطاولة *
+              </label>
+              <Input
+                value={tableLabel}
+                onChange={e => { setTableLabel(e.target.value); setErrors(p => ({ ...p, table: false })); }}
+                placeholder="مثال: T5 — صالة علوية"
+                className={`h-10 ${fieldError("table")}`}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                الكاشير في الفرع رح يحجز الطاولة يدوياً بعد قبول الطلبية.
+              </p>
+            </div>
+          )}
 
           {/* Delivery Address */}
           {deliveryType === "delivery" && (
