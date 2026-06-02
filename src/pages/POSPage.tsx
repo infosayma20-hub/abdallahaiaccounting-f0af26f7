@@ -2489,11 +2489,30 @@ const POSPage = () => {
       if (activeOrder.tableId) {
         const { data } = await supabase
           .from("pos_orders")
-          .select("id")
+          .select("id, customer_name")
           .eq("table_id", activeOrder.tableId)
           .in("state", ["draft", "open"] as any)
           .maybeSingle();
         existingOrder = data;
+      }
+
+      // 🚫 Block silent overwrite: if a different order is already saved on
+      // this table, refuse to save and tell the cashier to open the original.
+      if (existingOrder && activeOrder.savedOrderId && existingOrder.id !== activeOrder.savedOrderId) {
+        toast.error(
+          `🚫 الطاولة ${activeOrder.tableName || ""} محجوزة بطلب آخر${(existingOrder as any).customer_name ? ` (${(existingOrder as any).customer_name})` : ""}. افتحي الطلب الأصلي من قائمة الطاولات.`,
+          { duration: 6000 }
+        );
+        setSavingToTable(false);
+        return;
+      }
+      if (existingOrder && !activeOrder.savedOrderId) {
+        toast.error(
+          `🚫 الطاولة ${activeOrder.tableName || ""} محجوزة مسبقاً بطلب${(existingOrder as any).customer_name ? ` للزبون ${(existingOrder as any).customer_name}` : ""}. افتحي الطلب الأصلي بدل ما تعملي طلب جديد.`,
+          { duration: 6000 }
+        );
+        setSavingToTable(false);
+        return;
       }
 
       if (existingOrder) {
