@@ -325,10 +325,24 @@ async function shouldUseUnifiedKitchenPrinter(order: PrintOrder): Promise<boolea
 function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
   const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
   const totalQty = (items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  // Daily counter — send WITHOUT leading zeros. Bridge also normalizes,
+  // but we strip here too so the printed value is "5" (not "000005").
+  // For composite numbers like "POS-20260602-0005" we take the last numeric
+  // segment and drop its zeros; for plain digits we just drop leading zeros.
   const dailyCounterRaw = order.queueNumber ?? order.orderNumber;
-  const dailyCounter = dailyCounterRaw !== undefined && dailyCounterRaw !== null
-    ? String(dailyCounterRaw).replace(/\D/g, '').padStart(6, '0').slice(-6) || String(dailyCounterRaw)
-    : undefined;
+  let dailyCounter: string | undefined;
+  if (dailyCounterRaw !== undefined && dailyCounterRaw !== null) {
+    const s = String(dailyCounterRaw).trim();
+    if (/[-_/\s]/.test(s)) {
+      const parts = s.split(/[-_/\s]+/);
+      const last = parts[parts.length - 1] || '';
+      dailyCounter = /^\d+$/.test(last) ? (last.replace(/^0+(?=\d)/, '') || last) : s;
+    } else if (/^\d+$/.test(s)) {
+      dailyCounter = s.replace(/^0+(?=\d)/, '') || s;
+    } else {
+      dailyCounter = s;
+    }
+  }
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
