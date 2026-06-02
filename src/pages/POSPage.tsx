@@ -3443,6 +3443,11 @@ const POSPage = () => {
           subtotal: cartTotals.subtotal,
           discount: effectiveDiscount,
           total: effectiveTotal,
+          // Delivery fee is forwarded so the receipt builder can EXCLUDE it
+          // from the printed total and surface it only as a note line. DB
+          // total / accounting are unchanged (still posted on effectiveTotal
+          // elsewhere via pos_orders.delivery_fee).
+          deliveryFee: cartTotals.deliveryFee || 0,
           paymentMethod: (() => {
             // For card payments from call center, include the source app name (e.g. "فيزا - Wheel App")
             if (effectivePaymentMethod === "cash") return "نقد";
