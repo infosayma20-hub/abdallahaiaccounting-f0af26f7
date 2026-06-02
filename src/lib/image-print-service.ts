@@ -233,9 +233,9 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   // journal are NOT touched here (they live in POSPage / complete_pos_order).
   const deliveryFee = Math.max(0, Number(order.deliveryFee || 0));
   const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee);
-  const printedSubtotal = order.subtotal != null
-    ? Math.max(0, Number(order.subtotal) - deliveryFee)
-    : undefined;
+  // NOTE: order.subtotal is already items-only in POSPage (the delivery fee
+  // is only added when computing `total`). So do NOT subtract here.
+  const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;
   const deliveryNoteLine = deliveryFee > 0
     ? `سعر التوصيل: ₪${deliveryFee.toFixed(2)} يخص شركة التوصيل وليس ضمن إجمالي الفاتورة`
     : '';
