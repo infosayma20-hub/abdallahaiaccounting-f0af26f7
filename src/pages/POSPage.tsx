@@ -5257,7 +5257,17 @@ const POSPage = () => {
                   <button
                     key={t.id}
                     onClick={async () => {
-                      if (t.status === "occupied") {
+                      // Defensive: even if the cached status says "available",
+                      // double-check pos_orders so we never silently overwrite
+                      // an existing draft on this table.
+                      const { data: openOrder } = await supabase
+                        .from("pos_orders")
+                        .select("id")
+                        .eq("table_id", t.id)
+                        .in("state", ["draft", "open"] as any)
+                        .maybeSingle();
+                      if (openOrder || t.status === "occupied") {
+                        toast.info(`🪑 الطاولة ${t.name} محجوزة — جاري فتح الطلب الأصلي`);
                         await loadTableOrder(t.id, t.name);
                         setShowTablePicker(false);
                         return;
