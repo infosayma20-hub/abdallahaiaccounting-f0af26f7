@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff } from "lucide-react";
+import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff, Utensils } from "lucide-react";
 import DeliveryZonePicker, { DeliveryInfo } from "./DeliveryZonePicker";
 
 interface CartItem {
@@ -94,7 +94,8 @@ const CallCenterDispatchDialog = ({
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [sourceApp, setSourceApp] = useState("طلب مباشر");
-  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup" | "dine_in">("delivery");
+  const [tableLabel, setTableLabel] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -165,6 +166,7 @@ const CallCenterDispatchDialog = ({
     setAutoFilledPrefix("");
     setDispatchedOrderId(null);
     setDispatchStatus(null);
+    setTableLabel("");
     setDeliveryInfo(
       editingDeliveryInfo && editingDeliveryInfo.area
         ? {
@@ -216,7 +218,13 @@ const CallCenterDispatchDialog = ({
     if (editingOrderId) {
       if (editingSourceApp) setSourceApp(editingSourceApp);
       if (editingPaymentMethod) setPaymentMethod(editingPaymentMethod);
-      setDeliveryType((deliveryAddress ? "delivery" : "pickup"));
+      const rawType = (editingDeliveryInfo as any)?.delivery_type;
+      if (rawType === "dine_in" || rawType === "table") {
+        setDeliveryType("dine_in");
+        setTableLabel((editingDeliveryInfo as any)?.table_label || "");
+      } else {
+        setDeliveryType(deliveryAddress ? "delivery" : "pickup");
+      }
     }
 
     return () => {
@@ -302,6 +310,7 @@ const CallCenterDispatchDialog = ({
     if (!phone.trim()) newErrors.phone = true;
     if (deliveryType === "delivery" && !address.trim()) newErrors.address = true;
     if (deliveryType === "delivery" && !deliveryInfo) newErrors.zone = true;
+    if (deliveryType === "dine_in" && !tableLabel.trim()) newErrors.table = true;
     if (!paymentMethod) newErrors.payment = true;
     if (!sourceApp) newErrors.source = true;
     setErrors(newErrors);
