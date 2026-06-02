@@ -2612,6 +2612,21 @@ const POSPage = () => {
             .update({ pos_order_id: order.id } as any)
             .eq("id", activeOrder.callCenterOrderId);
         }
+
+        // 🔒 Reserve the table so it shows as "مشغولة" for the next cashier
+        // and any other call-center operator. Released only after payment
+        // or by an explicit "إلغاء الطاولة" action.
+        if (activeOrder.tableId) {
+          await supabase
+            .from("restaurant_tables")
+            .update({
+              status: "occupied",
+              current_order_id: order.id,
+              current_guests: activeOrder.guestCount || 1,
+              occupied_at: new Date().toISOString(),
+            } as any)
+            .eq("id", activeOrder.tableId);
+        }
       }
 
       toast.success(activeOrder.tableName ? `💾 تم حفظ الطلب على ${activeOrder.tableName}` : "💾 تم حفظ الطلب كمسودة");
