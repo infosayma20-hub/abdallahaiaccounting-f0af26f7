@@ -1,0 +1,1 @@
+UPDATE public.modifier_options SET extra_price = 3 WHERE id = 'c6d8c917-d16e-4ad5-9f1d-c90cb0636753';
