@@ -521,6 +521,32 @@ function wrapTextForSvg(text, maxChars) {
   return lines;
 }
 
+// Normalize a counter/order number for display:
+//  - "000005"            -> "5"
+//  - "#000005"           -> "#5"
+//  - "POS-20260602-0005" -> "5"  (strip zeros from last segment)
+//  - "5"                 -> "5"
+function normalizeCounter(v) {
+  const raw = String(v ?? '').trim();
+  if (!raw) return '---';
+  const hash = raw.startsWith('#') ? '#' : '';
+  const body = hash ? raw.slice(1).trim() : raw;
+  if (/[-_/\s]/.test(body)) {
+    const parts = body.split(/[-_/\s]+/);
+    const last = parts[parts.length - 1] || '';
+    if (/^\d+$/.test(last)) {
+      const stripped = last.replace(/^0+(?=\d)/, '');
+      return hash + (stripped || last);
+    }
+    return hash + body;
+  }
+  if (/^\d+$/.test(body)) {
+    const stripped = body.replace(/^0+(?=\d)/, '');
+    return hash + (stripped || body);
+  }
+  return hash + body;
+}
+
 function renderReceiptSVG(order, logoTopMargin) {
   const W = 576;
   const padX = 24;
@@ -540,7 +566,7 @@ function renderReceiptSVG(order, logoTopMargin) {
   push(16, () => '');
   push(54, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="34" font-weight="900" font-family="Tahoma">رقم الطلب</text>
-    <text x="${padX}" y="${cy}" text-anchor="start" font-size="34" font-weight="900" font-family="Tahoma">${esc(order.queueNumber || order.orderNumber || '---')}</text>`);
+    <text x="${padX}" y="${cy}" text-anchor="start" font-size="34" font-weight="900" font-family="Tahoma">${esc(normalizeCounter(order.queueNumber || order.orderNumber || '---'))}</text>`);
   if (order.cashierName) push(30, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الكاشير</text>
     <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="700" font-family="Tahoma">${esc(order.cashierName)}</text>`);
@@ -607,9 +633,12 @@ function renderReceiptSVG(order, logoTopMargin) {
     push(10, () => '');
     const lines = wrapTextForSvg(esc(order.orderNote), 36);
     const boxH = 16 + lines.length * 28;
-    push(boxH + 6, (cy) => `
-      <rect x="${padX}" y="${cy - boxH + 4}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
-      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy - boxH + 32 + i*28}" text-anchor="end" font-size="20" font-weight="800" font-family="Tahoma">${i === 0 ? '📝 ملاحظة: ' : ''}${ln}</text>`).join('')}`);
+    // IMPORTANT: draw the box DOWNWARD from cy. Previous version used `cy - boxH`
+    // which painted the box on top of the items/totals above. Allocate boxH + 8
+    // so the next block starts safely below.
+    push(boxH + 8, (cy) => `
+      <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 28 + i*28}" text-anchor="end" font-size="20" font-weight="800" font-family="Tahoma">${i === 0 ? '📝 ملاحظة: ' : ''}${ln}</text>`).join('')}`);
   }
 
   push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">❤️ شكراً لتعاملكم معنا</text>`);
@@ -632,10 +661,10 @@ function renderKitchenSVG(order, stationLabel) {
   const typeLabel = order.orderTypeLabel
     || (order.orderType === 'delivery' ? 'توصيل' : order.orderType === 'dine_in' ? 'محلي' : 'استلام');
 
-  // Daily counter — POS sends padded value; fall back to queue/order number locally.
-  const counterStr = order.dailyCounter
-    || String(order.queueNumber || order.orderNumber || '---').replace(/\D/g, '').padStart(6, '0').slice(-6)
-    || String(order.queueNumber || order.orderNumber || '---');
+  // Daily counter — always strip leading zeros so "000005" prints as "5".
+  const counterStr = normalizeCounter(
+    order.dailyCounter || order.queueNumber || order.orderNumber || '---'
+  );
 
   // Total quantity — POS sends it; recompute defensively if missing.
   const totalQty = (typeof order.totalQty === 'number')
@@ -721,11 +750,16 @@ function renderKitchenSVG(order, stationLabel) {
 
   if (order.orderNote) {
     push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
-    const noteLines = wrapTextForSvg(String(order.orderNote), 22);
-    const boxH = 16 + noteLines.length * 28;
-    push(boxH + 6, (cy) => `
-      <rect x="${padX}" y="${cy - boxH + 4}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
-      ${noteLines.map((ln, i) => `<text x="${W - padX - 6}" y="${cy - boxH + 30 + i*28}" text-anchor="end" font-size="22" font-weight="900" font-family="Tahoma">${i === 0 ? '📝 ' : ''}${esc(ln)}</text>`).join('')}`);
+    // Slightly smaller font so long delivery notes stay readable without bleeding
+    // into the items section. The block is drawn DOWNWARD from cy (previous
+    // version used `cy - boxH` which overlapped the items above).
+    const noteFont = 20;
+    const noteLineH = 26;
+    const noteLines = wrapTextForSvg(String(order.orderNote), 24);
+    const boxH = 14 + noteLines.length * noteLineH;
+    push(boxH + 8, (cy) => `
+      <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
+      ${noteLines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="800" font-family="Tahoma">${i === 0 ? '📝 ' : ''}${esc(ln)}</text>`).join('')}`);
   }
 
   const H = y + topPad;
