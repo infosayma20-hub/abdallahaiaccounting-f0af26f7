@@ -1892,6 +1892,9 @@ const POSPage = () => {
     return posCategories.filter(cat => {
       const hasRestriction = cat.restricted_cash_box_ids && cat.restricted_cash_box_ids.length > 0;
       if (!hasRestriction) return true;
+      // Call Center sessions have no cash_box_id — they are virtual and should
+      // see all categories regardless of cash-box restrictions.
+      if (!currentBoxId) return true;
       return !!currentBoxId && cat.restricted_cash_box_ids!.includes(currentBoxId);
     });
   }, [posCategories, session?.cash_box_id]);
