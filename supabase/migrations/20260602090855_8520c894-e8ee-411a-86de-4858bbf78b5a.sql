@@ -1,0 +1,1 @@
+DELETE FROM modifier_options WHERE id='83f410f5-fdb5-4e74-b30a-de9017bec301';
