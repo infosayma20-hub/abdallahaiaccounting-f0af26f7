@@ -90,6 +90,20 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   const changeSym = '₪';
   const isCash = !order.paymentMethod || order.paymentMethod === 'cash' || order.paymentMethod === 'نقد' || order.paymentMethod === 'نقدي';
 
+  // ── Delivery fee handling (customer receipt ONLY) ────────────────────
+  // External courier fee is NOT restaurant revenue. We strip it from the
+  // printed total/subtotal and append it as a note line. DB total and
+  // accounting are untouched.
+  const deliveryFee = Math.max(0, Number((order as any).deliveryFee || 0));
+  const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee);
+  const printedSubtotal = order.subtotal != null
+    ? Math.max(0, Number(order.subtotal) - deliveryFee)
+    : undefined;
+  const deliveryNoteLine = deliveryFee > 0
+    ? `سعر التوصيل: ₪${deliveryFee.toFixed(2)} يخص شركة التوصيل وليس ضمن إجمالي الفاتورة`
+    : '';
+  const mergedOrderNote = [order.orderNote, deliveryNoteLine].filter(Boolean).join(' — ');
+
   // Build QR: if order has ID, use URL for online receipt; otherwise fallback to text
   const baseUrl = window.location.origin;
   const qrContent = order.id
@@ -97,7 +111,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
     : [
         companyName || '',
         `طلب: ${qNum}`,
-        `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
+        `المبلغ: ₪${printedTotal.toFixed(2)}`,
         `التاريخ: ${dateStr} ${timeStr}`,
       ].join('\n');
 
