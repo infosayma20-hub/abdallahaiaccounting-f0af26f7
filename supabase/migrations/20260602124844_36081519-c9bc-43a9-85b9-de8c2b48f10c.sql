@@ -1,0 +1,1 @@
+UPDATE public.products SET sell_price = 0 WHERE id = '5b2cae0f-f118-4ce4-94d3-5b132d1e31b6';
