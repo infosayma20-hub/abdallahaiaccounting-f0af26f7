@@ -226,6 +226,20 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
 }) {
   const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
   const footerMode = getFooterMode();
+  // ── Delivery fee handling (customer receipt ONLY) ─────────────────────
+  // The external delivery fee is NOT revenue for the restaurant — it belongs
+  // to the courier company. We strip it from the printed total/subtotal and
+  // surface it only as a note line. The DB invoice total and accounting
+  // journal are NOT touched here (they live in POSPage / complete_pos_order).
+  const deliveryFee = Math.max(0, Number(order.deliveryFee || 0));
+  const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee);
+  // NOTE: order.subtotal is already items-only in POSPage (the delivery fee
+  // is only added when computing `total`). So do NOT subtract here.
+  const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;
+  const deliveryNoteLine = deliveryFee > 0
+    ? `سعر التوصيل: ₪${deliveryFee.toFixed(2)} يخص شركة التوصيل وليس ضمن إجمالي الفاتورة`
+    : '';
+  const mergedNote = [order.orderNote, deliveryNoteLine].filter(Boolean).join(' — ');
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
@@ -246,7 +260,7 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
         ...(item.modifiers?.map(m => m.option_name) || []),
       ].filter(Boolean).join('، ') || undefined,
     })),
-    total: order.total,
+    total: printedTotal,
     discount: order.discount,
     tax: 0,
     paymentMethod: order.paymentMethod,
@@ -256,8 +270,8 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     currency: order.currency,
     exchangeRate: order.exchangeRate,
     foreignAmount: order.foreignAmount,
-    subtotal: order.subtotal,
-    orderNote: order.orderNote,
+    subtotal: printedSubtotal,
+    orderNote: mergedNote || undefined,
     terminalName: companyInfo?.terminalName,
     // ── FOOTER MODE (bridge must respect this to avoid raster overflow) ──
     footerMode,

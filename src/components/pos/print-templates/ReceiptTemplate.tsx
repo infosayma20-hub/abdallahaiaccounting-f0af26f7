@@ -90,6 +90,19 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   const changeSym = '₪';
   const isCash = !order.paymentMethod || order.paymentMethod === 'cash' || order.paymentMethod === 'نقد' || order.paymentMethod === 'نقدي';
 
+  // ── Delivery fee handling (customer receipt ONLY) ────────────────────
+  // External courier fee is NOT restaurant revenue. We strip it from the
+  // printed total/subtotal and append it as a note line. DB total and
+  // accounting are untouched.
+  const deliveryFee = Math.max(0, Number((order as any).deliveryFee || 0));
+  const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee);
+  // order.subtotal already excludes delivery fee in POSPage — keep as-is.
+  const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;
+  const deliveryNoteLine = deliveryFee > 0
+    ? `سعر التوصيل: ₪${deliveryFee.toFixed(2)} يخص شركة التوصيل وليس ضمن إجمالي الفاتورة`
+    : '';
+  const mergedOrderNote = [order.orderNote, deliveryNoteLine].filter(Boolean).join(' — ');
+
   // Build QR: if order has ID, use URL for online receipt; otherwise fallback to text
   const baseUrl = window.location.origin;
   const qrContent = order.id
@@ -97,7 +110,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
     : [
         companyName || '',
         `طلب: ${qNum}`,
-        `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
+        `المبلغ: ₪${printedTotal.toFixed(2)}`,
         `التاريخ: ${dateStr} ${timeStr}`,
       ].join('\n');
 
@@ -219,10 +232,10 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
               </tr>
             );
           })}
-          {order.subtotal != null && (
+          {printedSubtotal != null && (
             <tr style={{ borderTop: '1px solid #999' }}>
               <td colSpan={3} style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>المجموع الفرعي</td>
-              <td style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 800, textAlign: 'left' }}>₪{Number(order.subtotal).toFixed(2)}</td>
+              <td style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 800, textAlign: 'left' }}>₪{printedSubtotal.toFixed(2)}</td>
             </tr>
           )}
           {order.discount != null && Number(order.discount) > 0 && (
@@ -240,7 +253,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
         <tbody>
           <tr>
             <td style={{ padding: '10px 6px', fontSize: '36px', fontWeight: 900, textAlign: 'right', lineHeight: 1.1, border: '3px solid #000' }}>الإجمالي</td>
-            <td style={{ padding: '10px 6px', fontSize: '36px', fontWeight: 900, textAlign: 'left', lineHeight: 1.1, border: '3px solid #000' }}>₪{Number(order.total || 0).toFixed(2)}</td>
+            <td style={{ padding: '10px 6px', fontSize: '36px', fontWeight: 900, textAlign: 'left', lineHeight: 1.1, border: '3px solid #000' }}>₪{printedTotal.toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -272,7 +285,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       </table>
 
       {/* ═══ ORDER NOTE — always visible, white background, bold frame ═══ */}
-      {order.orderNote && (
+      {mergedOrderNote && (
         <div style={{
           border: '2px solid #000',
           background: '#fff',
@@ -283,7 +296,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
           borderRadius: '4px',
           ...box,
         }}>
-          <span style={{ fontWeight: 900 }}>📝 ملاحظة:</span> {order.orderNote}
+          <span style={{ fontWeight: 900 }}>📝 ملاحظة:</span> {mergedOrderNote}
         </div>
       )}
 
