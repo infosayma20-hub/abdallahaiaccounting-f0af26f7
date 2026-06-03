@@ -916,6 +916,27 @@ function CardsList({
                   <div className="text-[11px] text-slate-700">
                     أخذ الطلب: <span className="font-semibold text-slate-900">{r.order_taken_by_name || "غير محدد"}</span>
                   </div>
+                  <div className="text-[11px] text-slate-700 leading-relaxed">
+                    <span className="text-slate-500">الطلب: </span>
+                    <span className="text-slate-900">
+                      {r.last_order_items_summary || "لا توجد أصناف مسجلة"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-slate-600 flex-wrap">
+                    <span>النوع: <span className="text-slate-800 font-semibold">{orderTypeLabel(r.last_order_type)}</span></span>
+                    <span>الدفع: <span className="text-slate-800 font-semibold">{paymentLabel(r.last_payment_method)}</span></span>
+                  </div>
+                  {r.last_address && (
+                    <div className="text-[11px] text-slate-600 truncate">
+                      <MapPin className="h-3 w-3 inline-block ml-1" />
+                      {r.last_address}
+                    </div>
+                  )}
+                  {r.last_order_note && (
+                    <div className="text-[11px] text-amber-700">
+                      ملاحظة: {r.last_order_note}
+                    </div>
+                  )}
                 </div>
                 <ChevronLeft className="h-4 w-4 text-slate-500 shrink-0 mt-1" />
               </div>
