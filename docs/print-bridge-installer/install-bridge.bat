@@ -17,6 +17,21 @@ set "SERVICE_NAME=amwaliprintbridge.exe"
 if not exist "%BRIDGE_DIR%" goto :no_dir
 cd /d "%BRIDGE_DIR%"
 
+REM ── Protect device.json (branch/terminal/printers config) ─────────
+REM This file is NEVER shipped in the ZIP — it is created on first POS
+REM setup. We must never overwrite or delete it during update.
+if exist "%BRIDGE_DIR%\device.json" (
+  echo [OK] device.json found — creating backup before update.
+  copy /Y "%BRIDGE_DIR%\device.json" "%BRIDGE_DIR%\device.json.bak" >nul 2>&1
+) else (
+  if exist "%BRIDGE_DIR%\device.json.bak" (
+    echo [WARN] device.json missing but device.json.bak found — restoring.
+    copy /Y "%BRIDGE_DIR%\device.json.bak" "%BRIDGE_DIR%\device.json" >nul 2>&1
+  ) else (
+    echo [INFO] No device.json yet — device will start unbound.
+  )
+)
+
 REM ── Detect Windows version (Win7 / Server 2008 R2 = 6.1) ─────────
 set "IS_WIN7=0"
 ver | findstr /C:" 6.1." >nul 2>&1
@@ -154,6 +169,17 @@ echo.
 goto :done
 
 :done
+REM ── Final safety net: if device.json got wiped during the update,
+REM restore it from the backup we took at the start.
+if not exist "%BRIDGE_DIR%\device.json" (
+  if exist "%BRIDGE_DIR%\device.json.bak" (
+    echo [WARN] device.json missing after install — restoring from backup.
+    copy /Y "%BRIDGE_DIR%\device.json.bak" "%BRIDGE_DIR%\device.json" >nul 2>&1
+    REM Ask the bridge to reload the restored config (best-effort)
+    powershell -Command "try { Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:3001/reload-config' -TimeoutSec 4 | Out-Null; Write-Host '[OK] Bridge reloaded device.json' } catch { Write-Host '[INFO] Could not reload bridge automatically — restart-bridge.bat will pick it up.' }"
+  )
+)
+
 echo ============================================================
 echo   Installation finished.
 echo   - Open in browser: http://127.0.0.1:3001/health
