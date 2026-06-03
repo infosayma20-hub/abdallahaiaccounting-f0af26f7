@@ -5461,6 +5461,16 @@ const POSPage = () => {
                 )}
               </div>
 
+              {/* Branch → Call Center stockout alert (item 3). Cashier only. */}
+              {!isCallCenter && dataOwnerId && (
+                <div className="flex justify-end">
+                  <StockoutAlertButton
+                    dataOwnerId={dataOwnerId}
+                    branchId={deviceConfig?.branchId || cashBoxBranchId || null}
+                  />
+                </div>
+              )}
+
               {/* Quick save+print - only for non-call-center when accepting call center orders */}
               {!isCallCenter && cart.length > 0 && activeOrder.callCenterOrderId && (
                 <button
