@@ -5,6 +5,8 @@ import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 import { setCanSell } from "@/lib/pos-device-auth";
 import { usePosMode } from "@/hooks/usePosMode";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Gate around /pos that enforces:
@@ -26,7 +28,26 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   // fully authorized regardless of bridge state so they can open POS,
   // open a shift, and sell without any local hardware.
   const { callCenterEnabled, loading: posModeLoading } = usePosMode();
-  const bypassBridge = callCenterEnabled;
+  // Per-user call-center flag (pos_users.is_call_center). When the logged-in
+  // POS user is flagged as call center, they don't print locally — they
+  // forward orders to cashier terminals — so the Print Bridge is irrelevant
+  // for THIS user on THIS device only.
+  const { user } = useAuth();
+  const [userIsCallCenter, setUserIsCallCenter] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) { setUserIsCallCenter(false); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("pos_users")
+        .select("is_call_center")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      if (!cancelled) setUserIsCallCenter(!!(data as any)?.is_call_center);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+  const bypassBridge = callCenterEnabled || !!userIsCallCenter;
   const effectiveAuthorized = authorized || bypassBridge;
 
   // Track whether this tab has EVER seen a working Bridge.
@@ -66,7 +87,7 @@ export default function POSDeviceAuthGuard({ children }: { children: ReactNode }
   }, [effectiveAuthorized]);
 
   // 1) Still resolving — minimal spinner.
-  if (checking || checkingAdmin || posModeLoading) {
+  if (checking || checkingAdmin || posModeLoading || userIsCallCenter === null) {
     return (
       <div dir="rtl" className="min-h-[100dvh] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
