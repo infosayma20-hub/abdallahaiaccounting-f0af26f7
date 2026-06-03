@@ -2468,6 +2468,7 @@ const POSPage = () => {
           if (p.preference_key === "category_order") {
             const orderIds = (p.preference_value as any)?.order;
             if (Array.isArray(orderIds) && orderIds.length > 0) {
+              setCategoryOrderIds(orderIds as string[]);
               setPosCategories(prev => {
                 const ordered: POSCategory[] = [];
                 for (const id of orderIds) {
