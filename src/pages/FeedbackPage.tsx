@@ -89,6 +89,22 @@ function paymentLabel(p: string | null | undefined): string {
   }
 }
 
+function orderStatusLabel(s: string | null | undefined): string {
+  switch ((s || "").toLowerCase()) {
+    case "completed":  return "مكتمل";
+    case "pending":    return "قيد الانتظار";
+    case "accepted":   return "مقبول";
+    case "preparing":  return "قيد التحضير";
+    case "ready":      return "جاهز";
+    case "dispatched": return "خرج للتوصيل";
+    case "delivered":  return "تم التوصيل";
+    case "cancelled":
+    case "canceled":   return "ملغي";
+    case "rejected":   return "مرفوض";
+    default:           return s || "—";
+  }
+}
+
 function rpcErr(error: any) {
   const msg = String(error?.message ?? "");
   for (const key of Object.keys(ERROR_MESSAGES)) {
@@ -538,7 +554,7 @@ function OrdersList({
                 إجمالي الفاتورة: {(o.total ?? 0).toLocaleString("en")} ₪
               </span>
             </div>
-            <Badge variant="outline" className="text-[10px] h-5">{o.status || "—"}</Badge>
+            <Badge variant="outline" className="text-[10px] h-5">{orderStatusLabel(o.status)}</Badge>
           </div>
           <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
             <div>رسوم التوصيل: <span className="font-semibold text-foreground">{Number(o.delivery_fee ?? 0).toLocaleString("en")} ₪</span></div>
