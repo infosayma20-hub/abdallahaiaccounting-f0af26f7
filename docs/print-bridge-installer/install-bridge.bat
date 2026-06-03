@@ -50,7 +50,7 @@ if "%IS_WIN7%"=="1" (
 )
 
 set "BRIDGE_SCRIPT="
-if exist "%BRIDGE_DIR%\print-bridge-v6.3.4-generic.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.4-generic.js"
+if exist "%BRIDGE_DIR%\print-bridge-v6.3.6-clean.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.6-clean.js"
 if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.3.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.3.js"
 if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.2.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.2.js"
 if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge.js" set "BRIDGE_SCRIPT=print-bridge.js"
