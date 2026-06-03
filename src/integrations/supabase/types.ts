@@ -19100,6 +19100,10 @@ export type Database = {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
         Returns: Json
       }
+      reorder_pos_products: {
+        Args: { p_product_ids: string[] }
+        Returns: undefined
+      }
       rep_cancel_owned_invoice: {
         Args: { p_invoice_id: string; p_reason: string }
         Returns: Json
