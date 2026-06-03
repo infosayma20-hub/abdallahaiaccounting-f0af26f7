@@ -57,7 +57,7 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
   return (
     <div dir="rtl" className="min-h-[100dvh] bg-background flex flex-col w-full">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-3">
+        <div className="w-full max-w-none px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -103,7 +103,7 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <main className="flex-1 w-full max-w-none px-3 sm:px-6 lg:px-8 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {children}
       </main>
     </div>
