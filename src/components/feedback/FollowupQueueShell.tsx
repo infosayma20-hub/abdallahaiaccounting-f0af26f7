@@ -548,12 +548,10 @@ function FilterSelect({
 /* ============================ DataTable (Desktop) ============================ */
 
 function DataTable({
-  rows, loading, selectedId, onSelect, onOpen, onLogCall, debugInfo,
+  rows, loading, onOpen, onLogCall, debugInfo,
 }: {
   rows: FollowupRow[];
   loading: boolean;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
   onOpen: (r: FollowupRow) => void;
   onLogCall: (r: FollowupRow) => void;
   debugInfo: any;
@@ -574,7 +572,6 @@ function DataTable({
         <table className="w-full text-[13px] border-collapse">
           <thead className="bg-slate-100 sticky top-0 z-10">
             <tr className="text-slate-800">
-              <Th className="w-8 text-center"></Th>
               <Th>الاسم</Th>
               <Th>الهاتف</Th>
               <Th>الفرع</Th>
