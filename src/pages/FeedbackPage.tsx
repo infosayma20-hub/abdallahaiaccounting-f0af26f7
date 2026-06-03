@@ -89,6 +89,22 @@ function paymentLabel(p: string | null | undefined): string {
   }
 }
 
+function orderStatusLabel(s: string | null | undefined): string {
+  switch ((s || "").toLowerCase()) {
+    case "completed":  return "مكتمل";
+    case "pending":    return "قيد الانتظار";
+    case "accepted":   return "مقبول";
+    case "preparing":  return "قيد التحضير";
+    case "ready":      return "جاهز";
+    case "dispatched": return "خرج للتوصيل";
+    case "delivered":  return "تم التوصيل";
+    case "cancelled":
+    case "canceled":   return "ملغي";
+    case "rejected":   return "مرفوض";
+    default:           return s || "—";
+  }
+}
+
 function rpcErr(error: any) {
   const msg = String(error?.message ?? "");
   for (const key of Object.keys(ERROR_MESSAGES)) {
