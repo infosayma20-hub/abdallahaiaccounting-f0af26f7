@@ -847,6 +847,9 @@ function CardsList({
                       <Calendar className="h-3 w-3" /> {fmtDate(r.last_order_at)}
                     </span>
                   </div>
+                  <div className="text-[11px] text-slate-700">
+                    أخذ الطلب: <span className="font-semibold text-slate-900">{r.order_taken_by_name || "غير محدد"}</span>
+                  </div>
                 </div>
                 <ChevronLeft className="h-4 w-4 text-slate-500 shrink-0 mt-1" />
               </div>
