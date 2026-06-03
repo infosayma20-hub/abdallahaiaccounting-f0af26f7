@@ -2078,28 +2078,17 @@ const POSPage = () => {
     const orderIds = reordered.map(c => c.id);
     setCategoryOrderIds(orderIds);
     setPosCategories(reordered.map((c, i) => ({ ...c, display_order: i })));
-    // Save per-user category order preference
+    // Save per-user category order preference (per-user only — NOT company-wide).
     const { error } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: "category_order",
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
-    if (dataOwnerId) {
-      const results = await Promise.all(orderIds.map((id, i) =>
-        supabase
-          .from("pos_categories")
-          .update({ display_order: i, sort_order: i } as any)
-          .eq("id", id)
-          .eq("user_id", dataOwnerId)
-      ));
-      const dbErr = results.find(r => r.error)?.error;
-      if (dbErr) console.warn("[POS] category order saved locally but DB update failed:", dbErr);
-    }
     if (error) {
       toast.error("تعذّر حفظ ترتيب التصنيفات");
       return;
     }
-    toast.success("تم حفظ ترتيب التصنيفات");
+    toast.success("تم حفظ ترتيب التصنيفات (خاص بك فقط)");
   }, [posCategories, userId, dataOwnerId]);
 
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
@@ -2130,24 +2119,18 @@ const POSPage = () => {
       const rank = new Map(orderIds.map((id, i) => [id, i]));
       return prev.map(p => rank.has(p.id) ? { ...p, pos_sort_order: rank.get(p.id)! } : p);
     });
-    // Persist to products.pos_sort_order (company-wide) via SECURITY DEFINER RPC
-    // so the order is shared across all cashiers/terminals/call-center users.
-    // RLS check inside the function scopes to the caller's data owner.
-    const { error: rpcErr } = await supabase.rpc("reorder_pos_products" as any, {
-      p_product_ids: orderIds,
-    });
-    // Also keep the per-user preference as an instant cache for the current user.
-    await supabase.from("pos_user_preferences").upsert({
+    // Save per-user product order preference (per-user only — NOT company-wide).
+    const { error: prefErr } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: prefKey,
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
-    if (rpcErr) {
-      console.error("[POS] reorder_pos_products failed:", rpcErr);
-      toast.error("تعذّر حفظ الترتيب، حاول مرة أخرى");
+    if (prefErr) {
+      console.error("[POS] save product order failed:", prefErr);
+      toast.error("تعذّر حفظ الترتيب");
       return;
     }
-    toast.success("تم حفظ الترتيب لجميع المستخدمين");
+    toast.success("تم حفظ الترتيب (خاص بك فقط)");
   }, [filteredProducts, userId, selectedCategory, visiblePosCategories]);
 
   // Cart operations
