@@ -4,6 +4,17 @@ import { LogOut, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 /**
  * Standalone shell for /feedback.
@@ -36,27 +47,43 @@ export default function FeedbackShell({ children }: { children: ReactNode }) {
     })();
   }, [user?.id, user?.email]);
 
-  const signOut = async () => {
+  const goToWorkspaceChooser = () => {
     try {
       if (user?.id) sessionStorage.removeItem(`workspace-choice:${user.id}`);
     } catch {}
-    await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
+    navigate("/choose-workspace", { replace: true });
   };
 
   return (
     <div dir="rtl" className="min-h-[100dvh] bg-background flex flex-col w-full">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            aria-label="تسجيل خروج"
-            className="shrink-0 -mr-2"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="الرجوع إلى اختيار مساحة العمل"
+                className="shrink-0 -mr-2"
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent dir="rtl">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-right">الرجوع إلى اختيار مساحة العمل</AlertDialogTitle>
+                <AlertDialogDescription className="text-right">
+                  هل تريد الرجوع إلى اختيار مساحة العمل؟
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-row-reverse sm:flex-row-reverse gap-2">
+                <AlertDialogAction onClick={goToWorkspaceChooser}>
+                  نعم، رجوع
+                </AlertDialogAction>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-end">
             <div className="min-w-0 text-right">
