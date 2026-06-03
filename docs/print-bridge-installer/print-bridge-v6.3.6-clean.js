@@ -1081,7 +1081,7 @@ app.get('/windows-printers', async (_req, res) => {
 
 app.post('/print-receipt', async (req, res) => {
   const order = req.body?.order || {};
-  const jobKey = `receipt|${order.orderNumber || '?'}`;
+  const jobKey = `receipt|${order.id || ''}|${order.orderNumber || '?'}`;
   if (shouldBlockDuplicate(jobKey)) {
     console.log(`[duplicate-blocked] receipt #${order.orderNumber}`);
     return res.json({ success: true, duplicate: true });
@@ -1096,6 +1096,7 @@ app.post('/print-receipt', async (req, res) => {
     const png = await svgToPngWithLogo(svg, width);
     const payload = await buildPrintJob(png, receipt.width || 576);
     const r = await sendToPrinterDef(receipt, payload, 'receipt');
+    if (r.ok) stampJobSuccess(jobKey);
     console.log(`[print-end] receipt #${order.orderNumber} → ${r.ok ? 'OK' : 'FAIL: ' + r.err}`);
     res.json({ success: r.ok, error: r.err });
   } catch (e) {
@@ -1112,7 +1113,7 @@ app.post('/print-kitchen', async (req, res) => {
   const stationLbl = req.body?.stationLabel || (printer && printer.name) || '';
   if (!printer) return res.json({ success: false, error: `unknown_printer:${printerKey}` });
 
-  const jobKey = `kitchen|${printerKey}|${order.orderNumber || '?'}`;
+  const jobKey = `kitchen|${printerKey}|${order.id || ''}|${order.orderNumber || '?'}`;
   if (shouldBlockDuplicate(jobKey)) {
     console.log(`[duplicate-blocked] kitchen/${printerKey} #${order.orderNumber}`);
     return res.json({ success: true, duplicate: true });
@@ -1123,6 +1124,7 @@ app.post('/print-kitchen', async (req, res) => {
     const png = await svgToPng(svg);
     const payload = await buildPrintJob(png, printer.width || 576);
     const r = await sendToPrinterDef(printer, payload, `kitchen/${printerKey}`);
+    if (r.ok) stampJobSuccess(jobKey);
     console.log(`[print-end] kitchen/${printerKey} #${order.orderNumber} → ${r.ok ? 'OK' : 'FAIL: ' + r.err}`);
     res.json({ success: r.ok, error: r.err });
   } catch (e) {
@@ -1148,6 +1150,7 @@ app.post('/print-shift', async (req, res) => {
     const png = await svgToPngWithLogo(svg, width);
     const payload = await buildPrintJob(png, receipt.width || 576);
     const r = await sendToPrinterDef(receipt, payload, 'shift');
+    if (r.ok) stampJobSuccess(jobKey);
     console.log(`[print-end] shift → ${r.ok ? 'OK' : 'FAIL: ' + r.err}`);
     res.json({ success: r.ok, error: r.err });
   } catch (e) {
