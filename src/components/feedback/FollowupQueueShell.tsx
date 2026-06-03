@@ -497,7 +497,7 @@ function FiltersBar(props: {
             options={STATUS_FILTER_OPTIONS}
           />
           <FilterSelect
-            label="DNC" value={dnc} onChange={onDnc}
+            label="عدم الاتصال" value={dnc} onChange={onDnc}
             options={[
               { value: "__all", label: "الكل" },
               { value: "no",    label: "مسموح الاتصال" },
