@@ -73,9 +73,14 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
     return /^\d+$/.test(s) ? (s.replace(/^0+(?=\d)/, '') || s) : s;
   })();
 
+  const isDineIn = order.orderType !== 'takeaway' && order.orderType !== 'delivery';
+  const tableRaw = (order.tableNumber || '').toString().trim();
+  const dineInLabel = tableRaw
+    ? (/^طاولة\b/.test(tableRaw) ? `🍽️ ${tableRaw}` : `🍽️ طاولة رقم ${tableRaw}`)
+    : '🍽️ طاولة';
   const orderTypeLabel = order.orderType === 'takeaway' ? '🛍️ استلام'
     : order.orderType === 'delivery' ? '🚚 توصيل'
-    : '🍽️ محلي';
+    : dineInLabel;
 
   const paymentLabels: Record<string, string> = {
     'نقد': 'نقد', 'cash': 'نقد', 'نقدي': 'نقد',
@@ -175,7 +180,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
             <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>نوع الطلب</td>
             <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 800, textAlign: 'left' }}>{orderTypeLabel}</td>
           </tr>
-          {order.tableNumber && (
+          {order.tableNumber && !isDineIn && (
             <tr>
               <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>الطاولة</td>
               <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 800, textAlign: 'left' }}>{order.tableNumber}</td>

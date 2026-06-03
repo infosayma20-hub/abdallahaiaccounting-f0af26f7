@@ -285,19 +285,41 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                 <span style={{ color: "#000", fontWeight: 700 }}>الكاشير</span>
                 <span style={{ fontWeight: 700, color: "#000" }}>{data.cashierName}</span>
               </div>
-              {/* Order Type */}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
-                <span style={{ color: "#000", fontWeight: 700 }}>نوع الطلب</span>
-                <span style={{ fontWeight: 800, color: "#000", background: "#eee", border: "1px solid #999", borderRadius: "4px", padding: "1px 8px", fontSize: "11px" }}>
-                  {data.orderType === "delivery" ? "🚚 توصيل" : data.orderType === "takeaway" ? "🛍️ استلام" : "🍽️ محلي"}
-                </span>
-              </div>
-              {data.tableName && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
-                  <span style={{ color: "#000", fontWeight: 700 }}>الطاولة</span>
-                  <span style={{ fontWeight: 900, color: "#000" }}>{data.tableName}{data.guestCount ? ` (${data.guestCount} ضيوف)` : ""}</span>
-                </div>
-              )}
+              {/* Order Type (table-number is merged into the dine-in label) */}
+              {(() => {
+                const isDineIn = data.orderType !== "delivery" && data.orderType !== "takeaway";
+                const tableRaw = (data.tableName || "").toString().trim();
+                const dineInLabel = tableRaw
+                  ? (/^طاولة\b/.test(tableRaw) ? `🍽️ ${tableRaw}` : `🍽️ طاولة رقم ${tableRaw}`)
+                  : "🍽️ طاولة";
+                const label = data.orderType === "delivery"
+                  ? "🚚 توصيل"
+                  : data.orderType === "takeaway"
+                    ? "🛍️ استلام"
+                    : dineInLabel;
+                return (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                      <span style={{ color: "#000", fontWeight: 700 }}>نوع الطلب</span>
+                      <span style={{ fontWeight: 800, color: "#000", background: "#eee", border: "1px solid #999", borderRadius: "4px", padding: "1px 8px", fontSize: "11px" }}>
+                        {label}
+                      </span>
+                    </div>
+                    {isDineIn && data.guestCount ? (
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                        <span style={{ color: "#000", fontWeight: 700 }}>عدد الضيوف</span>
+                        <span style={{ fontWeight: 900, color: "#000" }}>{data.guestCount}</span>
+                      </div>
+                    ) : null}
+                    {!isDineIn && data.tableName && (
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                        <span style={{ color: "#000", fontWeight: 700 }}>الطاولة</span>
+                        <span style={{ fontWeight: 900, color: "#000" }}>{data.tableName}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               {data.customerName && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
                   <span style={{ color: "#000", fontWeight: 700 }}>الزبون</span>
