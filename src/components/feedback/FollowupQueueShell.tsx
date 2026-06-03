@@ -368,81 +368,23 @@ export default function FollowupQueueShell({
 /* ============================ ActionPane ============================ */
 
 function ActionPane({
-  selected, total, loading, onRefresh, onToggleFilters, filtersOpen,
-  onOpenDetails, onLogCall, onChangeStatus,
+  total, loading, onRefresh, onToggleFilters, filtersOpen,
 }: {
-  selected: FollowupRow | null;
   total: number;
   loading: boolean;
   onRefresh: () => void;
   onToggleFilters: () => void;
   filtersOpen: boolean;
-  onOpenDetails: (r: FollowupRow) => void;
-  onLogCall: (r: FollowupRow) => void;
-  onChangeStatus: (r: FollowupRow, outcome: string) => void;
 }) {
-  const wa = whatsappHref(selected?.display_phone ?? null);
-  const canCall = !!selected?.display_phone && !selected.do_not_call;
-  const canWa   = !!wa && !selected?.do_not_call;
-  const has = !!selected;
-
   return (
     <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
       {/* Toolbar */}
       <div className="flex items-center flex-wrap gap-1 px-2 py-1.5 border-b bg-muted/40">
         <ToolButton icon={RefreshCw} label="تحديث" onClick={onRefresh} disabled={loading} loading={loading} />
-        <Divider />
-        <ToolButton icon={FilePen} label="فتح التفاصيل" onClick={() => selected && onOpenDetails(selected)} disabled={!has} />
-        <ToolButton icon={Phone} label="تسجيل متابعة" onClick={() => selected && onLogCall(selected)} disabled={!has || !!selected?.do_not_call} />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs font-semibold" disabled={!has || !selected?.customer_id}>
-              <CircleCheck className="h-3.5 w-3.5" /> تغيير الحالة
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-52">
-            <DropdownMenuLabel className="text-xs">تحديث الحالة سريعاً</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => selected && onChangeStatus(selected, "answered")}>
-              <CircleCheck className="h-4 w-4 ml-2 text-emerald-600" /> تم الاتصال
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => selected && onChangeStatus(selected, "no_answer")}>
-              <CircleAlert className="h-4 w-4 ml-2 text-amber-600" /> لم يرد
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => selected && onChangeStatus(selected, "busy")}>
-              <CircleAlert className="h-4 w-4 ml-2 text-amber-600" /> مشغول
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => selected && onChangeStatus(selected, "callback_requested")}>
-              <Hourglass className="h-4 w-4 ml-2 text-sky-600" /> يحتاج متابعة
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => selected && onChangeStatus(selected, "wrong_number")}>
-              <CircleAlert className="h-4 w-4 ml-2 text-rose-600" /> رقم خاطئ
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Divider />
-        {canCall ? (
-          <a
-            href={`tel:${selected!.display_phone}`}
-            className="inline-flex items-center gap-1 h-8 px-2 rounded-md hover:bg-accent text-xs font-semibold"
-          >
-            <Phone className="h-3.5 w-3.5" /> اتصال
-          </a>
-        ) : (
-          <ToolButton icon={Phone} label="اتصال" onClick={() => {}} disabled />
-        )}
-        {canWa ? (
-          <a
-            href={wa!}
-            target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 h-8 px-2 rounded-md hover:bg-accent text-xs font-semibold"
-          >
-            <MessageCircle className="h-3.5 w-3.5" /> واتساب
-          </a>
-        ) : (
-          <ToolButton icon={MessageCircle} label="واتساب" onClick={() => {}} disabled />
-        )}
         <div className="flex-1" />
+        <span className="text-[11px] text-slate-500 hidden md:inline-block">
+          اضغط على الصف لفتح التفاصيل
+        </span>
         <ToolButton
           icon={ListFilter}
           label={filtersOpen ? "إخفاء الفلاتر" : "إظهار الفلاتر"}
@@ -450,28 +392,7 @@ function ActionPane({
         />
       </div>
 
-      {/* Status bar */}
-      <div className="flex items-center justify-between gap-2 px-3 py-1.5 text-[12px] bg-background">
-        <div className="text-slate-700 font-semibold truncate">
-          {selected ? (
-            <span className="inline-flex items-center gap-2 flex-wrap">
-              <span className="text-slate-900">{selected.full_name || "بدون اسم"}</span>
-              <span dir="ltr" className="font-mono text-slate-600 text-[11px]">{selected.display_phone || selected.normalized_phone}</span>
-              {selected.order_taken_by_name && (
-                <span className="text-[11px] text-slate-600">
-                  أخذ الطلب: <span className="text-slate-800 font-semibold">{selected.order_taken_by_name}</span>
-                </span>
-              )}
-              {selected.do_not_call && (
-                <Badge variant="destructive" className="gap-1 text-[10px] h-5">
-                  <PhoneOff className="h-3 w-3" /> لا اتصال
-                </Badge>
-              )}
-            </span>
-          ) : (
-            <span className="text-slate-500 font-normal">اختر صفاً لتفعيل الإجراءات</span>
-          )}
-        </div>
+      <div className="flex items-center justify-end gap-2 px-3 py-1.5 text-[12px] bg-background">
         <div className="text-[11px] text-slate-600 shrink-0">
           {total > 0 ? `${total} زبون` : ""}
         </div>
