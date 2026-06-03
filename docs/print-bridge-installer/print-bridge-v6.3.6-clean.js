@@ -20,6 +20,25 @@
 const express     = require('express');
 const cors        = require('cors');
 const bodyParser  = require('body-parser');
+
+// v6.3.6-clean version + buildHash. buildHash is a sha1 of THIS file
+// computed at startup, so operators can verify what's actually deployed.
+const BRIDGE_VERSION = '6.3.6-clean';
+const BRIDGE_FEATURES = [
+  'note-downward',
+  'dedupe-on-success',
+  'clean-kitchen-ticket',
+  'split-notes',
+];
+let BRIDGE_BUILD_HASH = 'unknown';
+try {
+  const _crypto = require('crypto');
+  const _fs = require('fs');
+  BRIDGE_BUILD_HASH = _crypto.createHash('sha1')
+    .update(_fs.readFileSync(__filename))
+    .digest('hex')
+    .slice(0, 12);
+} catch (_e) { /* ignore */ }
 const net         = require('net');
 const sharp       = require('sharp');
 const fs          = require('fs');
