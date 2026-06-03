@@ -626,20 +626,24 @@ function DataTable({
                   <Td className="text-center font-semibold text-slate-800">
                     {r.lifetime_visits ?? r.orders_count}
                   </Td>
-                  <Td className="text-left font-mono text-slate-800" title="المبلغ النهائي الذي دفعه الزبون لآخر طلب (يشمل التوصيل)">
+                  <Td className="text-left font-mono text-slate-800">
+                    <span title="المبلغ النهائي الذي دفعه الزبون لآخر طلب (يشمل التوصيل)">
                     {typeof r.last_order_total === "number"
                       ? `${Number(r.last_order_total).toLocaleString("en")} ₪`
                       : "—"}
+                    </span>
                   </Td>
                   <Td className="text-left font-mono text-slate-700">
                     {typeof r.last_delivery_fee === "number"
                       ? `${Number(r.last_delivery_fee).toLocaleString("en")} ₪`
                       : "0 ₪"}
                   </Td>
-                  <Td className="text-left font-mono text-slate-800" title="إجمالي الفاتورة بدون رسوم التوصيل">
+                  <Td className="text-left font-mono text-slate-800">
+                    <span title="إجمالي الفاتورة بدون رسوم التوصيل">
                     {typeof r.last_order_value === "number"
                       ? `${Number(r.last_order_value).toLocaleString("en")} ₪`
                       : "—"}
+                    </span>
                   </Td>
                   <Td className="text-slate-700 whitespace-nowrap">{fmtDate(r.last_order_at)}</Td>
                   <Td className="text-slate-700 max-w-[260px]">
