@@ -1,18 +1,31 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- *  AMWALI Print Bridge v6.3.6-clean
+ *  AMWALI Print Bridge v6.3.4-generic
  *
- *  Based on v6.3.5-generic with focused print-quality fixes:
- *   - Notes ALWAYS drawn downward (no cy-boxH regression).
- *   - Dedupe stamps AFTER print success → failed jobs can retry immediately.
- *   - Clean kitchen ticket: no outer frame, no dashed separators,
- *     lighter font-weights, no phone / payment / source / delivery fee.
- *   - Split notes payload: customerNote / deliveryNote on receipt,
- *     kitchenNote on kitchen tickets. Legacy `orderNote` still honoured.
- *   - /health exposes version + buildHash + features so the operator
- *     can verify the deployed version from the browser.
+ *  Based on v6.3.3 (kitchen-delivery fix + /print + /print-routed +
+ *  logo composite + duplicate guard + drawer + shift print) with all
+ *  Malaki-specific hardcoded values removed.
  *
- *  Run:     node print-bridge-v6.3.6-clean.js
+ *  ── What's new vs v6.3.3 ───────────────────────────────────────────
+ *   1) Generic: no hardcoded customer IPs, no Malaki station UUIDs,
+ *      no "مطعم الملكي" default name, no C:\malaki-print logo path.
+ *   2) Printers are loaded from c:\print-bridge\device.json via the
+ *      device-config-addon. If the file is missing/empty, the bridge
+ *      falls back to neutral DEFAULT_PRINTERS. Once device.json has
+ *      printers, it becomes the source of truth — no stale default IPs.
+ *   3) Adds network-printer auto-discovery via discover-printers-addon
+ *      (POST /discover-network-printers).
+ *   4) /health now reports `status, version, device, printers_source,
+ *      printers[]`.
+ *
+ *  ── Files in c:\print-bridge\ ──────────────────────────────────────
+ *    print-bridge-v6.3.4-generic.js    (this file)
+ *    device-config-addon.js            (device.json persistence)
+ *    discover-printers-addon.js        (network printer discovery)
+ *    logo.png                          (optional, 240px target width)
+ *    device.json                       (auto-created on first POS save)
+ *
+ *  Run:     node print-bridge-v6.3.4-generic.js
  *  Health:  GET http://127.0.0.1:3001/health
  * ═══════════════════════════════════════════════════════════════════════
  */
@@ -20,25 +33,6 @@
 const express     = require('express');
 const cors        = require('cors');
 const bodyParser  = require('body-parser');
-
-// v6.3.6-clean version + buildHash. buildHash is a sha1 of THIS file
-// computed at startup, so operators can verify what's actually deployed.
-const BRIDGE_VERSION = '6.3.6-clean';
-const BRIDGE_FEATURES = [
-  'note-downward',
-  'dedupe-on-success',
-  'clean-kitchen-ticket',
-  'split-notes',
-];
-let BRIDGE_BUILD_HASH = 'unknown';
-try {
-  const _crypto = require('crypto');
-  const _fs = require('fs');
-  BRIDGE_BUILD_HASH = _crypto.createHash('sha1')
-    .update(_fs.readFileSync(__filename))
-    .digest('hex')
-    .slice(0, 12);
-} catch (_e) { /* ignore */ }
 const net         = require('net');
 const sharp       = require('sharp');
 const fs          = require('fs');
@@ -204,18 +198,13 @@ function loadLogoBuffer() {
       if (fs.existsSync(p)) {
         const b = fs.readFileSync(p);
         console.log(`[logo] loaded from ${p} (${b.length} bytes)`);
-        LOGO_PATH_USED = p;
         return b;
       }
     } catch { /* ignore */ }
   }
   console.log('[logo] not found — receipts/shift will print without logo');
-  LOGO_PATH_USED = null;
-  LOGO_PATH_CANDIDATES = candidates;
   return null;
 }
-let LOGO_PATH_USED = null;
-let LOGO_PATH_CANDIDATES = [];
 const LOGO_BUF = loadLogoBuffer();
 
 const LOGO_RECEIPT_WIDTH = 240;
@@ -238,23 +227,20 @@ async function getResizedLogo(targetWidth) {
 const app  = express();
 const PORT = 3001;
 
-// Allow private-network preflight from POS (Chrome PNA) BEFORE cors().
-// The cors package answers OPTIONS immediately, so this must run first;
-// otherwise hosted amwali.app can open /health directly but fetch() reports
-// "غير متصل" because Chrome blocks the local-network preflight.
+app.use(cors());
+app.use(bodyParser.json({ limit: '8mb' }));
+
+// Allow private-network preflight from POS (Chrome PNA)
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin',  req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return res.sendStatus(204);
   }
   next();
 });
-
-app.use(cors());
-app.use(bodyParser.json({ limit: '8mb' }));
 
 // ────────────────────────────────────────────────────────────────────────
 //  Add-ons:
@@ -400,11 +386,6 @@ const MAX_CHUNK_HEIGHT = 48;
 // ─── Anti-duplicate guard ───────────────────────────────────────────────
 const recentJobs = new Map();
 const DEDUPE_WINDOW_MS = 60_000;
-// v6.3.6-clean: dedupe-on-success.
-// shouldBlockDuplicate() ONLY checks — it does NOT stamp. The caller must
-// call stampJobSuccess(key) after the printer reports OK. This way a failed
-// print (offline printer, network glitch) does NOT block the immediate
-// retry the user triggers from the UI.
 function shouldBlockDuplicate(key) {
   const now = Date.now();
   for (const [k, t] of recentJobs) if (now - t > DEDUPE_WINDOW_MS) recentJobs.delete(k);
@@ -413,10 +394,8 @@ function shouldBlockDuplicate(key) {
     console.log(`[duplicate-blocked] ${key} (${now - last}ms ago)`);
     return true;
   }
+  recentJobs.set(key, now);
   return false;
-}
-function stampJobSuccess(key) {
-  recentJobs.set(key, Date.now());
 }
 
 // ─── Image → ESC/POS raster (chunked GS v 0) ────────────────────────────
@@ -542,32 +521,6 @@ function wrapTextForSvg(text, maxChars) {
   return lines;
 }
 
-// Normalize a counter/order number for display:
-//  - "000005"            -> "5"
-//  - "#000005"           -> "#5"
-//  - "POS-20260602-0005" -> "5"  (strip zeros from last segment)
-//  - "5"                 -> "5"
-function normalizeCounter(v) {
-  const raw = String(v ?? '').trim();
-  if (!raw) return '---';
-  const hash = raw.startsWith('#') ? '#' : '';
-  const body = hash ? raw.slice(1).trim() : raw;
-  if (/[-_/\s]/.test(body)) {
-    const parts = body.split(/[-_/\s]+/);
-    const last = parts[parts.length - 1] || '';
-    if (/^\d+$/.test(last)) {
-      const stripped = last.replace(/^0+(?=\d)/, '');
-      return hash + (stripped || last);
-    }
-    return hash + body;
-  }
-  if (/^\d+$/.test(body)) {
-    const stripped = body.replace(/^0+(?=\d)/, '');
-    return hash + (stripped || body);
-  }
-  return hash + body;
-}
-
 function renderReceiptSVG(order, logoTopMargin) {
   const W = 576;
   const padX = 24;
@@ -587,7 +540,7 @@ function renderReceiptSVG(order, logoTopMargin) {
   push(16, () => '');
   push(54, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="34" font-weight="900" font-family="Tahoma">رقم الطلب</text>
-    <text x="${padX}" y="${cy}" text-anchor="start" font-size="34" font-weight="900" font-family="Tahoma">${esc(normalizeCounter(order.queueNumber || order.orderNumber || '---'))}</text>`);
+    <text x="${padX}" y="${cy}" text-anchor="start" font-size="34" font-weight="900" font-family="Tahoma">${esc(order.queueNumber || order.orderNumber || '---')}</text>`);
   if (order.cashierName) push(30, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الكاشير</text>
     <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="700" font-family="Tahoma">${esc(order.cashierName)}</text>`);
@@ -650,33 +603,16 @@ function renderReceiptSVG(order, logoTopMargin) {
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="900" font-family="Tahoma">الباقي</text>
     <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="900" font-family="Tahoma">₪${Number(order.change).toFixed(2)}</text>`);
 
-  // ── NOTES (customer receipt) ─────────────────────────────────────────
-  // v6.3.6-clean: render notes in a clear box that ALWAYS grows downward.
-  // Order of preference per source:
-  //   1) order.customerNote        — explicit customer note (new)
-  //   2) order.orderNote           — legacy single field (back-compat)
-  // Delivery line is rendered as a SECOND box right below, so it is
-  // visually separated from "شكراً لتعاملكم معنا".
-  const customerNoteText = String(order.customerNote || order.orderNote || '').trim();
-  const deliveryNoteText = String(order.deliveryNote || '').trim();
-  const renderNoteBox = (text, label) => {
-    if (!text) return;
+  if (order.orderNote) {
     push(10, () => '');
-    const lines = wrapTextForSvg(text, 36);
+    const lines = wrapTextForSvg(esc(order.orderNote), 36);
     const boxH = 16 + lines.length * 28;
-    push(boxH + 12, (cy) => `
-      <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
-      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 28 + i*28}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
-  };
-  renderNoteBox(customerNoteText, 'ملاحظة:');
-  renderNoteBox(deliveryNoteText, 'توصيل:');
+    push(boxH + 6, (cy) => `
+      <rect x="${padX}" y="${cy - boxH + 4}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy - boxH + 32 + i*28}" text-anchor="end" font-size="20" font-weight="800" font-family="Tahoma">${i === 0 ? '📝 ملاحظة: ' : ''}${ln}</text>`).join('')}`);
+  }
 
-  push(14, () => '');
-  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">شكراً لتعاملكم معنا</text>`);
-  // ── AMWALI signature (customer receipt ONLY — never on kitchen tickets) ──
-  push(10, () => '');
-  push(20, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="14" font-weight="400" font-family="Tahoma" fill="#555">Powered by AMWALI ERP</text>`);
-  push(20, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="14" font-weight="400" font-family="Tahoma" fill="#555">مشغّل بواسطة نظام أموالي ERP</text>`);
+  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">❤️ شكراً لتعاملكم معنا</text>`);
 
   const H = y + 30;
   return { svg: `<?xml version="1.0"?>
@@ -695,31 +631,28 @@ function renderKitchenSVG(order, stationLabel) {
   const dateStr = now.toLocaleDateString('en-GB');
   const typeLabel = order.orderTypeLabel
     || (order.orderType === 'delivery' ? 'توصيل' : order.orderType === 'dine_in' ? 'محلي' : 'استلام');
-  const normalizedKitchenType = order.orderType === 'delivery'
-    ? 'delivery'
-    : order.orderType === 'dine_in' ? 'dine_in' : 'takeaway';
 
-  // Daily counter — always strip leading zeros so "000005" prints as "5".
-  const counterStr = normalizeCounter(
-    order.dailyCounter || order.queueNumber || order.orderNumber || '---'
-  );
+  // Daily counter — POS sends padded value; fall back to queue/order number locally.
+  const counterStr = order.dailyCounter
+    || String(order.queueNumber || order.orderNumber || '---').replace(/\D/g, '').padStart(6, '0').slice(-6)
+    || String(order.queueNumber || order.orderNumber || '---');
 
   // Total quantity — POS sends it; recompute defensively if missing.
   const totalQty = (typeof order.totalQty === 'number')
     ? order.totalQty
     : (order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
 
-  // Order-info rows: kitchen tickets stay minimal.
-  // v6.3.6-clean: drop customer phone (kitchen does not need it) and any
-  // payment / source / delivery-fee fields. Customer name shown ONLY for
-  // delivery / takeaway pickup so the kitchen knows whose order it is.
-  const showCustomerLine =
-    !!order.customerName && (normalizedKitchenType === 'delivery' || normalizedKitchenType === 'takeaway' || !!order.pickupBy);
+  // Order-info rows: only render rows whose value is non-empty.
+  // TODO: read visibility flags from device.json kitchen_ticket_options when settings UI ships.
   const infoRows = [
-    { label: 'الوقت', value: `${timeStr} - ${dateStr}`, ltrValue: true },
-    showCustomerLine ? { label: 'الزبون', value: String(order.customerName) } : null,
-    order.pickupBy ? { label: 'استلام', value: String(order.pickupBy) } : null,
-    { label: 'الكميات', value: String(totalQty) },
+    { label: 'التاريخ', value: dateStr },
+    { label: 'الوقت', value: timeStr },
+    { label: 'نوع الفاتورة', value: typeLabel },
+    { label: '# العداد اليومي', value: counterStr },
+    order.customerName ? { label: 'بيانات المتصل', value: String(order.customerName) } : null,
+    order.customerPhone ? { label: '', value: String(order.customerPhone), ltrValue: true } : null,
+    order.pickupBy ? { label: 'ملاحظة', value: `استلام من ${order.pickupBy}` } : null,
+    { label: 'مجموع الكميات', value: String(totalQty) },
   ].filter(Boolean);
 
   const rows = [];
@@ -727,17 +660,18 @@ function renderKitchenSVG(order, stationLabel) {
   const push = (h, fn) => { rows.push(fn(y)); y += h; };
 
   if (stationLabel) push(46, (cy) => `
-    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="800" font-family="Tahoma">${esc(stationLabel)}</text>
+    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="30" font-weight="900" font-family="Tahoma">${esc(stationLabel)}</text>
     <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="2"/>`);
 
-  // ── HERO BLOCK: big order # + type. Number stays large & bold (this is
-  // the one thing the kitchen MUST see). Everything else is lighter.
-  push(64, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="56" font-weight="900" font-family="Tahoma"># ${esc(counterStr)}</text>`);
-  push(40, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="26" font-weight="700" font-family="Tahoma">${esc(typeLabel)}</text>`);
-  if (order.tableNumber) push(28, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">طاولة: ${esc(order.tableNumber)}</text>`);
+  // ── HERO BLOCK: huge daily counter + type ──
+  push(62, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="52" font-weight="900" font-family="Tahoma"># ${esc(counterStr)}</text>`);
+  push(52, (cy) => `
+    <rect x="${padX}" y="${cy - 38}" width="${W - padX*2}" height="48" fill="none" stroke="#000" stroke-width="3"/>
+    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">${esc(typeLabel)}</text>`);
+  if (order.tableNumber) push(32, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">طاولة: ${esc(order.tableNumber)}</text>`);
 
   // ── ORDER INFO BLOCK — two-column table (label right, value left), wrapped values ──
-  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
+  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
   const infoFont = 20;
   const infoLineH = 28;
   const valueWrap = 16; // chars per line for the value column
@@ -747,63 +681,60 @@ function renderKitchenSVG(order, stationLabel) {
     push(rowH, (cy) => {
       const baseY = cy + infoFont - 4;
       const labelSvg = row.label
-        ? `<text x="${W - padX}" y="${baseY}" text-anchor="end" font-size="${infoFont}" font-weight="700" font-family="Tahoma">${esc(row.label)}</text>`
+        ? `<text x="${W - padX}" y="${baseY}" text-anchor="end" font-size="${infoFont}" font-weight="900" font-family="Tahoma">${esc(row.label)}</text>`
         : '';
       const valueX = W / 2 - 8;
       const dirAttr = row.ltrValue ? ' direction="ltr"' : '';
       const valueSvg = valueLines.map((ln, i) =>
-        `<text x="${valueX}" y="${baseY + i * infoLineH}" text-anchor="end" font-size="${infoFont}" font-weight="700" font-family="Tahoma"${dirAttr}>${esc(ln)}</text>`
+        `<text x="${valueX}" y="${baseY + i * infoLineH}" text-anchor="end" font-size="${infoFont}" font-weight="900" font-family="Tahoma"${dirAttr}>${esc(ln)}</text>`
       ).join('');
-      return `${labelSvg}${valueSvg}`;
+      const sep = `<line x1="${W/2 - 4}" y1="${cy}" x2="${W/2 - 4}" y2="${cy + rowH - 2}" stroke="#000" stroke-width="1"/>`;
+      return `${sep}${labelSvg}${valueSvg}`;
     });
   }
-  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
+  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
   // ── ITEMS TABLE HEADER ──
   push(34, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الصنف</text>
-    <text x="${padX + 30}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">الكمية</text>
-    <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="1"/>`);
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="900" font-family="Tahoma">الاسم</text>
+    <text x="${padX + 30}" y="${cy}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">الكمية</text>
+    <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="2"/>`);
 
   for (const it of (order.items || [])) {
     const qty = it.quantity || 1;
     const nameLines = wrapTextForSvg(String(it.name || ''), 18);
     const noteLinesArr = it.notes ? wrapTextForSvg(String(it.notes), 22) : [];
     const noteBlockH = noteLinesArr.length ? (noteLinesArr.length * 26 + 4) : 0;
-    const rowH = 34 + Math.max(0, nameLines.length - 1) * 30 + noteBlockH + 10;
+    const rowH = 34 + Math.max(0, nameLines.length - 1) * 30 + noteBlockH + 8; // +8 for separator breathing
     push(rowH, (cy) => {
       const firstY = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
-      const qtySvg = `<text x="${padX + 30}" y="${firstY}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">${qty}</text>`;
+        `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="900" font-family="Tahoma">${esc(ln)}</text>`).join('');
+      const qtySvg = `<text x="${padX + 30}" y="${firstY}" text-anchor="middle" font-size="26" font-weight="900" font-family="Tahoma">${qty}</text>`;
       const noteY0 = firstY + nameLines.length * 30 + 2;
       const notesSvg = noteLinesArr.map((ln, i) =>
-        `<text x="${W - padX - 12}" y="${noteY0 + i * 26}" text-anchor="end" font-size="20" font-weight="600" font-family="Tahoma">+ ${esc(ln)}</text>`).join('');
-      return `${nameSvg}${qtySvg}${notesSvg}`;
+        `<text x="${W - padX - 12}" y="${noteY0 + i * 26}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">${esc(ln)}</text>`).join('');
+      // dashed separator between items
+      const sepY = cy + rowH - 4;
+      const sep = `<line x1="${padX}" y1="${sepY}" x2="${W - padX}" y2="${sepY}" stroke="#000" stroke-width="1" stroke-dasharray="4,4"/>`;
+      return `${nameSvg}${qtySvg}${notesSvg}${sep}`;
     });
   }
 
-  // ── KITCHEN NOTE (kitchen tickets only) ──────────────────────────────
-  // v6.3.6-clean: ONLY render the kitchen-only note here. The customer
-  // and delivery notes are intentionally NOT printed on kitchen tickets.
-  // Back-compat: fall back to `orderNote` if `kitchenNote` is missing,
-  // so old POS payloads still print something on the ticket.
-  const kitchenNoteText = String(order.kitchenNote || order.orderNote || '').trim();
-  if (kitchenNoteText) {
-    push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
-    const noteFont = 20;
-    const noteLineH = 26;
-    const noteLines = wrapTextForSvg(kitchenNoteText, 24);
-    const boxH = 14 + noteLines.length * noteLineH;
-    push(boxH + 10, (cy) => `
-      <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="1"/>
-      ${noteLines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">${i === 0 ? 'ملاحظة: ' : ''}${esc(ln)}</text>`).join('')}`);
+  if (order.orderNote) {
+    push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
+    const noteLines = wrapTextForSvg(String(order.orderNote), 22);
+    const boxH = 16 + noteLines.length * 28;
+    push(boxH + 6, (cy) => `
+      <rect x="${padX}" y="${cy - boxH + 4}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
+      ${noteLines.map((ln, i) => `<text x="${W - padX - 6}" y="${cy - boxH + 30 + i*28}" text-anchor="end" font-size="22" font-weight="900" font-family="Tahoma">${i === 0 ? '📝 ' : ''}${esc(ln)}</text>`).join('')}`);
   }
 
   const H = y + topPad;
   return `<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <rect width="${W}" height="${H}" fill="#fff"/>
+  <rect x="2" y="2" width="${W-4}" height="${H-4}" fill="none" stroke="#000" stroke-width="4" rx="4"/>
   ${rows.join('\n')}
 </svg>`;
 }
@@ -980,13 +911,9 @@ app.get('/health', async (_req, res) => {
     }));
   res.json({
     status: 'ok',
-    version: BRIDGE_VERSION,
-    buildHash: BRIDGE_BUILD_HASH,
-    features: BRIDGE_FEATURES,
+    version: '6.3.4-generic',
     online: true,
     logo: !!LOGO_BUF,
-    logoPath: LOGO_PATH_USED,
-    logoCandidates: LOGO_PATH_CANDIDATES,
     windows_printers_supported: IS_WINDOWS,
     usb_raw_print_fix: 'intptr-marshaling-v1',
     subnet_check: 'subnet-mismatch-v1',
@@ -1095,7 +1022,7 @@ app.get('/windows-printers', async (_req, res) => {
 
 app.post('/print-receipt', async (req, res) => {
   const order = req.body?.order || {};
-  const jobKey = `receipt|${order.id || ''}|${order.orderNumber || '?'}`;
+  const jobKey = `receipt|${order.orderNumber || '?'}`;
   if (shouldBlockDuplicate(jobKey)) {
     console.log(`[duplicate-blocked] receipt #${order.orderNumber}`);
     return res.json({ success: true, duplicate: true });
@@ -1110,7 +1037,6 @@ app.post('/print-receipt', async (req, res) => {
     const png = await svgToPngWithLogo(svg, width);
     const payload = await buildPrintJob(png, receipt.width || 576);
     const r = await sendToPrinterDef(receipt, payload, 'receipt');
-    if (r.ok) stampJobSuccess(jobKey);
     console.log(`[print-end] receipt #${order.orderNumber} → ${r.ok ? 'OK' : 'FAIL: ' + r.err}`);
     res.json({ success: r.ok, error: r.err });
   } catch (e) {
@@ -1127,7 +1053,7 @@ app.post('/print-kitchen', async (req, res) => {
   const stationLbl = req.body?.stationLabel || (printer && printer.name) || '';
   if (!printer) return res.json({ success: false, error: `unknown_printer:${printerKey}` });
 
-  const jobKey = `kitchen|${printerKey}|${order.id || ''}|${order.orderNumber || '?'}`;
+  const jobKey = `kitchen|${printerKey}|${order.orderNumber || '?'}`;
   if (shouldBlockDuplicate(jobKey)) {
     console.log(`[duplicate-blocked] kitchen/${printerKey} #${order.orderNumber}`);
     return res.json({ success: true, duplicate: true });
@@ -1138,7 +1064,6 @@ app.post('/print-kitchen', async (req, res) => {
     const png = await svgToPng(svg);
     const payload = await buildPrintJob(png, printer.width || 576);
     const r = await sendToPrinterDef(printer, payload, `kitchen/${printerKey}`);
-    if (r.ok) stampJobSuccess(jobKey);
     console.log(`[print-end] kitchen/${printerKey} #${order.orderNumber} → ${r.ok ? 'OK' : 'FAIL: ' + r.err}`);
     res.json({ success: r.ok, error: r.err });
   } catch (e) {
@@ -1164,7 +1089,6 @@ app.post('/print-shift', async (req, res) => {
     const png = await svgToPngWithLogo(svg, width);
     const payload = await buildPrintJob(png, receipt.width || 576);
     const r = await sendToPrinterDef(receipt, payload, 'shift');
-    if (r.ok) stampJobSuccess(jobKey);
     console.log(`[print-end] shift → ${r.ok ? 'OK' : 'FAIL: ' + r.err}`);
     res.json({ success: r.ok, error: r.err });
   } catch (e) {
@@ -1265,7 +1189,7 @@ async function printRoutedKitchen(order) {
   const results = [];
   for (const [key, items] of Object.entries(groups)) {
     const subOrder = { ...order, items };
-    const jobKey = `kitchen|${key}|${order.id || ''}|${order.orderNumber || '?'}`;
+    const jobKey = `kitchen|${key}|${order.orderNumber || '?'}`;
     if (shouldBlockDuplicate(jobKey)) {
       console.log(`[duplicate-blocked] kitchen/${key} #${order.orderNumber}`);
       results.push({ name: key, success: true, duplicate: true });
@@ -1273,7 +1197,6 @@ async function printRoutedKitchen(order) {
     }
     console.log(`[print-start] kitchen/${key} #${order.orderNumber} (${items.length} items)`);
     const r = await printKitchenInternal(subOrder, key);
-    if (r.success) stampJobSuccess(jobKey);
     console.log(`[print-end] kitchen/${key} #${order.orderNumber} → ${r.success ? 'OK' : 'FAIL: ' + r.error}`);
     results.push(r);
   }
@@ -1301,11 +1224,9 @@ app.post('/print', async (req, res) => {
   const results = [];
   try {
     if (type === 'receipt' || type === 'both') {
-      const jobKey = `receipt|${order.id || ''}|${order.orderNumber || '?'}`;
+      const jobKey = `receipt|${order.orderNumber || '?'}`;
       if (!shouldBlockDuplicate(jobKey)) {
-        const r = await printReceiptInternal(order);
-        if (r.success) stampJobSuccess(jobKey);
-        results.push(r);
+        results.push(await printReceiptInternal(order));
       } else {
         results.push({ name: 'receipt', success: true, duplicate: true });
       }
@@ -1360,8 +1281,7 @@ app.listen(PORT, () => {
   const A = getActivePrinters();
   const fmt = (p) => p ? (p.type === 'network' ? `${p.ip}:${p.port}` : `windows:${p.windowsPrinterName}`) : '—';
   console.log('═══════════════════════════════════════════════════════════');
-  console.log(`  AMWALI Print Bridge v${BRIDGE_VERSION}  build=${BRIDGE_BUILD_HASH}`);
-  console.log(`  Features: ${BRIDGE_FEATURES.join(', ')}`);
+  console.log('  AMWALI Print Bridge v6.3.4-generic');
   console.log(`  Printers source: ${deviceCfg.getSource()}`);
   console.log(`  Receipt: ${fmt(A.receipt)}`);
   console.log(`  Kitchen: ${fmt(A.kitchen)}`);
