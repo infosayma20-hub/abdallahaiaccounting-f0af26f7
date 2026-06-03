@@ -238,20 +238,23 @@ async function getResizedLogo(targetWidth) {
 const app  = express();
 const PORT = 3001;
 
-app.use(cors());
-app.use(bodyParser.json({ limit: '8mb' }));
-
-// Allow private-network preflight from POS (Chrome PNA)
+// Allow private-network preflight from POS (Chrome PNA) BEFORE cors().
+// The cors package answers OPTIONS immediately, so this must run first;
+// otherwise hosted amwali.app can open /health directly but fetch() reports
+// "غير متصل" because Chrome blocks the local-network preflight.
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin',  req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type, Authorization');
     return res.sendStatus(204);
   }
   next();
 });
+
+app.use(cors());
+app.use(bodyParser.json({ limit: '8mb' }));
 
 // ────────────────────────────────────────────────────────────────────────
 //  Add-ons:
