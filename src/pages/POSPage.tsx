@@ -2124,6 +2124,10 @@ const POSPage = () => {
     const prefKey = `product_order_${catKey}`;
     // Update local per-category order map immediately (optimistic, scoped to this category only)
     setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds }));
+    setProducts(prev => {
+      const rank = new Map(orderIds.map((id, i) => [id, i]));
+      return prev.map(p => rank.has(p.id) ? { ...p, pos_sort_order: rank.get(p.id)! } : p);
+    });
     // Persist to products.pos_sort_order (company-wide) via SECURITY DEFINER RPC
     // so the order is shared across all cashiers/terminals/call-center users.
     // RLS check inside the function scopes to the caller's data owner.
