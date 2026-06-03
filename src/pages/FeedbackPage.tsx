@@ -34,7 +34,14 @@ interface OrderRow {
   created_at: string;
   branch_id: string | null;
   total: number | null;
+  delivery_fee?: number | null;
+  order_value?: number | null;
   status: string | null;
+  delivery_type?: string | null;
+  payment_method?: string | null;
+  delivery_address?: string | null;
+  order_note?: string | null;
+  items?: any[] | null;
   items_summary: string | null;
 }
 
@@ -50,12 +57,37 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_OUTCOME: "نتيجة المكالمة غير صالحة",
   INVALID_SENTIMENT: "تقييم المشاعر غير صالح",
   INVALID_RATING: "التقييم يجب أن يكون بين 1 و 5",
+  INVALID_DRIVER_RATING: "تقييم السائق يجب أن يكون بين 1 و 5",
   FOLLOWUP_DUE_REQUIRED: "يجب تحديد موعد المتابعة",
   ORDER_NOT_FOUND: "الطلبية المرتبطة غير موجودة",
   ORDER_CUSTOMER_MISMATCH: "هذه الطلبية ليست لنفس الزبون",
   RATE_LIMITED: "لا يمكن تسجيل أكثر من مكالمة واحدة لنفس الزبون خلال 60 ثانية",
   REASON_REQUIRED: "السبب مطلوب (3 أحرف على الأقل)",
 };
+
+function orderTypeLabel(t: string | null | undefined): string {
+  switch ((t || "").toLowerCase()) {
+    case "delivery": return "توصيل";
+    case "pickup":
+    case "takeaway": return "استلام";
+    case "dine_in":
+    case "dinein":   return "طاولة";
+    default:         return "غير محدد";
+  }
+}
+function paymentLabel(p: string | null | undefined): string {
+  switch ((p || "").toLowerCase()) {
+    case "cash":             return "نقد";
+    case "card":
+    case "visa":
+    case "mastercard":       return "بطاقة";
+    case "credit":           return "آجل";
+    case "transfer":
+    case "bank_transfer":    return "تحويل";
+    case "employee_account": return "حساب موظف";
+    default:                 return "غير محدد";
+  }
+}
 
 function rpcErr(error: any) {
   const msg = String(error?.message ?? "");
@@ -498,13 +530,20 @@ function OrdersList({
       {orders.map((o) => (
         <div
           key={`${o.source}-${o.order_id}`}
-          className="bg-card border rounded-lg p-3 space-y-1.5"
+          className="bg-card border rounded-lg p-3 space-y-2"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-foreground">
-              {(o.total ?? 0).toLocaleString("en")} ₪
-            </span>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-foreground">
+                إجمالي الفاتورة: {(o.total ?? 0).toLocaleString("en")} ₪
+              </span>
+            </div>
             <Badge variant="outline" className="text-[10px] h-5">{o.status || "—"}</Badge>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+            <div>رسوم التوصيل: <span className="font-semibold text-foreground">{Number(o.delivery_fee ?? 0).toLocaleString("en")} ₪</span></div>
+            <div>قيمة الطلب: <span className="font-semibold text-foreground">{Number(o.order_value ?? ((o.total ?? 0) - (o.delivery_fee ?? 0))).toLocaleString("en")} ₪</span></div>
+            <div>النوع: <span className="font-semibold text-foreground">{orderTypeLabel(o.delivery_type)}</span> • الدفع: <span className="font-semibold text-foreground">{paymentLabel(o.payment_method)}</span></div>
           </div>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
             <span className="inline-flex items-center gap-1">
@@ -513,11 +552,34 @@ function OrdersList({
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-3 w-3" /> {branchName(o.branch_id)}
             </span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> {o.delivery_address || "لا يوجد عنوان"}
+            </span>
           </div>
-          {o.items_summary && (
-            <p className="text-xs text-muted-foreground line-clamp-2 pt-1 border-t border-border/50">
-              {o.items_summary}
-            </p>
+          {Array.isArray(o.items) && o.items.length > 0 ? (
+            <div className="pt-1 border-t border-border/50 space-y-1">
+              <div className="text-[11px] font-semibold text-foreground">الأصناف:</div>
+              <ul className="text-[11px] text-muted-foreground space-y-0.5 pr-3">
+                {o.items.map((it: any, idx: number) => {
+                  const name = it?.name || it?.product_name || "صنف";
+                  const qty = it?.qty ?? it?.quantity ?? 1;
+                  const note = it?.note || it?.notes;
+                  return (
+                    <li key={idx} className="list-disc">
+                      <span className="text-foreground font-semibold">{name}</span> ×{qty}
+                      {note ? <span className="text-amber-700"> — {note}</span> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+            <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+              لا توجد أصناف مسجلة
+            </div>
+          )}
+          {o.order_note && (
+            <div className="text-[11px] text-amber-700">ملاحظة على الطلب: {o.order_note}</div>
           )}
         </div>
       ))}
@@ -588,6 +650,8 @@ function NewCallCard({
   const [outcome, setOutcome] = useState<string>("answered");
   const [sentiment, setSentiment] = useState<string>("");
   const [rating, setRating] = useState<string>("");
+  const [driverRating, setDriverRating] = useState<string>("");
+  const [driverName, setDriverName] = useState<string>("");
   const [note, setNote] = useState("");
   const [complaint, setComplaint] = useState("");
   const [suggestion, setSuggestion] = useState("");
@@ -597,6 +661,8 @@ function NewCallCard({
   const [saving, setSaving] = useState(false);
 
   const ccOrders = orders.filter((o) => o.source === "call_center_orders");
+  const relatedOrder = ccOrders.find((o) => o.order_id === relatedOrderId);
+  const isDeliveryOrder = (relatedOrder?.delivery_type || "").toLowerCase() === "delivery";
 
   const submit = async () => {
     setSaving(true);
@@ -611,12 +677,15 @@ function NewCallCard({
       p_needs_followup: needsFollowup,
       p_followup_due_at: needsFollowup && followupDue ? new Date(followupDue).toISOString() : null,
       p_related_order_id: relatedOrderId || null,
+      p_driver_rating: driverRating ? Number(driverRating) : null,
+      p_driver_name: driverName.trim() || null,
     });
     setSaving(false);
     if (error) { toast.error(rpcErr(error)); return; }
     toast.success("تم تسجيل المكالمة");
     setOutcome("answered"); setSentiment(""); setRating("");
     setNote(""); setComplaint(""); setSuggestion("");
+    setDriverRating(""); setDriverName("");
     setNeedsFollowup(false); setFollowupDue(""); setRelatedOrderId("");
     await onDone();
   };
@@ -663,6 +732,32 @@ function NewCallCard({
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <Label className="text-xs">تقييم السائق</Label>
+          {relatedOrderId && !isDeliveryOrder ? (
+            <div className="h-11 flex items-center px-3 text-xs text-muted-foreground border rounded-md bg-muted/30">
+              لا يوجد سائق لهذه الطلبية
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={driverRating || "__none"} onValueChange={(v) => setDriverRating(v === "__none" ? "" : v)}>
+                <SelectTrigger className="h-11"><SelectValue placeholder="من 1 إلى 5" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— بدون —</SelectItem>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n} / 5</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                value={driverName}
+                onChange={(e) => setDriverName(e.target.value)}
+                placeholder="اسم السائق (اختياري)"
+                className="h-11"
+              />
+            </div>
+          )}
         </div>
       </div>
       <div className="space-y-1">

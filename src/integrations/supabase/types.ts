@@ -6334,6 +6334,8 @@ export type Database = {
           complaint_text: string | null
           created_at: string
           customer_id: string
+          driver_name: string | null
+          driver_rating: number | null
           followup_due_at: string | null
           followup_note: string | null
           followup_status: string | null
@@ -6356,6 +6358,8 @@ export type Database = {
           complaint_text?: string | null
           created_at?: string
           customer_id: string
+          driver_name?: string | null
+          driver_rating?: number | null
           followup_due_at?: string | null
           followup_note?: string | null
           followup_status?: string | null
@@ -6378,6 +6382,8 @@ export type Database = {
           complaint_text?: string | null
           created_at?: string
           customer_id?: string
+          driver_name?: string | null
+          driver_rating?: number | null
           followup_due_at?: string | null
           followup_note?: string | null
           followup_status?: string | null
@@ -18632,6 +18638,9 @@ export type Database = {
           last_address: string
           last_call_at: string
           last_call_outcome: string
+          last_delivery_fee: number
+          last_driver_name: string
+          last_driver_rating: number
           last_handled_by: string
           last_note: string
           last_order_at: string
@@ -18640,10 +18649,13 @@ export type Database = {
           last_order_items_summary: string
           last_order_note: string
           last_order_number: string
+          last_order_total: number
           last_order_type: string
+          last_order_value: number
           last_payment_method: string
           last_rating: number
           last_sentiment: string
+          lifetime_visits: number
           needs_followup_at: string
           normalized_phone: string
           order_taken_by_name: string
@@ -18663,8 +18675,15 @@ export type Database = {
         Returns: {
           branch_id: string
           created_at: string
+          delivery_address: string
+          delivery_fee: number
+          delivery_type: string
+          items: Json
           items_summary: string
           order_id: string
+          order_note: string
+          order_value: number
+          payment_method: string
           source: string
           status: string
           total: number
@@ -18674,6 +18693,8 @@ export type Database = {
         Args: {
           p_complaint_text?: string
           p_customer_id: string
+          p_driver_name?: string
+          p_driver_rating?: number
           p_followup_due_at?: string
           p_needs_followup?: boolean
           p_note?: string
