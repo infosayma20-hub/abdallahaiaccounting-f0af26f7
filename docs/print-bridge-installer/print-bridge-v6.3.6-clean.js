@@ -204,13 +204,18 @@ function loadLogoBuffer() {
       if (fs.existsSync(p)) {
         const b = fs.readFileSync(p);
         console.log(`[logo] loaded from ${p} (${b.length} bytes)`);
+        LOGO_PATH_USED = p;
         return b;
       }
     } catch { /* ignore */ }
   }
   console.log('[logo] not found — receipts/shift will print without logo');
+  LOGO_PATH_USED = null;
+  LOGO_PATH_CANDIDATES = candidates;
   return null;
 }
+let LOGO_PATH_USED = null;
+let LOGO_PATH_CANDIDATES = [];
 const LOGO_BUF = loadLogoBuffer();
 
 const LOGO_RECEIPT_WIDTH = 240;
@@ -977,6 +982,8 @@ app.get('/health', async (_req, res) => {
     features: BRIDGE_FEATURES,
     online: true,
     logo: !!LOGO_BUF,
+    logoPath: LOGO_PATH_USED,
+    logoCandidates: LOGO_PATH_CANDIDATES,
     windows_printers_supported: IS_WINDOWS,
     usb_raw_print_fix: 'intptr-marshaling-v1',
     subnet_check: 'subnet-mismatch-v1',
