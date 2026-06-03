@@ -211,6 +211,8 @@ interface Product {
   image_url: string | null;
   min_quantity: number;
   kitchen_station_id: string | null;
+  sort_order?: number | null;
+  pos_sort_order?: number | null;
 }
 
 interface POSCategory {
@@ -429,6 +431,7 @@ const POSPage = () => {
   // Per-category product order map: { [categoryName | "__uncategorized__" | "الكل"]: string[] of product ids }
   // Persisted via pos_user_preferences keys: product_order_<categoryName> / product_order_all
   const [productOrderByCategory, setProductOrderByCategory] = useState<Record<string, string[]>>({});
+  const [categoryOrderIds, setCategoryOrderIds] = useState<string[]>([]);
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
