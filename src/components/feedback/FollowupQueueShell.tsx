@@ -29,12 +29,18 @@ export interface FollowupRow {
   last_order_number: string | null;
   last_order_at: string;
   orders_count: number;
+  lifetime_visits?: number | null;
   total_spent: number | null;
+  last_order_total?: number | null;
+  last_delivery_fee?: number | null;
+  last_order_value?: number | null;
   do_not_call: boolean;
   last_call_at: string | null;
   last_call_outcome: string | null;
   last_sentiment: string | null;
   last_rating: number | null;
+  last_driver_rating?: number | null;
+  last_driver_name?: string | null;
   last_note: string | null;
   last_handled_by: string | null;
   followup_status: string | null;
@@ -81,7 +87,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: "no_answer",      label: "لم يرد" },
   { value: "needs_followup", label: "يحتاج متابعة" },
   { value: "complaint",      label: "شكوى" },
-  { value: "dnc",            label: "لا اتصال (DNC)" },
+  { value: "dnc",            label: "عدم الاتصال" },
 ];
 
 const SENTIMENT_FILTER_OPTIONS = [
@@ -571,8 +577,10 @@ function DataTable({
               <Th>الاسم</Th>
               <Th>الهاتف</Th>
               <Th>الفرع</Th>
-              <Th className="text-center">عدد الطلبات</Th>
-              <Th className="text-left">إجمالي الصرف</Th>
+                <Th className="text-center">عدد الزيارات</Th>
+                <Th className="text-left">إجمالي الفاتورة</Th>
+                <Th className="text-left">رسوم التوصيل</Th>
+                <Th className="text-left">قيمة الطلب</Th>
               <Th>آخر طلبية</Th>
               <Th>ملخص الطلب</Th>
               <Th>النوع</Th>
@@ -580,6 +588,7 @@ function DataTable({
               <Th>أخذ الطلب</Th>
               <Th>الحالة</Th>
               <Th>الانطباع</Th>
+                <Th>تقييم السائق</Th>
               <Th>آخر موظف</Th>
               <Th>آخر متابعة</Th>
               <Th className="text-center w-32">إجراءات</Th>
@@ -614,9 +623,23 @@ function DataTable({
                     </span>
                   </Td>
                   <Td className="text-slate-700">{r.branch_name || "—"}</Td>
-                  <Td className="text-center font-semibold text-slate-800">{r.orders_count}</Td>
-                  <Td className="text-left font-mono text-slate-800">
-                    {typeof r.total_spent === "number" ? `${Number(r.total_spent).toLocaleString("en")} ₪` : "—"}
+                  <Td className="text-center font-semibold text-slate-800">
+                    {r.lifetime_visits ?? r.orders_count}
+                  </Td>
+                  <Td className="text-left font-mono text-slate-800" title="المبلغ النهائي الذي دفعه الزبون لآخر طلب (يشمل التوصيل)">
+                    {typeof r.last_order_total === "number"
+                      ? `${Number(r.last_order_total).toLocaleString("en")} ₪`
+                      : "—"}
+                  </Td>
+                  <Td className="text-left font-mono text-slate-700">
+                    {typeof r.last_delivery_fee === "number"
+                      ? `${Number(r.last_delivery_fee).toLocaleString("en")} ₪`
+                      : "0 ₪"}
+                  </Td>
+                  <Td className="text-left font-mono text-slate-800" title="إجمالي الفاتورة بدون رسوم التوصيل">
+                    {typeof r.last_order_value === "number"
+                      ? `${Number(r.last_order_value).toLocaleString("en")} ₪`
+                      : "—"}
                   </Td>
                   <Td className="text-slate-700 whitespace-nowrap">{fmtDate(r.last_order_at)}</Td>
                   <Td className="text-slate-700 max-w-[260px]">
@@ -658,6 +681,16 @@ function DataTable({
                         {sent}{r.last_rating ? ` • ${r.last_rating}/5` : ""}
                       </span>
                     ) : <span className="text-slate-400">—</span>}
+                  </Td>
+                  <Td>
+                    {typeof r.last_driver_rating === "number" && r.last_driver_rating > 0 ? (
+                      <span className="text-[11px] text-slate-800 font-semibold">
+                        {r.last_driver_rating}/5
+                        {r.last_driver_name ? <span className="text-slate-500 font-normal"> • {r.last_driver_name}</span> : null}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-[11px]">لم يُقيَّم</span>
+                    )}
                   </Td>
                   <Td className="text-[11px] text-slate-600 truncate max-w-[120px]">
                     {r.last_handled_by || "—"}
