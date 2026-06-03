@@ -2048,20 +2048,32 @@ const POSPage = () => {
     const newIndex = posCategories.findIndex(c => c.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(posCategories, oldIndex, newIndex);
-    setPosCategories(reordered);
-    // Save per-user category order preference
     const orderIds = reordered.map(c => c.id);
+    setCategoryOrderIds(orderIds);
+    setPosCategories(reordered.map((c, i) => ({ ...c, display_order: i })));
+    // Save per-user category order preference
     const { error } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: "category_order",
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
+    if (dataOwnerId) {
+      const results = await Promise.all(orderIds.map((id, i) =>
+        supabase
+          .from("pos_categories")
+          .update({ display_order: i, sort_order: i } as any)
+          .eq("id", id)
+          .eq("user_id", dataOwnerId)
+      ));
+      const dbErr = results.find(r => r.error)?.error;
+      if (dbErr) console.warn("[POS] category order saved locally but DB update failed:", dbErr);
+    }
     if (error) {
       toast.error("تعذّر حفظ ترتيب التصنيفات");
       return;
     }
     toast.success("تم حفظ ترتيب التصنيفات");
-  }, [posCategories, userId]);
+  }, [posCategories, userId, dataOwnerId]);
 
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
