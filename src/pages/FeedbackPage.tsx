@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Search, PhoneOff, ChevronLeft, UserPlus, Save, PhoneCall, Ban, MapPin, Calendar, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
-import FollowupQueue, { type FollowupRow } from "@/components/feedback/FollowupQueue";
+import FollowupQueueShell, { type FollowupRow } from "@/components/feedback/FollowupQueueShell";
 
 interface CustomerRow {
   id: string;
@@ -103,6 +103,7 @@ export default function FeedbackPage() {
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [tab, setTab] = useState<"queue" | "search">("queue");
   const [queueRefreshKey, setQueueRefreshKey] = useState(0);
+  const [pendingFocusTab, setPendingFocusTab] = useState<"orders" | "call" | "info">("orders");
   const { can } = usePermission("call_center_feedback");
   const canCreate = can("customers", "create");
   const canEdit = can("customers", "edit");
@@ -178,7 +179,11 @@ export default function FeedbackPage() {
     if (row) setSelected(row as CustomerRow);
   };
 
-  const openFromQueueRow = async (r: FollowupRow) => {
+  const openFromQueueRow = async (
+    r: FollowupRow,
+    opts?: { focus?: "orders" | "call" | "info" },
+  ) => {
+    setPendingFocusTab(opts?.focus ?? "orders");
     // If customer already exists in feedback_customers, fetch full row by phone.
     if (r.customer_id) {
       const { data, error } = await supabase.rpc("feedback_search_customers" as any, {
@@ -206,6 +211,7 @@ export default function FeedbackPage() {
     setOrders([]);
     // Refresh the queue so the latest call status appears.
     setQueueRefreshKey((k) => k + 1);
+    setPendingFocusTab("orders");
   };
 
   return (
@@ -220,6 +226,7 @@ export default function FeedbackPage() {
           canEdit={canEdit}
           canCallCreate={canCallCreate}
           onRefresh={refreshSelected}
+          initialTab={pendingFocusTab}
         />
       ) : (
         <Tabs value={tab} onValueChange={(v) => setTab(v as "queue" | "search")} className="w-full">
@@ -228,7 +235,11 @@ export default function FeedbackPage() {
             <TabsTrigger value="search" className="text-xs sm:text-sm">بحث</TabsTrigger>
           </TabsList>
           <TabsContent value="queue" className="mt-3">
-            <FollowupQueue onOpenCustomer={openFromQueueRow} refreshKey={queueRefreshKey} />
+            <FollowupQueueShell
+              branches={branches}
+              onOpenCustomer={openFromQueueRow}
+              refreshKey={queueRefreshKey}
+            />
           </TabsContent>
           <TabsContent value="search" className="mt-3 space-y-3">
             <SearchBar
@@ -388,7 +399,7 @@ function ResultsList({
 }
 
 function CustomerDetail({
-  customer, orders, loading, onBack, branches, canEdit, canCallCreate, onRefresh,
+  customer, orders, loading, onBack, branches, canEdit, canCallCreate, onRefresh, initialTab,
 }: {
   customer: CustomerRow;
   orders: OrderRow[];
@@ -398,6 +409,7 @@ function CustomerDetail({
   canEdit: boolean;
   canCallCreate: boolean;
   onRefresh: () => Promise<void> | void;
+  initialTab?: "orders" | "call" | "info";
 }) {
   const branchName = (id: string | null) =>
     id ? (branches.find((b) => b.id === id)?.name || id) : "—";
@@ -452,7 +464,7 @@ function CustomerDetail({
         </Alert>
       )}
 
-      <Tabs defaultValue="orders" className="w-full">
+      <Tabs defaultValue={initialTab ?? "orders"} className="w-full">
         <TabsList className="w-full grid grid-cols-3 h-11">
           <TabsTrigger value="orders" className="text-xs sm:text-sm">الطلبات</TabsTrigger>
           <TabsTrigger value="call" className="text-xs sm:text-sm" disabled={!canCallCreate || customer.do_not_call}>
