@@ -929,6 +929,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    {/* Item 10: confirm closing the call-center screen when work is pending. */}
+    <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+      <AlertDialogContent dir="rtl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>إغلاق شاشة الكول سنتر؟</AlertDialogTitle>
+          <AlertDialogDescription>
+            يوجد طلبيات معلّقة لم تُقبل بعد من الفرع أو قيد التعديل.
+            هل تريد فعلاً إغلاق الشاشة الآن؟ قد تفوتك تنبيهات تأخر القبول.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>البقاء على الشاشة</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => { setConfirmCloseOpen(false); onClose(); }}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            تأكيد الإغلاق
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
