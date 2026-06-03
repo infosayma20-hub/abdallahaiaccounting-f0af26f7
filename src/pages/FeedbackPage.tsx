@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Search, PhoneOff, ChevronLeft, UserPlus, Save, PhoneCall, Ban, MapPin, Calendar, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
+import FollowupQueue, { type FollowupRow } from "@/components/feedback/FollowupQueue";
 
 interface CustomerRow {
   id: string;
@@ -100,6 +101,8 @@ export default function FeedbackPage() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [tab, setTab] = useState<"queue" | "search">("queue");
+  const [queueRefreshKey, setQueueRefreshKey] = useState(0);
   const { can } = usePermission("call_center_feedback");
   const canCreate = can("customers", "create");
   const canEdit = can("customers", "edit");
@@ -175,39 +178,77 @@ export default function FeedbackPage() {
     if (row) setSelected(row as CustomerRow);
   };
 
+  const openFromQueueRow = async (r: FollowupRow) => {
+    // If customer already exists in feedback_customers, fetch full row by phone.
+    if (r.customer_id) {
+      const { data, error } = await supabase.rpc("feedback_search_customers" as any, {
+        p_query: r.normalized_phone, p_limit: 1,
+      });
+      if (!error) {
+        const row = ((data as any[]) || [])[0];
+        if (row) { await openCustomer(row as CustomerRow); return; }
+      }
+    }
+    // Otherwise create a shell customer from the phone, then open it.
+    const { data, error } = await supabase.rpc("feedback_upsert_customer" as any, {
+      p_phone: r.display_phone || r.normalized_phone,
+      p_full_name: r.full_name,
+      p_branch_id: r.branch_id,
+    });
+    if (error) { toast.error(rpcErr(error)); return; }
+    const row = ((data as any[]) || [])[0];
+    if (!row) { toast.error("تعذّر فتح بيانات الزبون"); return; }
+    await openCustomer(row as CustomerRow);
+  };
+
+  const handleBackFromCustomer = () => {
+    setSelected(null);
+    setOrders([]);
+    // Refresh the queue so the latest call status appears.
+    setQueueRefreshKey((k) => k + 1);
+  };
+
   return (
     <div className="space-y-3" dir="rtl">
-      {!selected && (
-        <SearchBar
-          query={query}
-          onChange={setQuery}
-          onSubmit={runSearch}
-          searching={searching}
-        />
-      )}
-
       {selected ? (
         <CustomerDetail
           customer={selected}
           orders={orders}
           loading={ordersLoading}
-          onBack={() => { setSelected(null); setOrders([]); }}
+          onBack={handleBackFromCustomer}
           branches={branches}
           canEdit={canEdit}
           canCallCreate={canCallCreate}
           onRefresh={refreshSelected}
         />
       ) : (
-        <ResultsList
-          results={results}
-          searched={searched}
-          searching={searching}
-          onSelect={openCustomer}
-          canCreate={canCreate}
-          query={query}
-          onSaveAsCustomer={handleSaveAsCustomer}
-          branches={branches}
-        />
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "queue" | "search")} className="w-full">
+          <TabsList className="w-full grid grid-cols-2 h-11">
+            <TabsTrigger value="queue"  className="text-xs sm:text-sm">قائمة المتابعة</TabsTrigger>
+            <TabsTrigger value="search" className="text-xs sm:text-sm">بحث</TabsTrigger>
+          </TabsList>
+          <TabsContent value="queue" className="mt-3">
+            <FollowupQueue onOpenCustomer={openFromQueueRow} refreshKey={queueRefreshKey} />
+          </TabsContent>
+          <TabsContent value="search" className="mt-3 space-y-3">
+            <SearchBar
+              query={query}
+              onChange={setQuery}
+              onSubmit={runSearch}
+              searching={searching}
+            />
+            <ResultsList
+              results={results}
+              searched={searched}
+              searching={searching}
+              onSelect={openCustomer}
+              canCreate={canCreate}
+              query={query}
+              onSaveAsCustomer={handleSaveAsCustomer}
+              branches={branches}
+            />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
