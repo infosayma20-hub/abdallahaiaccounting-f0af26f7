@@ -700,6 +700,11 @@ function DataTable({
                     {typeof r.total_spent === "number" ? `${Number(r.total_spent).toLocaleString("en")} ₪` : "—"}
                   </Td>
                   <Td className="text-slate-700 whitespace-nowrap">{fmtDate(r.last_order_at)}</Td>
+                  <Td className="text-slate-700 truncate max-w-[140px]" >
+                    <span title={r.order_taken_by_name || "غير محدد"}>
+                      {r.order_taken_by_name || "غير محدد"}
+                    </span>
+                  </Td>
                   <Td>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${sm.cls}`}>
                       <sm.Icon className="h-3 w-3" />
