@@ -664,6 +664,9 @@ function renderKitchenSVG(order, stationLabel) {
   const dateStr = now.toLocaleDateString('en-GB');
   const typeLabel = order.orderTypeLabel
     || (order.orderType === 'delivery' ? 'توصيل' : order.orderType === 'dine_in' ? 'محلي' : 'استلام');
+  const normalizedKitchenType = order.orderType === 'delivery'
+    ? 'delivery'
+    : order.orderType === 'dine_in' ? 'dine_in' : 'takeaway';
 
   // Daily counter — always strip leading zeros so "000005" prints as "5".
   const counterStr = normalizeCounter(
