@@ -1346,7 +1346,8 @@ app.listen(PORT, () => {
   const A = getActivePrinters();
   const fmt = (p) => p ? (p.type === 'network' ? `${p.ip}:${p.port}` : `windows:${p.windowsPrinterName}`) : '—';
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('  AMWALI Print Bridge v6.3.5-generic');
+  console.log(`  AMWALI Print Bridge v${BRIDGE_VERSION}  build=${BRIDGE_BUILD_HASH}`);
+  console.log(`  Features: ${BRIDGE_FEATURES.join(', ')}`);
   console.log(`  Printers source: ${deviceCfg.getSource()}`);
   console.log(`  Receipt: ${fmt(A.receipt)}`);
   console.log(`  Kitchen: ${fmt(A.kitchen)}`);
