@@ -18629,13 +18629,19 @@ export type Database = {
           do_not_call: boolean
           followup_status: string
           full_name: string
+          last_address: string
           last_call_at: string
           last_call_outcome: string
           last_handled_by: string
           last_note: string
           last_order_at: string
           last_order_id: string
+          last_order_items: Json
+          last_order_items_summary: string
+          last_order_note: string
           last_order_number: string
+          last_order_type: string
+          last_payment_method: string
           last_rating: number
           last_sentiment: string
           needs_followup_at: string

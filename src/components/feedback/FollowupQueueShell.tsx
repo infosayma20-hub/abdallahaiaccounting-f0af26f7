@@ -46,6 +46,12 @@ export interface FollowupRow {
   source: string | null;
   order_taken_by_user_id?: string | null;
   order_taken_by_name?: string | null;
+  last_order_items_summary?: string | null;
+  last_order_items?: any[] | null;
+  last_order_note?: string | null;
+  last_order_type?: string | null;
+  last_payment_method?: string | null;
+  last_address?: string | null;
   total_count?: number;
 }
 
@@ -109,6 +115,31 @@ function sentimentLabel(s: string | null): string | null {
     case "complaint":   return "شكوى";
     case "suggestion":  return "اقتراح";
     default:            return null;
+  }
+}
+
+function orderTypeLabel(t: string | null | undefined): string {
+  switch ((t || "").toLowerCase()) {
+    case "delivery": return "توصيل";
+    case "pickup":
+    case "takeaway": return "استلام";
+    case "dine_in":
+    case "dinein":   return "طاولة";
+    default:         return "غير محدد";
+  }
+}
+
+function paymentLabel(p: string | null | undefined): string {
+  switch ((p || "").toLowerCase()) {
+    case "cash":             return "نقد";
+    case "card":
+    case "visa":
+    case "mastercard":       return "بطاقة";
+    case "credit":           return "آجل";
+    case "transfer":
+    case "bank_transfer":    return "تحويل";
+    case "employee_account": return "حساب موظف";
+    default:                 return "غير محدد";
   }
 }
 
@@ -660,9 +691,12 @@ function DataTable({
               <Th className="text-center">عدد الطلبات</Th>
               <Th className="text-left">إجمالي الصرف</Th>
               <Th>آخر طلبية</Th>
+              <Th>ملخص الطلب</Th>
+              <Th>النوع</Th>
+              <Th>الدفع</Th>
               <Th>أخذ الطلب</Th>
               <Th>الحالة</Th>
-              <Th>Sentiment</Th>
+              <Th>الانطباع</Th>
               <Th>آخر موظف</Th>
               <Th>آخر متابعة</Th>
               <Th className="text-center w-32">إجراءات</Th>
@@ -699,7 +733,7 @@ function DataTable({
                       </span>
                       {r.do_not_call && (
                         <Badge variant="destructive" className="gap-1 text-[10px] h-5 shrink-0">
-                          <PhoneOff className="h-3 w-3" /> DNC
+                          <PhoneOff className="h-3 w-3" /> عدم الاتصال
                         </Badge>
                       )}
                     </div>
@@ -715,6 +749,28 @@ function DataTable({
                     {typeof r.total_spent === "number" ? `${Number(r.total_spent).toLocaleString("en")} ₪` : "—"}
                   </Td>
                   <Td className="text-slate-700 whitespace-nowrap">{fmtDate(r.last_order_at)}</Td>
+                  <Td className="text-slate-700 max-w-[260px]">
+                    {r.last_order_items_summary ? (
+                      <span
+                        className="truncate inline-block max-w-[260px] align-bottom"
+                        title={
+                          (r.last_order_items_summary || "") +
+                          (r.last_order_note ? `\nملاحظة: ${r.last_order_note}` : "") +
+                          (r.last_address ? `\nالعنوان: ${r.last_address}` : "")
+                        }
+                      >
+                        {r.last_order_items_summary}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">لا توجد أصناف مسجلة</span>
+                    )}
+                  </Td>
+                  <Td className="text-slate-700 whitespace-nowrap text-[12px]">
+                    {orderTypeLabel(r.last_order_type)}
+                  </Td>
+                  <Td className="text-slate-700 whitespace-nowrap text-[12px]">
+                    {paymentLabel(r.last_payment_method)}
+                  </Td>
                   <Td className="text-slate-700 truncate max-w-[140px]" >
                     <span title={r.order_taken_by_name || "غير محدد"}>
                       {r.order_taken_by_name || "غير محدد"}
@@ -860,6 +916,27 @@ function CardsList({
                   <div className="text-[11px] text-slate-700">
                     أخذ الطلب: <span className="font-semibold text-slate-900">{r.order_taken_by_name || "غير محدد"}</span>
                   </div>
+                  <div className="text-[11px] text-slate-700 leading-relaxed">
+                    <span className="text-slate-500">الطلب: </span>
+                    <span className="text-slate-900">
+                      {r.last_order_items_summary || "لا توجد أصناف مسجلة"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-slate-600 flex-wrap">
+                    <span>النوع: <span className="text-slate-800 font-semibold">{orderTypeLabel(r.last_order_type)}</span></span>
+                    <span>الدفع: <span className="text-slate-800 font-semibold">{paymentLabel(r.last_payment_method)}</span></span>
+                  </div>
+                  {r.last_address && (
+                    <div className="text-[11px] text-slate-600 truncate">
+                      <MapPin className="h-3 w-3 inline-block ml-1" />
+                      {r.last_address}
+                    </div>
+                  )}
+                  {r.last_order_note && (
+                    <div className="text-[11px] text-amber-700">
+                      ملاحظة: {r.last_order_note}
+                    </div>
+                  )}
                 </div>
                 <ChevronLeft className="h-4 w-4 text-slate-500 shrink-0 mt-1" />
               </div>
@@ -898,17 +975,17 @@ function EmptyState({ debugInfo }: { debugInfo: any }) {
         لا توجد طلبيات ضمن الفترة المحددة
       </div>
       {debugInfo && (
-        <div className="bg-muted/40 border border-dashed rounded-lg p-3 mx-3 text-[11px] text-slate-600 space-y-1" dir="ltr">
-          <div className="text-right text-xs font-bold text-slate-800 mb-1" dir="rtl">
+        <div className="bg-muted/40 border border-dashed rounded-lg p-3 mx-3 text-[11px] text-slate-600 space-y-1" dir="rtl">
+          <div className="text-right text-xs font-bold text-slate-800 mb-1">
             تشخيص (للتحقق من سبب فراغ النتائج)
           </div>
-          <div>owner_id: <span className="font-mono">{String(debugInfo.owner_id ?? "—")}</span></div>
-          <div>raw_orders_in_range: <span className="font-mono">{String(debugInfo.raw_orders_in_range)}</span></div>
-          <div>orders_missing_phone: <span className="font-mono">{String(debugInfo.orders_missing_phone)}</span></div>
-          <div>distinct_customers_in_range: <span className="font-mono">{String(debugInfo.distinct_customers_in_range)}</span></div>
-          <div>owner_orders_last_30_days: <span className="font-mono">{String(debugInfo.owner_orders_last_30_days)}</span></div>
+          <div>المالك: <span className="font-mono" dir="ltr">{String(debugInfo.owner_id ?? "—")}</span></div>
+          <div>إجمالي الطلبات ضمن الفترة: <span className="font-mono">{String(debugInfo.raw_orders_in_range)}</span></div>
+          <div>طلبات بدون رقم هاتف: <span className="font-mono">{String(debugInfo.orders_missing_phone)}</span></div>
+          <div>عدد الزبائن المختلفين ضمن الفترة: <span className="font-mono">{String(debugInfo.distinct_customers_in_range)}</span></div>
+          <div>طلبات آخر 30 يوم: <span className="font-mono">{String(debugInfo.owner_orders_last_30_days)}</span></div>
           {debugInfo.owner_orders_last_30_days === 0 && (
-            <div className="text-right pt-2 text-amber-700" dir="rtl">
+            <div className="text-right pt-2 text-amber-700">
               ⚠️ لا يوجد أي طلب في الكول سنتر لهذا المالك خلال آخر 30 يوم. قد تكون طلبات الاختبار تحت مستخدم/شركة أخرى.
             </div>
           )}
