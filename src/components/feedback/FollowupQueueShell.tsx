@@ -44,6 +44,8 @@ export interface FollowupRow {
   followup_status: string | null;
   needs_followup_at: string | null;
   source: string | null;
+  order_taken_by_user_id?: string | null;
+  order_taken_by_name?: string | null;
   total_count?: number;
 }
 
