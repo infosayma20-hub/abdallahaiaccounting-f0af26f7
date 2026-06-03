@@ -44,6 +44,8 @@ export interface FollowupRow {
   followup_status: string | null;
   needs_followup_at: string | null;
   source: string | null;
+  order_taken_by_user_id?: string | null;
+  order_taken_by_name?: string | null;
   total_count?: number;
 }
 
@@ -445,6 +447,11 @@ function ActionPane({
             <span className="inline-flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">{selected.full_name || "بدون اسم"}</span>
               <span dir="ltr" className="font-mono text-slate-600 text-[11px]">{selected.display_phone || selected.normalized_phone}</span>
+              {selected.order_taken_by_name && (
+                <span className="text-[11px] text-slate-600">
+                  أخذ الطلب: <span className="text-slate-800 font-semibold">{selected.order_taken_by_name}</span>
+                </span>
+              )}
               {selected.do_not_call && (
                 <Badge variant="destructive" className="gap-1 text-[10px] h-5">
                   <PhoneOff className="h-3 w-3" /> لا اتصال
@@ -643,6 +650,7 @@ function DataTable({
               <Th className="text-center">عدد الطلبات</Th>
               <Th className="text-left">إجمالي الصرف</Th>
               <Th>آخر طلبية</Th>
+              <Th>أخذ الطلب</Th>
               <Th>الحالة</Th>
               <Th>Sentiment</Th>
               <Th>آخر موظف</Th>
@@ -697,6 +705,11 @@ function DataTable({
                     {typeof r.total_spent === "number" ? `${Number(r.total_spent).toLocaleString("en")} ₪` : "—"}
                   </Td>
                   <Td className="text-slate-700 whitespace-nowrap">{fmtDate(r.last_order_at)}</Td>
+                  <Td className="text-slate-700 truncate max-w-[140px]" >
+                    <span title={r.order_taken_by_name || "غير محدد"}>
+                      {r.order_taken_by_name || "غير محدد"}
+                    </span>
+                  </Td>
                   <Td>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${sm.cls}`}>
                       <sm.Icon className="h-3 w-3" />
@@ -833,6 +846,9 @@ function CardsList({
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3 w-3" /> {fmtDate(r.last_order_at)}
                     </span>
+                  </div>
+                  <div className="text-[11px] text-slate-700">
+                    أخذ الطلب: <span className="font-semibold text-slate-900">{r.order_taken_by_name || "غير محدد"}</span>
                   </div>
                 </div>
                 <ChevronLeft className="h-4 w-4 text-slate-500 shrink-0 mt-1" />

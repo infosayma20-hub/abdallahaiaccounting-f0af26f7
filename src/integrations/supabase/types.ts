@@ -18640,6 +18640,8 @@ export type Database = {
           last_sentiment: string
           needs_followup_at: string
           normalized_phone: string
+          order_taken_by_name: string
+          order_taken_by_user_id: string
           orders_count: number
           source: string
           total_count: number

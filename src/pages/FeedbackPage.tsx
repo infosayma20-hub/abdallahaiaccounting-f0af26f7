@@ -101,7 +101,6 @@ export default function FeedbackPage() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [branches, setBranches] = useState<BranchOption[]>([]);
-  const [tab, setTab] = useState<"queue" | "search">("queue");
   const [queueRefreshKey, setQueueRefreshKey] = useState(0);
   const [pendingFocusTab, setPendingFocusTab] = useState<"orders" | "call" | "info">("orders");
   const { can } = usePermission("call_center_feedback");
@@ -215,7 +214,7 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div className="space-y-3" dir="rtl">
+    <div className="space-y-3 w-full max-w-none px-3 sm:px-6 lg:px-8 py-3" dir="rtl">
       {selected ? (
         <CustomerDetail
           customer={selected}
@@ -229,37 +228,11 @@ export default function FeedbackPage() {
           initialTab={pendingFocusTab}
         />
       ) : (
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "queue" | "search")} className="w-full">
-          <TabsList className="w-full grid grid-cols-2 h-11">
-            <TabsTrigger value="queue"  className="text-xs sm:text-sm">قائمة المتابعة</TabsTrigger>
-            <TabsTrigger value="search" className="text-xs sm:text-sm">بحث</TabsTrigger>
-          </TabsList>
-          <TabsContent value="queue" className="mt-3">
-            <FollowupQueueShell
-              branches={branches}
-              onOpenCustomer={openFromQueueRow}
-              refreshKey={queueRefreshKey}
-            />
-          </TabsContent>
-          <TabsContent value="search" className="mt-3 space-y-3">
-            <SearchBar
-              query={query}
-              onChange={setQuery}
-              onSubmit={runSearch}
-              searching={searching}
-            />
-            <ResultsList
-              results={results}
-              searched={searched}
-              searching={searching}
-              onSelect={openCustomer}
-              canCreate={canCreate}
-              query={query}
-              onSaveAsCustomer={handleSaveAsCustomer}
-              branches={branches}
-            />
-          </TabsContent>
-        </Tabs>
+        <FollowupQueueShell
+          branches={branches}
+          onOpenCustomer={openFromQueueRow}
+          refreshKey={queueRefreshKey}
+        />
       )}
     </div>
   );
