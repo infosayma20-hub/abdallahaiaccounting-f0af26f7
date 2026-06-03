@@ -38,6 +38,7 @@ import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog"
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
+import { StockoutAlertButton } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
@@ -5459,6 +5460,16 @@ const POSPage = () => {
                   </button>
                 )}
               </div>
+
+              {/* Branch → Call Center stockout alert (item 3). Cashier only. */}
+              {!isCallCenter && dataOwnerId && (
+                <div className="flex justify-end">
+                  <StockoutAlertButton
+                    dataOwnerId={dataOwnerId}
+                    branchId={deviceConfig?.branchId || cashBoxBranchId || null}
+                  />
+                </div>
+              )}
 
               {/* Quick save+print - only for non-call-center when accepting call center orders */}
               {!isCallCenter && cart.length > 0 && activeOrder.callCenterOrderId && (

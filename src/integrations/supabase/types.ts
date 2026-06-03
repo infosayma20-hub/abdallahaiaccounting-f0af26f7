@@ -14228,6 +14228,63 @@ export type Database = {
           },
         ]
       }
+      stockout_alerts: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          custom_label: string | null
+          id: string
+          modifier_option_id: string | null
+          note: string | null
+          product_id: string | null
+          raised_at: string
+          raised_by: string | null
+          raised_by_name: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_by_name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          custom_label?: string | null
+          id?: string
+          modifier_option_id?: string | null
+          note?: string | null
+          product_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          raised_by_name?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_by_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          custom_label?: string | null
+          id?: string
+          modifier_option_id?: string | null
+          note?: string | null
+          product_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          raised_by_name?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_by_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           agreement_type: string | null

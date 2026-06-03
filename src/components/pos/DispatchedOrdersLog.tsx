@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { StockoutAlertsBanner } from "./StockoutAlerts";
 
 interface DispatchedOrder {
   id: string;
@@ -129,6 +130,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   const [cancelTarget, setCancelTarget] = useState<DispatchedOrder | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  /** Close-confirmation dialog state (item 10). */
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  /** Late-acceptance alert tracking (item 6): orders we've already beeped for. */
+  const beepedRef = useRef<Set<string>>(new Set());
+  const [lateIds, setLateIds] = useState<Set<string>>(new Set());
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -207,6 +213,75 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     setEditsByOrder(map);
   }, [dataOwnerId, orders]);
   useEffect(() => { loadEdits(); }, [loadEdits]);
+
+  /* ─────────────────────────── Late-acceptance alert (item 6) ───────────────────────────
+   * If a dispatched order is still `pending` (not accepted / not cancelled / not being
+   * edited) after 5 minutes, beep ONCE for that order and surface a "تأخر القبول"
+   * indicator. We never beep twice for the same order id within the session. */
+  const FIVE_MIN = 5 * 60 * 1000;
+  const playBeep = useCallback(() => {
+    try {
+      const Ctx: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.55);
+      // Second short beep so it's noticeable but not loopy.
+      setTimeout(() => {
+        try {
+          const o2 = ctx.createOscillator();
+          const g2 = ctx.createGain();
+          o2.type = "sine"; o2.frequency.value = 1100;
+          g2.gain.setValueAtTime(0.0001, ctx.currentTime);
+          g2.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+          g2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+          o2.connect(g2).connect(ctx.destination);
+          o2.start();
+          o2.stop(ctx.currentTime + 0.45);
+          setTimeout(() => { try { ctx.close(); } catch {} }, 800);
+        } catch {}
+      }, 250);
+    } catch { /* noop */ }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const tick = () => {
+      const now = Date.now();
+      const newLate = new Set<string>();
+      let triggered = false;
+      for (const o of orders) {
+        if (o.status !== "pending") continue;
+        if (o.cancelled_at) continue;
+        if (o.is_editing) continue;
+        const age = now - new Date(o.created_at).getTime();
+        if (age >= FIVE_MIN) {
+          newLate.add(o.id);
+          if (!beepedRef.current.has(o.id)) {
+            beepedRef.current.add(o.id);
+            triggered = true;
+          }
+        }
+      }
+      // Drop ids that are no longer pending so a future re-pending order would re-beep.
+      const livePending = new Set(orders.filter(o => o.status === "pending").map(o => o.id));
+      for (const id of Array.from(beepedRef.current)) {
+        if (!livePending.has(id)) beepedRef.current.delete(id);
+      }
+      setLateIds(newLate);
+      if (triggered) playBeep();
+    };
+    tick();
+    const t = setInterval(tick, 15000);
+    return () => clearInterval(t);
+  }, [open, orders, playBeep]);
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
@@ -311,7 +386,19 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
 
   return (
     <>
-    <Sheet open={open} onOpenChange={v => !v && onClose()}>
+    <Sheet
+      open={open}
+      onOpenChange={v => {
+        if (v) return;
+        // Item 10: require explicit confirmation when there are pending or
+        // currently-being-edited orders, so a misclick doesn't lose work.
+        const blocking = orders.some(
+          o => o.status === "pending" || o.is_editing === true
+        );
+        if (blocking) { setConfirmCloseOpen(true); return; }
+        onClose();
+      }}
+    >
       <SheetContent side="right" className="w-full sm:max-w-xl lg:max-w-2xl p-0" dir="rtl">
         <SheetHeader className="p-3 border-b border-border">
           <SheetTitle className="flex items-center gap-2 text-sm">
@@ -322,6 +409,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
             </Button>
           </SheetTitle>
         </SheetHeader>
+
+        {/* Stockout alerts (item 3) — sticky red banner above filters */}
+        <div className="px-2 pt-2">
+          <StockoutAlertsBanner dataOwnerId={dataOwnerId} />
+        </div>
 
         <div className="flex gap-1.5 p-2 border-b border-border">
           {[
@@ -475,10 +567,18 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                         <span className="text-[10px] text-muted-foreground">→</span>
                         <span className="text-[10px] font-semibold text-primary">{order.target_branch_name}</span>
                       </div>
-                      <Badge className={`text-[10px] px-1.5 py-0 h-5 gap-0.5 ${cfg.color}`}>
-                        <StatusIcon className="h-2.5 w-2.5" />
-                        {cfg.label}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        {lateIds.has(order.id) && order.status === "pending" && (
+                          <Badge className="text-[10px] px-1.5 py-0 h-5 gap-0.5 bg-red-600 animate-pulse" title="مضى أكثر من 5 دقائق دون قبول من الفرع">
+                            <Clock className="h-2.5 w-2.5" />
+                            تأخر القبول
+                          </Badge>
+                        )}
+                        <Badge className={`text-[10px] px-1.5 py-0 h-5 gap-0.5 ${cfg.color}`}>
+                          <StatusIcon className="h-2.5 w-2.5" />
+                          {cfg.label}
+                        </Badge>
+                      </div>
                     </div>
 
                     {order.is_editing && (
@@ -825,6 +925,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
             className="bg-red-600 hover:bg-red-700 text-white"
           >
             {cancelling ? "جاري الإلغاء…" : "تأكيد الإلغاء"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    {/* Item 10: confirm closing the call-center screen when work is pending. */}
+    <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+      <AlertDialogContent dir="rtl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>إغلاق شاشة الكول سنتر؟</AlertDialogTitle>
+          <AlertDialogDescription>
+            يوجد طلبيات معلّقة لم تُقبل بعد من الفرع أو قيد التعديل.
+            هل تريد فعلاً إغلاق الشاشة الآن؟ قد تفوتك تنبيهات تأخر القبول.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>البقاء على الشاشة</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => { setConfirmCloseOpen(false); onClose(); }}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            تأكيد الإغلاق
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
