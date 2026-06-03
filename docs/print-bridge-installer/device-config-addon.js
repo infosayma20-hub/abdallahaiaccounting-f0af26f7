@@ -53,6 +53,7 @@ module.exports = function attachDeviceConfig(app) {
   }
 
   const FILE = path.join(__dirname, 'device.json');
+  const BACKUP_FILE = path.join(__dirname, 'device.json.bak');
 
   // ── In-memory cache so the bridge doesn't hit disk on every print ──
   let _cache = null;
@@ -60,7 +61,21 @@ module.exports = function attachDeviceConfig(app) {
 
   function read() {
     try {
-      if (!fs.existsSync(FILE)) return {};
+      // Self-heal: if device.json is missing but a backup exists
+      // (e.g. wiped by a bad update / antivirus), restore it.
+      if (!fs.existsSync(FILE)) {
+        if (fs.existsSync(BACKUP_FILE)) {
+          try {
+            fs.copyFileSync(BACKUP_FILE, FILE);
+            console.log('[device-config] device.json missing — restored from device.json.bak');
+          } catch (e) {
+            console.warn('[device-config] failed to restore from backup:', e.message);
+            return {};
+          }
+        } else {
+          return {};
+        }
+      }
       return JSON.parse(fs.readFileSync(FILE, 'utf8')) || {};
     } catch (e) {
       console.warn('[device-config] read failed:', e.message);
@@ -71,6 +86,8 @@ module.exports = function attachDeviceConfig(app) {
   function write(obj) {
     try {
       fs.writeFileSync(FILE, JSON.stringify(obj, null, 2), 'utf8');
+      // Keep a side-by-side backup so future updates can self-restore.
+      try { fs.copyFileSync(FILE, BACKUP_FILE); } catch { /* non-fatal */ }
       return true;
     } catch (e) {
       console.warn('[device-config] write failed:', e.message);
