@@ -10389,6 +10389,7 @@ export type Database = {
           assigned_captain_name: string | null
           assigned_captain_phone: string | null
           assigned_captain_vehicle: string | null
+          business_date: string | null
           cancel_reason: string | null
           cancelled_approved_by: string | null
           cancelled_at: string | null
@@ -10468,6 +10469,7 @@ export type Database = {
           assigned_captain_name?: string | null
           assigned_captain_phone?: string | null
           assigned_captain_vehicle?: string | null
+          business_date?: string | null
           cancel_reason?: string | null
           cancelled_approved_by?: string | null
           cancelled_at?: string | null
@@ -10547,6 +10549,7 @@ export type Database = {
           assigned_captain_name?: string | null
           assigned_captain_phone?: string | null
           assigned_captain_vehicle?: string | null
+          business_date?: string | null
           cancel_reason?: string | null
           cancelled_approved_by?: string | null
           cancelled_at?: string | null
@@ -19057,6 +19060,10 @@ export type Database = {
       payroll_submit_employee: {
         Args: { _payload: Json; _submitter: string }
         Returns: Json
+      }
+      pos_business_date: {
+        Args: { cutoff?: number; ts: string }
+        Returns: string
       }
       pos_order_branch_id: { Args: { _order_id: string }; Returns: string }
       post_import_shipment_atomic: {
