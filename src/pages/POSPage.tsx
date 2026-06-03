@@ -48,6 +48,7 @@ import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStatio
 import { printShiftSummaryImage } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
+import { getPosBusinessDate, DEFAULT_POS_CUTOFF_HOUR } from "@/lib/pos/business-day";
 import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
@@ -3635,15 +3636,10 @@ const POSPage = () => {
     }
   };
 
-  // Determine POS accounting date based on cutoff hour
-  const getPosAccountingDate = (openedAt: string, cutoffHour: number) => {
-    const d = new Date(openedAt);
-    const hour = d.getHours();
-    if (hour < cutoffHour) {
-      d.setDate(d.getDate() - 1);
-    }
-    return d.toISOString().split("T")[0];
-  };
+  // Determine POS accounting date based on cutoff hour.
+  // Delegates to the centralised helper that mirrors SQL `pos_business_date`.
+  const getPosAccountingDate = (openedAt: string, cutoffHour: number) =>
+    getPosBusinessDate(openedAt, cutoffHour);
 
   // Close session
   const handleCloseShift = async () => {
