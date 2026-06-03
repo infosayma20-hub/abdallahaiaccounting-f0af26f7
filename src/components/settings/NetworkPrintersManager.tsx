@@ -12,6 +12,7 @@ import { Plus, Trash2, Printer, Wifi, WifiOff, TestTube, Settings2, Building2, R
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { checkBridgeStatus, getPrintBridgeBlockedMessage, getPrintBridgeUrl, sendToBridge, PrintBridgeConnectionError } from "@/lib/print-bridge-client";
 import { getDeviceBranchId, syncBranchPrintersToBridge } from "@/lib/device-config";
+import { withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 interface Branch {
   id: string;
@@ -211,13 +212,12 @@ export default function NetworkPrintersManager() {
     try {
       // Bridge /test-printer prints a physical test page directly to the
       // printer's IP — no hardcoded company/branch maps.
-      const res = await fetch(`${getPrintBridgeUrl()}/test-printer`, {
+      const res = await fetch(`${getPrintBridgeUrl()}/test-printer`, withLocalNetworkAccess({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ip: printer.ip_address, port: printer.port }),
-        mode: "cors",
         signal: AbortSignal.timeout(10000),
-      });
+      }));
       const result = await res.json();
 
       if (result.success) {
