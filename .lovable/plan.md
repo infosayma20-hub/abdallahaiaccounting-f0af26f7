@@ -1,137 +1,123 @@
-## تدقيق إغلاق عهدة POS متعدد العملات + يوم عمل POS
+## الهدف
+تحويل تبويب "قائمة المتابعة" داخل `/feedback` من كروت عمودية إلى **شاشة تشغيل احترافية بأسلوب Dynamics / FinanceShell**: ActionPane + Filters Bar + DataTable + Drawer جانبي، مع الإبقاء على تبويب "بحث" كما هو.
 
-### 1) نتائج التدقيق على المعادلات الحالية (POSPage.tsx ≈ 3700-3790)
+---
 
-**عقد البيانات في `pos_payments` (مثبَّت من `complete_pos_order`):**
-- `amount` → دائماً **بالشيكل** = إجمالي الفاتورة.
-- `tendered` → دائماً **بالشيكل** (لو الدفع بعملة أجنبية يُحفظ `tendered × rate`).
-- `currency` → عملة الدفع التي اختارها الزبون (ILS/USD/JOD).
-- `exchange_rate` → سعر صرف العملة الأجنبية مقابل الشيكل.
-- `change_amount` → بوحدة `change_currency` (شيكل لو الباقي شيكل، دينار لو دينار … إلخ). **هذا مهم وموثّق في الكود.**
-- `change_currency` → عملة الباقي الفعلي.
+## 1) الباك إند — تحديث RPC `feedback_followup_queue`
 
-**المعادلات الحالية:**
+ملف migration جديد يعيد تعريف الدالة بتوقيع موسّع (تبقى نفس النتيجة الأساسية لمن لا يمرّر فلاتر):
 
+**المدخلات الجديدة (كلها اختيارية):**
+- `p_from_date date`, `p_to_date date`
+- `p_query text` (يفلتر اسم + هاتف + هاتف مطبَّع)
+- `p_branch_id uuid`
+- `p_status text` — أحد: `not_called | called | no_answer | needs_followup | complaint | completed`
+- `p_dnc boolean`
+- `p_sentiment text`
+- `p_min_rating int`, `p_max_rating int`
+- `p_limit int default 100`, `p_offset int default 0`
+
+**المخرجات تضاف لها:**
+- `last_order_id uuid`, `last_order_number text`
+- `last_handled_by text` (من `feedback_calls.handled_by` إن وُجد، أو email المستخدم)
+- `followup_status text` (محسوب: لا اتصال / تم / لم يرد / يحتاج متابعة / شكوى / مكتمل بناءً على outcome + sentiment)
+- `source text` (ثابت `call_center` في V1، حقل جاهز لإضافة POS/Qamar لاحقاً)
+- `total_count bigint` (نفس القيمة في كل صف لاحتساب pagination)
+
+**ملاحظات تنفيذ:**
+- نبقى على مصدر `call_center_orders` فقط في V1 (تصميم RPC قابل للتوسعة عبر `UNION ALL` لاحقاً).
+- نحافظ على إصلاح `max(uuid)` السابق عبر `(array_agg(... ORDER BY created_at DESC))[1]`.
+- نفس فحوصات الصلاحية + سقف 7 أيام + `get_team_owner_id`.
+
+---
+
+## 2) الواجهة — مكوّنات جديدة داخل `src/components/feedback/`
+
+### أ. `FollowupQueueShell.tsx` (يستبدل المحتوى الحالي للتبويب)
+Layout عمودي:
 ```text
-foreignTenderedFOREIGN = tendered_ILS / exchange_rate        ← يعكس النقد المستلم فعلياً بالعملة الأجنبية
-foreignChange[CUR]     = SUM(change_amount حيث change_currency = CUR)
-
-expectedILS = opening
-            + cash_payments(currency=ILS).amount          ← مبيعات نقدية شيكل
-            − foreignChangeILS                            ← باقي بالشيكل لطلبات بعملة أجنبية
-            − pos_expenses (نقدي)
-            − pos_purchases (نقدي)
-            − returnsILS (مرتجعات نقدية شيكل)
-
-expectedUSD = foreignTenderedUSD − foreignChangeUSD − returnsUSD
-expectedJOD = foreignTenderedJOD − foreignChangeJOD − returnsJOD
+┌─────────────────────────────────────────────────────────┐
+│ ActionPane (شريط إجراءات أفقي)                          │
+├─────────────────────────────────────────────────────────┤
+│ FiltersBar (بحث + chips + dropdowns + collapsible)      │
+├─────────────────────────────────────────────────────────┤
+│ FollowupDataTable (ديسكتوب) / FollowupCards (موبايل)    │
+└─────────────────────────────────────────────────────────┘
+                       + FollowupDrawer (يفتح من اليسار)
 ```
 
-**اختبار المثال (10 JOD، فاتورة 23.86 ₪، باقي 17 ₪):**
-- `tendered = 40.86`, `currency=JOD`, `rate=4.086`, `change_amount=17`, `change_currency=ILS`.
-- `foreignTenderedJOD = 40.86 / 4.086 = 10` ✅
-- `foreignChangeILS += 17` ✅
-- `expectedJOD = +10` ✅ ، `expectedILS −= 17` ✅
-- **النتيجة:** المعادلات الحالية صحيحة لهذه الحالة. لا حاجة لتعديل منطقي على الإغلاق.
+### ب. `FollowupActionPane.tsx`
+- أزرار: **تحديث** / **فتح التفاصيل** / **تسجيل متابعة** / **تغيير الحالة** ▾ / **اتصال** / **واتساب** / **إظهار الفلاتر** ▾
+- الأزرار التي تحتاج صفاً (`disabled` ما لم يوجد `selectedRow`).
+- شريط معلومات صغير يظهر اسم + هاتف الصف المختار وعدد النتائج.
+- "تغيير الحالة" Dropdown يستدعي `feedback_log_call` بـ outcome سريع (no_answer/called/needs_followup/complaint/completed) + DNC إن مسموح.
 
-**الإصلاحات التجميلية فقط:**
-- توضيح في `paymentMethodBreakdown` أن `amount` بالشيكل دائماً (تسمية مضللة في تقرير لاحقاً) → إضافة تعليق فقط.
-- استخراج معادلات الإغلاق من `POSPage.tsx` إلى ملف خدمي `src/lib/pos/shift-close-math.ts` ليُختبَر وحدوياً.
+### ج. `FollowupFiltersBar.tsx`
+- صف 1 (دائم الظهور): بحث debounced (350ms) + chips تاريخ + زر "مخصص" + عدد النتائج.
+- صف 2 (Collapsible): Selects للفرع/الحالة/DNC/Sentiment + Slider للتقييم 1-5 + عدد الطلبات + المصدر (placeholder).
+- نطاق التاريخ يبقى مقيداً بـ7 أيام مع toast واضح.
 
-### 2) المشكلة الفعلية: يوم عمل POS غير مُعمم
+### د. `FollowupDataTable.tsx` (≥ md breakpoint)
+- جدول `<table>` بسيط (بدون مكتبة جديدة) داخل `<div class="overflow-auto">`، رؤوس ثابتة (`sticky top-0`).
+- الأعمدة المطلوبة في الـ PRD (تحديد/اسم/هاتف/فرع/آخر طلبية/وقتها/عدد الطلبات/إجمالي الصرف/الحالة/Sentiment/ملاحظة/DNC/آخر موظف/آخر متابعة/إجراءات مختصرة).
+- صف مختار يأخذ خلفية `bg-primary/5` + حدود `ring-1 ring-primary/40`.
+- النقر على الصف = اختيار، النقر المزدوج أو زر "تفاصيل" = فتح Drawer.
+- إجراءات الصف: أيقونات اتصال/واتساب/متابعة/تفاصيل.
+- خط أوضح (`text-slate-800 font-semibold` للعناوين، `text-slate-600` للقيم) بحجم 13-14px.
 
-دالة `getPosAccountingDate` موجودة **inline** داخل `POSPage.tsx` فقط (سطر 3639) وتستخدم لمرة واحدة. كل تقارير POS (`src/lib/reports/pos-report-loaders.ts`، `src/hooks/usePOSReportsData.ts`، `POSReportsPage`، `POSShiftsReport` …) تفلتر بـ `created_at::date` مباشرة → فاتورة الساعة 02:00 ص تظهر في اليوم الخطأ.
+### هـ. `FollowupCards.tsx` (< md)
+- إعادة استخدام الكروت الحالية مع نفس الفلاتر + ActionPane مختصر فوقها.
 
-### 3) التنفيذ (مرحلتين)
+### و. `FollowupDrawer.tsx`
+- Sheet من اليسار بعرض `w-full md:w-[640px]`.
+- يستضيف `CustomerDetail` الحالي كما هو (لا إعادة بناء)، مع تمرير `customerId` و `onSaved` لإجبار تحديث الصف بعد حفظ متابعة.
 
-#### المرحلة A — يوم العمل المركزي (الأهم)
+### ز. `useFollowupQueue.ts` (hook)
+- يدير الحالة: filters، selectedRow، rows، loading، pagination (`limit/offset`، زر "تحميل المزيد").
+- يستدعي RPC مع debounce على `query`.
+- يكشف `refresh()` للاستخدام بعد تسجيل متابعة أو من زر "تحديث".
 
-1. **Helper موحّد** — `src/lib/pos/business-day.ts`:
-   ```ts
-   getPosBusinessDate(ts: string|Date, cutoffHour=6): string   // YYYY-MM-DD
-   getPosBusinessDayRange(date: string, cutoffHour=6): { start, end } // ISO
-   ```
-2. **عمود مُولَّد + دالة SQL (idempotent migration):**
-   - `CREATE FUNCTION public.pos_business_date(ts timestamptz, cutoff int DEFAULT 6) RETURNS date IMMUTABLE`.
-   - `ALTER TABLE pos_orders ADD COLUMN business_date date` (nullable في البداية، لا backfill قسري لتجنب لمس البيانات القديمة).
-   - تريغر `BEFORE INSERT/UPDATE` يملأها من `COALESCE(paid_at, created_at)` ومن `company_settings.pos_day_cutoff_hour` للـ owner.
-   - فهرس `(user_id, business_date)`.
-3. **تعديل أماكن استخدام التواريخ في POS فقط** (لا تمس van/invoice/CRM):
-   - `src/lib/reports/pos-report-loaders.ts` — التحويل من `created_at` إلى `business_date` (مع fallback لـ `created_at` للسجلات القديمة عبر COALESCE في الـ select أو الاعتماد على التريغر للسجلات الجديدة + UI تنبيه).
-   - `src/hooks/usePOSReportsData.ts`، `POSReportsPage`، `POSShiftsReport`، `usePOSShiftWatcher` إن لزم.
-   - استبدال `getPosAccountingDate` المحلي في `POSPage.tsx` باستيراد الـ helper الموحّد.
-4. **`company_settings.pos_day_cutoff_hour`** — موجود فعلاً (default 6) ✅.
-5. **إغلاق الوردية** يبقى يعتمد على `session_id` (وليس التاريخ)، فلا تأثر بمنتصف الليل.
+---
 
-#### المرحلة B — استخراج معادلات الإغلاق + اختبارات
+## 3) تعديلات على ملفات قائمة
 
-1. **استخراج** `computeExpectedCashPerCurrency()` و `computeReturnsByCurrency()` إلى `src/lib/pos/shift-close-math.ts` (pure functions).
-2. **اختبارات وحدوية** `src/lib/pos/__tests__/shift-close-math.test.ts` تغطي السيناريوهات الثمانية المطلوبة:
-   - ILS نقدي قبل/بعد منتصف الليل (يوم عمل صحيح).
-   - JOD مع باقي ILS → JOD يزيد 10، ILS ينقص 17.
-   - USD مع باقي USD.
-   - بطاقة → لا تأثير.
-   - مرتجع نقدي ILS / JOD.
-   - مصروف نقدي ILS.
-3. **عرض شاشة الإغلاق** — مكوّن `CloseShiftDialog` يعرض جدول صفوف (متوقع / فعلي / فرق) لكل عملة + سطر مجموع الفرق بالشيكل لأغراض التقرير فقط (موجود جزئياً في `ShiftSummaryReceipt`، ننقل المنطق نفسه للحوار).
+- `src/pages/FeedbackPage.tsx`:
+  - استبدال `<FollowupQueue/>` داخل تبويب `queue` بـ `<FollowupQueueShell/>`.
+  - إبقاء تبويب `search` كما هو.
+  - `openFromQueueRow` يبقى لكن يُستخدم الآن من خلال `onOpenDetail` الذي يمرَّر للـ Shell.
+- `src/components/feedback/FollowupQueue.tsx`: يبقى ملفاً قديماً لمرجع الموبايل أو يُحذف لاحقاً (سنبقيه كـ fallback مؤقت ثم نتخلص منه عند ثبات الإطلاق — نزيله من الاستيراد فقط).
 
-### 4) القيود والحماية
+---
 
-- لا تغيير على `complete_pos_order` / `process_pos_return` / `close_pos_session_atomic`.
-- لا تغيير على دفتر اليومية أو القيود المحاسبية.
-- لا تغيير على الطباعة (KitchenTicket/Receipt).
-- Migration idempotent: `CREATE OR REPLACE FUNCTION`, `ADD COLUMN IF NOT EXISTS`, `CREATE TRIGGER` بعد `DROP IF EXISTS`.
-- السجلات القديمة لـ `pos_orders` تبقى بـ `business_date = NULL`؛ التقارير تستخدم `COALESCE(business_date, (paid_at AT TIME ZONE …)::date - CASE WHEN EXTRACT(HOUR FROM paid_at) < cutoff THEN 1 ELSE 0 END)` أو ببساطة `COALESCE(business_date, paid_at::date)` مع ملاحظة في الكود.
+## 4) السلوك والروابط
 
-### تفاصيل تقنية
+- **اتصال**: `<a href="tel:{phone}">`.
+- **واتساب**: `https://wa.me/972{phone بعد إزالة الصفر}` (نفس تطبيع نظام أموالي).
+- **DNC**: شارة حمراء واضحة + تعطيل زري الاتصال/واتساب على الصف + tooltip تفسيري.
+- **بعد حفظ متابعة**: Drawer يبقى مفتوحاً، الصف يتحدث محلياً (optimistic) + إعادة جلب الـ RPC بصمت.
 
-**Migration (مختصرة):**
-```sql
-CREATE OR REPLACE FUNCTION public.pos_business_date(ts timestamptz, cutoff int DEFAULT 6)
-RETURNS date LANGUAGE sql IMMUTABLE AS $$
-  SELECT (CASE WHEN EXTRACT(HOUR FROM ts) < cutoff
-               THEN (ts::date - 1) ELSE ts::date END);
-$$;
+---
 
-ALTER TABLE public.pos_orders ADD COLUMN IF NOT EXISTS business_date date;
-CREATE INDEX IF NOT EXISTS idx_pos_orders_business_date ON public.pos_orders(user_id, business_date);
+## 5) الأمان والصلاحيات
+- لا تغيير: نفس `has_feature_permission('call_center_feedback','customers','view')`.
+- نفس `get_team_owner_id`، لا فلترة `user_id` من الفرونت.
+- لا تعديل على الفواتير/الدفع/الطلبات؛ فقط `feedback_calls` و `feedback_customers`.
 
-CREATE OR REPLACE FUNCTION public._pos_orders_set_business_date()
-RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE v_cutoff int;
-BEGIN
-  SELECT COALESCE(pos_day_cutoff_hour, 6) INTO v_cutoff
-    FROM public.company_settings WHERE user_id = NEW.user_id LIMIT 1;
-  NEW.business_date := public.pos_business_date(COALESCE(NEW.paid_at, NEW.created_at), COALESCE(v_cutoff,6));
-  RETURN NEW;
-END $$;
+---
 
-DROP TRIGGER IF EXISTS trg_pos_orders_business_date ON public.pos_orders;
-CREATE TRIGGER trg_pos_orders_business_date
-BEFORE INSERT OR UPDATE OF paid_at, created_at ON public.pos_orders
-FOR EACH ROW EXECUTE FUNCTION public._pos_orders_set_business_date();
-```
+## 6) معايير القبول (مطابِقة لطلب المستخدم)
+1. الجدول يظهر افتراضياً على الديسكتوب داخل تبويب "قائمة المتابعة".
+2. البحث الداخلي يفلتر بالاسم/الهاتف debounced.
+3. التاريخ بحد أقصى 7 أيام مع toast عند التجاوز.
+4. فلاتر الحالة/DNC/Sentiment/التقييم تغيّر النتائج من قاعدة البيانات.
+5. اختيار صف يفعّل ActionPane ويظهر معلومات الزبون المختار.
+6. اتصال = `tel:` ، واتساب = `wa.me`.
+7. تسجيل متابعة يفتح Drawer مع `CustomerDetail` على تبويب المكالمة.
+8. حفظ المتابعة يحدّث الصف بدون مغادرة الشاشة.
+9. DNC يظهر بشارة واضحة ويعطّل الاتصال.
+10. الموبايل: كروت + ActionPane مختصر، نفس الفلاتر.
 
-**ملفات ستُعدَّل:**
-- جديد: `src/lib/pos/business-day.ts`, `src/lib/pos/shift-close-math.ts`, `src/lib/pos/__tests__/shift-close-math.test.ts`.
-- معدَّل: `src/pages/POSPage.tsx` (استبدال inline helper)، `src/lib/reports/pos-report-loaders.ts`، `src/hooks/usePOSReportsData.ts`، `src/pages/POSReportsPage.tsx`، `src/components/pos-reports/POSShiftsReport.tsx`.
-- Migration واحدة جديدة فقط.
+---
 
-### ملخص المعادلات النهائية
-
-```text
-يوم العمل: business_date = pos_business_date(paid_at OR created_at, cutoff=6)
-
-عهدة شيكل   = opening + Σ(payments ILS نقدي).amount
-            − Σ(change_amount حيث change_currency=ILS لطلبات أجنبية)
-            − مصاريف نقدية − مشتريات نقدية − مرتجعات نقدية ILS
-
-عهدة USD/JOD = Σ(tendered/exchange_rate حيث currency=CUR ونقدي)
-             − Σ(change_amount حيث change_currency=CUR)
-             − مرتجعات نقدية CUR
-
-variance(CUR) = actual(CUR) − expected(CUR)
-totalVariance_ILS_equiv = Σ variance(CUR) × rate(CUR)  [للتقرير فقط]
-```
-
-الموافقة على الخطة تبدأ التنفيذ.
+## ملاحظة على الـ Scope
+هذا تنفيذ V1 مع إبقاء `source = call_center` فقط. توسعة `pos_orders` و `qamar_orders` تتطلب توحيد أعمدة (`customer_phone`) وستكون مهمة لاحقة منفصلة. الـ RPC والـ UI مهيّآن لاستقبال `source` كفلتر دون تغيير في الواجهة.
