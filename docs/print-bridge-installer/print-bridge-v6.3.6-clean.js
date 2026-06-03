@@ -1251,7 +1251,7 @@ async function printRoutedKitchen(order) {
   const results = [];
   for (const [key, items] of Object.entries(groups)) {
     const subOrder = { ...order, items };
-    const jobKey = `kitchen|${key}|${order.orderNumber || '?'}`;
+    const jobKey = `kitchen|${key}|${order.id || ''}|${order.orderNumber || '?'}`;
     if (shouldBlockDuplicate(jobKey)) {
       console.log(`[duplicate-blocked] kitchen/${key} #${order.orderNumber}`);
       results.push({ name: key, success: true, duplicate: true });
@@ -1259,6 +1259,7 @@ async function printRoutedKitchen(order) {
     }
     console.log(`[print-start] kitchen/${key} #${order.orderNumber} (${items.length} items)`);
     const r = await printKitchenInternal(subOrder, key);
+    if (r.success) stampJobSuccess(jobKey);
     console.log(`[print-end] kitchen/${key} #${order.orderNumber} → ${r.success ? 'OK' : 'FAIL: ' + r.error}`);
     results.push(r);
   }
@@ -1286,9 +1287,11 @@ app.post('/print', async (req, res) => {
   const results = [];
   try {
     if (type === 'receipt' || type === 'both') {
-      const jobKey = `receipt|${order.orderNumber || '?'}`;
+      const jobKey = `receipt|${order.id || ''}|${order.orderNumber || '?'}`;
       if (!shouldBlockDuplicate(jobKey)) {
-        results.push(await printReceiptInternal(order));
+        const r = await printReceiptInternal(order);
+        if (r.success) stampJobSuccess(jobKey);
+        results.push(r);
       } else {
         results.push({ name: 'receipt', success: true, duplicate: true });
       }
