@@ -34,7 +34,14 @@ interface OrderRow {
   created_at: string;
   branch_id: string | null;
   total: number | null;
+  delivery_fee?: number | null;
+  order_value?: number | null;
   status: string | null;
+  delivery_type?: string | null;
+  payment_method?: string | null;
+  delivery_address?: string | null;
+  order_note?: string | null;
+  items?: any[] | null;
   items_summary: string | null;
 }
 
@@ -50,12 +57,37 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_OUTCOME: "نتيجة المكالمة غير صالحة",
   INVALID_SENTIMENT: "تقييم المشاعر غير صالح",
   INVALID_RATING: "التقييم يجب أن يكون بين 1 و 5",
+  INVALID_DRIVER_RATING: "تقييم السائق يجب أن يكون بين 1 و 5",
   FOLLOWUP_DUE_REQUIRED: "يجب تحديد موعد المتابعة",
   ORDER_NOT_FOUND: "الطلبية المرتبطة غير موجودة",
   ORDER_CUSTOMER_MISMATCH: "هذه الطلبية ليست لنفس الزبون",
   RATE_LIMITED: "لا يمكن تسجيل أكثر من مكالمة واحدة لنفس الزبون خلال 60 ثانية",
   REASON_REQUIRED: "السبب مطلوب (3 أحرف على الأقل)",
 };
+
+function orderTypeLabel(t: string | null | undefined): string {
+  switch ((t || "").toLowerCase()) {
+    case "delivery": return "توصيل";
+    case "pickup":
+    case "takeaway": return "استلام";
+    case "dine_in":
+    case "dinein":   return "طاولة";
+    default:         return "غير محدد";
+  }
+}
+function paymentLabel(p: string | null | undefined): string {
+  switch ((p || "").toLowerCase()) {
+    case "cash":             return "نقد";
+    case "card":
+    case "visa":
+    case "mastercard":       return "بطاقة";
+    case "credit":           return "آجل";
+    case "transfer":
+    case "bank_transfer":    return "تحويل";
+    case "employee_account": return "حساب موظف";
+    default:                 return "غير محدد";
+  }
+}
 
 function rpcErr(error: any) {
   const msg = String(error?.message ?? "");
