@@ -66,8 +66,6 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         fontWeight: 600,
         lineHeight: 1.2,
         padding: '40px 12px 12px',
-        border: '3px solid #000',
-        borderRadius: '4px',
         position: 'absolute',
         left: '-9999px',
         top: 0,
@@ -80,7 +78,6 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
           fontSize: '26px',
           fontWeight: 900,
           padding: '4px 0',
-          borderBottom: '2px solid #000',
           marginBottom: '6px',
           letterSpacing: '1px',
           lineHeight: 1.1,
@@ -106,7 +103,6 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         fontSize: '22px',
         fontWeight: 900,
         padding: '3px',
-        border: '2px solid #000',
         margin: '4px 0',
         lineHeight: 1.1,
       }}>
@@ -121,12 +117,11 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       )}
 
       {/* ORDER INFO — two-column table */}
-      <div style={{ borderTop: '2px solid #000', margin: '6px 0 0' }} />
-      <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0', tableLayout: 'fixed' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', margin: '6px 0 0', tableLayout: 'fixed' }}>
         <tbody>
           {infoRows.map((row, i) => (
             <tr key={i}>
-              <td style={{ fontSize: '15px', fontWeight: 700, padding: '3px 6px', borderLeft: '1px solid #000', width: '35%', verticalAlign: 'top', textAlign: 'right', wordBreak: 'break-word' }}>
+              <td style={{ fontSize: '15px', fontWeight: 700, padding: '3px 6px', width: '35%', verticalAlign: 'top', textAlign: 'right', wordBreak: 'break-word' }}>
                 {row.label}
               </td>
               <td style={{ fontSize: '15px', fontWeight: 700, padding: '3px 6px', verticalAlign: 'top', textAlign: 'right', wordBreak: 'break-word', direction: row.ltr ? 'ltr' as const : undefined }}>
@@ -136,10 +131,10 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
           ))}
         </tbody>
       </table>
-      <div style={{ borderTop: '2px solid #000', margin: '0 0 4px' }} />
+      <div style={{ margin: '0 0 4px' }} />
 
       {/* Items table header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', borderBottom: '2px solid #000', marginBottom: '2px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', marginBottom: '2px' }}>
         <span style={{ fontSize: '15px', fontWeight: 900, width: '50px', textAlign: 'center' }}>الكمية</span>
         <span style={{ fontSize: '15px', fontWeight: 900, flex: 1, textAlign: 'right' }}>الاسم</span>
       </div>
@@ -148,7 +143,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {items.map((item, i) => {
         const qty = item.quantity || 1;
         return (
-          <div key={i} style={{ padding: '3px 0', borderBottom: '1.5px solid #000', lineHeight: 1.2 }}>
+          <div key={i} style={{ padding: '3px 0', lineHeight: 1.2 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
               <span style={{ fontSize: '14px', fontWeight: 900, width: '40px', textAlign: 'center', lineHeight: 1.15, flexShrink: 0 }}>{qty}</span>
               <span style={{ fontSize: '14px', fontWeight: 700, textAlign: 'right', flex: 1, lineHeight: 1.25, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.name}</span>
@@ -165,10 +160,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
             {item.note && (
               <div style={{
                 fontSize: '12px', fontWeight: 700, color: '#000',
-                textAlign: 'right', marginTop: '3px', marginRight: '48px',
-                padding: '3px 5px',
-                border: '1.5px solid #000',
-                borderRadius: '2px',
+                textAlign: 'right', marginTop: '2px', paddingRight: '48px',
                 lineHeight: 1.2, wordBreak: 'break-word',
               }}>
                 ملاحظة: {item.note}
@@ -180,21 +172,18 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
 
       {order.orderNote && (
         <>
-          <div style={{ borderTop: '2px solid #000', margin: '6px 0 4px' }} />
           <div style={{
             fontSize: '13px',
             fontWeight: 700,
             color: '#000',
             textAlign: 'right',
-            padding: '5px 7px',
-            border: '2px solid #000',
-            borderRadius: '3px',
+            padding: '5px 0',
+            margin: '6px 0 0',
             lineHeight: 1.25,
             wordBreak: 'break-word',
           }}>
             ملاحظة الفاتورة: {order.orderNote}
           </div>
-          <div style={{ borderTop: '2px solid #000', margin: '4px 0 0' }} />
         </>
       )}
 
