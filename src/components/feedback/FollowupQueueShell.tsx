@@ -207,12 +207,12 @@ export default function FollowupQueueShell({
   };
 
   /* -------- Loader -------- */
-  const load = useCallback(async (resetOffset = true) => {
+  const load = useCallback(async (resetOffset: boolean = true, explicitOffset?: number) => {
     if (!from || !to) return;
     if (new Date(to) < new Date(from)) { toast.error("تاريخ النهاية أقدم من البداية"); return; }
     if (daysBetween(from, to) > 6) { toast.error("الحد الأقصى للفترة 7 أيام"); return; }
 
-    const nextOffset = resetOffset ? 0 : offset;
+    const nextOffset = resetOffset ? 0 : (typeof explicitOffset === "number" ? explicitOffset : offset);
     setLoading(true);
     setDebugInfo(null);
 
@@ -240,7 +240,13 @@ export default function FollowupQueueShell({
       return;
     }
     const arr = (data as FollowupRow[]) || [];
-    setRows(resetOffset ? arr : [...rows, ...arr]);
+    setRows((prev) => {
+      if (resetOffset) return arr;
+      // De-dupe by normalized_phone to avoid duplicates from any race
+      const seen = new Set(prev.map((r) => r.normalized_phone));
+      const fresh = arr.filter((r) => !seen.has(r.normalized_phone));
+      return [...prev, ...fresh];
+    });
     setTotal(arr.length > 0 ? Number(arr[0].total_count ?? arr.length) : 0);
     setOffset(nextOffset);
 
@@ -343,7 +349,11 @@ export default function FollowupQueueShell({
         <div className="flex justify-center pt-2">
           <Button
             variant="outline" size="sm"
-            onClick={() => { setOffset((o) => o + PAGE_SIZE); load(false); }}
+            onClick={() => {
+              const next = offset + PAGE_SIZE;
+              setOffset(next);
+              load(false, next);
+            }}
             disabled={loading}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
