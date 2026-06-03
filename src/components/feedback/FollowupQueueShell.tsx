@@ -118,6 +118,31 @@ function sentimentLabel(s: string | null): string | null {
   }
 }
 
+function orderTypeLabel(t: string | null | undefined): string {
+  switch ((t || "").toLowerCase()) {
+    case "delivery": return "توصيل";
+    case "pickup":
+    case "takeaway": return "استلام";
+    case "dine_in":
+    case "dinein":   return "طاولة";
+    default:         return "غير محدد";
+  }
+}
+
+function paymentLabel(p: string | null | undefined): string {
+  switch ((p || "").toLowerCase()) {
+    case "cash":             return "نقد";
+    case "card":
+    case "visa":
+    case "mastercard":       return "بطاقة";
+    case "credit":           return "آجل";
+    case "transfer":
+    case "bank_transfer":    return "تحويل";
+    case "employee_account": return "حساب موظف";
+    default:                 return "غير محدد";
+  }
+}
+
 function ymd(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
