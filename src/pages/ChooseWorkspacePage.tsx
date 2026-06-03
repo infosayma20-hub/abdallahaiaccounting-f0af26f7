@@ -81,7 +81,7 @@ export default function ChooseWorkspacePage() {
       <div className="w-full max-w-2xl space-y-5 sm:space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold text-foreground">اختر مساحة العمل</h1>
-          <p className="text-muted-foreground text-sm">عندك صلاحية الدخول لأكثر من واجهة. اختر اللي تبغى تشتغل عليها الحين.</p>
+          <p className="text-muted-foreground text-sm">عندك صلاحية تدخل على أكثر من واجهة. اختار الواجهة اللي بدك تشتغل عليها هلا.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
