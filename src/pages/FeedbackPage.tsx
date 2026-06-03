@@ -554,7 +554,7 @@ function OrdersList({
                 إجمالي الفاتورة: {(o.total ?? 0).toLocaleString("en")} ₪
               </span>
             </div>
-            <Badge variant="outline" className="text-[10px] h-5">{o.status || "—"}</Badge>
+            <Badge variant="outline" className="text-[10px] h-5">{orderStatusLabel(o.status)}</Badge>
           </div>
           <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
             <div>رسوم التوصيل: <span className="font-semibold text-foreground">{Number(o.delivery_fee ?? 0).toLocaleString("en")} ₪</span></div>
