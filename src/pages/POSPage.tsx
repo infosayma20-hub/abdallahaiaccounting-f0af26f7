@@ -2063,7 +2063,7 @@ const POSPage = () => {
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setDragActiveId(null);
-    if (!isAdmin || !over || active.id === over.id || !userId) return;
+    if (!over || active.id === over.id || !userId) return;
     const currentProducts = filteredProducts;
     const oldIndex = currentProducts.findIndex(p => p.id === active.id);
     const newIndex = currentProducts.findIndex(p => p.id === over.id);
@@ -2084,25 +2084,25 @@ const POSPage = () => {
     const prefKey = `product_order_${catKey}`;
     // Update local per-category order map immediately (optimistic, scoped to this category only)
     setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds }));
-    // Persist to products.pos_sort_order (company-wide) so the order is shared
-    // across all cashiers/terminals — not just per-user.
-    const updates = orderIds.map((id, idx) =>
-      supabase.from("products").update({ pos_sort_order: idx } as any).eq("id", id)
-    );
-    const results = await Promise.all(updates);
-    const dbErr = results.find(r => r.error)?.error;
-    // Also keep the per-user preference as a fast-path cache (best effort).
+    // Persist to products.pos_sort_order (company-wide) via SECURITY DEFINER RPC
+    // so the order is shared across all cashiers/terminals/call-center users.
+    // RLS check inside the function scopes to the caller's data owner.
+    const { error: rpcErr } = await supabase.rpc("reorder_pos_products" as any, {
+      p_product_ids: orderIds,
+    });
+    // Also keep the per-user preference as an instant cache for the current user.
     await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: prefKey,
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
-    if (dbErr) {
+    if (rpcErr) {
+      console.error("[POS] reorder_pos_products failed:", rpcErr);
       toast.error("تعذّر حفظ الترتيب، حاول مرة أخرى");
       return;
     }
-    toast.success("تم حفظ ترتيب المنتجات لجميع المستخدمين");
-  }, [filteredProducts, userId, isAdmin, selectedCategory, visiblePosCategories]);
+    toast.success("تم حفظ الترتيب لجميع المستخدمين");
+  }, [filteredProducts, userId, selectedCategory, visiblePosCategories]);
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
