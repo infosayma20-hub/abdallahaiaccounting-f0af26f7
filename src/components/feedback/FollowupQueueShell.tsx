@@ -444,12 +444,15 @@ export default function FollowupQueueShell({
 
 function ActionPane({
   total, loading, onRefresh, onToggleFilters, filtersOpen,
+  showAgentStats, onToggleAgentStats,
 }: {
   total: number;
   loading: boolean;
   onRefresh: () => void;
   onToggleFilters: () => void;
   filtersOpen: boolean;
+  showAgentStats: boolean;
+  onToggleAgentStats: () => void;
 }) {
   return (
     <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
@@ -460,6 +463,11 @@ function ActionPane({
         <span className="text-[11px] text-slate-500 hidden md:inline-block">
           اضغط على الصف لفتح التفاصيل
         </span>
+        <ToolButton
+          icon={BarChart3}
+          label={showAgentStats ? "إخفاء إحصائيات الموظفين" : "إحصائيات الموظفين"}
+          onClick={onToggleAgentStats}
+        />
         <ToolButton
           icon={ListFilter}
           label={filtersOpen ? "إخفاء الفلاتر" : "إظهار الفلاتر"}
