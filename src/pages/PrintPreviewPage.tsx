@@ -31,7 +31,7 @@ const SAMPLE_ORDER: PrintOrder = {
   paymentMethod: "نقد",
   currency: "ILS",
   items: [
-    { id: "1", name: "اجنحة 30 قطعة مشوي", quantity: 1, price: 75 },
+    { id: "1", name: "اجنحة 30 قطعة مشوي", quantity: 1, price: 75, note: "بدون بصل" },
     { id: "2", name: "اجنحة 25 قطعة مشوي", quantity: 1, price: 70 },
     { id: "3", name: "بيتزا 8 قطع شاورما", quantity: 1, price: 22 },
     { id: "4", name: "حبة 8 قطع", quantity: 2, price: 22 },
@@ -43,6 +43,7 @@ const SAMPLE_ORDER: PrintOrder = {
   cashier: "كاشير تجريبي",
   branchName: "",
   tableNumber: "",
+  orderNote: "الزبون بيستلم الساعة 10",
 };
 
 const SAMPLE_COMPANY_INFO = {
