@@ -7,6 +7,7 @@ import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone,
 import { CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CalendarDays } from "lucide-react";
 import EditOrderDialog from "./EditOrderDialog";
 import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
 import {
@@ -72,17 +73,42 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   cancelled_after_acceptance: { label: "أُلغيت بعد القبول", color: "bg-red-700", icon: XCircle },
 };
 
-function getBusinessDayStart(): string {
+/**
+ * Business-day-aware range helpers (6 AM cutoff, local time).
+ * `daysBack` = 0 → today's business day; 1 → yesterday; etc.
+ */
+const CUTOFF_HOUR = 6;
+const MAX_DAYS = 7;
+
+function businessDayBoundary(daysBack: number): Date {
   const now = new Date();
-  const cutoffHour = 6;
-  const localHour = now.getHours();
-  
-  const businessDate = new Date(now);
-  if (localHour < cutoffHour) {
-    businessDate.setDate(businessDate.getDate() - 1);
+  const d = new Date(now);
+  if (now.getHours() < CUTOFF_HOUR) d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - daysBack);
+  d.setHours(CUTOFF_HOUR, 0, 0, 0);
+  return d;
+}
+
+type RangePreset = "today" | "yesterday" | "last3" | "last7" | "custom";
+
+function rangeFromPreset(preset: RangePreset, customFromDays?: number, customToDays?: number): { start: Date; end: Date } {
+  if (preset === "today") {
+    return { start: businessDayBoundary(0), end: businessDayBoundary(-1) };
   }
-  businessDate.setHours(cutoffHour, 0, 0, 0);
-  return businessDate.toISOString();
+  if (preset === "yesterday") {
+    return { start: businessDayBoundary(1), end: businessDayBoundary(0) };
+  }
+  if (preset === "last3") {
+    return { start: businessDayBoundary(2), end: businessDayBoundary(-1) };
+  }
+  if (preset === "last7") {
+    return { start: businessDayBoundary(6), end: businessDayBoundary(-1) };
+  }
+  // custom (clamped to 7 days by caller)
+  return {
+    start: businessDayBoundary(customFromDays ?? 0),
+    end: businessDayBoundary((customToDays ?? 0) - 1),
+  };
 }
 
 export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmin, onEditInCart }: Props) {
@@ -94,6 +120,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   const [editsByOrder, setEditsByOrder] = useState<Record<string, { pending: number; lastStatus?: string }>>({});
   /** Filter by call-center agent (dispatched_by_name). `null` = الكل. */
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
+  /** Date-range preset for the history view. Default = today. */
+  const [rangePreset, setRangePreset] = useState<RangePreset>("today");
+  /** Custom range — `fromDate`/`toDate` as local YYYY-MM-DD strings. */
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
   /** Cancel-confirmation dialog state. */
   const [cancelTarget, setCancelTarget] = useState<DispatchedOrder | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -103,14 +134,39 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     if (!dataOwnerId) return;
     setLoading(true);
 
-    const businessStart = getBusinessDayStart();
+    // Resolve the active date range.
+    let start: Date;
+    let end: Date;
+    if (rangePreset === "custom" && customFrom && customTo) {
+      const from = new Date(customFrom + "T00:00:00");
+      const to = new Date(customTo + "T23:59:59.999");
+      // Clamp to MAX_DAYS (inclusive) so a user can't pull a giant window.
+      const diffDays = Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1;
+      if (diffDays > MAX_DAYS) {
+        toast.warning(`الحد الأقصى ${MAX_DAYS} أيام — تم تقليص النطاق تلقائياً`);
+        from.setDate(to.getDate() - (MAX_DAYS - 1));
+        from.setHours(0, 0, 0, 0);
+        setCustomFrom(from.toISOString().slice(0, 10));
+      }
+      // Apply the 6 AM cutoff at the lower bound so the result aligns with
+      // the business-day model used elsewhere in POS reporting.
+      from.setHours(CUTOFF_HOUR, 0, 0, 0);
+      start = from;
+      end = to;
+    } else {
+      const r = rangeFromPreset(rangePreset === "custom" ? "today" : rangePreset);
+      start = r.start;
+      end = r.end;
+    }
 
     let query = supabase
       .from("call_center_orders" as any)
       .select("*")
       .eq("user_id", dataOwnerId)
-      .gte("created_at", businessStart)
-      .order("created_at", { ascending: false });
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(200);
 
     if (filter === "cancelled") {
       // Admin-only archive view — show ONLY cancelled orders
@@ -127,7 +183,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     const { data } = await query;
     setOrders((data as any as DispatchedOrder[]) || []);
     setLoading(false);
-  }, [dataOwnerId, filter]);
+  }, [dataOwnerId, filter, rangePreset, customFrom, customTo]);
 
   useEffect(() => {
     if (open) loadOrders();
