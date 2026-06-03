@@ -106,7 +106,6 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         fontSize: '22px',
         fontWeight: 900,
         padding: '3px',
-        border: '2px solid #000',
         margin: '4px 0',
         lineHeight: 1.1,
       }}>
