@@ -398,7 +398,7 @@ function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
     branchName: order.branchName,
     cashierName: order.cashier,
     orderType: normalizedType,
-    orderTypeLabel: orderTypeLabel(normalizedType),
+    orderTypeLabel: orderTypeLabel(normalizedType, order.tableNumber),
     tableNumber: order.tableNumber,
     customerName: order.customerName || undefined,
     customerPhone: order.customerPhone || undefined,
