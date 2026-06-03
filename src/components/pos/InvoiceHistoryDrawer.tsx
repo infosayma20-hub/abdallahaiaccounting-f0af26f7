@@ -886,7 +886,7 @@ export default function InvoiceHistoryDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 h-full z-[1000] flex flex-col"
+        className="fixed right-0 top-0 h-full z-[1000] flex flex-col pos-readable"
         style={{
           width: 480,
           background: "white",
