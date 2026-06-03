@@ -593,26 +593,13 @@ function DataTable({
             {rows.map((r) => {
               const sm = statusMeta(r.followup_status);
               const wa = whatsappHref(r.display_phone);
-              const isSel = selectedId === r.normalized_phone;
               const sent = sentimentLabel(r.last_sentiment);
               return (
                 <tr
                   key={r.normalized_phone}
-                  onClick={() => onSelect(r.normalized_phone)}
-                  onDoubleClick={() => onOpen(r)}
-                  className={`border-t border-border/60 cursor-pointer transition-colors ${
-                    isSel ? "bg-primary/[0.06] ring-1 ring-primary/40" : "hover:bg-slate-50"
-                  }`}
+                  onClick={() => onOpen(r)}
+                  className="border-t border-border/60 cursor-pointer transition-colors hover:bg-muted/50"
                 >
-                  <Td className="text-center">
-                    <input
-                      type="radio"
-                      checked={isSel}
-                      onChange={() => onSelect(r.normalized_phone)}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label="تحديد"
-                    />
-                  </Td>
                   <Td>
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-slate-900 truncate max-w-[180px]">
