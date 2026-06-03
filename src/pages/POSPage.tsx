@@ -3636,15 +3636,10 @@ const POSPage = () => {
     }
   };
 
-  // Determine POS accounting date based on cutoff hour
-  const getPosAccountingDate = (openedAt: string, cutoffHour: number) => {
-    const d = new Date(openedAt);
-    const hour = d.getHours();
-    if (hour < cutoffHour) {
-      d.setDate(d.getDate() - 1);
-    }
-    return d.toISOString().split("T")[0];
-  };
+  // Determine POS accounting date based on cutoff hour.
+  // Delegates to the centralised helper that mirrors SQL `pos_business_date`.
+  const getPosAccountingDate = (openedAt: string, cutoffHour: number) =>
+    getPosBusinessDate(openedAt, cutoffHour);
 
   // Close session
   const handleCloseShift = async () => {
