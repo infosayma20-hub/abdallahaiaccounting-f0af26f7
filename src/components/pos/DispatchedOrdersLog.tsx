@@ -567,10 +567,18 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                         <span className="text-[10px] text-muted-foreground">→</span>
                         <span className="text-[10px] font-semibold text-primary">{order.target_branch_name}</span>
                       </div>
-                      <Badge className={`text-[10px] px-1.5 py-0 h-5 gap-0.5 ${cfg.color}`}>
-                        <StatusIcon className="h-2.5 w-2.5" />
-                        {cfg.label}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        {lateIds.has(order.id) && order.status === "pending" && (
+                          <Badge className="text-[10px] px-1.5 py-0 h-5 gap-0.5 bg-red-600 animate-pulse" title="مضى أكثر من 5 دقائق دون قبول من الفرع">
+                            <Clock className="h-2.5 w-2.5" />
+                            تأخر القبول
+                          </Badge>
+                        )}
+                        <Badge className={`text-[10px] px-1.5 py-0 h-5 gap-0.5 ${cfg.color}`}>
+                          <StatusIcon className="h-2.5 w-2.5" />
+                          {cfg.label}
+                        </Badge>
+                      </div>
                     </div>
 
                     {order.is_editing && (
