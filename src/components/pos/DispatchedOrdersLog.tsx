@@ -443,7 +443,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
             {visibleOrders.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">لا توجد فواتير محوّلة اليوم</p>
+                <p className="text-sm">لا توجد فواتير محوّلة ضمن الفترة المحددة</p>
               </div>
             ) : (
               visibleOrders.map((order) => {
@@ -468,7 +468,9 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                           {order.source_app}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground">
-                          {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                          {rangePreset === "today"
+                            ? new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })
+                            : new Date(order.created_at).toLocaleString("ar-PS", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                         <span className="text-[10px] text-muted-foreground">→</span>
                         <span className="text-[10px] font-semibold text-primary">{order.target_branch_name}</span>
