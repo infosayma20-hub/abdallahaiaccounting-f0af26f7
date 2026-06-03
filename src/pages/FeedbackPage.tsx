@@ -530,13 +530,20 @@ function OrdersList({
       {orders.map((o) => (
         <div
           key={`${o.source}-${o.order_id}`}
-          className="bg-card border rounded-lg p-3 space-y-1.5"
+          className="bg-card border rounded-lg p-3 space-y-2"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-foreground">
-              {(o.total ?? 0).toLocaleString("en")} ₪
-            </span>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-foreground">
+                إجمالي الفاتورة: {(o.total ?? 0).toLocaleString("en")} ₪
+              </span>
+            </div>
             <Badge variant="outline" className="text-[10px] h-5">{o.status || "—"}</Badge>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+            <div>رسوم التوصيل: <span className="font-semibold text-foreground">{Number(o.delivery_fee ?? 0).toLocaleString("en")} ₪</span></div>
+            <div>قيمة الطلب: <span className="font-semibold text-foreground">{Number(o.order_value ?? ((o.total ?? 0) - (o.delivery_fee ?? 0))).toLocaleString("en")} ₪</span></div>
+            <div>النوع: <span className="font-semibold text-foreground">{orderTypeLabel(o.delivery_type)}</span> • الدفع: <span className="font-semibold text-foreground">{paymentLabel(o.payment_method)}</span></div>
           </div>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
             <span className="inline-flex items-center gap-1">
@@ -545,11 +552,34 @@ function OrdersList({
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-3 w-3" /> {branchName(o.branch_id)}
             </span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> {o.delivery_address || "لا يوجد عنوان"}
+            </span>
           </div>
-          {o.items_summary && (
-            <p className="text-xs text-muted-foreground line-clamp-2 pt-1 border-t border-border/50">
-              {o.items_summary}
-            </p>
+          {Array.isArray(o.items) && o.items.length > 0 ? (
+            <div className="pt-1 border-t border-border/50 space-y-1">
+              <div className="text-[11px] font-semibold text-foreground">الأصناف:</div>
+              <ul className="text-[11px] text-muted-foreground space-y-0.5 pr-3">
+                {o.items.map((it: any, idx: number) => {
+                  const name = it?.name || it?.product_name || "صنف";
+                  const qty = it?.qty ?? it?.quantity ?? 1;
+                  const note = it?.note || it?.notes;
+                  return (
+                    <li key={idx} className="list-disc">
+                      <span className="text-foreground font-semibold">{name}</span> ×{qty}
+                      {note ? <span className="text-amber-700"> — {note}</span> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+            <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+              لا توجد أصناف مسجلة
+            </div>
+          )}
+          {o.order_note && (
+            <div className="text-[11px] text-amber-700">ملاحظة على الطلب: {o.order_note}</div>
           )}
         </div>
       ))}
