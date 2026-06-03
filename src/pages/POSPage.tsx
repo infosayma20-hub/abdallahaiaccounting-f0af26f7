@@ -211,6 +211,8 @@ interface Product {
   image_url: string | null;
   min_quantity: number;
   kitchen_station_id: string | null;
+  sort_order?: number | null;
+  pos_sort_order?: number | null;
 }
 
 interface POSCategory {
@@ -429,6 +431,7 @@ const POSPage = () => {
   // Per-category product order map: { [categoryName | "__uncategorized__" | "الكل"]: string[] of product ids }
   // Persisted via pos_user_preferences keys: product_order_<categoryName> / product_order_all
   const [productOrderByCategory, setProductOrderByCategory] = useState<Record<string, string[]>>({});
+  const [categoryOrderIds, setCategoryOrderIds] = useState<string[]>([]);
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
@@ -1456,8 +1459,9 @@ const POSPage = () => {
       .order("sort_order")
       .order("name");
 
-    setProducts(
-      (data || []).map((p) => ({
+    setProducts(prev => {
+      const previousOrder = new Map(prev.map((p, i) => [p.id, i]));
+      return (data || []).map((p) => ({
         ...p,
         pos_category_id: (p as any).pos_category_id || null,
         tax_rate: Number(p.tax_rate) || 0,
@@ -1469,8 +1473,13 @@ const POSPage = () => {
         min_quantity: Number(p.min_quantity) || 0,
         kitchen_station_id: (p as any).kitchen_station_id || null,
         pos_sort_order: (p as any).pos_sort_order ?? null,
-      }))
-    );
+      })).sort((a, b) => {
+        const ao = a.pos_sort_order ?? previousOrder.get(a.id) ?? a.sort_order ?? 9999;
+        const bo = b.pos_sort_order ?? previousOrder.get(b.id) ?? b.sort_order ?? 9999;
+        if (ao !== bo) return ao - bo;
+        return (a.name || "").localeCompare(b.name || "", "ar");
+      });
+    });
   };
 
   const loadCategories = async () => {
@@ -1481,7 +1490,17 @@ const POSPage = () => {
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("display_order");
-    setPosCategories((data as POSCategory[]) || []);
+    const categories = ((data as POSCategory[]) || []);
+    setPosCategories(prev => {
+      const orderIds = categoryOrderIds.length ? categoryOrderIds : prev.map(c => c.id);
+      if (!orderIds.length) return categories;
+      const orderMap = new Map(orderIds.map((id, i) => [id, i]));
+      return [...categories].sort((a, b) => {
+        const ao = orderMap.get(a.id) ?? a.display_order ?? 9999;
+        const bo = orderMap.get(b.id) ?? b.display_order ?? 9999;
+        return ao - bo;
+      });
+    });
   };
 
   const existingCategories = useMemo(() => {
@@ -1991,7 +2010,10 @@ const POSPage = () => {
         const bCatId = b.pos_category_id || visiblePosCategories.find(c => c.name === b.category)?.id || "";
         const aOrder = catOrderMap.get(aCatId) ?? 9999;
         const bOrder = catOrderMap.get(bCatId) ?? 9999;
-        return aOrder - bOrder;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        const posOrder = ((a as any).pos_sort_order ?? (a as any).sort_order ?? 9999) - ((b as any).pos_sort_order ?? (b as any).sort_order ?? 9999);
+        if (posOrder !== 0) return posOrder;
+        return (a.name || "").localeCompare(b.name || "", "ar");
       });
     } else if (!debouncedSearch) {
       // Apply per-category saved order (overrides db sort_order for this user).
@@ -2021,6 +2043,12 @@ const POSPage = () => {
           if (so !== 0) return so;
           return (a.name || "").localeCompare(b.name || "", "ar");
         });
+      } else {
+        filtered.sort((a, b) => {
+          const posOrder = ((a as any).pos_sort_order ?? (a as any).sort_order ?? 9999) - ((b as any).pos_sort_order ?? (b as any).sort_order ?? 9999);
+          if (posOrder !== 0) return posOrder;
+          return (a.name || "").localeCompare(b.name || "", "ar");
+        });
       }
     }
     return filtered;
@@ -2045,20 +2073,32 @@ const POSPage = () => {
     const newIndex = posCategories.findIndex(c => c.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(posCategories, oldIndex, newIndex);
-    setPosCategories(reordered);
-    // Save per-user category order preference
     const orderIds = reordered.map(c => c.id);
+    setCategoryOrderIds(orderIds);
+    setPosCategories(reordered.map((c, i) => ({ ...c, display_order: i })));
+    // Save per-user category order preference
     const { error } = await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: "category_order",
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
+    if (dataOwnerId) {
+      const results = await Promise.all(orderIds.map((id, i) =>
+        supabase
+          .from("pos_categories")
+          .update({ display_order: i, sort_order: i } as any)
+          .eq("id", id)
+          .eq("user_id", dataOwnerId)
+      ));
+      const dbErr = results.find(r => r.error)?.error;
+      if (dbErr) console.warn("[POS] category order saved locally but DB update failed:", dbErr);
+    }
     if (error) {
       toast.error("تعذّر حفظ ترتيب التصنيفات");
       return;
     }
     toast.success("تم حفظ ترتيب التصنيفات");
-  }, [posCategories, userId]);
+  }, [posCategories, userId, dataOwnerId]);
 
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -2084,6 +2124,10 @@ const POSPage = () => {
     const prefKey = `product_order_${catKey}`;
     // Update local per-category order map immediately (optimistic, scoped to this category only)
     setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds }));
+    setProducts(prev => {
+      const rank = new Map(orderIds.map((id, i) => [id, i]));
+      return prev.map(p => rank.has(p.id) ? { ...p, pos_sort_order: rank.get(p.id)! } : p);
+    });
     // Persist to products.pos_sort_order (company-wide) via SECURITY DEFINER RPC
     // so the order is shared across all cashiers/terminals/call-center users.
     // RLS check inside the function scopes to the caller's data owner.
@@ -2424,6 +2468,7 @@ const POSPage = () => {
           if (p.preference_key === "category_order") {
             const orderIds = (p.preference_value as any)?.order;
             if (Array.isArray(orderIds) && orderIds.length > 0) {
+              setCategoryOrderIds(orderIds as string[]);
               setPosCategories(prev => {
                 const ordered: POSCategory[] = [];
                 for (const id of orderIds) {
