@@ -39,9 +39,15 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
     rawType === 'dine_in' || rawType === 'dine-in' || rawType === 'محلي' || rawType === 'صالة' || !!order.tableNumber
   );
 
-  const orderTypeLabel = isDelivery ? 'توصيل'
-    : isDineIn ? 'محلي'
-    : 'استلام';
+  const orderTypeLabel = isDelivery
+    ? 'توصيل'
+    : isDineIn
+      ? (() => {
+          const raw = (order.tableNumber || '').toString().trim();
+          if (!raw) return 'طاولة';
+          return /^طاولة\b/.test(raw) ? raw : `طاولة رقم ${raw}`;
+        })()
+      : 'استلام';
 
   // Compact meta — NO duplication of order # or order type (those are shown above as headers).
   const totalQty = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
@@ -112,12 +118,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         {orderTypeLabel}
       </div>
 
-      {/* Table number */}
-      {order.tableNumber && (
-        <div style={{ fontSize: '18px', fontWeight: 900, textAlign: 'center', margin: '2px 0', lineHeight: 1.1 }}>
-          طاولة: {order.tableNumber}
-        </div>
-      )}
+      {/* Table number is now part of orderTypeLabel above (e.g. "طاولة رقم T10"). */}
 
       {/* ORDER INFO — two-column table */}
       <div style={{ borderTop: '2px solid #000', margin: '6px 0 0' }} />
