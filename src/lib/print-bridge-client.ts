@@ -4,7 +4,7 @@
  */
 
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { getBridgeUrl, getDeviceBranchId, syncBranchPrintersToBridge } from "@/lib/device-config";
+import { getBridgeUrl, getDeviceBranchId, setBridgeUrl, syncBranchPrintersToBridge } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalNetworkBlockedMessage, withLocalNetworkAccess, type LocalNetworkRequestInit } from "@/lib/local-network-fetch";
 
@@ -48,6 +48,13 @@ function getBridgeBlockedMessage() {
 }
 
 type BridgeRequestInit = LocalNetworkRequestInit;
+
+function bridgeCandidates(): string[] {
+  const configured = getBridgeUrl();
+  return [configured, "http://127.0.0.1:3001", "http://localhost:3001"].filter(
+    (url, index, list): url is string => Boolean(url) && list.indexOf(url) === index,
+  );
+}
 
 async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
   const baseUrl = getBridgeUrl();
@@ -203,15 +210,23 @@ export async function checkBridgeHealth(): Promise<{
 }
 
 export async function checkBridgeStatus(): Promise<boolean> {
-  try {
-    const res = await bridgeFetch(`/health?t=${Date.now()}`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(6000),
-    });
-    return res.ok;
-  } catch {
-    return false;
+  for (const baseUrl of bridgeCandidates()) {
+    try {
+      const res = await fetch(`${baseUrl}/health?t=${Date.now()}`, withLocalNetworkAccess({
+        cache: "no-store",
+        signal: AbortSignal.timeout(6000),
+      }));
+      if (!res.ok) continue;
+      const data = await res.json().catch(() => null);
+      if (!data || data.status === "ok") {
+        if (!getBridgeUrl()) setBridgeUrl(baseUrl);
+        return true;
+      }
+    } catch {
+      /* try next candidate */
+    }
   }
+  return false;
 }
 
 export function getPrintBridgeUrl() {
