@@ -40,6 +40,7 @@ import {
   posPrinterRoleToBridgeKey, buildBridgePrintersMapFromRows,
 } from "@/lib/device-config";
 import { checkBridgeStatus, checkBridgeHealth, testPrinterConnection, testWindowsPrinter } from "@/lib/print-bridge-client";
+import { withLocalNetworkAccess } from "@/lib/local-network-fetch";
 import PrinterRow from "@/components/pos/onboarding/PrinterRow";
 import ConvertToWindowsPrinterDialog from "@/components/pos/ConvertToWindowsPrinterDialog";
 import {
@@ -422,7 +423,7 @@ export default function NewDeviceOnboardingPage() {
     (async () => {
       try {
         const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
-        const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3000) });
+        const r = await fetch(`${url}/health`, withLocalNetworkAccess({ signal: AbortSignal.timeout(3000) }));
         if (!r.ok) return;
         const j = await r.json();
         if (j?.version) setBridgeVersion(String(j.version));
@@ -520,7 +521,7 @@ export default function NewDeviceOnboardingPage() {
   const fetchWindowsPrinters = async () => {
     try {
       const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
-      const res = await fetch(`${url}/windows-printers`, { signal: AbortSignal.timeout(4000) });
+      const res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(4000) }));
       if (!res.ok) throw new Error("endpoint غير متوفر");
       const data = await res.json();
       const raw: unknown[] = Array.isArray(data)
