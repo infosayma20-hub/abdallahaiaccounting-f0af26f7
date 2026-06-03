@@ -469,16 +469,17 @@ table td, table th, .tabular-nums {
   font-weight: 600 !important;
 }
 
-/* Darken muted/secondary greys (light surfaces only — the
-   dark navy .pos-order-panel keeps its own white overrides) */
-.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-muted-foreground,
+/* Darken muted/secondary greys on light POS surfaces.
+   Navy .pos-order-panel rules below win because they appear
+   later in the file with equal !important specificity. */
+.pos-page-root .text-muted-foreground,
 .pos-readable .text-muted-foreground {
   color: #334155 !important;
 }
-.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-slate-400,
-.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-slate-500,
-.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-gray-400,
-.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-gray-500,
+.pos-page-root .text-slate-400,
+.pos-page-root .text-slate-500,
+.pos-page-root .text-gray-400,
+.pos-page-root .text-gray-500,
 .pos-readable .text-slate-400,
 .pos-readable .text-slate-500,
 .pos-readable .text-gray-400,
@@ -508,13 +509,6 @@ table td, table th, .tabular-nums {
 .pos-readable .border-gray-200,
 .pos-readable .border-border {
   border-color: #CBD5E1 !important;
-}
-
-/* Re-assert dark navy panel keeps its own contrast rules
-   (white text on navy) — do not let the rules above darken it */
-.pos-order-panel,
-.pos-order-panel * {
-  color: inherit;
 }
 
 /* POS dark navy order panel */
