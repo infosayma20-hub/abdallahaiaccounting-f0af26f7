@@ -975,17 +975,17 @@ function EmptyState({ debugInfo }: { debugInfo: any }) {
         لا توجد طلبيات ضمن الفترة المحددة
       </div>
       {debugInfo && (
-        <div className="bg-muted/40 border border-dashed rounded-lg p-3 mx-3 text-[11px] text-slate-600 space-y-1" dir="ltr">
-          <div className="text-right text-xs font-bold text-slate-800 mb-1" dir="rtl">
+        <div className="bg-muted/40 border border-dashed rounded-lg p-3 mx-3 text-[11px] text-slate-600 space-y-1" dir="rtl">
+          <div className="text-right text-xs font-bold text-slate-800 mb-1">
             تشخيص (للتحقق من سبب فراغ النتائج)
           </div>
-          <div>owner_id: <span className="font-mono">{String(debugInfo.owner_id ?? "—")}</span></div>
-          <div>raw_orders_in_range: <span className="font-mono">{String(debugInfo.raw_orders_in_range)}</span></div>
-          <div>orders_missing_phone: <span className="font-mono">{String(debugInfo.orders_missing_phone)}</span></div>
-          <div>distinct_customers_in_range: <span className="font-mono">{String(debugInfo.distinct_customers_in_range)}</span></div>
-          <div>owner_orders_last_30_days: <span className="font-mono">{String(debugInfo.owner_orders_last_30_days)}</span></div>
+          <div>المالك: <span className="font-mono" dir="ltr">{String(debugInfo.owner_id ?? "—")}</span></div>
+          <div>إجمالي الطلبات ضمن الفترة: <span className="font-mono">{String(debugInfo.raw_orders_in_range)}</span></div>
+          <div>طلبات بدون رقم هاتف: <span className="font-mono">{String(debugInfo.orders_missing_phone)}</span></div>
+          <div>عدد الزبائن المختلفين ضمن الفترة: <span className="font-mono">{String(debugInfo.distinct_customers_in_range)}</span></div>
+          <div>طلبات آخر 30 يوم: <span className="font-mono">{String(debugInfo.owner_orders_last_30_days)}</span></div>
           {debugInfo.owner_orders_last_30_days === 0 && (
-            <div className="text-right pt-2 text-amber-700" dir="rtl">
+            <div className="text-right pt-2 text-amber-700">
               ⚠️ لا يوجد أي طلب في الكول سنتر لهذا المالك خلال آخر 30 يوم. قد تكون طلبات الاختبار تحت مستخدم/شركة أخرى.
             </div>
           )}
