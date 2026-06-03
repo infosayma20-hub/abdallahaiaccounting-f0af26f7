@@ -803,14 +803,27 @@ function CardsList({
                       <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {r.branch_name}</span>
                     )}
                     <span className="inline-flex items-center gap-1">
-                      <Receipt className="h-3 w-3" /> {r.orders_count} طلب
-                      {typeof r.total_spent === "number" && r.total_spent > 0 && (
-                        <> • {Number(r.total_spent).toLocaleString("en")} ₪</>
+                      <Receipt className="h-3 w-3" /> {r.lifetime_visits ?? r.orders_count} زيارة
+                      {typeof r.last_order_total === "number" && r.last_order_total > 0 && (
+                        <> • {Number(r.last_order_total).toLocaleString("en")} ₪</>
                       )}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3 w-3" /> {fmtDate(r.last_order_at)}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-slate-600 flex-wrap">
+                    <span>الفاتورة: <span className="font-semibold text-slate-900">{Number(r.last_order_total ?? 0).toLocaleString("en")} ₪</span></span>
+                    <span>التوصيل: <span className="font-semibold text-slate-900">{Number(r.last_delivery_fee ?? 0).toLocaleString("en")} ₪</span></span>
+                    <span>الطلب: <span className="font-semibold text-slate-900">{Number(r.last_order_value ?? 0).toLocaleString("en")} ₪</span></span>
+                  </div>
+                  <div className="text-[11px] text-slate-700">
+                    تقييم السائق:{" "}
+                    {typeof r.last_driver_rating === "number" && r.last_driver_rating > 0 ? (
+                      <span className="font-semibold text-slate-900">{r.last_driver_rating}/5{r.last_driver_name ? ` • ${r.last_driver_name}` : ""}</span>
+                    ) : (
+                      <span className="text-slate-500">لم يُقيَّم</span>
+                    )}
                   </div>
                   <div className="text-[11px] text-slate-700">
                     أخذ الطلب: <span className="font-semibold text-slate-900">{r.order_taken_by_name || "غير محدد"}</span>
