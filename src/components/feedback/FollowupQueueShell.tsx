@@ -46,6 +46,12 @@ export interface FollowupRow {
   source: string | null;
   order_taken_by_user_id?: string | null;
   order_taken_by_name?: string | null;
+  last_order_items_summary?: string | null;
+  last_order_items?: any[] | null;
+  last_order_note?: string | null;
+  last_order_type?: string | null;
+  last_payment_method?: string | null;
+  last_address?: string | null;
   total_count?: number;
 }
 
