@@ -10,13 +10,13 @@ goto :after_start
 :manual_start
 echo [WARN] Service not found. Starting bridge directly...
 cd /d C:\print-bridge
-if exist print-bridge-v6.3.4-generic.js goto :run_634
+if exist print-bridge-v6.3.6-clean.js goto :run_634
 if exist print-bridge-v6.3.3.js goto :run_633
 if exist print-bridge-v6.3.2.js goto :run_632
 goto :run_default
 
 :run_634
-start "AMWALI Print Bridge" node print-bridge-v6.3.4-generic.js
+start "AMWALI Print Bridge" node print-bridge-v6.3.6-clean.js
 goto :after_start
 :run_633
 start "AMWALI Print Bridge" node print-bridge-v6.3.3.js
