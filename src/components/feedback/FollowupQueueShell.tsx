@@ -299,15 +299,78 @@ export default function FollowupQueueShell({
 
   /* -------- Quick status change -------- */
 
+  /* -------- Derived: agent options, client-side filtered rows, agent stats -------- */
+  const agentOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      const id = r.order_taken_by_user_id || "";
+      if (!id) continue;
+      if (!map.has(id)) map.set(id, r.order_taken_by_name || "بدون اسم");
+    }
+    const arr = Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+    arr.sort((a, b) => a.label.localeCompare(b.label, "ar"));
+    return [
+      { value: "__all", label: "كل الموظفين" },
+      { value: "__none", label: "بدون موظف محدد" },
+      ...arr,
+    ];
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (orderType !== "__all") {
+        const t = (r.last_order_type || "").toLowerCase();
+        if (orderType === "delivery" && t !== "delivery") return false;
+        if (orderType === "pickup" && !(t === "pickup" || t === "takeaway")) return false;
+        if (orderType === "dine_in" && !(t === "dine_in" || t === "dinein")) return false;
+        if (orderType === "__unknown" && t) return false;
+      }
+      if (agentId !== "__all") {
+        const id = r.order_taken_by_user_id || "";
+        if (agentId === "__none" && id) return false;
+        if (agentId !== "__none" && id !== agentId) return false;
+      }
+      return true;
+    });
+  }, [rows, orderType, agentId]);
+
+  const agentStats = useMemo(() => {
+    const map = new Map<string, {
+      id: string; name: string; total: number;
+      called: number; no_answer: number; needs_followup: number;
+      complaint: number; not_called: number; revenue: number;
+    }>();
+    for (const r of filteredRows) {
+      const id = r.order_taken_by_user_id || "__none";
+      const name = r.order_taken_by_name || "بدون موظف";
+      const entry = map.get(id) || {
+        id, name, total: 0, called: 0, no_answer: 0,
+        needs_followup: 0, complaint: 0, not_called: 0, revenue: 0,
+      };
+      entry.total += 1;
+      entry.revenue += Number(r.last_order_total || 0);
+      const s = r.followup_status || "not_called";
+      if (s === "called") entry.called += 1;
+      else if (s === "no_answer") entry.no_answer += 1;
+      else if (s === "needs_followup") entry.needs_followup += 1;
+      else if (s === "complaint") entry.complaint += 1;
+      else entry.not_called += 1;
+      map.set(id, entry);
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [filteredRows]);
+
   /* -------- Render -------- */
   return (
     <div className="space-y-3" dir="rtl">
       <ActionPane
-        total={total}
+        total={filteredRows.length}
         loading={loading}
         onRefresh={() => load(true)}
         onToggleFilters={() => setShowFilters((v) => !v)}
         filtersOpen={showFilters}
+        showAgentStats={showAgentStats}
+        onToggleAgentStats={() => setShowAgentStats((v) => !v)}
       />
 
       <FiltersBar
@@ -324,14 +387,21 @@ export default function FollowupQueueShell({
         sentiment={sentiment} onSentiment={setSentiment}
         ratingMin={ratingMin} ratingMax={ratingMax}
         onRatingMin={setRatingMin} onRatingMax={setRatingMax}
-        total={total}
+        total={filteredRows.length}
         loading={loading}
+        orderType={orderType} onOrderType={setOrderType}
+        agentId={agentId} onAgentId={setAgentId}
+        agentOptions={agentOptions}
       />
+
+      {showAgentStats && (
+        <AgentStatsPanel stats={agentStats} />
+      )}
 
       {/* Desktop / Tablet table */}
       <div className="hidden md:block">
         <DataTable
-          rows={rows}
+          rows={filteredRows}
           loading={loading}
           onOpen={(r) => onOpenCustomer(r, { focus: "orders" })}
           onLogCall={(r) => onOpenCustomer(r, { focus: "call" })}
@@ -342,7 +412,7 @@ export default function FollowupQueueShell({
       {/* Mobile cards */}
       <div className="md:hidden">
         <CardsList
-          rows={rows}
+          rows={filteredRows}
           loading={loading}
           onOpen={(r) => onOpenCustomer(r, { focus: "orders" })}
           onLogCall={(r) => onOpenCustomer(r, { focus: "call" })}
@@ -350,7 +420,7 @@ export default function FollowupQueueShell({
         />
       </div>
 
-      {rows.length > 0 && rows.length < total && (
+      {rows.length > 0 && rows.length < total && orderType === "__all" && agentId === "__all" && (
         <div className="flex justify-center pt-2">
           <Button
             variant="outline" size="sm"
