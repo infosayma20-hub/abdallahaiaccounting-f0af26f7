@@ -1,31 +1,18 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- *  AMWALI Print Bridge v6.3.5-generic
+ *  AMWALI Print Bridge v6.3.6-clean
  *
- *  Based on v6.3.3 (kitchen-delivery fix + /print + /print-routed +
- *  logo composite + duplicate guard + drawer + shift print) with all
- *  Malaki-specific hardcoded values removed.
+ *  Based on v6.3.5-generic with focused print-quality fixes:
+ *   - Notes ALWAYS drawn downward (no cy-boxH regression).
+ *   - Dedupe stamps AFTER print success → failed jobs can retry immediately.
+ *   - Clean kitchen ticket: no outer frame, no dashed separators,
+ *     lighter font-weights, no phone / payment / source / delivery fee.
+ *   - Split notes payload: customerNote / deliveryNote on receipt,
+ *     kitchenNote on kitchen tickets. Legacy `orderNote` still honoured.
+ *   - /health exposes version + buildHash + features so the operator
+ *     can verify the deployed version from the browser.
  *
- *  ── What's new vs v6.3.3 ───────────────────────────────────────────
- *   1) Generic: no hardcoded customer IPs, no Malaki station UUIDs,
- *      no "مطعم الملكي" default name, no C:\malaki-print logo path.
- *   2) Printers are loaded from c:\print-bridge\device.json via the
- *      device-config-addon. If the file is missing/empty, the bridge
- *      falls back to neutral DEFAULT_PRINTERS. Once device.json has
- *      printers, it becomes the source of truth — no stale default IPs.
- *   3) Adds network-printer auto-discovery via discover-printers-addon
- *      (POST /discover-network-printers).
- *   4) /health now reports `status, version, device, printers_source,
- *      printers[]`.
- *
- *  ── Files in c:\print-bridge\ ──────────────────────────────────────
- *    print-bridge-v6.3.5-generic.js    (this file)
- *    device-config-addon.js            (device.json persistence)
- *    discover-printers-addon.js        (network printer discovery)
- *    logo.png                          (optional, 240px target width)
- *    device.json                       (auto-created on first POS save)
- *
- *  Run:     node print-bridge-v6.3.5-generic.js
+ *  Run:     node print-bridge-v6.3.6-clean.js
  *  Health:  GET http://127.0.0.1:3001/health
  * ═══════════════════════════════════════════════════════════════════════
  */
