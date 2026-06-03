@@ -7,6 +7,7 @@ import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone,
 import { CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CalendarDays } from "lucide-react";
 import EditOrderDialog from "./EditOrderDialog";
 import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
 import {
@@ -72,17 +73,42 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   cancelled_after_acceptance: { label: "أُلغيت بعد القبول", color: "bg-red-700", icon: XCircle },
 };
 
-function getBusinessDayStart(): string {
+/**
+ * Business-day-aware range helpers (6 AM cutoff, local time).
+ * `daysBack` = 0 → today's business day; 1 → yesterday; etc.
+ */
+const CUTOFF_HOUR = 6;
+const MAX_DAYS = 7;
+
+function businessDayBoundary(daysBack: number): Date {
   const now = new Date();
-  const cutoffHour = 6;
-  const localHour = now.getHours();
-  
-  const businessDate = new Date(now);
-  if (localHour < cutoffHour) {
-    businessDate.setDate(businessDate.getDate() - 1);
+  const d = new Date(now);
+  if (now.getHours() < CUTOFF_HOUR) d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - daysBack);
+  d.setHours(CUTOFF_HOUR, 0, 0, 0);
+  return d;
+}
+
+type RangePreset = "today" | "yesterday" | "last3" | "last7" | "custom";
+
+function rangeFromPreset(preset: RangePreset, customFromDays?: number, customToDays?: number): { start: Date; end: Date } {
+  if (preset === "today") {
+    return { start: businessDayBoundary(0), end: businessDayBoundary(-1) };
   }
-  businessDate.setHours(cutoffHour, 0, 0, 0);
-  return businessDate.toISOString();
+  if (preset === "yesterday") {
+    return { start: businessDayBoundary(1), end: businessDayBoundary(0) };
+  }
+  if (preset === "last3") {
+    return { start: businessDayBoundary(2), end: businessDayBoundary(-1) };
+  }
+  if (preset === "last7") {
+    return { start: businessDayBoundary(6), end: businessDayBoundary(-1) };
+  }
+  // custom (clamped to 7 days by caller)
+  return {
+    start: businessDayBoundary(customFromDays ?? 0),
+    end: businessDayBoundary((customToDays ?? 0) - 1),
+  };
 }
 
 export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmin, onEditInCart }: Props) {
@@ -94,6 +120,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   const [editsByOrder, setEditsByOrder] = useState<Record<string, { pending: number; lastStatus?: string }>>({});
   /** Filter by call-center agent (dispatched_by_name). `null` = الكل. */
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
+  /** Date-range preset for the history view. Default = today. */
+  const [rangePreset, setRangePreset] = useState<RangePreset>("today");
+  /** Custom range — `fromDate`/`toDate` as local YYYY-MM-DD strings. */
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
   /** Cancel-confirmation dialog state. */
   const [cancelTarget, setCancelTarget] = useState<DispatchedOrder | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -103,14 +134,39 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     if (!dataOwnerId) return;
     setLoading(true);
 
-    const businessStart = getBusinessDayStart();
+    // Resolve the active date range.
+    let start: Date;
+    let end: Date;
+    if (rangePreset === "custom" && customFrom && customTo) {
+      const from = new Date(customFrom + "T00:00:00");
+      const to = new Date(customTo + "T23:59:59.999");
+      // Clamp to MAX_DAYS (inclusive) so a user can't pull a giant window.
+      const diffDays = Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1;
+      if (diffDays > MAX_DAYS) {
+        toast.warning(`الحد الأقصى ${MAX_DAYS} أيام — تم تقليص النطاق تلقائياً`);
+        from.setDate(to.getDate() - (MAX_DAYS - 1));
+        from.setHours(0, 0, 0, 0);
+        setCustomFrom(from.toISOString().slice(0, 10));
+      }
+      // Apply the 6 AM cutoff at the lower bound so the result aligns with
+      // the business-day model used elsewhere in POS reporting.
+      from.setHours(CUTOFF_HOUR, 0, 0, 0);
+      start = from;
+      end = to;
+    } else {
+      const r = rangeFromPreset(rangePreset === "custom" ? "today" : rangePreset);
+      start = r.start;
+      end = r.end;
+    }
 
     let query = supabase
       .from("call_center_orders" as any)
       .select("*")
       .eq("user_id", dataOwnerId)
-      .gte("created_at", businessStart)
-      .order("created_at", { ascending: false });
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(200);
 
     if (filter === "cancelled") {
       // Admin-only archive view — show ONLY cancelled orders
@@ -127,7 +183,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     const { data } = await query;
     setOrders((data as any as DispatchedOrder[]) || []);
     setLoading(false);
-  }, [dataOwnerId, filter]);
+  }, [dataOwnerId, filter, rangePreset, customFrom, customTo]);
 
   useEffect(() => {
     if (open) loadOrders();
@@ -291,6 +347,62 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
           ))}
         </div>
 
+        {/* Date-range filter — defaults to today; max 7 days. */}
+        <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-border bg-muted/10">
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+            <CalendarDays className="h-3 w-3" /> الفترة:
+          </span>
+          {([
+            { key: "today" as const, label: "اليوم" },
+            { key: "yesterday" as const, label: "أمس" },
+            { key: "last3" as const, label: "آخر 3 أيام" },
+            { key: "last7" as const, label: "آخر 7 أيام" },
+            { key: "custom" as const, label: "مخصّص" },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setRangePreset(opt.key)}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                rangePreset === opt.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          {rangePreset === "custom" && (
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCustomFrom(v);
+                  if (v && customTo) {
+                    const diff = Math.floor(
+                      (new Date(customTo).getTime() - new Date(v).getTime()) / 86_400_000
+                    ) + 1;
+                    if (diff > MAX_DAYS) {
+                      toast.warning(`الحد الأقصى ${MAX_DAYS} أيام`);
+                    }
+                  }
+                }}
+                className="h-6 rounded border border-border bg-background text-[10px] px-1"
+              />
+              <span className="text-[10px] text-muted-foreground">→</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-6 rounded border border-border bg-background text-[10px] px-1"
+              />
+            </div>
+          )}
+        </div>
+
         {/* Per-agent filter — appears only when ≥2 different agents dispatched today. */}
         {agents.length >= 2 && (
           <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-border bg-muted/20">
@@ -331,7 +443,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
             {visibleOrders.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">لا توجد فواتير محوّلة اليوم</p>
+                <p className="text-sm">لا توجد فواتير محوّلة ضمن الفترة المحددة</p>
               </div>
             ) : (
               visibleOrders.map((order) => {
@@ -356,7 +468,9 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                           {order.source_app}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground">
-                          {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                          {rangePreset === "today"
+                            ? new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })
+                            : new Date(order.created_at).toLocaleString("ar-PS", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                         <span className="text-[10px] text-muted-foreground">→</span>
                         <span className="text-[10px] font-semibold text-primary">{order.target_branch_name}</span>
