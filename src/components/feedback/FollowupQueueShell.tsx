@@ -733,7 +733,7 @@ function DataTable({
                       </span>
                       {r.do_not_call && (
                         <Badge variant="destructive" className="gap-1 text-[10px] h-5 shrink-0">
-                          <PhoneOff className="h-3 w-3" /> DNC
+                          <PhoneOff className="h-3 w-3" /> عدم الاتصال
                         </Badge>
                       )}
                     </div>
@@ -749,6 +749,28 @@ function DataTable({
                     {typeof r.total_spent === "number" ? `${Number(r.total_spent).toLocaleString("en")} ₪` : "—"}
                   </Td>
                   <Td className="text-slate-700 whitespace-nowrap">{fmtDate(r.last_order_at)}</Td>
+                  <Td className="text-slate-700 max-w-[260px]">
+                    {r.last_order_items_summary ? (
+                      <span
+                        className="truncate inline-block max-w-[260px] align-bottom"
+                        title={
+                          (r.last_order_items_summary || "") +
+                          (r.last_order_note ? `\nملاحظة: ${r.last_order_note}` : "") +
+                          (r.last_address ? `\nالعنوان: ${r.last_address}` : "")
+                        }
+                      >
+                        {r.last_order_items_summary}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">لا توجد أصناف مسجلة</span>
+                    )}
+                  </Td>
+                  <Td className="text-slate-700 whitespace-nowrap text-[12px]">
+                    {orderTypeLabel(r.last_order_type)}
+                  </Td>
+                  <Td className="text-slate-700 whitespace-nowrap text-[12px]">
+                    {paymentLabel(r.last_payment_method)}
+                  </Td>
                   <Td className="text-slate-700 truncate max-w-[140px]" >
                     <span title={r.order_taken_by_name || "غير محدد"}>
                       {r.order_taken_by_name || "غير محدد"}
