@@ -1005,3 +1005,68 @@ function EmptyState({ debugInfo }: { debugInfo: any }) {
     </div>
   );
 }
+
+/* ============================ AgentStatsPanel ============================ */
+
+interface AgentStat {
+  id: string;
+  name: string;
+  total: number;
+  called: number;
+  no_answer: number;
+  needs_followup: number;
+  complaint: number;
+  not_called: number;
+  revenue: number;
+}
+
+function AgentStatsPanel({ stats }: { stats: AgentStat[] }) {
+  if (stats.length === 0) {
+    return (
+      <div className="bg-card border rounded-lg p-4 text-center text-sm text-slate-500" dir="rtl">
+        <Users className="h-5 w-5 mx-auto mb-1 opacity-60" />
+        لا يوجد بيانات موظفين في النتائج الحالية
+      </div>
+    );
+  }
+  const totalAll = stats.reduce((s, x) => s + x.total, 0);
+  return (
+    <div className="bg-card border rounded-lg overflow-hidden shadow-sm" dir="rtl">
+      <div className="px-3 py-2 border-b bg-muted/40 flex items-center gap-2">
+        <BarChart3 className="h-4 w-4 text-slate-600" />
+        <span className="text-sm font-bold text-slate-800">إحصائيات الموظفين حسب الفلاتر الحالية</span>
+        <span className="text-[11px] text-slate-500 mr-auto">{totalAll} زبون موزّع على {stats.length} موظف</span>
+      </div>
+      <div className="overflow-auto max-h-[300px]">
+        <table className="w-full text-[12px]">
+          <thead className="bg-slate-50 sticky top-0">
+            <tr className="text-slate-700">
+              <th className="text-right px-3 py-2 font-bold">الموظف</th>
+              <th className="text-center px-2 py-2 font-bold">الزبائن</th>
+              <th className="text-center px-2 py-2 font-bold text-emerald-700">تم الاتصال</th>
+              <th className="text-center px-2 py-2 font-bold text-amber-700">لم يرد</th>
+              <th className="text-center px-2 py-2 font-bold text-sky-700">يحتاج متابعة</th>
+              <th className="text-center px-2 py-2 font-bold text-rose-700">شكاوى</th>
+              <th className="text-center px-2 py-2 font-bold text-slate-500">لم يتم</th>
+              <th className="text-left px-3 py-2 font-bold">إجمالي المبيعات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.map((s) => (
+              <tr key={s.id} className="border-t border-border/60 hover:bg-muted/40">
+                <td className="px-3 py-2 font-semibold text-slate-900">{s.name}</td>
+                <td className="px-2 py-2 text-center font-bold text-slate-800">{s.total}</td>
+                <td className="px-2 py-2 text-center text-emerald-700 font-semibold">{s.called || "—"}</td>
+                <td className="px-2 py-2 text-center text-amber-700 font-semibold">{s.no_answer || "—"}</td>
+                <td className="px-2 py-2 text-center text-sky-700 font-semibold">{s.needs_followup || "—"}</td>
+                <td className="px-2 py-2 text-center text-rose-700 font-semibold">{s.complaint || "—"}</td>
+                <td className="px-2 py-2 text-center text-slate-500">{s.not_called || "—"}</td>
+                <td className="px-3 py-2 text-left font-mono text-slate-800">{s.revenue.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
