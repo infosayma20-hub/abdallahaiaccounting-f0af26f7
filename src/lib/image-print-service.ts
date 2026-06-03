@@ -270,10 +270,16 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   // NOTE: order.subtotal is already items-only in POSPage (the delivery fee
   // is only added when computing `total`). So do NOT subtract here.
   const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;
-  const deliveryNoteLine = deliveryFee > 0
+  // v6.3.6-clean: notes are sent as SEPARATE fields so the bridge can
+  // render them in distinct boxes (no overlap, no leaking onto thanks).
+  //   customerNote  → customer-facing note (typed at POS)
+  //   deliveryNote  → external courier fee disclosure (auto-built here)
+  //   kitchenNote   → kitchen-only banner, NEVER sent on the receipt
+  // We still also pass `orderNote` for back-compat with older bridges.
+  const customerNote = order.orderNote || '';
+  const deliveryNote = deliveryFee > 0
     ? `سعر التوصيل: ₪${deliveryFee.toFixed(2)} يخص شركة التوصيل وليس ضمن إجمالي الفاتورة`
     : '';
-  const mergedNote = [order.orderNote, deliveryNoteLine].filter(Boolean).join(' — ');
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
@@ -305,7 +311,11 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     exchangeRate: order.exchangeRate,
     foreignAmount: order.foreignAmount,
     subtotal: printedSubtotal,
-    orderNote: mergedNote || undefined,
+    customerNote: customerNote || undefined,
+    deliveryNote: deliveryNote || undefined,
+    // Back-compat: old bridges only know `orderNote`. Send the customer
+    // note here so they keep working; new bridge prefers `customerNote`.
+    orderNote: customerNote || undefined,
     terminalName: companyInfo?.terminalName,
     // ── FOOTER MODE (bridge must respect this to avoid raster overflow) ──
     footerMode,
