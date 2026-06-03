@@ -187,6 +187,9 @@ export default function NewDeviceOnboardingPage() {
   const [bridgeVersion, setBridgeVersion] = useState<string | null>(null);
   const [showOptional, setShowOptional] = useState(false);
   const [showBackup, setShowBackup] = useState(false);
+  // Tri-state: null = unknown, true = bridge running AND bound to a branch/terminal,
+  //            false = bridge running but device.json missing (printers source = fallback or no branchId/terminalId)
+  const [bridgeBound, setBridgeBound] = useState<boolean | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -212,11 +215,16 @@ export default function NewDeviceOnboardingPage() {
             if (remote.branchId)   setBranchId(prev => prev || remote.branchId!);
             if (remote.terminalId) setTerminalId(prev => prev || remote.terminalId!);
             if (remote.label)      setLabel(prev => prev || remote.label!);
+            // Bound = bridge knows a branch + terminal (device.json populated)
+            setBridgeBound(Boolean(remote.branchId && remote.terminalId));
+          } else {
+            setBridgeBound(false);
           }
         } catch { /* ignore */ }
         await loadOptionsRef.current();
         if (!opts?.silent) toast.success("برنامج الطباعة متصل ✓");
       } else if (!opts?.silent) {
+        setBridgeBound(null);
         toast.error("برنامج الطباعة غير شغّال على هذا الجهاز");
       }
     } finally {
@@ -752,9 +760,13 @@ export default function NewDeviceOnboardingPage() {
               : "bg-muted text-muted-foreground border-border"
             }`}>
               <span className="h-2 w-2 rounded-full" style={{
-                background: bridgeOnline === true ? "#22c55e" : bridgeOnline === false ? "#ef4444" : "#fbbf24",
+                background: bridgeOnline === true
+                  ? (bridgeBound === false ? "#fbbf24" : "#22c55e")
+                  : bridgeOnline === false ? "#ef4444" : "#fbbf24",
               }} />
-              {bridgeOnline === true ? "برنامج الطباعة متصل" : bridgeOnline === false ? "غير متصل" : "جارٍ الفحص"}
+              {bridgeOnline === true
+                ? (bridgeBound === false ? "متصل — غير مربوط بفرع" : "برنامج الطباعة متصل")
+                : bridgeOnline === false ? "غير متصل" : "جارٍ الفحص"}
             </span>
             <span className="text-[11px] text-muted-foreground font-mono truncate min-w-0" dir="ltr">
               {getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001"}
@@ -790,7 +802,9 @@ export default function NewDeviceOnboardingPage() {
           open={openStep === 1} onToggle={() => setOpenStep(openStep === 1 ? 0 : 1)}
           summary={
             bridgeOnline === true
-              ? <SummarySimple ok text={`متصل${bridgeVersion ? ` · v${bridgeVersion}` : ""}`} />
+              ? (bridgeBound === false
+                  ? <SummarySimple text={`متصل — غير مربوط بفرع${bridgeVersion ? ` · v${bridgeVersion}` : ""}`} />
+                  : <SummarySimple ok text={`متصل${bridgeVersion ? ` · v${bridgeVersion}` : ""}`} />)
               : bridgeOnline === false
                 ? <SummarySimple fail text="غير متصل — اضغط للعرض والتشغيل" />
                 : <SummarySimple text="جارٍ الفحص..." />
