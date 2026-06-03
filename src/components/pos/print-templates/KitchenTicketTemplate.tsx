@@ -136,10 +136,10 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
           ))}
         </tbody>
       </table>
-      <div style={{ borderTop: '2px solid #000', margin: '0 0 4px' }} />
+      <div style={{ margin: '0 0 4px' }} />
 
       {/* Items table header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', borderBottom: '2px solid #000', marginBottom: '2px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', marginBottom: '2px' }}>
         <span style={{ fontSize: '15px', fontWeight: 900, width: '50px', textAlign: 'center' }}>الكمية</span>
         <span style={{ fontSize: '15px', fontWeight: 900, flex: 1, textAlign: 'right' }}>الاسم</span>
       </div>
@@ -148,7 +148,11 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {items.map((item, i) => {
         const qty = item.quantity || 1;
         return (
-          <div key={i} style={{ padding: '3px 0', borderBottom: '1.5px solid #000', lineHeight: 1.2 }}>
+          <div key={i} style={{
+            padding: '3px 0',
+            borderBottom: i < items.length - 1 ? '1.5px solid #000' : 'none',
+            lineHeight: 1.2,
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
               <span style={{ fontSize: '14px', fontWeight: 900, width: '40px', textAlign: 'center', lineHeight: 1.15, flexShrink: 0 }}>{qty}</span>
               <span style={{ fontSize: '14px', fontWeight: 700, textAlign: 'right', flex: 1, lineHeight: 1.25, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.name}</span>
@@ -177,13 +181,13 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
 
       {order.orderNote && (
         <>
-          <div style={{ borderTop: '2px solid #000', margin: '6px 0 4px' }} />
           <div style={{
             fontSize: '13px',
             fontWeight: 700,
             color: '#000',
             textAlign: 'right',
             padding: '5px 7px',
+            marginTop: '8px',
             lineHeight: 1.25,
             wordBreak: 'break-word',
           }}>
