@@ -399,7 +399,7 @@ function ResultsList({
 }
 
 function CustomerDetail({
-  customer, orders, loading, onBack, branches, canEdit, canCallCreate, onRefresh,
+  customer, orders, loading, onBack, branches, canEdit, canCallCreate, onRefresh, initialTab,
 }: {
   customer: CustomerRow;
   orders: OrderRow[];
@@ -409,6 +409,7 @@ function CustomerDetail({
   canEdit: boolean;
   canCallCreate: boolean;
   onRefresh: () => Promise<void> | void;
+  initialTab?: "orders" | "call" | "info";
 }) {
   const branchName = (id: string | null) =>
     id ? (branches.find((b) => b.id === id)?.name || id) : "—";
@@ -463,7 +464,7 @@ function CustomerDetail({
         </Alert>
       )}
 
-      <Tabs defaultValue="orders" className="w-full">
+      <Tabs defaultValue={initialTab ?? "orders"} className="w-full">
         <TabsList className="w-full grid grid-cols-3 h-11">
           <TabsTrigger value="orders" className="text-xs sm:text-sm">الطلبات</TabsTrigger>
           <TabsTrigger value="call" className="text-xs sm:text-sm" disabled={!canCallCreate || customer.do_not_call}>
