@@ -697,14 +697,6 @@ function DataTable({
                       >
                         <FilePen className="h-3.5 w-3.5" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => onOpen(r)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border hover:bg-accent"
-                        title="فتح التفاصيل"
-                      >
-                        <MoreHorizontal className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   </Td>
                 </tr>
