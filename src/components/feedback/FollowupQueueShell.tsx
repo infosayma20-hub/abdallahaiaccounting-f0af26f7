@@ -215,6 +215,9 @@ export default function FollowupQueueShell({
   const [ratingMin, setRatingMin] = useState<string>("");
   const [ratingMax, setRatingMax] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [orderType, setOrderType] = useState<string>("__all");
+  const [agentId, setAgentId] = useState<string>("__all");
+  const [showAgentStats, setShowAgentStats] = useState(false);
 
   /* -------- Data state -------- */
   const [rows, setRows] = useState<FollowupRow[]>([]);
