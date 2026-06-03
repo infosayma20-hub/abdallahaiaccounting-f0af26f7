@@ -388,7 +388,7 @@ function ActionPane({
               <CircleCheck className="h-3.5 w-3.5" /> تغيير الحالة
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-52" dir="rtl">
+          <DropdownMenuContent align="start" className="w-52">
             <DropdownMenuLabel className="text-xs">تحديث الحالة سريعاً</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => selected && onChangeStatus(selected, "answered")}>
