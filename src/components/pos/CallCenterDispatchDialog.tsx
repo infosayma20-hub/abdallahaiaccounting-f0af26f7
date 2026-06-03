@@ -381,6 +381,45 @@ const CallCenterDispatchDialog = ({
         .eq("user_id", user?.id || "")
         .maybeSingle();
 
+      // Persist customer to shared contacts table so the same record is
+      // visible from POS, CRM and call-center the next time anyone searches
+      // by name or phone. Upsert-by-phone within the same data owner.
+      const trimmedName = name.trim();
+      const trimmedPhone = phone.trim();
+      if (trimmedPhone && dataOwnerId) {
+        try {
+          const { data: existing } = await supabase
+            .from("contacts")
+            .select("id, contact_name, address")
+            .eq("user_id", dataOwnerId)
+            .eq("phone", trimmedPhone)
+            .maybeSingle();
+          if (existing?.id) {
+            const updates: any = {};
+            if (!existing.contact_name && trimmedName) updates.contact_name = trimmedName;
+            if (!existing.address && deliveryType === "delivery" && address.trim()) {
+              updates.address = address.trim();
+            }
+            if (Object.keys(updates).length > 0) {
+              await supabase.from("contacts").update(updates).eq("id", existing.id);
+            }
+          } else if (trimmedName) {
+            await supabase.from("contacts").insert({
+              user_id: dataOwnerId,
+              contact_name: trimmedName,
+              contact_type: "عميل",
+              phone: trimmedPhone,
+              address: deliveryType === "delivery" ? (address.trim() || null) : null,
+              source: "call_center",
+              created_from_order: true,
+              is_active: true,
+            } as any);
+          }
+        } catch (contactErr) {
+          console.warn("[CallCenter] contact upsert failed (non-blocking):", contactErr);
+        }
+      }
+
       const payload = {
         source_app: sourceApp,
         customer_name: name.trim(),
