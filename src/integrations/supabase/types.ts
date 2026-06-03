@@ -18628,6 +18628,10 @@ export type Database = {
           total_spent: number
         }[]
       }
+      feedback_followup_queue_debug: {
+        Args: { p_from_date: string; p_to_date: string }
+        Returns: Json
+      }
       feedback_get_customer_orders: {
         Args: { p_customer_id: string; p_limit?: number }
         Returns: {

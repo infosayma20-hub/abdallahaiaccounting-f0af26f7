@@ -132,6 +132,7 @@ export default function FollowupQueue({
   const [to, setTo] = useState<string>(init.to);
   const [rows, setRows] = useState<FollowupRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const applyPreset = (k: PresetKey) => {
     setPreset(k);
@@ -152,6 +153,7 @@ export default function FollowupQueue({
       return;
     }
     setLoading(true);
+    setDebugInfo(null);
     const { data, error } = await supabase.rpc("feedback_followup_queue" as any, {
       p_from_date: f,
       p_to_date: t,
@@ -166,7 +168,20 @@ export default function FollowupQueue({
       setRows([]);
       return;
     }
-    setRows((data as FollowupRow[]) || []);
+    const arr = (data as FollowupRow[]) || [];
+    setRows(arr);
+    if (arr.length === 0) {
+      // Fetch diagnostics so we can show *why* nothing showed up.
+      const { data: dbg, error: dbgErr } = await supabase.rpc(
+        "feedback_followup_queue_debug" as any,
+        { p_from_date: f, p_to_date: t },
+      );
+      if (!dbgErr) {
+        // eslint-disable-next-line no-console
+        console.log("[FollowupQueue debug]", dbg);
+        setDebugInfo(dbg);
+      }
+    }
   }, []);
 
   useEffect(() => { load(from, to); }, [from, to, load, refreshKey]);
@@ -215,8 +230,33 @@ export default function FollowupQueue({
           <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ التحميل...
         </div>
       ) : rows.length === 0 ? (
-        <div className="py-10 text-center text-sm text-muted-foreground">
-          لا توجد طلبيات ضمن الفترة المحددة
+        <div className="py-6 space-y-3">
+          <div className="text-center text-sm text-muted-foreground">
+            لا توجد طلبيات ضمن الفترة المحددة
+          </div>
+          {debugInfo && (
+            <div className="bg-muted/40 border border-dashed rounded-lg p-3 text-[11px] text-muted-foreground space-y-1" dir="ltr">
+              <div className="text-right text-xs font-semibold text-foreground mb-1" dir="rtl">
+                تشخيص (للتحقق من سبب فراغ النتائج)
+              </div>
+              <div>owner_id: <span className="font-mono">{String(debugInfo.owner_id ?? "—")}</span></div>
+              <div>can_view: <span className="font-mono">{String(debugInfo.can_view)}</span></div>
+              <div>range: <span className="font-mono">{String(debugInfo.from)} → {String(debugInfo.to)}</span></div>
+              <div>raw_orders_in_range: <span className="font-mono">{String(debugInfo.raw_orders_in_range)}</span></div>
+              <div>orders_missing_phone: <span className="font-mono">{String(debugInfo.orders_missing_phone)}</span></div>
+              <div>orders_bad_phone_normalize: <span className="font-mono">{String(debugInfo.orders_bad_phone_normalize)}</span></div>
+              <div>distinct_customers_in_range: <span className="font-mono">{String(debugInfo.distinct_customers_in_range)}</span></div>
+              <div>owner_orders_last_30_days: <span className="font-mono">{String(debugInfo.owner_orders_last_30_days)}</span></div>
+              <div>owner_min_order_at_30d: <span className="font-mono">{String(debugInfo.owner_min_order_at_30d ?? "—")}</span></div>
+              <div>owner_max_order_at_30d: <span className="font-mono">{String(debugInfo.owner_max_order_at_30d ?? "—")}</span></div>
+              {debugInfo.owner_orders_last_30_days === 0 && (
+                <div className="text-right pt-2 text-amber-700 dark:text-amber-400" dir="rtl">
+                  ⚠️ لا يوجد أي طلب في <code>call_center_orders</code> لهذا المالك خلال آخر 30 يوم.
+                  قد تكون طلبات الاختبار في مصدر مختلف (POS / Qamar / Delivery)، أو تحت مستخدم/شركة أخرى.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <>
