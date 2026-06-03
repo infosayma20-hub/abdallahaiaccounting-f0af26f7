@@ -623,19 +623,29 @@ function renderReceiptSVG(order, logoTopMargin) {
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="900" font-family="Tahoma">الباقي</text>
     <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="900" font-family="Tahoma">₪${Number(order.change).toFixed(2)}</text>`);
 
-  if (order.orderNote) {
+  // ── NOTES (customer receipt) ─────────────────────────────────────────
+  // v6.3.6-clean: render notes in a clear box that ALWAYS grows downward.
+  // Order of preference per source:
+  //   1) order.customerNote        — explicit customer note (new)
+  //   2) order.orderNote           — legacy single field (back-compat)
+  // Delivery line is rendered as a SECOND box right below, so it is
+  // visually separated from "شكراً لتعاملكم معنا".
+  const customerNoteText = String(order.customerNote || order.orderNote || '').trim();
+  const deliveryNoteText = String(order.deliveryNote || '').trim();
+  const renderNoteBox = (text, label) => {
+    if (!text) return;
     push(10, () => '');
-    const lines = wrapTextForSvg(esc(order.orderNote), 36);
+    const lines = wrapTextForSvg(text, 36);
     const boxH = 16 + lines.length * 28;
-    // IMPORTANT: draw the box DOWNWARD from cy. Previous version used `cy - boxH`
-    // which painted the box on top of the items/totals above. Allocate boxH + 8
-    // so the next block starts safely below.
-    push(boxH + 8, (cy) => `
+    push(boxH + 12, (cy) => `
       <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
-      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 28 + i*28}" text-anchor="end" font-size="20" font-weight="800" font-family="Tahoma">${i === 0 ? '📝 ملاحظة: ' : ''}${ln}</text>`).join('')}`);
-  }
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 28 + i*28}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
+  };
+  renderNoteBox(customerNoteText, 'ملاحظة:');
+  renderNoteBox(deliveryNoteText, 'توصيل:');
 
-  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">❤️ شكراً لتعاملكم معنا</text>`);
+  push(14, () => '');
+  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">شكراً لتعاملكم معنا</text>`);
 
   const H = y + 30;
   return { svg: `<?xml version="1.0"?>
