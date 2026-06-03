@@ -520,6 +520,9 @@ function FiltersBar(props: {
   onRatingMin: (v: string) => void; onRatingMax: (v: string) => void;
   total: number;
   loading: boolean;
+  orderType: string; onOrderType: (v: string) => void;
+  agentId: string; onAgentId: (v: string) => void;
+  agentOptions: { value: string; label: string }[];
 }) {
   const {
     preset, from, to, onPreset, onFrom, onTo,
@@ -527,6 +530,7 @@ function FiltersBar(props: {
     branches, branchId, onBranchId,
     status, onStatus, dnc, onDnc, sentiment, onSentiment,
     ratingMin, ratingMax, onRatingMin, onRatingMax,
+    orderType, onOrderType, agentId, onAgentId, agentOptions,
   } = props;
 
   return (
@@ -572,6 +576,20 @@ function FiltersBar(props: {
           <FilterSelect
             label="الفرع" value={branchId} onChange={onBranchId}
             options={[{ value: "__all", label: "كل الفروع" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          />
+          <FilterSelect
+            label="نوع الطلب" value={orderType} onChange={onOrderType}
+            options={[
+              { value: "__all", label: "كل الأنواع" },
+              { value: "delivery", label: "توصيل" },
+              { value: "pickup", label: "استلام" },
+              { value: "dine_in", label: "طاولة" },
+              { value: "__unknown", label: "غير محدد" },
+            ]}
+          />
+          <FilterSelect
+            label="الموظف اللي أخذ الطلب" value={agentId} onChange={onAgentId}
+            options={agentOptions}
           />
           <FilterSelect
             label="حالة المتابعة" value={status} onChange={onStatus}
