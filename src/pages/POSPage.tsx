@@ -2082,17 +2082,24 @@ const POSPage = () => {
     const prefKey = `product_order_${catKey}`;
     // Update local per-category order map immediately (optimistic, scoped to this category only)
     setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds }));
-    // Persist preference for this category only — does not touch other categories
-    const { error } = await supabase.from("pos_user_preferences").upsert({
+    // Persist to products.pos_sort_order (company-wide) so the order is shared
+    // across all cashiers/terminals — not just per-user.
+    const updates = orderIds.map((id, idx) =>
+      supabase.from("products").update({ pos_sort_order: idx } as any).eq("id", id)
+    );
+    const results = await Promise.all(updates);
+    const dbErr = results.find(r => r.error)?.error;
+    // Also keep the per-user preference as a fast-path cache (best effort).
+    await supabase.from("pos_user_preferences").upsert({
       auth_user_id: userId,
       preference_key: prefKey,
       preference_value: { order: orderIds },
     } as any, { onConflict: "auth_user_id,preference_key" });
-    if (error) {
+    if (dbErr) {
       toast.error("تعذّر حفظ الترتيب، حاول مرة أخرى");
       return;
     }
-    toast.success("تم حفظ ترتيب المنتجات");
+    toast.success("تم حفظ ترتيب المنتجات لجميع المستخدمين");
   }, [filteredProducts, userId, isAdmin, selectedCategory, visiblePosCategories]);
 
   // Cart operations
