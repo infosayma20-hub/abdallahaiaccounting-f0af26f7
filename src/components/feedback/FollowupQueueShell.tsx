@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useRef, useState,
+  useCallback, useEffect, useMemo, useRef, useState,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
 import {
   Loader2, RefreshCw, Phone, MessageCircle, PhoneOff, MapPin, Receipt,
   Calendar, FilePen, ListFilter, ChevronLeft,
-  CircleCheck, CircleAlert, CircleDashed, Hourglass,
+  CircleCheck, CircleAlert, CircleDashed, Hourglass, Users, BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -215,6 +215,9 @@ export default function FollowupQueueShell({
   const [ratingMin, setRatingMin] = useState<string>("");
   const [ratingMax, setRatingMax] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [orderType, setOrderType] = useState<string>("__all");
+  const [agentId, setAgentId] = useState<string>("__all");
+  const [showAgentStats, setShowAgentStats] = useState(false);
 
   /* -------- Data state -------- */
   const [rows, setRows] = useState<FollowupRow[]>([]);
@@ -296,15 +299,78 @@ export default function FollowupQueueShell({
 
   /* -------- Quick status change -------- */
 
+  /* -------- Derived: agent options, client-side filtered rows, agent stats -------- */
+  const agentOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      const id = r.order_taken_by_user_id || "";
+      if (!id) continue;
+      if (!map.has(id)) map.set(id, r.order_taken_by_name || "بدون اسم");
+    }
+    const arr = Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+    arr.sort((a, b) => a.label.localeCompare(b.label, "ar"));
+    return [
+      { value: "__all", label: "كل الموظفين" },
+      { value: "__none", label: "بدون موظف محدد" },
+      ...arr,
+    ];
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (orderType !== "__all") {
+        const t = (r.last_order_type || "").toLowerCase();
+        if (orderType === "delivery" && t !== "delivery") return false;
+        if (orderType === "pickup" && !(t === "pickup" || t === "takeaway")) return false;
+        if (orderType === "dine_in" && !(t === "dine_in" || t === "dinein")) return false;
+        if (orderType === "__unknown" && t) return false;
+      }
+      if (agentId !== "__all") {
+        const id = r.order_taken_by_user_id || "";
+        if (agentId === "__none" && id) return false;
+        if (agentId !== "__none" && id !== agentId) return false;
+      }
+      return true;
+    });
+  }, [rows, orderType, agentId]);
+
+  const agentStats = useMemo(() => {
+    const map = new Map<string, {
+      id: string; name: string; total: number;
+      called: number; no_answer: number; needs_followup: number;
+      complaint: number; not_called: number; revenue: number;
+    }>();
+    for (const r of filteredRows) {
+      const id = r.order_taken_by_user_id || "__none";
+      const name = r.order_taken_by_name || "بدون موظف";
+      const entry = map.get(id) || {
+        id, name, total: 0, called: 0, no_answer: 0,
+        needs_followup: 0, complaint: 0, not_called: 0, revenue: 0,
+      };
+      entry.total += 1;
+      entry.revenue += Number(r.last_order_total || 0);
+      const s = r.followup_status || "not_called";
+      if (s === "called") entry.called += 1;
+      else if (s === "no_answer") entry.no_answer += 1;
+      else if (s === "needs_followup") entry.needs_followup += 1;
+      else if (s === "complaint") entry.complaint += 1;
+      else entry.not_called += 1;
+      map.set(id, entry);
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [filteredRows]);
+
   /* -------- Render -------- */
   return (
     <div className="space-y-3" dir="rtl">
       <ActionPane
-        total={total}
+        total={filteredRows.length}
         loading={loading}
         onRefresh={() => load(true)}
         onToggleFilters={() => setShowFilters((v) => !v)}
         filtersOpen={showFilters}
+        showAgentStats={showAgentStats}
+        onToggleAgentStats={() => setShowAgentStats((v) => !v)}
       />
 
       <FiltersBar
@@ -321,14 +387,21 @@ export default function FollowupQueueShell({
         sentiment={sentiment} onSentiment={setSentiment}
         ratingMin={ratingMin} ratingMax={ratingMax}
         onRatingMin={setRatingMin} onRatingMax={setRatingMax}
-        total={total}
+        total={filteredRows.length}
         loading={loading}
+        orderType={orderType} onOrderType={setOrderType}
+        agentId={agentId} onAgentId={setAgentId}
+        agentOptions={agentOptions}
       />
+
+      {showAgentStats && (
+        <AgentStatsPanel stats={agentStats} />
+      )}
 
       {/* Desktop / Tablet table */}
       <div className="hidden md:block">
         <DataTable
-          rows={rows}
+          rows={filteredRows}
           loading={loading}
           onOpen={(r) => onOpenCustomer(r, { focus: "orders" })}
           onLogCall={(r) => onOpenCustomer(r, { focus: "call" })}
@@ -339,7 +412,7 @@ export default function FollowupQueueShell({
       {/* Mobile cards */}
       <div className="md:hidden">
         <CardsList
-          rows={rows}
+          rows={filteredRows}
           loading={loading}
           onOpen={(r) => onOpenCustomer(r, { focus: "orders" })}
           onLogCall={(r) => onOpenCustomer(r, { focus: "call" })}
@@ -347,7 +420,7 @@ export default function FollowupQueueShell({
         />
       </div>
 
-      {rows.length > 0 && rows.length < total && (
+      {rows.length > 0 && rows.length < total && orderType === "__all" && agentId === "__all" && (
         <div className="flex justify-center pt-2">
           <Button
             variant="outline" size="sm"
@@ -371,12 +444,15 @@ export default function FollowupQueueShell({
 
 function ActionPane({
   total, loading, onRefresh, onToggleFilters, filtersOpen,
+  showAgentStats, onToggleAgentStats,
 }: {
   total: number;
   loading: boolean;
   onRefresh: () => void;
   onToggleFilters: () => void;
   filtersOpen: boolean;
+  showAgentStats: boolean;
+  onToggleAgentStats: () => void;
 }) {
   return (
     <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
@@ -387,6 +463,11 @@ function ActionPane({
         <span className="text-[11px] text-slate-500 hidden md:inline-block">
           اضغط على الصف لفتح التفاصيل
         </span>
+        <ToolButton
+          icon={BarChart3}
+          label={showAgentStats ? "إخفاء إحصائيات الموظفين" : "إحصائيات الموظفين"}
+          onClick={onToggleAgentStats}
+        />
         <ToolButton
           icon={ListFilter}
           label={filtersOpen ? "إخفاء الفلاتر" : "إظهار الفلاتر"}
@@ -439,6 +520,9 @@ function FiltersBar(props: {
   onRatingMin: (v: string) => void; onRatingMax: (v: string) => void;
   total: number;
   loading: boolean;
+  orderType: string; onOrderType: (v: string) => void;
+  agentId: string; onAgentId: (v: string) => void;
+  agentOptions: { value: string; label: string }[];
 }) {
   const {
     preset, from, to, onPreset, onFrom, onTo,
@@ -446,6 +530,7 @@ function FiltersBar(props: {
     branches, branchId, onBranchId,
     status, onStatus, dnc, onDnc, sentiment, onSentiment,
     ratingMin, ratingMax, onRatingMin, onRatingMax,
+    orderType, onOrderType, agentId, onAgentId, agentOptions,
   } = props;
 
   return (
@@ -491,6 +576,20 @@ function FiltersBar(props: {
           <FilterSelect
             label="الفرع" value={branchId} onChange={onBranchId}
             options={[{ value: "__all", label: "كل الفروع" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          />
+          <FilterSelect
+            label="نوع الطلب" value={orderType} onChange={onOrderType}
+            options={[
+              { value: "__all", label: "كل الأنواع" },
+              { value: "delivery", label: "توصيل" },
+              { value: "pickup", label: "استلام" },
+              { value: "dine_in", label: "طاولة" },
+              { value: "__unknown", label: "غير محدد" },
+            ]}
+          />
+          <FilterSelect
+            label="الموظف اللي أخذ الطلب" value={agentId} onChange={onAgentId}
+            options={agentOptions}
           />
           <FilterSelect
             label="حالة المتابعة" value={status} onChange={onStatus}
@@ -903,6 +1002,71 @@ function EmptyState({ debugInfo }: { debugInfo: any }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ============================ AgentStatsPanel ============================ */
+
+interface AgentStat {
+  id: string;
+  name: string;
+  total: number;
+  called: number;
+  no_answer: number;
+  needs_followup: number;
+  complaint: number;
+  not_called: number;
+  revenue: number;
+}
+
+function AgentStatsPanel({ stats }: { stats: AgentStat[] }) {
+  if (stats.length === 0) {
+    return (
+      <div className="bg-card border rounded-lg p-4 text-center text-sm text-slate-500" dir="rtl">
+        <Users className="h-5 w-5 mx-auto mb-1 opacity-60" />
+        لا يوجد بيانات موظفين في النتائج الحالية
+      </div>
+    );
+  }
+  const totalAll = stats.reduce((s, x) => s + x.total, 0);
+  return (
+    <div className="bg-card border rounded-lg overflow-hidden shadow-sm" dir="rtl">
+      <div className="px-3 py-2 border-b bg-muted/40 flex items-center gap-2">
+        <BarChart3 className="h-4 w-4 text-slate-600" />
+        <span className="text-sm font-bold text-slate-800">إحصائيات الموظفين حسب الفلاتر الحالية</span>
+        <span className="text-[11px] text-slate-500 mr-auto">{totalAll} زبون موزّع على {stats.length} موظف</span>
+      </div>
+      <div className="overflow-auto max-h-[300px]">
+        <table className="w-full text-[12px]">
+          <thead className="bg-slate-50 sticky top-0">
+            <tr className="text-slate-700">
+              <th className="text-right px-3 py-2 font-bold">الموظف</th>
+              <th className="text-center px-2 py-2 font-bold">الزبائن</th>
+              <th className="text-center px-2 py-2 font-bold text-emerald-700">تم الاتصال</th>
+              <th className="text-center px-2 py-2 font-bold text-amber-700">لم يرد</th>
+              <th className="text-center px-2 py-2 font-bold text-sky-700">يحتاج متابعة</th>
+              <th className="text-center px-2 py-2 font-bold text-rose-700">شكاوى</th>
+              <th className="text-center px-2 py-2 font-bold text-slate-500">لم يتم</th>
+              <th className="text-left px-3 py-2 font-bold">إجمالي المبيعات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.map((s) => (
+              <tr key={s.id} className="border-t border-border/60 hover:bg-muted/40">
+                <td className="px-3 py-2 font-semibold text-slate-900">{s.name}</td>
+                <td className="px-2 py-2 text-center font-bold text-slate-800">{s.total}</td>
+                <td className="px-2 py-2 text-center text-emerald-700 font-semibold">{s.called || "—"}</td>
+                <td className="px-2 py-2 text-center text-amber-700 font-semibold">{s.no_answer || "—"}</td>
+                <td className="px-2 py-2 text-center text-sky-700 font-semibold">{s.needs_followup || "—"}</td>
+                <td className="px-2 py-2 text-center text-rose-700 font-semibold">{s.complaint || "—"}</td>
+                <td className="px-2 py-2 text-center text-slate-500">{s.not_called || "—"}</td>
+                <td className="px-3 py-2 text-left font-mono text-slate-800">{s.revenue.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
