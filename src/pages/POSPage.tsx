@@ -1828,7 +1828,9 @@ const POSPage = () => {
 
   const filteredContacts = useMemo(() => {
     if (!customerSearch) return contacts;
-    return contacts.filter(c => multiWordMatchAny(customerSearch, c.contact_name));
+    return contacts.filter(c =>
+      multiWordMatchAny(customerSearch, c.contact_name, (c as any).phone || "")
+    );
   }, [contacts, customerSearch]);
 
   // Search POS customers by name or phone
