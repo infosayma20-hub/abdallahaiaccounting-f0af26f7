@@ -18607,6 +18607,27 @@ export type Database = {
         Args: { p_customer_id: string; p_reason: string }
         Returns: undefined
       }
+      feedback_followup_queue: {
+        Args: { p_from_date: string; p_limit?: number; p_to_date: string }
+        Returns: {
+          branch_id: string
+          branch_name: string
+          customer_id: string
+          display_phone: string
+          do_not_call: boolean
+          full_name: string
+          last_call_at: string
+          last_call_outcome: string
+          last_note: string
+          last_order_at: string
+          last_rating: number
+          last_sentiment: string
+          needs_followup_at: string
+          normalized_phone: string
+          orders_count: number
+          total_spent: number
+        }[]
+      }
       feedback_get_customer_orders: {
         Args: { p_customer_id: string; p_limit?: number }
         Returns: {
