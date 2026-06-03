@@ -247,10 +247,12 @@ function normalizeOrderType(rawType: string | undefined, tableNumber: string | u
  * Map normalized type → Arabic label for printing.
  * Bridge will fallback to this label if it doesn't recognize the raw value.
  */
-function orderTypeLabel(normalized: 'dine_in' | 'takeaway' | 'delivery'): string {
-  if (normalized === 'delivery') return 'توصيل';
-  if (normalized === 'takeaway') return 'استلام';
-  return 'محلي';
+import { formatOrderTypeLabel } from './pos/order-type-label';
+function orderTypeLabel(
+  normalized: 'dine_in' | 'takeaway' | 'delivery',
+  tableLabel?: string | null,
+): string {
+  return formatOrderTypeLabel(normalized, tableLabel);
 }
 
 function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
