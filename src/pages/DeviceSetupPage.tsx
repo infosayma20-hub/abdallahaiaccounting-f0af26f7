@@ -15,6 +15,7 @@ import {
   getDeviceConfig, setBridgeUrl, setDeviceBranchId, setDeviceTerminalId,
   setDeviceLabel, clearDeviceConfig, normalizeBridgeUrl, isDeviceFullyConfigured,
 } from "@/lib/device-config";
+import { getLocalNetworkBlockedMessage, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 interface Branch { id: string; name: string; is_active: boolean; user_id?: string; }
 interface Terminal { id: string; name: string; branch_id: string | null; user_id?: string; is_active?: boolean; }
@@ -209,12 +210,12 @@ export default function DeviceSetupPage({ variant = "advanced" }: DeviceSetupPag
     if (!url) { toast.error("أدخل عنوان Print Bridge أو اسم طابعة Windows"); return; }
     setBridgeStatus("testing"); setBridgeError("");
     try {
-      const res = await fetch(`${url}/health`, { mode: "cors", signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${url}/health`, withLocalNetworkAccess({ signal: AbortSignal.timeout(5000) }));
       if (res.ok) { setBridgeStatus("online"); toast.success("✅ Print Bridge متصل وجاهز"); }
       else { setBridgeStatus("offline"); setBridgeError(`الخادم رد بحالة ${res.status}`); }
     } catch (err: any) {
       setBridgeStatus("offline");
-      setBridgeError(err?.message || "تعذر الوصول — تأكد أن الكمبيوتر والطابعة على نفس الشبكة");
+      setBridgeError(err?.message || getLocalNetworkBlockedMessage());
     }
   };
 

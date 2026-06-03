@@ -6,6 +6,7 @@
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 import { getBridgeUrl, getDeviceBranchId, syncBranchPrintersToBridge } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
+import { getLocalNetworkBlockedMessage, withLocalNetworkAccess, type LocalNetworkRequestInit } from "@/lib/local-network-fetch";
 
 type PrintType = "receipt" | "kitchen" | "both";
 
@@ -41,12 +42,12 @@ function getBridgeBlockedMessage() {
     return "لم يتم إعداد عنوان Print Bridge لهذا الجهاز. اذهب إلى إعدادات الجهاز وأدخل العنوان (مثال: http://192.168.1.65:3001).";
   }
   if (window.isSecureContext) {
-    return "Chrome حظر الوصول إلى Print Bridge المحلي. اسمح بالوصول للشبكة المحلية/المحتوى غير الآمن لهذا الموقع ثم أعد المحاولة.";
+    return getLocalNetworkBlockedMessage();
   }
   return `تعذر الوصول إلى Print Bridge على ${url}. تأكد أن الخدمة تعمل على نفس الشبكة والجهاز.`;
 }
 
-type BridgeRequestInit = RequestInit & { targetAddressSpace?: string };
+type BridgeRequestInit = LocalNetworkRequestInit;
 
 async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
   const baseUrl = getBridgeUrl();
@@ -57,10 +58,9 @@ async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
     );
   }
   try {
-    return await fetch(`${baseUrl}${path}`, {
+    return await fetch(`${baseUrl}${path}`, withLocalNetworkAccess({
       ...init,
-      mode: "cors",
-    } as RequestInit);
+    }));
   } catch {
     const message = getBridgeBlockedMessage();
     throw new PrintBridgeConnectionError(

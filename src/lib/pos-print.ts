@@ -10,6 +10,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { printThermalContent } from "@/lib/thermal-print";
+import { withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 export interface PrinterInfo {
   id: string;
@@ -232,11 +233,11 @@ async function printEscPos(printer: PrinterInfo, job: PrintJob): Promise<boolean
   
   // Fallback: try direct HTTP (some printers support this)
   try {
-    const resp = await fetch(`http://${printer.ip_address}:${printer.port || 80}/print`, {
+    const resp = await fetch(`http://${printer.ip_address}:${printer.port || 80}/print`, withLocalNetworkAccess({
       method: "POST",
       body: job.content,
       mode: "no-cors",
-    });
+    }));
     return true; // no-cors doesn't give us status, assume success
   } catch {
     // Final fallback: browser print

@@ -12,6 +12,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getLocalNetworkBlockedMessage, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 const KEYS = {
   bridgeUrl: "pos-device:bridge-url",
@@ -281,7 +282,7 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 1500):
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
-    return await fetch(url, { ...init, signal: ctrl.signal });
+    return await fetch(url, withLocalNetworkAccess({ ...init, signal: ctrl.signal }));
   } finally {
     clearTimeout(t);
   }
@@ -379,7 +380,7 @@ export async function syncThisDeviceToBridge(): Promise<SyncDeviceResult> {
     } catch { /* try next */ }
   }
   if (!result.configPushed) {
-    result.message = "تعذّر الوصول إلى برنامج الطباعة المحلي على هذا الجهاز";
+    result.message = getLocalNetworkBlockedMessage();
     return result;
   }
 

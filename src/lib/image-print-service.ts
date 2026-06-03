@@ -15,6 +15,7 @@ import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/Shi
 import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
 import { getBridgeUrl, getDeviceBranchId } from "@/lib/device-config";
 import { supabase } from "@/integrations/supabase/client";
+import { getLocalNetworkBlockedMessage, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 // ──────────────────────────────────────────
 // Print Mode (raster | text) — persisted in localStorage
@@ -197,13 +198,12 @@ async function bridgeFetch(
       });
       return { success: false, error: 'لم يتم إعداد عنوان Print Bridge لهذا الجهاز.' } as any;
     }
-    const res = await fetch(`${baseUrl}${path}`, {
+    const res = await fetch(`${baseUrl}${path}`, withLocalNetworkAccess({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payloadStr,
-      mode: 'cors',
       signal: AbortSignal.timeout(timeout),
-    });
+    }));
     const json = await res.json();
     const durationMs = Math.round(performance.now() - t0);
     logPrintFinish(logId, json.success ? 'sent' : 'failed', {
@@ -219,7 +219,7 @@ async function bridgeFetch(
       durationMs,
       errorMessage: err.message,
     });
-    throw err;
+    throw new Error(isUnreachable ? getLocalNetworkBlockedMessage() : (err.message || 'تعذر الاتصال بـ Print Bridge'));
   }
 }
 
@@ -684,10 +684,9 @@ export async function checkBridgeHealth(): Promise<boolean> {
   try {
     const baseUrl = getBridgeUrl();
     if (!baseUrl) return false;
-    const res = await fetch(`${baseUrl}/health`, {
+    const res = await fetch(`${baseUrl}/health`, withLocalNetworkAccess({
       signal: AbortSignal.timeout(3000),
-      mode: 'cors',
-    });
+    }));
     return res.ok;
   } catch {
     return false;
