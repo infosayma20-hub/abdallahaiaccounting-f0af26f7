@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useRef, useState,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Loader2, RefreshCw, Phone, MessageCircle, PhoneOff, MapPin, Receipt,
-  Calendar, FilePen, ListFilter, ChevronLeft, MoreHorizontal,
+  Calendar, FilePen, ListFilter, ChevronLeft,
   CircleCheck, CircleAlert, CircleDashed, Hourglass,
 } from "lucide-react";
 import { toast } from "sonner";
