@@ -447,6 +447,11 @@ function ActionPane({
             <span className="inline-flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">{selected.full_name || "بدون اسم"}</span>
               <span dir="ltr" className="font-mono text-slate-600 text-[11px]">{selected.display_phone || selected.normalized_phone}</span>
+              {selected.order_taken_by_name && (
+                <span className="text-[11px] text-slate-600">
+                  أخذ الطلب: <span className="text-slate-800 font-semibold">{selected.order_taken_by_name}</span>
+                </span>
+              )}
               {selected.do_not_call && (
                 <Badge variant="destructive" className="gap-1 text-[10px] h-5">
                   <PhoneOff className="h-3 w-3" /> لا اتصال
