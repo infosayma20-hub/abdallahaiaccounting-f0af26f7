@@ -373,6 +373,11 @@ const MAX_CHUNK_HEIGHT = 48;
 // ─── Anti-duplicate guard ───────────────────────────────────────────────
 const recentJobs = new Map();
 const DEDUPE_WINDOW_MS = 60_000;
+// v6.3.6-clean: dedupe-on-success.
+// shouldBlockDuplicate() ONLY checks — it does NOT stamp. The caller must
+// call stampJobSuccess(key) after the printer reports OK. This way a failed
+// print (offline printer, network glitch) does NOT block the immediate
+// retry the user triggers from the UI.
 function shouldBlockDuplicate(key) {
   const now = Date.now();
   for (const [k, t] of recentJobs) if (now - t > DEDUPE_WINDOW_MS) recentJobs.delete(k);
@@ -381,8 +386,10 @@ function shouldBlockDuplicate(key) {
     console.log(`[duplicate-blocked] ${key} (${now - last}ms ago)`);
     return true;
   }
-  recentJobs.set(key, now);
   return false;
+}
+function stampJobSuccess(key) {
+  recentJobs.set(key, Date.now());
 }
 
 // ─── Image → ESC/POS raster (chunked GS v 0) ────────────────────────────
