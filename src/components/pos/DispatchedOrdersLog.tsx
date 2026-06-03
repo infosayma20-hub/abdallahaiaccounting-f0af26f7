@@ -130,6 +130,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   const [cancelTarget, setCancelTarget] = useState<DispatchedOrder | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  /** Close-confirmation dialog state (item 10). */
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  /** Late-acceptance alert tracking (item 6): orders we've already beeped for. */
+  const beepedRef = useRef<Set<string>>(new Set());
+  const [lateIds, setLateIds] = useState<Set<string>>(new Set());
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
