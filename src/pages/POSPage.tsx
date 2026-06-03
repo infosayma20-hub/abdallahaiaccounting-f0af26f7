@@ -2010,7 +2010,10 @@ const POSPage = () => {
         const bCatId = b.pos_category_id || visiblePosCategories.find(c => c.name === b.category)?.id || "";
         const aOrder = catOrderMap.get(aCatId) ?? 9999;
         const bOrder = catOrderMap.get(bCatId) ?? 9999;
-        return aOrder - bOrder;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        const posOrder = ((a as any).pos_sort_order ?? (a as any).sort_order ?? 9999) - ((b as any).pos_sort_order ?? (b as any).sort_order ?? 9999);
+        if (posOrder !== 0) return posOrder;
+        return (a.name || "").localeCompare(b.name || "", "ar");
       });
     } else if (!debouncedSearch) {
       // Apply per-category saved order (overrides db sort_order for this user).
@@ -2038,6 +2041,12 @@ const POSPage = () => {
           // New items not in saved order → appended at end, preserving db sort_order then name
           const so = ((a as any).sort_order || 0) - ((b as any).sort_order || 0);
           if (so !== 0) return so;
+          return (a.name || "").localeCompare(b.name || "", "ar");
+        });
+      } else {
+        filtered.sort((a, b) => {
+          const posOrder = ((a as any).pos_sort_order ?? (a as any).sort_order ?? 9999) - ((b as any).pos_sort_order ?? (b as any).sort_order ?? 9999);
+          if (posOrder !== 0) return posOrder;
           return (a.name || "").localeCompare(b.name || "", "ar");
         });
       }
