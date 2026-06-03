@@ -31,6 +31,7 @@ import {
   getDeviceConfig, pushPrintersToBridge, reloadBridgeConfig,
   type BridgePrinterKey,
 } from "@/lib/device-config";
+import { getLocalNetworkBlockedMessage, withLocalNetworkAccess } from "@/lib/local-network-fetch";
 
 export interface WindowsPrinterRaw {
   name: string;
@@ -107,7 +108,7 @@ export default function ConvertToWindowsPrinterDialog({
     setError(null);
     try {
       const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
-      const res = await fetch(`${url}/windows-printers`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(5000) }));
       const data = await res.json().catch(() => ({}));
       const raw: unknown[] = Array.isArray(data)
         ? data
@@ -135,7 +136,7 @@ export default function ConvertToWindowsPrinterDialog({
       setList(parsed);
       if (parsed.length === 0) setError("لم يتم العثور على أي طابعة Windows على هذا الجهاز.");
     } catch (e: any) {
-      setError("تعذّر الاتصال ببرنامج الطباعة على هذا الجهاز.");
+      setError(getLocalNetworkBlockedMessage());
     } finally {
       setLoading(false);
     }
@@ -223,12 +224,12 @@ export default function ConvertToWindowsPrinterDialog({
       // 3) Test-print via Windows mode
       try {
         const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
-        const r = await fetch(`${url}/test-printer`, {
+        const r = await fetch(`${url}/test-printer`, withLocalNetworkAccess({
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=UTF-8" },
           body: JSON.stringify({ type: "windows", windowsPrinterName: picked, name: printerName }),
           signal: AbortSignal.timeout(8000),
-        });
+        }));
         const j = await r.json().catch(() => ({}));
         if (j?.success) {
           toast.success("✅ تم تحويل الطابعة إلى USB / Windows بنجاح");
