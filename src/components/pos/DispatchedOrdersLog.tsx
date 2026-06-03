@@ -214,6 +214,75 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   }, [dataOwnerId, orders]);
   useEffect(() => { loadEdits(); }, [loadEdits]);
 
+  /* ─────────────────────────── Late-acceptance alert (item 6) ───────────────────────────
+   * If a dispatched order is still `pending` (not accepted / not cancelled / not being
+   * edited) after 5 minutes, beep ONCE for that order and surface a "تأخر القبول"
+   * indicator. We never beep twice for the same order id within the session. */
+  const FIVE_MIN = 5 * 60 * 1000;
+  const playBeep = useCallback(() => {
+    try {
+      const Ctx: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.55);
+      // Second short beep so it's noticeable but not loopy.
+      setTimeout(() => {
+        try {
+          const o2 = ctx.createOscillator();
+          const g2 = ctx.createGain();
+          o2.type = "sine"; o2.frequency.value = 1100;
+          g2.gain.setValueAtTime(0.0001, ctx.currentTime);
+          g2.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+          g2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+          o2.connect(g2).connect(ctx.destination);
+          o2.start();
+          o2.stop(ctx.currentTime + 0.45);
+          setTimeout(() => { try { ctx.close(); } catch {} }, 800);
+        } catch {}
+      }, 250);
+    } catch { /* noop */ }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const tick = () => {
+      const now = Date.now();
+      const newLate = new Set<string>();
+      let triggered = false;
+      for (const o of orders) {
+        if (o.status !== "pending") continue;
+        if (o.cancelled_at) continue;
+        if (o.is_editing) continue;
+        const age = now - new Date(o.created_at).getTime();
+        if (age >= FIVE_MIN) {
+          newLate.add(o.id);
+          if (!beepedRef.current.has(o.id)) {
+            beepedRef.current.add(o.id);
+            triggered = true;
+          }
+        }
+      }
+      // Drop ids that are no longer pending so a future re-pending order would re-beep.
+      const livePending = new Set(orders.filter(o => o.status === "pending").map(o => o.id));
+      for (const id of Array.from(beepedRef.current)) {
+        if (!livePending.has(id)) beepedRef.current.delete(id);
+      }
+      setLateIds(newLate);
+      if (triggered) playBeep();
+    };
+    tick();
+    const t = setInterval(tick, 15000);
+    return () => clearInterval(t);
+  }, [open, orders, playBeep]);
+
   useEffect(() => {
     if (!open || !dataOwnerId) return;
 
