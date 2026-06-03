@@ -1,123 +1,137 @@
-## الهدف
-تحويل تبويب "قائمة المتابعة" داخل `/feedback` من كروت عمودية إلى **شاشة تشغيل احترافية بأسلوب Dynamics / FinanceShell**: ActionPane + Filters Bar + DataTable + Drawer جانبي، مع الإبقاء على تبويب "بحث" كما هو.
+
+# خطة تنفيذ 12 تعديل — POS / Call Center / متابعة الزبائن
+
+التعديلات بتنقسم لـ 3 طبقات: **قاعدة بيانات (migrations)** + **واجهة (UI)** + **بيانات منيو الملكي (data updates)**. كل تعديل مفصول عن الباقي عشان ما يكسر إشي.
 
 ---
 
-## 1) الباك إند — تحديث RPC `feedback_followup_queue`
+## 1) فلاتر متابعة الزبائن
 
-ملف migration جديد يعيد تعريف الدالة بتوقيع موسّع (تبقى نفس النتيجة الأساسية لمن لا يمرّر فلاتر):
+**ملف:** `src/components/feedback/FollowupQueueShell.tsx` + `src/pages/FeedbackPage.tsx`
 
-**المدخلات الجديدة (كلها اختيارية):**
-- `p_from_date date`, `p_to_date date`
-- `p_query text` (يفلتر اسم + هاتف + هاتف مطبَّع)
-- `p_branch_id uuid`
-- `p_status text` — أحد: `not_called | called | no_answer | needs_followup | complaint | completed`
-- `p_dnc boolean`
-- `p_sentiment text`
-- `p_min_rating int`, `p_max_rating int`
-- `p_limit int default 100`, `p_offset int default 0`
+أضيف شريط فلاتر مدمج (Popover واحد فيه كل الفلاتر + Chips تظهر الفلاتر النشطة):
+- نوع الطلب (delivery / takeaway / dine_in / pos / online)
+- الموظف اللي أخذ الطلب (`called_by_name` من `feedback_calls` + قائمة `pos_users`)
+- حالة التواصل (`followup_status`: pending / done / no_answer / postponed)
+- الفرع (`last_known_branch_id`)
+- نطاق التاريخ (DateRangePicker)
+- اسم الزبون (search)
+- رقم الهاتف (search مع normalize 972)
 
-**المخرجات تضاف لها:**
-- `last_order_id uuid`, `last_order_number text`
-- `last_handled_by text` (من `feedback_calls.handled_by` إن وُجد، أو email المستخدم)
-- `followup_status text` (محسوب: لا اتصال / تم / لم يرد / يحتاج متابعة / شكوى / مكتمل بناءً على outcome + sentiment)
-- `source text` (ثابت `call_center` في V1، حقل جاهز لإضافة POS/Qamar لاحقاً)
-- `total_count bigint` (نفس القيمة في كل صف لاحتساب pagination)
+التطبيق على query موجودة بدون كسر الـ pagination. الفلاتر بتنحفظ بـ URL params.
 
-**ملاحظات تنفيذ:**
-- نبقى على مصدر `call_center_orders` فقط في V1 (تصميم RPC قابل للتوسعة عبر `UNION ALL` لاحقاً).
-- نحافظ على إصلاح `max(uuid)` السابق عبر `(array_agg(... ORDER BY created_at DESC))[1]`.
-- نفس فحوصات الصلاحية + سقف 7 أيام + `get_team_owner_id`.
+## 2) عدد المتابعات لكل موظف
 
----
+كرت إحصائية فوق الجدول بيعرض: اسم الموظف + عدد `feedback_calls` (distinct customer_id) ضمن نفس الفلاتر/الفترة. Aggregate query بـ Supabase RPC جديدة `get_followup_stats_by_agent(filters jsonb)` أو aggregation جانب الـ client من نفس النتائج.
 
-## 2) الواجهة — مكوّنات جديدة داخل `src/components/feedback/`
+## 3) تنبيه نفاد صنف من الكاش للكول سنتر (Realtime)
 
-### أ. `FollowupQueueShell.tsx` (يستبدل المحتوى الحالي للتبويب)
-Layout عمودي:
-```text
-┌─────────────────────────────────────────────────────────┐
-│ ActionPane (شريط إجراءات أفقي)                          │
-├─────────────────────────────────────────────────────────┤
-│ FiltersBar (بحث + chips + dropdowns + collapsible)      │
-├─────────────────────────────────────────────────────────┤
-│ FollowupDataTable (ديسكتوب) / FollowupCards (موبايل)    │
-└─────────────────────────────────────────────────────────┘
-                       + FollowupDrawer (يفتح من اليسار)
+**Migration جديد:**
+```sql
+CREATE TABLE public.stockout_alerts (
+  id uuid PK, user_id uuid, branch_id uuid,
+  product_id uuid NULL, modifier_option_id uuid NULL,
+  custom_label text NULL,           -- لما يكون نص حر
+  raised_by uuid, raised_by_name text, raised_at timestamptz,
+  status text CHECK (status IN ('active','resolved')),
+  resolved_by uuid, resolved_at timestamptz,
+  note text
+);
+-- GRANT + RLS company-scoped + ALTER PUBLICATION supabase_realtime ADD TABLE
 ```
 
-### ب. `FollowupActionPane.tsx`
-- أزرار: **تحديث** / **فتح التفاصيل** / **تسجيل متابعة** / **تغيير الحالة** ▾ / **اتصال** / **واتساب** / **إظهار الفلاتر** ▾
-- الأزرار التي تحتاج صفاً (`disabled` ما لم يوجد `selectedRow`).
-- شريط معلومات صغير يظهر اسم + هاتف الصف المختار وعدد النتائج.
-- "تغيير الحالة" Dropdown يستدعي `feedback_log_call` بـ outcome سريع (no_answer/called/needs_followup/complaint/completed) + DNC إن مسموح.
+**UI:**
+- زر "تنبيه نفاد صنف" داخل POS (cashier) → Dialog يختار من قائمة `products`/`modifier_options` أو يكتب نص حر.
+- بانر أحمر ثابت أعلى شاشة الكول سنتر (`PendingOrdersPanel` / `CallCenterDispatchDialog`) يعرض التنبيهات النشطة realtime + زر "إلغاء" للفرع.
+- سجل في صفحة `CallCenterReportsPage` (تبويب جديد).
+- **لا حذف للأصناف** من POS — تنبيه فقط.
 
-### ج. `FollowupFiltersBar.tsx`
-- صف 1 (دائم الظهور): بحث debounced (350ms) + chips تاريخ + زر "مخصص" + عدد النتائج.
-- صف 2 (Collapsible): Selects للفرع/الحالة/DNC/Sentiment + Slider للتقييم 1-5 + عدد الطلبات + المصدر (placeholder).
-- نطاق التاريخ يبقى مقيداً بـ7 أيام مع toast واضح.
+## 4) ترتيب التصنيفات والأصناف لكل مستخدم
 
-### د. `FollowupDataTable.tsx` (≥ md breakpoint)
-- جدول `<table>` بسيط (بدون مكتبة جديدة) داخل `<div class="overflow-auto">`، رؤوس ثابتة (`sticky top-0`).
-- الأعمدة المطلوبة في الـ PRD (تحديد/اسم/هاتف/فرع/آخر طلبية/وقتها/عدد الطلبات/إجمالي الصرف/الحالة/Sentiment/ملاحظة/DNC/آخر موظف/آخر متابعة/إجراءات مختصرة).
-- صف مختار يأخذ خلفية `bg-primary/5` + حدود `ring-1 ring-primary/40`.
-- النقر على الصف = اختيار، النقر المزدوج أو زر "تفاصيل" = فتح Drawer.
-- إجراءات الصف: أيقونات اتصال/واتساب/متابعة/تفاصيل.
-- خط أوضح (`text-slate-800 font-semibold` للعناوين، `text-slate-600` للقيم) بحجم 13-14px.
+استخدام الجدول الموجود `pos_user_preferences` بمفاتيح:
+- `category_order` → `{ [categoryId]: orderIndex }`
+- `product_order:<categoryId>` → `{ [productId]: orderIndex }`
 
-### هـ. `FollowupCards.tsx` (< md)
-- إعادة استخدام الكروت الحالية مع نفس الفلاتر + ActionPane مختصر فوقها.
+**ملف:** `src/pages/POSPage.tsx`
+- تحميل preferences حسب `auth_user_id` عند الدخول.
+- ترتيب لكل مستخدم منفصل (`auth_user_id`، مش `user_id` المالك).
+- أصناف جديدة → تظهر بالنهاية (orderIndex = max+1).
+- الاعتماد على `category_id` و `product_id` فقط — تغيير الاسم ما بيأثر.
+- Drag & Drop موجود مسبقاً (أو نضيف minimal باستخدام `@dnd-kit` لو ناقص).
 
-### و. `FollowupDrawer.tsx`
-- Sheet من اليسار بعرض `w-full md:w-[640px]`.
-- يستضيف `CustomerDetail` الحالي كما هو (لا إعادة بناء)، مع تمرير `customerId` و `onSaved` لإجبار تحديث الصف بعد حفظ متابعة.
+## 5) خيار "بدون بهار" لكل وجبات الملكي
 
-### ز. `useFollowupQueue.ts` (hook)
-- يدير الحالة: filters، selectedRow، rows، loading، pagination (`limit/offset`، زر "تحميل المزيد").
-- يستدعي RPC مع debounce على `query`.
-- يكشف `refresh()` للاستخدام بعد تسجيل متابعة أو من زر "تحديث".
+**Data migration (INSERT):**
+- modifier_group واحد عام اسمه "بهارات" (selection_type=single, min=0, max=1).
+- modifier_options: "بهار عادي" (default, price=0) + "بدون بهار" (price=0).
+- ربط الـ group بكل المنتجات الموجودة في شركة الملكي عبر `product_modifier_groups`.
+- الـ option بيمشي تلقائياً للكاش والطباعة عبر النظام الحالي للـ `order_item_modifiers`.
+
+## 6) تنبيه صوتي بعد 5 دقائق للطلبيات غير المقبولة
+
+**ملف:** `src/components/pos/DispatchedOrdersLog.tsx` (شاشة الكول سنتر)
+- Timer لكل طلبية محوّلة بحالة `pending`/`dispatched` غير `accepted`.
+- بعد 5 دقائق: تشغيل صوت **مرة وحدة فقط** (Set من IDs نبهنا عليهم في الجلسة) + Badge أحمر "تأخر القبول".
+- يتوقف إذا: accepted, cancelled, modifying.
+- ملف صوت قصير في `public/sounds/`.
+
+## 7) صنف "25 قطعة أجنحة مقلي" 70 ₪
+
+**Data INSERT:**
+- منتج جديد في تصنيف الأجنحة، السعر 70.
+- نسخ ربط `product_modifier_groups` من أي منتج أجنحة موجود ليرث نفس الإضافات.
+
+## 8) خيار "نص حار بهار" للأجنحة
+
+**Data INSERT:**
+- إيجاد modifier_group الخاص بنكهة الأجنحة وإضافة option "نص حار بهار" (extra_price=0).
+
+## 9) تصحيح أسعار البروست (المشوي = العادي + 2)
+
+**Data UPDATE:**
+- استعلام كل منتجات البروست (عادي/مشوي) ومطابقة كل عادي بمشوي بنفس الاسم، ثم UPDATE price للمشوي = price العادي + 2.
+- مع تثبيت: قطعتين عادي = 23، قطعتين مشوي = 25، سفينتين عادي = 27، سفينتين مشوي = 29.
+- بدون لمس أسماء أو إضافات.
+- نعرض الجدول النهائي قبل التطبيق.
+
+## 10) تأكيد إغلاق الكول سنتر
+
+**ملف:** `src/components/pos/CallCenterDispatchDialog.tsx` (أو زر الإغلاق في شاشة الكول سنتر)
+- AlertDialog "هل تريد إغلاق الكول سنتر؟ قد تفقد طلبية غير مرسلة."
+- Confirm → يغلق.
+
+## 11) إضافات وجبات المشوي (بطاطا مشوية / مع خضار / بدون خضار)
+
+**Data INSERT:**
+- modifier_group "خيارات المشوي" (single select).
+- options: "بطاطا مشوية"، "مع خضار"، "بدون خضار".
+- ربطها بكل منتجات تصنيف المشوي.
+
+## 12) "مكس صوصات" للجوسي كرسبي — 30 ₪
+
+**Data INSERT:**
+- إما modifier_option "مكس صوصات" بـ extra_price=30 ضمن جروب الصوصات الموجود، أو منتج مستقل ضمن تصنيف الكرسبي.
+- الأنسب: option داخل جروب صوصات الكرسبي (يحافظ على الفلو الحالي).
 
 ---
 
-## 3) تعديلات على ملفات قائمة
+## ترتيب التنفيذ
 
-- `src/pages/FeedbackPage.tsx`:
-  - استبدال `<FollowupQueue/>` داخل تبويب `queue` بـ `<FollowupQueueShell/>`.
-  - إبقاء تبويب `search` كما هو.
-  - `openFromQueueRow` يبقى لكن يُستخدم الآن من خلال `onOpenDetail` الذي يمرَّر للـ Shell.
-- `src/components/feedback/FollowupQueue.tsx`: يبقى ملفاً قديماً لمرجع الموبايل أو يُحذف لاحقاً (سنبقيه كـ fallback مؤقت ثم نتخلص منه عند ثبات الإطلاق — نزيله من الاستيراد فقط).
+1. **Migrations** (بند 3 فقط — جدول `stockout_alerts`).
+2. **Data migrations** للملكي (5, 7, 8, 9, 11, 12) — قبل ما أبلش بعرض الـ SQL النهائية للمراجعة.
+3. **UI changes** (1, 2, 3-UI, 4, 6, 10).
 
----
+## ضمانات السلامة (ما رح نكسر إشي)
 
-## 4) السلوك والروابط
+- مسار الكول سنتر الحالي — كل التغييرات إضافة (تنبيهات + بانر + Dialog تأكيد). ما رح ألمس منطق التحويل للفروع.
+- التوصيل ورسومه — ما رح ألمس `delivery_settlement` أو `shipping_final/driver_cost`.
+- الطباعة — الإضافات الجديدة بتمر عبر `order_item_modifiers` الحالي اللي أصلاً بيطبع.
+- ترتيب الأصناف — preferences جديدة per-user؛ الترتيب القديم العام بيبقى fallback.
+- التقارير ومنطق البيع — صفر تغيير.
 
-- **اتصال**: `<a href="tel:{phone}">`.
-- **واتساب**: `https://wa.me/972{phone بعد إزالة الصفر}` (نفس تطبيع نظام أموالي).
-- **DNC**: شارة حمراء واضحة + تعطيل زري الاتصال/واتساب على الصف + tooltip تفسيري.
-- **بعد حفظ متابعة**: Drawer يبقى مفتوحاً، الصف يتحدث محلياً (optimistic) + إعادة جلب الـ RPC بصمت.
+## تحتاج تأكيد قبل البدء
 
----
-
-## 5) الأمان والصلاحيات
-- لا تغيير: نفس `has_feature_permission('call_center_feedback','customers','view')`.
-- نفس `get_team_owner_id`، لا فلترة `user_id` من الفرونت.
-- لا تعديل على الفواتير/الدفع/الطلبات؛ فقط `feedback_calls` و `feedback_customers`.
-
----
-
-## 6) معايير القبول (مطابِقة لطلب المستخدم)
-1. الجدول يظهر افتراضياً على الديسكتوب داخل تبويب "قائمة المتابعة".
-2. البحث الداخلي يفلتر بالاسم/الهاتف debounced.
-3. التاريخ بحد أقصى 7 أيام مع toast عند التجاوز.
-4. فلاتر الحالة/DNC/Sentiment/التقييم تغيّر النتائج من قاعدة البيانات.
-5. اختيار صف يفعّل ActionPane ويظهر معلومات الزبون المختار.
-6. اتصال = `tel:` ، واتساب = `wa.me`.
-7. تسجيل متابعة يفتح Drawer مع `CustomerDetail` على تبويب المكالمة.
-8. حفظ المتابعة يحدّث الصف بدون مغادرة الشاشة.
-9. DNC يظهر بشارة واضحة ويعطّل الاتصال.
-10. الموبايل: كروت + ActionPane مختصر، نفس الفلاتر.
-
----
-
-## ملاحظة على الـ Scope
-هذا تنفيذ V1 مع إبقاء `source = call_center` فقط. توسعة `pos_orders` و `qamar_orders` تتطلب توحيد أعمدة (`customer_phone`) وستكون مهمة لاحقة منفصلة. الـ RPC والـ UI مهيّآن لاستقبال `source` كفلتر دون تغيير في الواجهة.
+1. **بند 5 (بدون بهار):** أطبقه على **كل** منتجات شركة الملكي، أم فقط على تصنيفات معينة (وجبات/سندويتشات)؟
+2. **بند 9 (أسعار البروست):** ابعت قبل التطبيق جدول "العادي → المشوي + 2" للمراجعة، أم نفّذ مباشرة بناءً على القاعدة العامة؟
+3. **بند 12 (مكس صوصات):** option داخل جروب الصوصات الحالي للجوسي كرسبي، صح؟
+4. **شركة الملكي:** عندي عدة عملاء — هل company_id محدد؟ أحتاجه عشان data migrations.
