@@ -347,6 +347,62 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
           ))}
         </div>
 
+        {/* Date-range filter — defaults to today; max 7 days. */}
+        <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-border bg-muted/10">
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+            <CalendarDays className="h-3 w-3" /> الفترة:
+          </span>
+          {([
+            { key: "today" as const, label: "اليوم" },
+            { key: "yesterday" as const, label: "أمس" },
+            { key: "last3" as const, label: "آخر 3 أيام" },
+            { key: "last7" as const, label: "آخر 7 أيام" },
+            { key: "custom" as const, label: "مخصّص" },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setRangePreset(opt.key)}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                rangePreset === opt.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          {rangePreset === "custom" && (
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCustomFrom(v);
+                  if (v && customTo) {
+                    const diff = Math.floor(
+                      (new Date(customTo).getTime() - new Date(v).getTime()) / 86_400_000
+                    ) + 1;
+                    if (diff > MAX_DAYS) {
+                      toast.warning(`الحد الأقصى ${MAX_DAYS} أيام`);
+                    }
+                  }
+                }}
+                className="h-6 rounded border border-border bg-background text-[10px] px-1"
+              />
+              <span className="text-[10px] text-muted-foreground">→</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-6 rounded border border-border bg-background text-[10px] px-1"
+              />
+            </div>
+          )}
+        </div>
+
         {/* Per-agent filter — appears only when ≥2 different agents dispatched today. */}
         {agents.length >= 2 && (
           <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-border bg-muted/20">
