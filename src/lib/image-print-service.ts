@@ -283,7 +283,7 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     taxNumber: companyInfo?.taxNumber,
     cashierName: order.cashier,
     orderType: normalizedType,
-    orderTypeLabel: orderTypeLabel(normalizedType),
+    orderTypeLabel: orderTypeLabel(normalizedType, order.tableNumber),
     tableNumber: order.tableNumber,
     items: order.items.map(item => ({
       name: item.name,
