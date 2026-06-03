@@ -386,7 +386,19 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
 
   return (
     <>
-    <Sheet open={open} onOpenChange={v => !v && onClose()}>
+    <Sheet
+      open={open}
+      onOpenChange={v => {
+        if (v) return;
+        // Item 10: require explicit confirmation when there are pending or
+        // currently-being-edited orders, so a misclick doesn't lose work.
+        const blocking = orders.some(
+          o => o.status === "pending" || o.is_editing === true
+        );
+        if (blocking) { setConfirmCloseOpen(true); return; }
+        onClose();
+      }}
+    >
       <SheetContent side="right" className="w-full sm:max-w-xl lg:max-w-2xl p-0" dir="rtl">
         <SheetHeader className="p-3 border-b border-border">
           <SheetTitle className="flex items-center gap-2 text-sm">
@@ -397,6 +409,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
             </Button>
           </SheetTitle>
         </SheetHeader>
+
+        {/* Stockout alerts (item 3) — sticky red banner above filters */}
+        <div className="px-2 pt-2">
+          <StockoutAlertsBanner dataOwnerId={dataOwnerId} />
+        </div>
 
         <div className="flex gap-1.5 p-2 border-b border-border">
           {[
