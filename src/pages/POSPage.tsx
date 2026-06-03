@@ -1450,8 +1450,9 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("products")
-      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, kitchen_station_id")
+      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, pos_sort_order, kitchen_station_id")
       .eq("user_id", dataOwnerId)
+      .order("pos_sort_order", { ascending: true, nullsFirst: false })
       .order("sort_order")
       .order("name");
 
@@ -1467,6 +1468,7 @@ const POSPage = () => {
         quantity: Number(p.quantity),
         min_quantity: Number(p.min_quantity) || 0,
         kitchen_station_id: (p as any).kitchen_station_id || null,
+        pos_sort_order: (p as any).pos_sort_order ?? null,
       }))
     );
   };
