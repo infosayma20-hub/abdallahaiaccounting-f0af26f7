@@ -645,6 +645,7 @@ function DataTable({
               <Th className="text-center">عدد الطلبات</Th>
               <Th className="text-left">إجمالي الصرف</Th>
               <Th>آخر طلبية</Th>
+              <Th>أخذ الطلب</Th>
               <Th>الحالة</Th>
               <Th>Sentiment</Th>
               <Th>آخر موظف</Th>
