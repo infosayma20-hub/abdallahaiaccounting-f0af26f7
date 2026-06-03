@@ -1459,8 +1459,9 @@ const POSPage = () => {
       .order("sort_order")
       .order("name");
 
-    setProducts(
-      (data || []).map((p) => ({
+    setProducts(prev => {
+      const previousOrder = new Map(prev.map((p, i) => [p.id, i]));
+      return (data || []).map((p) => ({
         ...p,
         pos_category_id: (p as any).pos_category_id || null,
         tax_rate: Number(p.tax_rate) || 0,
@@ -1472,8 +1473,13 @@ const POSPage = () => {
         min_quantity: Number(p.min_quantity) || 0,
         kitchen_station_id: (p as any).kitchen_station_id || null,
         pos_sort_order: (p as any).pos_sort_order ?? null,
-      }))
-    );
+      })).sort((a, b) => {
+        const ao = a.pos_sort_order ?? previousOrder.get(a.id) ?? a.sort_order ?? 9999;
+        const bo = b.pos_sort_order ?? previousOrder.get(b.id) ?? b.sort_order ?? 9999;
+        if (ao !== bo) return ao - bo;
+        return (a.name || "").localeCompare(b.name || "", "ar");
+      });
+    });
   };
 
   const loadCategories = async () => {
@@ -1484,7 +1490,17 @@ const POSPage = () => {
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("display_order");
-    setPosCategories((data as POSCategory[]) || []);
+    const categories = ((data as POSCategory[]) || []);
+    setPosCategories(prev => {
+      const orderIds = categoryOrderIds.length ? categoryOrderIds : prev.map(c => c.id);
+      if (!orderIds.length) return categories;
+      const orderMap = new Map(orderIds.map((id, i) => [id, i]));
+      return [...categories].sort((a, b) => {
+        const ao = orderMap.get(a.id) ?? a.display_order ?? 9999;
+        const bo = orderMap.get(b.id) ?? b.display_order ?? 9999;
+        return ao - bo;
+      });
+    });
   };
 
   const existingCategories = useMemo(() => {
