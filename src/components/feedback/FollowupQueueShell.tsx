@@ -219,15 +219,9 @@ export default function FollowupQueueShell({
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState<number>(0);
   const [offset, setOffset] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null); // normalized_phone as key
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const debounceRef = useRef<number | null>(null);
-
-  const selected = useMemo(
-    () => rows.find((r) => r.normalized_phone === selectedId) ?? null,
-    [rows, selectedId],
-  );
 
   const applyPreset = (k: PresetKey) => {
     setPreset(k);
@@ -299,39 +293,16 @@ export default function FollowupQueueShell({
   }, [from, to, query, branchId, status, dnc, sentiment, ratingMin, ratingMax, refreshKey]);
 
   /* -------- Quick status change -------- */
-  const changeStatus = async (row: FollowupRow, outcome: string) => {
-    if (!row.customer_id) {
-      toast.error("افتح التفاصيل أولاً لإنشاء سجل الزبون");
-      return;
-    }
-    const { error } = await supabase.rpc("feedback_log_call" as any, {
-      p_customer_id: row.customer_id,
-      p_outcome: outcome,
-      p_sentiment: null, p_rating: null,
-      p_complaint_text: null, p_suggestion_text: null,
-      p_note: null,
-      p_needs_followup: outcome === "callback_requested",
-      p_followup_due_at: null,
-      p_related_order_id: null,
-    });
-    if (error) { toast.error("تعذّر تغيير الحالة: " + error.message); return; }
-    toast.success("تم تحديث الحالة");
-    load(true);
-  };
 
   /* -------- Render -------- */
   return (
     <div className="space-y-3" dir="rtl">
       <ActionPane
-        selected={selected}
         total={total}
         loading={loading}
         onRefresh={() => load(true)}
         onToggleFilters={() => setShowFilters((v) => !v)}
         filtersOpen={showFilters}
-        onOpenDetails={(r) => onOpenCustomer(r, { focus: "orders" })}
-        onLogCall={(r) => onOpenCustomer(r, { focus: "call" })}
-        onChangeStatus={changeStatus}
       />
 
       <FiltersBar
@@ -357,8 +328,6 @@ export default function FollowupQueueShell({
         <DataTable
           rows={rows}
           loading={loading}
-          selectedId={selectedId}
-          onSelect={(id) => setSelectedId(id)}
           onOpen={(r) => onOpenCustomer(r, { focus: "orders" })}
           onLogCall={(r) => onOpenCustomer(r, { focus: "call" })}
           debugInfo={debugInfo}
