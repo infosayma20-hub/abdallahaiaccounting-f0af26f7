@@ -650,6 +650,8 @@ function NewCallCard({
   const [outcome, setOutcome] = useState<string>("answered");
   const [sentiment, setSentiment] = useState<string>("");
   const [rating, setRating] = useState<string>("");
+  const [driverRating, setDriverRating] = useState<string>("");
+  const [driverName, setDriverName] = useState<string>("");
   const [note, setNote] = useState("");
   const [complaint, setComplaint] = useState("");
   const [suggestion, setSuggestion] = useState("");
@@ -659,6 +661,8 @@ function NewCallCard({
   const [saving, setSaving] = useState(false);
 
   const ccOrders = orders.filter((o) => o.source === "call_center_orders");
+  const relatedOrder = ccOrders.find((o) => o.order_id === relatedOrderId);
+  const isDeliveryOrder = (relatedOrder?.delivery_type || "").toLowerCase() === "delivery";
 
   const submit = async () => {
     setSaving(true);
@@ -673,12 +677,15 @@ function NewCallCard({
       p_needs_followup: needsFollowup,
       p_followup_due_at: needsFollowup && followupDue ? new Date(followupDue).toISOString() : null,
       p_related_order_id: relatedOrderId || null,
+      p_driver_rating: driverRating ? Number(driverRating) : null,
+      p_driver_name: driverName.trim() || null,
     });
     setSaving(false);
     if (error) { toast.error(rpcErr(error)); return; }
     toast.success("تم تسجيل المكالمة");
     setOutcome("answered"); setSentiment(""); setRating("");
     setNote(""); setComplaint(""); setSuggestion("");
+    setDriverRating(""); setDriverName("");
     setNeedsFollowup(false); setFollowupDue(""); setRelatedOrderId("");
     await onDone();
   };
@@ -725,6 +732,32 @@ function NewCallCard({
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <Label className="text-xs">تقييم السائق</Label>
+          {relatedOrderId && !isDeliveryOrder ? (
+            <div className="h-11 flex items-center px-3 text-xs text-muted-foreground border rounded-md bg-muted/30">
+              لا يوجد سائق لهذه الطلبية
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={driverRating || "__none"} onValueChange={(v) => setDriverRating(v === "__none" ? "" : v)}>
+                <SelectTrigger className="h-11"><SelectValue placeholder="من 1 إلى 5" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— بدون —</SelectItem>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n} / 5</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                value={driverName}
+                onChange={(e) => setDriverName(e.target.value)}
+                placeholder="اسم السائق (اختياري)"
+                className="h-11"
+              />
+            </div>
+          )}
         </div>
       </div>
       <div className="space-y-1">
