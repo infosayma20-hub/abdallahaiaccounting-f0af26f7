@@ -25,7 +25,10 @@ export default function ChooseWorkspacePage() {
 
   // Cashier may enter /pos only when Bridge is reachable.
   // Admins are allowed in (read-only mode is enforced inside POS).
-  const posBlocked = !bridgeChecking && !bridgeAuthorized && !isDeviceAdmin;
+  // Call Center does NOT print — it only forwards orders to cashier terminals,
+  // so the Print Bridge is irrelevant for it.
+  const posBlocked =
+    !bridgeChecking && !bridgeAuthorized && !isDeviceAdmin && !isCallCenter;
 
   useEffect(() => {
     if (!user?.id) return;
