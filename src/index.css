@@ -442,6 +442,81 @@ table td, table th, .tabular-nums {
   font-weight: 500 !important;
 }
 
+/* =========================================================
+   POS readability boost — for old/low-contrast monitors.
+   Scoped to POS surfaces only (.pos-page-root + .pos-readable),
+   does not affect the rest of the app. Layout untouched.
+   ========================================================= */
+.pos-page-root,
+.pos-readable {
+  /* Stronger base weight for body text inside POS */
+  font-weight: 600;
+  color: #0F172A;
+}
+
+/* Override the intentional weight reduction above so important
+   text (product names, categories, prices, totals) reads clearly */
+.pos-page-root .font-bold,
+.pos-readable .font-bold {
+  font-weight: 700 !important;
+}
+.pos-page-root .font-semibold,
+.pos-readable .font-semibold {
+  font-weight: 600 !important;
+}
+.pos-page-root .font-medium,
+.pos-readable .font-medium {
+  font-weight: 600 !important;
+}
+
+/* Darken muted/secondary greys (light surfaces only — the
+   dark navy .pos-order-panel keeps its own white overrides) */
+.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-muted-foreground,
+.pos-readable .text-muted-foreground {
+  color: #334155 !important;
+}
+.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-slate-400,
+.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-slate-500,
+.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-gray-400,
+.pos-page-root :not(.pos-order-panel):not(.pos-order-panel *).text-gray-500,
+.pos-readable .text-slate-400,
+.pos-readable .text-slate-500,
+.pos-readable .text-gray-400,
+.pos-readable .text-gray-500 {
+  color: #334155 !important;
+}
+
+/* Placeholders — fully opaque, darker grey */
+.pos-page-root input::placeholder,
+.pos-page-root textarea::placeholder,
+.pos-readable input::placeholder,
+.pos-readable textarea::placeholder {
+  color: #475569 !important;
+  opacity: 1 !important;
+  font-weight: 500;
+}
+
+/* Slightly stronger borders on light cards/buttons */
+.pos-page-root .border,
+.pos-readable .border {
+  border-color: #CBD5E1;
+}
+.pos-page-root .border-slate-200,
+.pos-page-root .border-gray-200,
+.pos-page-root .border-border,
+.pos-readable .border-slate-200,
+.pos-readable .border-gray-200,
+.pos-readable .border-border {
+  border-color: #CBD5E1 !important;
+}
+
+/* Re-assert dark navy panel keeps its own contrast rules
+   (white text on navy) — do not let the rules above darken it */
+.pos-order-panel,
+.pos-order-panel * {
+  color: inherit;
+}
+
 /* POS dark navy order panel */
 .pos-order-panel {
   background: #0D1B2E !important;
