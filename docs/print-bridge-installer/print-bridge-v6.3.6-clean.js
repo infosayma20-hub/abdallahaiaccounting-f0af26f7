@@ -675,15 +675,17 @@ function renderKitchenSVG(order, stationLabel) {
     ? order.totalQty
     : (order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
 
-  // Order-info rows: only render rows whose value is non-empty.
-  // Compact layout — counter and type are already shown big at the top,
-  // so do NOT duplicate them here. Date + time merged into one row.
+  // Order-info rows: kitchen tickets stay minimal.
+  // v6.3.6-clean: drop customer phone (kitchen does not need it) and any
+  // payment / source / delivery-fee fields. Customer name shown ONLY for
+  // delivery / takeaway pickup so the kitchen knows whose order it is.
+  const showCustomerLine =
+    !!order.customerName && (normalizedKitchenType === 'delivery' || normalizedKitchenType === 'takeaway' || !!order.pickupBy);
   const infoRows = [
-    { label: 'التاريخ', value: `${timeStr} - ${dateStr}`, ltrValue: true },
-    order.customerName ? { label: 'الزبون', value: String(order.customerName) } : null,
-    order.customerPhone ? { label: 'الجوال', value: String(order.customerPhone), ltrValue: true } : null,
-    order.pickupBy ? { label: 'ملاحظة', value: `استلام من ${order.pickupBy}` } : null,
-    { label: 'مجموع الكميات', value: String(totalQty) },
+    { label: 'الوقت', value: `${timeStr} - ${dateStr}`, ltrValue: true },
+    showCustomerLine ? { label: 'الزبون', value: String(order.customerName) } : null,
+    order.pickupBy ? { label: 'استلام', value: String(order.pickupBy) } : null,
+    { label: 'الكميات', value: String(totalQty) },
   ].filter(Boolean);
 
   const rows = [];
@@ -691,18 +693,17 @@ function renderKitchenSVG(order, stationLabel) {
   const push = (h, fn) => { rows.push(fn(y)); y += h; };
 
   if (stationLabel) push(46, (cy) => `
-    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="30" font-weight="900" font-family="Tahoma">${esc(stationLabel)}</text>
+    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="800" font-family="Tahoma">${esc(stationLabel)}</text>
     <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="2"/>`);
 
-  // ── HERO BLOCK: huge daily counter + type ──
-  push(62, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="52" font-weight="900" font-family="Tahoma"># ${esc(counterStr)}</text>`);
-  push(52, (cy) => `
-    <rect x="${padX}" y="${cy - 38}" width="${W - padX*2}" height="48" fill="none" stroke="#000" stroke-width="3"/>
-    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">${esc(typeLabel)}</text>`);
-  if (order.tableNumber) push(32, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">طاولة: ${esc(order.tableNumber)}</text>`);
+  // ── HERO BLOCK: big order # + type. Number stays large & bold (this is
+  // the one thing the kitchen MUST see). Everything else is lighter.
+  push(64, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="56" font-weight="900" font-family="Tahoma"># ${esc(counterStr)}</text>`);
+  push(40, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="26" font-weight="700" font-family="Tahoma">${esc(typeLabel)}</text>`);
+  if (order.tableNumber) push(28, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">طاولة: ${esc(order.tableNumber)}</text>`);
 
   // ── ORDER INFO BLOCK — two-column table (label right, value left), wrapped values ──
-  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
+  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
   const infoFont = 20;
   const infoLineH = 28;
   const valueWrap = 16; // chars per line for the value column
@@ -712,65 +713,63 @@ function renderKitchenSVG(order, stationLabel) {
     push(rowH, (cy) => {
       const baseY = cy + infoFont - 4;
       const labelSvg = row.label
-        ? `<text x="${W - padX}" y="${baseY}" text-anchor="end" font-size="${infoFont}" font-weight="900" font-family="Tahoma">${esc(row.label)}</text>`
+        ? `<text x="${W - padX}" y="${baseY}" text-anchor="end" font-size="${infoFont}" font-weight="700" font-family="Tahoma">${esc(row.label)}</text>`
         : '';
       const valueX = W / 2 - 8;
       const dirAttr = row.ltrValue ? ' direction="ltr"' : '';
       const valueSvg = valueLines.map((ln, i) =>
-        `<text x="${valueX}" y="${baseY + i * infoLineH}" text-anchor="end" font-size="${infoFont}" font-weight="900" font-family="Tahoma"${dirAttr}>${esc(ln)}</text>`
+        `<text x="${valueX}" y="${baseY + i * infoLineH}" text-anchor="end" font-size="${infoFont}" font-weight="700" font-family="Tahoma"${dirAttr}>${esc(ln)}</text>`
       ).join('');
-      const sep = `<line x1="${W/2 - 4}" y1="${cy}" x2="${W/2 - 4}" y2="${cy + rowH - 2}" stroke="#000" stroke-width="1"/>`;
-      return `${sep}${labelSvg}${valueSvg}`;
+      return `${labelSvg}${valueSvg}`;
     });
   }
-  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
+  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
 
   // ── ITEMS TABLE HEADER ──
   push(34, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="900" font-family="Tahoma">الاسم</text>
-    <text x="${padX + 30}" y="${cy}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">الكمية</text>
-    <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="2"/>`);
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الصنف</text>
+    <text x="${padX + 30}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">الكمية</text>
+    <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="1"/>`);
 
   for (const it of (order.items || [])) {
     const qty = it.quantity || 1;
     const nameLines = wrapTextForSvg(String(it.name || ''), 18);
     const noteLinesArr = it.notes ? wrapTextForSvg(String(it.notes), 22) : [];
     const noteBlockH = noteLinesArr.length ? (noteLinesArr.length * 26 + 4) : 0;
-    const rowH = 34 + Math.max(0, nameLines.length - 1) * 30 + noteBlockH + 8; // +8 for separator breathing
+    const rowH = 34 + Math.max(0, nameLines.length - 1) * 30 + noteBlockH + 10;
     push(rowH, (cy) => {
       const firstY = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="900" font-family="Tahoma">${esc(ln)}</text>`).join('');
-      const qtySvg = `<text x="${padX + 30}" y="${firstY}" text-anchor="middle" font-size="26" font-weight="900" font-family="Tahoma">${qty}</text>`;
+        `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
+      const qtySvg = `<text x="${padX + 30}" y="${firstY}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">${qty}</text>`;
       const noteY0 = firstY + nameLines.length * 30 + 2;
       const notesSvg = noteLinesArr.map((ln, i) =>
-        `<text x="${W - padX - 12}" y="${noteY0 + i * 26}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">${esc(ln)}</text>`).join('');
-      // dashed separator between items
-      const sepY = cy + rowH - 4;
-      const sep = `<line x1="${padX}" y1="${sepY}" x2="${W - padX}" y2="${sepY}" stroke="#000" stroke-width="1" stroke-dasharray="4,4"/>`;
-      return `${nameSvg}${qtySvg}${notesSvg}${sep}`;
+        `<text x="${W - padX - 12}" y="${noteY0 + i * 26}" text-anchor="end" font-size="20" font-weight="600" font-family="Tahoma">+ ${esc(ln)}</text>`).join('');
+      return `${nameSvg}${qtySvg}${notesSvg}`;
     });
   }
 
-  if (order.orderNote) {
-    push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
-    // Slightly smaller font so long delivery notes stay readable without bleeding
-    // into the items section. The block is drawn DOWNWARD from cy (previous
-    // version used `cy - boxH` which overlapped the items above).
+  // ── KITCHEN NOTE (kitchen tickets only) ──────────────────────────────
+  // v6.3.6-clean: ONLY render the kitchen-only note here. The customer
+  // and delivery notes are intentionally NOT printed on kitchen tickets.
+  // Back-compat: fall back to `orderNote` if `kitchenNote` is missing,
+  // so old POS payloads still print something on the ticket.
+  const kitchenNoteText = String(order.kitchenNote || order.orderNote || '').trim();
+  if (kitchenNoteText) {
+    push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
     const noteFont = 20;
     const noteLineH = 26;
-    const noteLines = wrapTextForSvg(String(order.orderNote), 24);
+    const noteLines = wrapTextForSvg(kitchenNoteText, 24);
     const boxH = 14 + noteLines.length * noteLineH;
-    push(boxH + 8, (cy) => `
-      <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
-      ${noteLines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="800" font-family="Tahoma">${i === 0 ? '📝 ' : ''}${esc(ln)}</text>`).join('')}`);
+    push(boxH + 10, (cy) => `
+      <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="1"/>
+      ${noteLines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">${i === 0 ? 'ملاحظة: ' : ''}${esc(ln)}</text>`).join('')}`);
   }
 
   const H = y + topPad;
   return `<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <rect width="${W}" height="${H}" fill="#fff"/>
-  <rect x="2" y="2" width="${W-4}" height="${H-4}" fill="none" stroke="#000" stroke-width="4" rx="4"/>
   ${rows.join('\n')}
 </svg>`;
 }
