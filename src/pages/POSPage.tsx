@@ -5125,7 +5125,7 @@ const POSPage = () => {
                                 style={{
                                   color: 'white',
                                   fontSize: '14px',
-                                  width: '45px',
+                                  width: '80px',
                                   padding: 0,
                                   direction: 'ltr',
                                 }}
@@ -5133,6 +5133,8 @@ const POSPage = () => {
                                 onWheel={e => (e.target as HTMLElement).blur()}
                                 onClick={e => e.stopPropagation()}
                                 onFocus={e => {
+                                  // Select all so the cashier overwrites the full price in one go
+                                  try { e.currentTarget.select(); } catch {}
                                   const c = e.currentTarget.parentElement;
                                   if (c) { c.style.borderColor = '#3b82f6'; }
                                 }}
@@ -5141,7 +5143,13 @@ const POSPage = () => {
                                   if (c) { c.style.borderColor = 'rgba(255,255,255,0.2)'; }
                                 }}
                                 onChange={e => {
-                                  const v = parseFloat(e.target.value);
+                                  const raw = e.target.value;
+                                  // Allow empty / partial entries (e.g. clearing to retype) — treat as 0 internally
+                                  if (raw === '' || raw === '-' || raw === '.') {
+                                    updateCartItem(index, "unit_price", 0);
+                                    return;
+                                  }
+                                  const v = parseFloat(raw);
                                   if (!isNaN(v) && v >= 0) updateCartItem(index, "unit_price", v);
                                 }}
                               />
