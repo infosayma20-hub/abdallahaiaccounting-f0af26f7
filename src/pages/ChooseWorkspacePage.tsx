@@ -44,8 +44,8 @@ export default function ChooseWorkspacePage() {
       ]);
       const roles = (rolesData || []).map((r: any) => r.role);
       setHasRep(roles.includes("sales_rep"));
-      setHasCashier(roles.includes("cashier"));
-      setIsCallCenter(!!(posUser as any)?.is_call_center);
+      setHasCashier(roles.includes("cashier") || !!posUser);
+      setIsCallCenter(!!posUser && !!(posUser as any)?.is_call_center);
       setHasEmployee(!!empRow && (empRow as any).is_active && !(empRow as any).is_terminated);
       setRolesLoaded(true);
     })();
