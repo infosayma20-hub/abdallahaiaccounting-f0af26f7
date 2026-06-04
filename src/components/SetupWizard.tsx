@@ -961,7 +961,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   );
 };
 
-const ToggleCard = ({ selected, onClick, emoji, label, small }: { selected: boolean; onClick: () => void; emoji: string; label: string; small?: boolean }) => (
+const ToggleCard = ({ selected, onClick, Icon, label, small }: { selected: boolean; onClick: () => void; Icon: LucideIcon; label: string; small?: boolean }) => (
   <button
     onClick={onClick}
     className={`flex-1 flex flex-col items-center gap-2 ${small ? "p-3" : "p-4"} rounded-2xl border-2 transition-all active:scale-[0.97] ${
@@ -970,7 +970,7 @@ const ToggleCard = ({ selected, onClick, emoji, label, small }: { selected: bool
         : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
     }`}
   >
-    <span className={small ? "text-xl" : "text-2xl"}>{emoji}</span>
+    <Icon className={`${small ? "h-5 w-5" : "h-6 w-6"} ${selected ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.8} />
     <span className="text-xs font-semibold text-foreground text-center">{label}</span>
   </button>
 );
