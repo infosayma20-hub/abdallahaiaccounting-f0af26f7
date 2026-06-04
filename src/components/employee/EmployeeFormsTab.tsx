@@ -211,7 +211,18 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     if (!file) return;
     setUploadingFile(true);
     const ext = file.name.split(".").pop();
-    const path = `${userId}/${Date.now()}.${ext}`;
+    // Storage RLS requires the first folder to equal auth.uid().
+    // The `userId` prop is the tenant owner's id (employee.user_id), which is
+    // NOT the same as the currently authenticated portal user. Use the live
+    // session user id instead to satisfy the bucket policy.
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    const authUid = authData?.user?.id;
+    if (authErr || !authUid) {
+      setUploadingFile(false);
+      toast({ title: "تعذر التحقق من جلسة المستخدم", description: authErr?.message || "يرجى تسجيل الدخول من جديد", variant: "destructive" });
+      return;
+    }
+    const path = `${authUid}/${Date.now()}.${ext}`;
     const { data, error } = await supabase.storage.from("employee-forms").upload(path, file);
     setUploadingFile(false);
     if (error) {
