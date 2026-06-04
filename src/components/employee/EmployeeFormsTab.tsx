@@ -486,7 +486,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                     onValueChange={(v) => setFormData(p => ({ ...p, whatsapp_prefix: v, whatsapp: `${v}${(p.whatsapp_local || "").replace(/^0/, "")}` }))}
                   >
                     <SelectTrigger className="w-[110px] rounded-xl h-11"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent portal>
                       <SelectItem value="+972">+972</SelectItem>
                       <SelectItem value="+970">+970</SelectItem>
                     </SelectContent>
@@ -531,7 +531,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                     }}
                   >
                     <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent portal>
                       {branchOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد فروع</div>}
                       {branchOptions.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                     </SelectContent>
@@ -547,7 +547,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                     }}
                   >
                     <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent portal>
                       {deptOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد أقسام</div>}
                       {deptOptions.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                     </SelectContent>
@@ -561,7 +561,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                   onValueChange={(v) => setFormData(p => ({ ...p, education: v }))}
                 >
                   <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر المستوى التعليمي" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent portal>
                     <SelectItem value="ابتدائي">ابتدائي</SelectItem>
                     <SelectItem value="إعدادي">إعدادي</SelectItem>
                     <SelectItem value="ثانوي">ثانوي</SelectItem>
@@ -1033,17 +1033,25 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
       {/* Form Dialog */}
       <Dialog open={!!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); } }}>
-        <DialogContent className="max-w-sm bg-card border-border max-h-[85vh]" dir="rtl">
-          <DialogHeader>
+        <DialogContent
+          className="max-w-sm bg-card border-border max-h-[90vh] flex flex-col p-0 gap-0"
+          dir="rtl"
+        >
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
             <DialogTitle className="text-base">{getFormTitle()}</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground sr-only">تعبئة النموذج</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pe-2">
+          {/* Use native scroll instead of Radix ScrollArea: ScrollArea breaks pointer events
+              for Radix Select inside Dialogs on mobile (selection doesn't register / UI freezes). */}
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain px-6 pb-4"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             <div className="space-y-3 pb-2">
               {renderFormFields()}
             </div>
-          </ScrollArea>
-          <DialogFooter>
+          </div>
+          <DialogFooter className="px-6 py-4 border-t bg-card shrink-0">
             <Button onClick={submitForm} disabled={submitting || uploadingFile} className="w-full rounded-xl gap-2">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
