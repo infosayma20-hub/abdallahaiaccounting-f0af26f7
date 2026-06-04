@@ -424,14 +424,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     <Sheet
       open={open}
       onOpenChange={v => {
-        if (v) return;
-        // Item 10: require explicit confirmation when there are pending or
-        // currently-being-edited orders, so a misclick doesn't lose work.
-        const blocking = orders.some(
-          o => o.status === "pending" || o.is_editing === true
-        );
-        if (blocking) { setConfirmCloseOpen(true); return; }
-        onClose();
+        // Closing the dispatched-orders panel is an internal panel toggle,
+        // NOT an exit from the call-center screen. Close immediately without
+        // any confirmation. Confirmation belongs to the main call-center
+        // close action, not this side panel.
+        if (!v) onClose();
       }}
     >
       <SheetContent side="right" className="w-full sm:max-w-xl lg:max-w-2xl p-0" dir="rtl">
