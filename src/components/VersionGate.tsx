@@ -3,7 +3,7 @@ import { RefreshCw, ShieldAlert, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { hardRefreshToLatest } from "@/utils/versionUtils";
-import { APP_VERSION_LABEL } from "@/config/appVersion";
+import { APP_BUILD, APP_VERSION_LABEL } from "@/config/appVersion";
 
 /**
  * VersionGate
@@ -56,7 +56,7 @@ export default function VersionGate({ children }: { children: React.ReactNode })
               "تم إصدار نسخة جديدة من أموالي. يرجى الانتظار حتى يتم التحديث تلقائياً."}
           </p>
           <div className="text-xs text-white/50 font-mono">
-            current: build #{useVersionCheckSafe()} → latest: build #{manifest.latestBuild}
+            current: build #{APP_BUILD} → latest: build #{manifest.latestBuild}
             {manifest.minSupportedBuild > 1 ? ` (min: #${manifest.minSupportedBuild})` : ""}
           </div>
           <Button
@@ -106,11 +106,4 @@ export default function VersionGate({ children }: { children: React.ReactNode })
       )}
     </>
   );
-}
-
-// Re-export APP_BUILD as a function so the JSX above can reference it
-// without an extra import line (keeps the component file self-contained).
-import { APP_BUILD } from "@/config/appVersion";
-function useVersionCheckSafe(): number {
-  return APP_BUILD;
 }
