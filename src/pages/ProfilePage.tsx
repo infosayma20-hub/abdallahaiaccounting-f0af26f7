@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check, ShieldCheck, KeyRound, ChevronLeft } from "lucide-react";
 import BrandIdentitySettings from "@/components/settings/BrandIdentitySettings";
 import FastEntryToggle from "@/components/settings/FastEntryToggle";
 import { useCompanyTheme } from "@/hooks/useCompanyTheme";
@@ -337,8 +338,25 @@ const ProfilePage = () => {
       {/* Brand Identity Settings */}
       <BrandIdentitySettings />
 
-      {/* Password Management — single smart section based on account type */}
-      <PasswordManagementSection />
+      {/* Password Management shortcut — single source lives in Settings > Security */}
+      <div className="px-2">
+        <button
+          type="button"
+          onClick={() => navigate("/settings?section=security")}
+          className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors text-right"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <KeyRound className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">إدارة كلمة المرور</p>
+              <p className="text-xs text-muted-foreground">تتم إدارة كلمة المرور من الإعدادات &gt; الأمان</p>
+            </div>
+          </div>
+          <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+        </button>
+      </div>
 
       <hr className="border-border/30" />
 
