@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -298,33 +298,71 @@ const defaultSettings: CompanySettings = {
 
 export function useCompanySettings() {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<CompanySettings>(defaultSettings);
-  const [loading, setLoading] = useState(true);
+  const cachedEntry = user?.id ? settingsCache.get(user.id) : undefined;
+  const [settings, setSettings] = useState<CompanySettings>(cachedEntry?.settings ?? defaultSettings);
+  const [loading, setLoading] = useState(!cachedEntry && !!user);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [originalSettings, setOriginalSettings] = useState<CompanySettings>(defaultSettings);
-  const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
+  const [originalSettings, setOriginalSettings] = useState<CompanySettings>(cachedEntry?.settings ?? defaultSettings);
+  const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(cachedEntry?.ownerId ?? null);
+  const hasChangesRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    if (!user) return;
-    loadSettings();
+    hasChangesRef.current = hasChanges;
+  }, [hasChanges]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setSettings(defaultSettings);
+      setOriginalSettings(defaultSettings);
+      setResolvedOwnerId(null);
+      setLoading(false);
+      return;
+    }
+    const cached = settingsCache.get(user.id);
+    if (cached) {
+      // Serve cached immediately; refresh in background without skeleton.
+      setSettings(cached.settings);
+      setOriginalSettings(cached.settings);
+      setResolvedOwnerId(cached.ownerId);
+      setLoading(false);
+      void loadSettings({ background: true });
+    } else {
+      void loadSettings({ background: false });
+    }
     // Depend on user id only — Supabase fires onAuthStateChange (INITIAL_SESSION,
     // TOKEN_REFRESHED, …) which produces a new User object identity for the same
     // user, causing duplicate fetches on page entry and on tab focus return.
   }, [user?.id]);
 
-  const loadSettings = async () => {
+  const loadSettings = async (opts: { background?: boolean } = {}) => {
     if (!user) return;
-    setLoading(true);
+    const userId = user.id;
+    // In-flight dedupe: if a request for this user is already running, await it.
+    const existingInFlight = inFlightRequests.get(userId);
+    if (existingInFlight) {
+      try { await existingInFlight; } catch {}
+      return;
+    }
+    if (!opts.background) setLoading(true);
+    const requestPromise = (async () => {
     try {
       // Resolve the actual data owner (for team members)
-      const { data: ownerIdResult } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
-      const effectiveUserId = ownerIdResult || user.id;
-      setResolvedOwnerId(effectiveUserId);
+      const { data: ownerIdResult } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
+      const effectiveUserId = (ownerIdResult as string) || userId;
+      if (mountedRef.current) setResolvedOwnerId(effectiveUserId);
 
       const [settingsRes, profileRes, companyRes] = await Promise.all([
         supabase.from("company_settings" as any).select("*").eq("user_id", effectiveUserId).maybeSingle(),
-        supabase.from("profiles" as any).select("display_name, company_name, company_id").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles" as any).select("display_name, company_name, company_id").eq("user_id", userId).maybeSingle(),
         supabase.from("companies" as any).select("name, logo_url, email, phone, address").eq("owner_id", effectiveUserId).maybeSingle(),
       ]);
 
@@ -346,12 +384,28 @@ export function useCompanySettings() {
         extra_currencies: Array.isArray(d.extra_currencies) ? d.extra_currencies : defaultSettings.extra_currencies,
         pos_payment_methods: Array.isArray(d.pos_payment_methods) ? d.pos_payment_methods : defaultSettings.pos_payment_methods,
       };
+      // Persist to module cache under BOTH the caller user.id and the effective
+      // owner id so other team members of the same owner can reuse it safely.
+      settingsCache.set(userId, { settings: loaded, ownerId: effectiveUserId });
+      settingsCache.set(effectiveUserId, { settings: loaded, ownerId: effectiveUserId });
+      if (!mountedRef.current) return;
+      // Do not stomp on the user's unsaved edits during a background refresh.
+      if (opts.background && hasChangesRef.current) {
+        return;
+      }
       setSettings(loaded);
       setOriginalSettings(loaded);
     } catch (err) {
       console.error("Failed to load settings:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current && !opts.background) setLoading(false);
+    }
+    })();
+    inFlightRequests.set(userId, requestPromise);
+    try {
+      await requestPromise;
+    } finally {
+      inFlightRequests.delete(userId);
     }
   };
 
@@ -455,6 +509,11 @@ export function useCompanySettings() {
 
       setOriginalSettings(settings);
       setHasChanges(false);
+      // Refresh module cache with the freshly saved settings so subsequent
+      // mounts skip the skeleton and read identical data.
+      const cacheEntry = { settings, ownerId };
+      settingsCache.set(user.id, cacheEntry);
+      settingsCache.set(ownerId, cacheEntry);
       toast({ title: "تم الحفظ", description: "تم حفظ الإعدادات بنجاح" });
     } catch (err: any) {
       console.error("Failed to save settings:", err);
