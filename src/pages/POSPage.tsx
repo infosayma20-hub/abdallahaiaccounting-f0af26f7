@@ -1533,7 +1533,17 @@ const POSPage = () => {
     });
   };
 
-  const loadCategories = async () => {
+  /**
+   * Loads visible categories and applies the current user's saved order.
+   *
+   * IMPORTANT: takes `explicitOrderIds` as a parameter when called from
+   * `initializePOS` so it doesn't depend on `categoryOrderIds` from a stale
+   * closure. Without this, on a hard refresh `loadCategories` would run
+   * before the prefs `setCategoryOrderIds` state had committed, fall back
+   * to the company-wide `display_order`, and the user would see the wrong
+   * order until the next render that triggered another sort.
+   */
+  const loadCategories = async (explicitOrderIds?: string[]) => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("pos_categories")
@@ -1543,7 +1553,9 @@ const POSPage = () => {
       .order("display_order");
     const categories = ((data as POSCategory[]) || []);
     setPosCategories(prev => {
-      const orderIds = categoryOrderIds.length ? categoryOrderIds : prev.map(c => c.id);
+      const orderIds =
+        (explicitOrderIds && explicitOrderIds.length ? explicitOrderIds : null) ??
+        (categoryOrderIds.length ? categoryOrderIds : prev.map(c => c.id));
       if (!orderIds.length) return categories;
       const orderMap = new Map(orderIds.map((id, i) => [id, i]));
       return [...categories].sort((a, b) => {
