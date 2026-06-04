@@ -337,14 +337,13 @@ const App = () => (
         <Sonner />
         <CrossTabSyncProvider />
         <BrowserRouter>
-          <VersionHardGate>
+          <VersionGate>
           <AuthProvider>
             <ReadOnlyProvider>
             <CompanyProvider>
             <CompanyThemeProvider>
             <GlobalFormFocusProvider />
             <AppUpdatePrompt />
-            <VersionGateBanner />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
@@ -721,7 +720,7 @@ const App = () => (
             </CompanyProvider>
             </ReadOnlyProvider>
           </AuthProvider>
-          </VersionHardGate>
+          </VersionGate>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
