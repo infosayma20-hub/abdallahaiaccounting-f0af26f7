@@ -212,13 +212,22 @@ export async function checkBridgeHealth(): Promise<{
 export async function checkBridgeStatus(): Promise<boolean> {
   for (const baseUrl of bridgeCandidates()) {
     try {
-      const res = await fetch(`${baseUrl}/health?t=${Date.now()}`, withLocalNetworkAccess({
+      // IMPORTANT: keep this fetch as minimal as possible.
+      // Do NOT add `mode: "cors"` or `targetAddressSpace` here — those
+      // trigger a Private Network Access preflight that older bridge
+      // versions don't answer, causing "Failed to fetch" even when the
+      // bridge is actually running. A plain GET to /health works for
+      // every bridge version (old and v6.3.6-clean).
+      const res = await fetch(`${baseUrl}/health?t=${Date.now()}`, {
         cache: "no-store",
         signal: AbortSignal.timeout(6000),
-      }));
+      });
       if (!res.ok) continue;
       const data = await res.json().catch(() => null);
-      if (!data || data.status === "ok") {
+      // Bridge is "connected" as long as /health responds with status ok,
+      // even if device.json is missing (unbound). The onboarding page
+      // surfaces the "غير مربوط" state separately via pullConfigFromBridge.
+      if (data && data.status === "ok") {
         if (!getBridgeUrl()) setBridgeUrl(baseUrl);
         return true;
       }
