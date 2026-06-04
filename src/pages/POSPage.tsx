@@ -1251,6 +1251,55 @@ const POSPage = () => {
     loadOrderFromUrl();
   }, [urlTableId, urlOrderId, urlTableName, urlAction, loading]);
 
+  /**
+   * Loads per-user POS UI preferences (card size, category order, per-category
+   * product order) for the currently authenticated employee. Always keyed by
+   * `auth.uid()` so two cashiers on the same company never overwrite each
+   * other (DB enforces this via the `(auth_user_id, preference_key)` unique
+   * index and RLS).
+   *
+   * Returns the parsed values so callers (e.g. `initializePOS`) can pass them
+   * straight into `loadCategories` and avoid the React closure race where
+   * `setCategoryOrderIds` hasn't committed yet.
+   */
+  const loadUserPreferences = useCallback(async (): Promise<{
+    categoryOrderIds: string[];
+    productOrderByCategory: Record<string, string[]>;
+  }> => {
+    if (!userId) return { categoryOrderIds: [], productOrderByCategory: {} };
+    const { data: prefs } = await supabase
+      .from("pos_user_preferences")
+      .select("preference_key, preference_value")
+      .eq("auth_user_id", userId);
+    const out = {
+      categoryOrderIds: [] as string[],
+      productOrderByCategory: {} as Record<string, string[]>,
+    };
+    if (!prefs) return out;
+    for (const p of prefs as any[]) {
+      if (p.preference_key === "card_size") {
+        const sz = (p.preference_value as any)?.size;
+        if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
+      } else if (p.preference_key === "category_order") {
+        const orderIds = (p.preference_value as any)?.order;
+        if (Array.isArray(orderIds) && orderIds.length > 0) {
+          out.categoryOrderIds = orderIds as string[];
+        }
+      } else if (typeof p.preference_key === "string" && p.preference_key.startsWith("product_order_")) {
+        const orderIds = (p.preference_value as any)?.order;
+        if (Array.isArray(orderIds) && orderIds.length > 0) {
+          const catKey = p.preference_key.replace(/^product_order_/, "");
+          out.productOrderByCategory[catKey] = orderIds as string[];
+        }
+      }
+    }
+    setCategoryOrderIds(out.categoryOrderIds);
+    if (Object.keys(out.productOrderByCategory).length > 0) {
+      setProductOrderByCategory(prev => ({ ...prev, ...out.productOrderByCategory }));
+    }
+    return out;
+  }, [userId]);
+
   const initializePOS = async () => {
     if (!userId || !dataOwnerId) return;
     setLoading(true);
