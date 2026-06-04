@@ -1065,7 +1065,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       {/* Mobile: full-screen page. Desktop: Dialog. */}
       {isMobile && activeForm && (
         <div
-          className="fixed inset-0 z-50 bg-background flex flex-col"
+          className="fixed inset-0 z-[100] bg-background flex flex-col"
           dir="rtl"
           style={{ height: "100dvh" }}
         >
@@ -1093,7 +1093,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             </div>
           </div>
           <div
-            className="fixed bottom-0 left-0 right-0 px-4 py-3 border-t bg-card shrink-0"
+            className="fixed bottom-0 left-0 right-0 z-[110] px-4 py-3 border-t bg-card shrink-0"
             style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
           >
             <Button onClick={submitForm} disabled={submitting || uploadingFile} className="w-full rounded-xl gap-2 h-12">
