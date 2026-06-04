@@ -163,6 +163,38 @@ serve(async (req) => {
 
     // ──────────────────────────────────────────────────────────────────
     // TENANT-OWNER GUARD (defense in depth, strict)
+    // FIRST: canonical DB-level check via user_can_access_setup RPC.
+    // This is the single source of truth and matches the frontend
+    // accessContext. If the DB says "no", we stop immediately.
+    // ──────────────────────────────────────────────────────────────────
+    try {
+      const { data: canSetup, error: canErr } = await supabaseAdmin.rpc(
+        'user_can_access_setup',
+        { _uid: userId },
+      );
+      if (canErr) {
+        console.error('[setup-accounts] user_can_access_setup error', canErr);
+      } else if (canSetup === false) {
+        const { data: accountType } = await supabaseAdmin.rpc(
+          'resolve_account_type',
+          { _uid: userId },
+        );
+        console.warn('[access] setup-blocked', { userId, accountType });
+        return new Response(
+          JSON.stringify({
+            error: 'هذا الحساب لا يملك صلاحية إنشاء شركة جديدة',
+            code: 'NOT_TENANT_OWNER',
+            accountType,
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    } catch (rpcErr) {
+      console.error('[setup-accounts] rpc invocation failed', rpcErr);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // TENANT-OWNER GUARD (legacy in-code mirror — kept as belt-and-braces)
     // The company-registration wizard is for brand-new tenant owners ONLY.
     // A "tenant owner" is a user that has NO existing connection to any
     // other tenant. The wizard creates a brand-new chart-of-accounts under

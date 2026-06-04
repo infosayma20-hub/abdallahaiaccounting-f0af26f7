@@ -1,137 +1,107 @@
 
-# خطة تنفيذ 12 تعديل — POS / Call Center / متابعة الزبائن
+# Hardening شامل لنظام الهوية والصلاحيات
 
-التعديلات بتنقسم لـ 3 طبقات: **قاعدة بيانات (migrations)** + **واجهة (UI)** + **بيانات منيو الملكي (data updates)**. كل تعديل مفصول عن الباقي عشان ما يكسر إشي.
+الهدف: تحويل المشكلة من "نصلحها كل مرة" إلى **النظام يمنعها من الأساس** عبر مصدر قرار واحد + قيود DB + حراسة Backend + اختبارات + Version Gate.
 
 ---
 
-## 1) فلاتر متابعة الزبائن
+## 1) مصدر القرار الموحّد `resolveUserAccessContext`
 
-**ملف:** `src/components/feedback/FollowupQueueShell.tsx` + `src/pages/FeedbackPage.tsx`
+ملف جديد: `src/lib/accessContext.ts` يستبدل المنطق المبعثر في `useRoleRedirect` / `tenantOwnerGuard` / `Dashboard` / `ChooseWorkspacePage`.
 
-أضيف شريط فلاتر مدمج (Popover واحد فيه كل الفلاتر + Chips تظهر الفلاتر النشطة):
-- نوع الطلب (delivery / takeaway / dine_in / pos / online)
-- الموظف اللي أخذ الطلب (`called_by_name` من `feedback_calls` + قائمة `pos_users`)
-- حالة التواصل (`followup_status`: pending / done / no_answer / postponed)
-- الفرع (`last_known_branch_id`)
-- نطاق التاريخ (DateRangePicker)
-- اسم الزبون (search)
-- رقم الهاتف (search مع normalize 972)
+يرجع object واحد:
 
-التطبيق على query موجودة بدون كسر الـ pagination. الفلاتر بتنحفظ بـ URL params.
-
-## 2) عدد المتابعات لكل موظف
-
-كرت إحصائية فوق الجدول بيعرض: اسم الموظف + عدد `feedback_calls` (distinct customer_id) ضمن نفس الفلاتر/الفترة. Aggregate query بـ Supabase RPC جديدة `get_followup_stats_by_agent(filters jsonb)` أو aggregation جانب الـ client من نفس النتائج.
-
-## 3) تنبيه نفاد صنف من الكاش للكول سنتر (Realtime)
-
-**Migration جديد:**
-```sql
-CREATE TABLE public.stockout_alerts (
-  id uuid PK, user_id uuid, branch_id uuid,
-  product_id uuid NULL, modifier_option_id uuid NULL,
-  custom_label text NULL,           -- لما يكون نص حر
-  raised_by uuid, raised_by_name text, raised_at timestamptz,
-  status text CHECK (status IN ('active','resolved')),
-  resolved_by uuid, resolved_at timestamptz,
-  note text
-);
--- GRANT + RLS company-scoped + ALTER PUBLICATION supabase_realtime ADD TABLE
+```text
+{
+  userId, companyId, accountType, roles[], permissions[],
+  isCompanyOwner, canAccessSetup, companySetupStatus,
+  defaultRoute, blockingReason?
+}
 ```
 
-**UI:**
-- زر "تنبيه نفاد صنف" داخل POS (cashier) → Dialog يختار من قائمة `products`/`modifier_options` أو يكتب نص حر.
-- بانر أحمر ثابت أعلى شاشة الكول سنتر (`PendingOrdersPanel` / `CallCenterDispatchDialog`) يعرض التنبيهات النشطة realtime + زر "إلغاء" للفرع.
-- سجل في صفحة `CallCenterReportsPage` (تبويب جديد).
-- **لا حذف للأصناف** من POS — تنبيه فقط.
+`accountType` ينحصر في: `super_admin | company_owner | company_admin | employee | sales_rep | cashier | call_center | portal_user | unlinked`.
 
-## 4) ترتيب التصنيفات والأصناف لكل مستخدم
+قواعد الاستنتاج (بالترتيب، أول مطابقة تفوز):
+1. `super_admin` → `super_admin`.
+2. وجود سجل في `employees/pos_users/malaki_portal_users` بـ `auth_user_id = uid` نشط → النوع المقابل (employee/cashier/call_center/portal_user). **لا يصبح owner أبداً.**
+3. `profiles.invited_by IS NOT NULL AND invited_by != uid` → `company_admin` (تابع لـ owner، لا يرى Setup).
+4. لا روابط ولا invited_by، ويملك صفوف في `accounts` تحت `user_id = uid` → `company_owner`.
+5. لا روابط ولا بيانات → `unlinked` (إذا كان أول دخول حقيقي يحق له Setup) أو حسب القاعدة 3.
 
-استخدام الجدول الموجود `pos_user_preferences` بمفاتيح:
-- `category_order` → `{ [categoryId]: orderIndex }`
-- `product_order:<categoryId>` → `{ [productId]: orderIndex }`
+`canAccessSetup = (accountType === 'company_owner') || permissions.includes('manage_company_setup')`. أي شيء آخر → false مع `blockingReason`.
 
-**ملف:** `src/pages/POSPage.tsx`
-- تحميل preferences حسب `auth_user_id` عند الدخول.
-- ترتيب لكل مستخدم منفصل (`auth_user_id`، مش `user_id` المالك).
-- أصناف جديدة → تظهر بالنهاية (orderIndex = max+1).
-- الاعتماد على `category_id` و `product_id` فقط — تغيير الاسم ما بيأثر.
-- Drag & Drop موجود مسبقاً (أو نضيف minimal باستخدام `@dnd-kit` لو ناقص).
+useRoleRedirect / Dashboard / SetupPage / ProtectedRoute كلها تستهلك هذا الـ context فقط — لا قرارات محلية.
 
-## 5) خيار "بدون بهار" لكل وجبات الملكي
+## 2) حراسة قاعدة البيانات (Migration آمنة، بدون فقدان بيانات)
 
-**Data migration (INSERT):**
-- modifier_group واحد عام اسمه "بهارات" (selection_type=single, min=0, max=1).
-- modifier_options: "بهار عادي" (default, price=0) + "بدون بهار" (price=0).
-- ربط الـ group بكل المنتجات الموجودة في شركة الملكي عبر `product_modifier_groups`.
-- الـ option بيمشي تلقائياً للكاش والطباعة عبر النظام الحالي للـ `order_item_modifiers`.
+- دالة جديدة `public.resolve_account_type(_uid uuid) returns text` (SECURITY DEFINER) تطبّق نفس المنطق على مستوى DB.
+- دالة `public.user_can_access_setup(_uid uuid) returns boolean` تستخدمها `setup-accounts` edge function و RLS.
+- **Trigger** على `accounts` و `companies` و أي جدول tenant-root: قبل INSERT/UPDATE، إذا `user_id` يخص سجل موجود في `employees/pos_users/malaki_portal_users` (auth_user_id) أو `profiles.invited_by NOT NULL` → ارفض مع رسالة `tenant_seed_blocked_for_subaccount`.
+- **Partial unique index** يمنع وجود أكثر من owner لنفس الشركة عن طريق الخطأ (حيث `company_id` موجود).
+- **CHECK / Trigger** على `employees.auth_user_id` يمنع وجود نفس الـ auth uid كـ owner و employee في نفس الوقت (يمنع double-identity).
+- **لا يُحذف أي صف**. كل القيود تُضاف كـ `NOT VALID` أولاً ثم `VALIDATE` بعد فحص. أي صف مخالف موجود → يُسجّل في جدول `identity_integrity_issues` للمراجعة اليدوية بدل الرفض الصامت.
 
-## 6) تنبيه صوتي بعد 5 دقائق للطلبيات غير المقبولة
+## 3) Backend (Edge Functions)
 
-**ملف:** `src/components/pos/DispatchedOrdersLog.tsx` (شاشة الكول سنتر)
-- Timer لكل طلبية محوّلة بحالة `pending`/`dispatched` غير `accepted`.
-- بعد 5 دقائق: تشغيل صوت **مرة وحدة فقط** (Set من IDs نبهنا عليهم في الجلسة) + Badge أحمر "تأخر القبول".
-- يتوقف إذا: accepted, cancelled, modifying.
-- ملف صوت قصير في `public/sounds/`.
+- `setup-accounts`: ينادي `user_can_access_setup(uid)` كأول سطر؛ إذا false → 403 مع `blockingReason`. لا يعتمد على أي flag من الـ frontend.
+- أي function تنشئ بيانات tenant (companies / accounts / branches) تتحقق من نفس الدالة.
+- إضافة structured log سطر واحد لكل قرار: `{ uid, accountType, canAccessSetup, action, allowed, reason }`.
 
-## 7) صنف "25 قطعة أجنحة مقلي" 70 ₪
+## 4) Frontend
 
-**Data INSERT:**
-- منتج جديد في تصنيف الأجنحة، السعر 70.
-- نسخ ربط `product_modifier_groups` من أي منتج أجنحة موجود ليرث نفس الإضافات.
+- `ProtectedRoute` يستهلك `accessContext` ويعرض شاشات واضحة:
+  - `unlinked` → صفحة "حسابك غير مرتبط بشركة، تواصل مع الإدارة".
+  - `company_setup_incomplete && !canAccessSetup` → "حساب الشركة قيد التجهيز من قِبل المالك".
+- مسار `/setup`: guard مخصص `RequireSetupAccess` يعيد التوجيه إلى `defaultRoute` فوراً إذا `canAccessSetup = false` (مع toast واضح + log warning).
+- `Dashboard.tsx`: حذف منطق SetupWizard inline؛ يظهر فقط داخل `/setup` المحمي.
+- `useRoleRedirect`: يصبح Adapter رفيع فوق `accessContext` (يرجع `defaultRoute` من الـ context).
+- إزالة كل `if (count === 0) → /setup` الموزعة.
 
-## 8) خيار "نص حار بهار" للأجنحة
+## 5) Version Gate (Forced Update)
 
-**Data INSERT:**
-- إيجاد modifier_group الخاص بنكهة الأجنحة وإضافة option "نص حار بهار" (extra_price=0).
+ملف جديد `src/lib/versionGate.ts`:
+- يقرأ `BUILD_VERSION` (من vite define) و يقارنه بـ endpoint خفيف `/api/version` (أو Edge function `app-version`).
+- إذا أقدم → modal إجباري "يوجد تحديث، اضغط لإعادة التحميل" يمسح SW caches + localStorage الحرج ثم `location.reload(true)`.
+- يعمل قبل عرض أي شاشة auth/dashboard/setup.
 
-## 9) تصحيح أسعار البروست (المشوي = العادي + 2)
+## 6) اختبارات (Vitest)
 
-**Data UPDATE:**
-- استعلام كل منتجات البروست (عادي/مشوي) ومطابقة كل عادي بمشوي بنفس الاسم، ثم UPDATE price للمشوي = price العادي + 2.
-- مع تثبيت: قطعتين عادي = 23، قطعتين مشوي = 25، سفينتين عادي = 27، سفينتين مشوي = 29.
-- بدون لمس أسماء أو إضافات.
-- نعرض الجدول النهائي قبل التطبيق.
+ملف `src/lib/__tests__/accessContext.test.ts` يغطي:
+- owner + setup incomplete → `/setup`
+- owner + setup complete → `/apps`
+- employee + setup incomplete → blocking screen
+- employee + setup complete → `/employee`
+- sales_rep / cashier / call_center / portal_user → كل واحد لا يرى Setup
+- زيارة `/setup` يدوياً لـ sub-account → redirect + warning log
+- unlinked user → blocking screen
+- نسخة قديمة → version gate modal
 
-## 10) تأكيد إغلاق الكول سنتر
+## 7) Logging / Monitoring
 
-**ملف:** `src/components/pos/CallCenterDispatchDialog.tsx` (أو زر الإغلاق في شاشة الكول سنتر)
-- AlertDialog "هل تريد إغلاق الكول سنتر؟ قد تفقد طلبية غير مرسلة."
-- Confirm → يغلق.
+- جدول `access_decision_logs` (اختياري، سعة محدودة) أو Console structured فقط:
+  `[access] uid=... type=... defaultRoute=... canSetup=... reason=...`
+- كل محاولة وصول لـ `/setup` من غير owner → `console.warn` + insert في `identity_integrity_issues`.
 
-## 11) إضافات وجبات المشوي (بطاطا مشوية / مع خضار / بدون خضار)
+## 8) خطة التنفيذ التدريجية
 
-**Data INSERT:**
-- modifier_group "خيارات المشوي" (single select).
-- options: "بطاطا مشوية"، "مع خضار"، "بدون خضار".
-- ربطها بكل منتجات تصنيف المشوي.
+1. Migration للقيود + الدوال الجديدة + جدول `identity_integrity_issues`.
+2. تحديث `setup-accounts` edge function.
+3. إنشاء `accessContext.ts` + tests.
+4. إعادة كتابة `useRoleRedirect` كـ adapter + تحديث `Dashboard` / `ProtectedRoute` / `/setup` guard.
+5. شاشات حالات الـ blocking.
+6. Version Gate.
+7. تنظيف الكود القديم المبعثر.
 
-## 12) "مكس صوصات" للجوسي كرسبي — 30 ₪
+## معايير القبول
 
-**Data INSERT:**
-- إما modifier_option "مكس صوصات" بـ extra_price=30 ضمن جروب الصوصات الموجود، أو منتج مستقل ضمن تصنيف الكرسبي.
-- الأنسب: option داخل جروب صوصات الكرسبي (يحافظ على الفلو الحالي).
+- مستحيل لأي employee/cashier/sales_rep/call_center/portal_user أن يرى Setup (ولو كتب الرابط يدوياً).
+- مستحيل أن يصبح sub-account مالك شركة بسبب race condition.
+- قرار التوجيه يصدر من مصدر واحد فقط.
+- DB + Backend + Frontend ثلاثتهم يرفضون نفس الخطأ.
+- Tests خضراء تغطي كل الحالات أعلاه.
+- Version Gate يجبر النسخ القديمة على التحديث.
+- صفر حذف بيانات. صفر كسر للحسابات الحالية.
 
 ---
 
-## ترتيب التنفيذ
-
-1. **Migrations** (بند 3 فقط — جدول `stockout_alerts`).
-2. **Data migrations** للملكي (5, 7, 8, 9, 11, 12) — قبل ما أبلش بعرض الـ SQL النهائية للمراجعة.
-3. **UI changes** (1, 2, 3-UI, 4, 6, 10).
-
-## ضمانات السلامة (ما رح نكسر إشي)
-
-- مسار الكول سنتر الحالي — كل التغييرات إضافة (تنبيهات + بانر + Dialog تأكيد). ما رح ألمس منطق التحويل للفروع.
-- التوصيل ورسومه — ما رح ألمس `delivery_settlement` أو `shipping_final/driver_cost`.
-- الطباعة — الإضافات الجديدة بتمر عبر `order_item_modifiers` الحالي اللي أصلاً بيطبع.
-- ترتيب الأصناف — preferences جديدة per-user؛ الترتيب القديم العام بيبقى fallback.
-- التقارير ومنطق البيع — صفر تغيير.
-
-## تحتاج تأكيد قبل البدء
-
-1. **بند 5 (بدون بهار):** أطبقه على **كل** منتجات شركة الملكي، أم فقط على تصنيفات معينة (وجبات/سندويتشات)؟
-2. **بند 9 (أسعار البروست):** ابعت قبل التطبيق جدول "العادي → المشوي + 2" للمراجعة، أم نفّذ مباشرة بناءً على القاعدة العامة؟
-3. **بند 12 (مكس صوصات):** option داخل جروب الصوصات الحالي للجوسي كرسبي، صح؟
-4. **شركة الملكي:** عندي عدة عملاء — هل company_id محدد؟ أحتاجه عشان data migrations.
+**ملاحظة:** الخطة كبيرة (DB + Backend + Frontend + Tests + Version Gate). إذا توافق، أنفّذها على شكل دفعات (migration أولاً للموافقة، ثم باقي الكود).
