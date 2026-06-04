@@ -66,8 +66,6 @@ function defaultRouteFor(
       if (canSetup) return { route: "/setup" };
       return { route: "/blocked/unlinked", blockingReason: "unlinked_account" };
   }
-  // exhaustive fallback
-  // @ts-expect-error never
   return { route: "/apps" };
 }
 
