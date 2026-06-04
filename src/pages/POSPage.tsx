@@ -1251,6 +1251,55 @@ const POSPage = () => {
     loadOrderFromUrl();
   }, [urlTableId, urlOrderId, urlTableName, urlAction, loading]);
 
+  /**
+   * Loads per-user POS UI preferences (card size, category order, per-category
+   * product order) for the currently authenticated employee. Always keyed by
+   * `auth.uid()` so two cashiers on the same company never overwrite each
+   * other (DB enforces this via the `(auth_user_id, preference_key)` unique
+   * index and RLS).
+   *
+   * Returns the parsed values so callers (e.g. `initializePOS`) can pass them
+   * straight into `loadCategories` and avoid the React closure race where
+   * `setCategoryOrderIds` hasn't committed yet.
+   */
+  const loadUserPreferences = useCallback(async (): Promise<{
+    categoryOrderIds: string[];
+    productOrderByCategory: Record<string, string[]>;
+  }> => {
+    if (!userId) return { categoryOrderIds: [], productOrderByCategory: {} };
+    const { data: prefs } = await supabase
+      .from("pos_user_preferences")
+      .select("preference_key, preference_value")
+      .eq("auth_user_id", userId);
+    const out = {
+      categoryOrderIds: [] as string[],
+      productOrderByCategory: {} as Record<string, string[]>,
+    };
+    if (!prefs) return out;
+    for (const p of prefs as any[]) {
+      if (p.preference_key === "card_size") {
+        const sz = (p.preference_value as any)?.size;
+        if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
+      } else if (p.preference_key === "category_order") {
+        const orderIds = (p.preference_value as any)?.order;
+        if (Array.isArray(orderIds) && orderIds.length > 0) {
+          out.categoryOrderIds = orderIds as string[];
+        }
+      } else if (typeof p.preference_key === "string" && p.preference_key.startsWith("product_order_")) {
+        const orderIds = (p.preference_value as any)?.order;
+        if (Array.isArray(orderIds) && orderIds.length > 0) {
+          const catKey = p.preference_key.replace(/^product_order_/, "");
+          out.productOrderByCategory[catKey] = orderIds as string[];
+        }
+      }
+    }
+    setCategoryOrderIds(out.categoryOrderIds);
+    if (Object.keys(out.productOrderByCategory).length > 0) {
+      setProductOrderByCategory(prev => ({ ...prev, ...out.productOrderByCategory }));
+    }
+    return out;
+  }, [userId]);
+
   const initializePOS = async () => {
     if (!userId || !dataOwnerId) return;
     setLoading(true);
@@ -1491,7 +1540,19 @@ const POSPage = () => {
         }
       }
 
-      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees(), loadModifiers()]);
+      // Load the user's saved orders FIRST, then pass the category order
+      // directly into loadCategories so it doesn't race the state update.
+      // Without this, on a hard refresh the sort would fall back to the
+      // company-wide display_order until another render kicked sorting again.
+      const prefs = await loadUserPreferences();
+      await Promise.all([
+        loadProducts(),
+        loadCategories(prefs.categoryOrderIds),
+        loadExchangeRates(),
+        loadContacts(),
+        loadEmployees(),
+        loadModifiers(),
+      ]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -1533,7 +1594,17 @@ const POSPage = () => {
     });
   };
 
-  const loadCategories = async () => {
+  /**
+   * Loads visible categories and applies the current user's saved order.
+   *
+   * IMPORTANT: takes `explicitOrderIds` as a parameter when called from
+   * `initializePOS` so it doesn't depend on `categoryOrderIds` from a stale
+   * closure. Without this, on a hard refresh `loadCategories` would run
+   * before the prefs `setCategoryOrderIds` state had committed, fall back
+   * to the company-wide `display_order`, and the user would see the wrong
+   * order until the next render that triggered another sort.
+   */
+  const loadCategories = async (explicitOrderIds?: string[]) => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("pos_categories")
@@ -1543,7 +1614,9 @@ const POSPage = () => {
       .order("display_order");
     const categories = ((data as POSCategory[]) || []);
     setPosCategories(prev => {
-      const orderIds = categoryOrderIds.length ? categoryOrderIds : prev.map(c => c.id);
+      const orderIds =
+        (explicitOrderIds && explicitOrderIds.length ? explicitOrderIds : null) ??
+        (categoryOrderIds.length ? categoryOrderIds : prev.map(c => c.id));
       if (!orderIds.length) return categories;
       const orderMap = new Map(orderIds.map((id, i) => [id, i]));
       return [...categories].sort((a, b) => {
@@ -2054,14 +2127,45 @@ const POSPage = () => {
     }
     // When "الكل" is selected, sort products grouped by category order
     if (selectedCategory === "الكل" && !debouncedSearch) {
+      // "الكل": first group by the user's saved CATEGORY order, then within
+      // each group apply that category's per-product saved order so the
+      // overall grid mirrors what the user sees when they open each tab.
       const catOrderMap = new Map<string, number>();
       visiblePosCategories.forEach((c, i) => catOrderMap.set(c.id, i));
+
+      // Pre-compute a per-category product-rank lookup so the inner sort
+      // stays O(1). Falls back to `product_order_all` for items that have no
+      // category-specific order saved yet.
+      const productRankByCat = new Map<string, Map<string, number>>();
+      const buildRank = (key: string) => {
+        const ids = productOrderByCategory[key];
+        if (!ids || !ids.length) return null;
+        const m = new Map<string, number>();
+        ids.forEach((id, i) => m.set(id, i));
+        return m;
+      };
+      for (const c of visiblePosCategories) {
+        const m = buildRank(c.id) ?? buildRank(c.name);
+        if (m) productRankByCat.set(c.id, m);
+      }
+      const uncategorizedRank = buildRank("__uncategorized__");
+      const allRank = buildRank("all");
+
       filtered.sort((a, b) => {
         const aCatId = a.pos_category_id || visiblePosCategories.find(c => c.name === a.category)?.id || "";
         const bCatId = b.pos_category_id || visiblePosCategories.find(c => c.name === b.category)?.id || "";
         const aOrder = catOrderMap.get(aCatId) ?? 9999;
         const bOrder = catOrderMap.get(bCatId) ?? 9999;
         if (aOrder !== bOrder) return aOrder - bOrder;
+
+        // Same category — prefer the per-category saved order; otherwise the
+        // "الكل" override; otherwise db pos_sort_order; otherwise name.
+        const rank = productRankByCat.get(aCatId) ?? (aCatId ? null : uncategorizedRank) ?? allRank;
+        if (rank) {
+          const ar = rank.has(a.id) ? rank.get(a.id)! : 9999;
+          const br = rank.has(b.id) ? rank.get(b.id)! : 9999;
+          if (ar !== br) return ar - br;
+        }
         const posOrder = ((a as any).pos_sort_order ?? (a as any).sort_order ?? 9999) - ((b as any).pos_sort_order ?? (b as any).sort_order ?? 9999);
         if (posOrder !== 0) return posOrder;
         return (a.name || "").localeCompare(b.name || "", "ar");
@@ -2487,48 +2591,22 @@ const POSPage = () => {
 
     // Password change check disabled — no longer forcing first-login password change
 
-    // Load per-user UI preferences
-    if (userId) {
-      const { data: prefs } = await supabase
-        .from("pos_user_preferences")
-        .select("preference_key, preference_value")
-        .eq("auth_user_id", userId);
-      if (prefs) {
-        for (const p of prefs) {
-          if (p.preference_key === "card_size") {
-            const sz = (p.preference_value as any)?.size;
-            if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
-          }
-          if (p.preference_key === "category_order") {
-            const orderIds = (p.preference_value as any)?.order;
-            if (Array.isArray(orderIds) && orderIds.length > 0) {
-              setCategoryOrderIds(orderIds as string[]);
-              setPosCategories(prev => {
-                const ordered: POSCategory[] = [];
-                for (const id of orderIds) {
-                  const cat = prev.find(c => c.id === id);
-                  if (cat) ordered.push(cat);
-                }
-                // Add any new categories not in the saved order
-                for (const cat of prev) {
-                  if (!ordered.find(c => c.id === cat.id)) ordered.push(cat);
-                }
-                return ordered;
-              });
-            }
-          }
-          // Load per-user product order preferences
-          if (p.preference_key.startsWith("product_order_")) {
-            const orderIds = (p.preference_value as any)?.order;
-            if (Array.isArray(orderIds) && orderIds.length > 0) {
-              // Store per-category order separately so categories don't clobber each other.
-              // Key format: "product_order_<categoryName>" or "product_order_all"
-              const catKey = p.preference_key.replace(/^product_order_/, "");
-              setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds as string[] }));
-            }
-          }
+    // Re-apply per-user UI preferences after opening a shift. `initializePOS`
+    // already loaded these on mount; this second call covers the case where
+    // the user signs in fresh and opens a shift without a page reload.
+    const prefs = await loadUserPreferences();
+    if (prefs.categoryOrderIds.length > 0) {
+      setPosCategories(prev => {
+        const ordered: POSCategory[] = [];
+        for (const id of prefs.categoryOrderIds) {
+          const cat = prev.find(c => c.id === id);
+          if (cat) ordered.push(cat);
         }
-      }
+        for (const cat of prev) {
+          if (!ordered.find(c => c.id === cat.id)) ordered.push(cat);
+        }
+        return ordered;
+      });
     }
   };
 
