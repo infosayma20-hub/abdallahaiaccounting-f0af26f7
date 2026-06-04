@@ -907,9 +907,8 @@ const Dashboard = () => {
       )}
 
       {/* ── Dialogs & Wizards ── */}
-      {showSetupWizard && user && !showPasskeyOnboarding && (
-        <SetupWizard userId={user.id} onComplete={() => { setShowSetupWizard(false); setProfileData(prev => prev ? { ...prev, setup_completed: true } : prev); }} />
-      )}
+      {/* SetupWizard removed: setup is now exclusively at /setup,
+          gated by RequireSetupAccess. Sub-accounts can never see it. */}
       {showPasskeyOnboarding && <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />}
       {/* Legacy OnboardingFlow removed — handled by AppsLauncher */}
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
