@@ -1,7 +1,7 @@
 {
-  "latestBuild": 1,
-  "minSupportedBuild": 1,
-  "forceUpdate": false,
-  "message": "نسخة AMWALI الحالية مستقرة وآمنة",
-  "updatedAt": "2026-06-04T12:00:00Z"
+  "latestBuild": 2,
+  "minSupportedBuild": 2,
+  "forceUpdate": true,
+  "message": "تم إصدار تحديث مهم لتحديث معلومات الموظفين، يرجى تحديث الصفحة للمتابعة.",
+  "updatedAt": "2026-06-04T13:00:00Z"
 }
