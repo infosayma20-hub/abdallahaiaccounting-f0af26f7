@@ -640,11 +640,13 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                     </div>
 
                     {order.is_editing && (() => {
-                      const lastAliveStr = order.editing_heartbeat_at || order.editing_started_at;
-                      const lastAlive = lastAliveStr ? new Date(lastAliveStr).getTime() : 0;
-                      const ageMs = lastAlive ? nowTick - lastAlive : 0;
+                      const ageMs = editLockAgeMs(order, nowTick);
                       const ageMin = Math.max(0, Math.floor(ageMs / 60000));
-                      const isStale = lastAlive > 0 && ageMs > LOCK_LEASE_MS;
+                      const isStale = isEditLockExpired(order, nowTick);
+                      // Lock is no longer "active" → treat the row as free.
+                      // We still surface a faint "القفل منتهي" pill so the
+                      // user knows another agent had it open recently and
+                      // the takeover button is intentional.
                       return (
                         <div
                           className={`flex flex-wrap items-center gap-1 text-[10px] font-bold rounded px-1.5 py-1 ${
@@ -655,8 +657,12 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                         >
                           <Pencil className="h-3 w-3" />
                           <span>
-                            قيد التعديل بواسطة: <b>{order.editing_by_name || "الكول سنتر"}</b>
-                            {lastAlive > 0 && (
+                            {isStale ? (
+                              <>قفل تعديل سابق من: <b>{order.editing_by_name || "الكول سنتر"}</b></>
+                            ) : (
+                              <>قيد التعديل بواسطة: <b>{order.editing_by_name || "الكول سنتر"}</b></>
+                            )}
+                            {ageMs > 0 && (
                               <span className="font-normal opacity-80"> — منذ {ageMin < 1 ? "أقل من دقيقة" : `${ageMin} دقيقة`}</span>
                             )}
                           </span>
@@ -889,17 +895,16 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                     {/* Edit proposal: only if not yet invoiced */}
                     {!order.pos_order_id && (order.status === "pending" || order.status === "accepted") && (
                       (() => {
-                        const lastAliveStr = order.editing_heartbeat_at || order.editing_started_at;
-                        const lastAlive = lastAliveStr ? new Date(lastAliveStr).getTime() : 0;
-                        const lockStale = order.is_editing && lastAlive > 0 && (nowTick - lastAlive) > LOCK_LEASE_MS;
+                        const lockActive = isEditLockActive(order, nowTick);
+                        const lockStale = isEditLockExpired(order, nowTick);
                         const editDisabled =
                           (editsByOrder[order.id]?.pending || 0) > 0 ||
-                          (order.is_editing === true && !lockStale);
+                          lockActive;
                         const editLabel = (editsByOrder[order.id]?.pending || 0) > 0
                           ? "تعديل قيد المراجعة"
                           : lockStale
                             ? "استلام التعديل"
-                            : order.is_editing
+                            : lockActive
                               ? "قيد التعديل"
                               : "تعديل الطلبية";
                         return (
