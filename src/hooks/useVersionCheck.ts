@@ -1,100 +1,154 @@
-import { useEffect, useRef } from "react";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { APP_BUILD } from "@/config/appVersion";
 
-declare const __APP_BUILD_TIME__: string;
+export interface VersionManifest {
+  latestBuild: number;
+  minSupportedBuild: number;
+  forceUpdate: boolean;
+  message?: string;
+  updatedAt?: string;
+}
 
-const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
-const CURRENT_BUILD = __APP_BUILD_TIME__;
-const DISMISSED_KEY = "amwali_update_dismissed_build";
+export interface VersionCheckState {
+  manifest: VersionManifest | null;
+  isOutdated: boolean;       // soft — newer build available
+  isHardBlocked: boolean;    // hard — APP_BUILD < minSupportedBuild OR forceUpdate set
+  appBuild: number;
+  lastCheckedAt: number | null;
+}
 
-const AUTH_ROUTE_PREFIXES = [
-  "/auth",
-  "/login",
-  "/register",
-  "/signup",
-  "/reset-password",
-  "/forgot-password",
-];
+const SESSION_KEY = "amwali:vg:manifest";
+const SESSION_TTL_MS = 60_000; // 1 minute cache
+const FETCH_TIMEOUT_MS = 2_000;
+const INITIAL_DELAY_MS = 500;
+const POLL_INTERVAL_MS = 5 * 60_000;
 
-export function useVersionCheck() {
-  const hasShown = useRef(false);
-  const { user } = useAuth();
-  const location = useLocation();
-  const isAuthRoute = AUTH_ROUTE_PREFIXES.some((p) =>
-    location.pathname.toLowerCase().startsWith(p)
+function readCache(): VersionManifest | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { ts: number; m: VersionManifest };
+    if (Date.now() - parsed.ts > SESSION_TTL_MS) return null;
+    return parsed.m;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(m: VersionManifest) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now(), m }));
+  } catch {
+    /* ignore */
+  }
+}
+
+async function fetchManifest(): Promise<VersionManifest | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+    const res = await fetch(`/version.json?t=${Date.now()}`, {
+      cache: "no-store",
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.warn("[version] server error", res.status);
+      return null;
+    }
+    const j = (await res.json()) as Partial<VersionManifest>;
+    if (typeof j.latestBuild !== "number") return null;
+    const m: VersionManifest = {
+      latestBuild: Number(j.latestBuild),
+      minSupportedBuild: Number(j.minSupportedBuild ?? j.latestBuild),
+      forceUpdate: Boolean(j.forceUpdate),
+      message: j.message ? String(j.message) : undefined,
+      updatedAt: j.updatedAt ? String(j.updatedAt) : undefined,
+    };
+    writeCache(m);
+    return m;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[version] check failed", (err as Error)?.message);
+    return null;
+  }
+}
+
+function evaluate(m: VersionManifest | null): {
+  isOutdated: boolean;
+  isHardBlocked: boolean;
+} {
+  if (!m) return { isOutdated: false, isHardBlocked: false };
+  const isOutdated = APP_BUILD < m.latestBuild;
+  const belowMin = APP_BUILD < m.minSupportedBuild;
+  const isHardBlocked = belowMin || (m.forceUpdate && APP_BUILD < m.latestBuild);
+  return { isOutdated, isHardBlocked };
+}
+
+/**
+ * Non-blocking version check.
+ *  - First fetch is delayed by 500ms so the UI paints first.
+ *  - Single fetch with 2s timeout; no retry loops.
+ *  - sessionStorage caches the manifest for 1 minute.
+ *  - Polls every 5 minutes, plus on focus and visibilitychange.
+ */
+export function useVersionCheck(): VersionCheckState {
+  const cached = readCache();
+  const initial = evaluate(cached);
+  const [manifest, setManifest] = useState<VersionManifest | null>(cached);
+  const [isOutdated, setIsOutdated] = useState(initial.isOutdated);
+  const [isHardBlocked, setIsHardBlocked] = useState(initial.isHardBlocked);
+  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(
+    cached ? Date.now() : null,
   );
 
   useEffect(() => {
-    // Skip in development
-    if (import.meta.env.DEV) return;
-    // Only show inside the authenticated app — never on auth/login/register/reset pages
-    if (!user) return;
-    if (isAuthRoute) return;
+    let cancelled = false;
+    let inFlight = false;
 
-    const checkForUpdate = async () => {
-      try {
-        // Fetch the index page with cache-busting to get the latest version
-        const res = await fetch(`/?_v=${Date.now()}`, {
-          cache: "no-store",
-          headers: { Accept: "text/html" },
-        });
-        const html = await res.text();
-
-        // Look for a different build time in the newly fetched HTML
-        // The JS bundles will have different hashes if the build changed
-        // We check if any of our current JS files are missing from the new HTML
-        const currentScripts = Array.from(document.querySelectorAll('script[src]'))
-          .map(s => s.getAttribute('src'))
-          .filter(Boolean);
-
-        const hasChanged = currentScripts.some(src => src && !html.includes(src));
-
-        if (hasChanged && !hasShown.current) {
-          // Build a stable signature for this "new version" so we don't nag again
-          const signature = currentScripts.filter(Boolean).sort().join("|") || CURRENT_BUILD;
-          try {
-            const dismissed = localStorage.getItem(DISMISSED_KEY);
-            if (dismissed === signature) return;
-          } catch {}
-
-          hasShown.current = true;
-          const markDismissed = () => {
-            try { localStorage.setItem(DISMISSED_KEY, signature); } catch {}
-          };
-          toast("🔥 نزل تحديث جديد على النظام", {
-            description:
-              "إذا ما ظهرت معك التعديلات، اعمل Ctrl + Shift + R عشان يتحدث عندك مباشرة.",
-            duration: Infinity,
-            action: {
-              label: "تحديث الآن",
-              onClick: () => {
-                markDismissed();
-                window.location.reload();
-              },
-            },
-            cancel: {
-              label: "فهمت",
-              onClick: markDismissed,
-            },
-            onDismiss: markDismissed,
-            closeButton: true,
-          });
-        }
-      } catch {
-        // Silently fail - network issues shouldn't bother users
-      }
+    const run = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      const m = await fetchManifest();
+      inFlight = false;
+      if (cancelled || !m) return;
+      const { isOutdated, isHardBlocked } = evaluate(m);
+      setManifest(m);
+      setIsOutdated(isOutdated);
+      setIsHardBlocked(isHardBlocked);
+      setLastCheckedAt(Date.now());
+      // eslint-disable-next-line no-console
+      console.log("[version]", {
+        appBuild: APP_BUILD,
+        latest: m.latestBuild,
+        min: m.minSupportedBuild,
+        force: m.forceUpdate,
+        isOutdated,
+        isHardBlocked,
+      });
     };
 
-    // First check after 1 minute
-    const initialTimeout = setTimeout(checkForUpdate, 60 * 1000);
-    // Then check periodically
-    const interval = setInterval(checkForUpdate, CHECK_INTERVAL);
+    // 1) Delayed first check so initial paint is unaffected.
+    const firstTimer = setTimeout(run, INITIAL_DELAY_MS);
+    // 2) Periodic check.
+    const interval = setInterval(run, POLL_INTERVAL_MS);
+    // 3) On focus / visibility.
+    const onFocus = () => run();
+    const onVis = () => {
+      if (document.visibilityState === "visible") run();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVis);
 
     return () => {
-      clearTimeout(initialTimeout);
+      cancelled = true;
+      clearTimeout(firstTimer);
       clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [user, isAuthRoute]);
+  }, []);
+
+  return { manifest, isOutdated, isHardBlocked, appBuild: APP_BUILD, lastCheckedAt };
 }

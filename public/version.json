@@ -1,6 +1,7 @@
 {
-  "version": "dev",
-  "minSupportedBuild": "0.0.0",
+  "latestBuild": 1,
+  "minSupportedBuild": 1,
   "forceUpdate": false,
-  "message": ""
+  "message": "نسخة AMWALI الحالية مستقرة وآمنة",
+  "updatedAt": "2026-06-04T12:00:00Z"
 }
