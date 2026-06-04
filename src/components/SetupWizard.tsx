@@ -430,6 +430,21 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
 
   const progressPct = step < 0 ? 0 : ((step + 1) / TOTAL_STEPS) * 100;
 
+  // Block render until guard verifies caller. Stale PWA bundles or any
+  // bypass path must NOT see the wizard contents.
+  if (!accessChecked || accessBlocked) {
+    return (
+      <div className="fixed inset-0 z-[70] bg-background flex flex-col items-center justify-center gap-3" dir="rtl">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="text-sm text-muted-foreground">
+          {accessBlocked
+            ? "هذا الحساب غير مخوّل لإنشاء شركة. جاري التحويل…"
+            : "جارٍ التحقق من الصلاحيات…"}
+        </div>
+      </div>
+    );
+  }
+
   // ─── Render ───
   return (
     <div className="fixed inset-0 z-[70] bg-background flex flex-col overflow-hidden" dir="rtl">
