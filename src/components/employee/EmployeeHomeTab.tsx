@@ -361,13 +361,19 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               { label: "غياب", value: stats.absent, Icon: XCircle, color: "text-destructive" },
               { label: "ساعة", value: stats.totalHours.toFixed(0), Icon: Clock, color: "text-foreground" },
             ].map(s => (
-              <div key={s.label} className="text-center bg-secondary/30 rounded-xl p-2.5">
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => onNavigate("attendance")}
+                aria-label={`فتح سجل دوامي - ${s.label === "ساعة" ? "الساعات" : s.label}`}
+                className="text-center bg-secondary/30 rounded-xl p-2.5 cursor-pointer hover:bg-slate-50 hover:border-slate-300 border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.97]"
+              >
                 <div className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</div>
                 <div className="text-[10px] text-muted-foreground inline-flex items-center justify-center gap-1">
                   <s.Icon className={`h-3 w-3 ${s.color}`} />
                   {s.label}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </CardContent>
