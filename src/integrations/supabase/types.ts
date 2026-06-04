@@ -1442,6 +1442,7 @@ export type Database = {
           dispatched_by_name: string | null
           editing_by: string | null
           editing_by_name: string | null
+          editing_heartbeat_at: string | null
           editing_started_at: string | null
           id: string
           is_editing: boolean
@@ -1478,6 +1479,7 @@ export type Database = {
           dispatched_by_name?: string | null
           editing_by?: string | null
           editing_by_name?: string | null
+          editing_heartbeat_at?: string | null
           editing_started_at?: string | null
           id?: string
           is_editing?: boolean
@@ -1514,6 +1516,7 @@ export type Database = {
           dispatched_by_name?: string | null
           editing_by?: string | null
           editing_by_name?: string | null
+          editing_heartbeat_at?: string | null
           editing_started_at?: string | null
           id?: string
           is_editing?: boolean
@@ -18845,6 +18848,10 @@ export type Database = {
             }
             Returns: Json
           }
+      force_release_editing_call_center_order: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       generate_company_license_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       generate_return_number: {
@@ -18947,6 +18954,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      heartbeat_editing_call_center_order: {
+        Args: { p_order_id: string }
+        Returns: Json
       }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
