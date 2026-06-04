@@ -611,12 +611,35 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                       </div>
                     </div>
 
-                    {order.is_editing && (
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded px-1.5 py-0.5">
-                        <Pencil className="h-3 w-3" />
-                        قيد التعديل من {order.editing_by_name || "الكول سنتر"} — مخفية عن الفرع
-                      </div>
-                    )}
+                    {order.is_editing && (() => {
+                      const lastAliveStr = order.editing_heartbeat_at || order.editing_started_at;
+                      const lastAlive = lastAliveStr ? new Date(lastAliveStr).getTime() : 0;
+                      const ageMs = lastAlive ? nowTick - lastAlive : 0;
+                      const ageMin = Math.max(0, Math.floor(ageMs / 60000));
+                      const isStale = lastAlive > 0 && ageMs > LOCK_LEASE_MS;
+                      return (
+                        <div
+                          className={`flex flex-wrap items-center gap-1 text-[10px] font-bold rounded px-1.5 py-1 ${
+                            isStale
+                              ? "text-orange-800 bg-orange-500/10 border border-orange-500/50"
+                              : "text-amber-700 bg-amber-500/15 border border-amber-500/40"
+                          }`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          <span>
+                            قيد التعديل بواسطة: <b>{order.editing_by_name || "الكول سنتر"}</b>
+                            {lastAlive > 0 && (
+                              <span className="font-normal opacity-80"> — منذ {ageMin < 1 ? "أقل من دقيقة" : `${ageMin} دقيقة`}</span>
+                            )}
+                          </span>
+                          {isStale && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-orange-600/60 text-orange-700">
+                              القفل منتهي
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Admin-only cancellation archive details */}
                     {(order.status === "cancelled" || order.status === "cancelled_after_acceptance") && (
