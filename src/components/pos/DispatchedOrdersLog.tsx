@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { CalendarDays } from "lucide-react";
 import EditOrderDialog from "./EditOrderDialog";
 import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
-import { installAudioUnlock, isAudioUnlocked, playAlertBeep } from "@/lib/audio-unlock";
+import { installAudioUnlock, isAudioUnlocked, playLateOrderAlert } from "@/lib/audio-unlock";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -276,7 +276,9 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
         return newLate;
       });
       if (shouldBeep) {
-        const ok = playAlertBeep();
+        // Long call-center style "تنبيه طلبية متأخرة" — one play per tick,
+        // even if several orders just crossed the 5-minute threshold.
+        const ok = playLateOrderAlert();
         if (!ok) {
           // Audio blocked — keep the visual badge but mark the banner so the
           // user knows why they're not hearing anything.
@@ -454,7 +456,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
             onClick={() => {
               // Any pointerdown anywhere unlocks audio via installAudioUnlock();
               // this button is just an obvious affordance.
-              playAlertBeep();
+              playLateOrderAlert();
               setAudioReady(isAudioUnlocked());
             }}
             className="mx-2 my-1 flex items-center justify-between gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-[11px] font-bold text-amber-800 hover:bg-amber-500/20"
