@@ -529,9 +529,19 @@ export default function NewDeviceOnboardingPage() {
   const fetchWindowsPrinters = async () => {
     try {
       const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
-      const res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(4000) }));
+      let res: Response;
+      try {
+        res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(4000) }));
+      } catch {
+        // Fallback for bridge/browser combinations where a simple GET works
+        // but Chrome's Local Network Access hint triggers a blocked preflight.
+        res = await fetch(`${url}/windows-printers`, { signal: AbortSignal.timeout(4000), cache: "no-store" });
+      }
       if (!res.ok) throw new Error("endpoint غير متوفر");
       const data = await res.json();
+      if ((data as { ok?: boolean })?.ok === false) {
+        throw new Error(String((data as { error?: unknown })?.error || "windows_printers_failed"));
+      }
       const raw: unknown[] = Array.isArray(data)
         ? data
         : Array.isArray((data as { printers?: unknown[] })?.printers)
@@ -562,7 +572,7 @@ export default function NewDeviceOnboardingPage() {
       if (list.length === 0) toast.info("لم يتم العثور على طابعات Windows");
     } catch (err) {
       console.error("fetchWindowsPrinters failed", err);
-      toast.error("تعذر قراءة طابعات Windows من Print Bridge");
+      toast.error(`تعذر قراءة طابعات Windows من Print Bridge${err instanceof Error ? `: ${err.message}` : ""}`);
     }
   };
 
