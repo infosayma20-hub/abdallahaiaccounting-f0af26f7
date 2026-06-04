@@ -448,20 +448,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">سبب طلب القرض *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" />
             </div>
-            <div className={`rounded-xl p-3 border text-xs space-y-1 ${eligibilityBadgeClass(elig.badge.tone)}`}>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">تقييم الأهلية المبدئي</span>
-                <span className="text-[10px] font-bold">{elig.badge.text}</span>
-              </div>
-              <p className="text-[11px] opacity-90 leading-relaxed">{elig.eligibility_reason}</p>
-              {elig.calculated_loan_limit != null && (
-                <p className="text-[10px] opacity-80">السقف التقديري: {formatCurrency(elig.calculated_loan_limit)}</p>
-              )}
-              {elig.months_of_service != null && (
-                <p className="text-[10px] opacity-80">مدة الخدمة: {elig.months_of_service} شهر</p>
-              )}
-              <p className="text-[10px] opacity-70">* ليس اعتماداً نهائياً — تبقى الموافقة لـ HR.</p>
-            </div>
+            {/* تقييم الأهلية المبدئي مخفي من واجهة الموظف — يبقى قرار HR. الحساب أعلاه محفوظ للاستخدام الداخلي. */}
           </>
           );
         }
