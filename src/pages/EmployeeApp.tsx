@@ -6,6 +6,7 @@ import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EmployeeBottomNav from "@/components/employee/EmployeeBottomNav";
 import EmployeeHomeTab from "@/components/employee/EmployeeHomeTab";
+import { EmployeeShell } from "@/components/employee/shell/EmployeeShell";
 import QRScannerDialog from "@/components/employee/QRScannerDialog";
 import AttendanceCalendarTab from "@/components/employee/AttendanceCalendarTab";
 import AlertsTab from "@/components/employee/AlertsTab";
@@ -105,6 +106,22 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [isCashier, setIsCashier] = useState(false);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [latestInfoForm, setLatestInfoForm] = useState<Record<string, any> | null>(null);
+
+  // Preview-only opt-in for the new D365-style shell. Default OFF.
+  // Activate with ?employeeShell=1 (persists in sessionStorage for the tab).
+  // Disable with ?employeeShell=0.
+  const [shellEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const q = sp.get("employeeShell");
+      if (q === "1") sessionStorage.setItem("employeeShell", "1");
+      if (q === "0") sessionStorage.removeItem("employeeShell");
+      return sessionStorage.getItem("employeeShell") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -336,12 +353,30 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "profile" && (
-          <EmployeeProfileTab
-            employee={employee}
-            branchName={branchName}
-            latestInfoForm={latestInfoForm}
-            onUpdateInfo={() => { setPendingFormId("employee_info"); setActiveTab("forms"); }}
-          />
+          shellEnabled ? (
+            <EmployeeShell
+              title="ملفي الشخصي"
+              subtitle={employee.full_name}
+              breadcrumb={[
+                { label: "الرئيسية", onClick: () => setActiveTab("home") },
+                { label: "ملفي" },
+              ]}
+            >
+              <EmployeeProfileTab
+                employee={employee}
+                branchName={branchName}
+                latestInfoForm={latestInfoForm}
+                onUpdateInfo={() => { setPendingFormId("employee_info"); setActiveTab("forms"); }}
+              />
+            </EmployeeShell>
+          ) : (
+            <EmployeeProfileTab
+              employee={employee}
+              branchName={branchName}
+              latestInfoForm={latestInfoForm}
+              onUpdateInfo={() => { setPendingFormId("employee_info"); setActiveTab("forms"); }}
+            />
+          )
         )}
       </div>
 
