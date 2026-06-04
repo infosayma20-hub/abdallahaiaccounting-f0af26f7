@@ -4,11 +4,10 @@
  * time via Vite's `define`; we compare against /api/version.json
  * (a tiny static JSON shipped with every deploy).
  */
+// Build version: read from Vite env; falls back to "dev".
 const BUILD_VERSION =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (typeof __BUILD_VERSION__ !== "undefined" ? (__BUILD_VERSION__ as string) : "dev");
-
-declare const __BUILD_VERSION__: string;
+  (import.meta as unknown as { env?: { VITE_BUILD_VERSION?: string } })?.env
+    ?.VITE_BUILD_VERSION || "dev";
 
 let latest: string | null = null;
 
