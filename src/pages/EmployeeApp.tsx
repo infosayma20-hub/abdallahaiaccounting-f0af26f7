@@ -311,7 +311,20 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "requests" && (
-          <EmployeeMyRequestsTab employeeId={employee.id} />
+          shellEnabled ? (
+            <EmployeeShell
+              title="طلباتي"
+              subtitle="طلباتك السابقة وحالة كل طلب"
+              breadcrumb={[
+                { label: "الرئيسية", onClick: () => setActiveTab("home") },
+                { label: "طلباتي" },
+              ]}
+            >
+              <EmployeeMyRequestsTab employeeId={employee.id} />
+            </EmployeeShell>
+          ) : (
+            <EmployeeMyRequestsTab employeeId={employee.id} />
+          )
         )}
 
         {activeTab === "payslips" && (
