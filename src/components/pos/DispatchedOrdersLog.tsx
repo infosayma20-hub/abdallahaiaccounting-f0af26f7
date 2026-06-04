@@ -141,7 +141,8 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   /** Close-confirmation dialog state (item 10). */
-  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  // (Removed) confirmCloseOpen — closing this side panel is internal, not an
+  // exit from the call-center screen, so no confirmation is needed here.
   /** Late-acceptance alert tracking (item 6): orders we've already beeped for. */
   const [lateIds, setLateIds] = useState<Set<string>>(new Set());
   /** Per-order timestamp of the last successful beep — drives the 60s re-beep cadence. */
@@ -1035,27 +1036,6 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
             className="bg-red-600 hover:bg-red-700 text-white"
           >
             {cancelling ? "جاري الإلغاء…" : "تأكيد الإلغاء"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    {/* Item 10: confirm closing the call-center screen when work is pending. */}
-    <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
-      <AlertDialogContent dir="rtl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>إغلاق شاشة الكول سنتر؟</AlertDialogTitle>
-          <AlertDialogDescription>
-            يوجد طلبيات معلّقة لم تُقبل بعد من الفرع أو قيد التعديل.
-            هل تريد فعلاً إغلاق الشاشة الآن؟ قد تفوتك تنبيهات تأخر القبول.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>البقاء على الشاشة</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => { setConfirmCloseOpen(false); onClose(); }}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            تأكيد الإغلاق
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
