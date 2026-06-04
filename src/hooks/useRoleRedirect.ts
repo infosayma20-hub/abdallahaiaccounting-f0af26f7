@@ -5,6 +5,18 @@ import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 
 const redirectCache = new Map<string, string | null>();
 
+type ProfileRouteMarker = { role?: string | null };
+type PosRouteMarker = { is_active?: boolean | null };
+type PortalRouteMarker = { is_active?: boolean | null };
+
+const readWorkspaceChoice = (userId: string) => {
+  try {
+    return sessionStorage.getItem(`workspace-choice:${userId}`);
+  } catch {
+    return null;
+  }
+};
+
 export function clearRoleRedirectCache(userId?: string) {
   if (userId) redirectCache.delete(userId);
   else redirectCache.clear();
@@ -35,7 +47,7 @@ export function useRoleRedirect() {
     }
 
     const cachedTarget = redirectCache.get(user.id);
-    if (cachedTarget !== undefined && !["/apps", "/employee", "/rep", "/rep/home", "/choose-workspace"].includes(cachedTarget || "")) {
+    if (cachedTarget !== undefined && !["/apps", "/employee", "/rep", "/rep/home", "/choose-workspace", "/setup"].includes(cachedTarget || "")) {
       setTargetPath(cachedTarget);
       setChecking(false);
       return;
@@ -46,24 +58,55 @@ export function useRoleRedirect() {
 
     const resolve = async () => {
       try {
-        const [{ data: rolesData }, { data: empRow }] = await Promise.all([
+        const [
+          { data: rolesData },
+          { data: profileRow },
+          { data: empRow },
+          { data: posUserRow },
+          { data: portalUserRow },
+        ] = await Promise.all([
           supabase.from("user_roles").select("role").eq("user_id", user.id),
+          supabase
+            .from("profiles")
+            .select("invited_by, role")
+            .eq("user_id", user.id)
+            .maybeSingle(),
           supabase
             .from("employees")
             .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
+          supabase
+            .from("pos_users")
+            .select("id, auth_user_id, user_id, is_active, is_call_center")
+            .eq("auth_user_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("malaki_portal_users")
+            .select("id, auth_user_id, user_id, is_active")
+            .eq("auth_user_id", user.id)
+            .maybeSingle(),
         ]);
 
-        const roles: string[] = (rolesData || []).map((r) => r.role);
+        const profile = profileRow as ProfileRouteMarker | null;
+        const posUser = posUserRow as PosRouteMarker | null;
+        const portalUser = portalUserRow as PortalRouteMarker | null;
+        const roleSet = new Set<string>((rolesData || []).map((r) => String(r.role)));
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
+        const isPosUser = !!posUser && posUser.is_active !== false;
+        const isPortalUser = !!portalUser && portalUser.is_active !== false;
+        const profileRole = profile?.role || undefined;
+        if (profileRole) roleSet.add(profileRole);
+        if (isEmployee) roleSet.add("employee");
+        if (isPosUser) roleSet.add("cashier");
+        if (isPortalUser) roleSet.add("portal");
+        const roles = Array.from(roleSet);
         const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
 
         // إذا المستخدم مندوب + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
         // ما لم يكن قد اختار سابقاً في نفس الجلسة.
         if (roles.includes("sales_rep") && isEmployee && !hasAdminAccess) {
-          let chosen: string | null = null;
-          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const chosen = readWorkspaceChoice(user.id);
           const nextPath = chosen === "/employee" ? "/employee"
             : chosen === "/rep" ? "/rep/home"
             : "/choose-workspace";
@@ -78,8 +121,7 @@ export function useRoleRedirect() {
         // إذا المستخدم كاشير + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
         // بين شاشة الموظف وشاشة نقطة البيع.
         if (roles.includes("cashier") && isEmployee && !hasAdminAccess) {
-          let chosen: string | null = null;
-          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const chosen = readWorkspaceChoice(user.id);
           const nextPath = chosen === "/employee" ? "/employee"
             : chosen === "/pos" ? "/pos"
             : "/choose-workspace";
@@ -124,7 +166,9 @@ export function useRoleRedirect() {
             Object.keys(sessionStorage).forEach((key) => {
               if (key.includes("lastVisitedRoute")) sessionStorage.removeItem(key);
             });
-          } catch {}
+          } catch {
+            // Storage cleanup is best-effort.
+          }
           console.info("[role-redirect] finalRedirect = /employee", {
             authUid: user.id,
             employeeId: empRow.id,
@@ -159,8 +203,7 @@ export function useRoleRedirect() {
           // can pick between POS and the employee screen (clock-in works on
           // any device, POS only on devices with the local Print Bridge).
           // After their first pick the choice is sticky for the session.
-          let chosen: string | null = null;
-          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const chosen = readWorkspaceChoice(user.id);
           nextPath = chosen === "/employee" ? "/employee"
             : chosen === "/pos" ? "/pos"
             : "/choose-workspace";
@@ -180,7 +223,7 @@ export function useRoleRedirect() {
           // other system roles AND no employee record — go straight to /feedback.
           if (!isEmployee) {
             const { data: fbPerms } = await supabase
-              .from("user_feature_permissions" as any)
+              .from("user_feature_permissions")
               .select("id")
               .eq("target_user_id", user.id)
               .eq("app_key", "call_center_feedback")
@@ -221,7 +264,7 @@ export function useRoleRedirect() {
         }
 
         if (isCancelled) return;
-        redirectCache.set(user.id, nextPath);
+        if (nextPath !== "/setup") redirectCache.set(user.id, nextPath);
         setTargetPath(nextPath);
       } catch {
         if (isCancelled) return;

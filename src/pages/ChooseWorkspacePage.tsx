@@ -42,11 +42,13 @@ export default function ChooseWorkspacePage() {
           .eq("auth_user_id", user.id)
           .maybeSingle(),
       ]);
-      const roles = (rolesData || []).map((r: any) => r.role);
+      const roles = (rolesData || []).map((r) => String(r.role));
+      const linkedPosUser = posUser as { is_call_center?: boolean | null } | null;
+      const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
       setHasRep(roles.includes("sales_rep"));
-      setHasCashier(roles.includes("cashier"));
-      setIsCallCenter(!!(posUser as any)?.is_call_center);
-      setHasEmployee(!!empRow && (empRow as any).is_active && !(empRow as any).is_terminated);
+      setHasCashier(roles.includes("cashier") || !!posUser);
+      setIsCallCenter(!!linkedPosUser && !!linkedPosUser.is_call_center);
+      setHasEmployee(!!linkedEmployee && !!linkedEmployee.is_active && !linkedEmployee.is_terminated);
       setRolesLoaded(true);
     })();
   }, [user?.id]);
@@ -57,7 +59,9 @@ export default function ChooseWorkspacePage() {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
         clearRoleRedirectCache(user.id);
       }
-    } catch {}
+    } catch {
+      // Session storage can be unavailable in restricted browser modes.
+    }
     window.dispatchEvent(new Event("workspace-choice-changed"));
     navigate(path, { replace: true });
   };
@@ -74,7 +78,9 @@ export default function ChooseWorkspacePage() {
   const signOut = async () => {
     try {
       if (user?.id) sessionStorage.removeItem(`workspace-choice:${user.id}`);
-    } catch {}
+    } catch {
+      // Session storage cleanup is best-effort.
+    }
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };

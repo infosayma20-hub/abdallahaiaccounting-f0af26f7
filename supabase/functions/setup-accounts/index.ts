@@ -179,11 +179,18 @@ serve(async (req) => {
     // ──────────────────────────────────────────────────────────────────
     const [
       { data: rolesRows },
+      { data: profileRow },
       { data: empRow },
       { data: posUserRow },
+      { data: portalUserRow },
       { data: featurePermRows },
     ] = await Promise.all([
       supabaseAdmin.from('user_roles').select('role').eq('user_id', userId),
+      supabaseAdmin
+        .from('profiles')
+        .select('invited_by, role')
+        .eq('user_id', userId)
+        .maybeSingle(),
       supabaseAdmin
         .from('employees')
         .select('id, user_id, is_active, is_terminated')
@@ -195,6 +202,11 @@ serve(async (req) => {
         .eq('auth_user_id', userId)
         .maybeSingle(),
       supabaseAdmin
+        .from('malaki_portal_users')
+        .select('id, user_id, is_active')
+        .eq('auth_user_id', userId)
+        .maybeSingle(),
+      supabaseAdmin
         .from('user_feature_permissions')
         .select('id')
         .eq('target_user_id', userId)
@@ -202,7 +214,10 @@ serve(async (req) => {
         .limit(1),
     ]);
 
-    const roles: string[] = (rolesRows || []).map((r: any) => r.role);
+    const roles: string[] = Array.from(new Set([
+      ...(rolesRows || []).map((r: any) => r.role),
+      ...(profileRow?.role ? [profileRow.role] : []),
+    ]));
 
     // super_admin always allowed
     const isSuperAdmin = roles.includes('super_admin');
@@ -227,21 +242,31 @@ serve(async (req) => {
     const isLinkedPosUser =
       !!posUserRow && posUserRow.is_active !== false && posUserRow.user_id !== userId;
 
+    // Portal users (Malaky / owner portal viewers) are also tenant-bound.
+    const isLinkedPortalUser =
+      !!portalUserRow && portalUserRow.is_active !== false && portalUserRow.user_id !== userId;
+
+    // Team accounts created by the company may exist only through profiles.invited_by.
+    const isInvitedProfile =
+      !!profileRow?.invited_by && profileRow.invited_by !== userId;
+
     // Feedback / portal grants from another tenant
     const hasGrantedFeaturePerm = !!featurePermRows && featurePermRows.length > 0;
 
     const isTenantBound =
-      isLinkedEmployee || isLinkedPosUser || hasNonOwnerRole || hasGrantedFeaturePerm;
+      isInvitedProfile || isLinkedEmployee || isLinkedPosUser || isLinkedPortalUser || hasNonOwnerRole || hasGrantedFeaturePerm;
 
     if (isTenantBound && !isSuperAdmin) {
       console.warn('[setup-accounts] blocked tenant-bound caller', {
         userId,
         roles,
+        isInvitedProfile,
         isLinkedEmployee,
         isLinkedPosUser,
+        isLinkedPortalUser,
         hasNonOwnerRole,
         hasGrantedFeaturePerm,
-        tenantOwner: empRow?.user_id ?? posUserRow?.user_id,
+        tenantOwner: profileRow?.invited_by ?? empRow?.user_id ?? posUserRow?.user_id ?? portalUserRow?.user_id,
       });
       return new Response(
         JSON.stringify({

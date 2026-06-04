@@ -11,6 +11,10 @@ const NON_OWNER_ROLES = new Set<string>([
   "branch_scheduler", "call_center",
 ]);
 
+type ProfileTenantMarker = { invited_by?: string | null; role?: string | null };
+type EmployeeTenantMarker = { user_id?: string | null; is_active?: boolean | null; is_terminated?: boolean | null };
+type LinkedTenantMarker = { user_id?: string | null; is_active?: boolean | null };
+
 export interface TenantOwnerCheck {
   /** True when the user is allowed to run the company-registration wizard. */
   canCreateTenant: boolean;
@@ -18,6 +22,8 @@ export interface TenantOwnerCheck {
   reason?:
     | "linked_employee"
     | "linked_pos_user"
+    | "linked_portal_user"
+    | "invited_profile"
     | "non_owner_role"
     | "granted_feature_perm";
 }
@@ -30,11 +36,18 @@ export interface TenantOwnerCheck {
 export async function canUserCreateTenant(authUserId: string): Promise<TenantOwnerCheck> {
   const [
     { data: rolesRows },
+    { data: profileRow },
     { data: empRow },
     { data: posUserRow },
+    { data: portalUserRow },
     { data: featurePermRows },
   ] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", authUserId),
+    supabase
+      .from("profiles")
+      .select("invited_by, role")
+      .eq("user_id", authUserId)
+      .maybeSingle(),
     supabase
       .from("employees")
       .select("id, user_id, is_active, is_terminated")
@@ -46,34 +59,56 @@ export async function canUserCreateTenant(authUserId: string): Promise<TenantOwn
       .eq("auth_user_id", authUserId)
       .maybeSingle(),
     supabase
-      .from("user_feature_permissions" as any)
+      .from("malaki_portal_users")
+      .select("id, user_id, is_active")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle(),
+    supabase
+      .from("user_feature_permissions")
       .select("id")
       .eq("target_user_id", authUserId)
       .eq("access_state", "allow")
       .limit(1),
   ]);
 
-  const roles = (rolesRows || []).map((r: any) => r.role as string);
+  const profile = profileRow as ProfileTenantMarker | null;
+  const employee = empRow as EmployeeTenantMarker | null;
+  const posUser = posUserRow as LinkedTenantMarker | null;
+  const portalUser = portalUserRow as LinkedTenantMarker | null;
+  const roles = (rolesRows || []).map((r) => String(r.role));
   if (roles.includes("super_admin")) return { canCreateTenant: true };
 
+  if (profile?.invited_by && profile.invited_by !== authUserId) {
+    return { canCreateTenant: false, reason: "invited_profile" };
+  }
+
   if (
-    empRow &&
-    (empRow as any).is_active &&
-    !(empRow as any).is_terminated &&
-    (empRow as any).user_id !== authUserId
+    employee &&
+    employee.is_active &&
+    !employee.is_terminated &&
+    employee.user_id !== authUserId
   ) {
     return { canCreateTenant: false, reason: "linked_employee" };
   }
 
   if (
-    posUserRow &&
-    (posUserRow as any).is_active !== false &&
-    (posUserRow as any).user_id !== authUserId
+    posUser &&
+    posUser.is_active !== false &&
+    posUser.user_id !== authUserId
   ) {
     return { canCreateTenant: false, reason: "linked_pos_user" };
   }
 
-  if (roles.some((r) => NON_OWNER_ROLES.has(r))) {
+  if (
+    portalUser &&
+    portalUser.is_active !== false &&
+    portalUser.user_id !== authUserId
+  ) {
+    return { canCreateTenant: false, reason: "linked_portal_user" };
+  }
+
+  const profileRole = profile?.role || undefined;
+  if (roles.some((r) => NON_OWNER_ROLES.has(r)) || (profileRole && NON_OWNER_ROLES.has(profileRole))) {
     return { canCreateTenant: false, reason: "non_owner_role" };
   }
 

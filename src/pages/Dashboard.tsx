@@ -93,7 +93,10 @@ const Dashboard = () => {
       // for a user that is already an active employee of another tenant or
       // holds a non-owner role. They reached /apps by mistake (cached route,
       // shared link, etc) — don't seed a stray tenant under their auth UID.
-      if (!ownerCheck.canCreateTenant) return;
+      if (!ownerCheck.canCreateTenant) {
+        setShowSetupWizard(false);
+        return;
+      }
 
       const hasNoAccounts = !accountsCount || accountsCount === 0;
       const setupIncomplete = !!profileData && !profileData.setup_completed;
