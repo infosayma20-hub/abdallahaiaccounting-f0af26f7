@@ -12,6 +12,13 @@ import EditOrderDialog from "./EditOrderDialog";
 import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
 import { installAudioUnlock, isAudioUnlocked, playLateOrderAlert } from "@/lib/audio-unlock";
 import {
+  LOCK_LEASE_MS,
+  isEditLockActive,
+  isEditLockExpired,
+  isBranchAcceptanceDelayed,
+  editLockAgeMs,
+} from "@/lib/dispatch-lock";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -226,12 +233,11 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   useEffect(() => { loadEdits(); }, [loadEdits]);
 
   /* ─────────────────────────── Late-acceptance alert (item 6) ───────────────────────────
-   * If a dispatched order is still `pending` (not accepted / not cancelled / not being
-   * edited) after 5 minutes, beep ONCE for that order and surface a "تأخر القبول"
-   * indicator. We never beep twice for the same order id within the session. */
-  const FIVE_MIN = 5 * 60 * 1000;
+   * If a dispatched order is still `pending` (not accepted / not cancelled)
+   * after 5 minutes, beep for that order and surface a "تأخر القبول"
+   * indicator. The edit lock is intentionally NOT a factor here — an order
+   * that someone is editing is still waiting on the branch and stays late. */
   const REPEAT_MS = 60 * 1000; // re-alert every 60s while a pending order is still late
-  const LOCK_LEASE_MS = 3 * 60 * 1000; // mirrors the DB-side 3-min lease for stale-lock UI
 
   // Install audio-unlock listeners as soon as the call-center screen mounts so
   // the user's very first click anywhere unlocks the shared AudioContext.
@@ -252,18 +258,16 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
       const newLate = new Set<string>();
       let shouldBeep = false;
       for (const o of orders) {
-        if (o.status !== "pending") continue;
-        if (o.cancelled_at) continue;
-        if (o.is_editing) continue;
-        const age = now - new Date(o.created_at).getTime();
-        if (age >= FIVE_MIN) {
-          newLate.add(o.id);
-          // Re-beep on first discovery and then every REPEAT_MS while still late.
-          const last = lastBeepAtRef.current.get(o.id) ?? 0;
-          if (now - last >= REPEAT_MS) {
-            shouldBeep = true;
-            lastBeepAtRef.current.set(o.id, now);
-          }
+        // NOTE: an active edit lock does NOT exempt an order from the
+        // late-acceptance alert. Branch acceptance and call-center editing
+        // are independent workflows.
+        if (!isBranchAcceptanceDelayed(o, now)) continue;
+        newLate.add(o.id);
+        // Re-beep on first discovery and then every REPEAT_MS while still late.
+        const last = lastBeepAtRef.current.get(o.id) ?? 0;
+        if (now - last >= REPEAT_MS) {
+          shouldBeep = true;
+          lastBeepAtRef.current.set(o.id, now);
         }
       }
       // GC: drop ids that left the pending state so re-pending would re-alert.
