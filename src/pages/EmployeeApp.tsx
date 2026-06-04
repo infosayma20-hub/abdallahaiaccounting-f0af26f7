@@ -354,7 +354,20 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "payslips" && (
-          <EmployeePayslipsTab employeeId={employee.id} />
+          shellEnabled ? (
+            <EmployeeShell
+              title="قسائم الراتب"
+              subtitle="قسائم راتبك وسجلك المالي الشهري"
+              breadcrumb={[
+                { label: "الرئيسية", onClick: () => setActiveTab("home") },
+                { label: "قسائم الراتب" },
+              ]}
+            >
+              <EmployeePayslipsTab employeeId={employee.id} />
+            </EmployeeShell>
+          ) : (
+            <EmployeePayslipsTab employeeId={employee.id} />
+          )
         )}
 
         {activeTab === "financials" && (
