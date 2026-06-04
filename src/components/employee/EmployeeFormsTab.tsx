@@ -20,6 +20,8 @@ import { toast } from "@/hooks/use-toast";
 import { validateEmployeeForm, diffDaysInclusive, diffHours } from "@/lib/employeeFormValidators";
 import { evaluateLoanEligibility, eligibilityBadgeClass, formatCurrency } from "@/lib/employeeFinancialDisplay";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { X } from "lucide-react";
 
 interface Props {
   employeeId: string;
@@ -79,6 +81,7 @@ const statusLabel = (s: string) => {
 };
 
 export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrManager, onRefresh, initialFormId, onInitialFormConsumed }: Props) {
+  const isMobile = useIsMobile();
   const [activeForm, setActiveForm] = useState<string | null>(null);
   const [activePolicy, setActivePolicy] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
