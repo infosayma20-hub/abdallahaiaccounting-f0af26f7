@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users, Trash2, Utensils } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users, Trash2, Utensils, VolumeX, Unlock, ShieldAlert } from "lucide-react";
 import { CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CalendarDays } from "lucide-react";
 import EditOrderDialog from "./EditOrderDialog";
 import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
+import { installAudioUnlock, isAudioUnlocked, playAlertBeep } from "@/lib/audio-unlock";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,9 @@ interface DispatchedOrder {
   pos_order_id: string | null;
   is_editing?: boolean | null;
   editing_by_name?: string | null;
+  editing_by?: string | null;
+  editing_started_at?: string | null;
+  editing_heartbeat_at?: string | null;
   delivery_fee?: number | null;
   delivery_info?: any | null;
   cancelled_at?: string | null;
@@ -133,8 +137,15 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   /** Close-confirmation dialog state (item 10). */
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   /** Late-acceptance alert tracking (item 6): orders we've already beeped for. */
-  const beepedRef = useRef<Set<string>>(new Set());
   const [lateIds, setLateIds] = useState<Set<string>>(new Set());
+  /** Per-order timestamp of the last successful beep — drives the 60s re-beep cadence. */
+  const lastBeepAtRef = useRef<Map<string, number>>(new Map());
+  /** Tracks whether the browser has unlocked AudioContext yet (drives the silent-mode banner). */
+  const [audioReady, setAudioReady] = useState<boolean>(() => isAudioUnlocked());
+  /** Now-tick state so "منذ X دقائق" labels (heartbeat age, late counters) refresh once a minute. */
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
+  /** Force-release / takeover in-flight guard. */
+  const [lockActionId, setLockActionId] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -219,44 +230,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
    * edited) after 5 minutes, beep ONCE for that order and surface a "تأخر القبول"
    * indicator. We never beep twice for the same order id within the session. */
   const FIVE_MIN = 5 * 60 * 1000;
-  const playBeep = useCallback(() => {
-    try {
-      const Ctx: any = (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (!Ctx) return;
-      const ctx = new Ctx();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine"; o.frequency.value = 880;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-      o.connect(g).connect(ctx.destination);
-      o.start();
-      o.stop(ctx.currentTime + 0.55);
-      // Second short beep so it's noticeable but not loopy.
-      setTimeout(() => {
-        try {
-          const o2 = ctx.createOscillator();
-          const g2 = ctx.createGain();
-          o2.type = "sine"; o2.frequency.value = 1100;
-          g2.gain.setValueAtTime(0.0001, ctx.currentTime);
-          g2.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-          g2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
-          o2.connect(g2).connect(ctx.destination);
-          o2.start();
-          o2.stop(ctx.currentTime + 0.45);
-          setTimeout(() => { try { ctx.close(); } catch {} }, 800);
-        } catch {}
-      }, 250);
-    } catch { /* noop */ }
+  const REPEAT_MS = 60 * 1000; // re-alert every 60s while a pending order is still late
+  const LOCK_LEASE_MS = 3 * 60 * 1000; // mirrors the DB-side 3-min lease for stale-lock UI
+
+  // Install audio-unlock listeners as soon as the call-center screen mounts so
+  // the user's very first click anywhere unlocks the shared AudioContext.
+  useEffect(() => {
+    installAudioUnlock();
+    const poll = setInterval(() => {
+      const ready = isAudioUnlocked();
+      setAudioReady(prev => (prev === ready ? prev : ready));
+    }, 1000);
+    return () => clearInterval(poll);
   }, []);
 
   useEffect(() => {
     if (!open) return;
     const tick = () => {
       const now = Date.now();
+      setNowTick(now);
       const newLate = new Set<string>();
-      let triggered = false;
+      let shouldBeep = false;
       for (const o of orders) {
         if (o.status !== "pending") continue;
         if (o.cancelled_at) continue;
@@ -264,24 +258,38 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
         const age = now - new Date(o.created_at).getTime();
         if (age >= FIVE_MIN) {
           newLate.add(o.id);
-          if (!beepedRef.current.has(o.id)) {
-            beepedRef.current.add(o.id);
-            triggered = true;
+          // Re-beep on first discovery and then every REPEAT_MS while still late.
+          const last = lastBeepAtRef.current.get(o.id) ?? 0;
+          if (now - last >= REPEAT_MS) {
+            shouldBeep = true;
+            lastBeepAtRef.current.set(o.id, now);
           }
         }
       }
-      // Drop ids that are no longer pending so a future re-pending order would re-beep.
+      // GC: drop ids that left the pending state so re-pending would re-alert.
       const livePending = new Set(orders.filter(o => o.status === "pending").map(o => o.id));
-      for (const id of Array.from(beepedRef.current)) {
-        if (!livePending.has(id)) beepedRef.current.delete(id);
+      for (const id of Array.from(lastBeepAtRef.current.keys())) {
+        if (!livePending.has(id)) lastBeepAtRef.current.delete(id);
       }
-      setLateIds(newLate);
-      if (triggered) playBeep();
+      setLateIds(prev => {
+        if (prev.size === newLate.size && Array.from(prev).every(id => newLate.has(id))) return prev;
+        return newLate;
+      });
+      if (shouldBeep) {
+        const ok = playAlertBeep();
+        if (!ok) {
+          // Audio blocked — keep the visual badge but mark the banner so the
+          // user knows why they're not hearing anything.
+          setAudioReady(false);
+        } else {
+          setAudioReady(true);
+        }
+      }
     };
     tick();
     const t = setInterval(tick, 15000);
     return () => clearInterval(t);
-  }, [open, orders, playBeep]);
+  }, [open, orders]);
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
@@ -323,6 +331,28 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     }
     setResettingId(null);
   };
+
+  /** Force-release a stuck edit lock. Workspace-owner only (server-enforced). */
+  const handleForceReleaseLock = useCallback(async (orderId: string) => {
+    setLockActionId(orderId);
+    const { data, error } = await supabase.rpc(
+      "force_release_editing_call_center_order" as any,
+      { p_order_id: orderId } as any
+    );
+    setLockActionId(null);
+    if (error) {
+      toast.error("تعذّر تحرير القفل: " + (error.message || ""));
+      return;
+    }
+    const res = (data as any) || {};
+    if (!res.ok) {
+      if (res.reason === "forbidden") toast.error("صلاحية الأدمن فقط تستطيع تحرير القفل");
+      else toast.error("تعذّر تحرير القفل: " + (res.reason || ""));
+      return;
+    }
+    toast.success("تم تحرير قفل التعديل — الطلبية رجعت للفرع");
+    loadOrders();
+  }, [loadOrders]);
 
   /** Soft-cancel a still-pending dispatched order. Permission + race-safety
       enforced server-side by `cancel_dispatched_call_center_order`. */
@@ -414,6 +444,28 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
         <div className="px-2 pt-2">
           <StockoutAlertsBanner dataOwnerId={dataOwnerId} />
         </div>
+
+        {/* Audio-blocked banner — appears when there are late orders but
+            Chrome is still blocking AudioContext playback. Clicking it
+            triggers our installed gesture path and unlocks audio. */}
+        {!audioReady && lateIds.size > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              // Any pointerdown anywhere unlocks audio via installAudioUnlock();
+              // this button is just an obvious affordance.
+              playAlertBeep();
+              setAudioReady(isAudioUnlocked());
+            }}
+            className="mx-2 my-1 flex items-center justify-between gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-[11px] font-bold text-amber-800 hover:bg-amber-500/20"
+          >
+            <span className="flex items-center gap-1.5">
+              <VolumeX className="h-3.5 w-3.5" />
+              صوت التنبيهات مغلق — يوجد {lateIds.size} طلبية متأخرة. اضغط لتفعيل الصوت.
+            </span>
+            <Unlock className="h-3.5 w-3.5" />
+          </button>
+        )}
 
         <div className="flex gap-1.5 p-2 border-b border-border">
           {[
@@ -581,12 +633,35 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                       </div>
                     </div>
 
-                    {order.is_editing && (
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded px-1.5 py-0.5">
-                        <Pencil className="h-3 w-3" />
-                        قيد التعديل من {order.editing_by_name || "الكول سنتر"} — مخفية عن الفرع
-                      </div>
-                    )}
+                    {order.is_editing && (() => {
+                      const lastAliveStr = order.editing_heartbeat_at || order.editing_started_at;
+                      const lastAlive = lastAliveStr ? new Date(lastAliveStr).getTime() : 0;
+                      const ageMs = lastAlive ? nowTick - lastAlive : 0;
+                      const ageMin = Math.max(0, Math.floor(ageMs / 60000));
+                      const isStale = lastAlive > 0 && ageMs > LOCK_LEASE_MS;
+                      return (
+                        <div
+                          className={`flex flex-wrap items-center gap-1 text-[10px] font-bold rounded px-1.5 py-1 ${
+                            isStale
+                              ? "text-orange-800 bg-orange-500/10 border border-orange-500/50"
+                              : "text-amber-700 bg-amber-500/15 border border-amber-500/40"
+                          }`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          <span>
+                            قيد التعديل بواسطة: <b>{order.editing_by_name || "الكول سنتر"}</b>
+                            {lastAlive > 0 && (
+                              <span className="font-normal opacity-80"> — منذ {ageMin < 1 ? "أقل من دقيقة" : `${ageMin} دقيقة`}</span>
+                            )}
+                          </span>
+                          {isStale && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-orange-600/60 text-orange-700">
+                              القفل منتهي
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Admin-only cancellation archive details */}
                     {(order.status === "cancelled" || order.status === "cancelled_after_acceptance") && (
@@ -807,7 +882,22 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                     )}
                     {/* Edit proposal: only if not yet invoiced */}
                     {!order.pos_order_id && (order.status === "pending" || order.status === "accepted") && (
-                      <div className="flex items-center gap-2">
+                      (() => {
+                        const lastAliveStr = order.editing_heartbeat_at || order.editing_started_at;
+                        const lastAlive = lastAliveStr ? new Date(lastAliveStr).getTime() : 0;
+                        const lockStale = order.is_editing && lastAlive > 0 && (nowTick - lastAlive) > LOCK_LEASE_MS;
+                        const editDisabled =
+                          (editsByOrder[order.id]?.pending || 0) > 0 ||
+                          (order.is_editing === true && !lockStale);
+                        const editLabel = (editsByOrder[order.id]?.pending || 0) > 0
+                          ? "تعديل قيد المراجعة"
+                          : lockStale
+                            ? "استلام التعديل"
+                            : order.is_editing
+                              ? "قيد التعديل"
+                              : "تعديل الطلبية";
+                        return (
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -845,18 +935,29 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                               setEditTarget(order);
                             }
                           }}
-                          disabled={
-                            (editsByOrder[order.id]?.pending || 0) > 0 ||
-                            (order.is_editing === true)
-                          }
+                          disabled={editDisabled}
                         >
                           <Pencil className="h-3 w-3" />
-                          {(editsByOrder[order.id]?.pending || 0) > 0
-                            ? "تعديل قيد المراجعة"
-                            : order.is_editing
-                              ? "قيد التعديل"
-                              : "تعديل الطلبية"}
+                          {editLabel}
                         </Button>
+                        {/* Admin (workspace owner) can force-release a stuck lock immediately. */}
+                        {order.is_editing && isAdmin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[11px] gap-1.5 border-orange-500/50 text-orange-700 hover:bg-orange-500/10"
+                            onClick={() => {
+                              if (confirm("تأكيد تحرير قفل التعديل؟ سيتم إرجاع الطلبية للفرع وستفقد الموظفة الأخرى تعديلاتها غير المحفوظة.")) {
+                                handleForceReleaseLock(order.id);
+                              }
+                            }}
+                            disabled={lockActionId === order.id}
+                            title="تحرير القفل (أدمن)"
+                          >
+                            <ShieldAlert className="h-3 w-3" />
+                            تحرير القفل
+                          </Button>
+                        )}
                         {/* Cancel — only for pending, not-yet-accepted, not-invoiced orders.
                             Server-side RPC enforces "dispatcher OR admin" + race safety. */}
                         {order.status === "pending" && !order.pos_order_id && (
@@ -878,6 +979,8 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                           <Badge variant="outline" className="text-[9px] border-green-400/40 text-green-600">آخر تعديل: مقبول</Badge>
                         )}
                       </div>
+                        );
+                      })()
                     )}
                   </div>
                 );

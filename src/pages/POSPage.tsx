@@ -528,6 +528,47 @@ const POSPage = () => {
     });
   }, [orders]);
 
+  /* ─────────────── Call-center edit-lock heartbeat ───────────────
+   * While ANY open POS tab is editing a dispatched call-center order, ping
+   * the server every 25s to extend the 3-min edit lease. If the server says
+   * the lock was lost (stolen by an admin / expired), warn the cashier and
+   * drop the editing flag on that tab so they can re-acquire.
+   *
+   * `beforeunload`-style cleanup is unreliable; this lease+heartbeat is the
+   * real guarantee that stuck "قيد التعديل" rows always recover. */
+  useEffect(() => {
+    const editingIds = orders
+      .filter(o => o?.isEditingDispatch && o?.callCenterOrderId)
+      .map(o => o!.callCenterOrderId!) as string[];
+    if (editingIds.length === 0) return;
+
+    let cancelled = false;
+    const beat = async () => {
+      for (const id of editingIds) {
+        if (cancelled) return;
+        try {
+          const { data } = await supabase.rpc(
+            "heartbeat_editing_call_center_order" as any,
+            { p_order_id: id } as any,
+          );
+          const res = (data as any) || {};
+          if (!res.ok && res.reason === "lock_lost") {
+            toast.warning("تم تحرير قفل التعديل من جهة أخرى — الطلبية رجعت للفرع");
+            setOrders(prev => prev.map(o =>
+              o.callCenterOrderId === id
+                ? { ...o, isEditingDispatch: false }
+                : o
+            ));
+          }
+        } catch { /* network blip — try again on next tick */ }
+      }
+    };
+    // Fire one immediately so the lease is fresh as soon as the tab opens.
+    beat();
+    const t = setInterval(beat, 25_000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, [orders]);
+
   // Bottom panel toggles
   const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
