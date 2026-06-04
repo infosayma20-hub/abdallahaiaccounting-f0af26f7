@@ -409,7 +409,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
               </motion.div>
               <div className="space-y-3">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
-                  مرحباً {userName ? userName.split(" ")[0] : ""} 👋
+                  مرحباً {userName ? userName.split(" ")[0] : ""}
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   سنجهّز نظامك في أقل من دقيقتين
@@ -884,8 +884,9 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-2xl font-extrabold text-foreground">
-                  🎉 نظامك جاهز يا {userName ? userName.split(" ")[0] : ""}!
+                <h2 className="text-2xl font-extrabold text-foreground flex items-center justify-center gap-2">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                  نظامك جاهز يا {userName ? userName.split(" ")[0] : ""}!
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   تم تهيئة {completedItems.length} إعداد بناءً على نشاطك
@@ -901,7 +902,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     transition={{ delay: 0.8 + i * 0.15 }}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10"
                   >
-                    <span className="text-emerald-500 font-bold">✅</span>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                     <span className="text-sm text-foreground">{item}</span>
                   </motion.div>
                 ))}
@@ -936,7 +937,10 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 جاري إعداد نظامك...
               </>
             ) : step === 4 ? (
-              "🚀 جهّز نظامي"
+              <>
+                <Rocket className="h-5 w-5" />
+                جهّز نظامي
+              </>
             ) : (
               <>
                 التالي
