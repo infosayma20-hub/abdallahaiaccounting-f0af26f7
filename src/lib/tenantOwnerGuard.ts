@@ -64,7 +64,7 @@ export async function canUserCreateTenant(authUserId: string): Promise<TenantOwn
       .eq("auth_user_id", authUserId)
       .maybeSingle(),
     supabase
-      .from("user_feature_permissions" as any)
+      .from("user_feature_permissions")
       .select("id")
       .eq("target_user_id", authUserId)
       .eq("access_state", "allow")
