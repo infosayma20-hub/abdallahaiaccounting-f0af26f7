@@ -860,7 +860,22 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                     )}
                     {/* Edit proposal: only if not yet invoiced */}
                     {!order.pos_order_id && (order.status === "pending" || order.status === "accepted") && (
-                      <div className="flex items-center gap-2">
+                      (() => {
+                        const lastAliveStr = order.editing_heartbeat_at || order.editing_started_at;
+                        const lastAlive = lastAliveStr ? new Date(lastAliveStr).getTime() : 0;
+                        const lockStale = order.is_editing && lastAlive > 0 && (nowTick - lastAlive) > LOCK_LEASE_MS;
+                        const editDisabled =
+                          (editsByOrder[order.id]?.pending || 0) > 0 ||
+                          (order.is_editing === true && !lockStale);
+                        const editLabel = (editsByOrder[order.id]?.pending || 0) > 0
+                          ? "تعديل قيد المراجعة"
+                          : lockStale
+                            ? "استلام التعديل"
+                            : order.is_editing
+                              ? "قيد التعديل"
+                              : "تعديل الطلبية";
+                        return (
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -898,18 +913,29 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                               setEditTarget(order);
                             }
                           }}
-                          disabled={
-                            (editsByOrder[order.id]?.pending || 0) > 0 ||
-                            (order.is_editing === true)
-                          }
+                          disabled={editDisabled}
                         >
                           <Pencil className="h-3 w-3" />
-                          {(editsByOrder[order.id]?.pending || 0) > 0
-                            ? "تعديل قيد المراجعة"
-                            : order.is_editing
-                              ? "قيد التعديل"
-                              : "تعديل الطلبية"}
+                          {editLabel}
                         </Button>
+                        {/* Admin (workspace owner) can force-release a stuck lock immediately. */}
+                        {order.is_editing && isAdmin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[11px] gap-1.5 border-orange-500/50 text-orange-700 hover:bg-orange-500/10"
+                            onClick={() => {
+                              if (confirm("تأكيد تحرير قفل التعديل؟ سيتم إرجاع الطلبية للفرع وستفقد الموظفة الأخرى تعديلاتها غير المحفوظة.")) {
+                                handleForceReleaseLock(order.id);
+                              }
+                            }}
+                            disabled={lockActionId === order.id}
+                            title="تحرير القفل (أدمن)"
+                          >
+                            <ShieldAlert className="h-3 w-3" />
+                            تحرير القفل
+                          </Button>
+                        )}
                         {/* Cancel — only for pending, not-yet-accepted, not-invoiced orders.
                             Server-side RPC enforces "dispatcher OR admin" + race safety. */}
                         {order.status === "pending" && !order.pos_order_id && (
@@ -931,6 +957,8 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
                           <Badge variant="outline" className="text-[9px] border-green-400/40 text-green-600">آخر تعديل: مقبول</Badge>
                         )}
                       </div>
+                        );
+                      })()
                     )}
                   </div>
                 );
