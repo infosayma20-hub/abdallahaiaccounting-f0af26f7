@@ -1047,8 +1047,49 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       </div>}
 
 
-      {/* Form Dialog */}
-      <Dialog open={!!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); } }}>
+      {/* Mobile: full-screen page. Desktop: Dialog. */}
+      {isMobile && activeForm && (
+        <div
+          className="fixed inset-0 z-50 bg-background flex flex-col"
+          dir="rtl"
+          style={{ height: "100dvh" }}
+        >
+          <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
+            <button
+              type="button"
+              onClick={() => { setActiveForm(null); setFormData({}); }}
+              className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
+              aria-label="إغلاق"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h1 className="text-base font-bold">{getFormTitle()}</h1>
+            <div className="w-9" />
+          </header>
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4"
+            style={{
+              WebkitOverflowScrolling: "touch",
+              paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
+            }}
+          >
+            <div className="space-y-3">
+              {renderFormFields()}
+            </div>
+          </div>
+          <div
+            className="fixed bottom-0 left-0 right-0 px-4 py-3 border-t bg-card shrink-0"
+            style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <Button onClick={submitForm} disabled={submitting || uploadingFile} className="w-full rounded-xl gap-2 h-12">
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!isMobile && !!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); } }}>
         <DialogContent
           className="max-w-sm bg-card border-border max-h-[90vh] flex flex-col p-0 gap-0"
           dir="rtl"
