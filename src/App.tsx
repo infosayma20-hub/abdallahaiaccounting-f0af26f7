@@ -234,6 +234,9 @@ const NewDeviceOnboardingPage = lazy(() => import("./pages/NewDeviceOnboardingPa
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const AmwaliActivationAgreementPage = lazy(() => import("./pages/AmwaliActivationAgreementPage"));
 const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
+const BlockedAccessPage = lazy(() => import("./pages/BlockedAccessPage"));
+import RequireSetupAccess from "./components/RequireSetupAccess";
+import VersionGateBanner from "./components/VersionGateBanner";
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
@@ -340,6 +343,7 @@ const App = () => (
             <CompanyThemeProvider>
             <GlobalFormFocusProvider />
             <AppUpdatePrompt />
+            <VersionGateBanner />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
@@ -391,7 +395,8 @@ const App = () => (
               <Route path="/malaki" element={<Navigate to="/auth" replace />} />
               <Route path="/malaki/dashboard" element={<Navigate to="/portal/dashboard" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-              <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
+              <Route path="/setup" element={<ProtectedRoute><RequireSetupAccess><SetupPage /></RequireSetupAccess></ProtectedRoute>} />
+              <Route path="/blocked/:reason" element={<BlockedAccessPage />} />
               <Route path="/device-setup" element={<ProtectedRoute><DeviceSetupGuard><DeviceSetupPage /></DeviceSetupGuard></ProtectedRoute>} />
               <Route path="/onboarding/new-device" element={<ProtectedRoute><DeviceSetupGuard><NewDeviceOnboardingPage /></DeviceSetupGuard></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><ModuleGuard><POSDeviceAuthGuard><POSPage /></POSDeviceAuthGuard></ModuleGuard></ProtectedRoute>} />

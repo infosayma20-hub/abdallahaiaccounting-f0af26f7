@@ -15,8 +15,7 @@ import { useRotatingPlaceholder } from "@/hooks/useRotatingPlaceholder";
 import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 // OnboardingFlow removed — handled by AppsLauncher
-import SetupWizard from "@/components/SetupWizard";
-import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
+import { resolveUserAccessContext } from "@/lib/accessContext";
 import ExecutiveKPICards from "@/components/ExecutiveKPICards";
 import SavedCommands from "@/components/SavedCommands";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
@@ -74,36 +73,26 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
-      const [{ data: profileData }, { count: accountsCount }, ownerCheck] = await Promise.all([
+      const [{ data: profileData }, ctx] = await Promise.all([
         supabase
           .from("profiles")
           .select("display_name, company_name, setup_completed")
           .eq("user_id", user.id)
           .maybeSingle(),
-        supabase
-          .from("accounts")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id),
-        canUserCreateTenant(user.id),
+        resolveUserAccessContext(user.id, { force: true }),
       ]);
 
       if (profileData) setProfileData(profileData);
 
-      // TENANT-OWNER GUARD: never auto-open the company-registration wizard
-      // for a user that is already an active employee of another tenant or
-      // holds a non-owner role. They reached /apps by mistake (cached route,
-      // shared link, etc) — don't seed a stray tenant under their auth UID.
-      if (!ownerCheck.canCreateTenant) {
-        setShowSetupWizard(false);
-        return;
+      // Setup is now exclusively reachable via the /setup route guarded by
+      // RequireSetupAccess. The Dashboard never auto-opens the wizard — this
+      // prevents any sub-account from accidentally seeing it on /apps.
+      if (ctx.isCompanyOwner && !ctx.companySetupComplete) {
+        navigate("/setup", { replace: true });
       }
-
-      const hasNoAccounts = !accountsCount || accountsCount === 0;
-      const setupIncomplete = !!profileData && !profileData.setup_completed;
-      if (hasNoAccounts || setupIncomplete) setShowSetupWizard(true);
     };
     loadProfile();
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     if (!user) return;
