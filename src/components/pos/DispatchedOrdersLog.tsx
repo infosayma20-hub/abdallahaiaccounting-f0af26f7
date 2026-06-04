@@ -445,6 +445,28 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
           <StockoutAlertsBanner dataOwnerId={dataOwnerId} />
         </div>
 
+        {/* Audio-blocked banner — appears when there are late orders but
+            Chrome is still blocking AudioContext playback. Clicking it
+            triggers our installed gesture path and unlocks audio. */}
+        {!audioReady && lateIds.size > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              // Any pointerdown anywhere unlocks audio via installAudioUnlock();
+              // this button is just an obvious affordance.
+              playAlertBeep();
+              setAudioReady(isAudioUnlocked());
+            }}
+            className="mx-2 my-1 flex items-center justify-between gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-[11px] font-bold text-amber-800 hover:bg-amber-500/20"
+          >
+            <span className="flex items-center gap-1.5">
+              <VolumeX className="h-3.5 w-3.5" />
+              صوت التنبيهات مغلق — يوجد {lateIds.size} طلبية متأخرة. اضغط لتفعيل الصوت.
+            </span>
+            <Unlock className="h-3.5 w-3.5" />
+          </button>
+        )}
+
         <div className="flex gap-1.5 p-2 border-b border-border">
           {[
             { key: "all" as const, label: "الكل", count: orders.filter(o => o.status !== "cancelled" && o.status !== "cancelled_after_acceptance").length },
