@@ -38,6 +38,7 @@ import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog"
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
+import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
 import { StockoutAlertButton } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
