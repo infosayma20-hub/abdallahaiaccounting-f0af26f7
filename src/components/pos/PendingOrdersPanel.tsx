@@ -13,6 +13,7 @@ import {
   CheckCircle, Clock, User, X, ChevronDown, Pencil, XCircle,
 } from "lucide-react";
 import { extractBaseNote } from "@/lib/order-note-utils";
+import { isEditLockActive } from "@/lib/dispatch-lock";
 
 interface CallCenterOrder {
   id: string;
@@ -32,6 +33,9 @@ interface CallCenterOrder {
   created_at: string;
   delivery_fee?: number | null;
   delivery_info?: any | null;
+  is_editing?: boolean | null;
+  editing_started_at?: string | null;
+  editing_heartbeat_at?: string | null;
 }
 
 interface OrderEdit {
@@ -120,13 +124,17 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
       .eq("user_id", dataOwnerId)
       .eq("status", "pending")
       .eq("target_branch_id", branchId)
-      // 🔒 Hide orders that the call-center is currently editing so the
-      // cashier cannot see or accept a half-edited version.
-      .eq("is_editing", false)
       .order("created_at", { ascending: false });
 
     const { data } = await query;
-    const newOrders = (data as any as CallCenterOrder[]) || [];
+    // 🔒 Hide orders that the call-center is *actively* editing so the
+    // cashier cannot accept a half-edited version. An expired/stale lock
+    // (no heartbeat for > 3 min) must NOT keep the order hidden, otherwise
+    // a crashed/closed call-center tab would orphan the order forever.
+    const now = Date.now();
+    const newOrders = ((data as any as CallCenterOrder[]) || []).filter(
+      (o) => !isEditLockActive(o, now)
+    );
     
     // Play sound if new orders appeared
     if (newOrders.length > prevCountRef.current && prevCountRef.current >= 0) {
@@ -181,6 +189,11 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
   useEffect(() => {
     if (!dataOwnerId || !enabled) return;
 
+    // Also re-evaluate periodically so an expired edit lock (no heartbeat
+    // for > 3 min) automatically reveals the order to the branch without
+    // waiting for a realtime UPDATE event on the row.
+    const refreshTimer = setInterval(() => { loadPendingOrders(); }, 60_000);
+
     const channel = supabase
       .channel(`call-center-orders-${dataOwnerId}`)
       .on(
@@ -233,6 +246,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(refreshTimer);
     };
   }, [dataOwnerId, enabled, loadPendingOrders]);
 
