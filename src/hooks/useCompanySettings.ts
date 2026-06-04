@@ -296,6 +296,14 @@ const defaultSettings: CompanySettings = {
   security_new_device_alert: true,
 };
 
+// Module-level cache — survives navigation between routes but lives only in
+// memory (not localStorage). Keyed by both the caller's user.id and the
+// effective owner id so team members of the same owner share one entry, while
+// different users / tenants stay isolated.
+type CacheEntry = { settings: CompanySettings; ownerId: string };
+const settingsCache = new Map<string, CacheEntry>();
+const inFlightRequests = new Map<string, Promise<void>>();
+
 export function useCompanySettings() {
   const { user } = useAuth();
   const cachedEntry = user?.id ? settingsCache.get(user.id) : undefined;
