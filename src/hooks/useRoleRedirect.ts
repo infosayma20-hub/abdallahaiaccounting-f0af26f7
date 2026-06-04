@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 
 const redirectCache = new Map<string, string | null>();
 
