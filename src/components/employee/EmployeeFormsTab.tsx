@@ -486,7 +486,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                     onValueChange={(v) => setFormData(p => ({ ...p, whatsapp_prefix: v, whatsapp: `${v}${(p.whatsapp_local || "").replace(/^0/, "")}` }))}
                   >
                     <SelectTrigger className="w-[110px] rounded-xl h-11"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent portal>
                       <SelectItem value="+972">+972</SelectItem>
                       <SelectItem value="+970">+970</SelectItem>
                     </SelectContent>
@@ -531,7 +531,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                     }}
                   >
                     <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent portal>
                       {branchOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد فروع</div>}
                       {branchOptions.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                     </SelectContent>
@@ -547,7 +547,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                     }}
                   >
                     <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent portal>
                       {deptOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد أقسام</div>}
                       {deptOptions.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                     </SelectContent>
@@ -561,7 +561,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                   onValueChange={(v) => setFormData(p => ({ ...p, education: v }))}
                 >
                   <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر المستوى التعليمي" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent portal>
                     <SelectItem value="ابتدائي">ابتدائي</SelectItem>
                     <SelectItem value="إعدادي">إعدادي</SelectItem>
                     <SelectItem value="ثانوي">ثانوي</SelectItem>
