@@ -35,7 +35,7 @@ export function clearAccessContextCache(userId?: string) {
   else cache.clear();
 }
 
-function defaultRouteFor(
+export function defaultRouteFor(
   type: AccountType,
   roles: string[],
   companySetupComplete: boolean,
