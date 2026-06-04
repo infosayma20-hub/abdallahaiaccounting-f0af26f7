@@ -231,6 +231,7 @@ const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const DeviceSetupPage = lazy(() => import("./pages/DeviceSetupPage"));
 const DeviceSetupGuard = lazy(() => import("./components/pos/DeviceSetupGuard"));
 const NewDeviceOnboardingPage = lazy(() => import("./pages/NewDeviceOnboardingPage"));
+const POSDiagnosticsPage = lazy(() => import("./pages/POSDiagnosticsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const AmwaliActivationAgreementPage = lazy(() => import("./pages/AmwaliActivationAgreementPage"));
 const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
@@ -401,6 +402,7 @@ const App = () => (
               <Route path="/onboarding/new-device" element={<ProtectedRoute><DeviceSetupGuard><NewDeviceOnboardingPage /></DeviceSetupGuard></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><ModuleGuard><POSDeviceAuthGuard><POSPage /></POSDeviceAuthGuard></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/floor-plan" element={<ProtectedRoute><ModuleGuard><FloorPlanPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/diagnostics" element={<ProtectedRoute><POSDiagnosticsPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><ModuleGuard><FloorPlanEditorPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModuleGuard><ModifierManagerPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/kitchen" element={<ProtectedRoute><ModuleGuard><KitchenDisplayPage /></ModuleGuard></ProtectedRoute>} />
