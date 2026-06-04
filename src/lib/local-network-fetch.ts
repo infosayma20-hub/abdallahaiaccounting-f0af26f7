@@ -1,9 +1,9 @@
 /**
  * Chrome Local Network Access / Private Network Access helper.
  *
- * Requests from the hosted app to the cashier PC's local Print Bridge need the
- * experimental `targetAddressSpace` hint so Chrome can show/remember the local
- * network permission prompt instead of blocking localhost/private IP calls.
+ * Requests from the hosted app to the cashier PC's local Print Bridge should
+ * stay as plain CORS for loopback URLs. The experimental `targetAddressSpace`
+ * hint is available only for explicit LAN-IP calls that need it.
  */
 export type LocalNetworkRequestInit = RequestInit & {
   targetAddressSpace?: "local" | "private";
