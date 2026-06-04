@@ -12,7 +12,6 @@ import EditOrderDialog from "./EditOrderDialog";
 import { extractBaseNote, deliveryBreakdown } from "@/lib/order-note-utils";
 import { installAudioUnlock, isAudioUnlocked, playLateOrderAlert } from "@/lib/audio-unlock";
 import {
-  LOCK_LEASE_MS,
   isEditLockActive,
   isEditLockExpired,
   isBranchAcceptanceDelayed,
