@@ -1,18 +1,15 @@
-import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Lock, Shield, Eye, EyeOff, KeyRound, Check, Loader2, Info } from "lucide-react";
+import { AlertTriangle, Lock, Shield, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import PasswordManagementSection from "./PasswordManagementSection";
 
 interface Props {
   settings: CompanySettings;
@@ -40,74 +37,10 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
     window.dispatchEvent(new Event("session_settings_updated"));
   };
 
-  // Password change state
-  const [currentPwd, setCurrentPwd] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [confirmPwd, setConfirmPwd] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
-  const [changingPwd, setChangingPwd] = useState(false);
-
-  const pwdValid = newPwd.length >= 6 && newPwd === confirmPwd;
-
-  const handleChangePassword = async () => {
-    if (!pwdValid) return;
-    setChangingPwd(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPwd });
-      if (error) throw error;
-      toast.success("تم تغيير كلمة المرور بنجاح");
-      setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
-    } catch (err: any) {
-      toast.error(err.message || "حدث خطأ أثناء تغيير كلمة المرور");
-    } finally {
-      setChangingPwd(false);
-    }
-  };
-
   return (
     <div className="p-6 space-y-8">
-      {/* Change Password */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          <KeyRound className="h-4 w-4 text-primary" />
-          تغيير كلمة المرور
-        </h3>
-        <div className="space-y-4 p-4 bg-muted/20 rounded-xl border border-border/30 max-w-md">
-          <div className="space-y-2">
-            <Label className="font-medium">كلمة المرور الجديدة</Label>
-            <div className="relative">
-              <Input
-                type={showPwd ? "text" : "password"}
-                value={newPwd}
-                onChange={e => setNewPwd(e.target.value)}
-                placeholder="6 أحرف على الأقل"
-                className="pl-10"
-              />
-              <button type="button" onClick={() => setShowPwd(!showPwd)}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="font-medium">تأكيد كلمة المرور</Label>
-            <Input
-              type={showPwd ? "text" : "password"}
-              value={confirmPwd}
-              onChange={e => setConfirmPwd(e.target.value)}
-              placeholder="أعد كتابة كلمة المرور"
-            />
-            {confirmPwd && newPwd !== confirmPwd && (
-              <p className="text-[11px] text-destructive">كلمتا المرور غير متطابقتين</p>
-            )}
-          </div>
-          <Button onClick={handleChangePassword} disabled={!pwdValid || changingPwd} className="w-full gap-2">
-            {changingPwd ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            حفظ كلمة المرور الجديدة
-          </Button>
-        </div>
-      </div>
+      {/* Password Management — smart: detects Google-only vs email account */}
+      <PasswordManagementSection />
 
       <Separator />
 
