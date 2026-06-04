@@ -266,7 +266,20 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "history" && (
-          <AttendanceCalendarTab history={history} />
+          shellEnabled ? (
+            <EmployeeShell
+              title="الحضور"
+              subtitle="سجل حضورك وانصرافك"
+              breadcrumb={[
+                { label: "الرئيسية", onClick: () => setActiveTab("home") },
+                { label: "الحضور" },
+              ]}
+            >
+              <AttendanceCalendarTab history={history} />
+            </EmployeeShell>
+          ) : (
+            <AttendanceCalendarTab history={history} />
+          )
         )}
 
         {activeTab === "manager-roster" && (
