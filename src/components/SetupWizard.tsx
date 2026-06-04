@@ -13,6 +13,8 @@ import { FinixLogo } from "@/components/ui/FinixLogo";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { motion, AnimatePresence } from "framer-motion";
 import amwaliMarkNavy from "@/assets/amwali-mark-navy.png";
+import { resolveUserAccessContext } from "@/lib/accessContext";
+import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 
 interface SetupWizardProps {
   userId: string;
@@ -89,6 +91,59 @@ const pageVariants = {
 const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const { toast } = useToast();
   const { refreshCompany } = useCompany();
+  // ──────────────────────────────────────────────────────────────────
+  // DEFENSE-IN-DEPTH GATE
+  // RequireSetupAccess + SetupPage already gate /setup, but a stale PWA
+  // bundle (service-worker cache from before those guards shipped) can
+  // still mount the wizard for an employee/cashier/etc. The edge
+  // function blocks any write, but the UI must also refuse to render
+  // so the user is not misled. This check runs unconditionally on
+  // mount and hard-redirects non-owners.
+  // ──────────────────────────────────────────────────────────────────
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [accessBlocked, setAccessBlocked] = useState<null | { route: string; reason: string }>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [ctx, ownerCheck] = await Promise.all([
+          resolveUserAccessContext(userId, { force: true }),
+          canUserCreateTenant(userId),
+        ]);
+        if (cancelled) return;
+        if (!ctx.canAccessSetup || !ownerCheck.canCreateTenant) {
+          // eslint-disable-next-line no-console
+          console.warn("[setup-wizard] blocked non-owner render", {
+            uid: userId,
+            accountType: ctx.accountType,
+            canAccessSetup: ctx.canAccessSetup,
+            canCreateTenant: ownerCheck.canCreateTenant,
+            reason: ownerCheck.reason,
+          });
+          setAccessBlocked({
+            route: ctx.defaultRoute || "/",
+            reason: ownerCheck.reason || "not_allowed_setup",
+          });
+          // Hard-replace so a stale SPA bundle cannot keep us here.
+          setTimeout(() => {
+            try { window.location.replace(ctx.defaultRoute || "/"); } catch {}
+          }, 50);
+          return;
+        }
+        setAccessChecked(true);
+      } catch (err) {
+        // Fail closed on guard error.
+        // eslint-disable-next-line no-console
+        console.error("[setup-wizard] guard failed, blocking", err);
+        setAccessBlocked({ route: "/", reason: "guard_error" });
+        setTimeout(() => {
+          try { window.location.replace("/"); } catch {}
+        }, 50);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
   // -1 = welcome, 0-5 = steps 1-6, 7 = completion
   const [step, setStep] = useState(-1);
   const [saving, setSaving] = useState(false);
@@ -374,6 +429,21 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleSkipStep = () => goNext();
 
   const progressPct = step < 0 ? 0 : ((step + 1) / TOTAL_STEPS) * 100;
+
+  // Block render until guard verifies caller. Stale PWA bundles or any
+  // bypass path must NOT see the wizard contents.
+  if (!accessChecked || accessBlocked) {
+    return (
+      <div className="fixed inset-0 z-[70] bg-background flex flex-col items-center justify-center gap-3" dir="rtl">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="text-sm text-muted-foreground">
+          {accessBlocked
+            ? "هذا الحساب غير مخوّل لإنشاء شركة. جاري التحويل…"
+            : "جارٍ التحقق من الصلاحيات…"}
+        </div>
+      </div>
+    );
+  }
 
   // ─── Render ───
   return (
