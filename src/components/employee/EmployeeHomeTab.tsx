@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
-  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet
+  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -120,7 +120,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       >
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-primary-foreground/60">مرحباً 👋</p>
+            <p className="text-sm text-primary-foreground/60">مرحباً</p>
             <h1 className="text-xl font-bold text-primary-foreground truncate">{employeeName}</h1>
             <p className="text-xs mt-1 text-primary-foreground/50">
               {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
@@ -245,7 +245,10 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                     <span className="mr-1">{status.label}</span>
                   </Badge>
                 ) : (
-                  <span className="text-xs text-muted-foreground">🟡 لم تسجّل بعد</span>
+                  <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    لم تسجّل بعد
+                  </span>
                 )}
               </div>
             </div>
@@ -281,8 +284,9 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
           {/* Elapsed time */}
           {elapsed && (
-            <p className="text-xs text-center text-muted-foreground mb-3">
-              ⏱️ دخلت منذ {elapsed}
+            <p className="text-xs text-center text-muted-foreground mb-3 inline-flex items-center justify-center gap-1 w-full">
+              <Timer className="h-3.5 w-3.5" />
+              دخلت منذ {elapsed}
             </p>
           )}
 
@@ -333,7 +337,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             <div className="text-center py-3 space-y-1">
               <p className="text-sm font-medium text-emerald-500 flex items-center justify-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
-                انتهى يوم عملك ✅
+                انتهى يوم عملك
               </p>
               <p className="text-xs text-muted-foreground">
                 إجمالي العمل: {completedSummary}
@@ -346,17 +350,23 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       {/* Monthly Stats */}
       <Card className="border-border bg-card">
         <CardContent className="p-4">
-          <h3 className="text-sm font-semibold mb-3">📊 إحصائيات الشهر</h3>
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            إحصائيات الشهر
+          </h3>
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: "حاضر", value: stats.present, emoji: "✅", color: "text-emerald-500" },
-              { label: "متأخر", value: stats.late, emoji: "⚠️", color: "text-warning" },
-              { label: "غياب", value: stats.absent, emoji: "❌", color: "text-destructive" },
-              { label: "ساعة", value: stats.totalHours.toFixed(0), emoji: "⏱️", color: "text-foreground" },
+              { label: "حاضر", value: stats.present, Icon: CheckCircle2, color: "text-emerald-500" },
+              { label: "متأخر", value: stats.late, Icon: AlertTriangle, color: "text-warning" },
+              { label: "غياب", value: stats.absent, Icon: XCircle, color: "text-destructive" },
+              { label: "ساعة", value: stats.totalHours.toFixed(0), Icon: Clock, color: "text-foreground" },
             ].map(s => (
               <div key={s.label} className="text-center bg-secondary/30 rounded-xl p-2.5">
                 <div className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</div>
-                <div className="text-[10px] text-muted-foreground">{s.emoji} {s.label}</div>
+                <div className="text-[10px] text-muted-foreground inline-flex items-center justify-center gap-1">
+                  <s.Icon className={`h-3 w-3 ${s.color}`} />
+                  {s.label}
+                </div>
               </div>
             ))}
           </div>
@@ -367,7 +377,10 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       {last5.length > 0 && (
         <Card className="border-border bg-card">
           <CardContent className="p-4">
-            <h3 className="text-sm font-semibold mb-3">📅 آخر 5 أيام</h3>
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <CalendarRange className="h-4 w-4 text-muted-foreground" />
+              آخر 5 أيام
+            </h3>
             <div className="space-y-1.5">
               {last5.map(day => (
                 <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
