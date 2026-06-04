@@ -46,17 +46,46 @@ export function useRoleRedirect() {
 
     const resolve = async () => {
       try {
-        const [{ data: rolesData }, { data: empRow }] = await Promise.all([
+        const [
+          { data: rolesData },
+          { data: profileRow },
+          { data: empRow },
+          { data: posUserRow },
+          { data: portalUserRow },
+        ] = await Promise.all([
           supabase.from("user_roles").select("role").eq("user_id", user.id),
+          supabase
+            .from("profiles")
+            .select("invited_by, role")
+            .eq("user_id", user.id)
+            .maybeSingle(),
           supabase
             .from("employees")
             .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
+          supabase
+            .from("pos_users")
+            .select("id, auth_user_id, user_id, is_active, is_call_center")
+            .eq("auth_user_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("malaki_portal_users")
+            .select("id, auth_user_id, user_id, is_active")
+            .eq("auth_user_id", user.id)
+            .maybeSingle(),
         ]);
 
-        const roles: string[] = (rolesData || []).map((r) => r.role);
+        const roleSet = new Set<string>((rolesData || []).map((r) => r.role));
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
+        const isPosUser = !!posUserRow && (posUserRow as any).is_active !== false;
+        const isPortalUser = !!portalUserRow && (portalUserRow as any).is_active !== false;
+        const profileRole = (profileRow as any)?.role as string | undefined;
+        if (profileRole) roleSet.add(profileRole);
+        if (isEmployee) roleSet.add("employee");
+        if (isPosUser) roleSet.add("cashier");
+        if (isPortalUser) roleSet.add("portal");
+        const roles = Array.from(roleSet);
         const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
 
         // إذا المستخدم مندوب + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
