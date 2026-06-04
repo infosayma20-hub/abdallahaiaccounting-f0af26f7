@@ -137,8 +137,15 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   /** Close-confirmation dialog state (item 10). */
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   /** Late-acceptance alert tracking (item 6): orders we've already beeped for. */
-  const beepedRef = useRef<Set<string>>(new Set());
   const [lateIds, setLateIds] = useState<Set<string>>(new Set());
+  /** Per-order timestamp of the last successful beep — drives the 60s re-beep cadence. */
+  const lastBeepAtRef = useRef<Map<string, number>>(new Map());
+  /** Tracks whether the browser has unlocked AudioContext yet (drives the silent-mode banner). */
+  const [audioReady, setAudioReady] = useState<boolean>(() => isAudioUnlocked());
+  /** Now-tick state so "منذ X دقائق" labels (heartbeat age, late counters) refresh once a minute. */
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
+  /** Force-release / takeover in-flight guard. */
+  const [lockActionId, setLockActionId] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -223,44 +230,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
    * edited) after 5 minutes, beep ONCE for that order and surface a "تأخر القبول"
    * indicator. We never beep twice for the same order id within the session. */
   const FIVE_MIN = 5 * 60 * 1000;
-  const playBeep = useCallback(() => {
-    try {
-      const Ctx: any = (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (!Ctx) return;
-      const ctx = new Ctx();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine"; o.frequency.value = 880;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-      o.connect(g).connect(ctx.destination);
-      o.start();
-      o.stop(ctx.currentTime + 0.55);
-      // Second short beep so it's noticeable but not loopy.
-      setTimeout(() => {
-        try {
-          const o2 = ctx.createOscillator();
-          const g2 = ctx.createGain();
-          o2.type = "sine"; o2.frequency.value = 1100;
-          g2.gain.setValueAtTime(0.0001, ctx.currentTime);
-          g2.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-          g2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
-          o2.connect(g2).connect(ctx.destination);
-          o2.start();
-          o2.stop(ctx.currentTime + 0.45);
-          setTimeout(() => { try { ctx.close(); } catch {} }, 800);
-        } catch {}
-      }, 250);
-    } catch { /* noop */ }
+  const REPEAT_MS = 60 * 1000; // re-alert every 60s while a pending order is still late
+  const LOCK_LEASE_MS = 3 * 60 * 1000; // mirrors the DB-side 3-min lease for stale-lock UI
+
+  // Install audio-unlock listeners as soon as the call-center screen mounts so
+  // the user's very first click anywhere unlocks the shared AudioContext.
+  useEffect(() => {
+    installAudioUnlock();
+    const poll = setInterval(() => {
+      const ready = isAudioUnlocked();
+      setAudioReady(prev => (prev === ready ? prev : ready));
+    }, 1000);
+    return () => clearInterval(poll);
   }, []);
 
   useEffect(() => {
     if (!open) return;
     const tick = () => {
       const now = Date.now();
+      setNowTick(now);
       const newLate = new Set<string>();
-      let triggered = false;
+      let shouldBeep = false;
       for (const o of orders) {
         if (o.status !== "pending") continue;
         if (o.cancelled_at) continue;
@@ -268,24 +258,38 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
         const age = now - new Date(o.created_at).getTime();
         if (age >= FIVE_MIN) {
           newLate.add(o.id);
-          if (!beepedRef.current.has(o.id)) {
-            beepedRef.current.add(o.id);
-            triggered = true;
+          // Re-beep on first discovery and then every REPEAT_MS while still late.
+          const last = lastBeepAtRef.current.get(o.id) ?? 0;
+          if (now - last >= REPEAT_MS) {
+            shouldBeep = true;
+            lastBeepAtRef.current.set(o.id, now);
           }
         }
       }
-      // Drop ids that are no longer pending so a future re-pending order would re-beep.
+      // GC: drop ids that left the pending state so re-pending would re-alert.
       const livePending = new Set(orders.filter(o => o.status === "pending").map(o => o.id));
-      for (const id of Array.from(beepedRef.current)) {
-        if (!livePending.has(id)) beepedRef.current.delete(id);
+      for (const id of Array.from(lastBeepAtRef.current.keys())) {
+        if (!livePending.has(id)) lastBeepAtRef.current.delete(id);
       }
-      setLateIds(newLate);
-      if (triggered) playBeep();
+      setLateIds(prev => {
+        if (prev.size === newLate.size && Array.from(prev).every(id => newLate.has(id))) return prev;
+        return newLate;
+      });
+      if (shouldBeep) {
+        const ok = playAlertBeep();
+        if (!ok) {
+          // Audio blocked — keep the visual badge but mark the banner so the
+          // user knows why they're not hearing anything.
+          setAudioReady(false);
+        } else {
+          setAudioReady(true);
+        }
+      }
     };
     tick();
     const t = setInterval(tick, 15000);
     return () => clearInterval(t);
-  }, [open, orders, playBeep]);
+  }, [open, orders]);
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
@@ -327,6 +331,28 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     }
     setResettingId(null);
   };
+
+  /** Force-release a stuck edit lock. Workspace-owner only (server-enforced). */
+  const handleForceReleaseLock = useCallback(async (orderId: string) => {
+    setLockActionId(orderId);
+    const { data, error } = await supabase.rpc(
+      "force_release_editing_call_center_order" as any,
+      { p_order_id: orderId } as any
+    );
+    setLockActionId(null);
+    if (error) {
+      toast.error("تعذّر تحرير القفل: " + (error.message || ""));
+      return;
+    }
+    const res = (data as any) || {};
+    if (!res.ok) {
+      if (res.reason === "forbidden") toast.error("صلاحية الأدمن فقط تستطيع تحرير القفل");
+      else toast.error("تعذّر تحرير القفل: " + (res.reason || ""));
+      return;
+    }
+    toast.success("تم تحرير قفل التعديل — الطلبية رجعت للفرع");
+    loadOrders();
+  }, [loadOrders]);
 
   /** Soft-cancel a still-pending dispatched order. Permission + race-safety
       enforced server-side by `cancel_dispatched_call_center_order`. */
