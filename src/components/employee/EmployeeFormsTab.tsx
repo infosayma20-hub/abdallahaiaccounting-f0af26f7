@@ -176,7 +176,11 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
         supabase.from("branches_safe").select("id, name").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("departments").select("id, name_ar, name").eq("user_id", ownerId).eq("is_active", true).eq("is_deleted", false).order("name_ar"),
       ]);
-      setBranchOptions((br || []).map((b: any) => ({ id: b.id, name: b.name })));
+      setBranchOptions(
+        (br || [])
+          .filter((b: any) => (b.name || "").trim() !== "فرع افتراضي")
+          .map((b: any) => ({ id: b.id, name: b.name }))
+      );
       setDeptOptions((dp || []).map((d: any) => ({ id: d.id, name: d.name_ar || d.name })));
     } catch (e) {
       // silent — selects fall back to empty
