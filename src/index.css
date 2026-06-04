@@ -5,38 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ──────────────────────────────────────────────────────────
-   Fluent / Dynamics 365 Enterprise Shell tokens
-   Scoped — only applies inside elements with `.fluent-shell`
-   so the rest of the app keeps its existing styling.
-   ────────────────────────────────────────────────────────── */
-.fluent-shell {
-  --fl-bg: #FAFAFA;
-  --fl-surface: #FFFFFF;
-  --fl-surface-2: #F5F5F5;
-  --fl-border: #D1D1D1;
-  --fl-border-subtle: #E5E5E5;
-  --fl-text: #242424;
-  --fl-text-secondary: #616161;
-  --fl-text-tertiary: #8A8A8A;
-  --fl-primary: #0F6CBD;
-  --fl-primary-hover: #115EA3;
-  --fl-hover: #EFF6FC;
-  --fl-selected: #E5F1FB;
-  --fl-selected-border: #0F6CBD;
-  --fl-danger: #C50F1F;
-  --fl-success: #107C10;
-  --fl-warning: #F7630C;
-  font-family: "Segoe UI", "Cairo", system-ui, -apple-system, sans-serif;
-  color: var(--fl-text);
-}
-.fluent-shell *,
-.fluent-shell *::before,
-.fluent-shell *::after { box-sizing: border-box; }
-.fluent-shell ::-webkit-scrollbar { width: 10px; height: 10px; }
-.fluent-shell ::-webkit-scrollbar-thumb { background: #C8C8C8; border-radius: 4px; }
-.fluent-shell ::-webkit-scrollbar-thumb:hover { background: #A0A0A0; }
-
 @layer base {
   /* ─── LIGHT THEME (DEFAULT) ─── */
   :root {
