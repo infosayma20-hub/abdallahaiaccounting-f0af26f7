@@ -35,7 +35,7 @@ export function useRoleRedirect() {
     }
 
     const cachedTarget = redirectCache.get(user.id);
-    if (cachedTarget !== undefined && !["/apps", "/employee", "/rep", "/rep/home", "/choose-workspace"].includes(cachedTarget || "")) {
+    if (cachedTarget !== undefined && !["/apps", "/employee", "/rep", "/rep/home", "/choose-workspace", "/setup"].includes(cachedTarget || "")) {
       setTargetPath(cachedTarget);
       setChecking(false);
       return;
@@ -250,7 +250,7 @@ export function useRoleRedirect() {
         }
 
         if (isCancelled) return;
-        redirectCache.set(user.id, nextPath);
+        if (nextPath !== "/setup") redirectCache.set(user.id, nextPath);
         setTargetPath(nextPath);
       } catch {
         if (isCancelled) return;
