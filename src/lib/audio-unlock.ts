@@ -18,6 +18,7 @@
 let ctx: AudioContext | null = null;
 let unlocked = false;
 let unlockListenersInstalled = false;
+let lateAlertPlayingUntil = 0;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -114,6 +115,66 @@ export function playAlertBeep(): boolean {
     o2.connect(g2).connect(c.destination);
     o2.start(now + 0.3);
     o2.stop(now + 0.8);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Long call-center style "تنبيه طلبية متأخرة" — a calm, repeating two-tone
+ * pattern that lasts ~4 seconds. Designed to be obviously audible without
+ * being harsh. If another late-order alert is still playing, this call is a
+ * no-op (returns `true`) so multiple late orders never stack their audio.
+ */
+export function playLateOrderAlert(): boolean {
+  const c = getCtx();
+  if (!c) return false;
+  if ((c.state as string) !== "running") {
+    tryResume();
+    if ((c.state as string) !== "running") return false;
+  }
+  // Prevent overlapping playback if multiple late orders trigger at once.
+  const nowMs = Date.now();
+  if (nowMs < lateAlertPlayingUntil) return true;
+
+  try {
+    const start = c.currentTime;
+    // 5 paired beeps (low → high), 0.75s per pair → ~3.75s total.
+    const pairs = 5;
+    const pairDuration = 0.75;
+    const peak = 0.22;
+
+    for (let i = 0; i < pairs; i++) {
+      const t0 = start + i * pairDuration;
+
+      // Low tone
+      const oLow = c.createOscillator();
+      const gLow = c.createGain();
+      oLow.type = "sine";
+      oLow.frequency.value = 720;
+      gLow.gain.setValueAtTime(0.0001, t0);
+      gLow.gain.exponentialRampToValueAtTime(peak, t0 + 0.04);
+      gLow.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32);
+      oLow.connect(gLow).connect(c.destination);
+      oLow.start(t0);
+      oLow.stop(t0 + 0.35);
+
+      // High tone (slightly after, like a call-center chime)
+      const oHi = c.createOscillator();
+      const gHi = c.createGain();
+      oHi.type = "sine";
+      oHi.frequency.value = 960;
+      gHi.gain.setValueAtTime(0.0001, t0 + 0.34);
+      gHi.gain.exponentialRampToValueAtTime(peak, t0 + 0.38);
+      gHi.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.7);
+      oHi.connect(gHi).connect(c.destination);
+      oHi.start(t0 + 0.34);
+      oHi.stop(t0 + 0.72);
+    }
+
+    const totalMs = Math.ceil(pairs * pairDuration * 1000);
+    lateAlertPlayingUntil = nowMs + totalMs;
     return true;
   } catch {
     return false;
