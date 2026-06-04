@@ -38,6 +38,7 @@ import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog"
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
+import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
 import { StockoutAlertButton } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
@@ -1148,6 +1149,13 @@ const POSPage = () => {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [isCallCenter, dataOwnerId]);
+
+  // POS-level late-dispatch watcher. Runs as long as the call-center user is
+  // inside POS — independent from the "سجل المحوّلة" side panel mount.
+  const { lateCount: dispatchLateCount } = useDelayedDispatchAlerts({
+    enabled: !!isCallCenter,
+    dataOwnerId,
+  });
 
   useEffect(() => {
     if (!userId || !dataOwnerId) return;
@@ -5524,6 +5532,14 @@ const POSPage = () => {
                   {pendingDispatchCount > 0 && (
                     <Badge className="text-[8px] px-1 py-0 h-4 bg-amber-500 text-white animate-pulse">
                       {pendingDispatchCount}
+                    </Badge>
+                  )}
+                  {dispatchLateCount > 0 && (
+                    <Badge
+                      className="text-[8px] px-1 py-0 h-4 bg-red-600 text-white animate-pulse"
+                      title="طلبيات تأخر قبولها من الفرع أكثر من 5 دقائق"
+                    >
+                      تأخر {dispatchLateCount}
                     </Badge>
                   )}
                 </button>
