@@ -1048,7 +1048,6 @@ function AgentStatsPanel({ stats }: { stats: AgentStat[] }) {
               <th className="text-center px-2 py-2 font-bold text-sky-700">يحتاج متابعة</th>
               <th className="text-center px-2 py-2 font-bold text-rose-700">شكاوى</th>
               <th className="text-center px-2 py-2 font-bold text-slate-500">لم يتم</th>
-              <th className="text-left px-3 py-2 font-bold">إجمالي المبيعات</th>
             </tr>
           </thead>
           <tbody>
@@ -1061,7 +1060,6 @@ function AgentStatsPanel({ stats }: { stats: AgentStat[] }) {
                 <td className="px-2 py-2 text-center text-sky-700 font-semibold">{s.needs_followup || "—"}</td>
                 <td className="px-2 py-2 text-center text-rose-700 font-semibold">{s.complaint || "—"}</td>
                 <td className="px-2 py-2 text-center text-slate-500">{s.not_called || "—"}</td>
-                <td className="px-3 py-2 text-left font-mono text-slate-800">{s.revenue.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
