@@ -332,7 +332,20 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "financials" && (
-          <EmployeeFinancialSummaryTab employeeId={employee.id} />
+          shellEnabled ? (
+            <EmployeeShell
+              title="محفظتي"
+              subtitle="ملخصك المالي والحركات المرتبطة بك"
+              breadcrumb={[
+                { label: "الرئيسية", onClick: () => setActiveTab("home") },
+                { label: "محفظتي" },
+              ]}
+            >
+              <EmployeeFinancialSummaryTab employeeId={employee.id} />
+            </EmployeeShell>
+          ) : (
+            <EmployeeFinancialSummaryTab employeeId={employee.id} />
+          )
         )}
 
         {activeTab === "attendance" && (
