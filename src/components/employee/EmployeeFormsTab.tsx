@@ -241,6 +241,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     toast({ title: "تم رفع الملف ✅" });
   };
 
+  const handleRemoveAttachment = async () => {
+    const path = (formData as any).attachment_path as string | undefined;
+    if (path) {
+      await supabase.storage.from("employee-forms").remove([path]).catch(() => {});
+    }
+    setFormData(prev => {
+      const { attachment_url, attachment_path, ...rest } = prev as any;
+      return rest;
+    });
+  };
+
   const submitForm = async () => {
     if (!activeForm) return;
 
@@ -635,22 +646,56 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">5</span>
                 <h4 className="text-sm font-semibold">صورة الهوية <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span></h4>
               </div>
-              <label className="border-2 border-dashed border-border rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                {uploadingFile ? (
-                  <>
-                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                    <span className="text-xs text-muted-foreground">جاري الرفع…</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-xs text-primary font-medium">اضغط لاختيار صورة من جهازك</span>
-                    <span className="text-[10px] text-muted-foreground">صورة أو PDF</span>
-                  </>
-                )}
-                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" disabled={uploadingFile} />
-              </label>
-              {formData.attachment_url && <p className="text-xs text-emerald-500 flex items-center gap-1">تم رفع الملف بنجاح</p>}
+              {formData.attachment_url ? (
+                (() => {
+                  const path = (formData as any).attachment_path as string | undefined;
+                  const isPdf = !!path && /\.pdf$/i.test(path);
+                  return (
+                    <div className="relative border-2 border-emerald-500/40 bg-emerald-500/5 rounded-xl p-3 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleRemoveAttachment}
+                        aria-label="إزالة الملف"
+                        className="absolute -top-2 -left-2 h-7 w-7 rounded-full bg-destructive text-destructive-foreground shadow-md flex items-center justify-center hover:scale-105 transition"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                      <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center shrink-0 border border-border">
+                        {isPdf ? (
+                          <FileText className="h-7 w-7 text-primary" />
+                        ) : (
+                          <img src={formData.attachment_url} alt="معاينة" className="h-full w-full object-cover" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          تم رفع الملف بنجاح
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate" dir="ltr">
+                          {isPdf ? "ملف PDF" : "صورة"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <label className="border-2 border-dashed border-border rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                  {uploadingFile ? (
+                    <>
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                      <span className="text-xs text-muted-foreground">جاري الرفع…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs text-primary font-medium">اضغط لاختيار صورة من جهازك</span>
+                      <span className="text-[10px] text-muted-foreground">صورة أو PDF</span>
+                    </>
+                  )}
+                  <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" disabled={uploadingFile} />
+                </label>
+              )}
             </div>
 
             {/* Notes */}
