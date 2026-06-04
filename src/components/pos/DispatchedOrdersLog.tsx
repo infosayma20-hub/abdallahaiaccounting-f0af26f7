@@ -256,41 +256,21 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
       const now = Date.now();
       setNowTick(now);
       const newLate = new Set<string>();
-      let shouldBeep = false;
       for (const o of orders) {
         // NOTE: an active edit lock does NOT exempt an order from the
         // late-acceptance alert. Branch acceptance and call-center editing
         // are independent workflows.
         if (!isBranchAcceptanceDelayed(o, now)) continue;
         newLate.add(o.id);
-        // Re-beep on first discovery and then every REPEAT_MS while still late.
-        const last = lastBeepAtRef.current.get(o.id) ?? 0;
-        if (now - last >= REPEAT_MS) {
-          shouldBeep = true;
-          lastBeepAtRef.current.set(o.id, now);
-        }
-      }
-      // GC: drop ids that left the pending state so re-pending would re-alert.
-      const livePending = new Set(orders.filter(o => o.status === "pending").map(o => o.id));
-      for (const id of Array.from(lastBeepAtRef.current.keys())) {
-        if (!livePending.has(id)) lastBeepAtRef.current.delete(id);
       }
       setLateIds(prev => {
         if (prev.size === newLate.size && Array.from(prev).every(id => newLate.has(id))) return prev;
         return newLate;
       });
-      if (shouldBeep) {
-        // Long call-center style "تنبيه طلبية متأخرة" — one play per tick,
-        // even if several orders just crossed the 5-minute threshold.
-        const ok = playLateOrderAlert();
-        if (!ok) {
-          // Audio blocked — keep the visual badge but mark the banner so the
-          // user knows why they're not hearing anything.
-          setAudioReady(false);
-        } else {
-          setAudioReady(true);
-        }
-      }
+      // NOTE: audio playback for late-acceptance lives at the POS level
+      // (`useDelayedDispatchAlerts`) so it keeps working even when this
+      // side panel is closed. Do not re-beep here or the user would hear
+      // the tone twice whenever the log is open.
     };
     tick();
     const t = setInterval(tick, 15000);
