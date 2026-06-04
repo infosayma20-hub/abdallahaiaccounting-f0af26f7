@@ -439,7 +439,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 0 && (
             <motion.div key="s1" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">🏢</div>
+                <StepIcon Icon={Building2} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">ما اسم شركتك أو نشاطك؟</h2>
                 <p className="text-sm text-muted-foreground">سيظهر هذا الاسم في فواتيرك وتقاريرك</p>
               </div>
@@ -534,7 +534,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 1 && (
             <motion.div key="s2" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-lg">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">📊</div>
+                <StepIcon Icon={BarChart3} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">ما طبيعة نشاطك التجاري؟</h2>
                 <p className="text-sm text-muted-foreground">سنهيئ الوحدات المناسبة لك تلقائياً</p>
               </div>
@@ -549,7 +549,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                         : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
                     }`}
                   >
-                    <span className="text-3xl">{bt.emoji}</span>
+                    <bt.Icon className={`h-7 w-7 ${data.businessType === bt.value ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.8} />
                     <span className="text-xs font-bold text-foreground">{bt.label}</span>
                     {bt.sublabel && <span className="text-[10px] text-muted-foreground -mt-1">{bt.sublabel}</span>}
                   </button>
@@ -562,7 +562,8 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                   className="mt-4 text-center"
                 >
                   <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-bold">
-                    ✓ سنفعّل: {BUSINESS_TYPES.find(b => b.value === data.businessType)?.modules}
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    سنفعّل: {BUSINESS_TYPES.find(b => b.value === data.businessType)?.modules}
                   </span>
                 </motion.div>
               )}
@@ -573,14 +574,14 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 2 && (
             <motion.div key="s3" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">💱</div>
+                <StepIcon Icon={Coins} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">كيف تعمل مالياً؟</h2>
                 <p className="text-sm text-muted-foreground">3 إعدادات تحدد آلية عمل حساباتك</p>
               </div>
               <div className="space-y-6">
                 {/* Currency */}
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">💱 العملة الأساسية</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Coins className="h-4 w-4 text-primary" /> العملة الأساسية</label>
                   <div className="flex gap-2">
                     {CURRENCIES.map(c => (
                       <button
@@ -619,7 +620,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
 
                 {/* VAT */}
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">🧾 ضريبة القيمة المضافة</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Receipt className="h-4 w-4 text-primary" /> ضريبة القيمة المضافة</label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => update({ vatEnabled: false })}
@@ -659,7 +660,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 {/* Inventory Method */}
                 {needsInventory(data.businessType) && (
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground flex items-center gap-2">📦 طريقة تقييم المخزون</label>
+                    <label className="text-sm font-bold text-foreground flex items-center gap-2"><Package className="h-4 w-4 text-primary" /> طريقة تقييم المخزون</label>
                     <div className="flex gap-2">
                       <button
                         onClick={() => update({ inventoryMethod: "fifo" })}
@@ -694,25 +695,25 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 3 && (
             <motion.div key="s4" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">👥</div>
+                <StepIcon Icon={Users} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">هل لديك فريق عمل أو نقطة بيع؟</h2>
                 <p className="text-sm text-muted-foreground">سنجهّز الصلاحيات وأنظمة البيع</p>
               </div>
               <div className="space-y-6">
                 {/* Employees */}
                 <div className="space-y-3">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">👥 هل لديك موظفون؟</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> هل لديك موظفون؟</label>
                   <div className="flex gap-3">
                     <ToggleCard
                       selected={data.hasEmployees === false}
                       onClick={() => update({ hasEmployees: false })}
-                      emoji="🙋"
+                      Icon={User}
                       label="لا، أعمل وحدي"
                     />
                     <ToggleCard
                       selected={data.hasEmployees === true}
                       onClick={() => update({ hasEmployees: true })}
-                      emoji="👥"
+                      Icon={Users}
                       label="نعم، لدي فريق"
                     />
                   </div>
@@ -740,18 +741,18 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
 
                 {/* POS */}
                 <div className="space-y-3">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">🖥️ هل لديك نقطة بيع (كاشير)؟</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-primary" /> هل لديك نقطة بيع (كاشير)؟</label>
                   <div className="flex gap-3">
                     <ToggleCard
                       selected={data.hasPOS === false}
                       onClick={() => update({ hasPOS: false })}
-                      emoji="🧾"
+                      Icon={FileText}
                       label="لا، بالفاتورة فقط"
                     />
                     <ToggleCard
                       selected={data.hasPOS === true}
                       onClick={() => update({ hasPOS: true })}
-                      emoji="🖥️"
+                      Icon={Monitor}
                       label="نعم، لدي كاشير"
                     />
                   </div>
@@ -774,18 +775,20 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 4 && (
             <motion.div key="s5" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">🧾</div>
+                <StepIcon Icon={FileText} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">كيف تريد ترقيم فواتيرك؟</h2>
                 <p className="text-sm text-muted-foreground">هذا سيُطبَّق على أول فاتورة تنشئها</p>
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">📄 بادئة رقم الفاتورة</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Hash className="h-4 w-4 text-primary" /> بادئة رقم الفاتورة</label>
                   <input
                     type="text"
                     value={data.invoicePrefix}
-                    onChange={e => update({ invoicePrefix: e.target.value.toUpperCase() })}
-                    className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    onChange={e => update({ invoicePrefix: e.target.value.toUpperCase().slice(0, 8) })}
+                    onFocus={e => e.currentTarget.select()}
+                    maxLength={8}
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 text-left"
                     dir="ltr"
                   />
                   <p className="text-[11px] text-muted-foreground">
@@ -794,20 +797,30 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">🔢 من أي رقم تبدأ؟</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><ListOrdered className="h-4 w-4 text-primary" /> من أي رقم تبدأ؟</label>
                   <input
-                    type="number"
-                    value={data.invoiceStartNumber}
-                    onChange={e => update({ invoiceStartNumber: parseInt(e.target.value) || 1 })}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={data.invoiceStartNumber === 0 ? "" : String(data.invoiceStartNumber)}
+                    onChange={e => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      if (digits === "") {
+                        update({ invoiceStartNumber: 0 });
+                      } else {
+                        update({ invoiceStartNumber: parseInt(digits, 10) });
+                      }
+                    }}
+                    onBlur={() => { if (!data.invoiceStartNumber || data.invoiceStartNumber < 1) update({ invoiceStartNumber: 1 }); }}
+                    onFocus={e => e.currentTarget.select()}
                     className="w-32 h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    min={1}
                     dir="ltr"
                   />
                   <p className="text-[11px] text-muted-foreground">إذا كان لديك فواتير سابقة اكتب رقمها الأخير</p>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">⏰ شروط الدفع الافتراضية</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> شروط الدفع الافتراضية</label>
                   <div className="grid grid-cols-4 gap-2">
                     {[
                       { key: "cash", label: "نقدي فوري" },
