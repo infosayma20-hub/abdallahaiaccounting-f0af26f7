@@ -2127,14 +2127,45 @@ const POSPage = () => {
     }
     // When "الكل" is selected, sort products grouped by category order
     if (selectedCategory === "الكل" && !debouncedSearch) {
+      // "الكل": first group by the user's saved CATEGORY order, then within
+      // each group apply that category's per-product saved order so the
+      // overall grid mirrors what the user sees when they open each tab.
       const catOrderMap = new Map<string, number>();
       visiblePosCategories.forEach((c, i) => catOrderMap.set(c.id, i));
+
+      // Pre-compute a per-category product-rank lookup so the inner sort
+      // stays O(1). Falls back to `product_order_all` for items that have no
+      // category-specific order saved yet.
+      const productRankByCat = new Map<string, Map<string, number>>();
+      const buildRank = (key: string) => {
+        const ids = productOrderByCategory[key];
+        if (!ids || !ids.length) return null;
+        const m = new Map<string, number>();
+        ids.forEach((id, i) => m.set(id, i));
+        return m;
+      };
+      for (const c of visiblePosCategories) {
+        const m = buildRank(c.id) ?? buildRank(c.name);
+        if (m) productRankByCat.set(c.id, m);
+      }
+      const uncategorizedRank = buildRank("__uncategorized__");
+      const allRank = buildRank("all");
+
       filtered.sort((a, b) => {
         const aCatId = a.pos_category_id || visiblePosCategories.find(c => c.name === a.category)?.id || "";
         const bCatId = b.pos_category_id || visiblePosCategories.find(c => c.name === b.category)?.id || "";
         const aOrder = catOrderMap.get(aCatId) ?? 9999;
         const bOrder = catOrderMap.get(bCatId) ?? 9999;
         if (aOrder !== bOrder) return aOrder - bOrder;
+
+        // Same category — prefer the per-category saved order; otherwise the
+        // "الكل" override; otherwise db pos_sort_order; otherwise name.
+        const rank = productRankByCat.get(aCatId) ?? (aCatId ? null : uncategorizedRank) ?? allRank;
+        if (rank) {
+          const ar = rank.has(a.id) ? rank.get(a.id)! : 9999;
+          const br = rank.has(b.id) ? rank.get(b.id)! : 9999;
+          if (ar !== br) return ar - br;
+        }
         const posOrder = ((a as any).pos_sort_order ?? (a as any).sort_order ?? 9999) - ((b as any).pos_sort_order ?? (b as any).sort_order ?? 9999);
         if (posOrder !== 0) return posOrder;
         return (a.name || "").localeCompare(b.name || "", "ar");
