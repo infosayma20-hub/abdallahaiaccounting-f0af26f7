@@ -2560,48 +2560,22 @@ const POSPage = () => {
 
     // Password change check disabled — no longer forcing first-login password change
 
-    // Load per-user UI preferences
-    if (userId) {
-      const { data: prefs } = await supabase
-        .from("pos_user_preferences")
-        .select("preference_key, preference_value")
-        .eq("auth_user_id", userId);
-      if (prefs) {
-        for (const p of prefs) {
-          if (p.preference_key === "card_size") {
-            const sz = (p.preference_value as any)?.size;
-            if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
-          }
-          if (p.preference_key === "category_order") {
-            const orderIds = (p.preference_value as any)?.order;
-            if (Array.isArray(orderIds) && orderIds.length > 0) {
-              setCategoryOrderIds(orderIds as string[]);
-              setPosCategories(prev => {
-                const ordered: POSCategory[] = [];
-                for (const id of orderIds) {
-                  const cat = prev.find(c => c.id === id);
-                  if (cat) ordered.push(cat);
-                }
-                // Add any new categories not in the saved order
-                for (const cat of prev) {
-                  if (!ordered.find(c => c.id === cat.id)) ordered.push(cat);
-                }
-                return ordered;
-              });
-            }
-          }
-          // Load per-user product order preferences
-          if (p.preference_key.startsWith("product_order_")) {
-            const orderIds = (p.preference_value as any)?.order;
-            if (Array.isArray(orderIds) && orderIds.length > 0) {
-              // Store per-category order separately so categories don't clobber each other.
-              // Key format: "product_order_<categoryName>" or "product_order_all"
-              const catKey = p.preference_key.replace(/^product_order_/, "");
-              setProductOrderByCategory(prev => ({ ...prev, [catKey]: orderIds as string[] }));
-            }
-          }
+    // Re-apply per-user UI preferences after opening a shift. `initializePOS`
+    // already loaded these on mount; this second call covers the case where
+    // the user signs in fresh and opens a shift without a page reload.
+    const prefs = await loadUserPreferences();
+    if (prefs.categoryOrderIds.length > 0) {
+      setPosCategories(prev => {
+        const ordered: POSCategory[] = [];
+        for (const id of prefs.categoryOrderIds) {
+          const cat = prev.find(c => c.id === id);
+          if (cat) ordered.push(cat);
         }
-      }
+        for (const cat of prev) {
+          if (!ordered.find(c => c.id === cat.id)) ordered.push(cat);
+        }
+        return ordered;
+      });
     }
   };
 
