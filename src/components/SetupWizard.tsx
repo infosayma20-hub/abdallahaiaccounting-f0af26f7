@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward, Lock, Eye, EyeOff,
+  BarChart3, Coins, Receipt, Package, Users, User, Monitor, FileText, Hash,
+  ListOrdered, Clock, Sparkles, CheckCircle2, Rocket, Store, Wrench,
+  UtensilsCrossed, HardHat, Hammer, ShoppingCart, Plane, Stethoscope,
+  GraduationCap, Settings as SettingsIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FinixLogo } from "@/components/ui/FinixLogo";
@@ -42,18 +49,25 @@ interface SetupData {
   confirmPassword: string;
 }
 
-const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; emoji: string; modules: string }[] = [
-  { value: "تجارة", label: "تجارة", sublabel: "وتوزيع", emoji: "🏪", modules: "المبيعات + المخزون + نقطة البيع" },
-  { value: "خدمات", label: "خدمات", sublabel: "مهنية", emoji: "🛠️", modules: "المبيعات + الفواتير + التقارير" },
-  { value: "مطعم", label: "مطعم / كافيه", sublabel: "", emoji: "🍽️", modules: "المبيعات + المخزون + نقطة البيع + الطاولات" },
-  { value: "مقاولات", label: "مقاولات", sublabel: "وإنشاء", emoji: "🏗️", modules: "المبيعات + المشتريات + محاسب المشاريع" },
-  { value: "ورش ومناجر", label: "ورش /", sublabel: "مناجر", emoji: "🪵", modules: "المالية + الورشات + تتبع التكاليف" },
-  { value: "متجر إلكتروني", label: "متجر", sublabel: "إلكتروني", emoji: "🛒", modules: "المبيعات + المخزون + المتاجر" },
-  { value: "سياحة", label: "سياحة /", sublabel: "سفر", emoji: "✈️", modules: "الحجوزات + الموردون + الأرباح" },
-  { value: "عيادة", label: "عيادة /", sublabel: "صيدلية", emoji: "🏥", modules: "المبيعات + الفواتير + التقارير" },
-  { value: "تعليم", label: "تعليم /", sublabel: "تدريب", emoji: "📚", modules: "المبيعات + الفواتير + التقارير" },
-  { value: "أخرى", label: "نشاط", sublabel: "آخر", emoji: "⚙️", modules: "جميع الوحدات مفعّلة" },
+const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; Icon: LucideIcon; modules: string }[] = [
+  { value: "تجارة", label: "تجارة", sublabel: "وتوزيع", Icon: Store, modules: "المبيعات + المخزون + نقطة البيع" },
+  { value: "خدمات", label: "خدمات", sublabel: "مهنية", Icon: Wrench, modules: "المبيعات + الفواتير + التقارير" },
+  { value: "مطعم", label: "مطعم / كافيه", sublabel: "", Icon: UtensilsCrossed, modules: "المبيعات + المخزون + نقطة البيع + الطاولات" },
+  { value: "مقاولات", label: "مقاولات", sublabel: "وإنشاء", Icon: HardHat, modules: "المبيعات + المشتريات + محاسب المشاريع" },
+  { value: "ورش ومناجر", label: "ورش /", sublabel: "مناجر", Icon: Hammer, modules: "المالية + الورشات + تتبع التكاليف" },
+  { value: "متجر إلكتروني", label: "متجر", sublabel: "إلكتروني", Icon: ShoppingCart, modules: "المبيعات + المخزون + المتاجر" },
+  { value: "سياحة", label: "سياحة /", sublabel: "سفر", Icon: Plane, modules: "الحجوزات + الموردون + الأرباح" },
+  { value: "عيادة", label: "عيادة /", sublabel: "صيدلية", Icon: Stethoscope, modules: "المبيعات + الفواتير + التقارير" },
+  { value: "تعليم", label: "تعليم /", sublabel: "تدريب", Icon: GraduationCap, modules: "المبيعات + الفواتير + التقارير" },
+  { value: "أخرى", label: "نشاط", sublabel: "آخر", Icon: SettingsIcon, modules: "جميع الوحدات مفعّلة" },
 ];
+
+/** Unified circular icon badge used as the visual header on every step. */
+const StepIcon = ({ Icon }: { Icon: LucideIcon }) => (
+  <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+    <Icon className="h-8 w-8" strokeWidth={1.8} />
+  </div>
+);
 
 const CURRENCIES = [
   { code: "ILS", symbol: "₪", label: "شيكل" },
@@ -395,7 +409,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
               </motion.div>
               <div className="space-y-3">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
-                  مرحباً {userName ? userName.split(" ")[0] : ""} 👋
+                  مرحباً {userName ? userName.split(" ")[0] : ""}
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   سنجهّز نظامك في أقل من دقيقتين
@@ -425,7 +439,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 0 && (
             <motion.div key="s1" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">🏢</div>
+                <StepIcon Icon={Building2} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">ما اسم شركتك أو نشاطك؟</h2>
                 <p className="text-sm text-muted-foreground">سيظهر هذا الاسم في فواتيرك وتقاريرك</p>
               </div>
@@ -520,7 +534,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 1 && (
             <motion.div key="s2" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-lg">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">📊</div>
+                <StepIcon Icon={BarChart3} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">ما طبيعة نشاطك التجاري؟</h2>
                 <p className="text-sm text-muted-foreground">سنهيئ الوحدات المناسبة لك تلقائياً</p>
               </div>
@@ -535,7 +549,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                         : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
                     }`}
                   >
-                    <span className="text-3xl">{bt.emoji}</span>
+                    <bt.Icon className={`h-7 w-7 ${data.businessType === bt.value ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.8} />
                     <span className="text-xs font-bold text-foreground">{bt.label}</span>
                     {bt.sublabel && <span className="text-[10px] text-muted-foreground -mt-1">{bt.sublabel}</span>}
                   </button>
@@ -548,7 +562,8 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                   className="mt-4 text-center"
                 >
                   <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-bold">
-                    ✓ سنفعّل: {BUSINESS_TYPES.find(b => b.value === data.businessType)?.modules}
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    سنفعّل: {BUSINESS_TYPES.find(b => b.value === data.businessType)?.modules}
                   </span>
                 </motion.div>
               )}
@@ -559,14 +574,14 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 2 && (
             <motion.div key="s3" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">💱</div>
+                <StepIcon Icon={Coins} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">كيف تعمل مالياً؟</h2>
                 <p className="text-sm text-muted-foreground">3 إعدادات تحدد آلية عمل حساباتك</p>
               </div>
               <div className="space-y-6">
                 {/* Currency */}
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">💱 العملة الأساسية</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Coins className="h-4 w-4 text-primary" /> العملة الأساسية</label>
                   <div className="flex gap-2">
                     {CURRENCIES.map(c => (
                       <button
@@ -605,7 +620,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
 
                 {/* VAT */}
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">🧾 ضريبة القيمة المضافة</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Receipt className="h-4 w-4 text-primary" /> ضريبة القيمة المضافة</label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => update({ vatEnabled: false })}
@@ -645,7 +660,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 {/* Inventory Method */}
                 {needsInventory(data.businessType) && (
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-foreground flex items-center gap-2">📦 طريقة تقييم المخزون</label>
+                    <label className="text-sm font-bold text-foreground flex items-center gap-2"><Package className="h-4 w-4 text-primary" /> طريقة تقييم المخزون</label>
                     <div className="flex gap-2">
                       <button
                         onClick={() => update({ inventoryMethod: "fifo" })}
@@ -680,25 +695,25 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 3 && (
             <motion.div key="s4" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">👥</div>
+                <StepIcon Icon={Users} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">هل لديك فريق عمل أو نقطة بيع؟</h2>
                 <p className="text-sm text-muted-foreground">سنجهّز الصلاحيات وأنظمة البيع</p>
               </div>
               <div className="space-y-6">
                 {/* Employees */}
                 <div className="space-y-3">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">👥 هل لديك موظفون؟</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> هل لديك موظفون؟</label>
                   <div className="flex gap-3">
                     <ToggleCard
                       selected={data.hasEmployees === false}
                       onClick={() => update({ hasEmployees: false })}
-                      emoji="🙋"
+                      Icon={User}
                       label="لا، أعمل وحدي"
                     />
                     <ToggleCard
                       selected={data.hasEmployees === true}
                       onClick={() => update({ hasEmployees: true })}
-                      emoji="👥"
+                      Icon={Users}
                       label="نعم، لدي فريق"
                     />
                   </div>
@@ -726,18 +741,18 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
 
                 {/* POS */}
                 <div className="space-y-3">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-2">🖥️ هل لديك نقطة بيع (كاشير)؟</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-primary" /> هل لديك نقطة بيع (كاشير)؟</label>
                   <div className="flex gap-3">
                     <ToggleCard
                       selected={data.hasPOS === false}
                       onClick={() => update({ hasPOS: false })}
-                      emoji="🧾"
+                      Icon={FileText}
                       label="لا، بالفاتورة فقط"
                     />
                     <ToggleCard
                       selected={data.hasPOS === true}
                       onClick={() => update({ hasPOS: true })}
-                      emoji="🖥️"
+                      Icon={Monitor}
                       label="نعم، لدي كاشير"
                     />
                   </div>
@@ -760,18 +775,20 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           {step === 4 && (
             <motion.div key="s5" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">🧾</div>
+                <StepIcon Icon={FileText} />
                 <h2 className="text-2xl font-bold text-foreground mb-2">كيف تريد ترقيم فواتيرك؟</h2>
                 <p className="text-sm text-muted-foreground">هذا سيُطبَّق على أول فاتورة تنشئها</p>
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">📄 بادئة رقم الفاتورة</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Hash className="h-4 w-4 text-primary" /> بادئة رقم الفاتورة</label>
                   <input
                     type="text"
                     value={data.invoicePrefix}
-                    onChange={e => update({ invoicePrefix: e.target.value.toUpperCase() })}
-                    className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    onChange={e => update({ invoicePrefix: e.target.value.toUpperCase().slice(0, 8) })}
+                    onFocus={e => e.currentTarget.select()}
+                    maxLength={8}
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 text-left"
                     dir="ltr"
                   />
                   <p className="text-[11px] text-muted-foreground">
@@ -780,20 +797,30 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">🔢 من أي رقم تبدأ؟</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><ListOrdered className="h-4 w-4 text-primary" /> من أي رقم تبدأ؟</label>
                   <input
-                    type="number"
-                    value={data.invoiceStartNumber}
-                    onChange={e => update({ invoiceStartNumber: parseInt(e.target.value) || 1 })}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={data.invoiceStartNumber === 0 ? "" : String(data.invoiceStartNumber)}
+                    onChange={e => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      if (digits === "") {
+                        update({ invoiceStartNumber: 0 });
+                      } else {
+                        update({ invoiceStartNumber: parseInt(digits, 10) });
+                      }
+                    }}
+                    onBlur={() => { if (!data.invoiceStartNumber || data.invoiceStartNumber < 1) update({ invoiceStartNumber: 1 }); }}
+                    onFocus={e => e.currentTarget.select()}
                     className="w-32 h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    min={1}
                     dir="ltr"
                   />
                   <p className="text-[11px] text-muted-foreground">إذا كان لديك فواتير سابقة اكتب رقمها الأخير</p>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">⏰ شروط الدفع الافتراضية</label>
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> شروط الدفع الافتراضية</label>
                   <div className="grid grid-cols-4 gap-2">
                     {[
                       { key: "cash", label: "نقدي فوري" },
@@ -857,8 +884,9 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-2xl font-extrabold text-foreground">
-                  🎉 نظامك جاهز يا {userName ? userName.split(" ")[0] : ""}!
+                <h2 className="text-2xl font-extrabold text-foreground flex items-center justify-center gap-2">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                  نظامك جاهز يا {userName ? userName.split(" ")[0] : ""}!
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   تم تهيئة {completedItems.length} إعداد بناءً على نشاطك
@@ -874,7 +902,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     transition={{ delay: 0.8 + i * 0.15 }}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10"
                   >
-                    <span className="text-emerald-500 font-bold">✅</span>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                     <span className="text-sm text-foreground">{item}</span>
                   </motion.div>
                 ))}
@@ -909,7 +937,10 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 جاري إعداد نظامك...
               </>
             ) : step === 4 ? (
-              "🚀 جهّز نظامي"
+              <>
+                <Rocket className="h-5 w-5" />
+                جهّز نظامي
+              </>
             ) : (
               <>
                 التالي
@@ -934,7 +965,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   );
 };
 
-const ToggleCard = ({ selected, onClick, emoji, label, small }: { selected: boolean; onClick: () => void; emoji: string; label: string; small?: boolean }) => (
+const ToggleCard = ({ selected, onClick, Icon, label, small }: { selected: boolean; onClick: () => void; Icon: LucideIcon; label: string; small?: boolean }) => (
   <button
     onClick={onClick}
     className={`flex-1 flex flex-col items-center gap-2 ${small ? "p-3" : "p-4"} rounded-2xl border-2 transition-all active:scale-[0.97] ${
@@ -943,7 +974,7 @@ const ToggleCard = ({ selected, onClick, emoji, label, small }: { selected: bool
         : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
     }`}
   >
-    <span className={small ? "text-xl" : "text-2xl"}>{emoji}</span>
+    <Icon className={`${small ? "h-5 w-5" : "h-6 w-6"} ${selected ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.8} />
     <span className="text-xs font-semibold text-foreground text-center">{label}</span>
   </button>
 );
