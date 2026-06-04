@@ -1033,17 +1033,25 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
       {/* Form Dialog */}
       <Dialog open={!!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); } }}>
-        <DialogContent className="max-w-sm bg-card border-border max-h-[85vh]" dir="rtl">
-          <DialogHeader>
+        <DialogContent
+          className="max-w-sm bg-card border-border max-h-[90vh] flex flex-col p-0 gap-0"
+          dir="rtl"
+        >
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
             <DialogTitle className="text-base">{getFormTitle()}</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground sr-only">تعبئة النموذج</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pe-2">
+          {/* Use native scroll instead of Radix ScrollArea: ScrollArea breaks pointer events
+              for Radix Select inside Dialogs on mobile (selection doesn't register / UI freezes). */}
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain px-6 pb-4"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             <div className="space-y-3 pb-2">
               {renderFormFields()}
             </div>
-          </ScrollArea>
-          <DialogFooter>
+          </div>
+          <DialogFooter className="px-6 py-4 border-t bg-card shrink-0">
             <Button onClick={submitForm} disabled={submitting || uploadingFile} className="w-full rounded-xl gap-2">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
