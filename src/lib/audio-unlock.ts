@@ -87,9 +87,9 @@ export function playAlertBeep(): boolean {
   if (!c) return false;
   // If the context is suspended, try one more time to resume — but don't beep
   // until it's actually running, otherwise we'd schedule a silent oscillator.
-  if (c.state !== "running") {
+  if ((c.state as string) !== "running") {
     tryResume();
-    if (c.state !== "running") return false;
+    if ((c.state as string) !== "running") return false;
   }
   try {
     const now = c.currentTime;
