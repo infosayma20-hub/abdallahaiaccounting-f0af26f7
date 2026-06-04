@@ -237,6 +237,7 @@ const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
 const BlockedAccessPage = lazy(() => import("./pages/BlockedAccessPage"));
 import RequireSetupAccess from "./components/RequireSetupAccess";
 import VersionGateBanner from "./components/VersionGateBanner";
+import VersionHardGate from "./components/VersionHardGate";
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
@@ -337,6 +338,7 @@ const App = () => (
         <Sonner />
         <CrossTabSyncProvider />
         <BrowserRouter>
+          <VersionHardGate>
           <AuthProvider>
             <ReadOnlyProvider>
             <CompanyProvider>
@@ -720,6 +722,7 @@ const App = () => (
             </CompanyProvider>
             </ReadOnlyProvider>
           </AuthProvider>
+          </VersionHardGate>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

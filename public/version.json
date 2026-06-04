@@ -1,1 +1,6 @@
-{ "version": "dev" }
+{
+  "version": "dev",
+  "minSupportedBuild": "0.0.0",
+  "forceUpdate": false,
+  "message": ""
+}

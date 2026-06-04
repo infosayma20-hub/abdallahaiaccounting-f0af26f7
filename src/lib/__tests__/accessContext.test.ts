@@ -40,4 +40,15 @@ describe("defaultRouteFor", () => {
   it("super_admin → super admin dashboard", () => {
     expect(defaultRouteFor("super_admin", [], false, false).route).toBe("/super-admin/dashboard");
   });
+  it("company_owner without canSetup is BLOCKED, never sent to /setup", () => {
+    const r = defaultRouteFor("company_owner", [], false, false);
+    expect(r.route).toBe("/blocked/no-setup-permission");
+    expect(r.blockingReason).toBe("not_allowed_setup");
+  });
+  it("unknown account type falls through to /blocked, NEVER /setup", () => {
+    // @ts-expect-error — intentionally invalid to test the safety net
+    const r = defaultRouteFor("garbage", [], false, true);
+    expect(r.route).toBe("/blocked/unlinked");
+    expect(r.blockingReason).toBe("unknown_state");
+  });
 });
