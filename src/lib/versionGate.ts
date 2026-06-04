@@ -9,27 +9,71 @@ const BUILD_VERSION =
   (import.meta as unknown as { env?: { VITE_BUILD_VERSION?: string } })?.env
     ?.VITE_BUILD_VERSION || "dev";
 
-let latest: string | null = null;
+export interface VersionManifest {
+  version: string;
+  minSupportedBuild?: string;
+  forceUpdate?: boolean;
+  message?: string;
+}
+
+let latestManifest: VersionManifest | null = null;
 
 export function getBuildVersion(): string {
   return BUILD_VERSION;
 }
 
-export async function fetchLatestVersion(): Promise<string | null> {
+export function getLatestManifest(): VersionManifest | null {
+  return latestManifest;
+}
+
+export async function fetchLatestVersion(): Promise<VersionManifest | null> {
   try {
     const res = await fetch(`/version.json?ts=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) return null;
-    const j = await res.json();
-    latest = String(j.version || "");
-    return latest;
+    const j = (await res.json()) as VersionManifest;
+    latestManifest = {
+      version: String(j.version || ""),
+      minSupportedBuild: j.minSupportedBuild ? String(j.minSupportedBuild) : undefined,
+      forceUpdate: Boolean(j.forceUpdate),
+      message: j.message ? String(j.message) : undefined,
+    };
+    return latestManifest;
   } catch {
     return null;
   }
 }
 
-export function isStale(currentLatest: string | null = latest): boolean {
-  if (!currentLatest || currentLatest === "dev") return false;
-  return currentLatest !== BUILD_VERSION;
+/** Soft staleness: a newer version is available — show a banner only. */
+export function isStale(m: VersionManifest | null = latestManifest): boolean {
+  if (!m || !m.version || m.version === "dev" || BUILD_VERSION === "dev") return false;
+  return m.version !== BUILD_VERSION;
+}
+
+/** Compare semver-ish strings ("1.2.3"). Missing parts treated as 0. */
+function cmpSemver(a: string, b: string): number {
+  const pa = a.split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = b.split(".").map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const x = pa[i] || 0;
+    const y = pb[i] || 0;
+    if (x !== y) return x < y ? -1 : 1;
+  }
+  return 0;
+}
+
+/**
+ * Hard block: app MUST be replaced before any post-auth screen renders.
+ * Triggers when either:
+ *   - manifest.forceUpdate === true AND build differs from latest, OR
+ *   - manifest.minSupportedBuild is set AND BUILD_VERSION < minSupportedBuild.
+ * Always false in dev (BUILD_VERSION === "dev") to keep local work usable.
+ */
+export function isHardBlocked(m: VersionManifest | null = latestManifest): boolean {
+  if (!m || BUILD_VERSION === "dev") return false;
+  if (m.forceUpdate && m.version && m.version !== BUILD_VERSION) return true;
+  if (m.minSupportedBuild && cmpSemver(BUILD_VERSION, m.minSupportedBuild) < 0) return true;
+  return false;
 }
 
 export async function clearAppCachesAndReload(): Promise<void> {

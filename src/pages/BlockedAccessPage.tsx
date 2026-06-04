@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-type BlockKey = "unlinked" | "company-not-ready" | "no-setup-permission";
+type BlockKey =
+  | "unlinked"
+  | "company-not-ready"
+  | "no-setup-permission"
+  | "unknown-state";
 
 const COPY: Record<BlockKey, { title: string; body: string }> = {
   unlinked: {
@@ -17,6 +21,10 @@ const COPY: Record<BlockKey, { title: string; body: string }> = {
   "no-setup-permission": {
     title: "لا تملك صلاحية الإعداد",
     body: "حسابك من نوع حساب فرعي ولا يمكنه الوصول إلى شاشة إعداد الشركة. يرجى التواصل مع مالك الشركة.",
+  },
+  "unknown-state": {
+    title: "تعذّر تحديد نوع الحساب",
+    body: "لم نتمكن من التعرف على نوع حسابك بشكل واضح. يرجى تسجيل الخروج وإعادة المحاولة، أو التواصل مع المسؤول.",
   },
 };
 

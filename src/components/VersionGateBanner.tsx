@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import { fetchLatestVersion, isStale, clearAppCachesAndReload } from "@/lib/versionGate";
+import {
+  fetchLatestVersion,
+  isStale,
+  isHardBlocked,
+  clearAppCachesAndReload,
+} from "@/lib/versionGate";
 
 export default function VersionGateBanner() {
   const [stale, setStale] = useState(false);
@@ -9,8 +14,10 @@ export default function VersionGateBanner() {
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      await fetchLatestVersion();
-      if (!cancelled) setStale(isStale());
+      const m = await fetchLatestVersion();
+      if (cancelled) return;
+      // Hard block is handled upstream by <VersionHardGate>; banner is for soft staleness only.
+      setStale(isStale(m) && !isHardBlocked(m));
     };
     check();
     const id = setInterval(check, 5 * 60 * 1000); // every 5 minutes

@@ -14,7 +14,8 @@ export type AccountType =
 export type BlockingReason =
   | "company_setup_incomplete"
   | "unlinked_account"
-  | "not_allowed_setup";
+  | "not_allowed_setup"
+  | "unknown_state";
 
 export interface AccessContext {
   userId: string;
@@ -61,12 +62,21 @@ export function defaultRouteFor(
         ? { route: "/apps" }
         : { route: "/blocked/company-not-ready", blockingReason: "company_setup_incomplete" };
     case "company_owner":
-      return companySetupComplete ? { route: "/apps" } : { route: "/setup" };
+      // Only a real company_owner with explicit DB permission may reach /setup.
+      if (companySetupComplete) return { route: "/apps" };
+      if (canSetup) return { route: "/setup" };
+      return { route: "/blocked/no-setup-permission", blockingReason: "not_allowed_setup" };
     case "unlinked":
+      // Unlinked users must NOT silently slide into Setup. Setup is only
+      // permitted when the DB explicitly authorised this user (canSetup=true)
+      // AND they own no company yet — which is exactly the bootstrap case.
       if (canSetup) return { route: "/setup" };
       return { route: "/blocked/unlinked", blockingReason: "unlinked_account" };
   }
-  return { route: "/apps" };
+  // Any unknown/garbage account type — NEVER fall through to /setup.
+  // eslint-disable-next-line no-console
+  console.error("[access] unknown accountType, blocking", { type, roles });
+  return { route: "/blocked/unlinked", blockingReason: "unknown_state" };
 }
 
 export async function resolveUserAccessContext(
