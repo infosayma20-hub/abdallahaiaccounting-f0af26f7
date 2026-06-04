@@ -7218,6 +7218,30 @@ export type Database = {
         }
         Relationships: []
       }
+      identity_integrity_issues: {
+        Row: {
+          auth_user_id: string | null
+          context: Json | null
+          created_at: string
+          id: string
+          issue_type: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          issue_type: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          issue_type?: string
+        }
+        Relationships: []
+      }
       import_cost_distribution: {
         Row: {
           allocated_amount: number | null
@@ -19249,6 +19273,7 @@ export type Database = {
         Args: { p_invoice_id: string; p_reason?: string }
         Returns: Json
       }
+      resolve_account_type: { Args: { _uid: string }; Returns: string }
       resolve_branch_warehouse: {
         Args: { p_branch_id: string; p_user_id: string }
         Returns: string
@@ -19307,6 +19332,7 @@ export type Database = {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
+      user_can_access_setup: { Args: { _uid: string }; Returns: boolean }
       verify_malaki_login: {
         Args: { p_password: string; p_username: string }
         Returns: Json
