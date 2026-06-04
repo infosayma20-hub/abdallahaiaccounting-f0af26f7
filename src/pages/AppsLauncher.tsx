@@ -27,6 +27,12 @@ import { Star, Command, ChevronDown } from "lucide-react";
 
 const appSections = getAppSections();
 
+/* ── Module-level cache to prevent skeleton flicker on revisits ──
+   Roles + employee-redirect decision are stable per user within a
+   session. Re-fetching is fine (kept for freshness), but UI should
+   not flash a skeleton when we already have a result. */
+const rolesCache = new Map<string, { roles: string[]; employeeOnly: boolean }>();
+
 /* ── Role-based app visibility ── */
 const ROLE_ALLOWED_APPS: Record<string, string[]> = {
   accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "tax"],
@@ -57,9 +63,10 @@ const AppsLauncher = () => {
     try { localStorage.setItem("amwali:apps:section:favorites:collapsed", favCollapsed ? "1" : "0"); } catch {}
   }, [favCollapsed]);
   // expandedApp removed in Phase 1 — apps now navigate directly
-  const [userRoles, setUserRoles] = useState<string[]>([]);
-  const [rolesLoading, setRolesLoading] = useState(true);
-  const [employeeOnlyRedirect, setEmployeeOnlyRedirect] = useState(false);
+  const cachedRoles = user?.id ? rolesCache.get(user.id) : undefined;
+  const [userRoles, setUserRoles] = useState<string[]>(cachedRoles?.roles ?? []);
+  const [rolesLoading, setRolesLoading] = useState(!cachedRoles);
+  const [employeeOnlyRedirect, setEmployeeOnlyRedirect] = useState(cachedRoles?.employeeOnly ?? false);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
   // Global Ctrl+K / ⌘K to open command palette
@@ -84,7 +91,10 @@ const AppsLauncher = () => {
       return;
     }
     let cancelled = false;
-    setRolesLoading(true);
+    // Only show loading state on the first ever fetch for this user;
+    // on revisits we already have cached roles, so render cards immediately
+    // and refresh in the background to avoid a flicker.
+    if (!rolesCache.has(user.id)) setRolesLoading(true);
     Promise.all([
       supabase
         .from("user_roles")
@@ -141,6 +151,12 @@ const AppsLauncher = () => {
         }
         setUserRoles(roles);
         setRolesLoading(false);
+        rolesCache.set(user.id, {
+          roles,
+          employeeOnly:
+            hasEmployeeRecord && !hasAdminAccess && !hasPureSystemRole &&
+            !(roles.includes("sales_rep") && !hasAdminAccess),
+        });
       });
     return () => { cancelled = true; };
   }, [user?.id]);
