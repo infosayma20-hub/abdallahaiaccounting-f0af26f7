@@ -288,15 +288,15 @@ const QuickAccessButton = () => {
         <button
           className="flex items-center justify-center transition-all duration-150 flex-shrink-0"
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: open ? "rgba(74,158,232,0.25)" : "rgba(74,158,232,0.15)",
+            width: 32,
+            height: 32,
+            borderRadius: 4,
+            background: open ? "#E5F1FB" : "transparent",
           }}
-          onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = "rgba(74,158,232,0.25)"; }}
-          onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "rgba(74,158,232,0.15)"; }}
+          onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = "#EFF6FC"; }}
+          onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "transparent"; }}
         >
-          <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "#4A9EE8" }} />
+          <Zap className="h-4 w-4" strokeWidth={1.6} style={{ color: "#0F6CBD" }} />
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -307,14 +307,14 @@ const QuickAccessButton = () => {
         style={{
           width: 480,
           background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          borderRadius: 12,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          border: "1px solid #D1D1D1",
+          borderRadius: 4,
+          boxShadow: "0 8px 16px rgba(0,0,0,0.12)",
           padding: 16,
         }}
       >
-        <p style={{ fontSize: 13, fontWeight: 600, color: "#1B3A5C", marginBottom: 12 }}>
-          ⚡ وصول سريع
+        <p style={{ fontSize: 12, fontWeight: 600, color: "#242424", marginBottom: 12, letterSpacing: "0.02em" }}>
+          الوصول السريع
         </p>
         <div className="grid grid-cols-2 gap-1">
           {QUICK_ITEMS.map((item) => (
@@ -322,8 +322,8 @@ const QuickAccessButton = () => {
               key={item.path}
               onClick={() => handleNavigate(item.path)}
               className="flex items-center gap-2.5 text-right transition-colors group"
-              style={{ padding: "10px 12px", borderRadius: 8 }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#F8F9FA"; }}
+              style={{ padding: "8px 10px", borderRadius: 4 }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#EFF6FC"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               <item.icon className="flex-shrink-0" style={{ width: 18, height: 18, color: "#1B3A5C" }} strokeWidth={1.6} />
