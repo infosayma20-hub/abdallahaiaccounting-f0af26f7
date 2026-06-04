@@ -241,6 +241,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     toast({ title: "تم رفع الملف ✅" });
   };
 
+  const handleRemoveAttachment = async () => {
+    const path = (formData as any).attachment_path as string | undefined;
+    if (path) {
+      await supabase.storage.from("employee-forms").remove([path]).catch(() => {});
+    }
+    setFormData(prev => {
+      const { attachment_url, attachment_path, ...rest } = prev as any;
+      return rest;
+    });
+  };
+
   const submitForm = async () => {
     if (!activeForm) return;
 
