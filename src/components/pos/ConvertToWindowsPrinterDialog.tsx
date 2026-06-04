@@ -108,8 +108,17 @@ export default function ConvertToWindowsPrinterDialog({
     setError(null);
     try {
       const url = getDeviceConfig().bridgeUrl || "http://127.0.0.1:3001";
-      const res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(5000) }));
+      let res: Response;
+      try {
+        res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(5000) }));
+      } catch {
+        // Some Chrome/bridge versions block the LNA preflight even after the
+        // site permission is allowed. Plain GET is enough for this read-only
+        // endpoint and works with older bridges too.
+        res = await fetch(`${url}/windows-printers`, { signal: AbortSignal.timeout(5000), cache: "no-store" });
+      }
       const data = await res.json().catch(() => ({}));
+      if ((data as { ok?: boolean })?.ok === false) throw new Error(String((data as { error?: unknown })?.error || "windows_printers_failed"));
       const raw: unknown[] = Array.isArray(data)
         ? data
         : Array.isArray((data as any)?.printers) ? (data as any).printers : [];
@@ -136,7 +145,7 @@ export default function ConvertToWindowsPrinterDialog({
       setList(parsed);
       if (parsed.length === 0) setError("لم يتم العثور على أي طابعة Windows على هذا الجهاز.");
     } catch (e: any) {
-      setError(getLocalNetworkBlockedMessage());
+      setError(e?.message ? `تعذر قراءة طابعات Windows: ${e.message}` : getLocalNetworkBlockedMessage());
     } finally {
       setLoading(false);
     }
