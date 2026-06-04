@@ -481,16 +481,21 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <div>
                 <label className="text-xs font-medium mb-1.5 block">الرقم اللي بتستقبل عليه واتساب <span className="text-destructive">*</span></label>
                 <div className="flex gap-2" dir="ltr">
-                  <Select
-                    value={formData.whatsapp_prefix || "+972"}
-                    onValueChange={(v) => setFormData(p => ({ ...p, whatsapp_prefix: v, whatsapp: `${v}${(p.whatsapp_local || "").replace(/^0/, "")}` }))}
-                  >
-                    <SelectTrigger className="w-[110px] rounded-xl h-11"><SelectValue /></SelectTrigger>
-                    <SelectContent portal>
-                      <SelectItem value="+972">+972</SelectItem>
-                      <SelectItem value="+970">+970</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex rounded-xl border border-border overflow-hidden h-11 shrink-0" role="group">
+                    {["+972", "+970"].map(code => {
+                      const active = (formData.whatsapp_prefix || "+972") === code;
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => setFormData(p => ({ ...p, whatsapp_prefix: code, whatsapp: `${code}${(p.whatsapp_local || "").replace(/^0/, "")}` }))}
+                          className={`px-3 text-sm font-medium transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted/50"}`}
+                        >
+                          {code}
+                        </button>
+                      );
+                    })}
+                  </div>
                   <Input
                     inputMode="numeric"
                     value={formData.whatsapp_local || ""}
@@ -520,59 +525,67 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 <label className="text-xs font-medium mb-1.5 block">تاريخ بدايتك بالعمل في الملكي <span className="text-destructive">*</span></label>
                 <Input type="date" value={formData.malaky_start_date || ""} onChange={e => setFormData(p => ({ ...p, malaky_start_date: e.target.value }))} dir="ltr" className="rounded-xl h-11" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-medium mb-1.5 block">الفرع <span className="text-destructive">*</span></label>
-                  <Select
-                    value={formData.branch_id || ""}
-                    onValueChange={(v) => {
-                      const b = branchOptions.find(x => x.id === v);
-                      setFormData(p => ({ ...p, branch_id: v, branch: b?.name || "" }));
-                    }}
-                  >
-                    <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
-                    <SelectContent portal>
-                      {branchOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد فروع</div>}
-                      {branchOptions.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1.5 block">القسم <span className="text-destructive">*</span></label>
-                  <Select
-                    value={formData.department_id || ""}
-                    onValueChange={(v) => {
-                      const d = deptOptions.find(x => x.id === v);
-                      setFormData(p => ({ ...p, department_id: v, department: d?.name || "" }));
-                    }}
-                  >
-                    <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر القسم" /></SelectTrigger>
-                    <SelectContent portal>
-                      {deptOptions.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">لا توجد أقسام</div>}
-                      {deptOptions.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">الفرع <span className="text-destructive">*</span></label>
+                {branchOptions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">لا توجد فروع</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {branchOptions.map(b => {
+                      const active = formData.branch_id === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setFormData(p => ({ ...p, branch_id: b.id, branch: b.name }))}
+                          className={`py-3 px-2 rounded-xl border text-sm font-medium transition-all text-center ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}
+                        >
+                          {b.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block">القسم <span className="text-destructive">*</span></label>
+                {deptOptions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">لا توجد أقسام</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {deptOptions.map(d => {
+                      const active = formData.department_id === d.id;
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setFormData(p => ({ ...p, department_id: d.id, department: d.name }))}
+                          className={`py-3 px-2 rounded-xl border text-sm font-medium transition-all text-center ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}
+                        >
+                          {d.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs font-medium mb-1.5 block">المستوى التعليمي <span className="text-destructive">*</span></label>
-                <Select
-                  value={formData.education || ""}
-                  onValueChange={(v) => setFormData(p => ({ ...p, education: v }))}
-                >
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="اختر المستوى التعليمي" /></SelectTrigger>
-                  <SelectContent portal>
-                    <SelectItem value="ابتدائي">ابتدائي</SelectItem>
-                    <SelectItem value="إعدادي">إعدادي</SelectItem>
-                    <SelectItem value="ثانوي">ثانوي</SelectItem>
-                    <SelectItem value="توجيهي">توجيهي</SelectItem>
-                    <SelectItem value="دبلوم">دبلوم</SelectItem>
-                    <SelectItem value="بكالوريوس">بكالوريوس</SelectItem>
-                    <SelectItem value="ماجستير">ماجستير</SelectItem>
-                    <SelectItem value="دكتوراه">دكتوراه</SelectItem>
-                    <SelectItem value="أخرى">أخرى</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-3 gap-2">
+                  {["ابتدائي","إعدادي","ثانوي","توجيهي","دبلوم","بكالوريوس","ماجستير","دكتوراه","أخرى"].map(v => {
+                    const active = formData.education === v;
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setFormData(p => ({ ...p, education: v }))}
+                        className={`py-2.5 rounded-xl border text-xs font-medium transition-all ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}
+                      >
+                        {v}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
