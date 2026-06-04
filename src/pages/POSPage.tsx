@@ -1540,7 +1540,19 @@ const POSPage = () => {
         }
       }
 
-      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees(), loadModifiers()]);
+      // Load the user's saved orders FIRST, then pass the category order
+      // directly into loadCategories so it doesn't race the state update.
+      // Without this, on a hard refresh the sort would fall back to the
+      // company-wide display_order until another render kicked sorting again.
+      const prefs = await loadUserPreferences();
+      await Promise.all([
+        loadProducts(),
+        loadCategories(prefs.categoryOrderIds),
+        loadExchangeRates(),
+        loadContacts(),
+        loadEmployees(),
+        loadModifiers(),
+      ]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
