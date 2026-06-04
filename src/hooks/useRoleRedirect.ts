@@ -5,6 +5,18 @@ import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 
 const redirectCache = new Map<string, string | null>();
 
+type ProfileRouteMarker = { role?: string | null };
+type PosRouteMarker = { is_active?: boolean | null };
+type PortalRouteMarker = { is_active?: boolean | null };
+
+const readWorkspaceChoice = (userId: string) => {
+  try {
+    return sessionStorage.getItem(`workspace-choice:${userId}`);
+  } catch {
+    return null;
+  }
+};
+
 export function clearRoleRedirectCache(userId?: string) {
   if (userId) redirectCache.delete(userId);
   else redirectCache.clear();
@@ -76,11 +88,14 @@ export function useRoleRedirect() {
             .maybeSingle(),
         ]);
 
-        const roleSet = new Set<string>((rolesData || []).map((r) => r.role));
+        const profile = profileRow as ProfileRouteMarker | null;
+        const posUser = posUserRow as PosRouteMarker | null;
+        const portalUser = portalUserRow as PortalRouteMarker | null;
+        const roleSet = new Set<string>((rolesData || []).map((r) => String(r.role)));
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
-        const isPosUser = !!posUserRow && (posUserRow as any).is_active !== false;
-        const isPortalUser = !!portalUserRow && (portalUserRow as any).is_active !== false;
-        const profileRole = (profileRow as any)?.role as string | undefined;
+        const isPosUser = !!posUser && posUser.is_active !== false;
+        const isPortalUser = !!portalUser && portalUser.is_active !== false;
+        const profileRole = profile?.role || undefined;
         if (profileRole) roleSet.add(profileRole);
         if (isEmployee) roleSet.add("employee");
         if (isPosUser) roleSet.add("cashier");
@@ -91,8 +106,7 @@ export function useRoleRedirect() {
         // إذا المستخدم مندوب + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
         // ما لم يكن قد اختار سابقاً في نفس الجلسة.
         if (roles.includes("sales_rep") && isEmployee && !hasAdminAccess) {
-          let chosen: string | null = null;
-          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const chosen = readWorkspaceChoice(user.id);
           const nextPath = chosen === "/employee" ? "/employee"
             : chosen === "/rep" ? "/rep/home"
             : "/choose-workspace";
@@ -107,8 +121,7 @@ export function useRoleRedirect() {
         // إذا المستخدم كاشير + موظف نشط (وما عنده admin) — اعرض شاشة اختيار workspace
         // بين شاشة الموظف وشاشة نقطة البيع.
         if (roles.includes("cashier") && isEmployee && !hasAdminAccess) {
-          let chosen: string | null = null;
-          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const chosen = readWorkspaceChoice(user.id);
           const nextPath = chosen === "/employee" ? "/employee"
             : chosen === "/pos" ? "/pos"
             : "/choose-workspace";
@@ -153,7 +166,9 @@ export function useRoleRedirect() {
             Object.keys(sessionStorage).forEach((key) => {
               if (key.includes("lastVisitedRoute")) sessionStorage.removeItem(key);
             });
-          } catch {}
+          } catch {
+            // Storage cleanup is best-effort.
+          }
           console.info("[role-redirect] finalRedirect = /employee", {
             authUid: user.id,
             employeeId: empRow.id,
@@ -188,8 +203,7 @@ export function useRoleRedirect() {
           // can pick between POS and the employee screen (clock-in works on
           // any device, POS only on devices with the local Print Bridge).
           // After their first pick the choice is sticky for the session.
-          let chosen: string | null = null;
-          try { chosen = sessionStorage.getItem(`workspace-choice:${user.id}`); } catch {}
+          const chosen = readWorkspaceChoice(user.id);
           nextPath = chosen === "/employee" ? "/employee"
             : chosen === "/pos" ? "/pos"
             : "/choose-workspace";
@@ -209,7 +223,7 @@ export function useRoleRedirect() {
           // other system roles AND no employee record — go straight to /feedback.
           if (!isEmployee) {
             const { data: fbPerms } = await supabase
-              .from("user_feature_permissions" as any)
+              .from("user_feature_permissions")
               .select("id")
               .eq("target_user_id", user.id)
               .eq("app_key", "call_center_feedback")
