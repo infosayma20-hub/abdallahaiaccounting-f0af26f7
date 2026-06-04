@@ -204,7 +204,7 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
       {onUpdateInfo && (
         <Button
           variant="outline"
-          className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary bg-card hover:bg-slate-50 hover:text-primary hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
           onClick={onUpdateInfo}
         >
           <PenLine className="h-4 w-4" />
@@ -215,7 +215,7 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
       {/* Change Password CTA */}
       <Button
         variant="outline"
-        className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary hover:bg-primary/5"
+        className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary bg-card hover:bg-slate-50 hover:text-primary hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
         onClick={() => setPwdOpen(true)}
       >
         <KeyRound className="h-4 w-4" />
