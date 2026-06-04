@@ -375,7 +375,20 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "attendance" && (
-          <EmployeeAttendanceTab employeeId={employee.id} />
+          shellEnabled ? (
+            <EmployeeShell
+              title="سجل دوامي"
+              subtitle="حضورك وانصرافك وسجل الأيام"
+              breadcrumb={[
+                { label: "الرئيسية", onClick: () => setActiveTab("home") },
+                { label: "سجل دوامي" },
+              ]}
+            >
+              <EmployeeAttendanceTab employeeId={employee.id} />
+            </EmployeeShell>
+          ) : (
+            <EmployeeAttendanceTab employeeId={employee.id} />
+          )
         )}
 
         {activeTab === "actions" && (
