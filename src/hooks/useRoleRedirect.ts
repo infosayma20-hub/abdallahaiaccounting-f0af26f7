@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
 
 const redirectCache = new Map<string, string | null>();
 
@@ -188,11 +189,26 @@ export function useRoleRedirect() {
             if (fbPerms && fbPerms.length > 0) {
               nextPath = "/feedback";
             } else {
+              // Resolve the true tenant owner (the user may have been
+              // invited as admin by the company owner — their accounts
+              // live under the owner's UID, not their own).
+              const { data: ownerIdData } = await supabase.rpc(
+                "get_team_owner_id",
+                { _user_id: user.id }
+              );
+              const ownerId = (ownerIdData as string | null) || user.id;
               const { count } = await supabase
                 .from("accounts")
                 .select("id", { count: "exact", head: true })
-                .eq("user_id", user.id);
-              nextPath = !count || count === 0 ? "/setup" : "/apps";
+                .eq("user_id", ownerId);
+              if (count && count > 0) {
+                nextPath = "/apps";
+              } else {
+                // Final safety: never seed a stray tenant for a user who
+                // isn't actually allowed to create one.
+                const guard = await canUserCreateTenant(user.id);
+                nextPath = guard.canCreateTenant ? "/setup" : "/apps";
+              }
             }
           } else {
             // TENANT-OWNER GUARD: this user is an active employee of an
