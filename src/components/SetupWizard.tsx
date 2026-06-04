@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward, Lock, Eye, EyeOff,
+  BarChart3, Coins, Receipt, Package, Users, User, Monitor, FileText, Hash,
+  ListOrdered, Clock, Sparkles, CheckCircle2, Rocket, Store, Wrench,
+  UtensilsCrossed, HardHat, Hammer, ShoppingCart, Plane, Stethoscope,
+  GraduationCap, Settings as SettingsIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FinixLogo } from "@/components/ui/FinixLogo";
@@ -42,18 +49,25 @@ interface SetupData {
   confirmPassword: string;
 }
 
-const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; emoji: string; modules: string }[] = [
-  { value: "تجارة", label: "تجارة", sublabel: "وتوزيع", emoji: "🏪", modules: "المبيعات + المخزون + نقطة البيع" },
-  { value: "خدمات", label: "خدمات", sublabel: "مهنية", emoji: "🛠️", modules: "المبيعات + الفواتير + التقارير" },
-  { value: "مطعم", label: "مطعم / كافيه", sublabel: "", emoji: "🍽️", modules: "المبيعات + المخزون + نقطة البيع + الطاولات" },
-  { value: "مقاولات", label: "مقاولات", sublabel: "وإنشاء", emoji: "🏗️", modules: "المبيعات + المشتريات + محاسب المشاريع" },
-  { value: "ورش ومناجر", label: "ورش /", sublabel: "مناجر", emoji: "🪵", modules: "المالية + الورشات + تتبع التكاليف" },
-  { value: "متجر إلكتروني", label: "متجر", sublabel: "إلكتروني", emoji: "🛒", modules: "المبيعات + المخزون + المتاجر" },
-  { value: "سياحة", label: "سياحة /", sublabel: "سفر", emoji: "✈️", modules: "الحجوزات + الموردون + الأرباح" },
-  { value: "عيادة", label: "عيادة /", sublabel: "صيدلية", emoji: "🏥", modules: "المبيعات + الفواتير + التقارير" },
-  { value: "تعليم", label: "تعليم /", sublabel: "تدريب", emoji: "📚", modules: "المبيعات + الفواتير + التقارير" },
-  { value: "أخرى", label: "نشاط", sublabel: "آخر", emoji: "⚙️", modules: "جميع الوحدات مفعّلة" },
+const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; Icon: LucideIcon; modules: string }[] = [
+  { value: "تجارة", label: "تجارة", sublabel: "وتوزيع", Icon: Store, modules: "المبيعات + المخزون + نقطة البيع" },
+  { value: "خدمات", label: "خدمات", sublabel: "مهنية", Icon: Wrench, modules: "المبيعات + الفواتير + التقارير" },
+  { value: "مطعم", label: "مطعم / كافيه", sublabel: "", Icon: UtensilsCrossed, modules: "المبيعات + المخزون + نقطة البيع + الطاولات" },
+  { value: "مقاولات", label: "مقاولات", sublabel: "وإنشاء", Icon: HardHat, modules: "المبيعات + المشتريات + محاسب المشاريع" },
+  { value: "ورش ومناجر", label: "ورش /", sublabel: "مناجر", Icon: Hammer, modules: "المالية + الورشات + تتبع التكاليف" },
+  { value: "متجر إلكتروني", label: "متجر", sublabel: "إلكتروني", Icon: ShoppingCart, modules: "المبيعات + المخزون + المتاجر" },
+  { value: "سياحة", label: "سياحة /", sublabel: "سفر", Icon: Plane, modules: "الحجوزات + الموردون + الأرباح" },
+  { value: "عيادة", label: "عيادة /", sublabel: "صيدلية", Icon: Stethoscope, modules: "المبيعات + الفواتير + التقارير" },
+  { value: "تعليم", label: "تعليم /", sublabel: "تدريب", Icon: GraduationCap, modules: "المبيعات + الفواتير + التقارير" },
+  { value: "أخرى", label: "نشاط", sublabel: "آخر", Icon: SettingsIcon, modules: "جميع الوحدات مفعّلة" },
 ];
+
+/** Unified circular icon badge used as the visual header on every step. */
+const StepIcon = ({ Icon }: { Icon: LucideIcon }) => (
+  <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+    <Icon className="h-8 w-8" strokeWidth={1.8} />
+  </div>
+);
 
 const CURRENCIES = [
   { code: "ILS", symbol: "₪", label: "شيكل" },
