@@ -1150,6 +1150,13 @@ const POSPage = () => {
     return () => { supabase.removeChannel(ch); };
   }, [isCallCenter, dataOwnerId]);
 
+  // POS-level late-dispatch watcher. Runs as long as the call-center user is
+  // inside POS — independent from the "سجل المحوّلة" side panel mount.
+  const { lateCount: dispatchLateCount } = useDelayedDispatchAlerts({
+    enabled: !!isCallCenter,
+    dataOwnerId,
+  });
+
   useEffect(() => {
     if (!userId || !dataOwnerId) return;
     initializePOS();
