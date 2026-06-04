@@ -18,6 +18,8 @@ export interface TenantOwnerCheck {
   reason?:
     | "linked_employee"
     | "linked_pos_user"
+    | "linked_portal_user"
+    | "invited_profile"
     | "non_owner_role"
     | "granted_feature_perm";
 }
@@ -30,11 +32,18 @@ export interface TenantOwnerCheck {
 export async function canUserCreateTenant(authUserId: string): Promise<TenantOwnerCheck> {
   const [
     { data: rolesRows },
+    { data: profileRow },
     { data: empRow },
     { data: posUserRow },
+    { data: portalUserRow },
     { data: featurePermRows },
   ] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", authUserId),
+    supabase
+      .from("profiles")
+      .select("invited_by, role")
+      .eq("user_id", authUserId)
+      .maybeSingle(),
     supabase
       .from("employees")
       .select("id, user_id, is_active, is_terminated")
@@ -43,6 +52,11 @@ export async function canUserCreateTenant(authUserId: string): Promise<TenantOwn
     supabase
       .from("pos_users")
       .select("id, user_id, is_active, is_call_center")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle(),
+    supabase
+      .from("malaki_portal_users")
+      .select("id, user_id, is_active")
       .eq("auth_user_id", authUserId)
       .maybeSingle(),
     supabase
@@ -55,6 +69,10 @@ export async function canUserCreateTenant(authUserId: string): Promise<TenantOwn
 
   const roles = (rolesRows || []).map((r: any) => r.role as string);
   if (roles.includes("super_admin")) return { canCreateTenant: true };
+
+  if ((profileRow as any)?.invited_by && (profileRow as any).invited_by !== authUserId) {
+    return { canCreateTenant: false, reason: "invited_profile" };
+  }
 
   if (
     empRow &&
@@ -73,7 +91,16 @@ export async function canUserCreateTenant(authUserId: string): Promise<TenantOwn
     return { canCreateTenant: false, reason: "linked_pos_user" };
   }
 
-  if (roles.some((r) => NON_OWNER_ROLES.has(r))) {
+  if (
+    portalUserRow &&
+    (portalUserRow as any).is_active !== false &&
+    (portalUserRow as any).user_id !== authUserId
+  ) {
+    return { canCreateTenant: false, reason: "linked_portal_user" };
+  }
+
+  const profileRole = (profileRow as any)?.role as string | undefined;
+  if (roles.some((r) => NON_OWNER_ROLES.has(r)) || (profileRole && NON_OWNER_ROLES.has(profileRole))) {
     return { canCreateTenant: false, reason: "non_owner_role" };
   }
 
