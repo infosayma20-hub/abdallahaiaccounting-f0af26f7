@@ -5534,6 +5534,14 @@ const POSPage = () => {
                       {pendingDispatchCount}
                     </Badge>
                   )}
+                  {dispatchLateCount > 0 && (
+                    <Badge
+                      className="text-[8px] px-1 py-0 h-4 bg-red-600 text-white animate-pulse"
+                      title="طلبيات تأخر قبولها من الفرع أكثر من 5 دقائق"
+                    >
+                      تأخر {dispatchLateCount}
+                    </Badge>
+                  )}
                 </button>
               )}
             </div>
