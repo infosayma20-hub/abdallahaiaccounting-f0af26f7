@@ -297,6 +297,11 @@ export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
   const [modMap, setModMap] = useState<Map<string, string>>(new Map());
   const [branchMap, setBranchMap] = useState<Map<string, string>>(new Map());
   const [collapsed, setCollapsed] = useState(false);
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const [firstLoadDone, setFirstLoadDone] = useState(false);
+
+  // Make sure audio is unlockable on first user gesture so the beep works.
+  useEffect(() => { installAudioUnlock(); }, []);
 
   const load = async () => {
     if (!dataOwnerId) return;
@@ -307,7 +312,27 @@ export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
       .eq("status", "active")
       .order("raised_at", { ascending: false })
       .limit(50);
-    setAlerts(((data as any[]) || []) as AlertRow[]);
+    const rows = ((data as any[]) || []) as AlertRow[];
+    setAlerts(rows);
+    // Beep + toast for newly-arrived alerts (skip on the very first load).
+    setSeenIds(prev => {
+      const next = new Set(prev);
+      let beep = false;
+      let newest: AlertRow | null = null;
+      rows.forEach(r => {
+        if (!prev.has(r.id)) {
+          if (firstLoadDone) { beep = true; if (!newest) newest = r; }
+          next.add(r.id);
+        }
+      });
+      if (beep) {
+        try { playAlertBeep(); } catch {}
+        const label = newest?.custom_label || "صنف غير متوفر";
+        try { toast.warning(`🚨 تنبيه نفاد: ${label}`, { duration: 6000 }); } catch {}
+      }
+      return next;
+    });
+    if (!firstLoadDone) setFirstLoadDone(true);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [dataOwnerId]);
