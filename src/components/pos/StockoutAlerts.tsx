@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, X, PackageX, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { installAudioUnlock, playAlertBeep } from "@/lib/audio-unlock";
 
 /**
  * Stockout alerts — branch/cashier raises a quick alert to the call center
@@ -52,10 +53,12 @@ export function StockoutAlertButton({
   dataOwnerId,
   branchId,
   branchName,
+  iconOnly = false,
 }: {
   dataOwnerId: string;
   branchId: string | null;
   branchName?: string | null;
+  iconOnly?: boolean;
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -159,17 +162,33 @@ export function StockoutAlertButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="gap-1 border-amber-300 text-amber-800 hover:bg-amber-50"
-        title="تنبيه نفاد صنف للكول سنتر"
-      >
-        <PackageX className="w-4 h-4" />
-        تنبيه نفاد صنف
-      </Button>
+      {iconOnly ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
+          title="تنبيه نفاد صنف للكول سنتر"
+        >
+          <PackageX className="h-5 w-5 text-amber-300" />
+          {myActive.length > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center">
+              {myActive.length}
+            </span>
+          )}
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          className="gap-1 border-amber-300 text-amber-800 hover:bg-amber-50"
+          title="تنبيه نفاد صنف للكول سنتر"
+        >
+          <PackageX className="w-4 h-4" />
+          تنبيه نفاد صنف
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
         <DialogContent dir="rtl" className="max-w-lg">
