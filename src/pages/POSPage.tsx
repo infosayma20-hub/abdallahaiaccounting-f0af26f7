@@ -2037,6 +2037,9 @@ const POSPage = () => {
     // include this cash box. (A restricted category is hidden from boxes not in
     // its allow-list.)
     return posCategories.filter(cat => {
+      // Respect the category's own active flag — inactive categories are
+      // hidden from POS without losing their product assignments.
+      if ((cat as any).is_active === false) return false;
       const hasRestriction = cat.restricted_cash_box_ids && cat.restricted_cash_box_ids.length > 0;
       if (!hasRestriction) return true;
       // Call Center sessions have no cash_box_id — they are virtual and should
