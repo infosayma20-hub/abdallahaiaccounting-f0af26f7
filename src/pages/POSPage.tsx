@@ -1616,7 +1616,6 @@ const POSPage = () => {
       .from("pos_categories")
       .select("id, name, color, display_order, is_active, restricted_cash_box_ids")
       .eq("user_id", dataOwnerId)
-      .eq("is_active", true)
       .order("display_order");
     const categories = ((data as POSCategory[]) || []);
     setPosCategories(prev => {
