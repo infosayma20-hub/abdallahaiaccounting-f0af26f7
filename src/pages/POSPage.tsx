@@ -4955,8 +4955,9 @@ const POSPage = () => {
       {/* ══════ OFFLINE STATUS BAR — hidden, data kept in sync log ══════ */}
 
       {/* Global stockout listener — plays beep + toast for new alerts.
-          The visible banner lives inside "سجل المحوّلة" sheet only. */}
-      {dataOwnerId && <StockoutAlertsListener dataOwnerId={dataOwnerId} />}
+          Cashiers RAISE the alert, so the sound must fire at the call-center
+          terminal (the recipient), not at the cashier who sent it. */}
+      {isCallCenter && dataOwnerId && <StockoutAlertsListener dataOwnerId={dataOwnerId} />}
 
       {/* Compact stockout banner on the main POS screen — call center only.
           Cashiers don't need it outside; they use the icon button in the top bar. */}
