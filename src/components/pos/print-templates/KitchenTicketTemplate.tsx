@@ -155,7 +155,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
               <span style={{ fontSize: '14px', fontWeight: 900, width: '40px', textAlign: 'center', lineHeight: 1.15, flexShrink: 0 }}>{qty}</span>
-              <span style={{ fontSize: '14px', fontWeight: 700, textAlign: 'right', flex: 1, lineHeight: 1.25, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.name}</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, textAlign: 'right', flex: 1, lineHeight: 1.25, wordBreak: 'break-word', overflowWrap: 'break-word' }}>● {item.name}</span>
             </div>
             {item.modifiers?.map((m, j) => (
               <div key={j} style={{

@@ -214,6 +214,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
             return (
               <tr key={i}>
                 <td style={{ padding: '8px 4px 10px', fontSize: '19px', fontWeight: 900, textAlign: 'right', verticalAlign: 'top', lineHeight: 1.3, borderBottom: '1px solid #ddd', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                  <span style={{ marginLeft: '6px', fontWeight: 900 }}>●</span>
                   {item.name}
                   {item.modifiers && item.modifiers.length > 0 && (
                     <div>
