@@ -907,13 +907,18 @@ function renderShiftSVG(session, logoTopMargin) {
 
   const diff = Number(session.difference || 0);
   const diffLabel = diff === 0 ? 'مطابق ✓' : diff > 0 ? `زيادة +₪${fmt(diff)}` : `عجز -₪${fmt(Math.abs(diff))}`;
-  push(110, (cy) => `
-    <rect x="${padX}" y="${cy - 78}" width="${W - padX*2}" height="96" fill="none" stroke="#000" stroke-width="3"/>
-    <text x="${W/2}" y="${cy - 42}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">الفرق</text>
-    <text x="${W/2}" y="${cy - 4}"  text-anchor="middle" font-size="32" font-weight="900" font-family="Tahoma">${esc(diffLabel)}</text>`);
+  push(30, () => '');
+  push(130, (cy) => {
+    const boxH = 116;
+    const boxY = cy - 92;
+    return `
+    <rect x="${padX}" y="${boxY}" width="${W - padX*2}" height="${boxH}" rx="6" fill="none" stroke="#000" stroke-width="3"/>
+    <text x="${W/2}" y="${boxY + 44}" text-anchor="middle" font-size="32" font-weight="900" font-family="Tahoma">الفرق</text>
+    <text x="${W/2}" y="${boxY + 88}" text-anchor="middle" font-size="38" font-weight="900" font-family="Tahoma">${esc(diffLabel)}</text>`;
+  });
 
-  push(30, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="20" font-family="Tahoma">توقيع الكاشير: ________________</text>`);
-  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="20" font-weight="800" font-family="Tahoma">❤️ شكراً</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-family="Tahoma">توقيع الكاشير: ________________</text>`);
+  push(28, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-weight="800" font-family="Tahoma">❤️ شكراً</text>`);
 
   const H = y + 30;
   return { svg: `<?xml version="1.0"?>
