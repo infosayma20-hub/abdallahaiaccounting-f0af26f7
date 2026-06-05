@@ -1,0 +1,1 @@
+UPDATE public.modifier_groups SET selection_type='multiple', max_select=2, min_select=0 WHERE id='c2c593ea-a920-481d-9ed8-9743535cd5d0';
