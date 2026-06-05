@@ -425,13 +425,17 @@ function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
     })),
     total: order.total,
     createdAt: order.date ? `${order.date}T${order.time || '00:00'}` : new Date().toISOString(),
-    // v6.3.6-clean: kitchen tickets get ONLY the kitchen-only note.
-    // Customer / delivery notes are intentionally NOT sent to the kitchen.
-    //   kitchenNote → new bridge renders this in the ticket note box
-    //   orderNote   → kept for back-compat with old bridges that don't
-    //                 know `kitchenNote` yet (still kitchen-only here)
+    // v6.3.7-clean: kitchen tickets now render BOTH notes in separate
+    // stacked boxes. We forward them as distinct fields:
+    //   kitchenNote → internal banner (e.g. "طلب معدل — بديل عن فاتورة …")
+    //   orderNote   → customer-facing invoice note (special requests like
+    //                 "بدون بصل") — explicitly required on the kitchen
+    //                 ticket so the line cook sees the customer's note.
+    // Older bridges (≤ v6.3.6) only knew the legacy "fallback" pattern
+    // (kitchenNote || orderNote) — that path still works on the old box
+    // because either field alone will render. v6.3.7 prints them stacked.
     kitchenNote: order.kitchenNote || undefined,
-    orderNote: order.kitchenNote || undefined,
+    orderNote: order.orderNote || undefined,
   };
 }
 
