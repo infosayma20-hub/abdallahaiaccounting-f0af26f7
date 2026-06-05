@@ -289,6 +289,47 @@ export default function NewDeviceOnboardingPage() {
   useEffect(() => { loadOptionsRef.current = loadOptions; }, [loadOptions]);
   useEffect(() => { if (!authLoading) void loadOptions(); }, [authLoading, loadOptions]);
 
+  // Fetch tenant company logo (RPC bypasses RLS for non-owners)
+  useEffect(() => {
+    if (authLoading) return;
+    let cancelled = false;
+    (async () => {
+      setCompanyLogoLoading(true);
+      try {
+        const { data } = await supabase.rpc("get_tenant_company_logo");
+        if (!cancelled) setCompanyLogoUrl((data as string) || null);
+      } catch {
+        if (!cancelled) setCompanyLogoUrl(null);
+      } finally {
+        if (!cancelled) setCompanyLogoLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authLoading]);
+
+  // Cross-origin friendly download as logo.png
+  const downloadCompanyLogo = useCallback(async () => {
+    if (!companyLogoUrl) return;
+    setDownloadingLogo(true);
+    try {
+      const res = await fetch(companyLogoUrl, { mode: "cors", cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = "logo.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+    } catch (e: any) {
+      toast.error(`تعذّر تنزيل الشعار: ${e?.message || e}`);
+    } finally {
+      setDownloadingLogo(false);
+    }
+  }, [companyLogoUrl]);
+
   // Whenever the printer list changes, sync it into device.json on the bridge.
   // This guarantees the bridge always reflects what the POS sees, even if a
   // printer was added/edited elsewhere (e.g. /printer-settings advanced page).
