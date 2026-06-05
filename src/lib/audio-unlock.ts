@@ -122,9 +122,10 @@ export function playAlertBeep(): boolean {
 }
 
 /**
- * Long call-center style "تنبيه طلبية متأخرة" — a calm, repeating two-tone
- * pattern that lasts ~4 seconds. Designed to be obviously audible without
- * being harsh. If another late-order alert is still playing, this call is a
+ * Harsh "تنبيه طلبية متأخرة" — loud, dissonant square-wave siren designed to
+ * be impossible to ignore in a busy call-center / kitchen environment.
+ * Lasts ~6 seconds, alternates two close frequencies (siren effect) at full
+ * volume. If another late-order alert is still playing, this call is a
  * no-op (returns `true`) so multiple late orders never stack their audio.
  */
 export function playLateOrderAlert(): boolean {
@@ -140,40 +141,49 @@ export function playLateOrderAlert(): boolean {
 
   try {
     const start = c.currentTime;
-    // 5 paired beeps (low → high), 0.75s per pair → ~3.75s total.
-    const pairs = 5;
-    const pairDuration = 0.75;
-    const peak = 0.22;
+    // Emergency-siren style: alternate two harsh square-wave tones rapidly.
+    // 24 blips × 0.25s = 6s total. Square waves are louder/harsher than sine
+ // at the same gain. Use a master gain at near-max amplitude.
+    const blips = 24;
+    const blipDuration = 0.25;
+    const peak = 0.85; // very loud
+    // Master compressor-like limiter to avoid clipping artifacts on cheap
+    // speakers while still being maxed out.
+    const master = c.createGain();
+    master.gain.value = 1.0;
+    master.connect(c.destination);
 
-    for (let i = 0; i < pairs; i++) {
-      const t0 = start + i * pairDuration;
+    for (let i = 0; i < blips; i++) {
+      const t0 = start + i * blipDuration;
+      const freq = i % 2 === 0 ? 1200 : 1800; // dissonant high siren
 
-      // Low tone
-      const oLow = c.createOscillator();
-      const gLow = c.createGain();
-      oLow.type = "sine";
-      oLow.frequency.value = 720;
-      gLow.gain.setValueAtTime(0.0001, t0);
-      gLow.gain.exponentialRampToValueAtTime(peak, t0 + 0.04);
-      gLow.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32);
-      oLow.connect(gLow).connect(c.destination);
-      oLow.start(t0);
-      oLow.stop(t0 + 0.35);
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = "square";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.01);
+      gain.gain.setValueAtTime(peak, t0 + blipDuration - 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + blipDuration - 0.005);
+      osc.connect(gain).connect(master);
+      osc.start(t0);
+      osc.stop(t0 + blipDuration);
 
-      // High tone (slightly after, like a call-center chime)
-      const oHi = c.createOscillator();
-      const gHi = c.createGain();
-      oHi.type = "sine";
-      oHi.frequency.value = 960;
-      gHi.gain.setValueAtTime(0.0001, t0 + 0.34);
-      gHi.gain.exponentialRampToValueAtTime(peak, t0 + 0.38);
-      gHi.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.7);
-      oHi.connect(gHi).connect(c.destination);
-      oHi.start(t0 + 0.34);
-      oHi.stop(t0 + 0.72);
+      // Add a second oscillator slightly detuned for a harsher beat effect.
+      const osc2 = c.createOscillator();
+      const gain2 = c.createGain();
+      osc2.type = "sawtooth";
+      osc2.frequency.value = freq * 1.015;
+      gain2.gain.setValueAtTime(0.0001, t0);
+      gain2.gain.exponentialRampToValueAtTime(peak * 0.6, t0 + 0.01);
+      gain2.gain.setValueAtTime(peak * 0.6, t0 + blipDuration - 0.03);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, t0 + blipDuration - 0.005);
+      osc2.connect(gain2).connect(master);
+      osc2.start(t0);
+      osc2.stop(t0 + blipDuration);
     }
 
-    const totalMs = Math.ceil(pairs * pairDuration * 1000);
+    const totalMs = Math.ceil(blips * blipDuration * 1000);
     lateAlertPlayingUntil = nowMs + totalMs;
     return true;
   } catch {
