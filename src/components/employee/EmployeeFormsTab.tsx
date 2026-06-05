@@ -209,8 +209,44 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // ── Security validation: type, extension, and size ────────────────
+    const ALLOWED_MIME = new Set([
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ]);
+    const ALLOWED_EXT = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
+    const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+
+    const rawExt = (file.name.split(".").pop() || "").toLowerCase();
+    const mime = (file.type || "").toLowerCase();
+
+    if (!mime || !ALLOWED_MIME.has(mime) || !ALLOWED_EXT.has(rawExt)) {
+      // Reset input so the same bad file can be retried after fix
+      e.target.value = "";
+      toast({
+        title: "نوع الملف غير مسموح",
+        description: "الرجاء رفع صورة JPG/PNG/WEBP أو PDF فقط.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      e.target.value = "";
+      toast({
+        title: "حجم الملف كبير",
+        description: "الحد الأقصى 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploadingFile(true);
-    const ext = file.name.split(".").pop();
+    // Normalize extension (jpeg → jpg only when mime is image/jpeg? keep as-is, but safe-lower)
+    const ext = rawExt;
     // Storage RLS requires the first folder to equal auth.uid().
     // The `userId` prop is the tenant owner's id (employee.user_id), which is
     // NOT the same as the currently authenticated portal user. Use the live
@@ -222,8 +258,14 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       toast({ title: "تعذر التحقق من جلسة المستخدم", description: authErr?.message || "يرجى تسجيل الدخول من جديد", variant: "destructive" });
       return;
     }
-    const path = `${authUid}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from("employee-forms").upload(path, file);
+    // Safe, non-user-controlled filename
+    const randomId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+    const path = `${authUid}/${Date.now()}-${randomId}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from("employee-forms")
+      .upload(path, file, { contentType: mime, upsert: false });
     setUploadingFile(false);
     if (error) {
       toast({ title: "خطأ في رفع الملف", description: error.message, variant: "destructive" });
@@ -680,7 +722,13 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                       <span className="text-[10px] text-muted-foreground">صورة أو PDF</span>
                     </>
                   )}
-                  <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" disabled={uploadingFile} />
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+                    disabled={uploadingFile}
+                  />
                 </label>
               )}
             </div>
