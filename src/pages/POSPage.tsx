@@ -39,7 +39,7 @@ import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
-import { StockoutAlertButton, StockoutAlertsBanner } from "@/components/pos/StockoutAlerts";
+import { StockoutAlertButton, StockoutAlertsListener } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
