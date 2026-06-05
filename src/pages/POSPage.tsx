@@ -435,6 +435,9 @@ const POSPage = () => {
   // Persisted via pos_user_preferences keys: product_order_<categoryName> / product_order_all
   const [productOrderByCategory, setProductOrderByCategory] = useState<Record<string, string[]>>({});
   const [categoryOrderIds, setCategoryOrderIds] = useState<string[]>([]);
+  // Per-user toggle to hide the "الكل" category chip. Persisted in
+  // pos_user_preferences under key `hide_all_category`.
+  const [hideAllCategoryTab, setHideAllCategoryTab] = useState<boolean>(false);
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
