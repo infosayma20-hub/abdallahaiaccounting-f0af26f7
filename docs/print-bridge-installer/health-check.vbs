@@ -5,7 +5,16 @@ Option Explicit
 Dim http, body, code
 code = 1
 On Error Resume Next
-Set http = CreateObject("MSXML2.XMLHTTP")
+' ServerXMLHTTP supports setTimeouts (resolve, connect, send, receive in ms).
+' Falls back to MSXML2.XMLHTTP if ServerXMLHTTP is not available.
+Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+If Err.Number <> 0 Then
+  Err.Clear
+  Set http = CreateObject("MSXML2.XMLHTTP")
+Else
+  ' resolve=2s, connect=2s, send=2s, receive=4s — never hangs forever
+  http.setTimeouts 2000, 2000, 2000, 4000
+End If
 http.open "GET", "http://127.0.0.1:3001/health", False
 http.send
 If Err.Number = 0 Then
