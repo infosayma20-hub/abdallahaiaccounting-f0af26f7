@@ -161,6 +161,10 @@ export default function NewDeviceOnboardingPage() {
   const [bridgePrinterHealth, setBridgePrinterHealth] = useState<Record<string, { connected: boolean; subnetMismatch: boolean }>>({});
   // Print Bridge logo presence (true = bridge can read logo.png from its folder)
   const [bridgeLogo, setBridgeLogo] = useState<boolean | null>(null);
+  // Company logo URL fetched per-tenant. null = none/unknown.
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [companyLogoLoading, setCompanyLogoLoading] = useState(true);
+  const [downloadingLogo, setDownloadingLogo] = useState(false);
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
