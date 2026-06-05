@@ -761,7 +761,10 @@ function renderKitchenSVG(order, stationLabel) {
       return `${labelSvg}${valueSvg}`;
     });
   }
-  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
+  // v6.3.7-clean: removed the divider line that used to sit directly above
+  // the الصنف/الكمية header (it was visually noisy). The header itself
+  // already provides enough separation.
+  push(10, () => '');
 
   // ── ITEMS TABLE HEADER ──
   push(34, (cy) => `
@@ -778,7 +781,7 @@ function renderKitchenSVG(order, stationLabel) {
     push(rowH, (cy) => {
       const firstY = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
+        `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="800" font-family="Tahoma">${i === 0 ? '● ' : ''}${esc(ln)}</text>`).join('');
       const qtySvg = `<text x="${padX + 30}" y="${firstY}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">${qty}</text>`;
       const noteY0 = firstY + nameLines.length * 30 + 2;
       const notesSvg = noteLinesArr.map((ln, i) =>
@@ -787,22 +790,29 @@ function renderKitchenSVG(order, stationLabel) {
     });
   }
 
-  // ── KITCHEN NOTE (kitchen tickets only) ──────────────────────────────
-  // v6.3.6-clean: ONLY render the kitchen-only note here. The customer
-  // and delivery notes are intentionally NOT printed on kitchen tickets.
-  // Back-compat: fall back to `orderNote` if `kitchenNote` is missing,
-  // so old POS payloads still print something on the ticket.
-  const kitchenNoteText = String(order.kitchenNote || order.orderNote || '').trim();
-  if (kitchenNoteText) {
-    push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
-    const noteFont = 20;
-    const noteLineH = 26;
-    const noteLines = wrapTextForSvg(kitchenNoteText, 24);
-    const boxH = 14 + noteLines.length * noteLineH;
-    push(boxH + 10, (cy) => `
+  // ── KITCHEN NOTE BOXES (kitchen tickets only) ────────────────────────
+  // v6.3.7-clean: BOTH the internal kitchenNote (e.g. "طلب معدل" banner)
+  // AND the customer-facing orderNote are printed, each in its own
+  // wrapped box that grows downward. They are stacked AFTER the items
+  // table so the kitchen sees items first, notes second. Each note is
+  // wrapped at 24 chars/line so it never overflows the 384px ticket.
+  const noteFont = 20;
+  const noteLineH = 26;
+  const drawNoteBox = (text, label) => {
+    if (!text) return;
+    const lines = wrapTextForSvg(text, 24);
+    const boxH = 14 + lines.length * noteLineH;
+    push(10, () => '');
+    push(boxH + 6, (cy) => `
       <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="1"/>
-      ${noteLines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">${i === 0 ? 'ملاحظة: ' : ''}${esc(ln)}</text>`).join('')}`);
-  }
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
+  };
+  // Internal banner (replacement / cancellation) — printed FIRST so the
+  // kitchen notices the operational change before reading the customer note.
+  drawNoteBox(String(order.kitchenNote || '').trim(), 'تنبيه:');
+  // Customer / invoice note — always shown on the ticket so the kitchen
+  // sees special requests ("بدون بصل", "إضافة جبنة", …).
+  drawNoteBox(String(order.orderNote || '').trim(), 'ملاحظة:');
 
   const H = y + topPad;
   return `<?xml version="1.0"?>
