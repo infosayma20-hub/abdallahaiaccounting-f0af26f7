@@ -1,18 +1,19 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- *  AMWALI Print Bridge v6.3.6-clean
+ *  AMWALI Print Bridge v6.3.7-clean
  *
- *  Based on v6.3.5-generic with focused print-quality fixes:
- *   - Notes ALWAYS drawn downward (no cy-boxH regression).
- *   - Dedupe stamps AFTER print success → failed jobs can retry immediately.
- *   - Clean kitchen ticket: no outer frame, no dashed separators,
- *     lighter font-weights, no phone / payment / source / delivery fee.
- *   - Split notes payload: customerNote / deliveryNote on receipt,
- *     kitchenNote on kitchen tickets. Legacy `orderNote` still honoured.
- *   - /health exposes version + buildHash + features so the operator
- *     can verify the deployed version from the browser.
+ *  Based on v6.3.6-clean with focused ticket-readability fixes:
+ *   - Kitchen ticket: removed the divider line directly above the
+ *     الصنف/الكمية header row (cleaner separation).
+ *   - Kitchen ticket: ALWAYS renders the customer order note in its own
+ *     wrapped, downward-growing box (replacement banner + customer note
+ *     are stacked separately).
+ *   - Both tickets: items are prefixed with a bold bullet (●) on the
+ *     name line so the line-item is visually distinct from its sub-notes
+ *     (which still use "+ ").
+ *   - All other v6.3.6 behaviours preserved (note-downward, dedupe, etc.)
  *
- *  Run:     node print-bridge-v6.3.6-clean.js
+ *  Run:     node print-bridge-v6.3.7-clean.js
  *  Health:  GET http://127.0.0.1:3001/health
  * ═══════════════════════════════════════════════════════════════════════
  */
@@ -23,12 +24,15 @@ const bodyParser  = require('body-parser');
 
 // v6.3.6-clean version + buildHash. buildHash is a sha1 of THIS file
 // computed at startup, so operators can verify what's actually deployed.
-const BRIDGE_VERSION = '6.3.6-clean';
+const BRIDGE_VERSION = '6.3.7-clean';
 const BRIDGE_FEATURES = [
   'note-downward',
   'dedupe-on-success',
   'clean-kitchen-ticket',
   'split-notes',
+  'kitchen-note-stacked',
+  'item-bullet-prefix',
+  'no-line-above-items-header',
 ];
 let BRIDGE_BUILD_HASH = 'unknown';
 try {
