@@ -535,12 +535,26 @@ function esc(s) {
 }
 
 function wrapTextForSvg(text, maxChars) {
-  const words = String(text).split(/\s+/);
+  const max = Math.max(1, Number(maxChars) || 1);
+  // First split on whitespace, then HARD-break any token longer than max.
+  // This guarantees notes like "اختباراختباراختبار..." (no spaces) wrap
+  // downward instead of overflowing the receipt / kitchen ticket box.
+  const rawTokens = String(text ?? '').split(/\s+/).filter(Boolean);
+  const tokens = [];
+  for (const t of rawTokens) {
+    if (t.length <= max) { tokens.push(t); continue; }
+    for (let i = 0; i < t.length; i += max) tokens.push(t.slice(i, i + max));
+  }
   const lines = [];
   let cur = '';
-  for (const w of words) {
-    if ((cur + ' ' + w).trim().length > maxChars) { lines.push(cur.trim()); cur = w; }
-    else cur = (cur + ' ' + w).trim();
+  for (const w of tokens) {
+    const candidate = cur ? cur + ' ' + w : w;
+    if (candidate.length > max) {
+      if (cur) lines.push(cur);
+      cur = w;
+    } else {
+      cur = candidate;
+    }
   }
   if (cur) lines.push(cur);
   return lines;
@@ -679,8 +693,8 @@ function renderReceiptSVG(order, logoTopMargin) {
   push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">شكراً لتعاملكم معنا</text>`);
   // ── AMWALI signature (customer receipt ONLY — never on kitchen tickets) ──
   push(10, () => '');
-  push(20, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="14" font-weight="400" font-family="Tahoma" fill="#555">Powered by AMWALI ERP</text>`);
-  push(20, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="14" font-weight="400" font-family="Tahoma" fill="#555">مشغّل بواسطة نظام أموالي ERP</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma" fill="#000">Powered by AMWALI ERP</text>`);
+  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="16" font-weight="700" font-family="Tahoma" fill="#000">مشغّل بواسطة نظام أموالي ERP</text>`);
 
   const H = y + 30;
   return { svg: `<?xml version="1.0"?>
