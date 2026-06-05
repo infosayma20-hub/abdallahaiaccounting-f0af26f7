@@ -1,0 +1,1 @@
+UPDATE public.products SET is_pos_available=false, is_pos_product=false, updated_at=now() WHERE id IN ('d8cc9dce-9706-4a99-9681-006b10d91c19','d395fbab-d2a7-418e-ad6a-ba13a8779010','d4941c9e-845f-4858-b422-67961aec2e01','60b3d7e4-b6eb-4503-a7a4-b12e75d54547','e0712e14-93ed-45d5-83cf-38f3092bf7c8');
