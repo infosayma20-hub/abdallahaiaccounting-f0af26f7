@@ -803,6 +803,11 @@ export default function NewDeviceOnboardingPage() {
                 <Download className="h-3.5 w-3.5" /> تحديث برنامج الطباعة
               </a>
             </Button>
+            <Button asChild size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs">
+              <a href={PRINT_BRIDGE_LOGO_URL} download="logo.png">
+                <ImageIcon className="h-3.5 w-3.5" /> تنزيل شعار الطباعة
+              </a>
+            </Button>
           </div>
         </div>
 
