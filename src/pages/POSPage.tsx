@@ -1294,6 +1294,9 @@ const POSPage = () => {
           const catKey = p.preference_key.replace(/^product_order_/, "");
           out.productOrderByCategory[catKey] = orderIds as string[];
         }
+      } else if (p.preference_key === "hide_all_category") {
+        const v = (p.preference_value as any)?.value;
+        setHideAllCategoryTab(v === true);
       }
     }
     setCategoryOrderIds(out.categoryOrderIds);
