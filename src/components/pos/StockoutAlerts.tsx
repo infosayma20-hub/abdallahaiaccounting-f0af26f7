@@ -434,14 +434,22 @@ export function StockoutAlertsBanner({ dataOwnerId, compact = false }: { dataOwn
           {compact ? `نفاد (${alerts.length})` : `أصناف/مكوّنات غير متوفرة (${alerts.length})`}
         </span>
         <div className="flex items-center gap-1 overflow-hidden flex-1 min-w-0">
-          {visible.map(a => (
-            <span
-              key={a.id}
-              className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/70 border border-red-200 text-red-800 text-[10px] font-medium max-w-[120px] truncate shrink-0"
-            >
-              {describeAlert(a, productMap, modMap)}
-            </span>
-          ))}
+          {visible.map(a => {
+            const branch = a.branch_id ? branchMap.get(a.branch_id) : null;
+            return (
+              <span
+                key={a.id}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/70 border border-red-200 text-red-800 text-[10px] font-medium max-w-[200px] shrink-0"
+              >
+                <span className="truncate">{describeAlert(a, productMap, modMap)}</span>
+                {branch && (
+                  <span className="px-1 rounded bg-red-200/80 text-red-900 text-[9px] font-bold shrink-0">
+                    {branch}
+                  </span>
+                )}
+              </span>
+            );
+          })}
           {extra > 0 && (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-200 text-red-900 text-[10px] font-bold shrink-0">
               +{extra}
