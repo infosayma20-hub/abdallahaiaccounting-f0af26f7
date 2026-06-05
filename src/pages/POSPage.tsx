@@ -2019,6 +2019,77 @@ const POSPage = () => {
     );
   }, [contacts, customerSearch]);
 
+  /**
+   * Merge POS Customers + Contacts + Call Center results into a single
+   * de-duplicated list keyed by normalized phone (fallback: lower-cased name).
+   * Each item carries the union of source badges (POS / Contacts / Call Center).
+   */
+  const mergedCustomerResults = useMemo<UnifiedCustomerResult[]>(() => {
+    if (!customerSearch || customerSearch.trim().length < 3) return [];
+    const map = new Map<string, UnifiedCustomerResult>();
+    const upsert = (item: UnifiedCustomerResult) => {
+      const existing = map.get(item.key);
+      if (!existing) { map.set(item.key, item); return; }
+      // Merge: keep first non-empty fields, union sources
+      existing.name = existing.name || item.name;
+      existing.phone = existing.phone || item.phone;
+      existing.address = existing.address || item.address;
+      existing.posCustomerId = existing.posCustomerId || item.posCustomerId;
+      existing.contactId = existing.contactId || item.contactId;
+      existing.totalVisits = Math.max(existing.totalVisits || 0, item.totalVisits || 0);
+      item.sources.forEach(s => { if (!existing.sources.includes(s)) existing.sources.push(s); });
+    };
+    const keyFor = (phone: string, name: string) => {
+      const np = normalizePhoneForSearch(phone);
+      return np || `n:${(name || "").trim().toLowerCase()}`;
+    };
+    // POS Customers
+    posCustomerResults.forEach((pc) => {
+      const phone = pc.whatsapp || "";
+      const name = pc.name || "";
+      const k = keyFor(phone, name);
+      if (!k) return;
+      upsert({
+        key: k,
+        name,
+        phone,
+        normalizedPhone: normalizePhoneForSearch(phone),
+        address: pc.address || undefined,
+        posCustomerId: pc.id,
+        totalVisits: pc.total_visits || 0,
+        sources: ["POS"],
+      });
+    });
+    // Contacts (already filtered client-side)
+    filteredContacts.slice(0, 15).forEach((c) => {
+      const phone = (c as any).phone || "";
+      const name = c.contact_name || "";
+      const k = keyFor(phone, name);
+      if (!k) return;
+      upsert({
+        key: k,
+        name,
+        phone,
+        normalizedPhone: normalizePhoneForSearch(phone),
+        contactId: c.id,
+        sources: ["Contacts"],
+      });
+    });
+    // Call Center
+    callCenterCustomerResults.forEach((cc) => {
+      const k = keyFor(cc.phone, cc.name);
+      if (!k) return;
+      upsert({
+        key: k,
+        name: cc.name,
+        phone: cc.phone,
+        normalizedPhone: normalizePhoneForSearch(cc.phone),
+        sources: ["Call Center"],
+      });
+    });
+    return Array.from(map.values()).slice(0, 12);
+  }, [customerSearch, posCustomerResults, filteredContacts, callCenterCustomerResults]);
+
   // Search POS customers by name or phone
   /**
    * Unified customer search across:
