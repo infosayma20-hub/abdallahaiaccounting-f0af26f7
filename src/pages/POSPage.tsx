@@ -612,6 +612,9 @@ const POSPage = () => {
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
   const [posCustomerResults, setPosCustomerResults] = useState<POSCustomer[]>([]);
+  const [callCenterCustomerResults, setCallCenterCustomerResults] = useState<
+    Array<{ name: string; phone: string }>
+  >([]);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
