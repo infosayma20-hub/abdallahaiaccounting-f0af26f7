@@ -341,13 +341,13 @@ export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string })
   return null;
 }
 
-export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
+export function StockoutAlertsBanner({ dataOwnerId, compact = false }: { dataOwnerId: string; compact?: boolean }) {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [productMap, setProductMap] = useState<Map<string, string>>(new Map());
   const [modMap, setModMap] = useState<Map<string, string>>(new Map());
   const [branchMap, setBranchMap] = useState<Map<string, string>>(new Map());
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const load = async () => {
     if (!dataOwnerId) return;
@@ -415,18 +415,24 @@ export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
   if (alerts.length === 0) return null;
 
   return (
-    <div dir="rtl" className="rounded-md border border-red-300 bg-red-50 text-red-900 px-3 py-2 mb-2 text-sm">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-semibold">
-          <AlertTriangle className="w-4 h-4" />
-          أصناف/مكوّنات غير متوفرة الآن ({alerts.length})
-        </div>
-        <Button size="sm" variant="ghost" className="h-7 px-2 text-red-800" onClick={() => setCollapsed(v => !v)}>
+    <div dir="rtl" className={`rounded-md border border-red-300 bg-red-50 text-red-900 ${compact ? "px-2 py-1 text-xs" : "px-3 py-2 mb-2 text-sm"}`}>
+      <button
+        type="button"
+        onClick={() => setCollapsed(v => !v)}
+        className="w-full flex items-center justify-between gap-2"
+      >
+        <span className="flex items-center gap-1.5 font-semibold">
+          <AlertTriangle className={compact ? "w-3.5 h-3.5" : "w-4 h-4"} />
+          {compact
+            ? `نفاد ${alerts.length}`
+            : `أصناف/مكوّنات غير متوفرة الآن (${alerts.length})`}
+        </span>
+        <span className={`text-red-800/80 ${compact ? "text-[10px]" : "text-xs"}`}>
           {collapsed ? "عرض" : "إخفاء"}
-        </Button>
-      </div>
+        </span>
+      </button>
       {!collapsed && (
-        <ul className="mt-1 space-y-1">
+        <ul className={`mt-1 space-y-1 ${compact ? "max-h-40 overflow-auto" : ""}`}>
           {alerts.map(a => (
             <li key={a.id} className="flex items-center justify-between gap-2 bg-white/60 rounded px-2 py-1">
               <div className="flex items-center gap-2 min-w-0">

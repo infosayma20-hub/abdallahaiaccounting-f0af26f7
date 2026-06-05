@@ -425,7 +425,7 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
 
         {/* Stockout alerts (item 3) — sticky red banner above filters */}
         <div className="px-2 pt-2">
-          <StockoutAlertsBanner dataOwnerId={dataOwnerId} />
+          <StockoutAlertsBanner dataOwnerId={dataOwnerId} compact />
         </div>
 
         {/* Audio-blocked banner — appears when there are late orders but
