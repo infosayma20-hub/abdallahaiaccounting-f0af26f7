@@ -365,25 +365,8 @@ export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
       .limit(50);
     const rows = ((data as any[]) || []) as AlertRow[];
     setAlerts(rows);
-    // Beep + toast for newly-arrived alerts (skip on the very first load).
-    setSeenIds(prev => {
-      const next = new Set(prev);
-      let beep = false;
-      let newest: AlertRow | null = null;
-      rows.forEach(r => {
-        if (!prev.has(r.id)) {
-          if (firstLoadDone) { beep = true; if (!newest) newest = r; }
-          next.add(r.id);
-        }
-      });
-      if (beep) {
-        try { playAlertBeep(); } catch {}
-        const label = newest?.custom_label || "صنف غير متوفر";
-        try { toast.warning(`🚨 تنبيه نفاد: ${label}`, { duration: 6000 }); } catch {}
-      }
-      return next;
-    });
-    if (!firstLoadDone) setFirstLoadDone(true);
+    // Beep + toast are handled globally by <StockoutAlertsListener/>; this
+    // banner only renders the list inside the dispatched-orders sheet.
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [dataOwnerId]);
