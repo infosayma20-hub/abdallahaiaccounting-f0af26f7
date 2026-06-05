@@ -864,6 +864,37 @@ export default function NewDeviceOnboardingPage() {
               <CheckCircle2 className="h-4 w-4 text-success" /> برنامج الطباعة شغّال. لا حاجة لأي إجراء هنا.
             </div>
           )}
+
+          {/* ── ملفات الطباعة: شعار الكاشير ──────────────────── */}
+          <div className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-[13px] space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="font-semibold inline-flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4" /> ملفات الطباعة — شعار الوصل
+              </div>
+              {bridgeOnline === true && (
+                bridgeLogo === true ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/30">
+                    <CheckCircle2 className="h-3 w-3" /> الشعار مقروء من برنامج الطباعة
+                  </span>
+                ) : bridgeLogo === false ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                    <AlertCircle className="h-3 w-3" /> الشعار غير موجود داخل مجلد برنامج الطباعة
+                  </span>
+                ) : null
+              )}
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              بعد تنزيل الشعار، ضعه داخل مجلد برنامج الطباعة على جهاز الكاشير، مثلاً:
+              {" "}<code dir="ltr">C:\print-bridge\logo.png</code> ثم أعد تشغيل برنامج الطباعة.
+            </p>
+            <div>
+              <Button asChild size="sm" variant="secondary" className="h-7 px-2 gap-1 text-xs">
+                <a href={PRINT_BRIDGE_LOGO_URL} download="logo.png">
+                  <Download className="h-3.5 w-3.5" /> تنزيل logo.png
+                </a>
+              </Button>
+            </div>
+          </div>
         </Section>
 
         {/* ── Step 2: Device binding ─────────────────────── */}
