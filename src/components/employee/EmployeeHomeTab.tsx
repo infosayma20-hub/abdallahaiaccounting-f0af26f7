@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
-  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronLeft as ChevLeft
+  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronLeft as ChevLeft, FileText, Bell
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
