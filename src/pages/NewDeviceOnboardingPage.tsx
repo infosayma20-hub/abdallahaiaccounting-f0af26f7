@@ -519,6 +519,7 @@ export default function NewDeviceOnboardingPage() {
       const h = await checkBridgeHealth();
       if (h.online) {
         if (h.source) setBridgeSource(h.source);
+        if (typeof h.logo === "boolean") setBridgeLogo(h.logo);
         const m: Record<string, { connected: boolean; subnetMismatch: boolean }> = {};
         (h.printers || []).forEach(bp => {
           if (bp.ip) m[bp.ip] = { connected: !!bp.connected, subnetMismatch: !!bp.subnetMismatch };
