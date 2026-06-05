@@ -112,23 +112,27 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const bottomPad = "calc(72px + env(safe-area-inset-bottom, 0px))";
 
   return (
-    <div className="space-y-3 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
-      {/* Welcome Banner */}
+    <div
+      className="space-y-4 px-4 pt-4"
+      dir="rtl"
+      style={{ paddingBottom: bottomPad, background: "#f6f8fb", minHeight: "100dvh" }}
+    >
+      {/* Welcome Banner — Dynamics navy */}
       <div
-        className="rounded-2xl p-5 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
+        className="rounded-[20px] p-5 relative overflow-hidden shadow-sm"
+        style={{ background: "#002050" }}
       >
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-primary-foreground/60">مرحباً</p>
-            <h1 className="text-xl font-bold text-primary-foreground truncate">{employeeName}</h1>
-            <p className="text-xs mt-1 text-primary-foreground/50">
+            <p className="text-[11px] text-white/70">مرحباً بك،</p>
+            <h1 className="text-lg font-bold text-white truncate leading-tight">{employeeName}</h1>
+            <p className="text-[10px] mt-1 text-white/60">
               {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
             </p>
           {hasMgmt && (
-            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur border border-white/20">
-              <Shield className="h-3 w-3 text-primary-foreground" />
-              <span className="text-[11px] font-semibold text-primary-foreground">
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/15">
+              <Shield className="h-3 w-3 text-white" />
+              <span className="text-[10px] font-semibold text-white">
                 {mgmtBadge}{branchName ? ` • ${branchName}` : ""}
               </span>
             </div>
@@ -139,23 +143,20 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               src={companyLogo}
               alt="شعار الشركة"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-              className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-white/30 shadow-md"
+              className="h-12 w-12 rounded-xl bg-white object-contain p-1 shrink-0 shadow"
             />
           )}
         </div>
-        {/* Decorative circle */}
-        <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
-        <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/5" />
       </div>
 
       {/* Manager Section */}
       {hasMgmt && (
-        <Card className="border-primary/20 bg-card">
+        <Card className="border border-slate-200 bg-white rounded-[20px] shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Users className="h-4 w-4 text-primary" />
+                <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Users className="h-4 w-4" style={{ color: "#002050" }} />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">إدارة الفريق</h3>
@@ -167,17 +168,17 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               {canManageSchedule && (
                 <Button
                   variant="outline"
-                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-slate-200 bg-white active:scale-[0.97] transition-transform"
                   onClick={() => onOpenManagerRoute?.("/employee/roster")}
                 >
-                  <CalendarDays className="h-4 w-4 text-primary" />
+                  <CalendarDays className="h-4 w-4" style={{ color: "#002050" }} />
                   جدول الدوام
                 </Button>
               )}
               {canManageAttendance && (
                 <Button
                   variant="outline"
-                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-slate-200 bg-white active:scale-[0.97] transition-transform"
                   onClick={() => onOpenManagerRoute?.("/employee/team-attendance")}
                 >
                   <ClipboardCheck className="h-4 w-4 text-emerald-500" />
@@ -187,30 +188,30 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               {canViewTeam && (
                 <Button
                   variant="outline"
-                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-slate-200 bg-white active:scale-[0.97] transition-transform"
                   onClick={() => onOpenManagerRoute?.("/employee/team")}
                 >
-                  <Users className="h-4 w-4 text-primary" />
+                  <Users className="h-4 w-4" style={{ color: "#002050" }} />
                   فريقي
                 </Button>
               )}
               {canManageSchedule && (
                 <Button
                   variant="outline"
-                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-slate-200 bg-white active:scale-[0.97] transition-transform"
                   onClick={() => onOpenManagerRoute?.("/employee/shift-swaps")}
                 >
-                  <Send className="h-4 w-4 text-warning" />
+                  <Send className="h-4 w-4 text-orange-500" />
                   تبديل الورديات
                 </Button>
               )}
               {canManageAttendance && (
                 <Button
                   variant="outline"
-                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform col-span-2"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-slate-200 bg-white active:scale-[0.97] transition-transform col-span-2"
                   onClick={() => onOpenManagerRoute?.("/employee/team-requests")}
                 >
-                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <ClipboardList className="h-4 w-4" style={{ color: "#002050" }} />
                   اعتماد / رفض طلبات الفريق
                 </Button>
               )}
@@ -219,23 +220,26 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         </Card>
       )}
 
+      {/* Section: الدوام والحضور */}
+      <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1 pt-1">الدوام والحضور</h4>
+
       {/* Live Clock */}
-      <Card className="border-border bg-card overflow-hidden">
-        <CardContent className="p-4 text-center">
-          <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
+      <Card className="border border-slate-200 bg-white rounded-[20px] shadow-sm overflow-hidden">
+        <CardContent className="p-5 text-center">
+          <div className="text-5xl font-bold tabular-nums tracking-tight" style={{ color: "#002050", fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
             {format(currentTime, "HH:mm")}
-            <span className="text-2xl text-primary/50">:{format(currentTime, "ss")}</span>
+            <span className="text-2xl text-slate-400">:{format(currentTime, "ss")}</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Today Status & Action */}
-      <Card className="border-border bg-card">
-        <CardContent className="p-4">
+      <Card className="border border-slate-200 bg-white rounded-[20px] shadow-sm">
+        <CardContent className="p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Timer className="h-5 w-5 text-primary" />
+              <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                <Timer className="h-5 w-5" style={{ color: "#002050" }} />
               </div>
               <div>
                 <h3 className="font-semibold text-sm">حالة اليوم</h3>
@@ -245,7 +249,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                     <span className="mr-1">{status.label}</span>
                   </Badge>
                 ) : (
-                  <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                  <span className="text-[11px] text-slate-500 inline-flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5" />
                     لم تسجّل بعد
                   </span>
@@ -254,26 +258,26 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             </div>
             {todayRecord?.total_hours ? (
               <div className="text-left">
-                <span className="text-2xl font-bold tabular-nums">{todayRecord.total_hours.toFixed(1)}</span>
-                <span className="text-xs text-muted-foreground mr-1">ساعة</span>
+                <span className="text-2xl font-bold tabular-nums" style={{ color: "#002050" }}>{todayRecord.total_hours.toFixed(1)}</span>
+                <span className="text-xs text-slate-500 mr-1">ساعة</span>
               </div>
             ) : null}
           </div>
 
           {/* Check-in / Check-out times */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
+          <div className="grid grid-cols-2 gap-2.5 mb-4">
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 text-center">
               <LogIn className="h-4 w-4 mx-auto mb-1 text-emerald-500" />
-              <div className="text-[10px] text-muted-foreground">دخول</div>
+              <div className="text-[10px] text-slate-500">دخول</div>
               <div className="font-semibold text-sm tabular-nums">
                 {todayRecord?.first_check_in
                   ? format(new Date(todayRecord.first_check_in), "hh:mm a")
                   : "—"}
               </div>
             </div>
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <LogOut className="h-4 w-4 mx-auto mb-1 text-destructive" />
-              <div className="text-[10px] text-muted-foreground">خروج</div>
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 text-center">
+              <LogOut className="h-4 w-4 mx-auto mb-1 text-rose-500" />
+              <div className="text-[10px] text-slate-500">خروج</div>
               <div className="font-semibold text-sm tabular-nums">
                 {todayRecord?.last_check_out
                   ? format(new Date(todayRecord.last_check_out), "hh:mm a")
@@ -284,7 +288,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
           {/* Elapsed time */}
           {elapsed && (
-            <p className="text-xs text-center text-muted-foreground mb-3 inline-flex items-center justify-center gap-1 w-full">
+            <p className="text-xs text-center text-slate-500 mb-3 inline-flex items-center justify-center gap-1 w-full">
               <Timer className="h-3.5 w-3.5" />
               دخلت منذ {elapsed}
             </p>
@@ -292,10 +296,10 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
           {/* Action Buttons */}
           {canCheckIn && (
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <Button
                 size="lg"
-                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.97] transition-transform"
+                className="flex-1 h-14 text-base rounded-2xl gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.97] transition-transform shadow-md shadow-emerald-600/20"
                 onClick={onScanTap}
               >
                 <LogIn className="h-5 w-5" />
@@ -304,7 +308,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               <Button
                 size="lg"
                 variant="outline"
-                className="h-14 w-14 rounded-2xl active:scale-95 transition-transform"
+                className="h-14 w-14 rounded-2xl active:scale-95 transition-transform border-slate-200 bg-white"
                 onClick={onScanTap}
               >
                 <QrCode className="h-5 w-5" />
@@ -313,10 +317,10 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           )}
 
           {canCheckOut && (
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <Button
                 size="lg"
-                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground active:scale-[0.97] transition-transform"
+                className="flex-1 h-14 text-base rounded-2xl gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white active:scale-[0.97] transition-transform shadow-md shadow-rose-600/20"
                 onClick={onScanTap}
               >
                 <LogOut className="h-5 w-5" />
@@ -325,7 +329,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               <Button
                 size="lg"
                 variant="outline"
-                className="h-14 w-14 rounded-2xl active:scale-95 transition-transform"
+                className="h-14 w-14 rounded-2xl active:scale-95 transition-transform border-slate-200 bg-white"
                 onClick={onScanTap}
               >
                 <QrCode className="h-5 w-5" />
@@ -339,7 +343,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                 <CheckCircle2 className="h-4 w-4" />
                 انتهى يوم عملك
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 إجمالي العمل: {completedSummary}
               </p>
             </div>
@@ -348,57 +352,49 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Monthly Stats */}
-      <Card className="border-border bg-card">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            إحصائيات الشهر
-          </h3>
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { label: "حاضر", value: stats.present, Icon: CheckCircle2, color: "text-emerald-500" },
-              { label: "متأخر", value: stats.late, Icon: AlertTriangle, color: "text-warning" },
-              { label: "غياب", value: stats.absent, Icon: XCircle, color: "text-destructive" },
-              { label: "ساعة", value: stats.totalHours.toFixed(0), Icon: Clock, color: "text-foreground" },
-            ].map(s => (
-              <button
-                key={s.label}
-                type="button"
-                onClick={() => onNavigate("attendance")}
-                aria-label={`فتح سجل دوامي - ${s.label === "ساعة" ? "الساعات" : s.label}`}
-                className="text-center bg-secondary/30 rounded-xl p-2.5 cursor-pointer hover:bg-slate-50 hover:border-slate-300 border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.97]"
-              >
-                <div className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</div>
-                <div className="text-[10px] text-muted-foreground inline-flex items-center justify-center gap-1">
-                  <s.Icon className={`h-3 w-3 ${s.color}`} />
-                  {s.label}
-                </div>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="pt-1">
+        <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-1">إحصائيات الشهر</h4>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: "حاضر", value: stats.present, color: "text-emerald-600" },
+            { label: "متأخر", value: stats.late, color: "text-orange-500" },
+            { label: "غياب", value: stats.absent, color: "text-rose-600" },
+            { label: "ساعة", value: stats.totalHours.toFixed(0), color: "" },
+          ].map(s => (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => onNavigate("attendance")}
+              aria-label={`فتح سجل دوامي - ${s.label === "ساعة" ? "الساعات" : s.label}`}
+              className="text-center bg-white rounded-2xl p-3 border border-slate-200 shadow-sm hover:border-slate-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 active:scale-[0.97]"
+            >
+              <div className={`text-lg font-bold tabular-nums ${s.color}`} style={s.color ? undefined : { color: "#002050" }}>{s.value}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5 font-medium">{s.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Last 5 Days */}
       {last5.length > 0 && (
-        <Card className="border-border bg-card">
+        <Card className="border border-slate-200 bg-white rounded-[20px] shadow-sm">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <CalendarRange className="h-4 w-4 text-muted-foreground" />
+              <CalendarRange className="h-4 w-4 text-slate-500" />
               آخر 5 أيام
             </h3>
             <div className="space-y-1.5">
               {last5.map(day => (
-                <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
+                <div key={day.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-2.5">
                   <div className="flex items-center gap-2">
                     {statusIcon(day.status)}
                     <span className="text-xs font-medium">
                       {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted-foreground">
+                  <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-slate-500">
                     {day.status === "absent" ? (
-                      <span className="text-destructive text-xs">غياب</span>
+                      <span className="text-rose-600 text-xs">غياب</span>
                     ) : (
                       <>
                         <span>{day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "—"}</span>
@@ -417,32 +413,71 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         </Card>
       )}
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          { icon: Receipt, label: "قسائم الراتب", tab: "payslips" },
-          { icon: Wallet, label: "ملخصي المالي", tab: "financials" },
-          { icon: CalendarDays, label: "سجل دوامي", tab: "attendance" },
-          { icon: Calendar, label: "وردياتي", tab: "schedule" },
-          { icon: Shield, label: "الإجراءات", tab: "actions" },
-          { icon: Send, label: "النماذج والطلبات", tab: "forms" },
-          { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
-          { icon: User, label: "ملفي الشخصي", tab: "profile" },
-        ].map(link => (
-          <Button
-            key={link.tab}
-            variant="outline"
-            className="h-14 rounded-2xl gap-2 text-xs border-border active:scale-[0.97] transition-transform"
-            onClick={() => onNavigate(link.tab)}
-          >
-            <link.icon className="h-4 w-4 text-muted-foreground" />
-            {link.label}
-          </Button>
-        ))}
-      </div>
+      {/* Quick services grid — grouped by section */}
+      {(() => {
+        const sections: { title: string; items: { icon: any; label: string; tab: string; iconColor: string; iconBg: string; }[] }[] = [
+          {
+            title: "المالي",
+            items: [
+              { icon: Receipt, label: "قسائم الراتب", tab: "payslips", iconColor: "#002050", iconBg: "#f0f4f9" },
+              { icon: Wallet, label: "ملخصي المالي", tab: "financials", iconColor: "#002050", iconBg: "#f0f4f9" },
+            ],
+          },
+          {
+            title: "الدوام",
+            items: [
+              { icon: CalendarDays, label: "سجل دوامي", tab: "attendance", iconColor: "#1f4d8a", iconBg: "#eaf2fb" },
+              { icon: Calendar, label: "وردياتي", tab: "schedule", iconColor: "#1f4d8a", iconBg: "#eaf2fb" },
+            ],
+          },
+          {
+            title: "الطلبات والنماذج",
+            items: [
+              { icon: FileText, label: "النماذج والطلبات", tab: "forms", iconColor: "#5c2d91", iconBg: "#f3edff" },
+              { icon: ClipboardList, label: "طلباتي السابقة", tab: "requests", iconColor: "#5c2d91", iconBg: "#f3edff" },
+              { icon: Shield, label: "السياسات واللوائح", tab: "actions", iconColor: "#7a5900", iconBg: "#fff9e6" },
+              { icon: Bell, label: "تنبيهات وتصحيحات", tab: "alerts", iconColor: "#c2410c", iconBg: "#fff1e6" },
+            ],
+          },
+          {
+            title: "حسابي",
+            items: [
+              { icon: User, label: "ملفي الشخصي", tab: "profile", iconColor: "#323130", iconBg: "#f3f2f1" },
+            ],
+          },
+        ];
+        return (
+          <div className="space-y-4 pt-1">
+            {sections.map(sec => (
+              <div key={sec.title}>
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-1">{sec.title}</h4>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {sec.items.map(link => (
+                    <button
+                      key={link.tab}
+                      type="button"
+                      onClick={() => onNavigate(link.tab)}
+                      className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-3 active:scale-[0.98] transition-transform text-right"
+                    >
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: link.iconBg }}
+                      >
+                        <link.icon className="h-5 w-5" style={{ color: link.iconColor }} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 truncate flex-1">{link.label}</span>
+                      <ChevLeft className="h-4 w-4 text-slate-300 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Geofence note */}
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1 pb-2">
+      <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 px-1 pt-2 pb-2">
         <MapPin className="h-3 w-3 shrink-0" />
         <span>يتم التحقق من موقعك الجغرافي تلقائياً عند التسجيل</span>
       </div>
