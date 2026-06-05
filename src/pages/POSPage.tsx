@@ -39,7 +39,7 @@ import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
-import { StockoutAlertButton, StockoutAlertsListener } from "@/components/pos/StockoutAlerts";
+import { StockoutAlertButton, StockoutAlertsListener, StockoutAlertsBanner } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
@@ -4769,6 +4769,14 @@ const POSPage = () => {
       {/* Global stockout listener — plays beep + toast for new alerts.
           The visible banner lives inside "سجل المحوّلة" sheet only. */}
       {dataOwnerId && <StockoutAlertsListener dataOwnerId={dataOwnerId} />}
+
+      {/* Compact stockout banner on the main POS screen — call center only.
+          Cashiers don't need it outside; they use the icon button in the top bar. */}
+      {isCallCenter && dataOwnerId && (
+        <div className="px-2 pt-1">
+          <StockoutAlertsBanner dataOwnerId={dataOwnerId} compact />
+        </div>
+      )}
 
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
