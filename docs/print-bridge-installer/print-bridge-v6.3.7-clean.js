@@ -693,8 +693,8 @@ function renderReceiptSVG(order, logoTopMargin) {
   push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">شكراً لتعاملكم معنا</text>`);
   // ── AMWALI signature (customer receipt ONLY — never on kitchen tickets) ──
   push(10, () => '');
-  push(20, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="14" font-weight="400" font-family="Tahoma" fill="#555">Powered by AMWALI ERP</text>`);
-  push(20, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="14" font-weight="400" font-family="Tahoma" fill="#555">مشغّل بواسطة نظام أموالي ERP</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma" fill="#000">Powered by AMWALI ERP</text>`);
+  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="16" font-weight="700" font-family="Tahoma" fill="#000">مشغّل بواسطة نظام أموالي ERP</text>`);
 
   const H = y + 30;
   return { svg: `<?xml version="1.0"?>
