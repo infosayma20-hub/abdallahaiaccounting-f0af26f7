@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, X, PackageX, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { installAudioUnlock, playAlertBeep } from "@/lib/audio-unlock";
 
 /**
  * Stockout alerts — branch/cashier raises a quick alert to the call center
@@ -52,10 +53,12 @@ export function StockoutAlertButton({
   dataOwnerId,
   branchId,
   branchName,
+  iconOnly = false,
 }: {
   dataOwnerId: string;
   branchId: string | null;
   branchName?: string | null;
+  iconOnly?: boolean;
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -87,9 +90,11 @@ export function StockoutAlertButton({
   }, [open, dataOwnerId]);
 
   // Show this branch's currently-active alerts so the cashier doesn't double-raise
+  // Also drives the count badge on the icon-only button, so it must run
+  // regardless of dialog open state and stay live via realtime.
   useEffect(() => {
-    if (!open || !dataOwnerId) return;
-    (async () => {
+    if (!dataOwnerId) return;
+    const load = async () => {
       let q = supabase
         .from("stockout_alerts")
         .select("*")
@@ -100,8 +105,14 @@ export function StockoutAlertButton({
       if (branchId) q = q.eq("branch_id", branchId);
       const { data } = await q;
       setMyActive(((data as any[]) || []) as AlertRow[]);
-    })();
-  }, [open, dataOwnerId, branchId]);
+    };
+    load();
+    const ch = supabase
+      .channel(`stockout-btn-${dataOwnerId}-${branchId || "all"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dataOwnerId, branchId]);
 
   const filteredProducts = useMemo(() => {
     const s = search.trim();
@@ -159,17 +170,33 @@ export function StockoutAlertButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="gap-1 border-amber-300 text-amber-800 hover:bg-amber-50"
-        title="تنبيه نفاد صنف للكول سنتر"
-      >
-        <PackageX className="w-4 h-4" />
-        تنبيه نفاد صنف
-      </Button>
+      {iconOnly ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
+          title="تنبيه نفاد صنف للكول سنتر"
+        >
+          <PackageX className="h-5 w-5 text-amber-300" />
+          {myActive.length > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center">
+              {myActive.length}
+            </span>
+          )}
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          className="gap-1 border-amber-300 text-amber-800 hover:bg-amber-50"
+          title="تنبيه نفاد صنف للكول سنتر"
+        >
+          <PackageX className="w-4 h-4" />
+          تنبيه نفاد صنف
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
         <DialogContent dir="rtl" className="max-w-lg">
@@ -270,6 +297,11 @@ export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
   const [modMap, setModMap] = useState<Map<string, string>>(new Map());
   const [branchMap, setBranchMap] = useState<Map<string, string>>(new Map());
   const [collapsed, setCollapsed] = useState(false);
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const [firstLoadDone, setFirstLoadDone] = useState(false);
+
+  // Make sure audio is unlockable on first user gesture so the beep works.
+  useEffect(() => { installAudioUnlock(); }, []);
 
   const load = async () => {
     if (!dataOwnerId) return;
@@ -280,7 +312,27 @@ export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
       .eq("status", "active")
       .order("raised_at", { ascending: false })
       .limit(50);
-    setAlerts(((data as any[]) || []) as AlertRow[]);
+    const rows = ((data as any[]) || []) as AlertRow[];
+    setAlerts(rows);
+    // Beep + toast for newly-arrived alerts (skip on the very first load).
+    setSeenIds(prev => {
+      const next = new Set(prev);
+      let beep = false;
+      let newest: AlertRow | null = null;
+      rows.forEach(r => {
+        if (!prev.has(r.id)) {
+          if (firstLoadDone) { beep = true; if (!newest) newest = r; }
+          next.add(r.id);
+        }
+      });
+      if (beep) {
+        try { playAlertBeep(); } catch {}
+        const label = newest?.custom_label || "صنف غير متوفر";
+        try { toast.warning(`🚨 تنبيه نفاد: ${label}`, { duration: 6000 }); } catch {}
+      }
+      return next;
+    });
+    if (!firstLoadDone) setFirstLoadDone(true);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [dataOwnerId]);

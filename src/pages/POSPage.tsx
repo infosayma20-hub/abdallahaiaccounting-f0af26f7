@@ -39,7 +39,7 @@ import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
-import { StockoutAlertButton } from "@/components/pos/StockoutAlerts";
+import { StockoutAlertButton, StockoutAlertsBanner } from "@/components/pos/StockoutAlerts";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
@@ -4624,6 +4624,15 @@ const POSPage = () => {
             <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
 
+          {/* Stockout alert — icon shortcut in top bar (cashier only) */}
+          {!isCallCenter && dataOwnerId && (
+            <StockoutAlertButton
+              iconOnly
+              dataOwnerId={dataOwnerId}
+              branchId={deviceConfig?.branchId || cashBoxBranchId || null}
+            />
+          )}
+
           {/* Tables */}
           <button onClick={() => navigate("/pos/floor-plan")} className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
             <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
@@ -4757,6 +4766,13 @@ const POSPage = () => {
       </header>
 
       {/* ══════ OFFLINE STATUS BAR — hidden, data kept in sync log ══════ */}
+
+      {/* ══════ Stockout alerts — always visible to ALL users (call-center + cashiers) ══════ */}
+      {dataOwnerId && (
+        <div className="px-2 pt-2 shrink-0">
+          <StockoutAlertsBanner dataOwnerId={dataOwnerId} />
+        </div>
+      )}
 
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
@@ -5582,15 +5598,7 @@ const POSPage = () => {
                 )}
               </div>
 
-              {/* Branch → Call Center stockout alert (item 3). Cashier only. */}
-              {!isCallCenter && dataOwnerId && (
-                <div className="flex justify-end">
-                  <StockoutAlertButton
-                    dataOwnerId={dataOwnerId}
-                    branchId={deviceConfig?.branchId || cashBoxBranchId || null}
-                  />
-                </div>
-              )}
+              {/* Stockout alert moved to top bar as an icon shortcut. */}
 
               {/* Quick save+print - only for non-call-center when accepting call center orders */}
               {!isCallCenter && cart.length > 0 && activeOrder.callCenterOrderId && (
