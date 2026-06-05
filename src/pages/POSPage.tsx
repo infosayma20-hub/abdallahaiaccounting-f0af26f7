@@ -4624,6 +4624,15 @@ const POSPage = () => {
             <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
 
+          {/* Stockout alert — icon shortcut in top bar (cashier only) */}
+          {!isCallCenter && dataOwnerId && (
+            <StockoutAlertButton
+              iconOnly
+              dataOwnerId={dataOwnerId}
+              branchId={deviceConfig?.branchId || cashBoxBranchId || null}
+            />
+          )}
+
           {/* Tables */}
           <button onClick={() => navigate("/pos/floor-plan")} className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
             <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
