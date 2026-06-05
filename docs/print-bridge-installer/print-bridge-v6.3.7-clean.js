@@ -840,80 +840,85 @@ function renderShiftSVG(session, logoTopMargin) {
   let y = 40 + (logoTopMargin || 0);
   const push = (h, fn) => { rows.push(fn(y)); y += h; };
 
-  push(50, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="34" font-weight="900" font-family="Tahoma">تسليم العهدة</text>`);
-  if (branchName) push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">${esc(branchName)}</text>`);
-  if (session.terminalName) push(28, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="20" font-family="Tahoma">${esc(session.terminalName)}</text>`);
+  push(58, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="42" font-weight="900" font-family="Tahoma">تسليم العهدة</text>`);
+  if (branchName) push(38, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="26" font-weight="800" font-family="Tahoma">${esc(branchName)}</text>`);
+  if (session.terminalName) push(32, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="23" font-weight="700" font-family="Tahoma">${esc(session.terminalName)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
 
   if (session.cashierName) push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الكاشير</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">${esc(session.cashierName)}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">فتح الوردية</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">${esc(fmtDT(openedAt))}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">إغلاق الوردية</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">${esc(fmtDT(closedAt))}</text>`);
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">الكاشير</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">${esc(session.cashierName)}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">فتح الوردية</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="23" font-weight="800" font-family="Tahoma">${esc(fmtDT(openedAt))}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">إغلاق الوردية</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="23" font-weight="800" font-family="Tahoma">${esc(fmtDT(closedAt))}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
-  push(34, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="800" font-family="Tahoma">عدد الطلبات</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="900" font-family="Tahoma">${session.totalOrders || 0}</text>`);
-  push(34, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="800" font-family="Tahoma">إجمالي المبيعات</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="900" font-family="Tahoma">₪${fmt(session.totalSales)}</text>`);
-  if (session.totalExpenses) push(34, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="800" font-family="Tahoma">إجمالي المصروفات</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="900" font-family="Tahoma">₪${fmt(session.totalExpenses)}</text>`);
+  push(38, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="28" font-weight="800" font-family="Tahoma">عدد الطلبات</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="28" font-weight="900" font-family="Tahoma">${session.totalOrders || 0}</text>`);
+  push(38, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="28" font-weight="800" font-family="Tahoma">إجمالي المبيعات</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="28" font-weight="900" font-family="Tahoma">₪${fmt(session.totalSales)}</text>`);
+  if (session.totalExpenses) push(38, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="28" font-weight="800" font-family="Tahoma">إجمالي المصروفات</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="28" font-weight="900" font-family="Tahoma">₪${fmt(session.totalExpenses)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
-  push(30, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-weight="900" font-family="Tahoma">توزيع المبيعات</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">نقد</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.cashSales)}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">بطاقة / فيزا</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.cardSales)}</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">توزيع المبيعات</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">نقد</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.cashSales)}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">بطاقة / فيزا</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.cardSales)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
 
-  push(30, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-weight="900" font-family="Tahoma">أرصدة الصندوق</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الرصيد الافتتاحي</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.openingBalance)}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">المتوقع (شيكل)</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.expectedCash)}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الفعلي (شيكل)</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.closingBalance)}</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">أرصدة الصندوق</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">الرصيد الافتتاحي</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.openingBalance)}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">المتوقع (شيكل)</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.expectedCash)}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">الفعلي (شيكل)</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.closingBalance)}</text>`);
 
   if (session.expectedCashUSD != null || session.closingCashUSD != null) {
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">المتوقع (دولار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">$${fmt(session.expectedCashUSD)}</text>`);
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">الفعلي (دولار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">$${fmt(session.closingCashUSD)}</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">المتوقع (دولار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">$${fmt(session.expectedCashUSD)}</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">الفعلي (دولار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">$${fmt(session.closingCashUSD)}</text>`);
   }
   if (session.expectedCashJOD != null || session.closingCashJOD != null) {
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">المتوقع (دينار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">${fmt(session.expectedCashJOD)} د.أ</text>`);
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">الفعلي (دينار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">${fmt(session.closingCashJOD)} د.أ</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">المتوقع (دينار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">${fmt(session.expectedCashJOD)} د.أ</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">الفعلي (دينار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">${fmt(session.closingCashJOD)} د.أ</text>`);
   }
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
 
   const diff = Number(session.difference || 0);
   const diffLabel = diff === 0 ? 'مطابق ✓' : diff > 0 ? `زيادة +₪${fmt(diff)}` : `عجز -₪${fmt(Math.abs(diff))}`;
-  push(110, (cy) => `
-    <rect x="${padX}" y="${cy - 78}" width="${W - padX*2}" height="96" fill="none" stroke="#000" stroke-width="3"/>
-    <text x="${W/2}" y="${cy - 42}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">الفرق</text>
-    <text x="${W/2}" y="${cy - 4}"  text-anchor="middle" font-size="32" font-weight="900" font-family="Tahoma">${esc(diffLabel)}</text>`);
+  push(30, () => '');
+  push(130, (cy) => {
+    const boxH = 116;
+    const boxY = cy - 92;
+    return `
+    <rect x="${padX}" y="${boxY}" width="${W - padX*2}" height="${boxH}" rx="6" fill="none" stroke="#000" stroke-width="3"/>
+    <text x="${W/2}" y="${boxY + 44}" text-anchor="middle" font-size="32" font-weight="900" font-family="Tahoma">الفرق</text>
+    <text x="${W/2}" y="${boxY + 88}" text-anchor="middle" font-size="38" font-weight="900" font-family="Tahoma">${esc(diffLabel)}</text>`;
+  });
 
-  push(30, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="20" font-family="Tahoma">توقيع الكاشير: ________________</text>`);
-  push(24, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="20" font-weight="800" font-family="Tahoma">❤️ شكراً</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-family="Tahoma">توقيع الكاشير: ________________</text>`);
+  push(28, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-weight="800" font-family="Tahoma">❤️ شكراً</text>`);
 
   const H = y + 30;
   return { svg: `<?xml version="1.0"?>
