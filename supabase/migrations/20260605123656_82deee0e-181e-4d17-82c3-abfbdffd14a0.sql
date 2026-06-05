@@ -1,0 +1,1 @@
+DELETE FROM public.modifier_options WHERE id = '69ffa1af-babc-491a-b2aa-1370983cdfa0';
