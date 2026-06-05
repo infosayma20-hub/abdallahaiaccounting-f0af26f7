@@ -348,11 +348,6 @@ export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
   const [modMap, setModMap] = useState<Map<string, string>>(new Map());
   const [branchMap, setBranchMap] = useState<Map<string, string>>(new Map());
   const [collapsed, setCollapsed] = useState(false);
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
-  const [firstLoadDone, setFirstLoadDone] = useState(false);
-
-  // Make sure audio is unlockable on first user gesture so the beep works.
-  useEffect(() => { installAudioUnlock(); }, []);
 
   const load = async () => {
     if (!dataOwnerId) return;
