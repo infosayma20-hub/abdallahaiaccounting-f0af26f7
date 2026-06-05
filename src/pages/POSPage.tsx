@@ -4766,12 +4766,9 @@ const POSPage = () => {
 
       {/* ══════ OFFLINE STATUS BAR — hidden, data kept in sync log ══════ */}
 
-      {/* ══════ Stockout alerts — always visible to ALL users (call-center + cashiers) ══════ */}
-      {dataOwnerId && (
-        <div className="px-2 pt-2 shrink-0">
-          <StockoutAlertsBanner dataOwnerId={dataOwnerId} />
-        </div>
-      )}
+      {/* Global stockout listener — plays beep + toast for new alerts.
+          The visible banner lives inside "سجل المحوّلة" sheet only. */}
+      {dataOwnerId && <StockoutAlertsListener dataOwnerId={dataOwnerId} />}
 
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
