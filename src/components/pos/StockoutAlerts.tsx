@@ -290,6 +290,57 @@ export function StockoutAlertButton({
 
 /* ─────────────────────────── Call center banner ─────────────────────────── */
 
+/**
+ * Headless listener — plays a beep + toast for any newly-arrived active alert
+ * without rendering any UI. Mount once at a global POS scope so call-center
+ * users hear the alert even when the "سجل المحوّلة" sheet is closed.
+ */
+export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string }) {
+  const seenRef = useRef<Set<string>>(new Set());
+  const firstLoadRef = useRef(false);
+
+  useEffect(() => { installAudioUnlock(); }, []);
+
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("stockout_alerts")
+        .select("id,custom_label,product_id,modifier_option_id,status")
+        .eq("user_id", dataOwnerId)
+        .eq("status", "active")
+        .order("raised_at", { ascending: false })
+        .limit(50);
+      if (cancelled) return;
+      const rows = ((data as any[]) || []) as AlertRow[];
+      let newest: AlertRow | null = null;
+      let beep = false;
+      const seen = seenRef.current;
+      rows.forEach(r => {
+        if (!seen.has(r.id)) {
+          if (firstLoadRef.current) { beep = true; if (!newest) newest = r; }
+          seen.add(r.id);
+        }
+      });
+      if (beep) {
+        try { playAlertBeep(); } catch {}
+        const label = newest?.custom_label || "صنف غير متوفر";
+        try { toast.warning(`🚨 تنبيه نفاد: ${label}`, { duration: 6000 }); } catch {}
+      }
+      firstLoadRef.current = true;
+    };
+    load();
+    const ch = supabase
+      .channel(`stockout-listener-${dataOwnerId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [dataOwnerId]);
+
+  return null;
+}
+
 export function StockoutAlertsBanner({ dataOwnerId }: { dataOwnerId: string }) {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
