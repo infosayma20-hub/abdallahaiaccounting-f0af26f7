@@ -4962,9 +4962,7 @@ const POSPage = () => {
       {/* Compact stockout banner on the main POS screen — call center only.
           Cashiers don't need it outside; they use the icon button in the top bar. */}
       {isCallCenter && dataOwnerId && (
-        <div className="px-2 pt-1">
-          <StockoutAlertsBanner dataOwnerId={dataOwnerId} compact />
-        </div>
+        <StockoutAlertsBanner dataOwnerId={dataOwnerId} compact />
       )}
 
       {/* ══════ MAIN ══════ */}
