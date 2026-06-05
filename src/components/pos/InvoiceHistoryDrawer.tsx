@@ -1310,7 +1310,7 @@ export default function InvoiceHistoryDrawer({
                     onClick={async () => {
                       if (!confirm(`هل أنت متأكد من حذف الطلب المعلق #${selectedOrder.order_number || ""}؟`)) return;
                       try {
-                        await supabase.from("pos_order_items").delete().eq("order_id", selectedOrder.id);
+                        await supabase.from("pos_order_lines").delete().eq("order_id", selectedOrder.id);
                         await supabase.from("pos_payments").delete().eq("order_id", selectedOrder.id);
                         const { error } = await supabase.from("pos_orders").delete().eq("id", selectedOrder.id);
                         if (error) throw error;
