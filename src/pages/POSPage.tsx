@@ -4553,56 +4553,82 @@ const POSPage = () => {
           )}
           {showContactDropdown && (customerSearch || "").length > 0 && (
             <div
-              className="pos-customer-dropdown absolute z-50 w-[280px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto"
+              className="pos-customer-dropdown absolute z-50 w-[320px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto"
               onMouseDown={(e) => {
                 const target = e.target as HTMLElement;
                 if (target.closest("input, button, textarea, [role='button']")) return;
                 e.preventDefault();
               }}
             >
-              {posCustomerResults.length > 0 && (
+              {customerSearch.trim().length < 3 ? (
+                <p className="px-3 py-2 text-[11px] text-muted-foreground text-center">
+                  اكتب 3 أحرف/أرقام على الأقل للبحث…
+                </p>
+              ) : mergedCustomerResults.length > 0 ? (
                 <>
-                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
-                  {posCustomerResults.map((pc) => (
+                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">
+                    نتائج البحث ({mergedCustomerResults.length})
+                  </p>
+                  {mergedCustomerResults.map((r) => (
                     <button
-                      key={pc.id}
+                      key={r.key}
                       onClick={() => {
-                        setCustomerName(pc.name || "", null, pc.whatsapp || "", pc.id);
-                        if (pc.address) updateActiveOrder(o => ({ ...o, deliveryAddress: pc.address || "" }));
+                        setCustomerName(r.name || "", r.contactId || null, r.phone || "", r.posCustomerId || null);
+                        if (r.address) updateActiveOrder(o => ({ ...o, deliveryAddress: r.address || "" }));
                         setCustomerSearch("");
                         setShowContactDropdown(false);
                       }}
-                      className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition"
+                      className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition border-b border-border/40 last:border-b-0"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
-                          <span className="font-semibold truncate text-[11px] text-foreground">{pc.name || "بدون اسم"}</span>
+                          <span className="font-semibold truncate text-[11px] text-foreground">
+                            {r.name || "بدون اسم"}
+                          </span>
                         </div>
-                        <span className="text-[10px] text-foreground/60 shrink-0">{pc.total_visits || 0} زيارة</span>
+                        {typeof r.totalVisits === "number" && r.totalVisits > 0 && (
+                          <span className="text-[10px] text-foreground/60 shrink-0">
+                            {r.totalVisits} زيارة
+                          </span>
+                        )}
                       </div>
+                      <div className="flex items-center justify-between gap-2 mt-0.5 pr-4">
+                        <span className="text-[10px] text-foreground/60 truncate" dir="ltr">
+                          {r.phone || "—"}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {r.sources.map((s) => {
+                            const styles =
+                              s === "POS"
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                : s === "Contacts"
+                                ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-300";
+                            const label = s === "POS" ? "POS" : s === "Contacts" ? "جهات" : "كولسنتر";
+                            return (
+                              <span
+                                key={s}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${styles}`}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {r.sources.length === 1 && r.sources[0] === "Call Center" && (
+                        <p className="text-[9px] text-amber-700/80 dark:text-amber-300/80 mt-0.5 pr-4">
+                          من طلب محوّل — لم يُحفظ بعد كزبون
+                        </p>
+                      )}
                     </button>
                   ))}
                 </>
-              )}
-              {filteredContacts.length > 0 && (
-                <>
-                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">جهات الاتصال</p>
-                  {filteredContacts.map((contact) => (
-                    <button
-                      key={contact.id}
-                      onClick={() => {
-                        setCustomerName(contact.contact_name, contact.id);
-                        setCustomerSearch("");
-                        setShowContactDropdown(false);
-                      }}
-                      className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-muted/50 transition flex items-center gap-2 text-foreground"
-                    >
-                      <User className="h-3 w-3 text-foreground/50 shrink-0" />
-                      <span className="font-medium">{contact.contact_name}</span>
-                    </button>
-                  ))}
-                </>
+              ) : (
+                <p className="px-3 py-2 text-[11px] text-muted-foreground text-center">
+                  لا توجد نتائج
+                </p>
               )}
               {/* Inline add new customer */}
               <div className="border-t border-border px-3 py-2 bg-muted/20">
