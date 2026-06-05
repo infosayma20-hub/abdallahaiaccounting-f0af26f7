@@ -619,7 +619,7 @@ function renderReceiptSVG(order, logoTopMargin) {
     push(rowH, (cy) => {
       const firstY = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${W - padX}" y="${firstY + i * 32}" text-anchor="end" font-size="24" font-weight="900" font-family="Tahoma">${esc(ln)}</text>`).join('');
+        `<text x="${W - padX}" y="${firstY + i * 32}" text-anchor="end" font-size="24" font-weight="900" font-family="Tahoma">${i === 0 ? '● ' : ''}${esc(ln)}</text>`).join('');
       return `${nameSvg}
       <text x="${W * 0.48}" y="${firstY}" text-anchor="middle" font-size="24" font-weight="900" font-family="Tahoma">${qty}</text>
       <text x="${W * 0.30}" y="${firstY}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">₪${price}</text>
