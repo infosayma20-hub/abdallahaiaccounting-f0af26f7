@@ -347,7 +347,7 @@ export function StockoutAlertsBanner({ dataOwnerId, compact = false }: { dataOwn
   const [productMap, setProductMap] = useState<Map<string, string>>(new Map());
   const [modMap, setModMap] = useState<Map<string, string>>(new Map());
   const [branchMap, setBranchMap] = useState<Map<string, string>>(new Map());
-  const [collapsed, setCollapsed] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const load = async () => {
     if (!dataOwnerId) return;
@@ -414,43 +414,76 @@ export function StockoutAlertsBanner({ dataOwnerId, compact = false }: { dataOwn
 
   if (alerts.length === 0) return null;
 
+  const MAX_CHIPS = 4;
+  const visible = alerts.slice(0, MAX_CHIPS);
+  const extra = alerts.length - visible.length;
+
   return (
-    <div dir="rtl" className={`rounded-md border border-red-300 bg-red-50 text-red-900 ${compact ? "px-2 py-1 text-xs" : "px-3 py-2 mb-2 text-sm"}`}>
+    <>
       <button
         type="button"
-        onClick={() => setCollapsed(v => !v)}
-        className="w-full flex items-center justify-between gap-2"
+        dir="rtl"
+        onClick={() => setDetailsOpen(true)}
+        className={`w-full flex items-center gap-2 rounded-md border border-red-300/70 bg-red-50/90 text-red-900 hover:bg-red-100 transition-colors ${
+          compact ? "px-2 py-1 text-[11px]" : "px-3 py-2 mb-2 text-sm"
+        }`}
+        title="عرض تفاصيل نفاد الأصناف"
       >
-        <span className="flex items-center gap-1.5 font-semibold">
-          <AlertTriangle className={compact ? "w-3.5 h-3.5" : "w-4 h-4"} />
-          {compact
-            ? `نفاد ${alerts.length}`
-            : `أصناف/مكوّنات غير متوفرة الآن (${alerts.length})`}
+        <AlertTriangle className={compact ? "w-3.5 h-3.5 shrink-0" : "w-4 h-4 shrink-0"} />
+        <span className="font-semibold shrink-0">
+          {compact ? `نفاد (${alerts.length})` : `أصناف/مكوّنات غير متوفرة (${alerts.length})`}
         </span>
-        <span className={`text-red-800/80 ${compact ? "text-[10px]" : "text-xs"}`}>
-          {collapsed ? "عرض" : "إخفاء"}
-        </span>
-      </button>
-      {!collapsed && (
-        <ul className={`mt-1 space-y-1 ${compact ? "max-h-40 overflow-auto" : ""}`}>
-          {alerts.map(a => (
-            <li key={a.id} className="flex items-center justify-between gap-2 bg-white/60 rounded px-2 py-1">
-              <div className="flex items-center gap-2 min-w-0">
-                <Badge variant="destructive" className="shrink-0">{describeAlert(a, productMap, modMap)}</Badge>
-                <span className="text-xs text-red-800/80 truncate">
-                  {a.branch_id ? `الفرع: ${branchMap.get(a.branch_id) || "—"} • ` : ""}
-                  {a.raised_by_name ? `${a.raised_by_name} • ` : ""}
-                  {new Date(a.raised_at).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
-                  {a.note ? ` • ${a.note}` : ""}
-                </span>
-              </div>
-              <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => resolve(a.id)}>
-                <X className="w-3 h-3 ml-1" /> رفع التنبيه
-              </Button>
-            </li>
+        <div className="flex items-center gap-1 overflow-hidden flex-1 min-w-0">
+          {visible.map(a => (
+            <span
+              key={a.id}
+              className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/70 border border-red-200 text-red-800 text-[10px] font-medium max-w-[120px] truncate shrink-0"
+            >
+              {describeAlert(a, productMap, modMap)}
+            </span>
           ))}
-        </ul>
-      )}
-    </div>
+          {extra > 0 && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-200 text-red-900 text-[10px] font-bold shrink-0">
+              +{extra}
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] text-red-800/70 shrink-0 mr-auto">تفاصيل</span>
+      </button>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent dir="rtl" className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="w-4 h-4" />
+              أصناف/مكوّنات غير متوفرة ({alerts.length})
+            </DialogTitle>
+            <DialogDescription>
+              التنبيهات النشطة من الفروع. اضغط "رفع التنبيه" عند توفر الصنف.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-1.5 max-h-[60vh] overflow-auto">
+            {alerts.map(a => (
+              <li key={a.id} className="flex items-center justify-between gap-2 rounded-md border border-red-100 bg-red-50/60 px-2 py-1.5">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-sm font-semibold text-red-900 truncate">
+                    {describeAlert(a, productMap, modMap)}
+                  </span>
+                  <span className="text-[11px] text-red-800/80 truncate">
+                    {a.branch_id ? `الفرع: ${branchMap.get(a.branch_id) || "—"} • ` : ""}
+                    {a.raised_by_name ? `${a.raised_by_name} • ` : ""}
+                    {new Date(a.raised_at).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                    {a.note ? ` • ${a.note}` : ""}
+                  </span>
+                </div>
+                <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0" onClick={() => resolve(a.id)}>
+                  <X className="w-3 h-3 ml-1" /> رفع التنبيه
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
