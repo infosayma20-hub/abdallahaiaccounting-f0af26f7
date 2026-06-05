@@ -4822,6 +4822,7 @@ const POSPage = () => {
                   )}
 
                   {/* All — moved to the end (after the last category) */}
+                  {!hideAllCategoryTab && (
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
                     className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
@@ -4843,6 +4844,7 @@ const POSPage = () => {
                     <span className="leading-tight">الكل</span>
                     <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
                   </button>
+                  )}
 
                   {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
                     <>
