@@ -153,6 +153,39 @@ interface POSCustomer {
   total_spent: number | null;
 }
 
+/** Unified result item from POS Customers + Contacts + Call Center Orders */
+interface UnifiedCustomerResult {
+  /** stable key used by React + dedupe */
+  key: string;
+  name: string;
+  phone: string;
+  normalizedPhone: string;
+  address?: string;
+  posCustomerId?: string | null;
+  contactId?: string | null;
+  totalVisits?: number;
+  /** Sources where this customer was found */
+  sources: Array<"POS" | "Contacts" | "Call Center">;
+}
+
+/**
+ * Normalize Palestinian/international phone numbers for matching.
+ * Strips spaces, dashes, plus signs and Arabic digits, then drops any
+ * leading country prefixes (00972 / 972) so 059xxxxxxx, +97259xxxxxxx and
+ * 0097259xxxxxxx all match the same person.
+ */
+function normalizePhoneForSearch(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+  let s = String(raw)
+    .replace(/[٠-٩]/g, (d) => String(arabicDigits.indexOf(d)))
+    .replace(/\D/g, "");
+  if (s.startsWith("00972")) s = s.slice(5);
+  else if (s.startsWith("972")) s = s.slice(3);
+  if (s.length > 0 && !s.startsWith("0")) s = "0" + s;
+  return s;
+}
+
 const POSThemeToggle = ({ darkMode, onToggle }: { darkMode: boolean; onToggle: () => void }) => {
   return (
     <button
