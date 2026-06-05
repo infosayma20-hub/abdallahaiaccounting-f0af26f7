@@ -26,6 +26,7 @@ import {
   CheckCircle2, XCircle, Sparkles, Printer, Rocket, Plus, Download, Upload,
   Copy, ShieldAlert, Banknote, Link2, Trash2, AlertCircle, ListChecks, Radar,
   Cloud, ChevronDown,
+  Image as ImageIcon,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -113,6 +114,7 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
 ];
 
 const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip?v=20260605-v637-installer-fix";
+const PRINT_BRIDGE_LOGO_URL = "/images/malaky-logo.png";
 
 // Map our pos_printers role → the bridge's printer key (in device.json)
 function roleToBridgeKey(role: string): BridgePrinterKey | null {
@@ -158,6 +160,8 @@ export default function NewDeviceOnboardingPage() {
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [printerStatus, setPrinterStatus] = useState<Record<string, boolean | null>>({});
   const [bridgePrinterHealth, setBridgePrinterHealth] = useState<Record<string, { connected: boolean; subnetMismatch: boolean }>>({});
+  // Print Bridge logo presence (true = bridge can read logo.png from its folder)
+  const [bridgeLogo, setBridgeLogo] = useState<boolean | null>(null);
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
@@ -221,10 +225,17 @@ export default function NewDeviceOnboardingPage() {
             setBridgeBound(false);
           }
         } catch { /* ignore */ }
+        // Probe /health so we know if the bridge can read its logo.png.
+        // This is a passive status only — never a connection failure.
+        try {
+          const h = await checkBridgeHealth();
+          if (h.online && typeof h.logo === "boolean") setBridgeLogo(h.logo);
+        } catch { /* ignore */ }
         await loadOptionsRef.current();
         if (!opts?.silent) toast.success("برنامج الطباعة متصل ✓");
       } else if (!opts?.silent) {
         setBridgeBound(null);
+        setBridgeLogo(null);
         toast.error("برنامج الطباعة غير شغّال على هذا الجهاز");
       }
     } finally {
@@ -508,6 +519,7 @@ export default function NewDeviceOnboardingPage() {
       const h = await checkBridgeHealth();
       if (h.online) {
         if (h.source) setBridgeSource(h.source);
+        if (typeof h.logo === "boolean") setBridgeLogo(h.logo);
         const m: Record<string, { connected: boolean; subnetMismatch: boolean }> = {};
         (h.printers || []).forEach(bp => {
           if (bp.ip) m[bp.ip] = { connected: !!bp.connected, subnetMismatch: !!bp.subnetMismatch };
@@ -791,6 +803,11 @@ export default function NewDeviceOnboardingPage() {
                 <Download className="h-3.5 w-3.5" /> تحديث برنامج الطباعة
               </a>
             </Button>
+            <Button asChild size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs">
+              <a href={PRINT_BRIDGE_LOGO_URL} download="logo.png">
+                <ImageIcon className="h-3.5 w-3.5" /> تنزيل شعار الطباعة
+              </a>
+            </Button>
           </div>
         </div>
 
@@ -847,6 +864,37 @@ export default function NewDeviceOnboardingPage() {
               <CheckCircle2 className="h-4 w-4 text-success" /> برنامج الطباعة شغّال. لا حاجة لأي إجراء هنا.
             </div>
           )}
+
+          {/* ── ملفات الطباعة: شعار الكاشير ──────────────────── */}
+          <div className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-[13px] space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="font-semibold inline-flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4" /> ملفات الطباعة — شعار الوصل
+              </div>
+              {bridgeOnline === true && (
+                bridgeLogo === true ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/30">
+                    <CheckCircle2 className="h-3 w-3" /> الشعار مقروء من برنامج الطباعة
+                  </span>
+                ) : bridgeLogo === false ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                    <AlertCircle className="h-3 w-3" /> الشعار غير موجود داخل مجلد برنامج الطباعة
+                  </span>
+                ) : null
+              )}
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              بعد تنزيل الشعار، ضعه داخل مجلد برنامج الطباعة على جهاز الكاشير، مثلاً:
+              {" "}<code dir="ltr">C:\print-bridge\logo.png</code> ثم أعد تشغيل برنامج الطباعة.
+            </p>
+            <div>
+              <Button asChild size="sm" variant="secondary" className="h-7 px-2 gap-1 text-xs">
+                <a href={PRINT_BRIDGE_LOGO_URL} download="logo.png">
+                  <Download className="h-3.5 w-3.5" /> تنزيل logo.png
+                </a>
+              </Button>
+            </div>
+          </div>
         </Section>
 
         {/* ── Step 2: Device binding ─────────────────────── */}

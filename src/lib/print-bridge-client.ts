@@ -143,6 +143,7 @@ export async function checkBridgeHealth(): Promise<{
   subnetWarnings?: { key: string; name: string; ip: string; message: string }[];
   hostSubnets?: { iface: string; ip?: string; cidr: string }[];
   subnetCheckSupported?: boolean;
+  logo?: boolean;
 }> {
   try {
     const res = await bridgeFetch("/health", {
@@ -191,6 +192,7 @@ export async function checkBridgeHealth(): Promise<{
               subnetWarnings: Array.isArray(freshData.subnet_warnings) ? freshData.subnet_warnings : [],
               hostSubnets: Array.isArray(freshData.host_subnets) ? freshData.host_subnets : [],
               subnetCheckSupported: !!freshData.subnet_check,
+              logo: typeof freshData.logo === "boolean" ? freshData.logo : (typeof freshData.logo_present === "boolean" ? freshData.logo_present : undefined),
             };
           }
         }
@@ -203,6 +205,7 @@ export async function checkBridgeHealth(): Promise<{
       subnetWarnings: Array.isArray(data.subnet_warnings) ? data.subnet_warnings : [],
       hostSubnets: Array.isArray(data.host_subnets) ? data.host_subnets : [],
       subnetCheckSupported: !!data.subnet_check,
+      logo: typeof data.logo === "boolean" ? data.logo : (typeof data.logo_present === "boolean" ? data.logo_present : undefined),
     };
   } catch {
     return { online: false };
