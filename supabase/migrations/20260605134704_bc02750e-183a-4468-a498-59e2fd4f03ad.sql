@@ -1,0 +1,1 @@
+DELETE FROM public.product_modifier_groups WHERE product_id='da235c5c-1e2b-42f9-b6c9-46abf353c1d9' AND group_id='c2c593ea-a920-481d-9ed8-9743535cd5d0';
