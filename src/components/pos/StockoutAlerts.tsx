@@ -90,9 +90,11 @@ export function StockoutAlertButton({
   }, [open, dataOwnerId]);
 
   // Show this branch's currently-active alerts so the cashier doesn't double-raise
+  // Also drives the count badge on the icon-only button, so it must run
+  // regardless of dialog open state and stay live via realtime.
   useEffect(() => {
-    if (!open || !dataOwnerId) return;
-    (async () => {
+    if (!dataOwnerId) return;
+    const load = async () => {
       let q = supabase
         .from("stockout_alerts")
         .select("*")
@@ -103,8 +105,14 @@ export function StockoutAlertButton({
       if (branchId) q = q.eq("branch_id", branchId);
       const { data } = await q;
       setMyActive(((data as any[]) || []) as AlertRow[]);
-    })();
-  }, [open, dataOwnerId, branchId]);
+    };
+    load();
+    const ch = supabase
+      .channel(`stockout-btn-${dataOwnerId}-${branchId || "all"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dataOwnerId, branchId]);
 
   const filteredProducts = useMemo(() => {
     const s = search.trim();
