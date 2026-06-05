@@ -114,7 +114,6 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
 ];
 
 const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip?v=20260605-v637-installer-fix";
-const PRINT_BRIDGE_LOGO_URL = "/images/malaky-logo.png";
 
 // Map our pos_printers role → the bridge's printer key (in device.json)
 function roleToBridgeKey(role: string): BridgePrinterKey | null {
@@ -162,6 +161,10 @@ export default function NewDeviceOnboardingPage() {
   const [bridgePrinterHealth, setBridgePrinterHealth] = useState<Record<string, { connected: boolean; subnetMismatch: boolean }>>({});
   // Print Bridge logo presence (true = bridge can read logo.png from its folder)
   const [bridgeLogo, setBridgeLogo] = useState<boolean | null>(null);
+  // Company logo URL fetched per-tenant. null = none/unknown.
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [companyLogoLoading, setCompanyLogoLoading] = useState(true);
+  const [downloadingLogo, setDownloadingLogo] = useState(false);
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
@@ -285,6 +288,47 @@ export default function NewDeviceOnboardingPage() {
 
   useEffect(() => { loadOptionsRef.current = loadOptions; }, [loadOptions]);
   useEffect(() => { if (!authLoading) void loadOptions(); }, [authLoading, loadOptions]);
+
+  // Fetch tenant company logo (RPC bypasses RLS for non-owners)
+  useEffect(() => {
+    if (authLoading) return;
+    let cancelled = false;
+    (async () => {
+      setCompanyLogoLoading(true);
+      try {
+        const { data } = await supabase.rpc("get_tenant_company_logo");
+        if (!cancelled) setCompanyLogoUrl((data as string) || null);
+      } catch {
+        if (!cancelled) setCompanyLogoUrl(null);
+      } finally {
+        if (!cancelled) setCompanyLogoLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authLoading]);
+
+  // Cross-origin friendly download as logo.png
+  const downloadCompanyLogo = useCallback(async () => {
+    if (!companyLogoUrl) return;
+    setDownloadingLogo(true);
+    try {
+      const res = await fetch(companyLogoUrl, { mode: "cors", cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = "logo.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+    } catch (e: any) {
+      toast.error(`تعذّر تنزيل الشعار: ${e?.message || e}`);
+    } finally {
+      setDownloadingLogo(false);
+    }
+  }, [companyLogoUrl]);
 
   // Whenever the printer list changes, sync it into device.json on the bridge.
   // This guarantees the bridge always reflects what the POS sees, even if a
@@ -803,10 +847,15 @@ export default function NewDeviceOnboardingPage() {
                 <Download className="h-3.5 w-3.5" /> تحديث برنامج الطباعة
               </a>
             </Button>
-            <Button asChild size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs">
-              <a href={PRINT_BRIDGE_LOGO_URL} download="logo.png">
-                <ImageIcon className="h-3.5 w-3.5" /> تنزيل شعار الطباعة
-              </a>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 gap-1 text-xs"
+              onClick={() => { void downloadCompanyLogo(); }}
+              disabled={!companyLogoUrl || downloadingLogo}
+              title={companyLogoUrl ? "تنزيل شعار الشركة" : "لم يتم رفع شعار للشركة بعد"}
+            >
+              <ImageIcon className="h-3.5 w-3.5" /> تنزيل شعار الطباعة
             </Button>
           </div>
         </div>
@@ -883,17 +932,40 @@ export default function NewDeviceOnboardingPage() {
                 ) : null
               )}
             </div>
-            <p className="text-muted-foreground leading-relaxed">
-              بعد تنزيل الشعار، ضعه داخل مجلد برنامج الطباعة على جهاز الكاشير، مثلاً:
-              {" "}<code dir="ltr">C:\print-bridge\logo.png</code> ثم أعد تشغيل برنامج الطباعة.
-            </p>
-            <div>
-              <Button asChild size="sm" variant="secondary" className="h-7 px-2 gap-1 text-xs">
-                <a href={PRINT_BRIDGE_LOGO_URL} download="logo.png">
-                  <Download className="h-3.5 w-3.5" /> تنزيل logo.png
-                </a>
-              </Button>
-            </div>
+            {companyLogoLoading ? (
+              <p className="text-muted-foreground">جارٍ تحميل شعار الشركة…</p>
+            ) : companyLogoUrl ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={companyLogoUrl}
+                    alt="شعار الشركة"
+                    className="h-14 w-14 object-contain rounded border border-border bg-white p-1"
+                  />
+                  <p className="text-muted-foreground leading-relaxed flex-1">
+                    بعد تنزيل الشعار، ضعه داخل مجلد برنامج الطباعة على جهاز الكاشير، مثلاً:
+                    {" "}<code dir="ltr">C:\print-bridge\logo.png</code> ثم أعد تشغيل برنامج الطباعة.
+                  </p>
+                </div>
+                <div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 px-2 gap-1 text-xs"
+                    onClick={() => { void downloadCompanyLogo(); }}
+                    disabled={downloadingLogo}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {downloadingLogo ? "جارٍ التنزيل…" : "تنزيل logo.png"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 p-2 text-amber-900 dark:text-amber-200 inline-flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4" />
+                لم يتم رفع شعار للشركة بعد. ارفع الشعار من إعدادات الشركة لتظهر هنا.
+              </div>
+            )}
           </div>
         </Section>
 
