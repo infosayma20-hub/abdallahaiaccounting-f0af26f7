@@ -153,20 +153,75 @@ node "%BRIDGE_DIR%\service-install.js"
 if %errorLevel% NEQ 0 echo [WARN] Service install returned non-zero. You can still run manually via start-bridge.bat
 echo.
 
-echo [...] Waiting 6 seconds for the service to start...
-timeout /t 6 /nobreak >nul
+REM ── On Win7 we wait longer (up to 45s) and use a PSv2-compatible probe.
+if "%IS_WIN7%"=="1" (
+  set "HEALTH_MAX=15"
+  echo [...] Waiting for the service to start ^(Windows 7 — up to 45 seconds^)...
+) else (
+  set "HEALTH_MAX=8"
+  echo [...] Waiting for the service to start ^(up to ~24 seconds^)...
+)
 
-echo [...] Health check...
-powershell -Command "try { $r = Invoke-RestMethod -Uri 'http://127.0.0.1:3001/health' -TimeoutSec 5; if ($r.status -eq 'ok') { Write-Host '[OK] Bridge is running' } else { Write-Host '[WARN] Bridge responded but status is not ok' } } catch { Write-Host '[ERROR] Bridge did not respond - open http://127.0.0.1:3001/health manually' }"
+set "HEALTH_OK=0"
+set "HEALTH_TRY=0"
+:health_loop
+set /a HEALTH_TRY+=1
+echo     attempt !HEALTH_TRY!/!HEALTH_MAX! — probing http://127.0.0.1:3001/health ...
+timeout /t 3 /nobreak >nul
+REM .NET WebClient works on PowerShell v2 (Win7) — no Invoke-WebRequest / curl needed.
+powershell -NoProfile -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls; $wc = New-Object Net.WebClient; $s = $wc.DownloadString('http://127.0.0.1:3001/health'); if ($s -match 'ok') { exit 0 } else { exit 2 } } catch { exit 1 }"
+if !errorLevel! EQU 0 (
+  set "HEALTH_OK=1"
+  goto :health_done
+)
+if !HEALTH_TRY! LSS !HEALTH_MAX! goto :health_loop
+
+:health_done
+if "!HEALTH_OK!"=="1" (
+  echo [OK] Bridge is online — http://127.0.0.1:3001/health
+  goto :done
+)
+
+echo [ERROR] Bridge did not respond after !HEALTH_MAX! attempts.
 echo.
-
-if exist "%BRIDGE_DIR%\daemon\amwaliprintbridge.err.log" goto :show_log
-goto :done
-
-:show_log
-echo [...] Last lines of error log for diagnostics:
-powershell -Command "Get-Content -Path 'C:\print-bridge\daemon\amwaliprintbridge.err.log' -Tail 20"
+echo ============================================================
+echo   Diagnostics ^(Windows 7 safe — no -Tail, no Invoke-WebRequest^)
+echo ============================================================
+echo [1] Service status:
+sc query "%SERVICE_NAME%" 2>nul | findstr /C:"STATE"
 echo.
+echo [2] Port 3001 listeners:
+netstat -ano | findstr ":3001" | findstr "LISTENING"
+if !errorLevel! NEQ 0 echo     ^(no listener on port 3001^)
+echo.
+echo [3] node.exe processes:
+tasklist /FI "IMAGENAME eq node.exe" 2>nul | findstr /I "node.exe"
+if !errorLevel! NEQ 0 echo     ^(no node.exe running^)
+echo.
+echo [4] Node / npm versions:
+for /f "delims=" %%v in ('node -v 2^>nul') do echo     node %%v
+for /f "delims=" %%v in ('npm -v 2^>nul') do echo     npm  %%v
+if "%IS_WIN7%"=="1" (
+  echo     [HINT] Windows 7 detected — Node must be v13.14.0 ^(or older^).
+  echo            Modern Node ^(v16+^) silently crashes on Win7 with no /health.
+)
+echo.
+if exist "%BRIDGE_DIR%\daemon\amwaliprintbridge.err.log" (
+  echo [5] Last 40 lines of amwaliprintbridge.err.log:
+  powershell -NoProfile -Command "Get-Content -Path 'C:\print-bridge\daemon\amwaliprintbridge.err.log' | Select-Object -Last 40"
+  echo.
+)
+if exist "%BRIDGE_DIR%\daemon\amwaliprintbridge.out.log" (
+  echo [6] Last 40 lines of amwaliprintbridge.out.log:
+  powershell -NoProfile -Command "Get-Content -Path 'C:\print-bridge\daemon\amwaliprintbridge.out.log' | Select-Object -Last 40"
+  echo.
+)
+echo ============================================================
+echo   Manual recovery:
+echo     - Run start-bridge.bat to launch the bridge in a visible window
+echo       and see the real crash reason directly.
+if "%IS_WIN7%"=="1" echo     - On Windows 7 use start-bridge-win7.bat ^+ diagnose-win7.bat
+echo ============================================================
 goto :done
 
 :done
