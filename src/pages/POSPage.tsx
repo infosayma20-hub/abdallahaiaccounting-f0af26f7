@@ -5282,7 +5282,8 @@ const POSPage = () => {
         {/* ── RIGHT: Order Panel ── */}
         <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
           {/* Order Tabs */}
-          <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0">
+          <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0 min-w-0">
+            <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
             {orders.map((order, idx) => {
               const isActive = idx === activeOrderIndex;
               const itemCount = order.cart.reduce((s, i) => s + i.qty, 0);
@@ -5290,7 +5291,7 @@ const POSPage = () => {
                 <button
                   key={order.id}
                   onClick={() => setActiveOrderIndex(idx)}
-                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all ${
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all shrink-0 ${
                     isActive
                       ? "text-[#0D1B2E]"
                       : "text-white/50 hover:text-white/70"
@@ -5316,6 +5317,7 @@ const POSPage = () => {
                 </button>
               );
             })}
+            </div>
             <button
               onClick={() => {
                 orderCounter.current += 1;
