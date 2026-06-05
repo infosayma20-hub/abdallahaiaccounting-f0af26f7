@@ -932,17 +932,40 @@ export default function NewDeviceOnboardingPage() {
                 ) : null
               )}
             </div>
-            <p className="text-muted-foreground leading-relaxed">
-              بعد تنزيل الشعار، ضعه داخل مجلد برنامج الطباعة على جهاز الكاشير، مثلاً:
-              {" "}<code dir="ltr">C:\print-bridge\logo.png</code> ثم أعد تشغيل برنامج الطباعة.
-            </p>
-            <div>
-              <Button asChild size="sm" variant="secondary" className="h-7 px-2 gap-1 text-xs">
-                <a href={PRINT_BRIDGE_LOGO_URL} download="logo.png">
-                  <Download className="h-3.5 w-3.5" /> تنزيل logo.png
-                </a>
-              </Button>
-            </div>
+            {companyLogoLoading ? (
+              <p className="text-muted-foreground">جارٍ تحميل شعار الشركة…</p>
+            ) : companyLogoUrl ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={companyLogoUrl}
+                    alt="شعار الشركة"
+                    className="h-14 w-14 object-contain rounded border border-border bg-white p-1"
+                  />
+                  <p className="text-muted-foreground leading-relaxed flex-1">
+                    بعد تنزيل الشعار، ضعه داخل مجلد برنامج الطباعة على جهاز الكاشير، مثلاً:
+                    {" "}<code dir="ltr">C:\print-bridge\logo.png</code> ثم أعد تشغيل برنامج الطباعة.
+                  </p>
+                </div>
+                <div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 px-2 gap-1 text-xs"
+                    onClick={() => { void downloadCompanyLogo(); }}
+                    disabled={downloadingLogo}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {downloadingLogo ? "جارٍ التنزيل…" : "تنزيل logo.png"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-md border border-amber-300/40 bg-amber-50 dark:bg-amber-950/20 p-2 text-amber-900 dark:text-amber-200 inline-flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4" />
+                لم يتم رفع شعار للشركة بعد. ارفع الشعار من إعدادات الشركة لتظهر هنا.
+              </div>
+            )}
           </div>
         </Section>
 
