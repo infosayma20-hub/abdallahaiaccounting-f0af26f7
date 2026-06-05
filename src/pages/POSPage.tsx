@@ -153,6 +153,39 @@ interface POSCustomer {
   total_spent: number | null;
 }
 
+/** Unified result item from POS Customers + Contacts + Call Center Orders */
+interface UnifiedCustomerResult {
+  /** stable key used by React + dedupe */
+  key: string;
+  name: string;
+  phone: string;
+  normalizedPhone: string;
+  address?: string;
+  posCustomerId?: string | null;
+  contactId?: string | null;
+  totalVisits?: number;
+  /** Sources where this customer was found */
+  sources: Array<"POS" | "Contacts" | "Call Center">;
+}
+
+/**
+ * Normalize Palestinian/international phone numbers for matching.
+ * Strips spaces, dashes, plus signs and Arabic digits, then drops any
+ * leading country prefixes (00972 / 972) so 059xxxxxxx, +97259xxxxxxx and
+ * 0097259xxxxxxx all match the same person.
+ */
+function normalizePhoneForSearch(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+  let s = String(raw)
+    .replace(/[٠-٩]/g, (d) => String(arabicDigits.indexOf(d)))
+    .replace(/\D/g, "");
+  if (s.startsWith("00972")) s = s.slice(5);
+  else if (s.startsWith("972")) s = s.slice(3);
+  if (s.length > 0 && !s.startsWith("0")) s = "0" + s;
+  return s;
+}
+
 const POSThemeToggle = ({ darkMode, onToggle }: { darkMode: boolean; onToggle: () => void }) => {
   return (
     <button
@@ -579,6 +612,9 @@ const POSPage = () => {
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
   const [posCustomerResults, setPosCustomerResults] = useState<POSCustomer[]>([]);
+  const [callCenterCustomerResults, setCallCenterCustomerResults] = useState<
+    Array<{ name: string; phone: string }>
+  >([]);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
@@ -1983,17 +2019,143 @@ const POSPage = () => {
     );
   }, [contacts, customerSearch]);
 
+  /**
+   * Merge POS Customers + Contacts + Call Center results into a single
+   * de-duplicated list keyed by normalized phone (fallback: lower-cased name).
+   * Each item carries the union of source badges (POS / Contacts / Call Center).
+   */
+  const mergedCustomerResults = useMemo<UnifiedCustomerResult[]>(() => {
+    if (!customerSearch || customerSearch.trim().length < 3) return [];
+    const map = new Map<string, UnifiedCustomerResult>();
+    const upsert = (item: UnifiedCustomerResult) => {
+      const existing = map.get(item.key);
+      if (!existing) { map.set(item.key, item); return; }
+      // Merge: keep first non-empty fields, union sources
+      existing.name = existing.name || item.name;
+      existing.phone = existing.phone || item.phone;
+      existing.address = existing.address || item.address;
+      existing.posCustomerId = existing.posCustomerId || item.posCustomerId;
+      existing.contactId = existing.contactId || item.contactId;
+      existing.totalVisits = Math.max(existing.totalVisits || 0, item.totalVisits || 0);
+      item.sources.forEach(s => { if (!existing.sources.includes(s)) existing.sources.push(s); });
+    };
+    const keyFor = (phone: string, name: string) => {
+      const np = normalizePhoneForSearch(phone);
+      return np || `n:${(name || "").trim().toLowerCase()}`;
+    };
+    // POS Customers
+    posCustomerResults.forEach((pc) => {
+      const phone = pc.whatsapp || "";
+      const name = pc.name || "";
+      const k = keyFor(phone, name);
+      if (!k) return;
+      upsert({
+        key: k,
+        name,
+        phone,
+        normalizedPhone: normalizePhoneForSearch(phone),
+        address: pc.address || undefined,
+        posCustomerId: pc.id,
+        totalVisits: pc.total_visits || 0,
+        sources: ["POS"],
+      });
+    });
+    // Contacts (already filtered client-side)
+    filteredContacts.slice(0, 15).forEach((c) => {
+      const phone = (c as any).phone || "";
+      const name = c.contact_name || "";
+      const k = keyFor(phone, name);
+      if (!k) return;
+      upsert({
+        key: k,
+        name,
+        phone,
+        normalizedPhone: normalizePhoneForSearch(phone),
+        contactId: c.id,
+        sources: ["Contacts"],
+      });
+    });
+    // Call Center
+    callCenterCustomerResults.forEach((cc) => {
+      const k = keyFor(cc.phone, cc.name);
+      if (!k) return;
+      upsert({
+        key: k,
+        name: cc.name,
+        phone: cc.phone,
+        normalizedPhone: normalizePhoneForSearch(cc.phone),
+        sources: ["Call Center"],
+      });
+    });
+    return Array.from(map.values()).slice(0, 12);
+  }, [customerSearch, posCustomerResults, filteredContacts, callCenterCustomerResults]);
+
   // Search POS customers by name or phone
-  const searchPosCustomers = useCallback(async (query: string) => {
-    if (!query || query.length < 2 || !dataOwnerId) { setPosCustomerResults([]); return; }
-    const q = `%${query}%`;
-    const { data } = await supabase
-      .from("pos_customers")
-      .select("id, name, whatsapp, address, total_visits, total_spent")
-      .eq("user_id", dataOwnerId)
-      .or(`name.ilike.${q},whatsapp.ilike.${q}`)
-      .limit(10);
-    setPosCustomerResults((data as POSCustomer[]) || []);
+  /**
+   * Unified customer search across:
+   *  1) pos_customers  (POS Customers)
+   *  2) contacts       (filtered client-side via filteredContacts)
+   *  3) call_center_orders (dispatched call-center customers)
+   *
+   * Phone search is normalized so 059…, +97259…, 0097259… all match.
+   * Debounced (180ms) and triggers only when query length ≥ 3.
+   */
+  const customerSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchPosCustomers = useCallback((query: string) => {
+    if (customerSearchTimer.current) clearTimeout(customerSearchTimer.current);
+    const trimmed = (query || "").trim();
+    if (!trimmed || trimmed.length < 3 || !dataOwnerId) {
+      setPosCustomerResults([]);
+      setCallCenterCustomerResults([]);
+      return;
+    }
+    customerSearchTimer.current = setTimeout(async () => {
+      const normDigits = normalizePhoneForSearch(trimmed);
+      const isDigitQuery = /\d/.test(trimmed);
+      const text = `%${trimmed}%`;
+      // Build phone OR filter: match raw digits and normalized digits (stripped of leading 0 & 972).
+      const phoneCore = normDigits.replace(/^0/, "");
+      const phoneOrParts: string[] = [];
+      if (isDigitQuery) {
+        phoneOrParts.push(`whatsapp.ilike.%${trimmed.replace(/\D/g, "")}%`);
+        if (phoneCore && phoneCore.length >= 3) phoneOrParts.push(`whatsapp.ilike.%${phoneCore}%`);
+      }
+      const posOr = [
+        `name.ilike.${text}`,
+        ...phoneOrParts,
+      ].join(",");
+      const ccOrParts: string[] = [`customer_name.ilike.${text}`];
+      if (isDigitQuery) {
+        ccOrParts.push(`customer_phone.ilike.%${trimmed.replace(/\D/g, "")}%`);
+        if (phoneCore && phoneCore.length >= 3) ccOrParts.push(`customer_phone.ilike.%${phoneCore}%`);
+      }
+      const [posRes, ccRes] = await Promise.all([
+        supabase
+          .from("pos_customers")
+          .select("id, name, whatsapp, address, total_visits, total_spent")
+          .eq("user_id", dataOwnerId)
+          .or(posOr)
+          .limit(15),
+        supabase
+          .from("call_center_orders" as any)
+          .select("customer_name, customer_phone")
+          .eq("user_id", dataOwnerId)
+          .or(ccOrParts.join(","))
+          .order("created_at", { ascending: false })
+          .limit(25),
+      ]);
+      setPosCustomerResults((posRes.data as POSCustomer[]) || []);
+      // Dedupe call-center results by normalized phone (or name when phone missing)
+      const ccMap = new Map<string, { name: string; phone: string }>();
+      ((ccRes.data as any[]) || []).forEach((r) => {
+        const phone = (r.customer_phone || "").toString();
+        const name = (r.customer_name || "").toString();
+        const k = normalizePhoneForSearch(phone) || `n:${name.trim()}`;
+        if (!k) return;
+        if (!ccMap.has(k)) ccMap.set(k, { name, phone });
+      });
+      setCallCenterCustomerResults(Array.from(ccMap.values()));
+    }, 180);
   }, [dataOwnerId]);
 
   const handleQuickAddCustomer = async (overrideName?: string) => {
@@ -4391,56 +4553,82 @@ const POSPage = () => {
           )}
           {showContactDropdown && (customerSearch || "").length > 0 && (
             <div
-              className="pos-customer-dropdown absolute z-50 w-[280px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto"
+              className="pos-customer-dropdown absolute z-50 w-[320px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto"
               onMouseDown={(e) => {
                 const target = e.target as HTMLElement;
                 if (target.closest("input, button, textarea, [role='button']")) return;
                 e.preventDefault();
               }}
             >
-              {posCustomerResults.length > 0 && (
+              {customerSearch.trim().length < 3 ? (
+                <p className="px-3 py-2 text-[11px] text-muted-foreground text-center">
+                  اكتب 3 أحرف/أرقام على الأقل للبحث…
+                </p>
+              ) : mergedCustomerResults.length > 0 ? (
                 <>
-                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
-                  {posCustomerResults.map((pc) => (
+                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">
+                    نتائج البحث ({mergedCustomerResults.length})
+                  </p>
+                  {mergedCustomerResults.map((r) => (
                     <button
-                      key={pc.id}
+                      key={r.key}
                       onClick={() => {
-                        setCustomerName(pc.name || "", null, pc.whatsapp || "", pc.id);
-                        if (pc.address) updateActiveOrder(o => ({ ...o, deliveryAddress: pc.address || "" }));
+                        setCustomerName(r.name || "", r.contactId || null, r.phone || "", r.posCustomerId || null);
+                        if (r.address) updateActiveOrder(o => ({ ...o, deliveryAddress: r.address || "" }));
                         setCustomerSearch("");
                         setShowContactDropdown(false);
                       }}
-                      className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition"
+                      className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition border-b border-border/40 last:border-b-0"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
-                          <span className="font-semibold truncate text-[11px] text-foreground">{pc.name || "بدون اسم"}</span>
+                          <span className="font-semibold truncate text-[11px] text-foreground">
+                            {r.name || "بدون اسم"}
+                          </span>
                         </div>
-                        <span className="text-[10px] text-foreground/60 shrink-0">{pc.total_visits || 0} زيارة</span>
+                        {typeof r.totalVisits === "number" && r.totalVisits > 0 && (
+                          <span className="text-[10px] text-foreground/60 shrink-0">
+                            {r.totalVisits} زيارة
+                          </span>
+                        )}
                       </div>
+                      <div className="flex items-center justify-between gap-2 mt-0.5 pr-4">
+                        <span className="text-[10px] text-foreground/60 truncate" dir="ltr">
+                          {r.phone || "—"}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {r.sources.map((s) => {
+                            const styles =
+                              s === "POS"
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                : s === "Contacts"
+                                ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-300";
+                            const label = s === "POS" ? "POS" : s === "Contacts" ? "جهات" : "كولسنتر";
+                            return (
+                              <span
+                                key={s}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${styles}`}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {r.sources.length === 1 && r.sources[0] === "Call Center" && (
+                        <p className="text-[9px] text-amber-700/80 dark:text-amber-300/80 mt-0.5 pr-4">
+                          من طلب محوّل — لم يُحفظ بعد كزبون
+                        </p>
+                      )}
                     </button>
                   ))}
                 </>
-              )}
-              {filteredContacts.length > 0 && (
-                <>
-                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">جهات الاتصال</p>
-                  {filteredContacts.map((contact) => (
-                    <button
-                      key={contact.id}
-                      onClick={() => {
-                        setCustomerName(contact.contact_name, contact.id);
-                        setCustomerSearch("");
-                        setShowContactDropdown(false);
-                      }}
-                      className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-muted/50 transition flex items-center gap-2 text-foreground"
-                    >
-                      <User className="h-3 w-3 text-foreground/50 shrink-0" />
-                      <span className="font-medium">{contact.contact_name}</span>
-                    </button>
-                  ))}
-                </>
+              ) : (
+                <p className="px-3 py-2 text-[11px] text-muted-foreground text-center">
+                  لا توجد نتائج
+                </p>
               )}
               {/* Inline add new customer */}
               <div className="border-t border-border px-3 py-2 bg-muted/20">
