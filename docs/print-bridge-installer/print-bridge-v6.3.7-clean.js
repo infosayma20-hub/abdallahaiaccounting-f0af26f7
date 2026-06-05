@@ -867,41 +867,41 @@ function renderShiftSVG(session, logoTopMargin) {
     <text x="${padX}" y="${cy}" text-anchor="start"   font-size="28" font-weight="900" font-family="Tahoma">₪${fmt(session.totalExpenses)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
-  push(30, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-weight="900" font-family="Tahoma">توزيع المبيعات</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">نقد</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.cashSales)}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">بطاقة / فيزا</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.cardSales)}</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">توزيع المبيعات</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">نقد</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.cashSales)}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">بطاقة / فيزا</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.cardSales)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
 
-  push(30, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-weight="900" font-family="Tahoma">أرصدة الصندوق</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الرصيد الافتتاحي</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.openingBalance)}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">المتوقع (شيكل)</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.expectedCash)}</text>`);
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الفعلي (شيكل)</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${fmt(session.closingBalance)}</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">أرصدة الصندوق</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">الرصيد الافتتاحي</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.openingBalance)}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">المتوقع (شيكل)</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.expectedCash)}</text>`);
+  push(36, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="26" font-weight="700" font-family="Tahoma">الفعلي (شيكل)</text>
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="26" font-weight="800" font-family="Tahoma">₪${fmt(session.closingBalance)}</text>`);
 
   if (session.expectedCashUSD != null || session.closingCashUSD != null) {
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">المتوقع (دولار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">$${fmt(session.expectedCashUSD)}</text>`);
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">الفعلي (دولار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">$${fmt(session.closingCashUSD)}</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">المتوقع (دولار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">$${fmt(session.expectedCashUSD)}</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">الفعلي (دولار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">$${fmt(session.closingCashUSD)}</text>`);
   }
   if (session.expectedCashJOD != null || session.closingCashJOD != null) {
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">المتوقع (دينار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">${fmt(session.expectedCashJOD)} د.أ</text>`);
-    push(30, (cy) => `
-      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">الفعلي (دينار)</text>
-      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="20" font-weight="800" font-family="Tahoma">${fmt(session.closingCashJOD)} د.أ</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">المتوقع (دينار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">${fmt(session.expectedCashJOD)} د.أ</text>`);
+    push(34, (cy) => `
+      <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="700" font-family="Tahoma">الفعلي (دينار)</text>
+      <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="800" font-family="Tahoma">${fmt(session.closingCashJOD)} د.أ</text>`);
   }
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="3"/>`);
 
