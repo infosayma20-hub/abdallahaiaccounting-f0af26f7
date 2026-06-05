@@ -2020,16 +2020,71 @@ const POSPage = () => {
   }, [contacts, customerSearch]);
 
   // Search POS customers by name or phone
-  const searchPosCustomers = useCallback(async (query: string) => {
-    if (!query || query.length < 2 || !dataOwnerId) { setPosCustomerResults([]); return; }
-    const q = `%${query}%`;
-    const { data } = await supabase
-      .from("pos_customers")
-      .select("id, name, whatsapp, address, total_visits, total_spent")
-      .eq("user_id", dataOwnerId)
-      .or(`name.ilike.${q},whatsapp.ilike.${q}`)
-      .limit(10);
-    setPosCustomerResults((data as POSCustomer[]) || []);
+  /**
+   * Unified customer search across:
+   *  1) pos_customers  (POS Customers)
+   *  2) contacts       (filtered client-side via filteredContacts)
+   *  3) call_center_orders (dispatched call-center customers)
+   *
+   * Phone search is normalized so 059…, +97259…, 0097259… all match.
+   * Debounced (180ms) and triggers only when query length ≥ 3.
+   */
+  const customerSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchPosCustomers = useCallback((query: string) => {
+    if (customerSearchTimer.current) clearTimeout(customerSearchTimer.current);
+    const trimmed = (query || "").trim();
+    if (!trimmed || trimmed.length < 3 || !dataOwnerId) {
+      setPosCustomerResults([]);
+      setCallCenterCustomerResults([]);
+      return;
+    }
+    customerSearchTimer.current = setTimeout(async () => {
+      const normDigits = normalizePhoneForSearch(trimmed);
+      const isDigitQuery = /\d/.test(trimmed);
+      const text = `%${trimmed}%`;
+      // Build phone OR filter: match raw digits and normalized digits (stripped of leading 0 & 972).
+      const phoneCore = normDigits.replace(/^0/, "");
+      const phoneOrParts: string[] = [];
+      if (isDigitQuery) {
+        phoneOrParts.push(`whatsapp.ilike.%${trimmed.replace(/\D/g, "")}%`);
+        if (phoneCore && phoneCore.length >= 3) phoneOrParts.push(`whatsapp.ilike.%${phoneCore}%`);
+      }
+      const posOr = [
+        `name.ilike.${text}`,
+        ...phoneOrParts,
+      ].join(",");
+      const ccOrParts: string[] = [`customer_name.ilike.${text}`];
+      if (isDigitQuery) {
+        ccOrParts.push(`customer_phone.ilike.%${trimmed.replace(/\D/g, "")}%`);
+        if (phoneCore && phoneCore.length >= 3) ccOrParts.push(`customer_phone.ilike.%${phoneCore}%`);
+      }
+      const [posRes, ccRes] = await Promise.all([
+        supabase
+          .from("pos_customers")
+          .select("id, name, whatsapp, address, total_visits, total_spent")
+          .eq("user_id", dataOwnerId)
+          .or(posOr)
+          .limit(15),
+        supabase
+          .from("call_center_orders" as any)
+          .select("customer_name, customer_phone")
+          .eq("user_id", dataOwnerId)
+          .or(ccOrParts.join(","))
+          .order("created_at", { ascending: false })
+          .limit(25),
+      ]);
+      setPosCustomerResults((posRes.data as POSCustomer[]) || []);
+      // Dedupe call-center results by normalized phone (or name when phone missing)
+      const ccMap = new Map<string, { name: string; phone: string }>();
+      ((ccRes.data as any[]) || []).forEach((r) => {
+        const phone = (r.customer_phone || "").toString();
+        const name = (r.customer_name || "").toString();
+        const k = normalizePhoneForSearch(phone) || `n:${name.trim()}`;
+        if (!k) return;
+        if (!ccMap.has(k)) ccMap.set(k, { name, phone });
+      });
+      setCallCenterCustomerResults(Array.from(ccMap.values()));
+    }, 180);
   }, [dataOwnerId]);
 
   const handleQuickAddCustomer = async (overrideName?: string) => {
