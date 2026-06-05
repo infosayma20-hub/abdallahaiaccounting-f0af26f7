@@ -225,10 +225,17 @@ export default function NewDeviceOnboardingPage() {
             setBridgeBound(false);
           }
         } catch { /* ignore */ }
+        // Probe /health so we know if the bridge can read its logo.png.
+        // This is a passive status only — never a connection failure.
+        try {
+          const h = await checkBridgeHealth();
+          if (h.online && typeof h.logo === "boolean") setBridgeLogo(h.logo);
+        } catch { /* ignore */ }
         await loadOptionsRef.current();
         if (!opts?.silent) toast.success("برنامج الطباعة متصل ✓");
       } else if (!opts?.silent) {
         setBridgeBound(null);
+        setBridgeLogo(null);
         toast.error("برنامج الطباعة غير شغّال على هذا الجهاز");
       }
     } finally {
