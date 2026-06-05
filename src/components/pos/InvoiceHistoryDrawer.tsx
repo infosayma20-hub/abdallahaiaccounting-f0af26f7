@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, Printer, RotateCcw, Ban, Clock, User, Eye,
-  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft,
+  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft, Trash2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -1300,6 +1300,29 @@ export default function InvoiceHistoryDrawer({
                     }}
                   >
                     <ShoppingCart className="h-3.5 w-3.5" /> تحميل للسلة والدفع
+                  </Button>
+                )}
+                {selectedOrder.state === "draft" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
+                    onClick={async () => {
+                      if (!confirm(`هل أنت متأكد من حذف الطلب المعلق #${selectedOrder.order_number || ""}؟`)) return;
+                      try {
+                        await supabase.from("pos_order_lines").delete().eq("order_id", selectedOrder.id);
+                        await supabase.from("pos_payments").delete().eq("order_id", selectedOrder.id);
+                        const { error } = await supabase.from("pos_orders").delete().eq("id", selectedOrder.id);
+                        if (error) throw error;
+                        toast.success("تم حذف الطلب المعلق");
+                        setSelectedOrder(null);
+                        fetchOrders();
+                      } catch (err: any) {
+                        toast.error(err.message || "فشل حذف الطلب");
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> حذف الطلب المعلق
                   </Button>
                 )}
                 {printInvoices && (
