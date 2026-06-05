@@ -435,6 +435,9 @@ const POSPage = () => {
   // Persisted via pos_user_preferences keys: product_order_<categoryName> / product_order_all
   const [productOrderByCategory, setProductOrderByCategory] = useState<Record<string, string[]>>({});
   const [categoryOrderIds, setCategoryOrderIds] = useState<string[]>([]);
+  // Per-user toggle to hide the "الكل" category chip. Persisted in
+  // pos_user_preferences under key `hide_all_category`.
+  const [hideAllCategoryTab, setHideAllCategoryTab] = useState<boolean>(false);
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
@@ -1291,6 +1294,9 @@ const POSPage = () => {
           const catKey = p.preference_key.replace(/^product_order_/, "");
           out.productOrderByCategory[catKey] = orderIds as string[];
         }
+      } else if (p.preference_key === "hide_all_category") {
+        const v = (p.preference_value as any)?.value;
+        setHideAllCategoryTab(v === true);
       }
     }
     setCategoryOrderIds(out.categoryOrderIds);
@@ -2037,6 +2043,9 @@ const POSPage = () => {
     // include this cash box. (A restricted category is hidden from boxes not in
     // its allow-list.)
     return posCategories.filter(cat => {
+      // Respect the category's own active flag — inactive categories are
+      // hidden from POS without losing their product assignments.
+      if ((cat as any).is_active === false) return false;
       const hasRestriction = cat.restricted_cash_box_ids && cat.restricted_cash_box_ids.length > 0;
       if (!hasRestriction) return true;
       // Call Center sessions have no cash_box_id — they are virtual and should
@@ -4813,6 +4822,7 @@ const POSPage = () => {
                   )}
 
                   {/* All — moved to the end (after the last category) */}
+                  {!hideAllCategoryTab && (
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
                     className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
@@ -4834,6 +4844,7 @@ const POSPage = () => {
                     <span className="leading-tight">الكل</span>
                     <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
                   </button>
+                  )}
 
                   {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
                     <>
