@@ -48,19 +48,11 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
 
   const startCountdown = () => {
     clearTimers();
-    let n = 3;
-    setCountdown(n);
-    const tick = () => {
-      n -= 1;
-      if (n <= 0) {
-        setCountdown(null);
-        capture();
-        return;
-      }
-      setCountdown(n);
-      countdownTimerRef.current = setTimeout(tick, 1000);
-    };
-    countdownTimerRef.current = setTimeout(tick, 1000);
+    setCountdown(null);
+    // التقاط تلقائي بعد ثانيتين بدون عرض عدّاد
+    countdownTimerRef.current = setTimeout(() => {
+      capture();
+    }, 2000);
   };
 
   const startCamera = async () => {
@@ -164,12 +156,9 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, w, h);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-    setPreview(dataUrl);
     stopStream();
-    // Auto-submit after brief preview unless user taps Retry
-    autoConfirmTimerRef.current = setTimeout(() => {
-      onCapture(dataUrl);
-    }, 1200);
+    // بدون معاينة — إرسال مباشر
+    onCapture(dataUrl);
   };
 
   const retake = () => {
@@ -199,7 +188,7 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-base font-bold text-foreground flex items-center gap-2">
           <Camera className="h-5 w-5 text-primary" />
-          {title || "صورة سيلفي للتحقق"}
+          {title || "Face Recognition"}
         </h2>
         <button
           onClick={cancel}
@@ -271,9 +260,6 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
                 لم يتم العثور على الكاميرا الأمامية، سيتم استخدام الكاميرا المتاحة.
               </div>
             )}
-            <div className="w-full max-w-xs rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200 text-center leading-relaxed">
-              تنبيه: سيتم حفظ صورة وقت البصمة لأغراض المراجعة الإدارية.
-            </div>
           </>
         )}
       </div>
