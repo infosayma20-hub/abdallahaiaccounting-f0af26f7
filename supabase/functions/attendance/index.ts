@@ -467,13 +467,10 @@ Deno.serve(async (req) => {
             });
           if (verErr) throw verErr;
         } catch (selfieErr: any) {
-          // Rollback the attendance event since the required selfie failed
-          console.error("[attendance] selfie upload failed, rolling back event", selfieErr);
-          await supabase.from("attendance_events").delete().eq("id", insertedEvent.id);
-          return new Response(
-            JSON.stringify({ error: "فشل حفظ صورة السيلفي. يرجى المحاولة مرة أخرى." }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          // Selfie capture is documentation only — do NOT block attendance if server-side upload fails.
+          // Employee already provided the selfie; an infrastructure issue should not penalize them.
+          // The event remains valid; HR will see "بدون سيلفي" badge for this event.
+          console.error("[attendance] selfie upload failed (event kept as valid):", selfieErr);
         }
       }
 
