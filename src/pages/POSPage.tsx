@@ -1201,6 +1201,43 @@ const POSPage = () => {
     initializePOS();
   }, [userId, dataOwnerId]);
 
+  // 🛟 Restore call-center orders that were accepted but never paid (e.g. the
+  // cashier closed the tab or hit a blank screen). Without this they stay
+  // `status='accepted'` + `pos_order_id IS NULL` forever and never re-appear
+  // in PendingOrdersPanel (which only lists `pending`).
+  const restoredOrphansRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!session?.id || !userId || !dataOwnerId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("call_center_orders" as any)
+          .select("*")
+          .eq("user_id", dataOwnerId)
+          .eq("status", "accepted")
+          .is("pos_order_id", null)
+          .or(`accepted_by.eq.${userId},session_id.eq.${session.id}`);
+        if (error || cancelled || !data || (data as any[]).length === 0) return;
+        // Filter out ones already opened as tabs OR already restored once.
+        const existingIds = new Set(
+          (orders as any[]).map(o => o?.callCenterOrderId).filter(Boolean) as string[]
+        );
+        const toRestore = (data as any[]).filter(o =>
+          !existingIds.has(o.id) && !restoredOrphansRef.current.has(o.id)
+        );
+        if (toRestore.length === 0) return;
+        toRestore.forEach(o => restoredOrphansRef.current.add(o.id));
+        const newTabs = toRestore.map(o => buildOrderTabFromCallCenter(o));
+        setOrders(prev => [...prev, ...newTabs]);
+        toast.info(`تم استعادة ${newTabs.length} طلب كول سنتر معلّق من جلستك السابقة`);
+      } catch (e) {
+        console.warn("[pos] restore accepted call-center orders failed:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session?.id, userId, dataOwnerId]);
+
   // Refresh products & categories when page regains focus (e.g. after editing in inventory)
   useEffect(() => {
     const handleFocus = () => {
