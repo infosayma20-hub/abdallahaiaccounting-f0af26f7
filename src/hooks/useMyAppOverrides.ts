@@ -21,19 +21,27 @@ export function useMyAppOverrides(): MyAppOverrides {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (uid: string) => {
-    const { data } = await supabase
-      .from("user_app_access_overrides" as any)
-      .select("app_key,access_state")
-      .eq("target_user_id", uid);
-    const a = new Set<string>();
-    const d = new Set<string>();
-    (data || []).forEach((r: any) => {
-      if (r.access_state === "allow") a.add(r.app_key);
-      else if (r.access_state === "deny") d.add(r.app_key);
-    });
-    setAllow(a);
-    setDeny(d);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from("user_app_access_overrides" as any)
+        .select("app_key,access_state")
+        .eq("target_user_id", uid);
+      const a = new Set<string>();
+      const d = new Set<string>();
+      (data || []).forEach((r: any) => {
+        if (r.access_state === "allow") a.add(r.app_key);
+        else if (r.access_state === "deny") d.add(r.app_key);
+      });
+      setAllow(a);
+      setDeny(d);
+    } catch (err) {
+      console.warn("[useMyAppOverrides] load failed:", err);
+      // Fail closed: no overrides, so org-level hidden_apps + role defaults apply.
+      setAllow(new Set());
+      setDeny(new Set());
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
