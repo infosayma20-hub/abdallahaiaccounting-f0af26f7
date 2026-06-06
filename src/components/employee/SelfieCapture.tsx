@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, RotateCcw, Check, X, Loader2 } from "lucide-react";
+import { Camera, RotateCcw, X, Loader2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -12,21 +12,54 @@ interface Props {
 /**
  * Mandatory selfie capture for attendance verification.
  * - Front camera only (facingMode: user)
+ * - Auto-capture after 3-2-1 countdown (no manual shutter button)
+ * - Brief preview (~1.2s) with "Retry" option, then auto-submit
  * - No file picker fallback
  * - Compresses to ~720px JPEG @ 0.7 quality (~50-100KB)
  */
 export default function SelfieCapture({ open, onCancel, onCapture, title }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  const clearTimers = () => {
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (autoConfirmTimerRef.current) {
+      clearTimeout(autoConfirmTimerRef.current);
+      autoConfirmTimerRef.current = null;
+    }
+  };
 
   const stopStream = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
+  };
+
+  const startCountdown = () => {
+    clearTimers();
+    let n = 3;
+    setCountdown(n);
+    const tick = () => {
+      n -= 1;
+      if (n <= 0) {
+        setCountdown(null);
+        capture();
+        return;
+      }
+      setCountdown(n);
+      countdownTimerRef.current = setTimeout(tick, 1000);
+    };
+    countdownTimerRef.current = setTimeout(tick, 1000);
   };
 
   const startCamera = async () => {
@@ -42,6 +75,7 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => {});
       }
+      startCountdown();
     } catch (e: any) {
       setError("لم يتم السماح بالوصول للكاميرا. الكاميرا مطلوبة لتسجيل البصمة في هذا الفرع.");
     } finally {
@@ -53,13 +87,20 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
     if (open && !preview) {
       startCamera();
     }
-    return () => stopStream();
+    return () => {
+      clearTimers();
+      stopStream();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const capture = () => {
     const video = videoRef.current;
-    if (!video || video.readyState < 2) return;
+    if (!video || video.readyState < 2) {
+      // Camera not quite ready — retry shortly
+      countdownTimerRef.current = setTimeout(capture, 300);
+      return;
+    }
     const w = 720;
     const ratio = video.videoHeight / video.videoWidth;
     const h = Math.round(w * ratio);
@@ -72,19 +113,20 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
     const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
     setPreview(dataUrl);
     stopStream();
+    // Auto-submit after brief preview unless user taps Retry
+    autoConfirmTimerRef.current = setTimeout(() => {
+      onCapture(dataUrl);
+    }, 1200);
   };
 
   const retake = () => {
+    clearTimers();
     setPreview(null);
     startCamera();
   };
 
-  const confirm = () => {
-    if (!preview) return;
-    onCapture(preview);
-  };
-
   const cancel = () => {
+    clearTimers();
     stopStream();
     setPreview(null);
     onCancel();
@@ -128,22 +170,14 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
             <div className="rounded-3xl overflow-hidden bg-black w-full max-w-xs aspect-square">
               <img src={preview} alt="معاينة" className="w-full h-full object-cover" />
             </div>
-            <p className="text-sm text-muted-foreground">هل الصورة واضحة؟</p>
-            <div className="flex gap-2 w-full max-w-xs">
-              <Button
-                variant="outline"
-                onClick={retake}
-                className="flex-1 gap-2 rounded-xl h-12 active:scale-95"
-              >
-                <RotateCcw className="h-4 w-4" /> إعادة الالتقاط
-              </Button>
-              <Button
-                onClick={confirm}
-                className="flex-1 gap-2 rounded-xl h-12 active:scale-95"
-              >
-                <Check className="h-4 w-4" /> استخدام الصورة
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">تم الالتقاط — جارٍ المتابعة…</p>
+            <Button
+              variant="outline"
+              onClick={retake}
+              className="gap-2 rounded-xl h-11 active:scale-95"
+            >
+              <RotateCcw className="h-4 w-4" /> إعادة المحاولة
+            </Button>
           </>
         ) : (
           <>
@@ -158,26 +192,29 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                 <div className="w-2/3 aspect-[3/4] border-4 border-white/70 rounded-[40%]" />
               </div>
+              {countdown !== null && !starting && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                  <span
+                    key={countdown}
+                    className="text-white font-bold drop-shadow-lg animate-in zoom-in-50 fade-in duration-200"
+                    style={{ fontSize: "120px", lineHeight: 1 }}
+                  >
+                    {countdown}
+                  </span>
+                </div>
+              )}
               {starting && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                   <Loader2 className="h-10 w-10 animate-spin text-white" />
                 </div>
               )}
             </div>
-            <p className="text-sm text-muted-foreground text-center">
-              ضع وجهك داخل الإطار ثم اضغط الزر
+            <p className="text-sm text-foreground text-center font-medium">
+              ثبّت وجهك داخل الإطار
             </p>
             <div className="w-full max-w-xs rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200 text-center leading-relaxed">
               تنبيه: سيتم حفظ صورة وقت البصمة لأغراض المراجعة الإدارية.
             </div>
-            <Button
-              size="lg"
-              onClick={capture}
-              disabled={starting}
-              className="rounded-full h-16 w-16 p-0 active:scale-95"
-            >
-              <Camera className="h-7 w-7" />
-            </Button>
           </>
         )}
       </div>
