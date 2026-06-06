@@ -503,30 +503,40 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               آخر 5 أيام
             </h3>
             <div className="space-y-1.5">
-              {last5.map(day => (
-                <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
-                  <div className="flex items-center gap-2">
-                    {statusIcon(day.status)}
-                    <span className="text-xs font-medium">
-                      {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
-                    </span>
+              {last5.map(day => {
+                const s = sessionsByDate.get(day.attendance_date);
+                const inT = s?.firstIn ?? day.first_check_in;
+                const outT = s?.lastOut ?? day.last_check_out;
+                const hrs = s ? s.totalMs / 3_600_000 : (day.total_hours || 0);
+                const sessCount = s?.count ?? 0;
+                return (
+                  <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
+                    <div className="flex items-center gap-2">
+                      {statusIcon(day.status)}
+                      <span className="text-xs font-medium">
+                        {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted-foreground">
+                      {day.status === "absent" ? (
+                        <span className="text-destructive text-xs">غياب</span>
+                      ) : (
+                        <>
+                          <span>{inT ? new Date(inT).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Hebron" }) : "—"}</span>
+                          <ChevronLeft className="h-3 w-3" />
+                          <span>{outT ? new Date(outT).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Hebron" }) : "—"}</span>
+                          {hrs > 0 && (
+                            <span className="text-foreground font-medium">({hrs.toFixed(2)}h)</span>
+                          )}
+                          {sessCount > 1 && (
+                            <span className="text-primary text-[10px]">· {sessCount} جلسات</span>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted-foreground">
-                    {day.status === "absent" ? (
-                      <span className="text-destructive text-xs">غياب</span>
-                    ) : (
-                      <>
-                        <span>{day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "—"}</span>
-                        <ChevronLeft className="h-3 w-3" />
-                        <span>{day.last_check_out ? format(new Date(day.last_check_out), "HH:mm") : "—"}</span>
-                        {day.total_hours > 0 && (
-                          <span className="text-foreground font-medium">({day.total_hours.toFixed(1)}h)</span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
