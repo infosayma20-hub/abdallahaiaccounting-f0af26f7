@@ -167,6 +167,9 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
             <p className="text-sm text-muted-foreground text-center">
               ضع وجهك داخل الإطار ثم اضغط الزر
             </p>
+            <div className="w-full max-w-xs rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200 text-center leading-relaxed">
+              تنبيه: سيتم حفظ صورة وقت البصمة لأغراض المراجعة الإدارية.
+            </div>
             <Button
               size="lg"
               onClick={capture}
