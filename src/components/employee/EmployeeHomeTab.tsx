@@ -120,34 +120,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     return `${h}س ${m}د`;
   };
 
-  const stats = useMemo(() => {
-    const now = new Date();
-    const monthDays = history.filter(d => {
-      const date = new Date(d.attendance_date);
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    });
-    return {
-      present: monthDays.filter(d => d.status === "present").length,
-      late: monthDays.filter(d => d.status === "late").length,
-      absent: monthDays.filter(d => d.status === "absent").length,
-      totalHours: 0, // populated by statsWithSessions below
-    };
-  }, [history]);
-
-  // Override total hours from cleaned sessions (single source of truth).
-  const monthTotalHours = useMemo(() => {
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    let totalMs = 0;
-    for (const [date, s] of sessionsByDate) {
-      if (date.startsWith(ym)) totalMs += s.totalMs;
-    }
-    return totalMs / 3_600_000;
-  }, [sessionsByDate]);
-
-  const last5 = useMemo(() => history.slice(0, 5), [history]);
-
-  // Per-date sessions (Asia/Hebron) built from recentEvents.
+  // Per-date sessions (Asia/Hebron) built from recentEvents. Single source for hours.
   const sessionsByDate = useMemo(() => {
     const MIN_MS = 60_000;
     const DEBOUNCE_MS = 60_000;
@@ -196,6 +169,27 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     }
     return result;
   }, [recentEvents]);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const monthDays = history.filter(d => {
+      const date = new Date(d.attendance_date);
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    });
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    let totalMs = 0;
+    for (const [date, s] of sessionsByDate) {
+      if (date.startsWith(ym)) totalMs += s.totalMs;
+    }
+    return {
+      present: monthDays.filter(d => d.status === "present").length,
+      late: monthDays.filter(d => d.status === "late").length,
+      absent: monthDays.filter(d => d.status === "absent").length,
+      totalHours: totalMs / 3_600_000,
+    };
+  }, [history, sessionsByDate]);
+
+  const last5 = useMemo(() => history.slice(0, 5), [history]);
 
   const statusIcon = (s: string) => {
     switch (s) {
