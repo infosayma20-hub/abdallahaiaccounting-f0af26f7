@@ -31,9 +31,12 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/", allo
 
         const userRoles = (data || []).map((r) => r.role);
 
-        // If user has no roles assigned, treat as admin (business owner)
-        const effectiveRoles = userRoles.length === 0 ? ["admin"] : userRoles;
-        let allowed = allowedRoles.some((role) => effectiveRoles.includes(role));
+        // SECURITY: Do NOT treat empty roles as admin. A brand-new trial user
+        // with no rows in user_roles must not silently bypass admin/hr_manager
+        // route guards. Owner/admin accounts get an explicit `admin` row at
+        // signup; if it's missing, fall through to the employee/perm fallbacks
+        // below and otherwise deny.
+        let allowed = allowedRoles.some((role) => (userRoles as string[]).includes(role));
         // Fallback: if route allows "employee" and user has an active employees row, grant access.
         if (!allowed && allowedRoles.includes("employee" as AllowedRole)) {
           const { data: emp } = await supabase
