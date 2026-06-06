@@ -3962,6 +3962,57 @@ const POSPage = () => {
     }
   };
 
+  /**
+   * Build a POS cart tab from a `call_center_orders` row. Shared by the
+   * "Accept" button in PendingOrdersPanel AND by the on-load restoration
+   * that reattaches accepted-but-unpaid orders after a page refresh /
+   * white-screen recovery.
+   */
+  const buildOrderTabFromCallCenter = (order: any) => {
+    orderCounter.current += 1;
+    const newOrder = createNewOrder(orderCounter.current);
+    newOrder.customerName = order.customer_name || "";
+    newOrder.customerPhone = order.customer_phone || "";
+    newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+    newOrder.deliveryAddress = order.delivery_address || "";
+    newOrder.callCenterOrderId = order.id;
+    newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+    newOrder.callCenterSourceApp = order.source_app || null;
+    const _info: any = (order as any).delivery_info || null;
+    const _fee = Number((order as any).delivery_fee || 0);
+    const deliveryBlock = _info ? [
+      `توصيل: ${_info.city || ""} - ${_info.area || ""}`,
+      _info.branch_name ? `الفرع: ${_info.branch_name}` : "",
+      _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info.manually_adjusted ? " (معدّل)" : ""}` : "",
+      order.customer_name ? `الزبون: ${order.customer_name}` : "",
+      order.customer_phone ? `جوال: ${order.customer_phone}` : "",
+    ].filter(Boolean).join(" | ") : "";
+    newOrder.orderNote = [
+      order.source_app ? `مصدر: ${order.source_app}` : "",
+      order.payment_method === "visa" ? "فيزا" : "نقدي",
+      deliveryBlock,
+      extractBaseNote(order.order_note),
+    ].filter(Boolean).join(" | ");
+    newOrder.callCenterDeliveryFee = _fee > 0 ? _fee : null;
+    newOrder.callCenterDeliveryInfo = _info;
+    newOrder.cart = (order.items || []).map((item: any) => ({
+      id: crypto.randomUUID(),
+      product_id: item.product_id || null,
+      name: item.name,
+      qty: item.qty,
+      unit_price: item.unit_price,
+      cost_price: 0,
+      discount_pct: 0,
+      tax_rate: 0,
+      unit: "قطعة",
+      total: item.total || item.unit_price * item.qty,
+      note: item.note || "",
+      modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+    }));
+    newOrder.name = order.customer_name || "طلب كول سنتر";
+    return newOrder;
+  };
+
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
