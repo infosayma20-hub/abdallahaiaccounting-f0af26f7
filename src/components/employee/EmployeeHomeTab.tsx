@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Calendar, Timer, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
+  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
   Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
@@ -112,30 +112,23 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const bottomPad = "calc(72px + env(safe-area-inset-bottom, 0px))";
 
   return (
-    <div
-      className="space-y-3 px-4 pt-3 relative"
-      dir="rtl"
-      style={{
-        paddingBottom: bottomPad,
-        backgroundImage:
-          "radial-gradient(1200px 600px at 80% -10%, hsl(217 91% 95% / 0.55), transparent 60%), radial-gradient(900px 500px at -10% 30%, hsl(199 89% 95% / 0.45), transparent 60%)",
-      }}
-    >
+    <div className="space-y-3 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
       {/* Welcome Banner */}
       <div
-        className="rounded-2xl p-5 relative overflow-hidden border border-border bg-card shadow-sm"
+        className="rounded-2xl p-5 relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
       >
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-muted-foreground">مرحباً</p>
-            <h1 className="text-xl font-bold text-foreground truncate">{employeeName}</h1>
-            <p className="text-xs mt-1 text-muted-foreground">
+            <p className="text-sm text-primary-foreground/60">مرحباً</p>
+            <h1 className="text-xl font-bold text-primary-foreground truncate">{employeeName}</h1>
+            <p className="text-xs mt-1 text-primary-foreground/50">
               {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
             </p>
           {hasMgmt && (
-            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
-              <Shield className="h-3 w-3 text-primary" />
-              <span className="text-[11px] font-semibold text-primary">
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur border border-white/20">
+              <Shield className="h-3 w-3 text-primary-foreground" />
+              <span className="text-[11px] font-semibold text-primary-foreground">
                 {mgmtBadge}{branchName ? ` • ${branchName}` : ""}
               </span>
             </div>
@@ -146,10 +139,13 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               src={companyLogo}
               alt="شعار الشركة"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-              className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-border shadow-sm"
+              className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-white/30 shadow-md"
             />
           )}
         </div>
+        {/* Decorative circle */}
+        <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
+        <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/5" />
       </div>
 
       {/* Manager Section */}
@@ -224,7 +220,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       )}
 
       {/* Live Clock */}
-      <Card className="border-border bg-card shadow-sm">
+      <Card className="border-border bg-card overflow-hidden">
         <CardContent className="p-4 text-center">
           <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
             {format(currentTime, "HH:mm")}
@@ -234,7 +230,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Today Status & Action */}
-      <Card className="border-border bg-card shadow-sm">
+      <Card className="border-border bg-card">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
@@ -352,7 +348,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Monthly Stats */}
-      <Card className="border-border bg-card shadow-sm">
+      <Card className="border-border bg-card">
         <CardContent className="p-4">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -385,7 +381,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
       {/* Last 5 Days */}
       {last5.length > 0 && (
-        <Card className="border-border bg-card shadow-sm">
+        <Card className="border-border bg-card">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <CalendarRange className="h-4 w-4 text-muted-foreground" />
@@ -421,43 +417,34 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         </Card>
       )}
 
-      {/* Quick Links — Floating icon cards */}
-      <div className="pt-7">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-8">
-          {[
-            { icon: QrCode,         label: "بصماتي",           tab: "attendance", tone: "blue"   as const },
-            { icon: Calendar,       label: "وردياتي",          tab: "schedule",   tone: "blue"   as const },
-            { icon: Send,           label: "نماذجي وطلباتي",   tab: "forms",      tone: "blue"   as const },
-            { icon: User,           label: "ملفي الشخصي",      tab: "profile",    tone: "blue"   as const },
-            { icon: Receipt,        label: "قسائم الراتب",     tab: "payslips",   tone: "red"    as const },
-            { icon: Wallet,         label: "ملخصي المالي",     tab: "financials", tone: "red"    as const },
-            { icon: Shield,         label: "الإجراءات",        tab: "actions",    tone: "red"    as const },
-            { icon: AlertTriangle,  label: "تنبيهات وتصحيحات", tab: "alerts",     tone: "red"    as const },
-          ].map((link) => {
-            const gradient =
-              link.tone === "blue"
-                ? "bg-gradient-to-br from-[#60a5fa] to-[#2563eb]"
-                : "bg-gradient-to-br from-[#fb7185] to-[#e11d48]";
-            return (
-              <button
-                key={link.tab + link.label}
-                type="button"
-                onClick={() => onNavigate(link.tab)}
-                className="relative bg-card rounded-2xl pt-9 pb-4 px-3 text-center border border-border shadow-sm hover:border-primary/30 hover:shadow-md active:scale-[0.98] transition-all"
-              >
-                {/* Floating circular icon */}
-                <span
-                  className={`absolute -top-5 left-1/2 -translate-x-1/2 h-11 w-11 rounded-full flex items-center justify-center ring-4 ring-card ${gradient}`}
-                >
-                  <link.icon className="h-5 w-5 text-white" strokeWidth={2.1} />
-                </span>
-                <span className="block text-[13px] font-semibold text-foreground leading-snug">
-                  {link.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { icon: Receipt, label: "قسائم الراتب", tab: "payslips" },
+          { icon: Wallet, label: "ملخصي المالي", tab: "financials" },
+          { icon: CalendarDays, label: "سجل دوامي", tab: "attendance" },
+          { icon: Calendar, label: "وردياتي", tab: "schedule" },
+          { icon: Shield, label: "الإجراءات", tab: "actions" },
+          { icon: Send, label: "النماذج والطلبات", tab: "forms" },
+          { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
+          { icon: User, label: "ملفي الشخصي", tab: "profile" },
+        ].map(link => (
+          <Button
+            key={link.tab}
+            variant="outline"
+            className="h-14 rounded-2xl gap-2 text-xs border-border active:scale-[0.97] transition-transform"
+            onClick={() => onNavigate(link.tab)}
+          >
+            <link.icon className="h-4 w-4 text-muted-foreground" />
+            {link.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Geofence note */}
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1 pb-2">
+        <MapPin className="h-3 w-3 shrink-0" />
+        <span>يتم التحقق من موقعك الجغرافي تلقائياً عند التسجيل</span>
       </div>
     </div>
   );
