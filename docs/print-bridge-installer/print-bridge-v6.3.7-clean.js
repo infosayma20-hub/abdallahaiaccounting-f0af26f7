@@ -617,34 +617,56 @@ function renderReceiptSVG(order, logoTopMargin) {
     <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="800" font-family="Tahoma">${esc(order.tableNumber)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
-  push(32, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end"    font-size="20" font-weight="800" font-family="Tahoma">الصنف</text>
-    <text x="${W * 0.48}" y="${cy}" text-anchor="middle" font-size="20" font-weight="800" font-family="Tahoma">الكمية</text>
-    <text x="${W * 0.30}" y="${cy}" text-anchor="middle" font-size="20" font-weight="800" font-family="Tahoma">السعر</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"      font-size="20" font-weight="800" font-family="Tahoma">المجموع</text>`);
-  push(8, () => '');
+  // ── ITEMS GRID (v6.3.7-clean items-table) ────────────────────────────
+  // Clean RTL table: [الصنف+ملاحظة] | [الكمية] | [السعر] | [المجموع]
+  // Name + per-item note live in the SAME cell and wrap downward; qty/price/
+  // total are vertically centered against the first text baseline. Row
+  // height is dynamic; only thin horizontal separators are drawn (no
+  // heavy borders) so the receipt stays light and readable.
+  const colNameRight = W - padX;        // 552 — right edge of name cell
+  const colNameLeft  = padX + 240;      // 264 — left edge of name cell
+  const colQtyLeft   = padX + 180;      // 204
+  const colQtyMid    = padX + 210;      // 234
+  const colPriceLeft = padX + 90;       // 114
+  const colPriceMid  = padX + 135;      // 159
+  const colTotalMid  = padX + 45;       // 69
+  const headerTopOffset = 26;           // text baseline above top border
+  const rowTopOffset = 22;              // baseline above top of row box
+
+  // Header band (top border + labels + bottom border)
+  push(40, (cy) => `
+    <line x1="${padX}" y1="${cy - headerTopOffset}" x2="${W - padX}" y2="${cy - headerTopOffset}" stroke="#000" stroke-width="1"/>
+    <text x="${(colNameLeft + colNameRight) / 2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">الصنف</text>
+    <text x="${colQtyMid}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">الكمية</text>
+    <text x="${colPriceMid}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">السعر</text>
+    <text x="${colTotalMid}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">المجموع</text>
+    <line x1="${padX}" y1="${cy + 12}" x2="${W - padX}" y2="${cy + 12}" stroke="#000" stroke-width="1"/>`);
 
   for (const it of (order.items || [])) {
     const qty   = it.quantity || 1;
     const price = Number(it.unitPrice || 0).toFixed(2);
     const total = (qty * Number(it.unitPrice || 0)).toFixed(2);
-    const nameLines = wrapTextForSvg(String(it.name || ''), 22);
-    const rowH = 42 + Math.max(0, nameLines.length - 1) * 32;
+    const nameLines = wrapTextForSvg(String(it.name || ''), 18);
+    const noteLinesArr = it.notes ? wrapTextForSvg(String(it.notes), 22) : [];
+    const nameLineH = 28;
+    const noteLineH = 24;
+    const contentH = nameLines.length * nameLineH
+      + (noteLinesArr.length ? noteLinesArr.length * noteLineH + 4 : 0);
+    const rowH = Math.max(40, contentH + 16);
     push(rowH, (cy) => {
-      const firstY = cy;
+      const nameY0 = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${W - padX}" y="${firstY + i * 32}" text-anchor="end" font-size="24" font-weight="900" font-family="Tahoma">${i === 0 ? '● ' : ''}${esc(ln)}</text>`).join('');
-      return `${nameSvg}
-      <text x="${W * 0.48}" y="${firstY}" text-anchor="middle" font-size="24" font-weight="900" font-family="Tahoma">${qty}</text>
-      <text x="${W * 0.30}" y="${firstY}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">₪${price}</text>
-      <text x="${padX}" y="${firstY}" text-anchor="start"      font-size="22" font-weight="800" font-family="Tahoma">₪${total}</text>`;
+        `<text x="${colNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
+      const noteY0 = nameY0 + nameLines.length * nameLineH + 2;
+      const noteSvg = noteLinesArr.map((ln, i) =>
+        `<text x="${colNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
+      const qtySvg   = `<text x="${colQtyMid}"   y="${nameY0}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">${qty}</text>`;
+      const priceSvg = `<text x="${colPriceMid}" y="${nameY0}" text-anchor="middle" font-size="20" font-weight="700" font-family="Tahoma">₪${price}</text>`;
+      const totalSvg = `<text x="${colTotalMid}" y="${nameY0}" text-anchor="middle" font-size="20" font-weight="800" font-family="Tahoma">₪${total}</text>`;
+      const bottomY = cy + rowH - rowTopOffset;
+      const sepLine = `<line x1="${padX}" y1="${bottomY}" x2="${W - padX}" y2="${bottomY}" stroke="#000" stroke-width="0.7"/>`;
+      return `${nameSvg}${noteSvg}${qtySvg}${priceSvg}${totalSvg}${sepLine}`;
     });
-    if (it.notes) {
-      const noteLines = wrapTextForSvg(String(it.notes), 34);
-      const noteH = 26 + Math.max(0, noteLines.length - 1) * 24;
-      push(noteH, (cy) => noteLines.map((ln, i) =>
-        `<text x="${W - padX - 12}" y="${cy + i * 24}" text-anchor="end" font-size="18" font-family="Tahoma">${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join(''));
-    }
   }
 
   push(10, () => '');
