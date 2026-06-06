@@ -66,6 +66,74 @@
 </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Stale-chunk recovery: when the browser holds an old index.html that
+      // references hashed bundles which no longer exist (HTTP 500 / 404 on
+      // /assets/*.js), we hard-clear caches + SW and reload once.
+      (function () {
+        var RECOVERY_KEY = "amwali_chunk_recovery_ts";
+        var COOLDOWN_MS = 60 * 1000;
+
+        function shouldRecover(msg, src) {
+          if (!msg && !src) return false;
+          var m = (msg || "") + " " + (src || "");
+          return (
+            m.indexOf("Importing a module script failed") !== -1 ||
+            m.indexOf("Failed to fetch dynamically imported module") !== -1 ||
+            m.indexOf("error loading dynamically imported module") !== -1 ||
+            (m.indexOf("/assets/") !== -1 &&
+              (m.indexOf(".js") !== -1 || m.indexOf(".css") !== -1))
+          );
+        }
+
+        async function recover() {
+          try {
+            var last = Number(sessionStorage.getItem(RECOVERY_KEY) || "0");
+            if (Date.now() - last < COOLDOWN_MS) return;
+            sessionStorage.setItem(RECOVERY_KEY, String(Date.now()));
+          } catch (e) {}
+          try {
+            if (window.caches && caches.keys) {
+              var keys = await caches.keys();
+              await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+            }
+          } catch (e) {}
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+              var regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map(function (r) { return r.unregister().catch(function () {}); }));
+            }
+          } catch (e) {}
+          try {
+            var url = new URL(window.location.href);
+            url.searchParams.set("__recover", String(Date.now()));
+            window.location.replace(url.toString());
+          } catch (e) {
+            window.location.reload();
+          }
+        }
+
+        window.addEventListener(
+          "error",
+          function (ev) {
+            var target = ev && ev.target;
+            if (target && (target.tagName === "SCRIPT" || target.tagName === "LINK")) {
+              var src = target.src || target.href || "";
+              if (shouldRecover("", src)) recover();
+              return;
+            }
+            if (ev && shouldRecover(ev.message, ev.filename)) recover();
+          },
+          true
+        );
+
+        window.addEventListener("unhandledrejection", function (ev) {
+          var reason = ev && ev.reason;
+          var msg = reason && (reason.message || String(reason));
+          if (shouldRecover(msg, "")) recover();
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
