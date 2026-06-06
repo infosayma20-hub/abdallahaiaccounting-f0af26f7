@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
+  Calendar, Timer, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
   Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
