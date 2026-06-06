@@ -594,8 +594,16 @@ Deno.serve(async (req) => {
 
       const evts = allEvents || [];
 
-      // Debounce: drop events occurring within 60s of a previous same-type event
-      // (prevents accidental double-taps from inflating/deflating total_hours)
+      // ── Hours policy (documented) ──
+      // 1. Debounce: same-type events occurring within 60s of the previous same-type
+      //    event are treated as accidental double-taps and dropped from the calculation
+      //    (the underlying event rows are still kept in DB for audit).
+      // 2. Sessions: after debouncing, we pair check_in → check_out in chronological order.
+      //    `total_hours` is the SUM of durations of all CLOSED sessions (an unmatched
+      //    final check_in is excluded until a check_out is recorded).
+      // 3. Minimum session: a session shorter than MIN_SESSION_MS (60s) is ignored.
+      // We do NOT use "first check_in → last check_out" and we do NOT apply any shift
+      // template here — the frontend (EmployeeHomeTab) MUST follow the same rules.
       const DEBOUNCE_MS = 60_000;
       const MIN_SESSION_MS = 60_000; // ignore sessions shorter than 1 minute
       const cleaned: { event_type: string; event_time: string }[] = [];
