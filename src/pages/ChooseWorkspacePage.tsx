@@ -33,23 +33,30 @@ export default function ChooseWorkspacePage() {
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const [{ data: rolesData }, { data: posUser }, { data: empRow }] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", user.id),
-        supabase.from("pos_users").select("is_call_center").eq("auth_user_id", user.id).maybeSingle(),
-        supabase
-          .from("employees")
-          .select("id, is_active, is_terminated")
-          .eq("auth_user_id", user.id)
-          .maybeSingle(),
-      ]);
-      const roles = (rolesData || []).map((r) => String(r.role));
-      const linkedPosUser = posUser as { is_call_center?: boolean | null } | null;
-      const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
-      setHasRep(roles.includes("sales_rep"));
-      setHasCashier(roles.includes("cashier") || !!posUser);
-      setIsCallCenter(!!linkedPosUser && !!linkedPosUser.is_call_center);
-      setHasEmployee(!!linkedEmployee && !!linkedEmployee.is_active && !linkedEmployee.is_terminated);
-      setRolesLoaded(true);
+      try {
+        const [{ data: rolesData }, { data: posUser }, { data: empRow }] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", user.id),
+          supabase.from("pos_users").select("is_call_center").eq("auth_user_id", user.id).maybeSingle(),
+          supabase
+            .from("employees")
+            .select("id, is_active, is_terminated")
+            .eq("auth_user_id", user.id)
+            .maybeSingle(),
+        ]);
+        const roles = (rolesData || []).map((r) => String(r.role));
+        const linkedPosUser = posUser as { is_call_center?: boolean | null } | null;
+        const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
+        setHasRep(roles.includes("sales_rep"));
+        setHasCashier(roles.includes("cashier") || !!posUser);
+        setIsCallCenter(!!linkedPosUser && !!linkedPosUser.is_call_center);
+        setHasEmployee(!!linkedEmployee && !!linkedEmployee.is_active && !linkedEmployee.is_terminated);
+      } catch (err) {
+        // Never leave the chooser blank — render the page so the user can
+        // at least sign out or pick a workspace manually.
+        console.warn("[ChooseWorkspace] roles/employee fetch failed:", err);
+      } finally {
+        setRolesLoaded(true);
+      }
     })();
   }, [user?.id]);
 
