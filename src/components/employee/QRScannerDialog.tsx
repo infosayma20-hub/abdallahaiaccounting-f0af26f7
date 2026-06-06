@@ -237,8 +237,17 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       const data = await response.json();
       if (!response.ok) {
         setResult({ success: false, message: data.error || "حدث خطأ" });
+        // إذا فشل الإرسال وكان الفرع يتطلب سيلفي، امسح السيلفي المؤقت
+        // ولا تسمح بإعادة استخدامها — اطلب التقاطها من جديد قبل أي QR لاحق.
+        if (selfieBase64 && upfrontSelfieRequired) {
+          setPrefetchedSelfie(null);
+          setAwaitingSelfieGesture(true);
+        }
       } else {
         setResult({ success: true, message: data.message });
+        // نجحت البصمة — امسح السيلفي المؤقت فوراً حتى لا تُستخدم لبصمة لاحقة بالخطأ.
+        setPrefetchedSelfie(null);
+        setPendingScan(null);
         setTimeout(() => {
           onSuccess();
           onOpenChange(false);
@@ -246,6 +255,10 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
     } catch (e: any) {
       setResult({ success: false, message: e.message });
+      if (selfieBase64 && upfrontSelfieRequired) {
+        setPrefetchedSelfie(null);
+        setAwaitingSelfieGesture(true);
+      }
     }
     setProcessing(false);
   };
