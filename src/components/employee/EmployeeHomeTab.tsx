@@ -123,8 +123,8 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     >
       {/* Welcome Banner */}
       <div
-        className="rounded-2xl p-5 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
+        className="rounded-3xl p-5 relative overflow-hidden border border-white/40 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45),0_2px_4px_-2px_rgba(15,23,42,0.15)]"
+        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%)" }}
       >
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -228,7 +228,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       )}
 
       {/* Live Clock */}
-      <Card className="border-border bg-card overflow-hidden">
+      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl overflow-hidden shadow-[0_12px_28px_-14px_rgba(15,23,42,0.25),0_2px_4px_-2px_rgba(15,23,42,0.08)]">
         <CardContent className="p-4 text-center">
           <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
             {format(currentTime, "HH:mm")}
@@ -238,7 +238,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Today Status & Action */}
-      <Card className="border-border bg-card">
+      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl shadow-[0_14px_32px_-16px_rgba(15,23,42,0.28),0_2px_4px_-2px_rgba(15,23,42,0.08)]">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
