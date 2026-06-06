@@ -384,7 +384,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         )}
 
         {/* Camera/Manual toggle */}
-        {!result && !processing && !awaitingSelfieGesture && (
+        {!result && !processing && !awaitingSelfieGesture && !checkingBranch && (
           <>
             <div className="flex gap-2 w-full max-w-xs">
               <Button
