@@ -766,18 +766,17 @@ function renderKitchenSVG(order, stationLabel) {
   let y = topPad;
   const push = (h, fn) => { rows.push(fn(y)); y += h; };
 
-  if (stationLabel) push(46, (cy) => `
-    <text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="800" font-family="Tahoma">${esc(stationLabel)}</text>
-    <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="2"/>`);
-
-  // ── HERO BLOCK: big order # + type. Number stays large & bold (this is
-  // the one thing the kitchen MUST see). Everything else is lighter.
-  push(64, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="56" font-weight="900" font-family="Tahoma"># ${esc(counterStr)}</text>`);
-  push(40, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="26" font-weight="700" font-family="Tahoma">${esc(typeLabel)}</text>`);
-  if (order.tableNumber) push(28, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">طاولة: ${esc(order.tableNumber)}</text>`);
+  // ── HERO BLOCK (v6.3.7-clean kitchen-header) ─────────────────────────
+  // Order: station name → order type → order # → divider line.
+  // Order number is moderate-sized (not huge) and ALWAYS without leading
+  // zeros (normalizeCounter handles "000011" → "11").
+  if (stationLabel) push(40, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="28" font-weight="800" font-family="Tahoma">${esc(stationLabel)}</text>`);
+  push(34, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="24" font-weight="700" font-family="Tahoma">${esc(typeLabel)}</text>`);
+  if (order.tableNumber) push(28, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="20" font-weight="700" font-family="Tahoma">طاولة: ${esc(order.tableNumber)}</text>`);
+  push(38, (cy) => `<text x="${W/2}" y="${cy}" text-anchor="middle" font-size="34" font-weight="900" font-family="Tahoma"># ${esc(counterStr)}</text>`);
+  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
   // ── ORDER INFO BLOCK — two-column table (label right, value left), wrapped values ──
-  push(10, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="1"/>`);
   const infoFont = 20;
   const infoLineH = 28;
   const valueWrap = 16; // chars per line for the value column
@@ -802,27 +801,44 @@ function renderKitchenSVG(order, stationLabel) {
   // already provides enough separation.
   push(10, () => '');
 
-  // ── ITEMS TABLE HEADER ──
-  push(34, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الصنف</text>
-    <text x="${padX + 30}" y="${cy}" text-anchor="middle" font-size="22" font-weight="700" font-family="Tahoma">الكمية</text>
-    <line x1="${padX}" y1="${cy + 8}" x2="${W - padX}" y2="${cy + 8}" stroke="#000" stroke-width="1"/>`);
+  // ── ITEMS GRID (v6.3.7-clean items-table, kitchen) ───────────────────
+  // Two columns RTL: [الصنف+ملاحظة] | [الكمية]. Same font-family + size
+  // family as the customer receipt so kitchen tickets feel consistent.
+  // No bullet/black-circle markers. Per-item note lives in the same cell
+  // as the name and wraps inside the cell boundary.
+  const kColNameRight = W - padX;
+  const kColNameLeft  = padX + 72;     // left edge of name cell (cell width ≈ 276)
+  const kColQtyLeft   = padX;
+  const kColQtyMid    = padX + 36;
+  const kHeaderTopOff = 22;
+  const kRowTopOff    = 22;
+
+  push(36, (cy) => `
+    <line x1="${padX}" y1="${cy - kHeaderTopOff}" x2="${W - padX}" y2="${cy - kHeaderTopOff}" stroke="#000" stroke-width="1"/>
+    <text x="${(kColNameLeft + kColNameRight) / 2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">الصنف</text>
+    <text x="${kColQtyMid}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">الكمية</text>
+    <line x1="${padX}" y1="${cy + 10}" x2="${W - padX}" y2="${cy + 10}" stroke="#000" stroke-width="1"/>`);
 
   for (const it of (order.items || [])) {
     const qty = it.quantity || 1;
     const nameLines = wrapTextForSvg(String(it.name || ''), 18);
     const noteLinesArr = it.notes ? wrapTextForSvg(String(it.notes), 22) : [];
-    const noteBlockH = noteLinesArr.length ? (noteLinesArr.length * 26 + 4) : 0;
-    const rowH = 34 + Math.max(0, nameLines.length - 1) * 30 + noteBlockH + 10;
+    const nameLineH = 28;
+    const noteLineH = 24;
+    const contentH = nameLines.length * nameLineH
+      + (noteLinesArr.length ? noteLinesArr.length * noteLineH + 4 : 0);
+    const rowH = Math.max(40, contentH + 16);
     push(rowH, (cy) => {
-      const firstY = cy;
+      const nameY0 = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${W - padX}" y="${firstY + i * 30}" text-anchor="end" font-size="26" font-weight="800" font-family="Tahoma">${i === 0 ? '● ' : ''}${esc(ln)}</text>`).join('');
-      const qtySvg = `<text x="${padX + 30}" y="${firstY}" text-anchor="middle" font-size="28" font-weight="900" font-family="Tahoma">${qty}</text>`;
-      const noteY0 = firstY + nameLines.length * 30 + 2;
-      const notesSvg = noteLinesArr.map((ln, i) =>
-        `<text x="${W - padX - 12}" y="${noteY0 + i * 26}" text-anchor="end" font-size="20" font-weight="600" font-family="Tahoma">+ ${esc(ln)}</text>`).join('');
-      return `${nameSvg}${qtySvg}${notesSvg}`;
+        `<text x="${kColNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
+      const noteY0 = nameY0 + nameLines.length * nameLineH + 2;
+      const noteSvg = noteLinesArr.map((ln, i) =>
+        `<text x="${kColNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
+      const qtySvg = `<text x="${kColQtyMid}" y="${nameY0}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">${qty}</text>`;
+      const bottomY = cy + rowH - kRowTopOff;
+      const sepLine = `<line x1="${padX}" y1="${bottomY}" x2="${W - padX}" y2="${bottomY}" stroke="#000" stroke-width="0.7"/>`;
+      return `${nameSvg}${noteSvg}${qtySvg}${sepLine}`;
     });
   }
 
