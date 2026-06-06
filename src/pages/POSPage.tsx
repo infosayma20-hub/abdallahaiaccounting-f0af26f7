@@ -3922,6 +3922,46 @@ const POSPage = () => {
   const getPosAccountingDate = (openedAt: string, cutoffHour: number) =>
     getPosBusinessDate(openedAt, cutoffHour);
 
+  /**
+   * Revert any call-center orders this cashier accepted but didn't pay back
+   * to the queue, so they don't get stuck on `status='accepted'` with
+   * `pos_order_id IS NULL` (invisible to PendingOrdersPanel).
+   *
+   * Scope = current open session OR current auth user — covers the case
+   * where the cashier accepted on a different browser tab / device.
+   * `pos_order_id` is NEVER touched (only reverts rows where it's already
+   * null, i.e. not paid yet).
+   * Returns the number of rows that were reverted.
+   */
+  const revertOpenCallCenterOrders = async (): Promise<number> => {
+    if (!userId) return 0;
+    try {
+      const filter = session?.id
+        ? `accepted_by.eq.${userId},session_id.eq.${session.id}`
+        : `accepted_by.eq.${userId}`;
+      const { data, error } = await supabase
+        .from("call_center_orders" as any)
+        .update({
+          status: "pending",
+          accepted_by: null,
+          accepted_at: null,
+          session_id: null,
+        } as any)
+        .eq("status", "accepted")
+        .is("pos_order_id", null)
+        .or(filter)
+        .select("id");
+      if (error) {
+        console.error("[revertOpenCallCenterOrders] failed:", error);
+        return 0;
+      }
+      return (data as any[] | null)?.length || 0;
+    } catch (e) {
+      console.error("[revertOpenCallCenterOrders] unexpected:", e);
+      return 0;
+    }
+  };
+
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
