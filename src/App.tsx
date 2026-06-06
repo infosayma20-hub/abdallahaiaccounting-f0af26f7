@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
+import { supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
@@ -287,8 +288,8 @@ const InvoiceCreatePageWrapper = () => {
 // stuck (network failure, RLS rejection, …) and show a recovery card with
 // a retry button + sign-out fallback — never leave the screen frozen.
 const AuthCheckSpinner = () => {
-  const [stuck, setStuck] = React.useState(false);
-  React.useEffect(() => {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
     const t = setTimeout(() => setStuck(true), 10_000);
     return () => clearTimeout(t);
   }, []);
