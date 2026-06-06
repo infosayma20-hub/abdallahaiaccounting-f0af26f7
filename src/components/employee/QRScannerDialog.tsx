@@ -21,6 +21,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [selfieOpen, setSelfieOpen] = useState(false);
   const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number } | null>(null);
+  const [awaitingSelfieGesture, setAwaitingSelfieGesture] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerDivId = "qr-reader-employee";
 
@@ -42,11 +43,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       setResult(null);
       setManualInput("");
       setMode("camera");
+      setAwaitingSelfieGesture(false);
+      setPendingScan(null);
     }
   }, [open, stopScanner]);
 
   useEffect(() => {
-    if (open && mode === "camera" && !processing && !result) {
+    if (open && mode === "camera" && !processing && !result && !awaitingSelfieGesture && !selfieOpen) {
       const timer = setTimeout(() => {
         startScanner();
       }, 300);
@@ -55,7 +58,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       stopScanner();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, processing, result]);
+  }, [open, mode, processing, result, awaitingSelfieGesture, selfieOpen]);
 
   const startScanner = async () => {
     await stopScanner();
@@ -93,6 +96,24 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       const branchId = qrPayload.substring(0, colonIdx);
       const token = qrPayload.substring(colonIdx + 1);
 
+      // افحص اشتراط السيلفي أولاً قبل أي عمليات طويلة (GPS) كي لا نكسر user-gesture على iOS.
+      const { data: branchRow } = await supabase
+        .from("branches")
+        .select("require_attendance_selfie")
+        .eq("id", branchId)
+        .maybeSingle();
+
+      if (branchRow?.require_attendance_selfie && (action === "checkin" || action === "checkout")) {
+        // أوقف ماسح QR تماماً قبل أي محاولة لفتح الكاميرا الأمامية (iOS لا يسمح بـ stream مزدوج).
+        await stopScanner();
+        setPendingScan({ branchId, token, lat: 0, lng: 0 });
+        setProcessing(false);
+        // اعرض شاشة وسيطة تتطلب نقرة مستخدم لفتح الكاميرا (gesture جديد لـ Safari).
+        setAwaitingSelfieGesture(true);
+        return;
+      }
+
+      // الفرع لا يتطلب سيلفي — كمل بـ GPS ثم attendance كالمعتاد.
       let lat = 0, lng = 0;
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
@@ -103,24 +124,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
       } catch (geoErr) {
-        // لا نوقف العملية هنا — السيرفر يقرر حسب إعداد الفرع (require_gps)
         console.warn("Geolocation failed, proceeding without location:", geoErr);
         lat = 0;
         lng = 0;
-      }
-
-      // Check if this branch requires selfie
-      const { data: branchRow } = await supabase
-        .from("branches")
-        .select("require_attendance_selfie")
-        .eq("id", branchId)
-        .maybeSingle();
-
-      if (branchRow?.require_attendance_selfie && (action === "checkin" || action === "checkout")) {
-        setPendingScan({ branchId, token, lat, lng });
-        setProcessing(false);
-        setSelfieOpen(true);
-        return;
       }
 
       await submitAttendance(branchId, token, lat, lng, null);
@@ -182,16 +188,40 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
 
   const handleSelfieCapture = async (base64: string) => {
     setSelfieOpen(false);
+    setAwaitingSelfieGesture(false);
     if (!pendingScan) return;
     const scan = pendingScan;
     setPendingScan(null);
-    await submitAttendance(scan.branchId, scan.token, scan.lat, scan.lng, base64);
+    // الآن نأخذ GPS بعد التقاط السيلفي بنجاح (إذا لم يكن متوفراً).
+    let lat = scan.lat;
+    let lng = scan.lng;
+    if (!lat && !lng) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true, timeout: 15000,
+          })
+        );
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch {
+        // السيرفر يقرر حسب require_gps
+      }
+    }
+    await submitAttendance(scan.branchId, scan.token, lat, lng, base64);
   };
 
   const handleSelfieCancel = () => {
     setSelfieOpen(false);
+    setAwaitingSelfieGesture(false);
     setPendingScan(null);
     setResult({ success: false, message: "الكاميرا مطلوبة لتسجيل البصمة في هذا الفرع." });
+  };
+
+  const openSelfieFromGesture = () => {
+    // يجب أن تُستدعى من onClick مباشرة — لا awaits قبلها — لتأمين user-gesture على iOS.
+    setAwaitingSelfieGesture(false);
+    setSelfieOpen(true);
   };
 
   if (!open) return null;
@@ -215,8 +245,38 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 gap-4">
+        {/* Awaiting user gesture to open front camera (iOS Safari requirement) */}
+        {awaitingSelfieGesture && !result && !processing && (
+          <div className="rounded-3xl p-6 text-center space-y-5 w-full max-w-xs bg-primary/5 border border-primary/20">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Camera className="h-8 w-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <p className="font-bold text-base text-foreground">تم التعرف على الفرع</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                هذا الفرع يتطلب صورة سيلفي. اضغط الزر لفتح الكاميرا الأمامية.
+              </p>
+            </div>
+            <Button
+              size="lg"
+              className="w-full h-14 rounded-xl text-base font-bold active:scale-[0.97] transition-transform"
+              onClick={openSelfieFromGesture}
+            >
+              <Camera className="h-5 w-5 ml-2" />
+              افتح الكاميرا الأمامية
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full rounded-xl"
+              onClick={() => onOpenChange(false)}
+            >
+              إلغاء
+            </Button>
+          </div>
+        )}
+
         {/* Result */}
-        {result && (
+        {result && !awaitingSelfieGesture && (
           <div className={`rounded-3xl p-8 text-center space-y-4 w-full max-w-xs ${
             result.success ? "bg-emerald-500/10" : "bg-destructive/10"
           }`}>
@@ -239,7 +299,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
         )}
 
         {/* Camera/Manual toggle */}
-        {!result && !processing && (
+        {!result && !processing && !awaitingSelfieGesture && (
           <>
             <div className="flex gap-2 w-full max-w-xs">
               <Button
