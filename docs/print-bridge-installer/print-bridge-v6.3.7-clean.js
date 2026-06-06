@@ -683,9 +683,20 @@ function renderReceiptSVG(order, logoTopMargin) {
   push(32, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">طريقة الدفع</text>
     <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">${esc(order.paymentMethod || 'نقد')}</text>`);
-  if (order.cashReceived) push(32, (cy) => `
+  // ── المبلغ المستلم: use the currency symbol that matches the tender ──
+  // v6.3.7-clean cosmetic-only: read order.tenderedCurrency / paymentCurrency
+  // / currency and pick the right symbol (₪ / $ / د.ا / €). Falls back to ₪
+  // when no currency is sent. Amount itself is NOT changed.
+  if (order.cashReceived) push(32, (cy) => {
+    const code = String(order.tenderedCurrency || order.paymentCurrency || order.currency || 'ILS').toUpperCase();
+    const sym = code === 'USD' ? '$'
+              : code === 'EUR' ? '€'
+              : code === 'JOD' ? 'د.ا'
+              : '₪';
+    return `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">المبلغ المستلم</text>
-    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">₪${Number(order.cashReceived).toFixed(2)}</text>`);
+    <text x="${padX}" y="${cy}" text-anchor="start"   font-size="22" font-weight="800" font-family="Tahoma">${sym}${Number(order.cashReceived).toFixed(2)}</text>`;
+  });
   if (order.change) push(34, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="24" font-weight="900" font-family="Tahoma">الباقي</text>
     <text x="${padX}" y="${cy}" text-anchor="start"   font-size="24" font-weight="900" font-family="Tahoma">₪${Number(order.change).toFixed(2)}</text>`);
