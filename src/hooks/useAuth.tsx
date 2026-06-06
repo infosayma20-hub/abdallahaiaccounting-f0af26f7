@@ -82,16 +82,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      normalizeAuthSessionExpiry(session);
-      setSession(session);
-      setUser((prev) => {
-        const next = session?.user ?? null;
-        if (prev?.id === next?.id) return prev;
-        return next;
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        normalizeAuthSessionExpiry(session);
+        setSession(session);
+        setUser((prev) => {
+          const next = session?.user ?? null;
+          if (prev?.id === next?.id) return prev;
+          return next;
+        });
+      })
+      .catch((err) => {
+        // Network error / Supabase cold start — never leave the whole app
+        // stuck on AuthCheckSpinner. Treat as "no session" and let the
+        // normal redirect logic send the user to /auth.
+        console.warn("[auth] getSession failed:", err);
+      })
+      .finally(() => {
+        setLoading(false);
       });
-      setLoading(false);
-    });
 
     return () => {
       subscription.unsubscribe();

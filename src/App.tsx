@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
+import { supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
@@ -282,19 +283,67 @@ const InvoiceCreatePageWrapper = () => {
   return <InvoiceCreatePage key={editId} />;
 };
 
-// Minimal inline spinner for auth checks and lazy loading
-const AuthCheckSpinner = () => (
-  <div className="flex h-full min-h-[200px] w-full items-center justify-center">
-    <div
-      className="w-8 h-8 rounded-full border-2 border-transparent"
-      style={{
-        borderTopColor: "hsl(var(--accent))",
-        borderRightColor: "hsl(var(--accent) / 0.3)",
-        animation: "navSpinRing 0.7s linear infinite",
-      }}
-    />
-  </div>
-);
+// Minimal inline spinner for auth checks and lazy loading.
+// After 10s of continuous spinning we assume an upstream loading flag is
+// stuck (network failure, RLS rejection, …) and show a recovery card with
+// a retry button + sign-out fallback — never leave the screen frozen.
+const AuthCheckSpinner = () => {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setStuck(true), 10_000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (stuck) {
+    return (
+      <div
+        className="flex h-full min-h-[100dvh] w-full flex-col items-center justify-center gap-4 px-6 text-center"
+        dir="rtl"
+      >
+        <div className="max-w-sm space-y-3">
+          <h2 className="text-lg font-bold text-foreground">
+            التحميل يأخذ وقتاً أطول من المعتاد
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            تحقق من اتصال الإنترنت ثم أعد المحاولة. إذا استمرت المشكلة سجّل خروج وادخل من جديد.
+          </p>
+          <div className="flex gap-2 justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
+            >
+              إعادة المحاولة
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try { await supabase.auth.signOut(); } catch {}
+                window.location.href = "/auth";
+              }}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted"
+            >
+              تسجيل خروج
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+      <div
+        className="w-8 h-8 rounded-full border-2 border-transparent"
+        style={{
+          borderTopColor: "hsl(var(--accent))",
+          borderRightColor: "hsl(var(--accent) / 0.3)",
+          animation: "navSpinRing 0.7s linear infinite",
+        }}
+      />
+    </div>
+  );
+};
 
 const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesRep }: { children: React.ReactNode; blockCashier?: boolean; blockStoreTracker?: boolean; blockSalesRep?: boolean }) => {
   const { user, loading } = useAuth();

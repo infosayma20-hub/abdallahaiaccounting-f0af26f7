@@ -15,16 +15,23 @@ export function useMyFeaturePermissions() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (uid: string) => {
-    const { data } = await supabase
-      .from("user_feature_permissions" as any)
-      .select("app_key,feature_key,permission_key,access_state")
-      .eq("target_user_id", uid);
-    const map = new Map<string, AccessState>();
-    (data || []).forEach((r: any) => {
-      map.set(`${r.app_key}.${r.feature_key}.${r.permission_key}`, r.access_state);
-    });
-    setOverrides(map);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from("user_feature_permissions" as any)
+        .select("app_key,feature_key,permission_key,access_state")
+        .eq("target_user_id", uid);
+      const map = new Map<string, AccessState>();
+      (data || []).forEach((r: any) => {
+        map.set(`${r.app_key}.${r.feature_key}.${r.permission_key}`, r.access_state);
+      });
+      setOverrides(map);
+    } catch (err) {
+      console.warn("[useMyFeaturePermissions] load failed:", err);
+      // Fail closed: no overrides, so role defaults apply.
+      setOverrides(new Map());
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

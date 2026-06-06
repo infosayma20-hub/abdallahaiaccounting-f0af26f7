@@ -81,34 +81,43 @@ export function useHRManagerPermissions() {
     let cancelled = false;
 
     (async () => {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const roleList = (roles || []).map((r) => r.role);
-      const admin = roleList.length === 0 || roleList.includes("admin") || roleList.includes("super_admin");
-      const hrManager = roleList.includes("hr_manager");
+      try {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        const roleList = (roles || []).map((r) => r.role);
+        const admin = roleList.length === 0 || roleList.includes("admin") || roleList.includes("super_admin");
+        const hrManager = roleList.includes("hr_manager");
 
-      if (cancelled) return;
-      setIsAdmin(admin);
-      setIsHRManager(hrManager);
+        if (cancelled) return;
+        setIsAdmin(admin);
+        setIsHRManager(hrManager);
 
-      if (admin) {
-        setPerms(null);
-        setLoading(false);
-        return;
+        if (admin) {
+          setPerms(null);
+          return;
+        }
+
+        if (hrManager) {
+          const { data } = await supabase
+            .from("hr_manager_permissions")
+            .select("*")
+            .eq("hr_auth_id", user.id)
+            .eq("is_active", true)
+            .maybeSingle();
+          if (!cancelled) setPerms((data as HRPerms) || null);
+        }
+      } catch (err) {
+        console.warn("[useHRManagerPermissions] fetch failed:", err);
+        if (!cancelled) {
+          setIsAdmin(false);
+          setIsHRManager(false);
+          setPerms(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      if (hrManager) {
-        const { data } = await supabase
-          .from("hr_manager_permissions")
-          .select("*")
-          .eq("hr_auth_id", user.id)
-          .eq("is_active", true)
-          .maybeSingle();
-        if (!cancelled) setPerms((data as HRPerms) || null);
-      }
-      if (!cancelled) setLoading(false);
     })();
 
     return () => { cancelled = true; };

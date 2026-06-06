@@ -42,35 +42,39 @@ export const useOnboarding = () => {
     fetchedRef.current = true;
 
     const fetchData = async () => {
-      const [onboardingRes, settingsRes] = await Promise.all([
-        supabase.from("user_onboarding").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("company_settings").select("business_type").eq("user_id", userId).maybeSingle(),
-      ]);
+      try {
+        const [onboardingRes, settingsRes] = await Promise.all([
+          supabase.from("user_onboarding").select("*").eq("user_id", userId).maybeSingle(),
+          supabase.from("company_settings").select("business_type").eq("user_id", userId).maybeSingle(),
+        ]);
 
-      if (onboardingRes.data) {
-        const data = onboardingRes.data;
-        const loaded: OnboardingState = {
-          welcome_modal_shown: data.welcome_modal_shown,
-          full_tour_completed: data.full_tour_completed,
-          full_tour_skipped: data.full_tour_skipped,
-          modules_toured: (data.modules_toured as string[]) || [],
-          module_first_visits: (data.module_first_visits as Record<string, string>) || {},
-          dont_show_again: data.dont_show_again,
-        };
-        setState(loaded);
-        stateRef.current = loaded;
+        if (onboardingRes.data) {
+          const data = onboardingRes.data;
+          const loaded: OnboardingState = {
+            welcome_modal_shown: data.welcome_modal_shown,
+            full_tour_completed: data.full_tour_completed,
+            full_tour_skipped: data.full_tour_skipped,
+            modules_toured: (data.modules_toured as string[]) || [],
+            module_first_visits: (data.module_first_visits as Record<string, string>) || {},
+            dont_show_again: data.dont_show_again,
+          };
+          setState(loaded);
+          stateRef.current = loaded;
 
-        // If already shown in DB, mark dismissed
-        if (data.welcome_modal_shown) {
-          setDismissed(true);
+          // If already shown in DB, mark dismissed
+          if (data.welcome_modal_shown) {
+            setDismissed(true);
+          }
         }
-      }
 
-      if (settingsRes.data?.business_type) {
-        setBusinessType(settingsRes.data.business_type as string);
+        if (settingsRes.data?.business_type) {
+          setBusinessType(settingsRes.data.business_type as string);
+        }
+      } catch (err) {
+        console.warn("[useOnboarding] fetch failed:", err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
     fetchData();
   }, [userId]);
