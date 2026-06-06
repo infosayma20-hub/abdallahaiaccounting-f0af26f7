@@ -26,6 +26,7 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [usingFallbackCamera, setUsingFallbackCamera] = useState(false);
 
   const clearTimers = () => {
     if (countdownTimerRef.current) {
@@ -65,26 +66,78 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
   const startCamera = async () => {
     setStarting(true);
     setError(null);
+    setUsingFallbackCamera(false);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 720 } },
-        audio: false,
-      });
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError("هذا المتصفح لا يدعم الوصول للكاميرا. افتح الرابط من Safari أو Chrome.");
+        setStarting(false);
+        return;
+      }
+      let stream: MediaStream | null = null;
+      let usedFallback = false;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "user" }, width: { ideal: 720 }, height: { ideal: 720 } },
+          audio: false,
+        });
+      } catch (primaryErr: any) {
+        // إذا الكاميرا الأمامية غير متاحة أو constraints مرفوضة، جرّب أي كاميرا
+        const name = primaryErr?.name || "";
+        if (name === "OverconstrainedError" || name === "NotFoundError" || name === "ConstraintNotSatisfiedError") {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            usedFallback = true;
+          } catch (fallbackErr) {
+            throw fallbackErr;
+          }
+        } else {
+          throw primaryErr;
+        }
+      }
+      if (!stream) throw new Error("لم يتم الحصول على بث الكاميرا");
+      // تحقق أن المستخدم فعلاً يستخدم الكاميرا الأمامية
+      try {
+        const track = stream.getVideoTracks()[0];
+        const settings: any = track?.getSettings?.() || {};
+        if (settings.facingMode && settings.facingMode !== "user") {
+          usedFallback = true;
+        }
+      } catch {}
+      setUsingFallbackCamera(usedFallback);
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+        try {
+          await videoRef.current.play();
+        } catch {
+          // Safari قد يمنع play بدون gesture — اعرض زر إعادة المحاولة
+          setError("اضغط إعادة المحاولة لفتح الكاميرا.");
+          stopStream();
+          setStarting(false);
+          return;
+        }
       }
       startCountdown();
     } catch (e: any) {
-      setError("لم يتم السماح بالوصول للكاميرا. الكاميرا مطلوبة لتسجيل البصمة في هذا الفرع.");
+      const name = e?.name || "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setError("تم رفض إذن الكاميرا. افتح إعدادات المتصفح واسمح للكاميرا، ثم أعد المحاولة.");
+      } else if (name === "NotFoundError" || name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
+        setError("لم يتم العثور على كاميرا في هذا الجهاز.");
+      } else if (name === "NotReadableError" || name === "TrackStartError") {
+        setError("الكاميرا مشغولة بتطبيق آخر. أغلق التطبيقات الأخرى وأعد المحاولة.");
+      } else {
+        setError("تعذّر فتح الكاميرا. تأكد من السماح للكاميرا من إعدادات المتصفح.");
+      }
     } finally {
       setStarting(false);
     }
   };
 
   useEffect(() => {
-    if (open && !preview) {
+    // ملاحظة: لا نُشغّل الكاميرا تلقائياً عند الفتح لتجنّب فقد user-gesture على iOS Safari.
+    // المُنادي يستدعي startCamera عبر تفاعل مباشر (زر) أو نُتيح زر "افتح الكاميرا" داخلياً.
+    if (open && !preview && !error) {
       startCamera();
     }
     return () => {
@@ -162,7 +215,7 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
             <X className="h-14 w-14 text-destructive mx-auto" />
             <p className="font-bold text-base text-foreground">{error}</p>
             <Button onClick={startCamera} className="rounded-xl">
-              المحاولة مرة أخرى
+              فتح الكاميرا مرة أخرى
             </Button>
           </div>
         ) : preview ? (
@@ -184,6 +237,7 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
             <div className="rounded-3xl overflow-hidden bg-black w-full max-w-xs aspect-square relative">
               <video
                 ref={videoRef}
+                autoPlay
                 playsInline
                 muted
                 className="w-full h-full object-cover -scale-x-100"
@@ -212,6 +266,11 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
             <p className="text-sm text-foreground text-center font-medium">
               ثبّت وجهك داخل الإطار
             </p>
+            {usingFallbackCamera && (
+              <div className="w-full max-w-xs rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 px-3 py-2 text-[12px] text-blue-800 dark:text-blue-200 text-center leading-relaxed">
+                لم يتم العثور على الكاميرا الأمامية، سيتم استخدام الكاميرا المتاحة.
+              </div>
+            )}
             <div className="w-full max-w-xs rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200 text-center leading-relaxed">
               تنبيه: سيتم حفظ صورة وقت البصمة لأغراض المراجعة الإدارية.
             </div>
