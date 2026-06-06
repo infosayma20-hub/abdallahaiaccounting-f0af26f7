@@ -469,6 +469,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         onOpenChange={setScanOpen}
         action={scanAction}
         onSuccess={fetchData}
+        employeeBranchId={employee?.branch_id ?? null}
       />
     </div>
   );
