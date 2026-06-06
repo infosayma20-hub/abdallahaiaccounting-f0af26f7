@@ -4290,6 +4290,21 @@ const POSPage = () => {
   // Call center quick close — no cash count needed, just logout
   const handleCallCenterCloseShift = async () => {
     if (!session || !userId) return;
+    // ⚠️ Confirm even Call-Center close — never close in one click.
+    if (typeof window !== "undefined" && !window.confirm("هل تريد فعلاً إغلاق وردية الكول سنتر؟")) {
+      return;
+    }
+    // 🛟 Return any accepted-but-unpaid call-center orders back to the queue
+    // before tearing the session down, so they aren't lost between
+    // accepted and paid.
+    try {
+      const reverted = await revertOpenCallCenterOrders();
+      if (reverted > 0) {
+        toast.warning(`يوجد ${reverted} طلب كول سنتر لم يتم دفعه. تم إرجاعه للطابور قبل إغلاق العهدة.`);
+      }
+    } catch (e) {
+      console.warn("[close-shift] revert pending call-center orders failed:", e);
+    }
     // 🔒 Atomic close — same CAS guard as cashier close.
     selfClosedSessionsRef.current.add(session.id);
     const { error: ccErr } = await supabase.rpc("close_pos_session_atomic", {
