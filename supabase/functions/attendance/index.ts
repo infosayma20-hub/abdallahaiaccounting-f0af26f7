@@ -538,16 +538,16 @@ Deno.serve(async (req) => {
           if (trusted) {
             await supabase
               .from("employee_trusted_devices")
-              .update({ last_seen_at: now, updated_at: now, user_agent: device_info || null })
+              .update({ last_seen_at: now, updated_at: now, label: device_info || null })
               .eq("id", trusted.id);
           } else {
             // New device → register as trusted and raise an alert.
             await supabase.from("employee_trusted_devices").insert({
               employee_id: employee.id,
               auth_user_id: user.id,
-              user_id: employee.user_id,
+              company_id: employee.company_id,
               device_fingerprint,
-              user_agent: device_info || null,
+              label: device_info || null,
               first_seen_at: now,
               last_seen_at: now,
             });
@@ -559,21 +559,19 @@ Deno.serve(async (req) => {
               .select("id")
               .eq("employee_id", employee.id)
               .eq("device_fingerprint", device_fingerprint)
-              .gte("captured_at", oneMinuteAgo)
+              .gte("event_time", oneMinuteAgo)
               .limit(1);
 
             if (!recent || recent.length === 0) {
               await supabase.from("employee_device_alerts").insert({
                 employee_id: employee.id,
                 auth_user_id: user.id,
-                user_id: employee.user_id,
+                company_id: employee.company_id,
                 branch_id,
-                attendance_event_id: insertedEvent?.id || null,
-                action: eventType,
+                event_type: "new_device",
+                event_time: now,
                 device_fingerprint,
-                user_agent: device_info || null,
-                selfie_storage_path: preUploadedPath,
-                captured_at: now,
+                notes: `${eventType} • ${device_info || ""}${preUploadedPath ? " • selfie:" + preUploadedPath : ""}`.slice(0, 1000),
               });
             }
           }
