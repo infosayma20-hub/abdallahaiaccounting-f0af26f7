@@ -348,6 +348,9 @@ export default function HRAttendancePage() {
   const [noteText, setNoteText] = useState("");
   const [historyRecord, setHistoryRecord] = useState<AttendanceRecord | null>(null);
   const [historyEvents, setHistoryEvents] = useState<any[]>([]);
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+  const [selfieLoading, setSelfieLoading] = useState(false);
+  const [selfieCapturedAt, setSelfieCapturedAt] = useState<string | null>(null);
 
   // Day-type sources
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
