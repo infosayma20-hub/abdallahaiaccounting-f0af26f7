@@ -4807,7 +4807,7 @@ const POSPage = () => {
           />
 
           {/* Kitchen */}
-          <button onClick={() => navigate("/pos/kitchen")} className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="المطبخ">
+          <button onClick={() => navigate("/pos/kitchen")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="المطبخ">
             <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
 
@@ -4828,7 +4828,7 @@ const POSPage = () => {
           )}
 
           {/* Tables */}
-          <button onClick={() => navigate("/pos/floor-plan")} className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
+          <button onClick={() => navigate("/pos/floor-plan")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
             <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
 
