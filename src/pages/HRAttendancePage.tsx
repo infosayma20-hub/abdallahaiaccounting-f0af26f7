@@ -20,7 +20,7 @@ import {
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
   QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer,
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
-  Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info,
+  Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info, Camera,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -348,6 +348,9 @@ export default function HRAttendancePage() {
   const [noteText, setNoteText] = useState("");
   const [historyRecord, setHistoryRecord] = useState<AttendanceRecord | null>(null);
   const [historyEvents, setHistoryEvents] = useState<any[]>([]);
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+  const [selfieLoading, setSelfieLoading] = useState(false);
+  const [selfieCapturedAt, setSelfieCapturedAt] = useState<string | null>(null);
 
   // Day-type sources
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
@@ -907,14 +910,64 @@ export default function HRAttendancePage() {
 
   const openHistory = async (r: AttendanceRecord) => {
     setHistoryRecord(r); setHistoryEvents([]);
+    return openHistoryImpl(r);
+  };
+
+  const viewSelfie = async (eventId: string) => {
+    setSelfieLoading(true);
+    setSelfieUrl(null);
+    setSelfieCapturedAt(null);
+    try {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/get-attendance-selfie-url`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ event_id: eventId }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "تعذر عرض الصورة", description: data.error || "خطأ", variant: "destructive" });
+        return;
+      }
+      setSelfieUrl(data.url);
+      setSelfieCapturedAt(data.captured_at);
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e.message, variant: "destructive" });
+    } finally {
+      setSelfieLoading(false);
+    }
+  };
+
+  const openHistoryImpl = async (r: AttendanceRecord) => {
     const { data } = await supabase
       .from("attendance_events")
-      .select("event_type, event_time, branch_id, notes, status")
+      .select("id, event_type, event_time, branch_id, notes, status")
       .eq("employee_id", r.employee_id)
       .gte("event_time", `${r.attendance_date}T00:00:00`)
       .lte("event_time", `${r.attendance_date}T23:59:59`)
       .order("event_time", { ascending: true });
-    setHistoryEvents(data || []);
+    const events = data || [];
+    // Fetch which events have selfie verifications (one query for all)
+    if (events.length > 0) {
+      const ids = events.map((e: any) => e.id);
+      const { data: vers } = await supabase
+        .from("attendance_event_verifications")
+        .select("attendance_event_id")
+        .in("attendance_event_id", ids);
+      const withSelfie = new Set((vers || []).map((v: any) => v.attendance_event_id));
+      setHistoryEvents(events.map((e: any) => ({ ...e, has_selfie: withSelfie.has(e.id) })));
+    } else {
+      setHistoryEvents(events);
+    }
   };
 
   const sendRequestToEmployee = async (r: AttendanceRecord) => {
@@ -1805,12 +1858,57 @@ export default function HRAttendancePage() {
                       {e.event_type === "check_in" ? "دخول" : "خروج"}
                     </Badge>
                     <span className="font-mono text-sm">{format(new Date(e.event_time), "hh:mm:ss a")}</span>
+                    {e.has_selfie ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 gap-1">
+                        <Camera className="h-3 w-3" /> سيلفي
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">بدون سيلفي</Badge>
+                    )}
                   </div>
-                  <span className="text-xs text-muted-foreground">{e.notes || e.status || ""}</span>
+                  <div className="flex items-center gap-2">
+                    {e.has_selfie && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => viewSelfie(e.id)}
+                      >
+                        <Camera className="h-3 w-3" /> عرض السيلفي
+                      </Button>
+                    )}
+                    <span className="text-xs text-muted-foreground">{e.notes || e.status || ""}</span>
+                  </div>
                 </div>
               ))}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Selfie viewer */}
+      <Dialog open={!!selfieUrl || selfieLoading} onOpenChange={(o) => { if (!o) { setSelfieUrl(null); setSelfieCapturedAt(null); } }}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Camera className="h-5 w-5 text-primary" /> صورة السيلفي</DialogTitle>
+          </DialogHeader>
+          {selfieLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : selfieUrl ? (
+            <div className="space-y-3">
+              <img src={selfieUrl} alt="selfie" className="w-full rounded-lg border" />
+              {selfieCapturedAt && (
+                <p className="text-xs text-muted-foreground text-center">
+                  التُقطت: {format(new Date(selfieCapturedAt), "yyyy-MM-dd hh:mm:ss a")}
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground text-center">
+                الرابط صالح لمدة 60 ثانية فقط
+              </p>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
 

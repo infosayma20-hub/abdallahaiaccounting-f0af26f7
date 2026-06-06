@@ -5,6 +5,7 @@ import { Camera, Keyboard, Loader2, MapPin, CheckCircle2, XCircle, X } from "luc
 import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import SelfieCapture from "./SelfieCapture";
 
 interface Props {
   open: boolean;
@@ -18,6 +19,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
   const [manualInput, setManualInput] = useState("");
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [selfieOpen, setSelfieOpen] = useState(false);
+  const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number } | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerDivId = "qr-reader-employee";
 
@@ -106,6 +109,36 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
         lng = 0;
       }
 
+      // Check if this branch requires selfie
+      const { data: branchRow } = await supabase
+        .from("branches")
+        .select("require_attendance_selfie")
+        .eq("id", branchId)
+        .maybeSingle();
+
+      if (branchRow?.require_attendance_selfie && (action === "checkin" || action === "checkout")) {
+        setPendingScan({ branchId, token, lat, lng });
+        setProcessing(false);
+        setSelfieOpen(true);
+        return;
+      }
+
+      await submitAttendance(branchId, token, lat, lng, null);
+    } catch (e: any) {
+      setResult({ success: false, message: e.message });
+      setProcessing(false);
+    }
+  };
+
+  const submitAttendance = async (
+    branchId: string,
+    token: string,
+    lat: number,
+    lng: number,
+    selfieBase64: string | null,
+  ) => {
+    setProcessing(true);
+    try {
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -126,6 +159,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
             latitude: lat,
             longitude: lng,
             device_info: navigator.userAgent.substring(0, 100),
+            selfie_base64: selfieBase64,
           }),
         }
       );
@@ -146,9 +180,24 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
     setProcessing(false);
   };
 
+  const handleSelfieCapture = async (base64: string) => {
+    setSelfieOpen(false);
+    if (!pendingScan) return;
+    const scan = pendingScan;
+    setPendingScan(null);
+    await submitAttendance(scan.branchId, scan.token, scan.lat, scan.lng, base64);
+  };
+
+  const handleSelfieCancel = () => {
+    setSelfieOpen(false);
+    setPendingScan(null);
+    setResult({ success: false, message: "الكاميرا مطلوبة لتسجيل البصمة في هذا الفرع." });
+  };
+
   if (!open) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-[100] bg-background flex flex-col" dir="rtl"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       {/* Header */}
@@ -252,5 +301,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
         <span>سيتم التحقق من موقعك الجغرافي تلقائياً</span>
       </div>
     </div>
+    <SelfieCapture
+      open={selfieOpen}
+      onCancel={handleSelfieCancel}
+      onCapture={handleSelfieCapture}
+      title={action === "checkin" ? "سيلفي تسجيل الدخول" : "سيلفي تسجيل الخروج"}
+    />
+    </>
   );
 }

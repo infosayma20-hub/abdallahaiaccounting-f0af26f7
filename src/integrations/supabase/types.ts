@@ -1141,6 +1141,84 @@ export type Database = {
           },
         ]
       }
+      attendance_event_verifications: {
+        Row: {
+          attendance_event_id: string
+          auth_user_id: string
+          branch_id: string
+          captured_at: string
+          created_at: string
+          device_info: string | null
+          employee_id: string
+          id: string
+          storage_path: string
+          user_id: string
+          verification_type: string
+        }
+        Insert: {
+          attendance_event_id: string
+          auth_user_id: string
+          branch_id: string
+          captured_at?: string
+          created_at?: string
+          device_info?: string | null
+          employee_id: string
+          id?: string
+          storage_path: string
+          user_id: string
+          verification_type?: string
+        }
+        Update: {
+          attendance_event_id?: string
+          auth_user_id?: string
+          branch_id?: string
+          captured_at?: string
+          created_at?: string
+          device_info?: string | null
+          employee_id?: string
+          id?: string
+          storage_path?: string
+          user_id?: string
+          verification_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_event_verifications_attendance_event_id_fkey"
+            columns: ["attendance_event_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_event_verifications_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_event_verifications_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_event_verifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_event_verifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_events: {
         Row: {
           auth_user_id: string
@@ -1311,6 +1389,7 @@ export type Database = {
       branches: {
         Row: {
           address: string | null
+          attendance_selfie_retention_days: number
           created_at: string
           id: string
           is_active: boolean
@@ -1320,6 +1399,7 @@ export type Database = {
           qr_mode: string
           qr_rotation_minutes: number
           radius_meters: number
+          require_attendance_selfie: boolean
           require_gps: boolean
           secret_key: string
           updated_at: string
@@ -1327,6 +1407,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          attendance_selfie_retention_days?: number
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1336,6 +1417,7 @@ export type Database = {
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          require_attendance_selfie?: boolean
           require_gps?: boolean
           secret_key?: string
           updated_at?: string
@@ -1343,6 +1425,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          attendance_selfie_retention_days?: number
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1352,6 +1435,7 @@ export type Database = {
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          require_attendance_selfie?: boolean
           require_gps?: boolean
           secret_key?: string
           updated_at?: string
@@ -18866,6 +18950,13 @@ export type Database = {
         Returns: string
       }
       get_accounting_center_snapshot: { Args: never; Returns: Json }
+      get_attendance_selfie_path: {
+        Args: { _event_id: string }
+        Returns: {
+          captured_at: string
+          storage_path: string
+        }[]
+      }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_contact_balance: {
         Args: {
