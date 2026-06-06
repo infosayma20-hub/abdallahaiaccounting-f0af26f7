@@ -1886,6 +1886,32 @@ export default function HRAttendancePage() {
         </DialogContent>
       </Dialog>
 
+      {/* Selfie viewer */}
+      <Dialog open={!!selfieUrl || selfieLoading} onOpenChange={(o) => { if (!o) { setSelfieUrl(null); setSelfieCapturedAt(null); } }}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Camera className="h-5 w-5 text-primary" /> صورة السيلفي</DialogTitle>
+          </DialogHeader>
+          {selfieLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : selfieUrl ? (
+            <div className="space-y-3">
+              <img src={selfieUrl} alt="selfie" className="w-full rounded-lg border" />
+              {selfieCapturedAt && (
+                <p className="text-xs text-muted-foreground text-center">
+                  التُقطت: {format(new Date(selfieCapturedAt), "yyyy-MM-dd hh:mm:ss a")}
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground text-center">
+                الرابط صالح لمدة 60 ثانية فقط
+              </p>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Branch */}
       <Dialog open={!!editingBranch} onOpenChange={(o) => !o && setEditingBranch(null)}>
         <DialogContent dir="rtl">
