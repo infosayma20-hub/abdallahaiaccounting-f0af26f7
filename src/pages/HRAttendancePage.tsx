@@ -909,12 +909,24 @@ export default function HRAttendancePage() {
     setHistoryRecord(r); setHistoryEvents([]);
     const { data } = await supabase
       .from("attendance_events")
-      .select("event_type, event_time, branch_id, notes, status")
+      .select("id, event_type, event_time, branch_id, notes, status")
       .eq("employee_id", r.employee_id)
       .gte("event_time", `${r.attendance_date}T00:00:00`)
       .lte("event_time", `${r.attendance_date}T23:59:59`)
       .order("event_time", { ascending: true });
-    setHistoryEvents(data || []);
+    const events = data || [];
+    // Fetch which events have selfie verifications (one query for all)
+    if (events.length > 0) {
+      const ids = events.map((e: any) => e.id);
+      const { data: vers } = await supabase
+        .from("attendance_event_verifications")
+        .select("attendance_event_id")
+        .in("attendance_event_id", ids);
+      const withSelfie = new Set((vers || []).map((v: any) => v.attendance_event_id));
+      setHistoryEvents(events.map((e: any) => ({ ...e, has_selfie: withSelfie.has(e.id) })));
+    } else {
+      setHistoryEvents(events);
+    }
   };
 
   const sendRequestToEmployee = async (r: AttendanceRecord) => {
@@ -1805,8 +1817,27 @@ export default function HRAttendancePage() {
                       {e.event_type === "check_in" ? "دخول" : "خروج"}
                     </Badge>
                     <span className="font-mono text-sm">{format(new Date(e.event_time), "hh:mm:ss a")}</span>
+                    {e.has_selfie ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 gap-1">
+                        <Camera className="h-3 w-3" /> سيلفي
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">بدون سيلفي</Badge>
+                    )}
                   </div>
-                  <span className="text-xs text-muted-foreground">{e.notes || e.status || ""}</span>
+                  <div className="flex items-center gap-2">
+                    {e.has_selfie && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => viewSelfie(e.id)}
+                      >
+                        <Camera className="h-3 w-3" /> عرض السيلفي
+                      </Button>
+                    )}
+                    <span className="text-xs text-muted-foreground">{e.notes || e.status || ""}</span>
+                  </div>
                 </div>
               ))}
             </div>
