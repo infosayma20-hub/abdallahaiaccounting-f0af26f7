@@ -12,9 +12,15 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   action: "checkin" | "checkout";
   onSuccess: () => void;
+  /**
+   * Employee's assigned branch id. When provided and the branch requires a
+   * selfie, we prompt for the selfie BEFORE opening the QR scanner so the
+   * camera permission is requested from a clean user gesture (iOS Safari).
+   */
+  employeeBranchId?: string | null;
 }
 
-export default function QRScannerDialog({ open, onOpenChange, action, onSuccess }: Props) {
+export default function QRScannerDialog({ open, onOpenChange, action, onSuccess, employeeBranchId }: Props) {
   const [mode, setMode] = useState<"camera" | "manual">("camera");
   const [manualInput, setManualInput] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -22,6 +28,11 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
   const [selfieOpen, setSelfieOpen] = useState(false);
   const [pendingScan, setPendingScan] = useState<{ branchId: string; token: string; lat: number; lng: number } | null>(null);
   const [awaitingSelfieGesture, setAwaitingSelfieGesture] = useState(false);
+  /** Selfie captured BEFORE QR scan (when employee's branch requires it). */
+  const [prefetchedSelfie, setPrefetchedSelfie] = useState<{ branchId: string; base64: string } | null>(null);
+  /** Did employee's branch require an up-front selfie? null = not yet checked. */
+  const [upfrontSelfieRequired, setUpfrontSelfieRequired] = useState<boolean | null>(null);
+  const [checkingBranch, setCheckingBranch] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerDivId = "qr-reader-employee";
 
@@ -45,11 +56,47 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       setMode("camera");
       setAwaitingSelfieGesture(false);
       setPendingScan(null);
+      setPrefetchedSelfie(null);
+      setUpfrontSelfieRequired(null);
+      setCheckingBranch(false);
     }
   }, [open, stopScanner]);
 
+  // On open: check if employee's branch requires a selfie. If yes, defer the
+  // QR scanner and show the "open front camera" gesture card first.
   useEffect(() => {
-    if (open && mode === "camera" && !processing && !result && !awaitingSelfieGesture && !selfieOpen) {
+    if (!open) return;
+    if (upfrontSelfieRequired !== null) return;
+    let cancelled = false;
+    (async () => {
+      if (!employeeBranchId) {
+        if (!cancelled) setUpfrontSelfieRequired(false);
+        return;
+      }
+      setCheckingBranch(true);
+      try {
+        const { data } = await supabase
+          .from("branches")
+          .select("require_attendance_selfie")
+          .eq("id", employeeBranchId)
+          .maybeSingle();
+        if (cancelled) return;
+        const req = !!data?.require_attendance_selfie;
+        setUpfrontSelfieRequired(req);
+        if (req) setAwaitingSelfieGesture(true);
+      } catch {
+        if (!cancelled) setUpfrontSelfieRequired(false);
+      } finally {
+        if (!cancelled) setCheckingBranch(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, employeeBranchId, upfrontSelfieRequired]);
+
+  useEffect(() => {
+    // Don't start QR scanner until: branch check done AND (no upfront selfie required OR selfie already captured).
+    const selfieGate = upfrontSelfieRequired === false || !!prefetchedSelfie;
+    if (open && mode === "camera" && !processing && !result && !awaitingSelfieGesture && !selfieOpen && !checkingBranch && selfieGate) {
       const timer = setTimeout(() => {
         startScanner();
       }, 300);
@@ -58,7 +105,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       stopScanner();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, processing, result, awaitingSelfieGesture, selfieOpen]);
+  }, [open, mode, processing, result, awaitingSelfieGesture, selfieOpen, checkingBranch, upfrontSelfieRequired, prefetchedSelfie]);
 
   const startScanner = async () => {
     await stopScanner();
@@ -95,6 +142,23 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       }
       const branchId = qrPayload.substring(0, colonIdx);
       const token = qrPayload.substring(colonIdx + 1);
+
+      // إذا التقطنا السلفي مسبقاً لنفس الفرع، استخدمها مباشرة.
+      if (prefetchedSelfie && prefetchedSelfie.branchId === branchId) {
+        await stopScanner();
+        let lat = 0, lng = 0;
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true, timeout: 15000,
+            })
+          );
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch {}
+        await submitAttendance(branchId, token, lat, lng, prefetchedSelfie.base64);
+        return;
+      }
 
       // افحص اشتراط السيلفي أولاً قبل أي عمليات طويلة (GPS) كي لا نكسر user-gesture على iOS.
       const { data: branchRow } = await supabase
@@ -189,6 +253,11 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
   const handleSelfieCapture = async (base64: string) => {
     setSelfieOpen(false);
     setAwaitingSelfieGesture(false);
+    // الحالة الجديدة: التُقطت السلفي قبل QR — خزّنها وافتح ماسح QR الآن.
+    if (!pendingScan && upfrontSelfieRequired && employeeBranchId) {
+      setPrefetchedSelfie({ branchId: employeeBranchId, base64 });
+      return;
+    }
     if (!pendingScan) return;
     const scan = pendingScan;
     setPendingScan(null);
@@ -215,6 +284,11 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
     setSelfieOpen(false);
     setAwaitingSelfieGesture(false);
     setPendingScan(null);
+    if (upfrontSelfieRequired && !prefetchedSelfie) {
+      // المستخدم ألغى السلفي قبل QR — أغلق النافذة كلياً.
+      onOpenChange(false);
+      return;
+    }
     setResult({ success: false, message: "الكاميرا مطلوبة لتسجيل البصمة في هذا الفرع." });
   };
 
