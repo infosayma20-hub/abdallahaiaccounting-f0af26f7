@@ -368,7 +368,7 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
       {/* Bell button in top bar */}
       <button
         onClick={() => setOpen(true)}
-        className="relative h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group overflow-visible"
+        className="relative h-8 w-8 shrink-0 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group overflow-visible"
         style={{ border: "1px solid rgba(255,255,255,0.15)" }}
         title="فواتير معلقة"
       >
