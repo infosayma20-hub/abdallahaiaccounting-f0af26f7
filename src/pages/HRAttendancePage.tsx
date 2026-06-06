@@ -956,15 +956,35 @@ export default function HRAttendancePage() {
       .lte("event_time", `${r.attendance_date}T23:59:59`)
       .order("event_time", { ascending: true });
     const events = data || [];
-    // Fetch which events have selfie verifications (one query for all)
+    // Fetch which events have selfie verifications + per-branch selfie requirement
     if (events.length > 0) {
       const ids = events.map((e: any) => e.id);
-      const { data: vers } = await supabase
-        .from("attendance_event_verifications")
-        .select("attendance_event_id")
-        .in("attendance_event_id", ids);
+      const branchIds = Array.from(
+        new Set(events.map((e: any) => e.branch_id).filter(Boolean))
+      );
+      const [{ data: vers }, { data: branchRows }] = await Promise.all([
+        supabase
+          .from("attendance_event_verifications")
+          .select("attendance_event_id")
+          .in("attendance_event_id", ids),
+        branchIds.length
+          ? supabase
+              .from("branches")
+              .select("id, require_attendance_selfie")
+              .in("id", branchIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
       const withSelfie = new Set((vers || []).map((v: any) => v.attendance_event_id));
-      setHistoryEvents(events.map((e: any) => ({ ...e, has_selfie: withSelfie.has(e.id) })));
+      const requireMap = new Map(
+        (branchRows || []).map((b: any) => [b.id, !!b.require_attendance_selfie])
+      );
+      setHistoryEvents(
+        events.map((e: any) => ({
+          ...e,
+          has_selfie: withSelfie.has(e.id),
+          branch_requires_selfie: requireMap.get(e.branch_id) === true,
+        }))
+      );
     } else {
       setHistoryEvents(events);
     }
@@ -1861,6 +1881,14 @@ export default function HRAttendancePage() {
                     {e.has_selfie ? (
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 gap-1">
                         <Camera className="h-3 w-3" /> سيلفي
+                      </Badge>
+                    ) : e.branch_requires_selfie ? (
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 text-amber-800 border-amber-300 gap-1"
+                        title="الفرع يتطلب سيلفي لكن لم يُحفظ — يحتاج مراجعة"
+                      >
+                        <AlertTriangle className="h-3 w-3" /> سيلفي مفقود (مطلوب)
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">بدون سيلفي</Badge>
