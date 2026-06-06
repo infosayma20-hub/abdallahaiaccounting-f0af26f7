@@ -6,6 +6,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import SelfieCapture from "./SelfieCapture";
+import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 
 interface Props {
   open: boolean;
@@ -229,6 +230,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             latitude: lat,
             longitude: lng,
             device_info: navigator.userAgent.substring(0, 100),
+            device_fingerprint: await getDeviceFingerprint().catch(() => null),
             selfie_base64: selfieBase64,
           }),
         }
@@ -340,12 +342,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             </div>
             <div className="space-y-2">
               <p className="font-bold text-base text-foreground">
-                {upfrontSelfieRequired ? "Face Recognition مطلوب أولاً" : "تم التعرف على الفرع"}
+                {upfrontSelfieRequired ? "التحقق بالصورة مطلوب أولاً" : "تم التعرف على الفرع"}
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {upfrontSelfieRequired
-                  ? "فرعك يتطلب التحقق بالوجه قبل البصمة. اضغط لفتح الكاميرا الأمامية، ثم نمسح رمز QR."
-                  : "هذا الفرع يتطلب التحقق بالوجه. اضغط الزر لفتح الكاميرا الأمامية."}
+                  ? "فرعك يتطلب التقاط صورة للتحقق قبل البصمة. اضغط لفتح الكاميرا الأمامية، ثم نمسح رمز QR."
+                  : "هذا الفرع يتطلب التقاط صورة للتحقق. اضغط الزر لفتح الكاميرا الأمامية."}
               </p>
             </div>
             <Button
