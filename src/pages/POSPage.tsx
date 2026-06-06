@@ -4820,6 +4820,13 @@ const POSPage = () => {
             />
           )}
 
+          {/* Stockout alert — icon in top bar (call-center receiver).
+              Replaces the inline red banner; sound + toast still fire via
+              <StockoutAlertsListener/>. */}
+          {isCallCenter && dataOwnerId && (
+            <StockoutAlertsBanner dataOwnerId={dataOwnerId} mode="icon" />
+          )}
+
           {/* Tables */}
           <button onClick={() => navigate("/pos/floor-plan")} className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
             <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
@@ -4959,11 +4966,8 @@ const POSPage = () => {
           terminal (the recipient), not at the cashier who sent it. */}
       {isCallCenter && dataOwnerId && <StockoutAlertsListener dataOwnerId={dataOwnerId} />}
 
-      {/* Compact stockout banner on the main POS screen — call center only.
-          Cashiers don't need it outside; they use the icon button in the top bar. */}
-      {isCallCenter && dataOwnerId && (
-        <StockoutAlertsBanner dataOwnerId={dataOwnerId} compact />
-      )}
+      {/* Stockout banner moved to a top-bar icon (see header above) for the
+          call-center workspace so the main screen stays uncluttered. */}
 
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
