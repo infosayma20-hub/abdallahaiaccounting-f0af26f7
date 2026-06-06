@@ -11,6 +11,7 @@ const { Service } = require('node-windows');
 
 const BRIDGE_DIR = __dirname;
 const CANDIDATES = [
+  'print-bridge-v6.3.8-clean.js',
   'print-bridge-v6.3.7-clean.js',
   'print-bridge-v6.3.6-clean.js',
   'print-bridge-v6.3.3.js',
