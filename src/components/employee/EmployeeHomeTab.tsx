@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
+  Calendar, Timer, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
   Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
@@ -123,8 +123,8 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     >
       {/* Welcome Banner */}
       <div
-        className="rounded-2xl p-5 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
+        className="rounded-3xl p-5 relative overflow-hidden border border-white/40 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45),0_2px_4px_-2px_rgba(15,23,42,0.15)]"
+        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%)" }}
       >
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -228,7 +228,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       )}
 
       {/* Live Clock */}
-      <Card className="border-border bg-card overflow-hidden">
+      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl overflow-hidden shadow-[0_12px_28px_-14px_rgba(15,23,42,0.25),0_2px_4px_-2px_rgba(15,23,42,0.08)]">
         <CardContent className="p-4 text-center">
           <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
             {format(currentTime, "HH:mm")}
@@ -238,7 +238,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Today Status & Action */}
-      <Card className="border-border bg-card">
+      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl shadow-[0_14px_32px_-16px_rgba(15,23,42,0.28),0_2px_4px_-2px_rgba(15,23,42,0.08)]">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
@@ -356,7 +356,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Monthly Stats */}
-      <Card className="border-border bg-card">
+      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl shadow-[0_12px_28px_-14px_rgba(15,23,42,0.22),0_2px_4px_-2px_rgba(15,23,42,0.06)]">
         <CardContent className="p-4">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -389,7 +389,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
       {/* Last 5 Days */}
       {last5.length > 0 && (
-        <Card className="border-border bg-card">
+        <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl shadow-[0_12px_28px_-14px_rgba(15,23,42,0.22),0_2px_4px_-2px_rgba(15,23,42,0.06)]">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <CalendarRange className="h-4 w-4 text-muted-foreground" />
@@ -426,35 +426,34 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       )}
 
       {/* Quick Links — Dynamics-style floating icon cards */}
-      <div className="pt-6">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-8">
+      <div className="pt-8">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-9">
           {[
-            { icon: QrCode,         label: "بصماتي",          tab: "attendance", tone: "blue"   as const },
-            { icon: CalendarDays,   label: "سجل دوامي",        tab: "attendance", tone: "blue"   as const },
+            { icon: QrCode,         label: "بصماتي",           tab: "attendance", tone: "blue"   as const },
             { icon: Calendar,       label: "وردياتي",          tab: "schedule",   tone: "blue"   as const },
             { icon: Send,           label: "نماذجي وطلباتي",   tab: "forms",      tone: "blue"   as const },
+            { icon: User,           label: "ملفي الشخصي",      tab: "profile",    tone: "blue"   as const },
             { icon: Receipt,        label: "قسائم الراتب",     tab: "payslips",   tone: "red"    as const },
             { icon: Wallet,         label: "ملخصي المالي",     tab: "financials", tone: "red"    as const },
             { icon: Shield,         label: "الإجراءات",        tab: "actions",    tone: "red"    as const },
             { icon: AlertTriangle,  label: "تنبيهات وتصحيحات", tab: "alerts",     tone: "red"    as const },
-            { icon: User,           label: "ملفي الشخصي",      tab: "profile",    tone: "blue"   as const },
           ].map((link) => {
-            const ring =
+            const gradient =
               link.tone === "blue"
-                ? "bg-gradient-to-br from-[#2563eb] to-[#3b82f6] shadow-[0_8px_20px_-6px_rgba(37,99,235,0.55)]"
-                : "bg-gradient-to-br from-[#e11d48] to-[#f43f5e] shadow-[0_8px_20px_-6px_rgba(225,29,72,0.55)]";
+                ? "bg-[radial-gradient(circle_at_30%_25%,#93c5fd_0%,#60a5fa_40%,#3b82f6_75%,#2563eb_100%)] shadow-[0_10px_22px_-6px_rgba(37,99,235,0.55),inset_0_-3px_6px_rgba(30,58,138,0.35),inset_0_2px_3px_rgba(255,255,255,0.45)]"
+                : "bg-[radial-gradient(circle_at_30%_25%,#fda4af_0%,#fb7185_40%,#f43f5e_75%,#e11d48_100%)] shadow-[0_10px_22px_-6px_rgba(225,29,72,0.55),inset_0_-3px_6px_rgba(136,19,55,0.35),inset_0_2px_3px_rgba(255,255,255,0.45)]";
             return (
               <button
                 key={link.tab + link.label}
                 type="button"
                 onClick={() => onNavigate(link.tab)}
-                className="relative bg-white/85 backdrop-blur-sm rounded-2xl pt-9 pb-4 px-3 text-center border border-white shadow-[0_4px_18px_-6px_rgba(15,23,42,0.12)] active:scale-[0.97] hover:shadow-[0_10px_24px_-8px_rgba(15,23,42,0.18)] transition-all"
+                className="relative bg-white rounded-2xl pt-10 pb-5 px-3 text-center border border-white shadow-[0_14px_28px_-14px_rgba(15,23,42,0.25),0_4px_8px_-4px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] active:scale-[0.97] active:shadow-[0_6px_14px_-8px_rgba(15,23,42,0.2)] hover:-translate-y-0.5 hover:shadow-[0_20px_34px_-14px_rgba(15,23,42,0.28),0_6px_10px_-4px_rgba(15,23,42,0.12)] transition-all duration-200"
               >
                 {/* Floating circular icon */}
                 <span
-                  className={`absolute -top-5 left-1/2 -translate-x-1/2 h-11 w-11 rounded-full flex items-center justify-center ring-4 ring-white ${ring}`}
+                  className={`absolute -top-6 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full flex items-center justify-center ring-[5px] ring-white ${gradient}`}
                 >
-                  <link.icon className="h-5 w-5 text-white" strokeWidth={2.2} />
+                  <link.icon className="h-[22px] w-[22px] text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]" strokeWidth={2.1} />
                 </span>
                 <span className="block text-[13px] font-semibold text-slate-800 leading-snug">
                   {link.label}
@@ -463,12 +462,6 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             );
           })}
         </div>
-      </div>
-
-      {/* Geofence note */}
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1 pb-2">
-        <MapPin className="h-3 w-3 shrink-0" />
-        <span>يتم التحقق من موقعك الجغرافي تلقائياً عند التسجيل</span>
       </div>
     </div>
   );
