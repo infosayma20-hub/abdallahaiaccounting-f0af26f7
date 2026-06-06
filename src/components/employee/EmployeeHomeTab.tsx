@@ -74,13 +74,50 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     return `${h} ساعة و ${m} دقيقة`;
   }, [todayRecord, currentTime]);
 
+  // ابنِ جلسات اليوم من أحداث (in→out) ودمج الجلسات الأقل من دقيقة كتكرار عابر
+  const sessions = useMemo(() => {
+    const MIN_MS = 60_000;
+    const DEBOUNCE_MS = 60_000;
+    const cleaned: { event_type: string; event_time: string }[] = [];
+    for (const evt of todayEvents) {
+      const last = cleaned[cleaned.length - 1];
+      if (last && last.event_type === evt.event_type) {
+        const gap = new Date(evt.event_time).getTime() - new Date(last.event_time).getTime();
+        if (gap < DEBOUNCE_MS) continue;
+      }
+      cleaned.push(evt);
+    }
+    const result: { checkIn: string; checkOut: string | null; durationMs: number }[] = [];
+    let openIn: string | null = null;
+    for (const e of cleaned) {
+      if (e.event_type === "check_in") {
+        openIn = e.event_time;
+      } else if (e.event_type === "check_out" && openIn) {
+        const dur = new Date(e.event_time).getTime() - new Date(openIn).getTime();
+        if (dur >= MIN_MS) result.push({ checkIn: openIn, checkOut: e.event_time, durationMs: dur });
+        openIn = null;
+      }
+    }
+    if (openIn) result.push({ checkIn: openIn, checkOut: null, durationMs: 0 });
+    return result;
+  }, [todayEvents]);
+
   const completedSummary = useMemo(() => {
-    if (!dayComplete || !todayRecord) return null;
-    const totalMins = differenceInMinutes(new Date(todayRecord.last_check_out!), new Date(todayRecord.first_check_in!));
+    if (!dayComplete) return null;
+    const totalMs = sessions.reduce((s, x) => s + (x.checkOut ? x.durationMs : 0), 0);
+    const totalMins = Math.round(totalMs / 60000);
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
     return `${h} ساعة و ${m} دقيقة`;
-  }, [dayComplete, todayRecord]);
+  }, [dayComplete, sessions]);
+
+  const fmtDuration = (ms: number) => {
+    const mins = Math.round(ms / 60000);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return `${m}د`;
+    return `${h}س ${m}د`;
+  };
 
   const stats = useMemo(() => {
     const now = new Date();
