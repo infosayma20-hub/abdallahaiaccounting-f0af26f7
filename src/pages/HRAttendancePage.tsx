@@ -1880,15 +1880,15 @@ export default function HRAttendancePage() {
                     <span className="font-mono text-sm">{format(new Date(e.event_time), "hh:mm:ss a")}</span>
                     {e.has_selfie ? (
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 gap-1">
-                        <Camera className="h-3 w-3" /> سيلفي
+                        <Camera className="h-3 w-3" /> سيلفي مرفق
                       </Badge>
                     ) : e.branch_requires_selfie ? (
                       <Badge
                         variant="outline"
                         className="bg-amber-50 text-amber-800 border-amber-300 gap-1"
-                        title="الفرع يتطلب سيلفي لكن لم يُحفظ — يحتاج مراجعة"
+                        title="هذا الفرع يتطلب سيلفي، ولم تُحفظ الصورة"
                       >
-                        <AlertTriangle className="h-3 w-3" /> سيلفي مفقود (مطلوب)
+                        <AlertTriangle className="h-3 w-3" /> سيلفي مفقود
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">بدون سيلفي</Badge>
