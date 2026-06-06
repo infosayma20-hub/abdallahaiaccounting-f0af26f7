@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, X, PackageX, Loader2 } from "lucide-react";
+import { AlertTriangle, X, PackageX, Loader2, ChevronRight, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { installAudioUnlock, playAlertBeep } from "@/lib/audio-unlock";
 
@@ -39,6 +39,8 @@ interface AlertRow {
 }
 
 interface ProductOption { id: string; name: string; }
+interface ProductWithCat { id: string; name: string; pos_category_id: string | null; }
+interface CategoryOption { id: string; name: string; color: string | null; }
 
 function describeAlert(a: AlertRow, productMap: Map<string, string>, modMap: Map<string, string>): string {
   if (a.custom_label && a.custom_label.trim()) return a.custom_label.trim();
@@ -62,8 +64,10 @@ export function StockoutAlertButton({
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [products, setProducts] = useState<ProductWithCat[]>([]);
   const [mods, setMods] = useState<ProductOption[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<{ kind: "product" | "modifier" | "custom"; id?: string; label: string } | null>(null);
   const [customText, setCustomText] = useState("");
@@ -75,17 +79,26 @@ export function StockoutAlertButton({
   useEffect(() => {
     if (!open || !dataOwnerId) return;
     (async () => {
-      const [{ data: ps }, { data: ms }] = await Promise.all([
-        supabase.from("products").select("id,name").eq("user_id", dataOwnerId).order("name").limit(500),
+      const [{ data: ps }, { data: ms }, { data: cs }] = await Promise.all([
+        supabase.from("products").select("id,name,pos_category_id").eq("user_id", dataOwnerId).order("name").limit(2000),
         supabase
           .from("modifier_options")
           .select("id,name,group_id,modifier_groups!inner(user_id)")
           .eq("modifier_groups.user_id", dataOwnerId)
           .order("name")
           .limit(500),
+        supabase
+          .from("pos_categories")
+          .select("id,name,color,sort_order,display_order,is_active")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("name"),
       ]);
-      setProducts(((ps as any[]) || []).map(p => ({ id: p.id, name: p.name })));
+      setProducts(((ps as any[]) || []).map(p => ({ id: p.id, name: p.name, pos_category_id: p.pos_category_id ?? null })));
       setMods(((ms as any[]) || []).map(m => ({ id: m.id, name: m.name })));
+      setCategories(((cs as any[]) || []).map(c => ({ id: c.id, name: c.name, color: c.color ?? null })));
     })();
   }, [open, dataOwnerId]);
 
@@ -114,19 +127,31 @@ export function StockoutAlertButton({
     return () => { supabase.removeChannel(ch); };
   }, [dataOwnerId, branchId]);
 
+  const searchTerm = search.trim();
+  const isSearching = searchTerm.length > 0;
+
   const filteredProducts = useMemo(() => {
-    const s = search.trim();
-    if (!s) return products.slice(0, 30);
-    return products.filter(p => p.name?.includes(s)).slice(0, 30);
-  }, [products, search]);
+    if (isSearching) {
+      return products.filter(p => p.name?.includes(searchTerm)).slice(0, 60);
+    }
+    if (activeCategoryId) {
+      return products.filter(p => p.pos_category_id === activeCategoryId);
+    }
+    return [];
+  }, [products, searchTerm, isSearching, activeCategoryId]);
+
   const filteredMods = useMemo(() => {
-    const s = search.trim();
-    if (!s) return mods.slice(0, 20);
-    return mods.filter(m => m.name?.includes(s)).slice(0, 20);
-  }, [mods, search]);
+    if (!isSearching) return [];
+    return mods.filter(m => m.name?.includes(searchTerm)).slice(0, 40);
+  }, [mods, searchTerm, isSearching]);
+
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm) return categories;
+    return categories.filter(c => c.name?.includes(searchTerm));
+  }, [categories, searchTerm]);
 
   const reset = () => {
-    setSelected(null); setCustomText(""); setNote(""); setSearch("");
+    setSelected(null); setCustomText(""); setNote(""); setSearch(""); setActiveCategoryId(null);
   };
 
   const submit = async () => {
@@ -224,38 +249,130 @@ export function StockoutAlertButton({
           <div className="space-y-3">
             <div>
               <Label className="text-xs">بحث عن الصنف أو المكوّن</Label>
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="مثال: أرز، بروست، صلصة…" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); if (e.target.value) setActiveCategoryId(null); }}
+                placeholder="ابحث باسم صنف أو تصنيف…"
+              />
             </div>
 
-            <div className="max-h-56 overflow-auto rounded-md border p-2 space-y-2">
-              {filteredProducts.length > 0 && (
+            <div className="max-h-64 overflow-auto rounded-md border p-2 space-y-2">
+              {/* Browse mode: show categories list, or items of selected category */}
+              {!isSearching && !activeCategoryId && (
                 <div>
-                  <div className="text-[11px] text-muted-foreground mb-1">أصناف</div>
-                  <div className="flex flex-wrap gap-1">
-                    {filteredProducts.map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setSelected({ kind: "product", id: p.id, label: p.name })}
-                        className={`text-xs rounded-md border px-2 py-1 ${selected?.id === p.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
-                      >{p.name}</button>
-                    ))}
-                  </div>
+                  <div className="text-[11px] text-muted-foreground mb-1">التصنيفات</div>
+                  {categories.length === 0 ? (
+                    <div className="text-xs text-muted-foreground py-4 text-center">لا توجد تصنيفات</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {categories.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setActiveCategoryId(c.id)}
+                          className="text-xs rounded-md border px-2 py-1 hover:bg-muted flex items-center gap-1"
+                        >
+                          {c.color && <span className="inline-block w-2 h-2 rounded-full" style={{ background: c.color }} />}
+                          {c.name}
+                          <ChevronRight className="w-3 h-3 opacity-50" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-              {filteredMods.length > 0 && (
+
+              {!isSearching && activeCategoryId && (
                 <div>
-                  <div className="text-[11px] text-muted-foreground mb-1">مكوّنات/خيارات</div>
-                  <div className="flex flex-wrap gap-1">
-                    {filteredMods.map(m => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setSelected({ kind: "modifier", id: m.id, label: m.name })}
-                        className={`text-xs rounded-md border px-2 py-1 ${selected?.id === m.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
-                      >{m.name}</button>
-                    ))}
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategoryId(null)}
+                    className="text-[11px] text-amber-700 hover:underline mb-1 flex items-center gap-1"
+                  >
+                    <ArrowRight className="w-3 h-3" />
+                    رجوع للتصنيفات
+                  </button>
+                  <div className="text-[11px] text-muted-foreground mb-1">
+                    {categories.find(c => c.id === activeCategoryId)?.name || "أصناف"}
                   </div>
+                  {filteredProducts.length === 0 ? (
+                    <div className="text-xs text-muted-foreground py-4 text-center">لا توجد أصناف بهذا التصنيف</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {filteredProducts.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setSelected({ kind: "product", id: p.id, label: p.name })}
+                          className={`text-xs rounded-md border px-2 py-1 ${selected?.id === p.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
+                        >{p.name}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Search mode */}
+              {isSearching && (
+                <>
+                  {filteredCategories.length > 0 && (
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-1">تصنيفات</div>
+                      <div className="flex flex-wrap gap-1">
+                        {filteredCategories.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => { setActiveCategoryId(c.id); setSearch(""); }}
+                            className="text-xs rounded-md border px-2 py-1 hover:bg-muted flex items-center gap-1"
+                          >
+                            {c.color && <span className="inline-block w-2 h-2 rounded-full" style={{ background: c.color }} />}
+                            {c.name}
+                            <ChevronRight className="w-3 h-3 opacity-50" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {filteredProducts.length > 0 && (
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-1">أصناف</div>
+                      <div className="flex flex-wrap gap-1">
+                        {filteredProducts.map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setSelected({ kind: "product", id: p.id, label: p.name })}
+                            className={`text-xs rounded-md border px-2 py-1 ${selected?.id === p.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
+                          >{p.name}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {filteredMods.length > 0 && (
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-1">مكوّنات/خيارات</div>
+                      <div className="flex flex-wrap gap-1">
+                        {filteredMods.map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setSelected({ kind: "modifier", id: m.id, label: m.name })}
+                            className={`text-xs rounded-md border px-2 py-1 ${selected?.id === m.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
+                          >{m.name}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {filteredCategories.length === 0 && filteredProducts.length === 0 && filteredMods.length === 0 && (
+                    <div className="text-xs text-muted-foreground py-4 text-center">لا نتائج للبحث</div>
+                  )}
+                </>
+              )}
+
+              {selected && (selected.kind === "product" || selected.kind === "modifier") && (
+                <div className="mt-2 pt-2 border-t text-[11px] text-amber-800">
+                  المختار: <span className="font-semibold">{selected.label}</span>
                 </div>
               )}
             </div>
