@@ -4844,6 +4844,16 @@ const POSPage = () => {
             </button>
             {showOpsDropdown && (
               <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
+                {/* Compact nav entries — visible only when the icon shortcuts above are hidden (narrow screens) */}
+                <div className="xl:hidden">
+                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos/kitchen"); setShowOpsDropdown(false); }}>
+                    <ChefHat className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> المطبخ
+                  </button>
+                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos/floor-plan"); setShowOpsDropdown(false); }}>
+                    <UtensilsCrossed className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> الطاولات
+                  </button>
+                  <div className="border-t border-gray-200 my-1" />
+                </div>
                 {session && (isAdmin || posPerms.can_add_inventory) && (
                   <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
                     <Package className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> إدخال بضاعة
