@@ -19,6 +19,27 @@ function haversineDistance(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Local business day in Palestine (Asia/Hebron) — avoids UTC midnight cutoffs.
+function hebronToday(): string {
+  // en-CA → "YYYY-MM-DD"
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date());
+}
+
+// Quick magic-bytes check that the decoded buffer is a JPEG / PNG / WebP.
+function isSupportedImage(bytes: Uint8Array): boolean {
+  if (bytes.length < 12) return false;
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return true;
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return true;
+  // WEBP: "RIFF"...."WEBP"
+  if (
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) return true;
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -99,7 +120,7 @@ Deno.serve(async (req) => {
     // POST /attendance/checkin or /attendance/checkout or /attendance/break_out or /attendance/break_in
     if (req.method === "POST") {
       const body = await req.json();
-      const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64 } = body;
+      const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64, device_fingerprint } = body;
       const bodyAction = body.action || path;
       
       const validActions = ["checkin", "checkout", "break_out", "break_in"];
@@ -139,8 +160,8 @@ Deno.serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        // Limit ~500KB base64 (~375KB binary) to protect edge function
-        if (selfie_base64.length > 700_000) {
+        // Limit ~5MB binary => ~6.7MB base64. Reject larger to match bucket policy.
+        if (selfie_base64.length > 6_900_000) {
           return new Response(
             JSON.stringify({ error: "حجم الصورة كبير جداً. يرجى إعادة الالتقاط." }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -255,7 +276,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = hebronToday();
 
       // 5. Get today's events to determine current state
       const { data: todayEvents } = await supabase
@@ -418,7 +439,44 @@ Deno.serve(async (req) => {
 
       const now = new Date().toISOString();
 
-      // 6. Insert attendance event
+      // 6. For selfie-required branches, upload the selfie BEFORE writing the event.
+      // If upload fails we fail the whole request (fail-closed) — no event is written.
+      let preUploadedPath: string | null = null;
+      if (selfieRequired) {
+        try {
+          const b64 = selfie_base64.includes(",") ? selfie_base64.split(",")[1] : selfie_base64;
+          const binary = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+          if (binary.length > 5 * 1024 * 1024) {
+            return new Response(
+              JSON.stringify({ error: "حجم الصورة كبير جداً (الحد 5MB)." }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          if (!isSupportedImage(binary)) {
+            return new Response(
+              JSON.stringify({ error: "نوع الصورة غير مدعوم. استخدم JPEG أو PNG أو WebP." }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          const datePart = today;
+          // Use a temporary suffix; we'll move/keep this path and link it to the event below.
+          const tmpId = crypto.randomUUID();
+          const storagePath = `${employee.user_id}/${employee.id}/${datePart}/${tmpId}.jpg`;
+          const { error: uploadErr } = await supabase.storage
+            .from("attendance-selfies")
+            .upload(storagePath, binary, { contentType: "image/jpeg", upsert: false });
+          if (uploadErr) throw uploadErr;
+          preUploadedPath = storagePath;
+        } catch (selfieErr: any) {
+          console.error("[attendance] selfie upload failed (event NOT written):", selfieErr);
+          return new Response(
+            JSON.stringify({ error: "تعذّر رفع صورة التحقق. حاول مرة أخرى." }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // 6.1 Insert attendance event
       const { data: insertedEvent, error: eventErr } = await supabase.from("attendance_events").insert({
         employee_id: employee.id,
         auth_user_id: user.id,
@@ -431,46 +489,96 @@ Deno.serve(async (req) => {
         device_info: device_info || null,
         status: "valid",
       }).select("id").single();
-      if (eventErr) throw eventErr;
+      if (eventErr) {
+        // Roll back the orphan selfie if event creation failed.
+        if (preUploadedPath) {
+          await supabase.storage.from("attendance-selfies").remove([preUploadedPath]).catch(() => {});
+        }
+        throw eventErr;
+      }
 
-      // 6.b Upload selfie + create verification record
-      if (selfieRequired && insertedEvent?.id) {
+      // 6.b Link the pre-uploaded selfie to the event via attendance_event_verifications.
+      // If linking fails on a selfie-required branch we delete BOTH the event and the file
+      // so we never leave a "valid" event without verification.
+      if (selfieRequired && preUploadedPath && insertedEvent?.id) {
+        const { error: verErr } = await supabase
+          .from("attendance_event_verifications")
+          .insert({
+            attendance_event_id: insertedEvent.id,
+            employee_id: employee.id,
+            auth_user_id: user.id,
+            user_id: employee.user_id,
+            branch_id,
+            verification_type: "selfie",
+            storage_path: preUploadedPath,
+            captured_at: now,
+            device_info: device_info || null,
+          });
+        if (verErr) {
+          console.error("[attendance] verification insert failed — rolling back event", verErr);
+          await supabase.from("attendance_events").delete().eq("id", insertedEvent.id);
+          await supabase.storage.from("attendance-selfies").remove([preUploadedPath]).catch(() => {});
+          return new Response(
+            JSON.stringify({ error: "تعذّر إكمال التحقق. أعد المحاولة." }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // 6.c Device fingerprint tracking + new-device alert (best-effort, must not break attendance).
+      if (device_fingerprint && typeof device_fingerprint === "string" && device_fingerprint.length >= 16) {
         try {
-          // strip data:image/jpeg;base64, prefix if present
-          const b64 = selfie_base64.includes(",")
-            ? selfie_base64.split(",")[1]
-            : selfie_base64;
-          const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-          const datePart = now.split("T")[0];
-          const storagePath = `${employee.user_id}/${employee.id}/${datePart}/${insertedEvent.id}.jpg`;
+          const { data: trusted } = await supabase
+            .from("employee_trusted_devices")
+            .select("id, last_seen_at")
+            .eq("employee_id", employee.id)
+            .eq("device_fingerprint", device_fingerprint)
+            .maybeSingle();
 
-          const { error: uploadErr } = await supabase.storage
-            .from("attendance-selfies")
-            .upload(storagePath, binary, {
-              contentType: "image/jpeg",
-              upsert: true,
-            });
-          if (uploadErr) throw uploadErr;
-
-          const { error: verErr } = await supabase
-            .from("attendance_event_verifications")
-            .insert({
-              attendance_event_id: insertedEvent.id,
+          if (trusted) {
+            await supabase
+              .from("employee_trusted_devices")
+              .update({ last_seen_at: now, updated_at: now, user_agent: device_info || null })
+              .eq("id", trusted.id);
+          } else {
+            // New device → register as trusted and raise an alert.
+            await supabase.from("employee_trusted_devices").insert({
               employee_id: employee.id,
               auth_user_id: user.id,
               user_id: employee.user_id,
-              branch_id,
-              verification_type: "selfie",
-              storage_path: storagePath,
-              captured_at: now,
-              device_info: device_info || null,
+              device_fingerprint,
+              user_agent: device_info || null,
+              first_seen_at: now,
+              last_seen_at: now,
             });
-          if (verErr) throw verErr;
-        } catch (selfieErr: any) {
-          // Selfie capture is documentation only — do NOT block attendance if server-side upload fails.
-          // Employee already provided the selfie; an infrastructure issue should not penalize them.
-          // The event remains valid; HR will see "بدون سيلفي" badge for this event.
-          console.error("[attendance] selfie upload failed (event kept as valid):", selfieErr);
+
+            // De-duplicate: don't create a second alert for the same employee+fingerprint within 60s.
+            const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+            const { data: recent } = await supabase
+              .from("employee_device_alerts")
+              .select("id")
+              .eq("employee_id", employee.id)
+              .eq("device_fingerprint", device_fingerprint)
+              .gte("captured_at", oneMinuteAgo)
+              .limit(1);
+
+            if (!recent || recent.length === 0) {
+              await supabase.from("employee_device_alerts").insert({
+                employee_id: employee.id,
+                auth_user_id: user.id,
+                user_id: employee.user_id,
+                branch_id,
+                attendance_event_id: insertedEvent?.id || null,
+                action: eventType,
+                device_fingerprint,
+                user_agent: device_info || null,
+                selfie_storage_path: preUploadedPath,
+                captured_at: now,
+              });
+            }
+          }
+        } catch (devErr) {
+          console.warn("[attendance] device fingerprint tracking failed", devErr);
         }
       }
 
