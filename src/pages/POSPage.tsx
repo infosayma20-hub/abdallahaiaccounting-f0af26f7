@@ -5018,9 +5018,16 @@ const POSPage = () => {
           {(isAdmin || posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift") && (
             <button
               onClick={() => {
-                if (session?.cash_box_id === null) {
+                // ⚠️ Only fast-close as Call-Center when this workspace is the
+                // Call-Center AND the tenant has Call-Center enabled.
+                // A regular cashier with a missing cash_box_id MUST still see
+                // the full cash-count dialog.
+                if (isCallCenter && callCenterEnabled) {
                   handleCallCenterCloseShift();
                 } else {
+                  if (!isCallCenter && session && session.cash_box_id == null) {
+                    toast.warning("تنبيه: لا يوجد صندوق مرتبط بهذه الوردية. سيظهر مربع العد كالمعتاد — راجع الإدارة بعد الإغلاق.");
+                  }
                   setShowCloseShift(true);
                 }
               }}
