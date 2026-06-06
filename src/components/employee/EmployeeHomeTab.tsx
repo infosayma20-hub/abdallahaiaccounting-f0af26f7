@@ -112,7 +112,15 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const bottomPad = "calc(72px + env(safe-area-inset-bottom, 0px))";
 
   return (
-    <div className="space-y-3 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
+    <div
+      className="space-y-3 px-4 pt-3 relative"
+      dir="rtl"
+      style={{
+        paddingBottom: bottomPad,
+        backgroundImage:
+          "radial-gradient(1200px 600px at 80% -10%, hsl(217 91% 95% / 0.55), transparent 60%), radial-gradient(900px 500px at -10% 30%, hsl(199 89% 95% / 0.45), transparent 60%)",
+      }}
+    >
       {/* Welcome Banner */}
       <div
         className="rounded-2xl p-5 relative overflow-hidden"
@@ -417,28 +425,44 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         </Card>
       )}
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          { icon: Receipt, label: "قسائم الراتب", tab: "payslips" },
-          { icon: Wallet, label: "ملخصي المالي", tab: "financials" },
-          { icon: CalendarDays, label: "سجل دوامي", tab: "attendance" },
-          { icon: Calendar, label: "وردياتي", tab: "schedule" },
-          { icon: Shield, label: "الإجراءات", tab: "actions" },
-          { icon: Send, label: "النماذج والطلبات", tab: "forms" },
-          { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
-          { icon: User, label: "ملفي الشخصي", tab: "profile" },
-        ].map(link => (
-          <Button
-            key={link.tab}
-            variant="outline"
-            className="h-14 rounded-2xl gap-2 text-xs border-border active:scale-[0.97] transition-transform"
-            onClick={() => onNavigate(link.tab)}
-          >
-            <link.icon className="h-4 w-4 text-muted-foreground" />
-            {link.label}
-          </Button>
-        ))}
+      {/* Quick Links — Dynamics-style floating icon cards */}
+      <div className="pt-6">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-8">
+          {[
+            { icon: QrCode,         label: "بصماتي",          tab: "attendance", tone: "blue"   as const },
+            { icon: CalendarDays,   label: "سجل دوامي",        tab: "attendance", tone: "blue"   as const },
+            { icon: Calendar,       label: "وردياتي",          tab: "schedule",   tone: "blue"   as const },
+            { icon: Send,           label: "نماذجي وطلباتي",   tab: "forms",      tone: "blue"   as const },
+            { icon: Receipt,        label: "قسائم الراتب",     tab: "payslips",   tone: "red"    as const },
+            { icon: Wallet,         label: "ملخصي المالي",     tab: "financials", tone: "red"    as const },
+            { icon: Shield,         label: "الإجراءات",        tab: "actions",    tone: "red"    as const },
+            { icon: AlertTriangle,  label: "تنبيهات وتصحيحات", tab: "alerts",     tone: "red"    as const },
+            { icon: User,           label: "ملفي الشخصي",      tab: "profile",    tone: "blue"   as const },
+          ].map((link) => {
+            const ring =
+              link.tone === "blue"
+                ? "bg-gradient-to-br from-[#2563eb] to-[#3b82f6] shadow-[0_8px_20px_-6px_rgba(37,99,235,0.55)]"
+                : "bg-gradient-to-br from-[#e11d48] to-[#f43f5e] shadow-[0_8px_20px_-6px_rgba(225,29,72,0.55)]";
+            return (
+              <button
+                key={link.tab + link.label}
+                type="button"
+                onClick={() => onNavigate(link.tab)}
+                className="relative bg-white/85 backdrop-blur-sm rounded-2xl pt-9 pb-4 px-3 text-center border border-white shadow-[0_4px_18px_-6px_rgba(15,23,42,0.12)] active:scale-[0.97] hover:shadow-[0_10px_24px_-8px_rgba(15,23,42,0.18)] transition-all"
+              >
+                {/* Floating circular icon */}
+                <span
+                  className={`absolute -top-5 left-1/2 -translate-x-1/2 h-11 w-11 rounded-full flex items-center justify-center ring-4 ring-white ${ring}`}
+                >
+                  <link.icon className="h-5 w-5 text-white" strokeWidth={2.2} />
+                </span>
+                <span className="block text-[13px] font-semibold text-slate-800 leading-snug">
+                  {link.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Geofence note */}
