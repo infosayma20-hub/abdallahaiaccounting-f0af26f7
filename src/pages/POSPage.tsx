@@ -3928,6 +3928,16 @@ const POSPage = () => {
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
     try { await assertPermission("pos", "sell", "close_shift"); } catch { return; }
+    // 🛟 Revert any accepted-but-unpaid call-center orders back to pending so
+    // they don't disappear between accepted and paid when the cashier closes.
+    try {
+      const reverted = await revertOpenCallCenterOrders();
+      if (reverted > 0) {
+        toast.warning(`يوجد ${reverted} طلب كول سنتر لم يتم دفعه. تم إرجاعه للطابور قبل إغلاق العهدة.`);
+      }
+    } catch (e) {
+      console.warn("[close-shift] revert pending call-center orders failed:", e);
+    }
     const cash = parseFloat(closingCash) || 0;
     const cashUSD = parseFloat(closingCashUSD) || 0;
     const cashJOD = parseFloat(closingCashJOD) || 0;
