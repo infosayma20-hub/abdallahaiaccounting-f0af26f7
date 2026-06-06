@@ -10,24 +10,35 @@ interface Props {
   title?: string;
 }
 
-const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
+// Prefer locally bundled models when present (public/models). Fall back to CDN only
+// if the local copy is missing — but if BOTH fail we hard-fail (no silent fallback capture).
+const LOCAL_MODEL_URL = "/models";
+const CDN_MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
 let modelLoadPromise: Promise<void> | null = null;
 const loadModels = () => {
   if (faceapi.nets.tinyFaceDetector.params) return Promise.resolve();
   if (!modelLoadPromise) {
-    modelLoadPromise = faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL).catch((e) => {
-      modelLoadPromise = null;
-      throw e;
-    });
+    modelLoadPromise = faceapi.nets.tinyFaceDetector
+      .loadFromUri(LOCAL_MODEL_URL)
+      .catch(() => faceapi.nets.tinyFaceDetector.loadFromUri(CDN_MODEL_URL))
+      .catch((e) => {
+        modelLoadPromise = null;
+        throw e;
+      });
   }
   return modelLoadPromise;
 };
 
 /**
- * Face Recognition capture for attendance verification.
+ * Selfie Verification capture for attendance.
+ *
+ * NOTE: This is face DETECTION only (we verify a face is present in the frame).
+ * It does NOT match identity against any reference photo — never present it
+ * as "Face Recognition" or "identity verified" in user-facing copy.
+ *
  * - Front camera only (facingMode: user)
  * - Uses face-api.js (tinyFaceDetector) to require a real face inside the frame before capture
- * - No preview after capture — immediate submit
+ * - FAIL-CLOSED: if the detector model fails to load we DO NOT capture; we surface an error and a retry.
  * - Compresses to ~720px JPEG @ 0.7 quality
  */
 export default function SelfieCapture({ open, onCancel, onCapture, title }: Props) {
@@ -35,19 +46,16 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
   const streamRef = useRef<MediaStream | null>(null);
   const detectIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const noFaceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const consecutiveDetectionsRef = useRef(0);
   const capturedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
-  const [usingFallbackCamera, setUsingFallbackCamera] = useState(false);
 
   const clearTimers = () => {
     if (detectIntervalRef.current) { clearInterval(detectIntervalRef.current); detectIntervalRef.current = null; }
     if (noFaceTimeoutRef.current) { clearTimeout(noFaceTimeoutRef.current); noFaceTimeoutRef.current = null; }
-    if (fallbackTimerRef.current) { clearTimeout(fallbackTimerRef.current); fallbackTimerRef.current = null; }
   };
 
   const stopStream = () => {
@@ -100,17 +108,19 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
   const startCamera = async () => {
     setStarting(true);
     setError(null);
-    setUsingFallbackCamera(false);
     setFaceDetected(false);
 
-    // Load face detection model (best-effort)
-    let modelReady = false;
+    // Load face detection model. FAIL-CLOSED: if it fails, do NOT open the camera —
+    // capturing a blind selfie would defeat the verification requirement.
     setModelsLoading(true);
     try {
       await loadModels();
-      modelReady = true;
     } catch (e) {
-      console.warn("[SelfieCapture] face-api model load failed; capture will fall back to timer", e);
+      console.error("[SelfieCapture] face detection model failed to load", e);
+      setModelsLoading(false);
+      setStarting(false);
+      setError("تعذّر تجهيز كاشف الوجه. تحقق من الاتصال بالإنترنت ثم أعد المحاولة.");
+      return;
     } finally {
       setModelsLoading(false);
     }
@@ -122,28 +132,35 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
         return;
       }
       let stream: MediaStream | null = null;
-      let usedFallback = false;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "user" }, width: { ideal: 720 }, height: { ideal: 720 } },
+          video: { facingMode: { exact: "user" }, width: { ideal: 720 }, height: { ideal: 720 } },
           audio: false,
         });
       } catch (primaryErr: any) {
-        const name = primaryErr?.name || "";
-        if (name === "OverconstrainedError" || name === "NotFoundError" || name === "ConstraintNotSatisfiedError") {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          usedFallback = true;
-        } else {
+        // Last-chance retry without "exact" but still requesting user-facing camera.
+        // If the user-facing camera is unavailable we FAIL — we never silently use a rear camera.
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false,
+          });
+        } catch {
           throw primaryErr;
         }
       }
       if (!stream) throw new Error("لم يتم الحصول على بث الكاميرا");
+      // Verify we actually got the front camera. Some laptops report no facingMode
+      // — in that case we accept the stream (single-camera device). If it explicitly
+      // reports "environment", reject.
       try {
         const track = stream.getVideoTracks()[0];
         const settings: any = track?.getSettings?.() || {};
-        if (settings.facingMode && settings.facingMode !== "user") usedFallback = true;
+        if (settings.facingMode && settings.facingMode !== "user") {
+          stream.getTracks().forEach((t) => t.stop());
+          throw new Error("ENV_CAMERA");
+        }
       } catch {}
-      setUsingFallbackCamera(usedFallback);
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -157,24 +174,16 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
         }
       }
 
-      if (modelReady) {
-        startDetectionLoop();
-      } else {
-        // fallback: لو الموديل ما اتحمل، التقاط بعد ثانيتين
-        capturedRef.current = false;
-        fallbackTimerRef.current = setTimeout(() => {
-          if (!capturedRef.current) {
-            capturedRef.current = true;
-            capture();
-          }
-        }, 2000);
-      }
+      // Model is guaranteed loaded at this point — start detection.
+      startDetectionLoop();
     } catch (e: any) {
       const name = e?.name || "";
-      if (name === "NotAllowedError" || name === "SecurityError") {
+      if (e?.message === "ENV_CAMERA") {
+        setError("لم يتم العثور على الكاميرا الأمامية. هذا الفرع يتطلب كاميرا أمامية للتحقق.");
+      } else if (name === "NotAllowedError" || name === "SecurityError") {
         setError("تم رفض إذن الكاميرا. افتح إعدادات المتصفح واسمح للكاميرا، ثم أعد المحاولة.");
       } else if (name === "NotFoundError" || name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
-        setError("لم يتم العثور على كاميرا في هذا الجهاز.");
+        setError("لم يتم العثور على كاميرا أمامية في هذا الجهاز.");
       } else if (name === "NotReadableError" || name === "TrackStartError") {
         setError("الكاميرا مشغولة بتطبيق آخر. أغلق التطبيقات الأخرى وأعد المحاولة.");
       } else {
@@ -237,7 +246,7 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-base font-bold text-foreground flex items-center gap-2">
           <Camera className="h-5 w-5 text-primary" />
-          {title || "Face Recognition"}
+          {title || "التحقق بالصورة"}
         </h2>
         <button
           onClick={cancel}
@@ -292,11 +301,6 @@ export default function SelfieCapture({ open, onCancel, onCapture, title }: Prop
                 </>
               )}
             </div>
-            {usingFallbackCamera && (
-              <div className="w-full max-w-xs rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 px-3 py-2 text-[12px] text-blue-800 dark:text-blue-200 text-center leading-relaxed">
-                لم يتم العثور على الكاميرا الأمامية، سيتم استخدام الكاميرا المتاحة.
-              </div>
-            )}
           </>
         )}
       </div>
