@@ -35,6 +35,7 @@ interface Props {
   employeeName: string;
   todayRecord: AttendanceDay | null;
   todayEvents?: { event_type: string; event_time: string }[];
+  recentEvents?: { event_type: string; event_time: string }[];
   history: AttendanceDay[];
   onScanTap: () => void;
   onNavigate: (tab: string) => void;
@@ -49,7 +50,7 @@ interface Props {
   onOpenManagerRoute?: (path: string) => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], history, onScanTap, onNavigate, isCashier, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, onOpenManagerRoute }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], recentEvents = [], history, onScanTap, onNavigate, isCashier, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, companyLogo, onOpenManagerRoute }: Props) {
   const hasMgmt = !!(canViewTeam || canManageSchedule || canManageAttendance);
   const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -119,19 +120,74 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     return `${h}س ${m}د`;
   };
 
+  // Per-date sessions (Asia/Hebron) built from recentEvents. Single source for hours.
+  const sessionsByDate = useMemo(() => {
+    const MIN_MS = 60_000;
+    const DEBOUNCE_MS = 60_000;
+    const dtf = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
+    });
+    const byDate = new Map<string, { event_type: string; event_time: string }[]>();
+    for (const e of recentEvents) {
+      const key = dtf.format(new Date(e.event_time));
+      const arr = byDate.get(key) || [];
+      arr.push(e);
+      byDate.set(key, arr);
+    }
+    const result = new Map<string, { firstIn: string | null; lastOut: string | null; totalMs: number; count: number }>();
+    for (const [date, evs] of byDate) {
+      const sorted = [...evs].sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+      const cleaned: typeof sorted = [];
+      for (const evt of sorted) {
+        const last = cleaned[cleaned.length - 1];
+        if (last && last.event_type === evt.event_type) {
+          const gap = new Date(evt.event_time).getTime() - new Date(last.event_time).getTime();
+          if (gap < DEBOUNCE_MS) continue;
+        }
+        cleaned.push(evt);
+      }
+      let openIn: string | null = null;
+      let totalMs = 0;
+      let firstIn: string | null = null;
+      let lastOut: string | null = null;
+      let count = 0;
+      for (const e of cleaned) {
+        if (e.event_type === "check_in") {
+          openIn = e.event_time;
+        } else if (e.event_type === "check_out" && openIn) {
+          const dur = new Date(e.event_time).getTime() - new Date(openIn).getTime();
+          if (dur >= MIN_MS) {
+            if (!firstIn) firstIn = openIn;
+            lastOut = e.event_time;
+            totalMs += dur;
+            count += 1;
+          }
+          openIn = null;
+        }
+      }
+      result.set(date, { firstIn, lastOut, totalMs, count });
+    }
+    return result;
+  }, [recentEvents]);
+
   const stats = useMemo(() => {
     const now = new Date();
     const monthDays = history.filter(d => {
       const date = new Date(d.attendance_date);
       return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     });
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    let totalMs = 0;
+    for (const [date, s] of sessionsByDate) {
+      if (date.startsWith(ym)) totalMs += s.totalMs;
+    }
     return {
       present: monthDays.filter(d => d.status === "present").length,
       late: monthDays.filter(d => d.status === "late").length,
       absent: monthDays.filter(d => d.status === "absent").length,
-      totalHours: monthDays.reduce((s, d) => s + (d.total_hours || 0), 0),
+      totalHours: totalMs / 3_600_000,
     };
-  }, [history]);
+  }, [history, sessionsByDate]);
 
   const last5 = useMemo(() => history.slice(0, 5), [history]);
 
@@ -447,30 +503,40 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               آخر 5 أيام
             </h3>
             <div className="space-y-1.5">
-              {last5.map(day => (
-                <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
-                  <div className="flex items-center gap-2">
-                    {statusIcon(day.status)}
-                    <span className="text-xs font-medium">
-                      {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
-                    </span>
+              {last5.map(day => {
+                const s = sessionsByDate.get(day.attendance_date);
+                const inT = s?.firstIn ?? day.first_check_in;
+                const outT = s?.lastOut ?? day.last_check_out;
+                const hrs = s ? s.totalMs / 3_600_000 : (day.total_hours || 0);
+                const sessCount = s?.count ?? 0;
+                return (
+                  <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
+                    <div className="flex items-center gap-2">
+                      {statusIcon(day.status)}
+                      <span className="text-xs font-medium">
+                        {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted-foreground">
+                      {day.status === "absent" ? (
+                        <span className="text-destructive text-xs">غياب</span>
+                      ) : (
+                        <>
+                          <span>{inT ? new Date(inT).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Hebron" }) : "—"}</span>
+                          <ChevronLeft className="h-3 w-3" />
+                          <span>{outT ? new Date(outT).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Hebron" }) : "—"}</span>
+                          {hrs > 0 && (
+                            <span className="text-foreground font-medium">({hrs.toFixed(2)}h)</span>
+                          )}
+                          {sessCount > 1 && (
+                            <span className="text-primary text-[10px]">· {sessCount} جلسات</span>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted-foreground">
-                    {day.status === "absent" ? (
-                      <span className="text-destructive text-xs">غياب</span>
-                    ) : (
-                      <>
-                        <span>{day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "—"}</span>
-                        <ChevronLeft className="h-3 w-3" />
-                        <span>{day.last_check_out ? format(new Date(day.last_check_out), "HH:mm") : "—"}</span>
-                        {day.total_hours > 0 && (
-                          <span className="text-foreground font-medium">({day.total_hours.toFixed(1)}h)</span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

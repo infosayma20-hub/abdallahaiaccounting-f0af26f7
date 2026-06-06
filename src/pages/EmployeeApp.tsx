@@ -97,6 +97,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
+  const [recentEvents, setRecentEvents] = useState<{ event_type: string; event_time: string }[]>([]);
   const [history, setHistory] = useState<AttendanceDay[]>([]);
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,14 +169,22 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         .maybeSingle();
       setLatestInfoForm((infoForm as any)?.form_data || null);
 
-      const today = new Date().toISOString().split("T")[0];
+      // Use Asia/Hebron local date for "today"
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+      // 60-day window for recent events (covers stats + last-5 days)
+      const since = new Date(Date.now() - 60 * 86400_000).toISOString();
 
-      const [todayRes, histRes, corrRes, eventsRes] = await Promise.all([
+      const [todayRes, histRes, corrRes, eventsRes, recentEvRes] = await Promise.all([
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).eq("attendance_date", today).single(),
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).order("attendance_date", { ascending: false }).limit(60),
         supabase.from("correction_requests").select("*").eq("employee_id", emp.id).order("created_at", { ascending: false }).limit(20),
         supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
-          .gte("event_time", `${today}T00:00:00`).lte("event_time", `${today}T23:59:59`)
+          .gte("event_time", `${today}T00:00:00+03:00`).lte("event_time", `${today}T23:59:59+03:00`)
+          .eq("status", "valid").order("event_time", { ascending: true }),
+        supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
+          .gte("event_time", since)
           .eq("status", "valid").order("event_time", { ascending: true }),
       ]);
 
@@ -183,6 +192,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
       setHistory(histRes.data || []);
       setCorrections(corrRes.data || []);
       setTodayEvents(eventsRes.data || []);
+      setRecentEvents(recentEvRes.data || []);
     } catch (e) {
       console.error(e);
     }
@@ -243,6 +253,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             employeeName={employee.full_name}
             todayRecord={todayRecord}
             todayEvents={todayEvents}
+            recentEvents={recentEvents}
             history={history}
             onScanTap={() => handleNavigate("scan")}
             onNavigate={(tab) => setActiveTab(tab as Tab)}
