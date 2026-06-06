@@ -76,7 +76,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       setCheckingBranch(true);
       try {
         const { data } = await supabase
-          .from("branches")
+          .from("branches_safe")
           .select("require_attendance_selfie")
           .eq("id", employeeBranchId)
           .maybeSingle();
@@ -162,7 +162,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
 
       // افحص اشتراط السيلفي أولاً قبل أي عمليات طويلة (GPS) كي لا نكسر user-gesture على iOS.
       const { data: branchRow } = await supabase
-        .from("branches")
+        .from("branches_safe")
         .select("require_attendance_selfie")
         .eq("id", branchId)
         .maybeSingle();
