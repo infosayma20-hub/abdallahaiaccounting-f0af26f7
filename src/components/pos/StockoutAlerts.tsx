@@ -341,7 +341,21 @@ export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string })
   return null;
 }
 
-export function StockoutAlertsBanner({ dataOwnerId, compact = false }: { dataOwnerId: string; compact?: boolean }) {
+export function StockoutAlertsBanner({
+  dataOwnerId,
+  compact = false,
+  mode = "banner",
+}: {
+  dataOwnerId: string;
+  compact?: boolean;
+  /**
+   * "banner" (default) — wide red bar shown inline in the page.
+   * "icon"  — small icon button (intended for the top header). Opens the
+   *           same details dialog. Used in the call-center workspace so the
+   *           main POS screen stays uncluttered.
+   */
+  mode?: "banner" | "icon";
+}) {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [productMap, setProductMap] = useState<Map<string, string>>(new Map());
@@ -413,6 +427,59 @@ export function StockoutAlertsBanner({ dataOwnerId, compact = false }: { dataOwn
   };
 
   if (alerts.length === 0) return null;
+
+  // ── Icon-only variant for the top bar (call center) ──
+  if (mode === "icon") {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setDetailsOpen(true)}
+          className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
+          title={`تنبيهات نفاد (${alerts.length})`}
+        >
+          <AlertTriangle className="h-5 w-5 text-red-400 animate-pulse" />
+          <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center">
+            {alerts.length}
+          </span>
+        </button>
+
+        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <DialogContent dir="rtl" className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-700">
+                <AlertTriangle className="w-4 h-4" />
+                أصناف/مكوّنات غير متوفرة ({alerts.length})
+              </DialogTitle>
+              <DialogDescription>
+                التنبيهات النشطة من الفروع. اضغط "رفع التنبيه" عند توفر الصنف.
+              </DialogDescription>
+            </DialogHeader>
+            <ul className="space-y-1.5 max-h-[60vh] overflow-auto">
+              {alerts.map(a => (
+                <li key={a.id} className="flex items-center justify-between gap-2 rounded-md border border-red-100 bg-red-50/60 px-2 py-1.5">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-sm font-semibold text-red-900 truncate">
+                      {describeAlert(a, productMap, modMap)}
+                    </span>
+                    <span className="text-[11px] text-red-800/80 truncate">
+                      {a.branch_id ? `الفرع: ${branchMap.get(a.branch_id) || "—"} • ` : ""}
+                      {a.raised_by_name ? `${a.raised_by_name} • ` : ""}
+                      {new Date(a.raised_at).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                      {a.note ? ` • ${a.note}` : ""}
+                    </span>
+                  </div>
+                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0" onClick={() => resolve(a.id)}>
+                    <X className="w-3 h-3 ml-1" /> رفع التنبيه
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   const MAX_CHIPS = 4;
   const visible = alerts.slice(0, MAX_CHIPS);
