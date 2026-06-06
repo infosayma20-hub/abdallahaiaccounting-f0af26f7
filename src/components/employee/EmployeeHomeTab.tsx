@@ -123,20 +123,19 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     >
       {/* Welcome Banner */}
       <div
-        className="rounded-3xl p-5 relative overflow-hidden border border-white/40 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45),0_2px_4px_-2px_rgba(15,23,42,0.15)]"
-        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%)" }}
+        className="rounded-2xl p-5 relative overflow-hidden border border-border bg-card shadow-sm"
       >
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-primary-foreground/60">مرحباً</p>
-            <h1 className="text-xl font-bold text-primary-foreground truncate">{employeeName}</h1>
-            <p className="text-xs mt-1 text-primary-foreground/50">
+            <p className="text-sm text-muted-foreground">مرحباً</p>
+            <h1 className="text-xl font-bold text-foreground truncate">{employeeName}</h1>
+            <p className="text-xs mt-1 text-muted-foreground">
               {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
             </p>
           {hasMgmt && (
-            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur border border-white/20">
-              <Shield className="h-3 w-3 text-primary-foreground" />
-              <span className="text-[11px] font-semibold text-primary-foreground">
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+              <Shield className="h-3 w-3 text-primary" />
+              <span className="text-[11px] font-semibold text-primary">
                 {mgmtBadge}{branchName ? ` • ${branchName}` : ""}
               </span>
             </div>
@@ -147,13 +146,10 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               src={companyLogo}
               alt="شعار الشركة"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-              className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-white/30 shadow-md"
+              className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-border shadow-sm"
             />
           )}
         </div>
-        {/* Decorative circle */}
-        <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
-        <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/5" />
       </div>
 
       {/* Manager Section */}
@@ -228,7 +224,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       )}
 
       {/* Live Clock */}
-      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl overflow-hidden shadow-[0_12px_28px_-14px_rgba(15,23,42,0.25),0_2px_4px_-2px_rgba(15,23,42,0.08)]">
+      <Card className="border-border bg-card shadow-sm">
         <CardContent className="p-4 text-center">
           <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
             {format(currentTime, "HH:mm")}
@@ -238,7 +234,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Today Status & Action */}
-      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl shadow-[0_14px_32px_-16px_rgba(15,23,42,0.28),0_2px_4px_-2px_rgba(15,23,42,0.08)]">
+      <Card className="border-border bg-card shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
@@ -356,7 +352,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       </Card>
 
       {/* Monthly Stats */}
-      <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl shadow-[0_12px_28px_-14px_rgba(15,23,42,0.22),0_2px_4px_-2px_rgba(15,23,42,0.06)]">
+      <Card className="border-border bg-card shadow-sm">
         <CardContent className="p-4">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -389,7 +385,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
       {/* Last 5 Days */}
       {last5.length > 0 && (
-        <Card className="border border-white/70 bg-white/85 backdrop-blur-sm rounded-3xl shadow-[0_12px_28px_-14px_rgba(15,23,42,0.22),0_2px_4px_-2px_rgba(15,23,42,0.06)]">
+        <Card className="border-border bg-card shadow-sm">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <CalendarRange className="h-4 w-4 text-muted-foreground" />
@@ -425,9 +421,9 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         </Card>
       )}
 
-      {/* Quick Links — Dynamics-style floating icon cards */}
-      <div className="pt-8">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-9">
+      {/* Quick Links — Floating icon cards */}
+      <div className="pt-7">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-8">
           {[
             { icon: QrCode,         label: "بصماتي",           tab: "attendance", tone: "blue"   as const },
             { icon: Calendar,       label: "وردياتي",          tab: "schedule",   tone: "blue"   as const },
@@ -440,22 +436,22 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           ].map((link) => {
             const gradient =
               link.tone === "blue"
-                ? "bg-[radial-gradient(circle_at_30%_25%,#93c5fd_0%,#60a5fa_40%,#3b82f6_75%,#2563eb_100%)] shadow-[0_10px_22px_-6px_rgba(37,99,235,0.55),inset_0_-3px_6px_rgba(30,58,138,0.35),inset_0_2px_3px_rgba(255,255,255,0.45)]"
-                : "bg-[radial-gradient(circle_at_30%_25%,#fda4af_0%,#fb7185_40%,#f43f5e_75%,#e11d48_100%)] shadow-[0_10px_22px_-6px_rgba(225,29,72,0.55),inset_0_-3px_6px_rgba(136,19,55,0.35),inset_0_2px_3px_rgba(255,255,255,0.45)]";
+                ? "bg-gradient-to-br from-[#60a5fa] to-[#2563eb]"
+                : "bg-gradient-to-br from-[#fb7185] to-[#e11d48]";
             return (
               <button
                 key={link.tab + link.label}
                 type="button"
                 onClick={() => onNavigate(link.tab)}
-                className="relative bg-white rounded-2xl pt-10 pb-5 px-3 text-center border border-white shadow-[0_14px_28px_-14px_rgba(15,23,42,0.25),0_4px_8px_-4px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] active:scale-[0.97] active:shadow-[0_6px_14px_-8px_rgba(15,23,42,0.2)] hover:-translate-y-0.5 hover:shadow-[0_20px_34px_-14px_rgba(15,23,42,0.28),0_6px_10px_-4px_rgba(15,23,42,0.12)] transition-all duration-200"
+                className="relative bg-card rounded-2xl pt-9 pb-4 px-3 text-center border border-border shadow-sm hover:border-primary/30 hover:shadow-md active:scale-[0.98] transition-all"
               >
                 {/* Floating circular icon */}
                 <span
-                  className={`absolute -top-6 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full flex items-center justify-center ring-[5px] ring-white ${gradient}`}
+                  className={`absolute -top-5 left-1/2 -translate-x-1/2 h-11 w-11 rounded-full flex items-center justify-center ring-4 ring-card ${gradient}`}
                 >
-                  <link.icon className="h-[22px] w-[22px] text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]" strokeWidth={2.1} />
+                  <link.icon className="h-5 w-5 text-white" strokeWidth={2.1} />
                 </span>
-                <span className="block text-[13px] font-semibold text-slate-800 leading-snug">
+                <span className="block text-[13px] font-semibold text-foreground leading-snug">
                   {link.label}
                 </span>
               </button>
