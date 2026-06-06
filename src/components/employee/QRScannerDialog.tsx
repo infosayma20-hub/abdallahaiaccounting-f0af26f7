@@ -326,9 +326,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
               <Camera className="h-8 w-8 text-primary" />
             </div>
             <div className="space-y-2">
-              <p className="font-bold text-base text-foreground">تم التعرف على الفرع</p>
+              <p className="font-bold text-base text-foreground">
+                {upfrontSelfieRequired ? "التقط صورة سيلفي أولاً" : "تم التعرف على الفرع"}
+              </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                هذا الفرع يتطلب صورة سيلفي. اضغط الزر لفتح الكاميرا الأمامية.
+                {upfrontSelfieRequired
+                  ? "فرعك يتطلب صورة سيلفي قبل البصمة. اضغط لفتح الكاميرا الأمامية، ثم نمسح رمز QR."
+                  : "هذا الفرع يتطلب صورة سيلفي. اضغط الزر لفتح الكاميرا الأمامية."}
               </p>
             </div>
             <Button
@@ -346,6 +350,13 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             >
               إلغاء
             </Button>
+          </div>
+        )}
+
+        {checkingBranch && !awaitingSelfieGesture && !result && (
+          <div className="flex flex-col items-center justify-center py-8 gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">جاري التحقق من إعدادات الفرع...</p>
           </div>
         )}
 
