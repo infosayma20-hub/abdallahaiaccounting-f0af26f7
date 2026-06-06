@@ -19,6 +19,18 @@ export type Leave = {
   leave_type?: string | null;
 };
 
+export type AttEvent = {
+  event_type: "check_in" | "check_out" | string;
+  event_time: string;
+  attendance_date?: string; // local YYYY-MM-DD (Asia/Hebron) — computed on fetch
+};
+
+export type DaySession = {
+  checkIn: string;       // ISO
+  checkOut: string | null;
+  durationMs: number;
+};
+
 export type DayRow = {
   date: string;            // yyyy-MM-dd
   dayName: string;         // عربي
@@ -29,6 +41,8 @@ export type DayRow = {
   statusLabel: string;     // arabic
   statusTone: string;      // tailwind classes
   notes: string;
+  sessions: DaySession[];  // ordered in→out pairs (debounced, min 60s)
+  sessionsHours: string;   // recomputed from sessions, "7.50" or "—"
 };
 
 const AR_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -52,6 +66,37 @@ function fmtHours(h?: number | null): string {
   const n = Number(h);
   if (!isFinite(n) || n <= 0) return "—";
   return n.toFixed(2);
+}
+
+/** Build clean sessions from raw events for a single day (debounced + min 60s). */
+export function buildDaySessions(events: AttEvent[]): DaySession[] {
+  const MIN_MS = 60_000;
+  const DEBOUNCE_MS = 60_000;
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+  );
+  const cleaned: AttEvent[] = [];
+  for (const evt of sorted) {
+    const last = cleaned[cleaned.length - 1];
+    if (last && last.event_type === evt.event_type) {
+      const gap = new Date(evt.event_time).getTime() - new Date(last.event_time).getTime();
+      if (gap < DEBOUNCE_MS) continue;
+    }
+    cleaned.push(evt);
+  }
+  const result: DaySession[] = [];
+  let openIn: string | null = null;
+  for (const e of cleaned) {
+    if (e.event_type === "check_in") {
+      openIn = e.event_time;
+    } else if (e.event_type === "check_out" && openIn) {
+      const dur = new Date(e.event_time).getTime() - new Date(openIn).getTime();
+      if (dur >= MIN_MS) result.push({ checkIn: openIn, checkOut: e.event_time, durationMs: dur });
+      openIn = null;
+    }
+  }
+  if (openIn) result.push({ checkIn: openIn, checkOut: null, durationMs: 0 });
+  return result;
 }
 
 function isInLeave(dateISO: string, leaves: Leave[]): Leave | null {
@@ -80,9 +125,19 @@ export function buildMonthRows(
   monthEnd: Date,
   attendance: AttDay[],
   leaves: Leave[],
+  events: AttEvent[] = [],
 ): DayRow[] {
   const byDate = new Map<string, AttDay>();
   for (const a of attendance) byDate.set(a.attendance_date, a);
+
+  const eventsByDate = new Map<string, AttEvent[]>();
+  for (const e of events) {
+    const key = e.attendance_date;
+    if (!key) continue;
+    const arr = eventsByDate.get(key) || [];
+    arr.push(e);
+    eventsByDate.set(key, arr);
+  }
 
   const rows: DayRow[] = [];
   const cur = new Date(monthStart);
@@ -99,16 +154,22 @@ export function buildMonthRows(
     const status = deriveStatus(att, leave);
     const leaveSuffix = leave?.leave_type ? ` (${tLeaveType(leave.leave_type)})` : "";
     const label = status === "no_data" ? "—" : (tAttendanceStatus(status) + leaveSuffix);
+    const sessions = buildDaySessions(eventsByDate.get(iso) || []);
+    const sessionsMs = sessions.reduce((s, x) => s + (x.checkOut ? x.durationMs : 0), 0);
+    const sessionsHoursNum = sessionsMs / 3_600_000;
+    const sessionsHours = sessionsHoursNum > 0 ? sessionsHoursNum.toFixed(2) : "—";
     rows.push({
       date: iso,
       dayName: AR_DAYS[cur.getDay()],
       checkIn: fmtTime(att?.first_check_in),
       checkOut: fmtTime(att?.last_check_out),
-      hours: fmtHours(att?.total_hours),
+      hours: sessionsHours !== "—" ? sessionsHours : fmtHours(att?.total_hours),
       status,
       statusLabel: label,
       statusTone: attendanceStatusTone(status),
       notes: att?.notes || "",
+      sessions,
+      sessionsHours,
     });
     cur.setDate(cur.getDate() + 1);
   }
