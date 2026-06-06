@@ -439,6 +439,31 @@ Deno.serve(async (req) => {
 
       const now = new Date().toISOString();
 
+      // 5.b Idempotency guard — if an identical event for this employee was
+      // recorded within the last 30 seconds (e.g. user retried after a blank
+      // screen / network blip), short-circuit instead of inserting a duplicate.
+      {
+        const thirtySecondsAgo = new Date(Date.now() - 30_000).toISOString();
+        const recentSameType = events
+          .filter((e) => e.event_type === (bodyAction === "checkin" ? "check_in" : "check_out"))
+          .filter((e) => new Date(e.event_time).getTime() >= new Date(thirtySecondsAgo).getTime());
+        if (recentSameType.length > 0) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              duplicate_suppressed: true,
+              message: bodyAction === "checkin"
+                ? "تم تسجيل الدخول مسبقاً ✅"
+                : "تم تسجيل الخروج مسبقاً ✅",
+              event_type: bodyAction === "checkin" ? "check_in" : "check_out",
+              time: recentSameType[recentSameType.length - 1].event_time,
+              branch: branch.name,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       // 6. For selfie-required branches, upload the selfie BEFORE writing the event.
       // If upload fails we fail the whole request (fail-closed) — no event is written.
       let preUploadedPath: string | null = null;
@@ -576,7 +601,15 @@ Deno.serve(async (req) => {
             }
           }
         } catch (devErr) {
-          console.warn("[attendance] device fingerprint tracking failed", devErr);
+          // Non-blocking: attendance must succeed even if device tracking fails,
+          // but the error is logged EXPLICITLY (not silently) so it surfaces in
+          // edge function logs for HR to investigate.
+          console.error("[attendance] DEVICE_TRACKING_FAILED", {
+            employee_id: employee.id,
+            company_id: employee.company_id,
+            fingerprint_prefix: device_fingerprint.slice(0, 12),
+            error: devErr instanceof Error ? devErr.message : String(devErr),
+          });
         }
       }
 
