@@ -301,5 +301,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
         <span>سيتم التحقق من موقعك الجغرافي تلقائياً</span>
       </div>
     </div>
+    <SelfieCapture
+      open={selfieOpen}
+      onCancel={handleSelfieCancel}
+      onCapture={handleSelfieCapture}
+      title={action === "checkin" ? "سيلفي تسجيل الدخول" : "سيلفي تسجيل الخروج"}
+    />
+    </>
   );
 }
