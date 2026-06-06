@@ -297,27 +297,49 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             ) : null}
           </div>
 
-          {/* Check-in / Check-out times */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <LogIn className="h-4 w-4 mx-auto mb-1 text-emerald-500" />
-              <div className="text-[10px] text-muted-foreground">دخول</div>
-              <div className="font-semibold text-sm tabular-nums">
-                {todayRecord?.first_check_in
-                  ? format(new Date(todayRecord.first_check_in), "hh:mm a")
-                  : "—"}
+          {/* Sessions Timeline — يعرض كل جلسات اليوم (دخول/خروج/مغادرة/رجوع) */}
+          {sessions.length > 0 ? (
+            <div className="bg-secondary/40 rounded-xl p-3 mb-3 space-y-2">
+              <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5">
+                <Timer className="h-3 w-3" />
+                جلسات اليوم ({sessions.length})
               </div>
+              {sessions.map((s, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex flex-col items-center">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      {s.checkOut && <div className="w-px h-3 bg-border" />}
+                      {s.checkOut && <div className="w-2 h-2 rounded-full bg-destructive" />}
+                    </div>
+                    <div className="flex flex-col leading-tight">
+                      <span className="font-medium tabular-nums text-foreground">
+                        دخول {format(new Date(s.checkIn), "hh:mm a")}
+                      </span>
+                      {s.checkOut ? (
+                        <span className="font-medium tabular-nums text-foreground">
+                          خروج {format(new Date(s.checkOut), "hh:mm a")}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-500 text-[10px] font-semibold">
+                          ● جلسة مفتوحة
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {s.checkOut && (
+                    <Badge variant="outline" className="text-[10px] tabular-nums">
+                      {fmtDuration(s.durationMs)}
+                    </Badge>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <LogOut className="h-4 w-4 mx-auto mb-1 text-destructive" />
-              <div className="text-[10px] text-muted-foreground">خروج</div>
-              <div className="font-semibold text-sm tabular-nums">
-                {todayRecord?.last_check_out
-                  ? format(new Date(todayRecord.last_check_out), "hh:mm a")
-                  : "—"}
-              </div>
+          ) : (
+            <div className="bg-secondary/50 rounded-xl p-4 text-center text-xs text-muted-foreground mb-3">
+              لم تُسجّل أي بصمة اليوم بعد
             </div>
-          </div>
+          )}
 
           {/* Elapsed time */}
           {elapsed && (
