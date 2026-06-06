@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     // POST /attendance/checkin or /attendance/checkout or /attendance/break_out or /attendance/break_in
     if (req.method === "POST") {
       const body = await req.json();
-      const { branch_id, qr_token, latitude, longitude, device_info, reason } = body;
+      const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64 } = body;
       const bodyAction = body.action || path;
       
       const validActions = ["checkin", "checkout", "break_out", "break_in"];
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       // 1. Validate branch
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode, user_id, require_gps")
+        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode, user_id, require_gps, require_attendance_selfie")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();
@@ -127,6 +127,25 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "الفرع غير موجود أو غير فعال" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // 2.0 Selfie requirement check (only for checkin/checkout, not breaks)
+      const selfieRequired = !!branch.require_attendance_selfie &&
+        (bodyAction === "checkin" || bodyAction === "checkout");
+      if (selfieRequired) {
+        if (!selfie_base64 || typeof selfie_base64 !== "string" || selfie_base64.length < 1000) {
+          return new Response(
+            JSON.stringify({ error: "هذا الفرع يتطلب التقاط صورة سيلفي عند البصمة." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // Limit ~500KB base64 (~375KB binary) to protect edge function
+        if (selfie_base64.length > 700_000) {
+          return new Response(
+            JSON.stringify({ error: "حجم الصورة كبير جداً. يرجى إعادة الالتقاط." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
 
       // 2. Geofencing check (per-branch toggle, default ON)
