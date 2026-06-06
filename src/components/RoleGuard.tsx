@@ -36,7 +36,7 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/", allo
         // route guards. Owner/admin accounts get an explicit `admin` row at
         // signup; if it's missing, fall through to the employee/perm fallbacks
         // below and otherwise deny.
-        let allowed = allowedRoles.some((role) => userRoles.includes(role));
+        let allowed = allowedRoles.some((role) => (userRoles as string[]).includes(role));
         // Fallback: if route allows "employee" and user has an active employees row, grant access.
         if (!allowed && allowedRoles.includes("employee" as AllowedRole)) {
           const { data: emp } = await supabase
