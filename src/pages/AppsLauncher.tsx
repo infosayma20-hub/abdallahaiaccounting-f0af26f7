@@ -157,6 +157,16 @@ const AppsLauncher = () => {
             hasEmployeeRecord && !hasAdminAccess && !hasPureSystemRole &&
             !(roles.includes("sales_rep") && !hasAdminAccess),
         });
+      })
+      .catch((err) => {
+        // Never leave the launcher stuck on skeletons if the role/employee
+        // queries fail (RLS rejection for brand-new trial users, network
+        // hiccup, …). Fall back to empty roles so the cards render.
+        console.warn("[apps] roles/employee fetch failed:", err);
+        if (cancelled) return;
+        setUserRoles([]);
+        setEmployeeOnlyRedirect(false);
+        setRolesLoading(false);
       });
     return () => { cancelled = true; };
   }, [user?.id]);
