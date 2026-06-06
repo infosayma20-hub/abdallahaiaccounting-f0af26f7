@@ -74,10 +74,30 @@ export function usePermission(appKey: string) {
       return;
     }
     setRolesLoading(true);
-    loadUserRoles(user.id).then(r => {
-      if (!cancelled) { setRoles(r); setRolesLoading(false); }
-    });
-    loadRoleDefaults().then(() => { if (!cancelled) setDefaultsReady(true); });
+    loadUserRoles(user.id)
+      .then((r) => {
+        if (!cancelled) {
+          setRoles(r);
+          setRolesLoading(false);
+        }
+      })
+      .catch((err) => {
+        // Never block UI on a failed role fetch — fall back to no roles.
+        console.warn("[permission] loadUserRoles failed:", err);
+        if (!cancelled) {
+          setRoles([]);
+          setRolesLoading(false);
+        }
+      });
+    loadRoleDefaults()
+      .then(() => {
+        if (!cancelled) setDefaultsReady(true);
+      })
+      .catch((err) => {
+        // Defaults cache failed — treat as ready (empty) so UI unblocks.
+        console.warn("[permission] loadRoleDefaults failed:", err);
+        if (!cancelled) setDefaultsReady(true);
+      });
     return () => { cancelled = true; };
   }, [user?.id, authLoading]);
 
