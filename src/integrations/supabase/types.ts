@@ -17668,8 +17668,10 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           name: string | null
+          qr_mode: string | null
           qr_rotation_minutes: number | null
           radius_meters: number | null
+          require_attendance_selfie: boolean | null
           require_gps: boolean | null
           updated_at: string | null
           user_id: string | null
@@ -17682,8 +17684,10 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           name?: string | null
+          qr_mode?: string | null
           qr_rotation_minutes?: number | null
           radius_meters?: number | null
+          require_attendance_selfie?: boolean | null
           require_gps?: boolean | null
           updated_at?: string | null
           user_id?: string | null
@@ -17696,8 +17700,10 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           name?: string | null
+          qr_mode?: string | null
           qr_rotation_minutes?: number | null
           radius_meters?: number | null
+          require_attendance_selfie?: boolean | null
           require_gps?: boolean | null
           updated_at?: string | null
           user_id?: string | null
