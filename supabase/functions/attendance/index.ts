@@ -419,7 +419,7 @@ Deno.serve(async (req) => {
       const now = new Date().toISOString();
 
       // 6. Insert attendance event
-      const { error: eventErr } = await supabase.from("attendance_events").insert({
+      const { data: insertedEvent, error: eventErr } = await supabase.from("attendance_events").insert({
         employee_id: employee.id,
         auth_user_id: user.id,
         branch_id,
@@ -430,8 +430,52 @@ Deno.serve(async (req) => {
         qr_token_used: qr_token,
         device_info: device_info || null,
         status: "valid",
-      });
+      }).select("id").single();
       if (eventErr) throw eventErr;
+
+      // 6.b Upload selfie + create verification record
+      if (selfieRequired && insertedEvent?.id) {
+        try {
+          // strip data:image/jpeg;base64, prefix if present
+          const b64 = selfie_base64.includes(",")
+            ? selfie_base64.split(",")[1]
+            : selfie_base64;
+          const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+          const datePart = now.split("T")[0];
+          const storagePath = `${employee.user_id}/${employee.id}/${datePart}/${insertedEvent.id}.jpg`;
+
+          const { error: uploadErr } = await supabase.storage
+            .from("attendance-selfies")
+            .upload(storagePath, binary, {
+              contentType: "image/jpeg",
+              upsert: true,
+            });
+          if (uploadErr) throw uploadErr;
+
+          const { error: verErr } = await supabase
+            .from("attendance_event_verifications")
+            .insert({
+              attendance_event_id: insertedEvent.id,
+              employee_id: employee.id,
+              auth_user_id: user.id,
+              user_id: employee.user_id,
+              branch_id,
+              verification_type: "selfie",
+              storage_path: storagePath,
+              captured_at: now,
+              device_info: device_info || null,
+            });
+          if (verErr) throw verErr;
+        } catch (selfieErr: any) {
+          // Rollback the attendance event since the required selfie failed
+          console.error("[attendance] selfie upload failed, rolling back event", selfieErr);
+          await supabase.from("attendance_events").delete().eq("id", insertedEvent.id);
+          return new Response(
+            JSON.stringify({ error: "فشل حفظ صورة السيلفي. يرجى المحاولة مرة أخرى." }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
 
       // 7. Recalculate attendance_days from all events
       const { data: allEvents } = await supabase
