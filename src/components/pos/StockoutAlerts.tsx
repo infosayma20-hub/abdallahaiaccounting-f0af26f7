@@ -249,38 +249,130 @@ export function StockoutAlertButton({
           <div className="space-y-3">
             <div>
               <Label className="text-xs">بحث عن الصنف أو المكوّن</Label>
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="مثال: أرز، بروست، صلصة…" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); if (e.target.value) setActiveCategoryId(null); }}
+                placeholder="ابحث باسم صنف أو تصنيف…"
+              />
             </div>
 
-            <div className="max-h-56 overflow-auto rounded-md border p-2 space-y-2">
-              {filteredProducts.length > 0 && (
+            <div className="max-h-64 overflow-auto rounded-md border p-2 space-y-2">
+              {/* Browse mode: show categories list, or items of selected category */}
+              {!isSearching && !activeCategoryId && (
                 <div>
-                  <div className="text-[11px] text-muted-foreground mb-1">أصناف</div>
-                  <div className="flex flex-wrap gap-1">
-                    {filteredProducts.map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setSelected({ kind: "product", id: p.id, label: p.name })}
-                        className={`text-xs rounded-md border px-2 py-1 ${selected?.id === p.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
-                      >{p.name}</button>
-                    ))}
-                  </div>
+                  <div className="text-[11px] text-muted-foreground mb-1">التصنيفات</div>
+                  {categories.length === 0 ? (
+                    <div className="text-xs text-muted-foreground py-4 text-center">لا توجد تصنيفات</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {categories.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setActiveCategoryId(c.id)}
+                          className="text-xs rounded-md border px-2 py-1 hover:bg-muted flex items-center gap-1"
+                        >
+                          {c.color && <span className="inline-block w-2 h-2 rounded-full" style={{ background: c.color }} />}
+                          {c.name}
+                          <ChevronRight className="w-3 h-3 opacity-50" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-              {filteredMods.length > 0 && (
+
+              {!isSearching && activeCategoryId && (
                 <div>
-                  <div className="text-[11px] text-muted-foreground mb-1">مكوّنات/خيارات</div>
-                  <div className="flex flex-wrap gap-1">
-                    {filteredMods.map(m => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setSelected({ kind: "modifier", id: m.id, label: m.name })}
-                        className={`text-xs rounded-md border px-2 py-1 ${selected?.id === m.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
-                      >{m.name}</button>
-                    ))}
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategoryId(null)}
+                    className="text-[11px] text-amber-700 hover:underline mb-1 flex items-center gap-1"
+                  >
+                    <ArrowRight className="w-3 h-3" />
+                    رجوع للتصنيفات
+                  </button>
+                  <div className="text-[11px] text-muted-foreground mb-1">
+                    {categories.find(c => c.id === activeCategoryId)?.name || "أصناف"}
                   </div>
+                  {filteredProducts.length === 0 ? (
+                    <div className="text-xs text-muted-foreground py-4 text-center">لا توجد أصناف بهذا التصنيف</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {filteredProducts.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setSelected({ kind: "product", id: p.id, label: p.name })}
+                          className={`text-xs rounded-md border px-2 py-1 ${selected?.id === p.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
+                        >{p.name}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Search mode */}
+              {isSearching && (
+                <>
+                  {filteredCategories.length > 0 && (
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-1">تصنيفات</div>
+                      <div className="flex flex-wrap gap-1">
+                        {filteredCategories.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => { setActiveCategoryId(c.id); setSearch(""); }}
+                            className="text-xs rounded-md border px-2 py-1 hover:bg-muted flex items-center gap-1"
+                          >
+                            {c.color && <span className="inline-block w-2 h-2 rounded-full" style={{ background: c.color }} />}
+                            {c.name}
+                            <ChevronRight className="w-3 h-3 opacity-50" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {filteredProducts.length > 0 && (
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-1">أصناف</div>
+                      <div className="flex flex-wrap gap-1">
+                        {filteredProducts.map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setSelected({ kind: "product", id: p.id, label: p.name })}
+                            className={`text-xs rounded-md border px-2 py-1 ${selected?.id === p.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
+                          >{p.name}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {filteredMods.length > 0 && (
+                    <div>
+                      <div className="text-[11px] text-muted-foreground mb-1">مكوّنات/خيارات</div>
+                      <div className="flex flex-wrap gap-1">
+                        {filteredMods.map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setSelected({ kind: "modifier", id: m.id, label: m.name })}
+                            className={`text-xs rounded-md border px-2 py-1 ${selected?.id === m.id ? "bg-amber-100 border-amber-400" : "hover:bg-muted"}`}
+                          >{m.name}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {filteredCategories.length === 0 && filteredProducts.length === 0 && filteredMods.length === 0 && (
+                    <div className="text-xs text-muted-foreground py-4 text-center">لا نتائج للبحث</div>
+                  )}
+                </>
+              )}
+
+              {selected && (selected.kind === "product" || selected.kind === "modifier") && (
+                <div className="mt-2 pt-2 border-t text-[11px] text-amber-800">
+                  المختار: <span className="font-semibold">{selected.label}</span>
                 </div>
               )}
             </div>
