@@ -126,19 +126,24 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       const date = new Date(d.attendance_date);
       return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     });
-    // Hours computed from cleaned sessions (debounce 60s, ignore <60s) for current month.
+    return {
+      present: monthDays.filter(d => d.status === "present").length,
+      late: monthDays.filter(d => d.status === "late").length,
+      absent: monthDays.filter(d => d.status === "absent").length,
+      totalHours: 0, // populated by statsWithSessions below
+    };
+  }, [history]);
+
+  // Override total hours from cleaned sessions (single source of truth).
+  const monthTotalHours = useMemo(() => {
+    const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     let totalMs = 0;
     for (const [date, s] of sessionsByDate) {
       if (date.startsWith(ym)) totalMs += s.totalMs;
     }
-    return {
-      present: monthDays.filter(d => d.status === "present").length,
-      late: monthDays.filter(d => d.status === "late").length,
-      absent: monthDays.filter(d => d.status === "absent").length,
-      totalHours: totalMs / 3_600_000,
-    };
-  }, [history, sessionsByDate]);
+    return totalMs / 3_600_000;
+  }, [sessionsByDate]);
 
   const last5 = useMemo(() => history.slice(0, 5), [history]);
 
