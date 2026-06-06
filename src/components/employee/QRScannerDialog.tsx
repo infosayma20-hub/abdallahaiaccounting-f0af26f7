@@ -340,12 +340,12 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             </div>
             <div className="space-y-2">
               <p className="font-bold text-base text-foreground">
-                {upfrontSelfieRequired ? "التقط صورة سيلفي أولاً" : "تم التعرف على الفرع"}
+                {upfrontSelfieRequired ? "Face Recognition مطلوب أولاً" : "تم التعرف على الفرع"}
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {upfrontSelfieRequired
-                  ? "فرعك يتطلب صورة سيلفي قبل البصمة. اضغط لفتح الكاميرا الأمامية، ثم نمسح رمز QR."
-                  : "هذا الفرع يتطلب صورة سيلفي. اضغط الزر لفتح الكاميرا الأمامية."}
+                  ? "فرعك يتطلب التحقق بالوجه قبل البصمة. اضغط لفتح الكاميرا الأمامية، ثم نمسح رمز QR."
+                  : "هذا الفرع يتطلب التحقق بالوجه. اضغط الزر لفتح الكاميرا الأمامية."}
               </p>
             </div>
             <Button
@@ -463,7 +463,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       open={selfieOpen}
       onCancel={handleSelfieCancel}
       onCapture={handleSelfieCapture}
-      title={action === "checkin" ? "سيلفي تسجيل الدخول" : "سيلفي تسجيل الخروج"}
+      title={action === "checkin" ? "Face Recognition — تسجيل الدخول" : "Face Recognition — تسجيل الخروج"}
     />
     </>
   );
