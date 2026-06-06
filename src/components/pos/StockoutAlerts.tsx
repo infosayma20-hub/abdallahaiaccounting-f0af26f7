@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, X, PackageX, Loader2 } from "lucide-react";
+import { AlertTriangle, X, PackageX, Loader2, ChevronRight, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { installAudioUnlock, playAlertBeep } from "@/lib/audio-unlock";
 
@@ -39,6 +39,8 @@ interface AlertRow {
 }
 
 interface ProductOption { id: string; name: string; }
+interface ProductWithCat { id: string; name: string; pos_category_id: string | null; }
+interface CategoryOption { id: string; name: string; color: string | null; }
 
 function describeAlert(a: AlertRow, productMap: Map<string, string>, modMap: Map<string, string>): string {
   if (a.custom_label && a.custom_label.trim()) return a.custom_label.trim();
@@ -62,8 +64,10 @@ export function StockoutAlertButton({
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [products, setProducts] = useState<ProductWithCat[]>([]);
   const [mods, setMods] = useState<ProductOption[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<{ kind: "product" | "modifier" | "custom"; id?: string; label: string } | null>(null);
   const [customText, setCustomText] = useState("");
@@ -75,17 +79,26 @@ export function StockoutAlertButton({
   useEffect(() => {
     if (!open || !dataOwnerId) return;
     (async () => {
-      const [{ data: ps }, { data: ms }] = await Promise.all([
-        supabase.from("products").select("id,name").eq("user_id", dataOwnerId).order("name").limit(500),
+      const [{ data: ps }, { data: ms }, { data: cs }] = await Promise.all([
+        supabase.from("products").select("id,name,pos_category_id").eq("user_id", dataOwnerId).order("name").limit(2000),
         supabase
           .from("modifier_options")
           .select("id,name,group_id,modifier_groups!inner(user_id)")
           .eq("modifier_groups.user_id", dataOwnerId)
           .order("name")
           .limit(500),
+        supabase
+          .from("pos_categories")
+          .select("id,name,color,sort_order,display_order,is_active")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("name"),
       ]);
-      setProducts(((ps as any[]) || []).map(p => ({ id: p.id, name: p.name })));
+      setProducts(((ps as any[]) || []).map(p => ({ id: p.id, name: p.name, pos_category_id: p.pos_category_id ?? null })));
       setMods(((ms as any[]) || []).map(m => ({ id: m.id, name: m.name })));
+      setCategories(((cs as any[]) || []).map(c => ({ id: c.id, name: c.name, color: c.color ?? null })));
     })();
   }, [open, dataOwnerId]);
 
@@ -114,19 +127,31 @@ export function StockoutAlertButton({
     return () => { supabase.removeChannel(ch); };
   }, [dataOwnerId, branchId]);
 
+  const searchTerm = search.trim();
+  const isSearching = searchTerm.length > 0;
+
   const filteredProducts = useMemo(() => {
-    const s = search.trim();
-    if (!s) return products.slice(0, 30);
-    return products.filter(p => p.name?.includes(s)).slice(0, 30);
-  }, [products, search]);
+    if (isSearching) {
+      return products.filter(p => p.name?.includes(searchTerm)).slice(0, 60);
+    }
+    if (activeCategoryId) {
+      return products.filter(p => p.pos_category_id === activeCategoryId);
+    }
+    return [];
+  }, [products, searchTerm, isSearching, activeCategoryId]);
+
   const filteredMods = useMemo(() => {
-    const s = search.trim();
-    if (!s) return mods.slice(0, 20);
-    return mods.filter(m => m.name?.includes(s)).slice(0, 20);
-  }, [mods, search]);
+    if (!isSearching) return [];
+    return mods.filter(m => m.name?.includes(searchTerm)).slice(0, 40);
+  }, [mods, searchTerm, isSearching]);
+
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm) return categories;
+    return categories.filter(c => c.name?.includes(searchTerm));
+  }, [categories, searchTerm]);
 
   const reset = () => {
-    setSelected(null); setCustomText(""); setNote(""); setSearch("");
+    setSelected(null); setCustomText(""); setNote(""); setSearch(""); setActiveCategoryId(null);
   };
 
   const submit = async () => {
