@@ -1201,6 +1201,43 @@ const POSPage = () => {
     initializePOS();
   }, [userId, dataOwnerId]);
 
+  // 🛟 Restore call-center orders that were accepted but never paid (e.g. the
+  // cashier closed the tab or hit a blank screen). Without this they stay
+  // `status='accepted'` + `pos_order_id IS NULL` forever and never re-appear
+  // in PendingOrdersPanel (which only lists `pending`).
+  const restoredOrphansRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!session?.id || !userId || !dataOwnerId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("call_center_orders" as any)
+          .select("*")
+          .eq("user_id", dataOwnerId)
+          .eq("status", "accepted")
+          .is("pos_order_id", null)
+          .or(`accepted_by.eq.${userId},session_id.eq.${session.id}`);
+        if (error || cancelled || !data || (data as any[]).length === 0) return;
+        // Filter out ones already opened as tabs OR already restored once.
+        const existingIds = new Set(
+          (orders as any[]).map(o => o?.callCenterOrderId).filter(Boolean) as string[]
+        );
+        const toRestore = (data as any[]).filter(o =>
+          !existingIds.has(o.id) && !restoredOrphansRef.current.has(o.id)
+        );
+        if (toRestore.length === 0) return;
+        toRestore.forEach(o => restoredOrphansRef.current.add(o.id));
+        const newTabs = toRestore.map(o => buildOrderTabFromCallCenter(o));
+        setOrders(prev => [...prev, ...newTabs]);
+        toast.info(`تم استعادة ${newTabs.length} طلب كول سنتر معلّق من جلستك السابقة`);
+      } catch (e) {
+        console.warn("[pos] restore accepted call-center orders failed:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session?.id, userId, dataOwnerId]);
+
   // Refresh products & categories when page regains focus (e.g. after editing in inventory)
   useEffect(() => {
     const handleFocus = () => {
@@ -3922,12 +3959,113 @@ const POSPage = () => {
   const getPosAccountingDate = (openedAt: string, cutoffHour: number) =>
     getPosBusinessDate(openedAt, cutoffHour);
 
+  /**
+   * Revert any call-center orders this cashier accepted but didn't pay back
+   * to the queue, so they don't get stuck on `status='accepted'` with
+   * `pos_order_id IS NULL` (invisible to PendingOrdersPanel).
+   *
+   * Scope = current open session OR current auth user — covers the case
+   * where the cashier accepted on a different browser tab / device.
+   * `pos_order_id` is NEVER touched (only reverts rows where it's already
+   * null, i.e. not paid yet).
+   * Returns the number of rows that were reverted.
+   */
+  const revertOpenCallCenterOrders = async (): Promise<number> => {
+    if (!userId) return 0;
+    try {
+      const filter = session?.id
+        ? `accepted_by.eq.${userId},session_id.eq.${session.id}`
+        : `accepted_by.eq.${userId}`;
+      const { data, error } = await supabase
+        .from("call_center_orders" as any)
+        .update({
+          status: "pending",
+          accepted_by: null,
+          accepted_at: null,
+          session_id: null,
+        } as any)
+        .eq("status", "accepted")
+        .is("pos_order_id", null)
+        .or(filter)
+        .select("id");
+      if (error) {
+        console.error("[revertOpenCallCenterOrders] failed:", error);
+        return 0;
+      }
+      return (data as any[] | null)?.length || 0;
+    } catch (e) {
+      console.error("[revertOpenCallCenterOrders] unexpected:", e);
+      return 0;
+    }
+  };
+
+  /**
+   * Build a POS cart tab from a `call_center_orders` row. Shared by the
+   * "Accept" button in PendingOrdersPanel AND by the on-load restoration
+   * that reattaches accepted-but-unpaid orders after a page refresh /
+   * white-screen recovery.
+   */
+  const buildOrderTabFromCallCenter = (order: any) => {
+    orderCounter.current += 1;
+    const newOrder = createNewOrder(orderCounter.current);
+    newOrder.customerName = order.customer_name || "";
+    newOrder.customerPhone = order.customer_phone || "";
+    newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+    newOrder.deliveryAddress = order.delivery_address || "";
+    newOrder.callCenterOrderId = order.id;
+    newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+    newOrder.callCenterSourceApp = order.source_app || null;
+    const _info: any = (order as any).delivery_info || null;
+    const _fee = Number((order as any).delivery_fee || 0);
+    const deliveryBlock = _info ? [
+      `توصيل: ${_info.city || ""} - ${_info.area || ""}`,
+      _info.branch_name ? `الفرع: ${_info.branch_name}` : "",
+      _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info.manually_adjusted ? " (معدّل)" : ""}` : "",
+      order.customer_name ? `الزبون: ${order.customer_name}` : "",
+      order.customer_phone ? `جوال: ${order.customer_phone}` : "",
+    ].filter(Boolean).join(" | ") : "";
+    newOrder.orderNote = [
+      order.source_app ? `مصدر: ${order.source_app}` : "",
+      order.payment_method === "visa" ? "فيزا" : "نقدي",
+      deliveryBlock,
+      extractBaseNote(order.order_note),
+    ].filter(Boolean).join(" | ");
+    newOrder.callCenterDeliveryFee = _fee > 0 ? _fee : null;
+    newOrder.callCenterDeliveryInfo = _info;
+    newOrder.cart = (order.items || []).map((item: any) => ({
+      id: crypto.randomUUID(),
+      product_id: item.product_id || null,
+      name: item.name,
+      qty: item.qty,
+      unit_price: item.unit_price,
+      cost_price: 0,
+      discount_pct: 0,
+      tax_rate: 0,
+      unit: "قطعة",
+      total: item.total || item.unit_price * item.qty,
+      note: item.note || "",
+      modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+    }));
+    newOrder.name = order.customer_name || "طلب كول سنتر";
+    return newOrder;
+  };
+
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
     try { await assertPermission("pos", "sell", "close_shift"); } catch { return; }
+    // 🛟 Revert any accepted-but-unpaid call-center orders back to pending so
+    // they don't disappear between accepted and paid when the cashier closes.
+    try {
+      const reverted = await revertOpenCallCenterOrders();
+      if (reverted > 0) {
+        toast.warning(`يوجد ${reverted} طلب كول سنتر لم يتم دفعه. تم إرجاعه للطابور قبل إغلاق العهدة.`);
+      }
+    } catch (e) {
+      console.warn("[close-shift] revert pending call-center orders failed:", e);
+    }
     const cash = parseFloat(closingCash) || 0;
     const cashUSD = parseFloat(closingCashUSD) || 0;
     const cashJOD = parseFloat(closingCashJOD) || 0;
@@ -4290,6 +4428,21 @@ const POSPage = () => {
   // Call center quick close — no cash count needed, just logout
   const handleCallCenterCloseShift = async () => {
     if (!session || !userId) return;
+    // ⚠️ Confirm even Call-Center close — never close in one click.
+    if (typeof window !== "undefined" && !window.confirm("هل تريد فعلاً إغلاق وردية الكول سنتر؟")) {
+      return;
+    }
+    // 🛟 Return any accepted-but-unpaid call-center orders back to the queue
+    // before tearing the session down, so they aren't lost between
+    // accepted and paid.
+    try {
+      const reverted = await revertOpenCallCenterOrders();
+      if (reverted > 0) {
+        toast.warning(`يوجد ${reverted} طلب كول سنتر لم يتم دفعه. تم إرجاعه للطابور قبل إغلاق العهدة.`);
+      }
+    } catch (e) {
+      console.warn("[close-shift] revert pending call-center orders failed:", e);
+    }
     // 🔒 Atomic close — same CAS guard as cashier close.
     selfClosedSessionsRef.current.add(session.id);
     const { error: ccErr } = await supabase.rpc("close_pos_session_atomic", {
@@ -4953,9 +5106,16 @@ const POSPage = () => {
           {(isAdmin || posPerms.can_close_register) && posFeatPerm.can("sell", "close_shift") && (
             <button
               onClick={() => {
-                if (session?.cash_box_id === null) {
+                // ⚠️ Only fast-close as Call-Center when this workspace is the
+                // Call-Center AND the tenant has Call-Center enabled.
+                // A regular cashier with a missing cash_box_id MUST still see
+                // the full cash-count dialog.
+                if (isCallCenter && callCenterEnabled) {
                   handleCallCenterCloseShift();
                 } else {
+                  if (!isCallCenter && session && session.cash_box_id == null) {
+                    toast.warning("تنبيه: لا يوجد صندوق مرتبط بهذه الوردية. سيظهر مربع العد كالمعتاد — راجع الإدارة بعد الإغلاق.");
+                  }
                   setShowCloseShift(true);
                 }
               }}
