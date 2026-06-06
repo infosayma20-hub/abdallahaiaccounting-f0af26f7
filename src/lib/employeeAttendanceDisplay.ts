@@ -158,11 +158,13 @@ export function buildMonthRows(
     const sessionsMs = sessions.reduce((s, x) => s + (x.checkOut ? x.durationMs : 0), 0);
     const sessionsHoursNum = sessionsMs / 3_600_000;
     const sessionsHours = sessionsHoursNum > 0 ? sessionsHoursNum.toFixed(2) : "—";
+    const firstSessionIn = sessions[0]?.checkIn ?? null;
+    const lastSessionOut = [...sessions].reverse().find((s) => s.checkOut)?.checkOut ?? null;
     rows.push({
       date: iso,
       dayName: AR_DAYS[cur.getDay()],
-      checkIn: fmtTime(att?.first_check_in),
-      checkOut: fmtTime(att?.last_check_out),
+      checkIn: fmtTime(firstSessionIn ?? att?.first_check_in),
+      checkOut: fmtTime(lastSessionOut ?? att?.last_check_out),
       hours: sessionsHours !== "—" ? sessionsHours : fmtHours(att?.total_hours),
       status,
       statusLabel: label,
