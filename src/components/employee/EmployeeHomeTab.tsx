@@ -74,13 +74,50 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     return `${h} ساعة و ${m} دقيقة`;
   }, [todayRecord, currentTime]);
 
+  // ابنِ جلسات اليوم من أحداث (in→out) ودمج الجلسات الأقل من دقيقة كتكرار عابر
+  const sessions = useMemo(() => {
+    const MIN_MS = 60_000;
+    const DEBOUNCE_MS = 60_000;
+    const cleaned: { event_type: string; event_time: string }[] = [];
+    for (const evt of todayEvents) {
+      const last = cleaned[cleaned.length - 1];
+      if (last && last.event_type === evt.event_type) {
+        const gap = new Date(evt.event_time).getTime() - new Date(last.event_time).getTime();
+        if (gap < DEBOUNCE_MS) continue;
+      }
+      cleaned.push(evt);
+    }
+    const result: { checkIn: string; checkOut: string | null; durationMs: number }[] = [];
+    let openIn: string | null = null;
+    for (const e of cleaned) {
+      if (e.event_type === "check_in") {
+        openIn = e.event_time;
+      } else if (e.event_type === "check_out" && openIn) {
+        const dur = new Date(e.event_time).getTime() - new Date(openIn).getTime();
+        if (dur >= MIN_MS) result.push({ checkIn: openIn, checkOut: e.event_time, durationMs: dur });
+        openIn = null;
+      }
+    }
+    if (openIn) result.push({ checkIn: openIn, checkOut: null, durationMs: 0 });
+    return result;
+  }, [todayEvents]);
+
   const completedSummary = useMemo(() => {
-    if (!dayComplete || !todayRecord) return null;
-    const totalMins = differenceInMinutes(new Date(todayRecord.last_check_out!), new Date(todayRecord.first_check_in!));
+    if (!dayComplete) return null;
+    const totalMs = sessions.reduce((s, x) => s + (x.checkOut ? x.durationMs : 0), 0);
+    const totalMins = Math.round(totalMs / 60000);
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
     return `${h} ساعة و ${m} دقيقة`;
-  }, [dayComplete, todayRecord]);
+  }, [dayComplete, sessions]);
+
+  const fmtDuration = (ms: number) => {
+    const mins = Math.round(ms / 60000);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return `${m}د`;
+    return `${h}س ${m}د`;
+  };
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -260,27 +297,49 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             ) : null}
           </div>
 
-          {/* Check-in / Check-out times */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <LogIn className="h-4 w-4 mx-auto mb-1 text-emerald-500" />
-              <div className="text-[10px] text-muted-foreground">دخول</div>
-              <div className="font-semibold text-sm tabular-nums">
-                {todayRecord?.first_check_in
-                  ? format(new Date(todayRecord.first_check_in), "hh:mm a")
-                  : "—"}
+          {/* Sessions Timeline — يعرض كل جلسات اليوم (دخول/خروج/مغادرة/رجوع) */}
+          {sessions.length > 0 ? (
+            <div className="bg-secondary/40 rounded-xl p-3 mb-3 space-y-2">
+              <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5">
+                <Timer className="h-3 w-3" />
+                جلسات اليوم ({sessions.length})
               </div>
+              {sessions.map((s, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex flex-col items-center">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      {s.checkOut && <div className="w-px h-3 bg-border" />}
+                      {s.checkOut && <div className="w-2 h-2 rounded-full bg-destructive" />}
+                    </div>
+                    <div className="flex flex-col leading-tight">
+                      <span className="font-medium tabular-nums text-foreground">
+                        دخول {format(new Date(s.checkIn), "hh:mm a")}
+                      </span>
+                      {s.checkOut ? (
+                        <span className="font-medium tabular-nums text-foreground">
+                          خروج {format(new Date(s.checkOut), "hh:mm a")}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-500 text-[10px] font-semibold">
+                          ● جلسة مفتوحة
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {s.checkOut && (
+                    <Badge variant="outline" className="text-[10px] tabular-nums">
+                      {fmtDuration(s.durationMs)}
+                    </Badge>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <LogOut className="h-4 w-4 mx-auto mb-1 text-destructive" />
-              <div className="text-[10px] text-muted-foreground">خروج</div>
-              <div className="font-semibold text-sm tabular-nums">
-                {todayRecord?.last_check_out
-                  ? format(new Date(todayRecord.last_check_out), "hh:mm a")
-                  : "—"}
-              </div>
+          ) : (
+            <div className="bg-secondary/50 rounded-xl p-4 text-center text-xs text-muted-foreground mb-3">
+              لم تُسجّل أي بصمة اليوم بعد
             </div>
-          </div>
+          )}
 
           {/* Elapsed time */}
           {elapsed && (

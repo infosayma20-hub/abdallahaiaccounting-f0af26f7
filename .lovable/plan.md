@@ -1,107 +1,52 @@
+# خطة: تحسين Face Recognition + إصلاح ساعات الدوام
 
-# Hardening شامل لنظام الهوية والصلاحيات
+## 1) Face Recognition فعلي (الخيار الأول)
 
-الهدف: تحويل المشكلة من "نصلحها كل مرة" إلى **النظام يمنعها من الأساس** عبر مصدر قرار واحد + قيود DB + حراسة Backend + اختبارات + Version Gate.
+- إضافة `face-api.js` (مكتبة خفيفة، ~200KB + موديل tinyFaceDetector ~190KB).
+- داخل `SelfieCapture.tsx`:
+  - تحميل موديل `tinyFaceDetector` مرة واحدة من CDN (jsdelivr).
+  - بدلاً من تايمر 2 ثانية ثابت، يفحص الفيديو كل 300ms.
+  - عند اكتشاف وجه داخل إطار الوجه لمدة 3 فحوصات متتالية → يلتقط تلقائياً.
+  - يعرض حالة: "جارٍ البحث عن وجه…" → "تم اكتشاف الوجه" (إطار أخضر) → التقاط.
+  - بعد 10 ثوان بدون اكتشاف → رسالة "لم يتم اكتشاف وجه. تأكد من الإضاءة وثبّت وجهك" مع زر "إعادة المحاولة".
+  - لا يلتقط أبداً بدون اكتشاف وجه.
+- لا تغييرات على الـ Edge Function أو RLS أو storage.
 
----
+## 2) إصلاح حساب ساعات الدوام (السبب الجذري للـ 0.1)
 
-## 1) مصدر القرار الموحّد `resolveUserAccessContext`
+**المشكلة:** الـ Edge Function يجمع كل أزواج (in/out). لو الموظف ضغط دخول/خروج عدة مرات متتالية لاختبار البصمة، كل زوج = ثوانٍ قليلة، فالمجموع 0.1 ساعة. لكن `first_check_in → last_check_out` = 5h 42m.
 
-ملف جديد: `src/lib/accessContext.ts` يستبدل المنطق المبعثر في `useRoleRedirect` / `tenantOwnerGuard` / `Dashboard` / `ChooseWorkspacePage`.
+**الحل في `supabase/functions/attendance/index.ts`:**
+- **إزالة التكرارات السريعة:** أي حدث خلال أقل من **60 ثانية** من حدث سابق من نفس النوع يُتجاهل (debounce على مستوى الحساب فقط، لا نحذف من DB).
+- **منطق الجلسات الذكي:** بعد التصفية، نزاوج in→out بالترتيب الزمني. أي in بدون out يتبعه → جلسة مفتوحة (لا تُحسب حتى check_out).
+- **حد أدنى للجلسة:** الجلسة < 60 ثانية = تُتجاهل.
+- النتيجة: التوقيت 02:31 → 20:14 يُعطي ~5.7 ساعة بدل 0.1.
 
-يرجع object واحد:
+## 3) عرض جلسات متعددة في الواجهة الرئيسية
 
-```text
-{
-  userId, companyId, accountType, roles[], permissions[],
-  isCompanyOwner, canAccessSetup, companySetupStatus,
-  defaultRoute, blockingReason?
-}
-```
+في `EmployeeHomeTab.tsx`:
+- استبدال البطاقتين الثابتتين (دخول واحد / خروج واحد) بـ **Timeline** يعرض كل أحداث اليوم:
+  ```
+  ┌─ دخول   02:31 PM
+  ├─ خروج   05:10 PM   (2س 39د)
+  ├─ دخول   06:00 PM
+  └─ خروج   08:14 PM   (2س 14د)
+  ```
+- آخر صف يحدد الحالة (داخل/خارج) → زر "تسجيل دخول/خروج".
+- إجمالي الساعات = مجموع الجلسات المغلقة.
 
-`accountType` ينحصر في: `super_admin | company_owner | company_admin | employee | sales_rep | cashier | call_center | portal_user | unlinked`.
+## 4) جواب على سؤالك حول عدم وضع الوجه
 
-قواعد الاستنتاج (بالترتيب، أول مطابقة تفوز):
-1. `super_admin` → `super_admin`.
-2. وجود سجل في `employees/pos_users/malaki_portal_users` بـ `auth_user_id = uid` نشط → النوع المقابل (employee/cashier/call_center/portal_user). **لا يصبح owner أبداً.**
-3. `profiles.invited_by IS NOT NULL AND invited_by != uid` → `company_admin` (تابع لـ owner، لا يرى Setup).
-4. لا روابط ولا invited_by، ويملك صفوف في `accounts` تحت `user_id = uid` → `company_owner`.
-5. لا روابط ولا بيانات → `unlinked` (إذا كان أول دخول حقيقي يحق له Setup) أو حسب القاعدة 3.
+بعد التطبيق: لو الشخص ما حط وجهه، **لن يتم الالتقاط نهائياً**. تظهر رسالة "لم يتم اكتشاف وجه" مع زر إعادة المحاولة. لن تُسجَّل بصمة بدون وجه ظاهر.
 
-`canAccessSetup = (accountType === 'company_owner') || permissions.includes('manage_company_setup')`. أي شيء آخر → false مع `blockingReason`.
+## الملفات المتأثرة
 
-useRoleRedirect / Dashboard / SetupPage / ProtectedRoute كلها تستهلك هذا الـ context فقط — لا قرارات محلية.
+- `src/components/employee/SelfieCapture.tsx` — face-api integration
+- `supabase/functions/attendance/index.ts` — debounce + min session
+- `src/components/employee/EmployeeHomeTab.tsx` — timeline UI
 
-## 2) حراسة قاعدة البيانات (Migration آمنة، بدون فقدان بيانات)
+## خارج النطاق
 
-- دالة جديدة `public.resolve_account_type(_uid uuid) returns text` (SECURITY DEFINER) تطبّق نفس المنطق على مستوى DB.
-- دالة `public.user_can_access_setup(_uid uuid) returns boolean` تستخدمها `setup-accounts` edge function و RLS.
-- **Trigger** على `accounts` و `companies` و أي جدول tenant-root: قبل INSERT/UPDATE، إذا `user_id` يخص سجل موجود في `employees/pos_users/malaki_portal_users` (auth_user_id) أو `profiles.invited_by NOT NULL` → ارفض مع رسالة `tenant_seed_blocked_for_subaccount`.
-- **Partial unique index** يمنع وجود أكثر من owner لنفس الشركة عن طريق الخطأ (حيث `company_id` موجود).
-- **CHECK / Trigger** على `employees.auth_user_id` يمنع وجود نفس الـ auth uid كـ owner و employee في نفس الوقت (يمنع double-identity).
-- **لا يُحذف أي صف**. كل القيود تُضاف كـ `NOT VALID` أولاً ثم `VALIDATE` بعد فحص. أي صف مخالف موجود → يُسجّل في جدول `identity_integrity_issues` للمراجعة اليدوية بدل الرفض الصامت.
-
-## 3) Backend (Edge Functions)
-
-- `setup-accounts`: ينادي `user_can_access_setup(uid)` كأول سطر؛ إذا false → 403 مع `blockingReason`. لا يعتمد على أي flag من الـ frontend.
-- أي function تنشئ بيانات tenant (companies / accounts / branches) تتحقق من نفس الدالة.
-- إضافة structured log سطر واحد لكل قرار: `{ uid, accountType, canAccessSetup, action, allowed, reason }`.
-
-## 4) Frontend
-
-- `ProtectedRoute` يستهلك `accessContext` ويعرض شاشات واضحة:
-  - `unlinked` → صفحة "حسابك غير مرتبط بشركة، تواصل مع الإدارة".
-  - `company_setup_incomplete && !canAccessSetup` → "حساب الشركة قيد التجهيز من قِبل المالك".
-- مسار `/setup`: guard مخصص `RequireSetupAccess` يعيد التوجيه إلى `defaultRoute` فوراً إذا `canAccessSetup = false` (مع toast واضح + log warning).
-- `Dashboard.tsx`: حذف منطق SetupWizard inline؛ يظهر فقط داخل `/setup` المحمي.
-- `useRoleRedirect`: يصبح Adapter رفيع فوق `accessContext` (يرجع `defaultRoute` من الـ context).
-- إزالة كل `if (count === 0) → /setup` الموزعة.
-
-## 5) Version Gate (Forced Update)
-
-ملف جديد `src/lib/versionGate.ts`:
-- يقرأ `BUILD_VERSION` (من vite define) و يقارنه بـ endpoint خفيف `/api/version` (أو Edge function `app-version`).
-- إذا أقدم → modal إجباري "يوجد تحديث، اضغط لإعادة التحميل" يمسح SW caches + localStorage الحرج ثم `location.reload(true)`.
-- يعمل قبل عرض أي شاشة auth/dashboard/setup.
-
-## 6) اختبارات (Vitest)
-
-ملف `src/lib/__tests__/accessContext.test.ts` يغطي:
-- owner + setup incomplete → `/setup`
-- owner + setup complete → `/apps`
-- employee + setup incomplete → blocking screen
-- employee + setup complete → `/employee`
-- sales_rep / cashier / call_center / portal_user → كل واحد لا يرى Setup
-- زيارة `/setup` يدوياً لـ sub-account → redirect + warning log
-- unlinked user → blocking screen
-- نسخة قديمة → version gate modal
-
-## 7) Logging / Monitoring
-
-- جدول `access_decision_logs` (اختياري، سعة محدودة) أو Console structured فقط:
-  `[access] uid=... type=... defaultRoute=... canSetup=... reason=...`
-- كل محاولة وصول لـ `/setup` من غير owner → `console.warn` + insert في `identity_integrity_issues`.
-
-## 8) خطة التنفيذ التدريجية
-
-1. Migration للقيود + الدوال الجديدة + جدول `identity_integrity_issues`.
-2. تحديث `setup-accounts` edge function.
-3. إنشاء `accessContext.ts` + tests.
-4. إعادة كتابة `useRoleRedirect` كـ adapter + تحديث `Dashboard` / `ProtectedRoute` / `/setup` guard.
-5. شاشات حالات الـ blocking.
-6. Version Gate.
-7. تنظيف الكود القديم المبعثر.
-
-## معايير القبول
-
-- مستحيل لأي employee/cashier/sales_rep/call_center/portal_user أن يرى Setup (ولو كتب الرابط يدوياً).
-- مستحيل أن يصبح sub-account مالك شركة بسبب race condition.
-- قرار التوجيه يصدر من مصدر واحد فقط.
-- DB + Backend + Frontend ثلاثتهم يرفضون نفس الخطأ.
-- Tests خضراء تغطي كل الحالات أعلاه.
-- Version Gate يجبر النسخ القديمة على التحديث.
-- صفر حذف بيانات. صفر كسر للحسابات الحالية.
-
----
-
-**ملاحظة:** الخطة كبيرة (DB + Backend + Frontend + Tests + Version Gate). إذا توافق، أنفّذها على شكل دفعات (migration أولاً للموافقة، ثم باقي الكود).
+- لا Face Matching مع صورة مرجعية (مرحلة لاحقة).
+- لا تعديل على RLS / Storage / Edge Auth.
+- لا تعديل على منطق الـ QR/GPS.

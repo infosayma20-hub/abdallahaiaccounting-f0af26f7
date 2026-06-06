@@ -485,17 +485,35 @@ Deno.serve(async (req) => {
         .order("event_time", { ascending: true });
 
       const evts = allEvents || [];
-      const firstCheckIn = evts.find(e => e.event_type === "check_in")?.event_time || null;
-      const lastCheckOut = [...evts].reverse().find(e => e.event_type === "check_out")?.event_time || null;
 
-      // Calculate total hours from paired sessions
+      // Debounce: drop events occurring within 60s of a previous same-type event
+      // (prevents accidental double-taps from inflating/deflating total_hours)
+      const DEBOUNCE_MS = 60_000;
+      const MIN_SESSION_MS = 60_000; // ignore sessions shorter than 1 minute
+      const cleaned: { event_type: string; event_time: string }[] = [];
+      for (const evt of evts) {
+        const last = cleaned[cleaned.length - 1];
+        if (last && last.event_type === evt.event_type) {
+          const gap = new Date(evt.event_time).getTime() - new Date(last.event_time).getTime();
+          if (gap < DEBOUNCE_MS) continue; // duplicate same-type within 60s → skip
+        }
+        cleaned.push(evt);
+      }
+
+      const firstCheckIn = cleaned.find(e => e.event_type === "check_in")?.event_time || null;
+      const lastCheckOut = [...cleaned].reverse().find(e => e.event_type === "check_out")?.event_time || null;
+
+      // Pair check_in → check_out, ignore sessions shorter than MIN_SESSION_MS
       let totalHours = 0;
       let sessionStart: string | null = null;
-      for (const evt of evts) {
+      for (const evt of cleaned) {
         if (evt.event_type === "check_in") {
           sessionStart = evt.event_time;
         } else if (evt.event_type === "check_out" && sessionStart) {
-          totalHours += (new Date(evt.event_time).getTime() - new Date(sessionStart).getTime()) / 3600000;
+          const durMs = new Date(evt.event_time).getTime() - new Date(sessionStart).getTime();
+          if (durMs >= MIN_SESSION_MS) {
+            totalHours += durMs / 3600000;
+          }
           sessionStart = null;
         }
       }
