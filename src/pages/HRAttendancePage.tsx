@@ -910,6 +910,44 @@ export default function HRAttendancePage() {
 
   const openHistory = async (r: AttendanceRecord) => {
     setHistoryRecord(r); setHistoryEvents([]);
+    return openHistoryImpl(r);
+  };
+
+  const viewSelfie = async (eventId: string) => {
+    setSelfieLoading(true);
+    setSelfieUrl(null);
+    setSelfieCapturedAt(null);
+    try {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/get-attendance-selfie-url`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ event_id: eventId }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "تعذر عرض الصورة", description: data.error || "خطأ", variant: "destructive" });
+        return;
+      }
+      setSelfieUrl(data.url);
+      setSelfieCapturedAt(data.captured_at);
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e.message, variant: "destructive" });
+    } finally {
+      setSelfieLoading(false);
+    }
+  };
+
+  const openHistoryImpl = async (r: AttendanceRecord) => {
     const { data } = await supabase
       .from("attendance_events")
       .select("id, event_type, event_time, branch_id, notes, status")
