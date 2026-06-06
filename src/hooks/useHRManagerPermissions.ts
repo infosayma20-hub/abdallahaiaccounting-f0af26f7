@@ -87,7 +87,10 @@ export function useHRManagerPermissions() {
           .select("role")
           .eq("user_id", user.id);
         const roleList = (roles || []).map((r) => r.role);
-        const admin = roleList.length === 0 || roleList.includes("admin") || roleList.includes("super_admin");
+        // SECURITY: empty roles must NOT be treated as admin. Without an
+        // explicit `admin`/`super_admin` row the user gets no HR-admin
+        // privileges; UI then falls back to per-feature permission checks.
+        const admin = roleList.includes("admin") || roleList.includes("super_admin");
         const hrManager = roleList.includes("hr_manager");
 
         if (cancelled) return;
