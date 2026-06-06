@@ -453,6 +453,24 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
             <p className="text-sm text-muted-foreground">جاري التحقق من البصمة...</p>
           </div>
         )}
+
+        {/* Fallback: prevents a fully blank screen if upfront-selfie is required
+            but the selfie wasn't captured yet (e.g. user dismissed iOS dialog). */}
+        {!result && !processing && !awaitingSelfieGesture && !checkingBranch && !selfieOpen
+          && upfrontSelfieRequired === true && !prefetchedSelfie && (
+          <div className="rounded-3xl p-6 text-center space-y-5 w-full max-w-xs bg-primary/5 border border-primary/20">
+            <Camera className="h-10 w-10 text-primary mx-auto" />
+            <p className="font-bold text-base">يجب التقاط صورة التحقق أولاً</p>
+            <Button size="lg" className="w-full h-14 rounded-xl text-base font-bold"
+              onClick={openSelfieFromGesture}>
+              افتح الكاميرا الأمامية
+            </Button>
+            <Button variant="ghost" className="w-full rounded-xl"
+              onClick={() => onOpenChange(false)}>
+              إلغاء
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
