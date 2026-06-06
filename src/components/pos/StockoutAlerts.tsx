@@ -235,14 +235,21 @@ export function StockoutAlertButton({
           {myActive.length > 0 && (
             <div className="rounded-md border bg-amber-50 p-2 text-xs space-y-1">
               <div className="font-semibold text-amber-900">تنبيهات نشطة من هذا الفرع:</div>
-              {myActive.map(a => (
+              {myActive.map(a => {
+                const name =
+                  a.custom_label ||
+                  (a.product_id ? products.find(p => p.id === a.product_id)?.name : null) ||
+                  (a.modifier_option_id ? mods.find(m => m.id === a.modifier_option_id)?.name : null) ||
+                  "تنبيه";
+                return (
                 <div key={a.id} className="flex items-center justify-between gap-2">
-                  <span>• {a.custom_label || a.product_id || a.modifier_option_id}</span>
+                  <span>• {name}</span>
                   <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-amber-700" onClick={() => resolve(a.id)}>
                     <X className="w-3 h-3 ml-1" /> إلغاء التنبيه
                   </Button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
