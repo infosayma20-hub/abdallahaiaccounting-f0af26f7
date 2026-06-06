@@ -348,7 +348,7 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick, 
       onClick={onClick}
       className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap border select-none ${
         isSortMode ? "ring-1 ring-amber-400/50" : ""
-      } ${!isActive && !posDark ? "hover:bg-[#eff6ff] hover:border-[#93c5fd]" : ""} ${!isActive && posDark ? "hover:bg-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.2)] hover:text-white" : ""}`}
+      } ${!isActive && !isSortMode ? "hover:!border-[#3b82f6] hover:!shadow-[0_0_0_3px_#eff6ff]" : ""} ${!isActive && posDark && !isSortMode ? "hover:text-white" : ""}`}
       style={{ ...cardStyle, minWidth: 80, height: 40, padding: "4px 14px" }}
     >
       {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
