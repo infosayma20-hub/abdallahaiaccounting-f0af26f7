@@ -253,6 +253,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             employeeName={employee.full_name}
             todayRecord={todayRecord}
             todayEvents={todayEvents}
+            recentEvents={recentEvents}
             history={history}
             onScanTap={() => handleNavigate("scan")}
             onNavigate={(tab) => setActiveTab(tab as Tab)}
