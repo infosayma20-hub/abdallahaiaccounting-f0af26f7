@@ -5448,6 +5448,66 @@ export type Database = {
           },
         ]
       }
+      employee_device_alerts: {
+        Row: {
+          auth_user_id: string
+          branch_id: string | null
+          company_id: string
+          created_at: string
+          device_fingerprint: string
+          employee_id: string
+          event_time: string
+          event_type: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          branch_id?: string | null
+          company_id: string
+          created_at?: string
+          device_fingerprint: string
+          employee_id: string
+          event_time?: string
+          event_type?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string
+          device_fingerprint?: string
+          employee_id?: string
+          event_time?: string
+          event_type?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_device_alerts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_device_alerts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_financial_movements: {
         Row: {
           amount: number
@@ -6070,6 +6130,63 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      employee_trusted_devices: {
+        Row: {
+          auth_user_id: string
+          company_id: string
+          created_at: string
+          device_fingerprint: string
+          employee_id: string
+          first_seen_at: string
+          id: string
+          label: string | null
+          last_seen_at: string
+          trusted: boolean
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          company_id: string
+          created_at?: string
+          device_fingerprint: string
+          employee_id: string
+          first_seen_at?: string
+          id?: string
+          label?: string | null
+          last_seen_at?: string
+          trusted?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          company_id?: string
+          created_at?: string
+          device_fingerprint?: string
+          employee_id?: string
+          first_seen_at?: string
+          id?: string
+          label?: string | null
+          last_seen_at?: string
+          trusted?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_trusted_devices_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_trusted_devices_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employees: {
         Row: {
