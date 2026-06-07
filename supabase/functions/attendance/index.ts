@@ -150,9 +150,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 2.0 Selfie requirement check (only for checkin/checkout, not breaks)
+      // 2.0 Selfie requirement check — مطلوب فقط عند تسجيل الدخول.
+      // الخروج يكتفي بمسح QR (قرار سياسي للتسريع وتفادي مشاكل الكاميرا الأمامية).
       const selfieRequired = !!branch.require_attendance_selfie &&
-        (bodyAction === "checkin" || bodyAction === "checkout");
+        bodyAction === "checkin";
       if (selfieRequired) {
         if (!selfie_base64 || typeof selfie_base64 !== "string" || selfie_base64.length < 1000) {
           return new Response(
