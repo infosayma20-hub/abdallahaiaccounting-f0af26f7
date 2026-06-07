@@ -1,0 +1,1 @@
+UPDATE public.branches SET require_gps = false WHERE require_gps = true;
