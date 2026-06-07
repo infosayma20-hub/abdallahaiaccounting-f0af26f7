@@ -294,7 +294,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-4">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-4 relative">
         {/* Awaiting user gesture to open front camera (iOS Safari requirement) */}
         {awaitingSelfieGesture && !result && !processing && (
           <div className="rounded-3xl p-6 text-center space-y-5 w-full max-w-xs bg-primary/5 border border-primary/20">
