@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Camera, Keyboard, Loader2, MapPin, CheckCircle2, XCircle, X } from "lucide-react";
+import { Camera, Keyboard, Loader2, CheckCircle2, XCircle, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
