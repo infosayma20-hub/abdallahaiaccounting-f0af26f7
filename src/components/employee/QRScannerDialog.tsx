@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Camera, Keyboard, Loader2, MapPin, CheckCircle2, XCircle, X } from "lucide-react";
+import { Camera, Keyboard, Loader2, CheckCircle2, XCircle, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -147,17 +147,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       // إذا التقطنا السلفي مسبقاً لنفس الفرع، استخدمها مباشرة.
       if (prefetchedSelfie && prefetchedSelfie.branchId === branchId) {
         await stopScanner();
-        let lat = 0, lng = 0;
-        try {
-          const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true, timeout: 15000,
-            })
-          );
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        } catch {}
-        await submitAttendance(branchId, token, lat, lng, prefetchedSelfie.base64);
+        // GPS معطّل عالمياً لكل الفروع — لا نطلب الموقع أبداً (تجنّب تعليق Safari/iOS عند رفض الإذن).
+        await submitAttendance(branchId, token, 0, 0, prefetchedSelfie.base64);
         return;
       }
 
@@ -178,23 +169,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         return;
       }
 
-      // الفرع لا يتطلب سيلفي — كمل بـ GPS ثم attendance كالمعتاد.
-      let lat = 0, lng = 0;
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, timeout: 15000,
-          })
-        );
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } catch (geoErr) {
-        console.warn("Geolocation failed, proceeding without location:", geoErr);
-        lat = 0;
-        lng = 0;
-      }
-
-      await submitAttendance(branchId, token, lat, lng, null);
+      // GPS معطّل — لا نطلب الموقع.
+      await submitAttendance(branchId, token, 0, 0, null);
     } catch (e: any) {
       setResult({ success: false, message: e.message });
       setProcessing(false);
@@ -276,23 +252,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     if (!pendingScan) return;
     const scan = pendingScan;
     setPendingScan(null);
-    // الآن نأخذ GPS بعد التقاط السيلفي بنجاح (إذا لم يكن متوفراً).
-    let lat = scan.lat;
-    let lng = scan.lng;
-    if (!lat && !lng) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, timeout: 15000,
-          })
-        );
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } catch {
-        // السيرفر يقرر حسب require_gps
-      }
-    }
-    await submitAttendance(scan.branchId, scan.token, lat, lng, base64);
+    // GPS معطّل — لا نطلب الموقع.
+    await submitAttendance(scan.branchId, scan.token, 0, 0, base64);
   };
 
   const handleSelfieCancel = () => {
@@ -333,7 +294,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-4">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-4 relative">
         {/* Awaiting user gesture to open front camera (iOS Safari requirement) */}
         {awaitingSelfieGesture && !result && !processing && (
           <div className="rounded-3xl p-6 text-center space-y-5 w-full max-w-xs bg-primary/5 border border-primary/20">
@@ -448,9 +409,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         )}
 
         {processing && (
-          <div className="flex flex-col items-center justify-center py-8 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">جاري التحقق من البصمة...</p>
+          <div className="absolute inset-0 z-[120] bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground font-medium">جاري التحقق من البصمة...</p>
           </div>
         )}
 
@@ -475,8 +436,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground px-4 py-3">
-        <MapPin className="h-3 w-3 shrink-0" />
-        <span>سيتم التحقق من موقعك الجغرافي تلقائياً</span>
+        <Camera className="h-3 w-3 shrink-0" />
+        <span>سيتم التحقق من فرعك تلقائياً</span>
       </div>
     </div>
     <SelfieCapture
