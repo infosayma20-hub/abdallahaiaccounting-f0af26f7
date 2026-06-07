@@ -82,7 +82,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
           .eq("id", employeeBranchId)
           .maybeSingle();
         if (cancelled) return;
-        const req = !!data?.require_attendance_selfie;
+        // السلفي مطلوب فقط عند تسجيل الدخول. الخروج يكتفي بمسح QR.
+        const req = !!data?.require_attendance_selfie && action === "checkin";
         setUpfrontSelfieRequired(req);
         if (req) setAwaitingSelfieGesture(true);
       } catch {
@@ -159,7 +160,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         .eq("id", branchId)
         .maybeSingle();
 
-      if (branchRow?.require_attendance_selfie && (action === "checkin" || action === "checkout")) {
+      if (branchRow?.require_attendance_selfie && action === "checkin") {
         // أوقف ماسح QR تماماً قبل أي محاولة لفتح الكاميرا الأمامية (iOS لا يسمح بـ stream مزدوج).
         await stopScanner();
         setPendingScan({ branchId, token, lat: 0, lng: 0 });
