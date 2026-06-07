@@ -409,9 +409,9 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         )}
 
         {processing && (
-          <div className="flex flex-col items-center justify-center py-8 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">جاري التحقق من البصمة...</p>
+          <div className="absolute inset-0 z-[120] bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground font-medium">جاري التحقق من البصمة...</p>
           </div>
         )}
 
