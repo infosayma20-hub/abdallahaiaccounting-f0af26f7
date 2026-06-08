@@ -40,7 +40,7 @@ export const SignupEmail = ({
           <Heading style={h1}>أهلاً بك في {siteName}!</Heading>
           <Text style={text}>
             شكراً لتسجيلك في أموالي.<br />
-            لإكمال إنشاء حسابك ({recipient})، أدخل رمز التحقق التالي في صفحة التأكيد:
+            لإكمال إنشاء حسابك ({recipient})، أدخل رمز التحقق التالي كاملاً في صفحة التأكيد:
           </Text>
 
           <Section style={codeWrap}>
@@ -75,7 +75,7 @@ const body = { padding: '32px 28px', backgroundColor: '#ffffff' }
 const h1 = { color: '#0D1B2E', fontSize: '20px', fontWeight: 'bold' as const, margin: '0 0 16px' }
 const text = { color: '#374151', fontSize: '15px', lineHeight: '1.8', margin: '0 0 24px' }
 const codeWrap = { textAlign: 'center' as const, margin: '24px 0 8px', padding: '20px', backgroundColor: '#F7F8FA', borderRadius: '12px', border: '1px dashed #0D1B2E' }
-const codeStyle = { color: '#0D1B2E', fontSize: '38px', fontWeight: 'bold' as const, letterSpacing: '12px', margin: 0, fontFamily: 'Consolas, Menlo, monospace' }
+const codeStyle = { color: '#0D1B2E', fontSize: '32px', fontWeight: 'bold' as const, letterSpacing: '8px', margin: 0, fontFamily: 'Consolas, Menlo, monospace' }
 const codeHint = { color: '#6b7280', fontSize: '12px', margin: '8px 0 0' }
 const footerNote = { color: '#6b7280', fontSize: '13px', lineHeight: '1.8', margin: '24px 0 0' }
 const footer = { backgroundColor: '#0D1B2E', padding: '16px 24px', textAlign: 'center' as const }
