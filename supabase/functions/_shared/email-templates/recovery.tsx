@@ -4,7 +4,6 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -17,11 +16,12 @@ import {
 interface RecoveryEmailProps {
   siteName: string
   confirmationUrl: string
+  token?: string
 }
 
 export const RecoveryEmail = ({
   siteName,
-  confirmationUrl,
+  token,
 }: RecoveryEmailProps) => (
   <Html lang="ar" dir="rtl">
     <Head />
@@ -38,19 +38,17 @@ export const RecoveryEmail = ({
           <Text style={text}>
             مرحباً،<br />
             تلقّينا طلباً لإعادة تعيين كلمة المرور لحسابك في {siteName}.<br />
-            اضغط على الزر أدناه لإنشاء كلمة مرور جديدة.
+            أدخل رمز التحقق التالي في صفحة إعادة التعيين لإنشاء كلمة مرور جديدة:
           </Text>
 
-          <Section style={buttonWrap}>
-            <Button style={button} href={confirmationUrl}>
-              إعادة تعيين كلمة المرور
-            </Button>
+          <Section style={codeWrap}>
+            <Text style={codeStyle}>{token || '------'}</Text>
+            <Text style={codeHint}>صالح لمدة ساعة واحدة فقط</Text>
           </Section>
 
           <Text style={footerNote}>
-            هذا الرابط صالح لمدة <strong>ساعة واحدة</strong> فقط.<br />
             إذا لم تطلب إعادة التعيين، تجاهل هذا الإيميل — حسابك بأمان.<br />
-            لا تشارك هذا الرابط مع أحد.
+            لا تشارك هذا الرمز مع أحد — فريق أموالي لن يطلبه منك أبداً.
           </Text>
         </Section>
 
@@ -113,19 +111,26 @@ const text = {
   lineHeight: '1.8',
   margin: '0 0 24px',
 }
-const buttonWrap = {
+const codeWrap = {
   textAlign: 'center' as const,
-  margin: '32px 0',
+  margin: '24px 0 8px',
+  padding: '20px',
+  backgroundColor: '#F7F8FA',
+  borderRadius: '12px',
+  border: '1px dashed #0D1B2E',
 }
-const button = {
-  backgroundColor: '#0D1B2E',
-  color: '#ffffff',
-  padding: '14px 36px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  fontSize: '15px',
+const codeStyle = {
+  color: '#0D1B2E',
+  fontSize: '38px',
   fontWeight: 'bold' as const,
-  display: 'inline-block',
+  letterSpacing: '12px',
+  margin: 0,
+  fontFamily: 'Consolas, Menlo, monospace',
+}
+const codeHint = {
+  color: '#6b7280',
+  fontSize: '12px',
+  margin: '8px 0 0',
 }
 const footerNote = {
   color: '#6b7280',
