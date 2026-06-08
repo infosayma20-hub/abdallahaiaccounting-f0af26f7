@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, ArrowRight } from "lucide-react";
 import amwaliLogoFull from "@/assets/amwali-logo-tall.png";
+import { resolvePostSignupDestination } from "@/lib/authRedirect";
 
 type VerifyType = "signup" | "recovery";
 
@@ -51,7 +52,16 @@ const AuthVerifyPage = () => {
         navigate("/reset-password?force=1", { replace: true });
       } else {
         toast({ title: "تم تأكيد حسابك ✅", description: "أهلاً بك في أموالي" });
-        navigate("/onboarding", { replace: true });
+        const uid = data.user?.id || data.session?.user?.id;
+        let dest = "/onboarding";
+        if (uid) {
+          try {
+            dest = await resolvePostSignupDestination(uid);
+          } catch {
+            dest = "/onboarding";
+          }
+        }
+        navigate(dest, { replace: true });
       }
     } catch (err: any) {
       toast({
