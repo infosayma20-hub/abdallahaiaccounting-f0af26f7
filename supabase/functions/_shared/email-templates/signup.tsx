@@ -4,7 +4,6 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -19,12 +18,13 @@ interface SignupEmailProps {
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 export const SignupEmail = ({
   siteName,
   recipient,
-  confirmationUrl,
+  token,
 }: SignupEmailProps) => (
   <Html lang="ar" dir="rtl">
     <Head />
@@ -40,17 +40,17 @@ export const SignupEmail = ({
           <Heading style={h1}>أهلاً بك في {siteName}!</Heading>
           <Text style={text}>
             شكراً لتسجيلك في أموالي.<br />
-            لإكمال إنشاء حسابك ({recipient})، يرجى تأكيد بريدك الإلكتروني بالضغط على الزر أدناه:
+            لإكمال إنشاء حسابك ({recipient})، أدخل رمز التحقق التالي في صفحة التأكيد:
           </Text>
 
-          <Section style={buttonWrap}>
-            <Button style={button} href={confirmationUrl}>
-              تأكيد البريد الإلكتروني
-            </Button>
+          <Section style={codeWrap}>
+            <Text style={codeStyle}>{token || '------'}</Text>
+            <Text style={codeHint}>صالح لمدة ساعة واحدة فقط</Text>
           </Section>
 
           <Text style={footerNote}>
-            إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا الإيميل بأمان.
+            إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا الإيميل بأمان.<br />
+            لا تشارك هذا الرمز مع أي شخص — فريق أموالي لن يطلبه منك أبداً.
           </Text>
         </Section>
 
@@ -74,8 +74,9 @@ const tagline = { color: '#a0b0d0', margin: '6px 0 0', fontSize: '13px' }
 const body = { padding: '32px 28px', backgroundColor: '#ffffff' }
 const h1 = { color: '#0D1B2E', fontSize: '20px', fontWeight: 'bold' as const, margin: '0 0 16px' }
 const text = { color: '#374151', fontSize: '15px', lineHeight: '1.8', margin: '0 0 24px' }
-const buttonWrap = { textAlign: 'center' as const, margin: '32px 0' }
-const button = { backgroundColor: '#0D1B2E', color: '#ffffff', padding: '14px 36px', borderRadius: '8px', textDecoration: 'none', fontSize: '15px', fontWeight: 'bold' as const, display: 'inline-block' }
+const codeWrap = { textAlign: 'center' as const, margin: '24px 0 8px', padding: '20px', backgroundColor: '#F7F8FA', borderRadius: '12px', border: '1px dashed #0D1B2E' }
+const codeStyle = { color: '#0D1B2E', fontSize: '38px', fontWeight: 'bold' as const, letterSpacing: '12px', margin: 0, fontFamily: 'Consolas, Menlo, monospace' }
+const codeHint = { color: '#6b7280', fontSize: '12px', margin: '8px 0 0' }
 const footerNote = { color: '#6b7280', fontSize: '13px', lineHeight: '1.8', margin: '24px 0 0' }
 const footer = { backgroundColor: '#0D1B2E', padding: '16px 24px', textAlign: 'center' as const }
 const footerText = { color: '#a0b0d0', margin: 0, fontSize: '12px' }
