@@ -121,9 +121,9 @@ const codeWrap = {
 }
 const codeStyle = {
   color: '#0D1B2E',
-  fontSize: '38px',
+  fontSize: '32px',
   fontWeight: 'bold' as const,
-  letterSpacing: '12px',
+  letterSpacing: '8px',
   margin: 0,
   fontFamily: 'Consolas, Menlo, monospace',
 }
