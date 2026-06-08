@@ -103,7 +103,7 @@ const OnboardingPage = () => {
   const nextStep = async () => {
     if (step === 1) {
       const trimmedCompanyName = companyName.trim();
-      if (!trimmedCompanyName) { toast.error("أدخل اسم الشركة"); return; }
+      if (!trimmedCompanyName) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
 
       await saveProgress({ company_name: trimmedCompanyName }, 1);
 
@@ -122,8 +122,14 @@ const OnboardingPage = () => {
         ]);
       }
     }
-    if (step === 2) await saveProgress({ business_type: selectedTypes.join(",") }, 2);
-    if (step === 3) await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3);
+    if (step === 2) {
+      if (selectedTypes.length === 0) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
+      await saveProgress({ business_type: selectedTypes.join(",") }, 2);
+    }
+    if (step === 3) {
+      if (!industry.trim()) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
+      await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3);
+    }
     if (step === 4) await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4);
     if (step === 5) await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5);
 
@@ -134,7 +140,30 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     await saveProgress({ onboarding_completed: true }, 6);
-    if (user?.id) clearOnboardingStatusCache(user.id);
+    // (C) Sync user_onboarding so WelcomeModal + SpotlightTour appear once
+    // for the freshly-onboarded owner, then never again.
+    if (user?.id) {
+      try {
+        await supabase
+          .from("user_onboarding")
+          .upsert(
+            {
+              user_id: user.id,
+              welcome_modal_shown: false,
+              full_tour_completed: false,
+              full_tour_skipped: false,
+              dont_show_again: false,
+              modules_toured: [],
+              module_first_visits: {},
+            },
+            { onConflict: "user_id" }
+          );
+        sessionStorage.removeItem("welcome_modal_shown");
+      } catch (err) {
+        console.warn("[finishOnboarding] user_onboarding sync failed:", err);
+      }
+      clearOnboardingStatusCache(user.id);
+    }
     toast.success("أهلاً بك في AMWALI أموالي! 🎉");
     navigate("/apps");
   };
