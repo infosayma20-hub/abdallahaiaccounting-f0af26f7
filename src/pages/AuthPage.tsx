@@ -28,11 +28,31 @@ const AuthPage = () => {
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
 
   useEffect(() => {
     setSupportsPasskeys(browserSupportsWebAuthn());
     const stored = localStorage.getItem("passkey_email");
     if (stored) setSavedEmail(stored);
+  }, []);
+
+  // التقاط الروابط القديمة (one-time link منتهي/مستهلك) وتحويلها لمسار الكود.
+  useEffect(() => {
+    const err = searchParams.get("error_code") || searchParams.get("error");
+    const type = searchParams.get("type");
+    const hash = window.location.hash || "";
+    const isExpired = err && /otp_expired|access_denied|invalid|expired/i.test(err);
+    const isLegacyVerify = hash.includes("type=signup") || hash.includes("type=recovery") || type === "signup" || type === "recovery";
+    if (isExpired || isLegacyVerify) {
+      const t = (type === "recovery" || hash.includes("type=recovery")) ? "recovery" : "signup";
+      toast({
+        title: "الرابط لم يعد صالحاً",
+        description: "استخدم رمز التحقق المُرسل إلى بريدك أو اطلب رمزاً جديداً.",
+      });
+      const e = (searchParams.get("email") || "").trim().toLowerCase();
+      navigate(`/auth/verify?type=${t}${e ? `&email=${encodeURIComponent(e)}` : ""}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resolveRedirect = useCallback(async (userId: string): Promise<string> => {
@@ -172,6 +192,10 @@ const AuthPage = () => {
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
+          // إذا الإيميل غير مؤكد، اعرض مسار حل واضح بدل رسالة جافة.
+          if (/not confirmed|email.*confirm/i.test(error.message)) {
+            setUnconfirmedEmail(email.trim().toLowerCase());
+          }
           // سجّل محاولة الدخول الفاشلة
           try {
             await supabase.functions.invoke("log-security-event", {
@@ -576,8 +600,41 @@ const AuthPage = () => {
                 onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة على البريد"}
+                {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رمز التحقق على البريد"}
               </button>
+
+              {mode === "login" && unconfirmedEmail && (
+                <div className="rounded-xl p-3 text-xs space-y-2" style={{ background: '#FFF7E6', border: '1px solid #F5D38A', color: '#7A4A00', fontFamily: 'Tajawal' }}>
+                  <p>هذا البريد لم يتم تأكيده بعد. أكمل التحقق بإدخال الرمز المُرسل لبريدك.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/auth/verify?type=signup&email=${encodeURIComponent(unconfirmedEmail)}`)}
+                      className="px-3 py-1.5 rounded-lg text-xs"
+                      style={{ background: '#0D1B2E', color: '#FFFFFF', fontWeight: 400 }}
+                    >
+                      إدخال رمز التحقق
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.auth.resend({ type: "signup", email: unconfirmedEmail });
+                          if (error) throw error;
+                          toast({ title: "تم إرسال رمز جديد ✅", description: `تحقق من بريد ${unconfirmedEmail}` });
+                          navigate(`/auth/verify?type=signup&email=${encodeURIComponent(unconfirmedEmail)}`);
+                        } catch (err: any) {
+                          toast({ title: "تعذّر الإرسال", description: err.message, variant: "destructive" });
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs"
+                      style={{ background: '#FFFFFF', color: '#0D1B2E', border: '1px solid #0D1B2E', fontWeight: 400 }}
+                    >
+                      إعادة إرسال الرمز
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {mode === "forgot" && (
                 <button
