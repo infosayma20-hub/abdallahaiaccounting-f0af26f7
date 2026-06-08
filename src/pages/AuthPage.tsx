@@ -192,6 +192,10 @@ const AuthPage = () => {
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
+          // إذا الإيميل غير مؤكد، اعرض مسار حل واضح بدل رسالة جافة.
+          if (/not confirmed|email.*confirm/i.test(error.message)) {
+            setUnconfirmedEmail(email.trim().toLowerCase());
+          }
           // سجّل محاولة الدخول الفاشلة
           try {
             await supabase.functions.invoke("log-security-event", {
