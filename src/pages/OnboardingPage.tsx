@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Search } from "lucide-react";
 import { toast } from "sonner";
+import { clearOnboardingStatusCache } from "@/components/auth/OnboardingGate";
 
 const TOTAL_STEPS = 6;
 
@@ -133,6 +134,7 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     await saveProgress({ onboarding_completed: true }, 6);
+    if (user?.id) clearOnboardingStatusCache(user.id);
     toast.success("أهلاً بك في AMWALI أموالي! 🎉");
     navigate("/apps");
   };

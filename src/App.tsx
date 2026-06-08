@@ -19,6 +19,7 @@ import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
+import { OnboardingGate } from "@/components/auth/OnboardingGate";
 import HRPermGuard from "./components/HRPermGuard";
 import HRShell from "./components/hr/HRShell";
 import InvoicesPage from "./pages/InvoicesPage";
@@ -466,7 +467,7 @@ const App = () => (
               <Route path="/portal/dashboard" element={<PortalDashboard />} />
               <Route path="/malaki" element={<Navigate to="/auth" replace />} />
               <Route path="/malaki/dashboard" element={<Navigate to="/portal/dashboard" replace />} />
-              <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+              <Route path="/onboarding" element={<ProtectedRoute><OnboardingGate><OnboardingPage /></OnboardingGate></ProtectedRoute>} />
               <Route path="/setup" element={<ProtectedRoute><RequireSetupAccess><SetupPage /></RequireSetupAccess></ProtectedRoute>} />
               <Route path="/blocked/:reason" element={<BlockedAccessPage />} />
               <Route path="/device-setup" element={<ProtectedRoute><DeviceSetupGuard><DeviceSetupPage /></DeviceSetupGuard></ProtectedRoute>} />
@@ -502,6 +503,7 @@ const App = () => (
               />
               <Route path="/*" element={
                 <ProtectedRoute blockCashier blockStoreTracker blockSalesRep>
+                  <OnboardingGate>
                   <WebLayout>
                     <Suspense fallback={<AuthCheckSpinner />}>
                     <Routes>
@@ -785,6 +787,7 @@ const App = () => (
                     </Routes>
                     </Suspense>
                   </WebLayout>
+                  </OnboardingGate>
                 </ProtectedRoute>
               } />
             </Routes>
