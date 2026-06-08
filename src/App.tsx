@@ -786,6 +786,7 @@ const App = () => (
                     </Routes>
                     </Suspense>
                   </WebLayout>
+                  </OnboardingGate>
                 </ProtectedRoute>
               } />
             </Routes>
