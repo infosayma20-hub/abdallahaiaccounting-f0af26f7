@@ -46,20 +46,10 @@ const goalChips = [
   "تنظيم حسابات عملائي", "تحليل أداء العمل",
 ];
 
-const appTourCards = [
-  { emoji: "🤖", name: "المحاسب الذكي", desc: "محاسب شخصي بالذكاء الاصطناعي يفهم العربية ويساعدك في القيود والتحليلات", features: ["إدخال معاملات بالصوت والنص", "تحليل مالي فوري", "نصائح مخصصة لعملك"], gradient: "from-[#0D1B2A] to-[#1E3A5F]" },
-  { emoji: "📊", name: "لوحة المعلومات", desc: "نظرة شاملة على وضعك المالي بلمحة واحدة", features: ["مؤشرات أداء لحظية", "رسوم بيانية تفاعلية", "تنبيهات ذكية"], gradient: "from-[#1E3A5F] to-[#0D1B2A]" },
-  { emoji: "🛍️", name: "المبيعات ونقطة البيع", desc: "نظام متكامل لإدارة المبيعات ونقاط البيع", features: ["فواتير احترافية", "نقطة بيع POS", "تتبع المدفوعات"], gradient: "from-[#E8A020] to-[#C9870A]" },
-  { emoji: "📈", name: "التقارير المالية", desc: "أكثر من 63 تقرير مالي وإداري", features: ["قائمة الدخل والميزانية", "تقارير الشيكات والأعمار", "تصدير Excel و PDF"], gradient: "from-emerald-600 to-emerald-500" },
-  { emoji: "📦", name: "المخزون", desc: "إدارة كاملة للمنتجات والحركات", features: ["تتبع الكميات لحظياً", "تنبيهات نفاد المخزون", "تقييم المخزون"], gradient: "from-teal-600 to-teal-500" },
-  { emoji: "👥", name: "الموارد البشرية", desc: "إدارة شاملة للموظفين والحضور", features: ["حضور بـ QR", "كشف رواتب آلي", "إدارة الإجازات"], gradient: "from-violet-600 to-violet-500" },
-];
-
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [tourIndex, setTourIndex] = useState(0);
 
   // Form state
   const [companyName, setCompanyName] = useState("");
