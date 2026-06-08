@@ -40,7 +40,7 @@ export const SignupEmail = ({
           <Heading style={h1}>أهلاً بك في {siteName}!</Heading>
           <Text style={text}>
             شكراً لتسجيلك في أموالي.<br />
-            لإكمال إنشاء حسابك ({recipient})، أدخل رمز التحقق التالي في صفحة التأكيد:
+            لإكمال إنشاء حسابك ({recipient})، أدخل رمز التحقق التالي كاملاً في صفحة التأكيد:
           </Text>
 
           <Section style={codeWrap}>
