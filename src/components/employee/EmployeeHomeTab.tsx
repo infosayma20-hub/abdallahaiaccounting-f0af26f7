@@ -9,6 +9,7 @@ import {
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
+import { getOpenAttendanceSession } from "@/lib/attendance-session";
 
 type AttendanceDay = {
   id: string;
@@ -62,8 +63,9 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
 
   // Multi check-in/out: use events to determine current state
   const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
-  const canCheckIn = !lastEvent || lastEvent.event_type === "check_out";
-  const canCheckOut = !!lastEvent && lastEvent.event_type === "check_in";
+  const openSession = getOpenAttendanceSession(recentEvents.length ? recentEvents : todayEvents);
+  const canCheckIn = !openSession && (!lastEvent || lastEvent.event_type === "check_out");
+  const canCheckOut = !!openSession;
   const dayComplete = !!(todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2);
   const status = todayRecord ? statusMap[todayRecord.status] || null : null;
 
