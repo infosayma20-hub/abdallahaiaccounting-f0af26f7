@@ -103,7 +103,7 @@ const OnboardingPage = () => {
   const nextStep = async () => {
     if (step === 1) {
       const trimmedCompanyName = companyName.trim();
-      if (!trimmedCompanyName) { toast.error("أدخل اسم الشركة"); return; }
+      if (!trimmedCompanyName) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
 
       await saveProgress({ company_name: trimmedCompanyName }, 1);
 
@@ -122,8 +122,14 @@ const OnboardingPage = () => {
         ]);
       }
     }
-    if (step === 2) await saveProgress({ business_type: selectedTypes.join(",") }, 2);
-    if (step === 3) await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3);
+    if (step === 2) {
+      if (selectedTypes.length === 0) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
+      await saveProgress({ business_type: selectedTypes.join(",") }, 2);
+    }
+    if (step === 3) {
+      if (!industry.trim()) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
+      await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3);
+    }
     if (step === 4) await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4);
     if (step === 5) await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5);
 
@@ -134,7 +140,30 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     await saveProgress({ onboarding_completed: true }, 6);
-    if (user?.id) clearOnboardingStatusCache(user.id);
+    // (C) Sync user_onboarding so WelcomeModal + SpotlightTour appear once
+    // for the freshly-onboarded owner, then never again.
+    if (user?.id) {
+      try {
+        await supabase
+          .from("user_onboarding")
+          .upsert(
+            {
+              user_id: user.id,
+              welcome_modal_shown: false,
+              full_tour_completed: false,
+              full_tour_skipped: false,
+              dont_show_again: false,
+              modules_toured: [],
+              module_first_visits: {},
+            },
+            { onConflict: "user_id" }
+          );
+        sessionStorage.removeItem("welcome_modal_shown");
+      } catch (err) {
+        console.warn("[finishOnboarding] user_onboarding sync failed:", err);
+      }
+      clearOnboardingStatusCache(user.id);
+    }
     toast.success("أهلاً بك في AMWALI أموالي! 🎉");
     navigate("/apps");
   };
@@ -173,6 +202,7 @@ const OnboardingPage = () => {
                 <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
                   لنبدأ بالتعرف على عملك لكي يقدم لك المحاسب الذكي تحليلات مخصصة لك تماماً
                 </p>
+                <label className="block text-xs text-gray-500 mb-2">اسم الشركة <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={companyName}
@@ -180,13 +210,14 @@ const OnboardingPage = () => {
                   placeholder="مثال: شركة الأمل للتجارة"
                   className="w-full max-w-md mx-auto h-[52px] px-5 rounded-2xl border-2 border-gray-200 focus:border-[#0A2342] outline-none text-lg text-center"
                 />
+                <p className="text-[11px] text-gray-400 mt-2">هذا الحقل مطلوب للمتابعة</p>
               </div>
             )}
 
             {/* Step 2: Business Type */}
             {step === 2 && (
               <div>
-                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-2">ما طبيعة عملك؟</h2>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-2">ما طبيعة عملك؟ <span className="text-red-500">*</span></h2>
                 <p className="text-sm text-gray-400 text-center mb-6">اختر ما يناسبك — يمكن اختيار أكثر من واحد</p>
                 <div className="grid grid-cols-2 gap-3">
                   {businessTypes.map((bt) => {
@@ -209,13 +240,14 @@ const OnboardingPage = () => {
                     );
                   })}
                 </div>
+                <p className="text-[11px] text-gray-400 text-center mt-4">اختيار واحد على الأقل مطلوب للمتابعة</p>
               </div>
             )}
 
             {/* Step 3: Industry */}
             {step === 3 && (
               <div>
-                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">ما هو قطاعك بالتحديد؟</h2>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">ما هو قطاعك بالتحديد؟ <span className="text-red-500">*</span></h2>
                 <div className="relative mb-4">
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -243,7 +275,10 @@ const OnboardingPage = () => {
                     </button>
                   ))}
                 </div>
-                <h3 className="text-sm font-bold text-[#0A2342] mb-2">ما هو موقع عملك؟</h3>
+                {!industry && (
+                  <p className="text-[11px] text-gray-400 mb-4">اختيار قطاع واحد مطلوب للمتابعة</p>
+                )}
+                <h3 className="text-sm font-bold text-[#0A2342] mb-2">ما هو موقع عملك؟ <span className="text-gray-400 text-xs font-normal">(اختياري)</span></h3>
                 <input
                   type="text"
                   value={city}
@@ -257,7 +292,8 @@ const OnboardingPage = () => {
             {/* Step 4: Team & Scale */}
             {step === 4 && (
               <div>
-                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">فريقك وحجم أعمالك</h2>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-1">فريقك وحجم أعمالك</h2>
+                <p className="text-xs text-gray-400 text-center mb-6">كل الحقول في هذه الخطوة اختيارية</p>
 
                 <p className="text-sm font-bold text-[#0A2342] mb-3">هل لديك موظفون؟</p>
                 <div className="flex gap-3 mb-5">
@@ -328,7 +364,8 @@ const OnboardingPage = () => {
             {/* Step 5: Accounting Background */}
             {step === 5 && (
               <div>
-                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">ما مستواك في المحاسبة؟</h2>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-1">ما مستواك في المحاسبة؟</h2>
+                <p className="text-xs text-gray-400 text-center mb-6">كل الحقول في هذه الخطوة اختيارية</p>
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {accountingLevels.map((al) => (
                     <button
