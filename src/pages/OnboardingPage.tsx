@@ -381,77 +381,25 @@ const OnboardingPage = () => {
             {/* Step 6: App Tour */}
             {step === 6 && (
               <div className="text-center">
-                <h2 className="text-xl font-bold text-[#0D1B2A] mb-6">إليك ما ينتظرك في AMWALI!</h2>
-
-                <div className="relative overflow-hidden rounded-2xl mb-6">
-                  <AnimatePresence mode="wait">
-                    {tourIndex < appTourCards.length ? (
-                      <motion.div
-                        key={tourIndex}
-                        initial={{ opacity: 0, x: 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -50 }}
-                        className={`bg-gradient-to-br ${appTourCards[tourIndex].gradient} p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center`}
-                      >
-                        <div className="text-5xl mb-3">{appTourCards[tourIndex].emoji}</div>
-                        <h3 className="text-xl font-bold mb-2">{appTourCards[tourIndex].name}</h3>
-                        <p className="text-sm text-white/85 mb-4 max-w-sm">{appTourCards[tourIndex].desc}</p>
-                        <ul className="text-sm text-white/80 space-y-1">
-                          {appTourCards[tourIndex].features.map((f, i) => (
-                            <li key={i}>✦ {f}</li>
-                          ))}
-                        </ul>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-gradient-to-br from-[#E8A020] to-[#C9870A] p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center"
-                      >
-                        <div className="text-5xl mb-3">🎉</div>
-                        <h3 className="text-2xl font-bold mb-2">أنت جاهز الآن!</h3>
-                        <p className="text-sm text-white/85 mb-4">تجربتك المجانية سارية لـ 14 يوماً</p>
-                        <button
-                          onClick={finishOnboarding}
-                          className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
-                        >
-                          ادخل إلى AMWALI ←
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Dots */}
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  {[...appTourCards, { name: "done" }].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        i === tourIndex ? "bg-[#0A2342] w-6" : "bg-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                {tourIndex < appTourCards.length && (
-                  <div className="flex items-center justify-center gap-4">
-                    {tourIndex > 0 && (
-                      <button onClick={() => setTourIndex(tourIndex - 1)} className="text-sm text-gray-400 hover:text-gray-600">
-                        السابق
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setTourIndex(tourIndex + 1)}
-                      className="bg-[#0A2342] text-white px-6 py-2.5 rounded-xl text-sm font-bold"
-                    >
-                      التالي ←
-                    </button>
-                    <button onClick={() => setTourIndex(appTourCards.length)} className="text-xs text-gray-400 hover:text-gray-600">
-                      تخطي الجولة
-                    </button>
-                  </div>
-                )}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="bg-gradient-to-br from-[#E8A020] to-[#C9870A] p-10 rounded-2xl text-white min-h-[280px] flex flex-col items-center justify-center mb-4"
+                >
+                  <div className="text-6xl mb-4">🎉</div>
+                  <h3 className="text-2xl font-extrabold mb-2">أنت جاهز الآن!</h3>
+                  <p className="text-sm text-white/90 mb-2 max-w-md leading-relaxed">
+                    جهّزنا حسابك. عند الدخول، رح تبلّش جولة تفاعلية قصيرة على كل التطبيقات داخل المنصة.
+                  </p>
+                  <p className="text-xs text-white/80 mb-6">تجربتك المجانية سارية لـ 14 يوماً</p>
+                  <button
+                    onClick={finishOnboarding}
+                    className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
+                  >
+                    ادخل واستكشف ←
+                  </button>
+                </motion.div>
               </div>
             )}
           </motion.div>
