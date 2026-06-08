@@ -278,7 +278,11 @@ export function useRoleRedirect() {
         if (isCancelled) return;
         setTargetPath("/apps");
       } finally {
-        if (!isCancelled) setChecking(false);
+        if (!isCancelled) {
+          setChecking(false);
+          setStalled(false);
+          window.clearTimeout(stallTimer);
+        }
       }
     };
 
