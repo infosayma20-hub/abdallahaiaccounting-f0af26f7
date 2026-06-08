@@ -348,12 +348,16 @@ const AuthCheckSpinner = () => {
 
 const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesRep }: { children: React.ReactNode; blockCashier?: boolean; blockStoreTracker?: boolean; blockSalesRep?: boolean }) => {
   const { user, loading } = useAuth();
-  const { targetPath, checking } = useRoleRedirect();
+  const { targetPath, checking, stalled, retry } = useRoleRedirect();
   const location = useLocation();
-  if (loading || ((blockCashier || blockStoreTracker || blockSalesRep) && checking)) return <AuthCheckSpinner />;
+  if (loading || ((blockCashier || blockStoreTracker || blockSalesRep) && checking)) {
+    return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
+  }
   if (!user) return <Navigate to="/auth" replace />;
   // امنع وميض شاشة المندوب/الموظف قبل ما نتأكد إذا لازم يروح لاختيار workspace
-  if (checking && (location.pathname.startsWith("/rep") || location.pathname.startsWith("/employee"))) return <AuthCheckSpinner />;
+  if (checking && (location.pathname.startsWith("/rep") || location.pathname.startsWith("/employee"))) {
+    return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
+  }
   const hasWorkspaceChoice = (() => {
     try { return !!sessionStorage.getItem(`workspace-choice:${user.id}`); }
     catch { return false; }
@@ -366,15 +370,15 @@ const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesR
 };
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { targetPath, checking, user } = useRoleRedirect();
-  if (checking) return <AuthCheckSpinner />;
+  const { targetPath, checking, user, stalled, retry } = useRoleRedirect();
+  if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
   if (user && targetPath) return <Navigate to={targetPath} replace />;
   return <>{children}</>;
 };
 
 const SmartRedirect = () => {
-  const { targetPath, checking, user } = useRoleRedirect();
-  if (checking) return <AuthCheckSpinner />;
+  const { targetPath, checking, user, stalled, retry } = useRoleRedirect();
+  if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
   // Logged-out visitors → public marketing landing page.
   if (!user) return <LandingPage />;
   return <Navigate to={targetPath || "/apps"} replace />;
