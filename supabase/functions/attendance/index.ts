@@ -25,6 +25,54 @@ function hebronToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date());
 }
 
+function timeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value || 0);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - date.getTime();
+}
+
+function localDateTimeToUtcIso(datePart: string, hour = 0, minute = 0, second = 0): string {
+  const [year, month, day] = datePart.split("-").map(Number);
+  const timeZone = "Asia/Hebron";
+  let utc = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  utc = new Date(utc.getTime() - timeZoneOffsetMs(utc, timeZone));
+  // Second pass covers DST boundary days safely.
+  utc = new Date(Date.UTC(year, month - 1, day, hour, minute, second) - timeZoneOffsetMs(utc, timeZone));
+  return utc.toISOString();
+}
+
+function addDays(datePart: string, days: number): string {
+  const [year, month, day] = datePart.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day + days));
+  return d.toISOString().slice(0, 10);
+}
+
+function hebronDayRangeUtc(datePart: string): { start: string; end: string } {
+  return {
+    start: localDateTimeToUtcIso(datePart, 0, 0, 0),
+    end: localDateTimeToUtcIso(addDays(datePart, 1), 0, 0, 0),
+  };
+}
+
+function hebronHour(iso: string): number {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Hebron",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso)).find((p) => p.type === "hour")?.value;
+  return Number(hour || 0);
+}
+
 // Quick magic-bytes check that the decoded buffer is a JPEG / PNG / WebP.
 function isSupportedImage(bytes: Uint8Array): boolean {
   if (bytes.length < 12) return false;
@@ -278,14 +326,15 @@ Deno.serve(async (req) => {
       }
 
       const today = hebronToday();
+      const todayRange = hebronDayRangeUtc(today);
 
       // 5. Get today's events to determine current state
       const { data: todayEvents } = await supabase
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", employee.id)
-        .gte("event_time", `${today}T00:00:00`)
-        .lte("event_time", `${today}T23:59:59`)
+        .gte("event_time", todayRange.start)
+        .lt("event_time", todayRange.end)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
 
@@ -298,8 +347,8 @@ Deno.serve(async (req) => {
         .select("id, break_out")
         .eq("employee_id", employee.id)
         .is("break_in", null)
-        .gte("break_out", `${today}T00:00:00`)
-        .lte("break_out", `${today}T23:59:59`)
+        .gte("break_out", todayRange.start)
+        .lt("break_out", todayRange.end)
         .single();
 
       const isOnBreak = !!openBreak;
