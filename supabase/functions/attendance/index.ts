@@ -25,6 +25,58 @@ function hebronToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date());
 }
 
+function timeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value || 0);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - date.getTime();
+}
+
+function localDateTimeToUtcIso(datePart: string, hour = 0, minute = 0, second = 0): string {
+  const [year, month, day] = datePart.split("-").map(Number);
+  const timeZone = "Asia/Hebron";
+  let utc = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  utc = new Date(utc.getTime() - timeZoneOffsetMs(utc, timeZone));
+  // Second pass covers DST boundary days safely.
+  utc = new Date(Date.UTC(year, month - 1, day, hour, minute, second) - timeZoneOffsetMs(utc, timeZone));
+  return utc.toISOString();
+}
+
+function addDays(datePart: string, days: number): string {
+  const [year, month, day] = datePart.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day + days));
+  return d.toISOString().slice(0, 10);
+}
+
+function hebronDayRangeUtc(datePart: string): { start: string; end: string } {
+  return {
+    start: localDateTimeToUtcIso(datePart, 0, 0, 0),
+    end: localDateTimeToUtcIso(addDays(datePart, 1), 0, 0, 0),
+  };
+}
+
+function hebronHour(iso: string): number {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Hebron",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso)).find((p) => p.type === "hour")?.value;
+  return Number(hour || 0);
+}
+
+function hebronDateFromIso(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date(iso));
+}
+
 // Quick magic-bytes check that the decoded buffer is a JPEG / PNG / WebP.
 function isSupportedImage(bytes: Uint8Array): boolean {
   if (bytes.length < 12) return false;
@@ -104,13 +156,14 @@ Deno.serve(async (req) => {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const today = new Date().toISOString().split("T")[0];
+      const today = hebronToday();
+      const todayRange = hebronDayRangeUtc(today);
       const { data: breaks } = await supabase
         .from("attendance_breaks")
         .select("*")
         .eq("employee_id", employee.id)
-        .gte("break_out", `${today}T00:00:00`)
-        .lte("break_out", `${today}T23:59:59`)
+        .gte("break_out", todayRange.start)
+        .lt("break_out", todayRange.end)
         .order("break_out", { ascending: true });
       return new Response(JSON.stringify(breaks || []), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -278,19 +331,33 @@ Deno.serve(async (req) => {
       }
 
       const today = hebronToday();
+      const todayRange = hebronDayRangeUtc(today);
 
       // 5. Get today's events to determine current state
       const { data: todayEvents } = await supabase
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", employee.id)
-        .gte("event_time", `${today}T00:00:00`)
-        .lte("event_time", `${today}T23:59:59`)
+        .gte("event_time", todayRange.start)
+        .lt("event_time", todayRange.end)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
 
       const events = todayEvents || [];
       const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+      const MAX_OPEN_SESSION_MS = 36 * 60 * 60 * 1000;
+      const openLookbackStart = new Date(Date.now() - MAX_OPEN_SESSION_MS).toISOString();
+      const { data: recentSequenceEvents } = await supabase
+        .from("attendance_events")
+        .select("event_type, event_time")
+        .eq("employee_id", employee.id)
+        .gte("event_time", openLookbackStart)
+        .eq("status", "valid")
+        .order("event_time", { ascending: true });
+
+      const sequenceEvents = recentSequenceEvents || [];
+      const lastClosedIdx = [...sequenceEvents].map((e) => e.event_type).lastIndexOf("check_out");
+      const openSessionStart = sequenceEvents.slice(lastClosedIdx + 1).find((e) => e.event_type === "check_in") || null;
 
       // Check for open break
       const { data: openBreak } = await supabase
@@ -298,8 +365,8 @@ Deno.serve(async (req) => {
         .select("id, break_out")
         .eq("employee_id", employee.id)
         .is("break_in", null)
-        .gte("break_out", `${today}T00:00:00`)
-        .lte("break_out", `${today}T23:59:59`)
+        .gte("break_out", todayRange.start)
+        .lt("break_out", todayRange.end)
         .single();
 
       const isOnBreak = !!openBreak;
@@ -373,8 +440,8 @@ Deno.serve(async (req) => {
           .from("attendance_breaks")
           .select("duration_minutes")
           .eq("employee_id", employee.id)
-          .gte("break_out", `${today}T00:00:00`)
-          .lte("break_out", `${today}T23:59:59`)
+          .gte("break_out", todayRange.start)
+          .lt("break_out", todayRange.end)
           .not("break_in", "is", null);
 
         const totalBreakMinutes = (allBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
@@ -415,7 +482,7 @@ Deno.serve(async (req) => {
 
       // Validate sequence
       if (eventType === "check_in") {
-        if (lastEvent && lastEvent.event_type === "check_in") {
+        if (openSessionStart) {
           return new Response(
             JSON.stringify({ error: "لديك بصمة دخول مسجلة بدون خروج. سجّل خروجك أولاً" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -423,7 +490,7 @@ Deno.serve(async (req) => {
         }
       } else {
         // check_out
-        if (!lastEvent || lastEvent.event_type === "check_out") {
+        if (!openSessionStart) {
           return new Response(
             JSON.stringify({ error: "لا يوجد بصمة دخول مفتوحة" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -439,6 +506,13 @@ Deno.serve(async (req) => {
       }
 
       const now = new Date().toISOString();
+      const attendanceDate = eventType === "check_out" && openSessionStart
+        ? hebronDateFromIso(openSessionStart.event_time)
+        : today;
+      const attendanceRange = hebronDayRangeUtc(attendanceDate);
+      const attendanceCalcEnd = eventType === "check_out"
+        ? new Date(Date.now() + 1000).toISOString()
+        : attendanceRange.end;
 
       // 5.b Idempotency guard — if an identical event for this employee was
       // recorded within the last 30 seconds (e.g. user retried after a blank
@@ -619,8 +693,8 @@ Deno.serve(async (req) => {
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", employee.id)
-        .gte("event_time", `${today}T00:00:00`)
-        .lte("event_time", `${today}T23:59:59`)
+        .gte("event_time", attendanceRange.start)
+        .lt("event_time", attendanceCalcEnd)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
 
@@ -656,7 +730,7 @@ Deno.serve(async (req) => {
       let sessionStart: string | null = null;
       for (const evt of cleaned) {
         if (evt.event_type === "check_in") {
-          sessionStart = evt.event_time;
+          if (!sessionStart) sessionStart = evt.event_time;
         } else if (evt.event_type === "check_out" && sessionStart) {
           const durMs = new Date(evt.event_time).getTime() - new Date(sessionStart).getTime();
           if (durMs >= MIN_SESSION_MS) {
@@ -671,7 +745,7 @@ Deno.serve(async (req) => {
       const currentlyIn = evts[evts.length - 1]?.event_type === "check_in";
 
       // Determine status
-      const hour = new Date(firstCheckIn || now).getHours();
+      const hour = hebronHour(firstCheckIn || now);
       let dayStatus = "present";
       if (hour >= 9) dayStatus = "late";
       if (!currentlyIn && lastCheckOut) dayStatus = totalHours > 0 ? (hour >= 9 ? "late" : "present") : "incomplete";
@@ -681,8 +755,8 @@ Deno.serve(async (req) => {
         .from("attendance_breaks")
         .select("duration_minutes")
         .eq("employee_id", employee.id)
-        .gte("break_out", `${today}T00:00:00`)
-        .lte("break_out", `${today}T23:59:59`)
+        .gte("break_out", attendanceRange.start)
+        .lt("break_out", attendanceCalcEnd)
         .not("break_in", "is", null);
       const totalBreakMinutes = (dayBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
       const netWorkMinutes = Math.max(0, Math.round(totalHours * 60) - totalBreakMinutes);
@@ -692,7 +766,7 @@ Deno.serve(async (req) => {
           employee_id: employee.id,
           auth_user_id: user.id,
           branch_id,
-          attendance_date: today,
+          attendance_date: attendanceDate,
           first_check_in: firstCheckIn,
           last_check_out: lastCheckOut,
           total_hours: Math.round(totalHours * 100) / 100,

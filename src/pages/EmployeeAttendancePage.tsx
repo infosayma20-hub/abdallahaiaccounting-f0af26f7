@@ -19,6 +19,7 @@ import {
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { getOpenAttendanceSession } from "@/lib/attendance-session";
 
 type AttendanceDay = {
   id: string;
@@ -65,6 +66,7 @@ export default function EmployeeAttendancePage() {
   const { user } = useAuth();
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
+  const [recentEvents, setRecentEvents] = useState<{ event_type: string; event_time: string }[]>([]);
   const [todayBreaks, setTodayBreaks] = useState<BreakRecord[]>([]);
   const [history, setHistory] = useState<AttendanceDay[]>([]);
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
@@ -117,7 +119,10 @@ export default function EmployeeAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("id, name").eq("is_active", true);
       setBranches(br || []);
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+      const since = new Date(Date.now() - 60 * 86400_000).toISOString();
 
       // Today's record
       const { data: todayData } = await supabase
@@ -133,11 +138,20 @@ export default function EmployeeAttendancePage() {
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", emp.id)
-        .gte("event_time", `${today}T00:00:00`)
-        .lte("event_time", `${today}T23:59:59`)
+        .gte("event_time", `${today}T00:00:00+03:00`)
+        .lte("event_time", `${today}T23:59:59+03:00`)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
       setTodayEvents(eventsData || []);
+
+      const { data: recentEventsData } = await supabase
+        .from("attendance_events")
+        .select("event_type, event_time")
+        .eq("employee_id", emp.id)
+        .gte("event_time", since)
+        .eq("status", "valid")
+        .order("event_time", { ascending: true });
+      setRecentEvents(recentEventsData || []);
 
       // Today's breaks
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -218,18 +232,8 @@ export default function EmployeeAttendancePage() {
       const branchId = parts[0];
       const token = parts.slice(1).join(":");
 
-      // Get current location
+      // GPS معطّل عالمياً — لا نطلب الموقع من المتصفح.
       let lat = 0, lng = 0;
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
-        );
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } catch {
-        // لا نوقف العملية هنا — السيرفر يقرر حسب إعداد الفرع (require_gps)
-        lat = 0; lng = 0;
-      }
 
       const actionMap: Record<string, string> = {
         checkin: "checkin",
@@ -325,10 +329,11 @@ export default function EmployeeAttendancePage() {
 
   // Multi check-in/out: determine state from last event
   const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
+  const openSession = getOpenAttendanceSession(recentEvents.length ? recentEvents : todayEvents);
   const isOnBreak = todayBreaks.some(b => !b.break_in);
-  const canCheckIn = !isOnBreak && (!lastEvent || lastEvent.event_type === "check_out");
-  const canCheckOut = !isOnBreak && !!lastEvent && lastEvent.event_type === "check_in";
-  const canBreakOut = !isOnBreak && !!lastEvent && lastEvent.event_type === "check_in";
+  const canCheckIn = !isOnBreak && !openSession && (!lastEvent || lastEvent.event_type === "check_out");
+  const canCheckOut = !isOnBreak && !!openSession;
+  const canBreakOut = !isOnBreak && !!openSession;
   const sessionCount = todayEvents.filter(e => e.event_type === "check_in").length;
   const todayStatus = todayRecord ? statusMap[todayRecord.status] || statusMap.absent : statusMap.absent;
   const totalBreakMinutes = todayRecord?.total_break_minutes || todayBreaks.filter(b => b.duration_minutes).reduce((s, b) => s + (b.duration_minutes || 0), 0);
@@ -619,7 +624,7 @@ export default function EmployeeAttendancePage() {
             />
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <MapPin className="h-3 w-3" />
-              <span>سيتم التحقق من موقعك الجغرافي تلقائياً</span>
+              <span>سيتم التحقق من فرعك تلقائياً</span>
             </div>
           </div>
           <DialogFooter>

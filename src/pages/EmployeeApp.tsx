@@ -25,6 +25,7 @@ import TeamAttendanceTab from "@/components/employee/manager/TeamAttendanceTab";
 import TeamRequestsTab from "@/components/employee/manager/TeamRequestsTab";
 import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
+import { getOpenAttendanceSession } from "@/lib/attendance-session";
 
 function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
   return (
@@ -203,8 +204,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
   const handleNavigate = (tab: Tab) => {
     if (tab === "scan") {
-      const lastEvt = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
-      const canCheckOut = lastEvt?.event_type === "check_in";
+      const canCheckOut = !!getOpenAttendanceSession(recentEvents.length ? recentEvents : todayEvents);
       setScanAction(canCheckOut ? "checkout" : "checkin");
       setScanOpen(true);
     } else {
