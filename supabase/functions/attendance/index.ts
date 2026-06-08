@@ -152,13 +152,14 @@ Deno.serve(async (req) => {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const today = new Date().toISOString().split("T")[0];
+      const today = hebronToday();
+      const todayRange = hebronDayRangeUtc(today);
       const { data: breaks } = await supabase
         .from("attendance_breaks")
         .select("*")
         .eq("employee_id", employee.id)
-        .gte("break_out", `${today}T00:00:00`)
-        .lte("break_out", `${today}T23:59:59`)
+        .gte("break_out", todayRange.start)
+        .lt("break_out", todayRange.end)
         .order("break_out", { ascending: true });
       return new Response(JSON.stringify(breaks || []), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
