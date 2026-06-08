@@ -108,10 +108,10 @@ const AuthPage = () => {
     });
     if (error) throw error;
     toast({
-      title: "تم إرسال الرابط ✅",
-      description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور.",
+      title: "تم إرسال الرمز ✅",
+      description: "أدخل رمز التحقق الذي وصلك على بريدك الإلكتروني.",
     });
-    setMode("login");
+    navigate(`/auth/verify?type=recovery&email=${encodeURIComponent(cleanEmail)}`);
   };
 
   const sendHrResetRequest = async () => {
@@ -167,8 +167,8 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
-        toast({ title: "تم إنشاء الحساب ✅", description: "تحقق من بريدك الإلكتروني لتأكيد الحساب" });
-        setMode("login");
+        toast({ title: "تم إنشاء الحساب ✅", description: "أرسلنا رمز تحقق إلى بريدك" });
+        navigate(`/auth/verify?type=signup&email=${encodeURIComponent(email.trim().toLowerCase())}`);
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
