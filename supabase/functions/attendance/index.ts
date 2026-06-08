@@ -506,6 +506,10 @@ Deno.serve(async (req) => {
       }
 
       const now = new Date().toISOString();
+      const attendanceDate = eventType === "check_out" && openSessionStart
+        ? hebronDateFromIso(openSessionStart.event_time)
+        : today;
+      const attendanceRange = hebronDayRangeUtc(attendanceDate);
 
       // 5.b Idempotency guard — if an identical event for this employee was
       // recorded within the last 30 seconds (e.g. user retried after a blank
@@ -686,8 +690,8 @@ Deno.serve(async (req) => {
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", employee.id)
-        .gte("event_time", todayRange.start)
-        .lt("event_time", todayRange.end)
+        .gte("event_time", attendanceRange.start)
+        .lt("event_time", attendanceRange.end)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
 
@@ -723,7 +727,7 @@ Deno.serve(async (req) => {
       let sessionStart: string | null = null;
       for (const evt of cleaned) {
         if (evt.event_type === "check_in") {
-          sessionStart = evt.event_time;
+          if (!sessionStart) sessionStart = evt.event_time;
         } else if (evt.event_type === "check_out" && sessionStart) {
           const durMs = new Date(evt.event_time).getTime() - new Date(sessionStart).getTime();
           if (durMs >= MIN_SESSION_MS) {
@@ -748,8 +752,8 @@ Deno.serve(async (req) => {
         .from("attendance_breaks")
         .select("duration_minutes")
         .eq("employee_id", employee.id)
-        .gte("break_out", todayRange.start)
-        .lt("break_out", todayRange.end)
+        .gte("break_out", attendanceRange.start)
+        .lt("break_out", attendanceRange.end)
         .not("break_in", "is", null);
       const totalBreakMinutes = (dayBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
       const netWorkMinutes = Math.max(0, Math.round(totalHours * 60) - totalBreakMinutes);
@@ -759,7 +763,7 @@ Deno.serve(async (req) => {
           employee_id: employee.id,
           auth_user_id: user.id,
           branch_id,
-          attendance_date: today,
+          attendance_date: attendanceDate,
           first_check_in: firstCheckIn,
           last_check_out: lastCheckOut,
           total_hours: Math.round(totalHours * 100) / 100,
