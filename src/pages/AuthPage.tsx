@@ -28,11 +28,31 @@ const AuthPage = () => {
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
 
   useEffect(() => {
     setSupportsPasskeys(browserSupportsWebAuthn());
     const stored = localStorage.getItem("passkey_email");
     if (stored) setSavedEmail(stored);
+  }, []);
+
+  // التقاط الروابط القديمة (one-time link منتهي/مستهلك) وتحويلها لمسار الكود.
+  useEffect(() => {
+    const err = searchParams.get("error_code") || searchParams.get("error");
+    const type = searchParams.get("type");
+    const hash = window.location.hash || "";
+    const isExpired = err && /otp_expired|access_denied|invalid|expired/i.test(err);
+    const isLegacyVerify = hash.includes("type=signup") || hash.includes("type=recovery") || type === "signup" || type === "recovery";
+    if (isExpired || isLegacyVerify) {
+      const t = (type === "recovery" || hash.includes("type=recovery")) ? "recovery" : "signup";
+      toast({
+        title: "الرابط لم يعد صالحاً",
+        description: "استخدم رمز التحقق المُرسل إلى بريدك أو اطلب رمزاً جديداً.",
+      });
+      const e = (searchParams.get("email") || "").trim().toLowerCase();
+      navigate(`/auth/verify?type=${t}${e ? `&email=${encodeURIComponent(e)}` : ""}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resolveRedirect = useCallback(async (userId: string): Promise<string> => {
