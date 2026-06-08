@@ -242,7 +242,11 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     preCacheData();
 
     // Load pending count
-    countPending().then(setPendingCount);
+    countPending()
+      .then(setPendingCount)
+      .catch((err) => {
+        console.warn("[usePOSOffline] countPending failed:", err);
+      });
 
     syncIntervalRef.current = setInterval(async () => {
       const online = await checkConnection();
