@@ -422,8 +422,8 @@ Deno.serve(async (req) => {
           .from("attendance_breaks")
           .select("duration_minutes")
           .eq("employee_id", employee.id)
-          .gte("break_out", `${today}T00:00:00`)
-          .lte("break_out", `${today}T23:59:59`)
+          .gte("break_out", todayRange.start)
+          .lt("break_out", todayRange.end)
           .not("break_in", "is", null);
 
         const totalBreakMinutes = (allBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
@@ -668,8 +668,8 @@ Deno.serve(async (req) => {
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", employee.id)
-        .gte("event_time", `${today}T00:00:00`)
-        .lte("event_time", `${today}T23:59:59`)
+        .gte("event_time", todayRange.start)
+        .lt("event_time", todayRange.end)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
 
@@ -720,7 +720,7 @@ Deno.serve(async (req) => {
       const currentlyIn = evts[evts.length - 1]?.event_type === "check_in";
 
       // Determine status
-      const hour = new Date(firstCheckIn || now).getHours();
+      const hour = hebronHour(firstCheckIn || now);
       let dayStatus = "present";
       if (hour >= 9) dayStatus = "late";
       if (!currentlyIn && lastCheckOut) dayStatus = totalHours > 0 ? (hour >= 9 ? "late" : "present") : "incomplete";
@@ -730,8 +730,8 @@ Deno.serve(async (req) => {
         .from("attendance_breaks")
         .select("duration_minutes")
         .eq("employee_id", employee.id)
-        .gte("break_out", `${today}T00:00:00`)
-        .lte("break_out", `${today}T23:59:59`)
+        .gte("break_out", todayRange.start)
+        .lt("break_out", todayRange.end)
         .not("break_in", "is", null);
       const totalBreakMinutes = (dayBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
       const netWorkMinutes = Math.max(0, Math.round(totalHours * 60) - totalBreakMinutes);
