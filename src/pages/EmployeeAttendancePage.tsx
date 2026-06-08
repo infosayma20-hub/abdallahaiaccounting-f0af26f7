@@ -119,7 +119,9 @@ export default function EmployeeAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("id, name").eq("is_active", true);
       setBranches(br || []);
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
       const since = new Date(Date.now() - 60 * 86400_000).toISOString();
 
       // Today's record
@@ -136,8 +138,8 @@ export default function EmployeeAttendancePage() {
         .from("attendance_events")
         .select("event_type, event_time")
         .eq("employee_id", emp.id)
-        .gte("event_time", `${today}T00:00:00`)
-        .lte("event_time", `${today}T23:59:59`)
+        .gte("event_time", `${today}T00:00:00+03:00`)
+        .lte("event_time", `${today}T23:59:59+03:00`)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
       setTodayEvents(eventsData || []);
@@ -622,7 +624,7 @@ export default function EmployeeAttendancePage() {
             />
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <MapPin className="h-3 w-3" />
-              <span>سيتم التحقق من موقعك الجغرافي تلقائياً</span>
+              <span>سيتم التحقق من فرعك تلقائياً</span>
             </div>
           </div>
           <DialogFooter>
