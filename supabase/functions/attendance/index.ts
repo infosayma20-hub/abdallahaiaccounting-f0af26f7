@@ -73,6 +73,10 @@ function hebronHour(iso: string): number {
   return Number(hour || 0);
 }
 
+function hebronDateFromIso(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date(iso));
+}
+
 // Quick magic-bytes check that the decoded buffer is a JPEG / PNG / WebP.
 function isSupportedImage(bytes: Uint8Array): boolean {
   if (bytes.length < 12) return false;
@@ -341,6 +345,19 @@ Deno.serve(async (req) => {
 
       const events = todayEvents || [];
       const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+      const MAX_OPEN_SESSION_MS = 36 * 60 * 60 * 1000;
+      const openLookbackStart = new Date(Date.now() - MAX_OPEN_SESSION_MS).toISOString();
+      const { data: recentSequenceEvents } = await supabase
+        .from("attendance_events")
+        .select("event_type, event_time")
+        .eq("employee_id", employee.id)
+        .gte("event_time", openLookbackStart)
+        .eq("status", "valid")
+        .order("event_time", { ascending: true });
+
+      const sequenceEvents = recentSequenceEvents || [];
+      const lastClosedIdx = [...sequenceEvents].map((e) => e.event_type).lastIndexOf("check_out");
+      const openSessionStart = sequenceEvents.slice(lastClosedIdx + 1).find((e) => e.event_type === "check_in") || null;
 
       // Check for open break
       const { data: openBreak } = await supabase
@@ -465,7 +482,7 @@ Deno.serve(async (req) => {
 
       // Validate sequence
       if (eventType === "check_in") {
-        if (lastEvent && lastEvent.event_type === "check_in") {
+        if (openSessionStart) {
           return new Response(
             JSON.stringify({ error: "لديك بصمة دخول مسجلة بدون خروج. سجّل خروجك أولاً" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -473,7 +490,7 @@ Deno.serve(async (req) => {
         }
       } else {
         // check_out
-        if (!lastEvent || lastEvent.event_type === "check_out") {
+        if (!openSessionStart) {
           return new Response(
             JSON.stringify({ error: "لا يوجد بصمة دخول مفتوحة" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
