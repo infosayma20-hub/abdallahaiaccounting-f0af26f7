@@ -51,7 +51,7 @@ const AuthVerifyPage = () => {
         navigate("/reset-password?force=1", { replace: true });
       } else {
         toast({ title: "تم تأكيد حسابك ✅", description: "أهلاً بك في أموالي" });
-        navigate("/apps", { replace: true });
+        navigate("/onboarding", { replace: true });
       }
     } catch (err: any) {
       toast({
