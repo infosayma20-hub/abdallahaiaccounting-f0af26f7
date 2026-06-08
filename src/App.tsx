@@ -49,6 +49,7 @@ const SmartReportPage = lazy(() => import("./pages/SmartReportPage"));
 const JournalEntriesPage = lazy(() => import("./pages/JournalEntriesPage"));
 const TrialBalancePage = lazy(() => import("./pages/TrialBalancePage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const AuthVerifyPage = lazy(() => import("./pages/AuthVerifyPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const ShareQRPage = lazy(() => import("./pages/ShareQRPage"));
@@ -397,6 +398,7 @@ const App = () => (
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+              <Route path="/auth/verify" element={<AuthVerifyPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
