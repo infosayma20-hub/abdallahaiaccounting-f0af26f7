@@ -19,6 +19,7 @@ import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import FeedbackShell from "./components/layout/FeedbackShell";
 import RoleGuard from "./components/RoleGuard";
+import { OnboardingGate } from "@/components/auth/OnboardingGate";
 import HRPermGuard from "./components/HRPermGuard";
 import HRShell from "./components/hr/HRShell";
 import InvoicesPage from "./pages/InvoicesPage";
