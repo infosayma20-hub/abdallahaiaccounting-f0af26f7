@@ -192,7 +192,12 @@ export default function POSUserManagementPage() {
 
   useEffect(() => {
     loadCompanies();
-    getDeviceFingerprint().then(setCurrentFingerprint);
+    getDeviceFingerprint()
+      .then(setCurrentFingerprint)
+      .catch((err) => {
+        console.warn("[POSUserManagement] getDeviceFingerprint failed:", err);
+        setCurrentFingerprint("");
+      });
   }, []);
 
   useEffect(() => {

@@ -69,7 +69,10 @@ export default function PrinterSettingsPage() {
   }, []);
 
   useEffect(() => {
-    checkBridge().then(setBridgeOnline);
+    checkBridge().then(setBridgeOnline).catch((err) => {
+      console.warn("[PrinterSettings] checkBridge failed:", err);
+      setBridgeOnline(false);
+    });
     loadData();
   }, [user, loadData, checkBridge]);
 
@@ -143,7 +146,13 @@ export default function PrinterSettingsPage() {
             </h1>
             <p className="text-sm text-muted-foreground">إدارة الطابعات الحرارية وتوجيه التذاكر</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { checkBridge().then(setBridgeOnline); loadData(); }}>
+          <Button variant="outline" size="sm" onClick={() => {
+            checkBridge().then(setBridgeOnline).catch((err) => {
+              console.warn("[PrinterSettings] checkBridge failed:", err);
+              setBridgeOnline(false);
+            });
+            loadData();
+          }}>
             <RefreshCw className="h-4 w-4 ml-1" /> تحديث
           </Button>
         </div>

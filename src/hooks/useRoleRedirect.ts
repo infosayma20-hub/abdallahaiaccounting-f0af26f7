@@ -26,6 +26,8 @@ export function useRoleRedirect() {
   const { user, loading: authLoading } = useAuth();
   const [targetPath, setTargetPath] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
+  const [stalled, setStalled] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [workspaceChoiceVersion, setWorkspaceChoiceVersion] = useState(0);
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export function useRoleRedirect() {
     if (!user) {
       setTargetPath(null);
       setChecking(false);
+      setStalled(false);
       return;
     }
 
@@ -50,11 +53,16 @@ export function useRoleRedirect() {
     if (cachedTarget !== undefined && !["/apps", "/employee", "/rep", "/rep/home", "/choose-workspace", "/setup"].includes(cachedTarget || "")) {
       setTargetPath(cachedTarget);
       setChecking(false);
+      setStalled(false);
       return;
     }
 
     let isCancelled = false;
     setChecking(true);
+    setStalled(false);
+    const stallTimer = window.setTimeout(() => {
+      if (!isCancelled) setStalled(true);
+    }, 10000);
 
     const resolve = async () => {
       try {
@@ -270,7 +278,11 @@ export function useRoleRedirect() {
         if (isCancelled) return;
         setTargetPath("/apps");
       } finally {
-        if (!isCancelled) setChecking(false);
+        if (!isCancelled) {
+          setChecking(false);
+          setStalled(false);
+          window.clearTimeout(stallTimer);
+        }
       }
     };
 
@@ -278,8 +290,14 @@ export function useRoleRedirect() {
 
     return () => {
       isCancelled = true;
+      window.clearTimeout(stallTimer);
     };
-  }, [user, authLoading, workspaceChoiceVersion]);
+  }, [user, authLoading, workspaceChoiceVersion, attempt]);
 
-  return { targetPath, checking, user };
+  const retry = () => {
+    if (user) redirectCache.delete(user.id);
+    setStalled(false);
+    setAttempt((n) => n + 1);
+  };
+  return { targetPath, checking, user, stalled, retry };
 }

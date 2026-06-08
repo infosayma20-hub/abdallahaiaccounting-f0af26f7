@@ -27,8 +27,14 @@ const ResetPasswordPage = () => {
         data: { must_change_password: false },
       });
       if (error) throw error;
-      toast({ title: "تم تحديث كلمة المرور ✅" });
-      navigate("/");
+      // Force the user to log back in with the new password — never leave
+      // them inside the short-lived recovery session.
+      try { await supabase.auth.signOut(); } catch { /* best-effort */ }
+      toast({
+        title: "تم تغيير كلمة المرور بنجاح",
+        description: "يرجى تسجيل الدخول من جديد",
+      });
+      navigate("/auth", { replace: true });
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -51,7 +57,7 @@ const ResetPasswordPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={3}
+                minLength={8}
                 dir="ltr"
               />
               <Button type="submit" className="w-full" disabled={loading}>
