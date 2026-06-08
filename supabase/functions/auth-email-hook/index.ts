@@ -284,6 +284,18 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   console.log('Auth email enqueued', { emailType, email: payload.data.email, run_id })
 
+  // Fire-and-forget: kick the queue processor so the email goes out immediately
+  // instead of waiting up to ~60s for the next cron tick.
+  try {
+    supabase.functions.invoke('process-email-queue', {
+      body: { queue: 'auth_emails', trigger: 'auth-hook' },
+    }).catch((err) => {
+      console.warn('process-email-queue kick failed (will be picked up by cron)', err)
+    })
+  } catch (err) {
+    console.warn('process-email-queue invoke threw (will be picked up by cron)', err)
+  }
+
   return new Response(
     JSON.stringify({ success: true, queued: true }),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
