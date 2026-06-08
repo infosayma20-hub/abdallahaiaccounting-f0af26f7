@@ -510,6 +510,9 @@ Deno.serve(async (req) => {
         ? hebronDateFromIso(openSessionStart.event_time)
         : today;
       const attendanceRange = hebronDayRangeUtc(attendanceDate);
+      const attendanceCalcEnd = eventType === "check_out"
+        ? new Date(Date.now() + 1000).toISOString()
+        : attendanceRange.end;
 
       // 5.b Idempotency guard — if an identical event for this employee was
       // recorded within the last 30 seconds (e.g. user retried after a blank
@@ -691,7 +694,7 @@ Deno.serve(async (req) => {
         .select("event_type, event_time")
         .eq("employee_id", employee.id)
         .gte("event_time", attendanceRange.start)
-        .lt("event_time", attendanceRange.end)
+        .lt("event_time", attendanceCalcEnd)
         .eq("status", "valid")
         .order("event_time", { ascending: true });
 
@@ -753,7 +756,7 @@ Deno.serve(async (req) => {
         .select("duration_minutes")
         .eq("employee_id", employee.id)
         .gte("break_out", attendanceRange.start)
-        .lt("break_out", attendanceRange.end)
+        .lt("break_out", attendanceCalcEnd)
         .not("break_in", "is", null);
       const totalBreakMinutes = (dayBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
       const netWorkMinutes = Math.max(0, Math.round(totalHours * 60) - totalBreakMinutes);
