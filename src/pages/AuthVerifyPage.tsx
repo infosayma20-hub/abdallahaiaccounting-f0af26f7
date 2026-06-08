@@ -34,8 +34,8 @@ const AuthVerifyPage = () => {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = code.replace(/\D/g, "");
-    if (token.length !== 6) {
-      toast({ title: "رمز غير صالح", description: "الرجاء إدخال 6 أرقام", variant: "destructive" });
+    if (token.length < 6 || token.length > 8) {
+      toast({ title: "رمز غير صالح", description: "الرجاء إدخال الرمز كاملاً (6 إلى 8 أرقام)", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -105,7 +105,7 @@ const AuthVerifyPage = () => {
             {type === "recovery" ? "تأكيد إعادة تعيين كلمة المرور" : "تأكيد بريدك الإلكتروني"}
           </h1>
           <p style={{ color: "#8896A4", fontSize: 14, fontWeight: 300, fontFamily: "Tajawal", lineHeight: 1.7 }}>
-            أرسلنا رمزاً من 6 أرقام إلى<br />
+            أرسلنا رمز التحقق إلى<br />
             <strong style={{ color: "#0D1B2E", direction: "ltr", display: "inline-block" }}>{email}</strong>
           </p>
         </div>
@@ -117,18 +117,18 @@ const AuthVerifyPage = () => {
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="[0-9]*"
-            maxLength={6}
+            maxLength={8}
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="000000"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            placeholder="00000000"
             className="w-full h-16 rounded-xl text-center"
             style={{
               background: "#F7F8FA",
               border: "1px solid #E8EDF2",
               color: "#0D1B2E",
-              fontSize: 32,
+              fontSize: 28,
               fontWeight: 600,
-              letterSpacing: "16px",
+              letterSpacing: "10px",
               fontFamily: "Consolas, Menlo, monospace",
               direction: "ltr",
             }}
@@ -136,7 +136,7 @@ const AuthVerifyPage = () => {
 
           <button
             type="submit"
-            disabled={loading || code.length !== 6}
+            disabled={loading || code.length < 6}
             className="w-full h-12 rounded-xl text-white text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
             style={{ background: "#0D1B2E", fontWeight: 500, fontFamily: "Tajawal" }}
           >
