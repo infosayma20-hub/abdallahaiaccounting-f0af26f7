@@ -603,6 +603,39 @@ const AuthPage = () => {
                 {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة على البريد"}
               </button>
 
+              {mode === "login" && unconfirmedEmail && (
+                <div className="rounded-xl p-3 text-xs space-y-2" style={{ background: '#FFF7E6', border: '1px solid #F5D38A', color: '#7A4A00', fontFamily: 'Tajawal' }}>
+                  <p>هذا البريد لم يتم تأكيده بعد. أكمل التحقق بإدخال الرمز المُرسل لبريدك.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/auth/verify?type=signup&email=${encodeURIComponent(unconfirmedEmail)}`)}
+                      className="px-3 py-1.5 rounded-lg text-xs"
+                      style={{ background: '#0D1B2E', color: '#FFFFFF', fontWeight: 400 }}
+                    >
+                      إدخال رمز التحقق
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.auth.resend({ type: "signup", email: unconfirmedEmail });
+                          if (error) throw error;
+                          toast({ title: "تم إرسال رمز جديد ✅", description: `تحقق من بريد ${unconfirmedEmail}` });
+                          navigate(`/auth/verify?type=signup&email=${encodeURIComponent(unconfirmedEmail)}`);
+                        } catch (err: any) {
+                          toast({ title: "تعذّر الإرسال", description: err.message, variant: "destructive" });
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs"
+                      style={{ background: '#FFFFFF', color: '#0D1B2E', border: '1px solid #0D1B2E', fontWeight: 400 }}
+                    >
+                      إعادة إرسال الرمز
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {mode === "forgot" && (
                 <button
                   type="button"
