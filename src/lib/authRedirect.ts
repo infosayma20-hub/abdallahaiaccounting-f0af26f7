@@ -29,13 +29,34 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
     .select("id")
     .eq("owner_id", ownerId)
     .maybeSingle();
-  if (!company) return false; // no company yet → must onboard
+  if (!company) {
+    // No `companies` row but the tenant may still be an established legacy
+    // user (chart of accounts seeded, invoices, employees, contacts). Don't
+    // force them into the wizard.
+    const { count: accountsCount } = await supabase
+      .from("accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", ownerId);
+    if ((accountsCount ?? 0) > 5) return true;
+    return false; // truly new → must onboard
+  }
   const { data: profile } = await supabase
     .from("company_profiles")
     .select("onboarding_completed")
     .eq("company_id", company.id)
     .maybeSingle();
-  return !!profile?.onboarding_completed;
+  if (profile?.onboarding_completed) return true;
+  // Fallback for legacy tenants who own a company but never went through the
+  // 6-step wizard: if they already have substantive data, treat as completed
+  // so the gate doesn't loop them back to /onboarding.
+  if (!profile) {
+    const { count: accountsCount } = await supabase
+      .from("accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", ownerId);
+    if ((accountsCount ?? 0) > 5) return true;
+  }
+  return false;
 }
 
 export async function fetchOnboardingStatus(userId: string): Promise<OnboardingStatus> {
