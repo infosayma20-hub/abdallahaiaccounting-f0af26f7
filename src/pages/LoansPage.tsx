@@ -4,7 +4,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Wallet, Users, Calendar, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, Search, UserCheck, Printer } from "lucide-react";
+import { Download, Wallet, Users, Calendar, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, Search, UserCheck, Printer, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -37,6 +37,7 @@ export default function LoansPage() {
   const [statusFilter, setStatusFilter] = useState("الكل");
   const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingLoan, setEditingLoan] = useState<any | null>(null);
 
   const { data: loans = [], isLoading } = useQuery({
     queryKey: ["employee-loans", user?.id],
@@ -547,6 +548,9 @@ export default function LoansPage() {
             const progress = loan.total_months > 0 ? (loan.paid_months / loan.total_months) * 100 : 0;
             const isExpanded = expandedLoan === loan.id;
             const installments = (loan.loan_installments || []).sort((a: any, b: any) => a.month_number - b.month_number);
+            const createdAtStr = loan.created_at
+              ? new Date(loan.created_at).toLocaleDateString("en-GB")
+              : "-";
 
             return (
               <Card key={loan.id} className="overflow-hidden">
@@ -562,8 +566,12 @@ export default function LoansPage() {
                           {loan.status === "active" ? "نشط" : "مكتمل"}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                         <span>{loan.employees?.branches?.name || "-"}</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          أُنشئ: {createdAtStr}
+                        </span>
                       </div>
                     </div>
                     <div className="text-left flex items-center gap-2">
@@ -571,6 +579,15 @@ export default function LoansPage() {
                         <p className="text-sm font-bold text-foreground">{fmtCurrency(Number(loan.remaining_amount))}</p>
                         <p className="text-[10px] text-muted-foreground">متبقي من {fmtCurrency(Number(loan.total_amount))}</p>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => { e.stopPropagation(); setEditingLoan(loan); }}
+                        title="تعديل القرض"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </div>
                   </div>
@@ -656,6 +673,21 @@ export default function LoansPage() {
           setShowAddDialog(false);
         }}
       />
+
+      {/* Edit Loan Dialog */}
+      {editingLoan && (
+        <EditLoanDialog
+          loan={editingLoan}
+          open={!!editingLoan}
+          onOpenChange={(v) => { if (!v) setEditingLoan(null); }}
+          userId={dataOwnerId || user?.id || ""}
+          companyId={company?.id || null}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["employee-loans"] });
+            setEditingLoan(null);
+          }}
+        />
+      )}
     </div>
   );
 }
