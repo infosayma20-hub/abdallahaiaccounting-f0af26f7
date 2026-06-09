@@ -31,6 +31,7 @@ interface PrinterConfig {
   station_ids: string[];
   print_categories: string[];
   branch_id: string | null;
+  settings?: Record<string, any> | null;
 }
 
 interface Station {
@@ -81,6 +82,11 @@ export default function NetworkPrintersManager() {
   const [formStationIds, setFormStationIds] = useState<string[]>([]);
   const [formCategories, setFormCategories] = useState<string[]>(["receipt"]);
   const [formBranchId, setFormBranchId] = useState<string>("");
+  const [formWindowsPrinterName, setFormWindowsPrinterName] = useState<string>("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [editingSettings, setEditingSettings] = useState<Record<string, any>>({});
+  const [windowsList, setWindowsList] = useState<Array<{ name: string; portName?: string; driverName?: string }>>([]);
+  const [loadingWindowsList, setLoadingWindowsList] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -125,6 +131,10 @@ export default function NetworkPrintersManager() {
     setFormStationIds([]);
     setFormCategories(["receipt"]);
     setFormBranchId("");
+    setFormWindowsPrinterName("");
+    setShowAdvanced(false);
+    setEditingSettings({});
+    setWindowsList([]);
     setEditingPrinter(null);
   };
 
@@ -144,6 +154,11 @@ export default function NetworkPrintersManager() {
     setFormStationIds(p.station_ids || []);
     setFormCategories(p.print_categories || ["receipt"]);
     setFormBranchId(p.branch_id || "");
+    const s = (p.settings || {}) as Record<string, any>;
+    setEditingSettings(s);
+    setFormWindowsPrinterName(typeof s.windows_printer_name === "string" ? s.windows_printer_name : "");
+    setShowAdvanced(!!s.windows_printer_name);
+    setWindowsList([]);
     setShowAddDialog(true);
   };
 
@@ -164,6 +179,16 @@ export default function NetworkPrintersManager() {
       station_ids: formStationIds,
       print_categories: formCategories,
       branch_id: formBranchId && formBranchId !== "__none__" ? formBranchId : null,
+      settings: (() => {
+        const base = { ...(editingSettings || {}) } as Record<string, any>;
+        const trimmed = formWindowsPrinterName.trim();
+        if (trimmed) {
+          base.windows_printer_name = trimmed;
+        } else {
+          delete base.windows_printer_name;
+        }
+        return base;
+      })(),
     };
 
     if (editingPrinter) {
@@ -190,6 +215,39 @@ export default function NetworkPrintersManager() {
     setShowAddDialog(false);
     resetForm();
     void loadData();
+  };
+
+  const loadWindowsPrintersFromBridge = async () => {
+    setLoadingWindowsList(true);
+    try {
+      const url = getPrintBridgeUrl();
+      let res: Response;
+      try {
+        res = await fetch(`${url}/windows-printers`, withLocalNetworkAccess({ signal: AbortSignal.timeout(5000) }));
+      } catch {
+        res = await fetch(`${url}/windows-printers`, { signal: AbortSignal.timeout(5000), cache: "no-store" });
+      }
+      const data: any = await res.json().catch(() => ({}));
+      const raw: any[] = Array.isArray(data) ? data : Array.isArray(data?.printers) ? data.printers : [];
+      const parsed = raw
+        .map((p: any) => {
+          if (typeof p === "string") return { name: p };
+          if (p && typeof p === "object") {
+            const n = p.name ?? p.Name ?? p.printerName;
+            if (!n) return null;
+            return { name: String(n), portName: p.portName, driverName: p.driverName };
+          }
+          return null;
+        })
+        .filter(Boolean) as Array<{ name: string; portName?: string; driverName?: string }>;
+      setWindowsList(parsed);
+      if (parsed.length === 0) toast.warning("لم يتم العثور على طابعات Windows. تأكد من اتصال Print Bridge.");
+      else toast.success(`تم جلب ${parsed.length} طابعة من الجهاز`);
+    } catch (e: any) {
+      toast.error("تعذر الاتصال بـ Print Bridge على هذا الجهاز");
+    } finally {
+      setLoadingWindowsList(false);
+    }
   };
 
   const deletePrinter = async (id: string) => {
@@ -502,6 +560,67 @@ export default function NetworkPrintersManager() {
                 <p className="text-[10px] text-muted-foreground">تُستخدم لطباعة الإيصالات تلقائياً</p>
               </div>
               <Switch checked={formIsDefault} onCheckedChange={setFormIsDefault} />
+            </div>
+
+            <div className="rounded-lg border border-border/50 bg-muted/20">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(v => !v)}
+                className="w-full flex items-center justify-between p-2.5 text-xs font-medium hover:bg-muted/40 transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Settings2 className="h-3.5 w-3.5" />
+                  إعدادات متقدمة
+                </span>
+                <span className="text-[10px] text-muted-foreground">{showAdvanced ? "إخفاء" : "عرض"}</span>
+              </button>
+              {showAdvanced && (
+                <div className="p-2.5 pt-0 space-y-2">
+                  <Label className="text-xs">اسم طابعة Windows</Label>
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={formWindowsPrinterName}
+                      onChange={e => setFormWindowsPrinterName(e.target.value)}
+                      placeholder="مثال: cash أو POS-80C"
+                      className="h-9 font-mono text-sm"
+                      dir="ltr"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={loadWindowsPrintersFromBridge}
+                      disabled={loadingWindowsList}
+                      className="h-9 gap-1 text-xs whitespace-nowrap"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${loadingWindowsList ? "animate-spin" : ""}`} />
+                      قراءة الطابعات
+                    </Button>
+                  </div>
+                  {windowsList.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-md border bg-background divide-y">
+                      {windowsList.map(w => (
+                        <button
+                          key={w.name}
+                          type="button"
+                          onClick={() => setFormWindowsPrinterName(w.name)}
+                          className={`w-full text-right px-2.5 py-1.5 text-xs hover:bg-muted/60 transition-colors ${formWindowsPrinterName === w.name ? "bg-primary/10" : ""}`}
+                        >
+                          <div className="font-medium truncate">{w.name}</div>
+                          {(w.portName || w.driverName) && (
+                            <div className="text-[10px] text-muted-foreground font-mono truncate" dir="ltr">
+                              {w.portName || ""}{w.driverName ? ` · ${w.driverName}` : ""}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] leading-relaxed text-muted-foreground">
+                    عند تعبئة هذا الحقل، يستخدم Print Bridge اسم طابعة Windows مباشرة (USB/محلي) ويتجاهل عنوان IP. اتركه فارغاً للسلوك الافتراضي (طباعة عبر IP).
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 pt-2">
