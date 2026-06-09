@@ -1081,3 +1081,228 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
     </Dialog>
   );
 }
+
+// ─────────────────────────────────────────────────
+// Edit Loan Dialog
+// ─────────────────────────────────────────────────
+function EditLoanDialog({ loan, open, onOpenChange, userId, companyId, onSuccess }: {
+  loan: any;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  userId: string;
+  companyId: string | null;
+  onSuccess: () => void;
+}) {
+  const paidMonths = Number(loan.paid_months || 0);
+  const hasPaid = paidMonths > 0;
+  const fullEdit = !hasPaid;
+
+  const [totalAmount, setTotalAmount] = useState(String(loan.total_amount ?? ""));
+  const [monthlyInstallment, setMonthlyInstallment] = useState(String(loan.monthly_installment ?? ""));
+  const [firstPaymentDate, setFirstPaymentDate] = useState(loan.first_payment_date || "");
+  const [notes, setNotes] = useState(loan.notes || "");
+  const [saving, setSaving] = useState(false);
+
+  const amount = parseFloat(totalAmount) || 0;
+  const installment = parseFloat(monthlyInstallment) || 0;
+  const totalMonths = installment > 0 ? Math.ceil(amount / installment) : 0;
+  const lastInstallment = installment > 0 && totalMonths > 0 ? amount - installment * (totalMonths - 1) : 0;
+
+  const schedule = useMemo(() => {
+    if (!fullEdit) return [];
+    if (!amount || !installment || !firstPaymentDate) return [];
+    const items = [];
+    let balance = amount;
+    const startDate = new Date(firstPaymentDate);
+    for (let i = 0; i < totalMonths; i++) {
+      const dueDate = new Date(startDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+      const inst = i === totalMonths - 1 ? lastInstallment : installment;
+      balance -= inst;
+      items.push({
+        month_number: i + 1,
+        due_date: dueDate.toISOString().split("T")[0],
+        installment_amount: Math.round(inst * 100) / 100,
+        balance_after: Math.max(0, Math.round(balance * 100) / 100),
+      });
+    }
+    return items;
+  }, [amount, installment, totalMonths, lastInstallment, firstPaymentDate, fullEdit]);
+
+  const lastPaymentDate = schedule.length > 0 ? schedule[schedule.length - 1].due_date : firstPaymentDate;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (fullEdit) {
+        if (amount <= 0 || installment <= 0 || !firstPaymentDate) {
+          toast.error("الرجاء تعبئة جميع الحقول المطلوبة");
+          setSaving(false);
+          return;
+        }
+        if (installment > amount) {
+          toast.error("القسط الشهري لا يمكن أن يتجاوز مبلغ القرض");
+          setSaving(false);
+          return;
+        }
+
+        // 1. Update loan
+        const { error: upErr } = await supabase
+          .from("employee_loans")
+          .update({
+            total_amount: amount,
+            monthly_installment: installment,
+            total_months: totalMonths,
+            remaining_amount: amount,
+            first_payment_date: firstPaymentDate,
+            last_payment_date: lastPaymentDate,
+            notes,
+          })
+          .eq("id", loan.id);
+        if (upErr) throw upErr;
+
+        // 2. Wipe & recreate installments (safe: paid_months = 0)
+        const { error: delErr } = await supabase
+          .from("loan_installments")
+          .delete()
+          .eq("loan_id", loan.id);
+        if (delErr) throw delErr;
+
+        const newRows = schedule.map(inst => ({
+          loan_id: loan.id,
+          user_id: userId,
+          company_id: companyId,
+          employee_id: loan.employee_id,
+          month_number: inst.month_number,
+          due_date: inst.due_date,
+          installment_amount: inst.installment_amount,
+          balance_after: inst.balance_after,
+          status: "pending",
+        }));
+        const { error: insErr } = await supabase.from("loan_installments").insert(newRows);
+        if (insErr) throw insErr;
+
+        // 3. Update disbursement transaction amount (matched via idempotency_key)
+        const idempotencyKey = `LOAN-${loan.id}`;
+        await supabase
+          .from("transactions")
+          .update({ amount })
+          .eq("idempotency_key", idempotencyKey)
+          .eq("user_id", userId);
+
+        toast.success("تم تحديث القرض وإعادة توليد الجدول");
+      } else {
+        // Restricted edit: notes only (financial fields locked once paid)
+        const { error } = await supabase
+          .from("employee_loans")
+          .update({ notes })
+          .eq("id", loan.id);
+        if (error) throw error;
+        toast.success("تم تحديث الملاحظات");
+      }
+      onSuccess();
+    } catch (err: any) {
+      console.error("Loan update error:", err);
+      toast.error(err.message || "حدث خطأ أثناء التحديث");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <Pencil className="h-5 w-5 text-primary" />
+            تعديل القرض — {loan.employees?.full_name || ""}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          {hasPaid && (
+            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-400">
+              ⚠️ هذا القرض تم سداد {paidMonths} قسط منه. لحماية السلامة المحاسبية، لا يمكن تعديل المبلغ أو القسط أو التواريخ. يمكنك تعديل الملاحظات فقط.
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1.5 block">مبلغ القرض</Label>
+              <div className="relative">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₪</span>
+                <Input
+                  type="number"
+                  value={totalAmount}
+                  onChange={e => setTotalAmount(e.target.value)}
+                  className="pr-8 text-left font-mono"
+                  disabled={!fullEdit}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs mb-1.5 block">القسط الشهري</Label>
+              <div className="relative">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₪</span>
+                <Input
+                  type="number"
+                  value={monthlyInstallment}
+                  onChange={e => setMonthlyInstallment(e.target.value)}
+                  className="pr-8 text-left font-mono"
+                  disabled={!fullEdit}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1.5 block">تاريخ أول قسط</Label>
+              <Input
+                type="date"
+                value={firstPaymentDate}
+                onChange={e => setFirstPaymentDate(e.target.value)}
+                disabled={!fullEdit}
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1.5 block">عدد الأقساط</Label>
+              <Input value={fullEdit ? (totalMonths || "-") : loan.total_months} readOnly className="bg-muted/30 font-bold text-center" />
+            </div>
+          </div>
+
+          {fullEdit && amount > 0 && installment > 0 && (
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-muted/40 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-muted-foreground">آخر قسط</p>
+                <p className="font-bold text-foreground">{fmtCurrency(lastInstallment)}</p>
+              </div>
+              <div className="bg-muted/40 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-muted-foreground">تاريخ الانتهاء</p>
+                <p className="font-bold text-foreground">{lastPaymentDate}</p>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-xs mb-1.5 block">ملاحظات</Label>
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+          </div>
+
+          {fullEdit && (
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs text-blue-700 dark:text-blue-400">
+              ℹ️ سيتم إعادة توليد جدول الأقساط وتحديث قيد الصرف بالمبلغ الجديد.
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>إلغاء</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
