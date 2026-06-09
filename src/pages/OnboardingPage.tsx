@@ -516,9 +516,10 @@ const OnboardingPage = () => {
                   <p className="text-xs text-white/80 mb-6">تجربتك المجانية سارية لـ 14 يوماً</p>
                   <button
                     onClick={finishOnboarding}
-                    className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
+                    disabled={finishing}
+                    className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    ادخل واستكشف ←
+                    {finishing ? "جاري التأكيد..." : "ادخل واستكشف ←"}
                   </button>
                 </motion.div>
               </div>
