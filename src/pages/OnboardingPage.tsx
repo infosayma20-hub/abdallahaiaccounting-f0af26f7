@@ -51,6 +51,8 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [finishing, setFinishing] = useState(false);
 
   // Form state
   const [companyName, setCompanyName] = useState("");
@@ -119,6 +121,9 @@ const OnboardingPage = () => {
   };
 
   const nextStep = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
     if (step === 1) {
       const trimmedCompanyName = companyName.trim();
       if (!trimmedCompanyName) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
@@ -167,18 +172,56 @@ const OnboardingPage = () => {
     }
 
     if (step < TOTAL_STEPS) setStep(step + 1);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const prevStep = () => { if (step > 1) setStep(step - 1); };
+  const prevStep = () => { if (!saving && !finishing && step > 1) setStep(step - 1); };
 
   const finishOnboarding = async () => {
+    if (finishing) return;
+    setFinishing(true);
     try {
       await saveProgress({ onboarding_completed: true }, 6);
     } catch (err) {
       console.error("[finishOnboarding] failed:", err);
       toast.error("تعذّر إكمال الإعداد، حاول مرة أخرى");
+      setFinishing(false);
       return;
     }
+
+    // Hardening: read-back verification — confirm the flag is actually
+    // persisted before navigating. If not, surface a clear error instead
+    // of dropping the user into /apps where the gate will bounce them back.
+    try {
+      const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user!.id });
+      const ownerId = (ownerIdData as string | null) || user!.id;
+      const { data: company } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("owner_id", ownerId)
+        .maybeSingle();
+      if (company?.id) {
+        const { data: profile } = await supabase
+          .from("company_profiles")
+          .select("onboarding_completed")
+          .eq("company_id", company.id)
+          .maybeSingle();
+        if (!profile?.onboarding_completed) {
+          console.error("[finishOnboarding] read-back failed:", profile);
+          toast.error("لم يتم تأكيد حفظ الإعداد، حاول مرة أخرى");
+          setFinishing(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("[finishOnboarding] read-back error:", err);
+      toast.error("لم يتم تأكيد حفظ الإعداد، حاول مرة أخرى");
+      setFinishing(false);
+      return;
+    }
+
     // (C) Sync user_onboarding so WelcomeModal + SpotlightTour appear once
     // for the freshly-onboarded owner, then never again.
     if (user?.id) {
@@ -487,16 +530,17 @@ const OnboardingPage = () => {
         {step < 6 && (
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
             {step > 1 ? (
-              <button onClick={prevStep} className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600">
+              <button onClick={prevStep} disabled={saving || finishing} className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
                 <ArrowRight className="h-4 w-4" />
                 السابق
               </button>
             ) : <div />}
             <button
               onClick={nextStep}
-              className="flex items-center gap-2 bg-gradient-to-r from-[#E8A020] to-[#F45E0C] text-white px-8 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform"
+              disabled={saving || finishing}
+              className="flex items-center gap-2 bg-gradient-to-r from-[#E8A020] to-[#F45E0C] text-white px-8 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {step === 1 ? "لنبدأ" : "التالي"}
+              {saving ? "جاري الحفظ..." : (step === 1 ? "لنبدأ" : "التالي")}
               <ArrowLeft className="h-4 w-4" />
             </button>
           </div>
