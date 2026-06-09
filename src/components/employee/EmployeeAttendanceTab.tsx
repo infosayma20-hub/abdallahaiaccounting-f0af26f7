@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, ChevronRight, ChevronLeft, ChevronDown, LogIn, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { buildMonthRows, summarizeMonth, type AttDay, type Leave, type AttEvent } from "@/lib/employeeAttendanceDisplay";
+import { buildMonthRows, summarizeMonth, bucketEventsByBusinessDay, type AttDay, type Leave, type AttEvent } from "@/lib/employeeAttendanceDisplay";
 
 interface Props { employeeId: string; }
 
@@ -71,15 +71,13 @@ export default function EmployeeAttendanceTab({ employeeId }: Props) {
         leave_type: r.form_data?.leave_type,
       })).filter((l) => l.from_date && l.to_date);
       setLeaves(ls);
-      // Map events to Asia/Hebron local date
-      const dtf = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit",
-      });
-      const evs: AttEvent[] = ((evRes.data as any[]) || []).map((e) => ({
-        event_type: e.event_type,
-        event_time: e.event_time,
-        attendance_date: dtf.format(new Date(e.event_time)),
-      }));
+      // Bucket events by **business day** so a check-out after midnight
+      // closes the previous day's open session instead of becoming a lone
+      // "ناقص" event on the next day.
+      const evs: AttEvent[] = bucketEventsByBusinessDay(
+        (evRes.data as any[]) || [],
+        "Asia/Hebron",
+      );
       setEvents(evs);
       setLoading(false);
     })();
