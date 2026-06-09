@@ -461,10 +461,18 @@ const AppsLauncher = () => {
       {!onboardingLoading && (
         <>
           <WelcomeModal open={shouldShowWelcome} onStartTour={handleStartTour} onSkip={handleSkipWelcome} />
+          {/* الجولة لا تبدأ إلا بعد جاهزية البطاقات (auth + roles + settings) */}
           <SpotlightTour
-            active={tourActive || shouldShowTour}
+            active={isReady && (tourActive || shouldShowTour)}
             onComplete={handleTourComplete}
             onSkip={handleTourSkip}
+            context={{
+              visibleAppIds: new Set(allVisibleApps.filter((a) => !isAppDisabled(a)).map((a) => a.id)),
+              businessType,
+              hasEmployees: (settings as any)?.has_employees ?? null,
+              vatEnabled: (settings as any)?.vat_enabled ?? null,
+              roles: userRoles,
+            }}
           />
         </>
       )}

@@ -55,6 +55,7 @@ export default function AppCardV2({
     <motion.div
       ref={cardRef as any}
       id={`app-${app.id}`}
+      data-tour-id={`app-${app.id}`}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03, duration: 0.35, ease: "easeOut" }}

@@ -1,14 +1,38 @@
+/**
+ * Phase 1: مسار جولة مختصر (9 خطوات كحد أقصى) ذكي + شرطي.
+ * كل خطوة تمر عبر `condition(ctx)` ثم تتأكد من وجود data-tour-id فعلياً في DOM.
+ * إن لم تتحقق الشروط، تُتخطّى تلقائياً — لا تبقى الجولة عالقة.
+ */
+export interface TourContext {
+  visibleAppIds: Set<string>;
+  businessType?: string;          // products | services | restaurant | construction | ...
+  hasEmployees?: boolean | null;
+  vatEnabled?: boolean | null;
+  roles: string[];                // user_roles
+}
+
 export interface TourStep {
   targetId: string;
   title: string;
   icon: string;
   description: string;
   tip: string;
+  /** يُستبعد إن أعاد false */
+  condition?: (ctx: TourContext) => boolean;
 }
 
-// الترتيب يطابق بالضبط ترتيب البطاقات على شاشة /apps:
-// قسم "الأساسية" ← قسم "العمليات والإدارة" ← قسم "تطبيقات متقدمة"
-// (مرجع: src/pages/Apps/data/appsRegistry.ts → APPS_VISUAL_META)
+const isRestaurantOrRetail = (bt?: string) =>
+  !!bt && /restaurant|retail|products/i.test(bt);
+const hasInventoryBusiness = (bt?: string) =>
+  !!bt && /restaurant|retail|products|manufacturing|trading/i.test(bt);
+const hasPosRole = (roles: string[]) =>
+  roles.some((r) => r === "cashier" || r === "admin" || r === "super_admin");
+const hasHrAccess = (roles: string[]) =>
+  roles.some((r) => r === "hr_manager" || r === "admin" || r === "super_admin");
+
+/**
+ * المسار الأساسي (Phase 1): 9 خطوات بحد أقصى، أغلبها شرطية.
+ */
 export const tourSteps: TourStep[] = [
   // ───────── قسم الأساسية ─────────
   {
@@ -19,11 +43,12 @@ export const tourSteps: TourStep[] = [
     tip: "📈 بيانات لحظية تتحدث تلقائياً مع كل عملية",
   },
   {
-    targetId: "app-finance",
-    title: "المالية",
-    icon: "💰",
-    description: "مركز العمليات المالية: شجرة الحسابات، دفتر اليومية، ميزان المراجعة، وإدارة الشيكات.",
-    tip: "📋 كل قيد محاسبي يُسجّل تلقائياً من كل التطبيقات الأخرى",
+    targetId: "app-ai-accountant",
+    title: "المحاسب الذكي",
+    icon: "🤖",
+    description:
+      'قلب النظام! اكتب بلغتك العادية مثل:\n"قبضت 500 من أحمد نقداً"\nوالذكاء الاصطناعي يحوّلها لقيد محاسبي + فاتورة تلقائياً ✨',
+    tip: "💡 يدعم الإدخال الصوتي 🎙️",
   },
   {
     targetId: "app-sales",
@@ -33,62 +58,27 @@ export const tourSteps: TourStep[] = [
     tip: "📌 تتبّع الفواتير المدفوعة وغير المدفوعة بنظرة واحدة",
   },
   {
-    targetId: "app-inventory",
-    title: "المخزون",
-    icon: "📦",
-    description: "تتبّع منتجاتك وكمياتها لحظة بلحظة: وارد، صادر، حركات، وتقييم المخزون.",
-    tip: "📊 تنبيهات تلقائية عند انخفاض الكمية",
-  },
-  {
     targetId: "app-pos",
     title: "نقطة البيع",
     icon: "🖥️",
     description: "نظام POS متكامل للمبيعات المباشرة: كاشير، طاولات مطعم، إضافات، وتقارير نقطة البيع.",
     tip: "⚡ يعمل بدون إنترنت مع مزامنة تلقائية",
+    condition: (ctx) => isRestaurantOrRetail(ctx.businessType) || hasPosRole(ctx.roles),
   },
   {
-    targetId: "app-ai-accountant",
-    title: "المحاسب الذكي",
-    icon: "🤖",
-    description: 'قلب النظام! اكتب بلغتك العادية مثل:\n"قبضت 500 من أحمد نقداً"\nوالذكاء الاصطناعي يحوّلها لقيد محاسبي + فاتورة تلقائياً ✨',
-    tip: "💡 يدعم الإدخال الصوتي 🎙️",
+    targetId: "app-inventory",
+    title: "المخزون",
+    icon: "📦",
+    description: "تتبّع منتجاتك وكمياتها لحظة بلحظة: وارد، صادر، حركات، وتقييم المخزون.",
+    tip: "📊 تنبيهات تلقائية عند انخفاض الكمية",
+    condition: (ctx) => hasInventoryBusiness(ctx.businessType),
   },
   {
-    targetId: "app-tax",
-    title: "المحاسبة الضريبية",
-    icon: "🧮",
-    description: "إدارة كاملة لضريبة القيمة المضافة: التقارير الدورية، التقديمات، وحساب الضريبة المستحقة تلقائياً.",
-    tip: "🇵🇸 متوافق مع القانون الضريبي الفلسطيني (16%)",
-  },
-
-  // ───────── قسم العمليات والإدارة ─────────
-  {
-    targetId: "app-tasks",
-    title: "إدارة المهام",
-    icon: "📋",
-    description: "نظّم مهامك وكلّف فريقك: تتبّع التقدّم، المواعيد النهائية، والأولويات.",
-    tip: "✅ تابع حالة كل مهمة بنظرة واحدة",
-  },
-  {
-    targetId: "app-workshops",
-    title: "إدارة الورشات والمناجر",
-    icon: "🪵",
-    description: "أدر ورشات العمل والمناجر: تتبّع طلبات التصنيع، تكاليف المواد والعمالة، وربحية كل ورشة.",
-    tip: "🏭 محاسبة مراكز التكلفة لكل ورشة",
-  },
-  {
-    targetId: "app-fixed-assets",
-    title: "الأصول الثابتة",
-    icon: "🏛️",
-    description: "سجّل أصولك الثابتة (مركبات، معدات، أثاث...) واحتسب الاستهلاك شهرياً تلقائياً.",
-    tip: "📉 قيود الاستهلاك تُنشأ تلقائياً",
-  },
-  {
-    targetId: "app-hr",
-    title: "الموارد البشرية",
-    icon: "👥",
-    description: "أدر فريقك بالكامل: بيانات الموظفين، تسجيل الحضور والانصراف عبر QR، وحساب الرواتب.",
-    tip: "⏰ نظام حضور ذكي بالموقع الجغرافي",
+    targetId: "app-crm",
+    title: "العملاء والموردين",
+    icon: "🤝",
+    description: "أدر علاقاتك مع العملاء والموردين: جهات الاتصال، كشوف الحساب، والمتابعة.",
+    tip: "📞 ربط مباشر بالمبيعات والمشتريات",
   },
   {
     targetId: "app-reports",
@@ -98,18 +88,12 @@ export const tourSteps: TourStep[] = [
     tip: "📈 رسوم بيانية تفاعلية + تصدير Excel و PDF",
   },
   {
-    targetId: "app-purchases",
-    title: "المشتريات",
-    icon: "🧾",
-    description: "سجّل مشترياتك، أدر الموردين، وتابع فواتير المشتريات وسندات الصرف.",
-    tip: "🔗 مرتبط تلقائياً بالمخزون والمالية",
-  },
-  {
-    targetId: "app-print-templates",
-    title: "نماذج للطباعة",
-    icon: "🖨️",
-    description: "صمّم وأنشئ نماذجك الاحترافية: عروض الأسعار، العقود، الإشعارات، والمطالبات — كلها مرتبطة ببيانات شركتك.",
-    tip: "✨ محرر سحب وإفلات بدون كود",
+    targetId: "app-tax",
+    title: "المحاسبة الضريبية",
+    icon: "🧮",
+    description: "إدارة كاملة لضريبة القيمة المضافة: التقارير الدورية، التقديمات، وحساب الضريبة المستحقة تلقائياً.",
+    tip: "🇵🇸 متوافق مع القانون الضريبي الفلسطيني (16%)",
+    condition: (ctx) => ctx.vatEnabled !== false,
   },
   {
     targetId: "app-settings",
@@ -118,34 +102,37 @@ export const tourSteps: TourStep[] = [
     description: "خصّص نظامك: بيانات الشركة، الصلاحيات، وإعدادات الطباعة والتصدير.",
     tip: "💡 ابدأ هنا بإعداد بيانات شركتك!",
   },
-
-  // ───────── قسم التطبيقات المتقدمة ─────────
-  {
-    targetId: "app-travel",
-    title: "إدارة مالية السياحة والسفر",
-    icon: "✈️",
-    description: "أدر حجوزات السياحة والسفر مالياً: الموردون، العمولات، والأرباح.",
-    tip: "🌍 تقارير ربحية لكل حجز ومورد",
-  },
-  {
-    targetId: "app-ecommerce",
-    title: "إدارة المتاجر الإلكترونية",
-    icon: "🏪",
-    description: "أدر الطلبات من متاجرك الإلكترونية وصفحاتك على السوشال ميديا مالياً.",
-    tip: "🛍️ مرتبط بالمخزون والمبيعات تلقائياً",
-  },
-  {
-    targetId: "app-contractor",
-    title: "محاسب المشاريع والمقاولات",
-    icon: "🏗️",
-    description: "أدر مشاريع المقاولات: تتبّع التكاليف، المستخلصات، والحركات المالية لكل مشروع.",
-    tip: "📋 تقارير ربحية لكل مشروع على حدة",
-  },
-  {
-    targetId: "app-warranty",
-    title: "إدارة الكفالات",
-    icon: "🛡️",
-    description: "أدر سياسات الكفالات والضمانات: بطاقات الكفالة، المطالبات، وتعويضات الشركة الأم.",
-    tip: "🔧 تتبّع كامل لدورة الكفالة من البيع حتى الصيانة",
-  },
 ];
+
+/**
+ * يُرجع الخطوات المُطبَّقة فعلياً بعد فلترة:
+ *   1) شرط condition
+ *   2) معرّف التطبيق موجود ضمن visibleAppIds
+ *   3) العنصر موجود ومرئي في DOM
+ */
+export function getEffectiveTourSteps(ctx: TourContext): TourStep[] {
+  return tourSteps.filter((step) => {
+    if (step.condition && !step.condition(ctx)) return false;
+    const appId = step.targetId.replace(/^app-/, "");
+    if (!ctx.visibleAppIds.has(appId)) return false;
+    const el = findTourTarget(step.targetId);
+    return !!el;
+  });
+}
+
+/**
+ * يعيد أول عنصر مرئي مطابق لـ data-tour-id (يفلتر النسخ المخفية مثل
+ * البطاقات داخل قسم "المفضلة" المطوي).
+ */
+export function findTourTarget(targetId: string): HTMLElement | null {
+  const candidates = Array.from(
+    document.querySelectorAll<HTMLElement>(`[data-tour-id="${targetId}"]`)
+  );
+  if (candidates.length === 0) {
+    // fallback للتوافق مع id القديم
+    return document.getElementById(targetId);
+  }
+  // العنصر مرئي إذا كان offsetParent !== null (ليس داخل display:none)
+  const visible = candidates.find((c) => c.offsetParent !== null);
+  return visible || candidates[0];
+}
