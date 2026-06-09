@@ -55,6 +55,55 @@ function localISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Bucket raw events by "attendance business day".
+ *
+ * Rule: a check-out that follows an open check-in within `maxOpenHours`
+ * belongs to the **same** attendance_date as that check-in — even if the
+ * calendar date already rolled over past midnight.
+ *
+ * This fixes the case where a cashier checks in at 11:30pm and checks out
+ * at 12:30am: without this rule the in stays on day N (as "مفتوحة") and
+ * the out becomes a lone event on day N+1 (as "ناقص").
+ */
+export function bucketEventsByBusinessDay(
+  events: { event_type: string; event_time: string }[],
+  tz: string = "Asia/Hebron",
+  maxOpenHours = 18,
+): AttEvent[] {
+  const dtf = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+  );
+  let openDate: string | null = null;
+  let openTs: number | null = null;
+  const out: AttEvent[] = [];
+  for (const e of sorted) {
+    const localDate = dtf.format(new Date(e.event_time));
+    if (e.event_type === "check_in") {
+      if (!openDate) {
+        openDate = localDate;
+        openTs = new Date(e.event_time).getTime();
+      }
+      out.push({ event_type: e.event_type, event_time: e.event_time, attendance_date: openDate ?? localDate });
+    } else if (e.event_type === "check_out") {
+      const ts = new Date(e.event_time).getTime();
+      const pair =
+        openDate && openTs && ts - openTs <= maxOpenHours * 3600 * 1000
+          ? openDate
+          : localDate;
+      out.push({ event_type: e.event_type, event_time: e.event_time, attendance_date: pair });
+      openDate = null;
+      openTs = null;
+    } else {
+      out.push({ event_type: e.event_type, event_time: e.event_time, attendance_date: localDate });
+    }
+  }
+  return out;
+}
+
 function fmtTime(t?: string | null): string {
   if (!t) return "—";
   try {
