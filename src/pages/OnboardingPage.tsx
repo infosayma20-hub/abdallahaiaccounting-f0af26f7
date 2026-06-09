@@ -69,34 +69,52 @@ const OnboardingPage = () => {
   const saveProgress = async (stepData: any, stepNum: number) => {
     if (!user) return;
     try {
+      // Resolve the *real* tenant owner — a team admin invited into an
+      // existing tenant must write into the owner's company, not create a
+      // duplicate one under their own auth uid (that was the source of the
+      // "wizard restarts after finish" loop).
+      const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const ownerId = (ownerIdData as string | null) || user.id;
+
       const { data: company } = await supabase
         .from("companies")
         .select("id")
-        .eq("owner_id", user.id)
+        .eq("owner_id", ownerId)
         .maybeSingle();
 
       let companyId = company?.id;
 
-      if (!companyId && stepNum === 1 && stepData.company_name) {
+      // Only the real owner is allowed to create a brand-new company. A team
+      // admin without a tenant should never silently spawn one.
+      if (!companyId && stepNum === 1 && stepData.company_name && ownerId === user.id) {
         const { data: newCompany } = await supabase
           .from("companies")
-          .insert({ name: stepData.company_name, owner_id: user.id })
+          .insert({ name: stepData.company_name, owner_id: ownerId })
           .select("id")
           .single();
         companyId = newCompany?.id;
       }
 
       if (companyId) {
-        await supabase
+        // `company_name` lives on `companies`, not on `company_profiles` — never
+        // pass it through here or the upsert 400s and onboarding_completed
+        // never persists.
+        const { company_name: _omit, ...profileData } = stepData ?? {};
+        const { error: profileErr } = await supabase
           .from("company_profiles")
           .upsert({
             company_id: companyId,
-            ...stepData,
+            ...profileData,
             onboarding_step: stepNum,
           }, { onConflict: "company_id" });
+        if (profileErr) {
+          console.error("[onboarding] company_profiles upsert failed:", profileErr);
+          throw profileErr;
+        }
       }
     } catch (err) {
       console.error("Save progress error:", err);
+      throw err;
     }
   };
 
@@ -105,14 +123,21 @@ const OnboardingPage = () => {
       const trimmedCompanyName = companyName.trim();
       if (!trimmedCompanyName) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
 
-      await saveProgress({ company_name: trimmedCompanyName }, 1);
+      try {
+        await saveProgress({ company_name: trimmedCompanyName }, 1);
+      } catch {
+        toast.error("تعذّر حفظ اسم الشركة، حاول مرة أخرى");
+        return;
+      }
 
       if (user) {
-        const { data: company } = await supabase.from("companies").select("id").eq("owner_id", user.id).maybeSingle();
+        const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+        const ownerId = (ownerIdData as string | null) || user.id;
+        const { data: company } = await supabase.from("companies").select("id").eq("owner_id", ownerId).maybeSingle();
         if (company) {
           await supabase.from("companies").update({ name: trimmedCompanyName }).eq("id", company.id);
-        } else {
-          await supabase.from("companies").insert({ owner_id: user.id, name: trimmedCompanyName });
+        } else if (ownerId === user.id) {
+          await supabase.from("companies").insert({ owner_id: ownerId, name: trimmedCompanyName });
         }
 
         await Promise.all([
@@ -124,14 +149,22 @@ const OnboardingPage = () => {
     }
     if (step === 2) {
       if (selectedTypes.length === 0) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-      await saveProgress({ business_type: selectedTypes.join(",") }, 2);
+      try { await saveProgress({ business_type: selectedTypes.join(",") }, 2); }
+      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
     if (step === 3) {
       if (!industry.trim()) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-      await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3);
+      try { await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3); }
+      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
-    if (step === 4) await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4);
-    if (step === 5) await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5);
+    if (step === 4) {
+      try { await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4); }
+      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
+    }
+    if (step === 5) {
+      try { await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5); }
+      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
+    }
 
     if (step < TOTAL_STEPS) setStep(step + 1);
   };
@@ -139,7 +172,13 @@ const OnboardingPage = () => {
   const prevStep = () => { if (step > 1) setStep(step - 1); };
 
   const finishOnboarding = async () => {
-    await saveProgress({ onboarding_completed: true }, 6);
+    try {
+      await saveProgress({ onboarding_completed: true }, 6);
+    } catch (err) {
+      console.error("[finishOnboarding] failed:", err);
+      toast.error("تعذّر إكمال الإعداد، حاول مرة أخرى");
+      return;
+    }
     // (C) Sync user_onboarding so WelcomeModal + SpotlightTour appear once
     // for the freshly-onboarded owner, then never again.
     if (user?.id) {
