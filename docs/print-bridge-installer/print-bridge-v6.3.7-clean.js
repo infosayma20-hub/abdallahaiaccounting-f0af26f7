@@ -103,7 +103,7 @@ async function listWindowsPrinters() {
       name:          p.Name || '',
       driverName:    p.DriverName || '',
       portName:      p.PortName || '',
-      printerStatus: (typeof p.PrinterStatus === 'object' && p.PrinterStatus !== null) ? (p.PrinterStatus.Value || String(p.PrinterStatus)) : (p.PrinterStatus ?? null),
+      printerStatus: (typeof p.PrinterStatus === 'object' && p.PrinterStatus !== null) ? (p.PrinterStatus.Value || String(p.PrinterStatus)) : ((p.PrinterStatus !== undefined && p.PrinterStatus !== null ? p.PrinterStatus : null)),
       workOffline:   !!p.WorkOffline,
       shared:        !!p.Shared,
       default:       !!p.Default,
@@ -327,7 +327,7 @@ function getLocalSubnets() {
           iface: name,
           ip: a.address,
           netmask: a.netmask,
-          cidr: a.cidr || `${a.address}/${maskToBits(a.netmask) ?? '?'}`,
+          cidr: a.cidr || `${a.address}/${(maskToBits(a.netmask) !== null && maskToBits(a.netmask) !== undefined ? maskToBits(a.netmask) : '?')}`,
           networkInt,
           maskInt,
         });
@@ -531,7 +531,7 @@ function buildRawTextPayload(text) {
 //  SVG TEMPLATES
 // ────────────────────────────────────────────────────────────────────────
 function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function wrapTextForSvg(text, maxChars) {
@@ -539,7 +539,7 @@ function wrapTextForSvg(text, maxChars) {
   // First split on whitespace, then HARD-break any token longer than max.
   // This guarantees notes like "اختباراختباراختبار..." (no spaces) wrap
   // downward instead of overflowing the receipt / kitchen ticket box.
-  const rawTokens = String(text ?? '').split(/\s+/).filter(Boolean);
+  const rawTokens = String(text == null ? '' : text).split(/\s+/).filter(Boolean);
   const tokens = [];
   for (const t of rawTokens) {
     if (t.length <= max) { tokens.push(t); continue; }
@@ -566,7 +566,7 @@ function wrapTextForSvg(text, maxChars) {
 //  - "POS-20260602-0005" -> "5"  (strip zeros from last segment)
 //  - "5"                 -> "5"
 function normalizeCounter(v) {
-  const raw = String(v ?? '').trim();
+  const raw = String(v == null ? '' : v).trim();
   if (!raw) return '---';
   const hash = raw.startsWith('#') ? '#' : '';
   const body = hash ? raw.slice(1).trim() : raw;
