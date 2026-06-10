@@ -7,6 +7,8 @@
  * A future version can swap this for ElevenLabs MP3 stitching.
  */
 
+import { playAlertBeep } from "@/lib/audio-unlock";
+
 let cachedVoice: SpeechSynthesisVoice | null | undefined = undefined;
 
 let lastVoiceError: string | null = null;
@@ -121,6 +123,10 @@ export interface SpeakOptions {
   mode?: "cached_arabic_audio" | "browser_tts" | "beep_only";
   /** Admin preview from settings — uses JWT instead of device token */
   preview?: boolean;
+  /** Live customer displays should still make noise if cached MP3 is blocked. */
+  fallbackToBrowserTts?: boolean;
+  /** Last-resort audible fallback when Arabic speech cannot be played. */
+  fallbackToBeep?: boolean;
 }
 
 export async function speakOrderCall(displayNumber: string | number, opts: SpeakOptions = {}): Promise<VoiceResult> {
@@ -134,6 +140,17 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
   if (mode === "cached_arabic_audio" && (opts.deviceToken || opts.preview)) {
     const r = await playCachedArabicAudio(opts.deviceToken, displayNumber, opts);
     if (r.played === "cached_arabic_audio") { lastVoiceError = null; return r; }
+    if (opts.fallbackToBrowserTts) {
+      return speakOrderCall(displayNumber, { ...opts, mode: "browser_tts", fallbackToBrowserTts: false });
+    }
+    if (opts.fallbackToBeep && playAlertBeep()) {
+      lastVoiceError = r.reason || "cached audio unavailable — beep fallback used";
+      return {
+        played: "beep_only",
+        reason: lastVoiceError,
+        diagnostics: { ...(r.diagnostics || {}), mode_used: "beep_only", success: false, provider: "beep", error_message: lastVoiceError } as VoiceDiagnostics,
+      };
+    }
     lastVoiceError = r.reason || "cached audio unavailable";
     return r;
   }
@@ -228,44 +245,10 @@ export async function speakOrderCall(displayNumber: string | number, opts: Speak
 
 /** Loud 3-tone fallback used when speech synthesis is unavailable. */
 export function playFallbackAlert() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const notes = [880, 1100, 880];
-    const start = ctx.currentTime;
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.frequency.value = freq;
-      osc.type = "sine";
-      const t0 = start + i * 0.35;
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.4, t0 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(t0); osc.stop(t0 + 0.34);
-    });
-    setTimeout(() => ctx.close().catch(() => {}), 2000);
-  } catch (e: any) { lastVoiceError = `تنبيه: ${e?.message}`; }
+  if (!playAlertBeep()) lastVoiceError = "تعذّر تشغيل التنبيه — اضغط على شاشة العرض لتفعيل الصوت";
 }
 
 /** Quick chime to grab attention before the spoken call. */
 export function playChime() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const notes = [880, 660];
-    const start = ctx.currentTime;
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.frequency.value = freq;
-      osc.type = "sine";
-      gain.gain.setValueAtTime(0.0001, start + i * 0.25);
-      gain.gain.exponentialRampToValueAtTime(0.25, start + i * 0.25 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + i * 0.25 + 0.22);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(start + i * 0.25);
-      osc.stop(start + i * 0.25 + 0.24);
-    });
-    setTimeout(() => ctx.close().catch(() => {}), 1500);
-  } catch { /* ignore */ }
+  playAlertBeep();
 }
