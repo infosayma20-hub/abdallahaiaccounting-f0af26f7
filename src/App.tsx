@@ -207,6 +207,7 @@ const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const CustomerOrderDisplayPage = lazy(() => import("./pages/CustomerOrderDisplayPage"));
 const KitchenDisplayPublicPage = lazy(() => import("./pages/KitchenDisplayPublicPage"));
+const HeaterScreenPage = lazy(() => import("./pages/HeaterScreenPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CostCentersPage = lazy(() => import("./pages/CostCentersPage"));
