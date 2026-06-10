@@ -103,12 +103,7 @@ export default function CustomerOrderDisplayPage() {
     if (!token) return;
     (async () => {
       try {
-        const { data: dev } = await (supabase as any).from("pos_display_devices")
-          .select("company_id, branch_id").eq("token", token).maybeSingle();
-        if (!dev) return;
-        const { data: cs } = await (supabase as any).from("company_settings")
-          .select("company_name, logo_url, pos_voice_template, pos_voice_language, pos_kds_voice_mode")
-          .eq("user_id", dev.company_id).maybeSingle();
+        const { data: cs } = await (supabase as any).rpc("kds_get_display_settings", { _token: token });
         if (cs) {
           setCompanyName(cs.company_name || "");
           setLogoUrl(cs.logo_url || "");
