@@ -19276,6 +19276,10 @@ export type Database = {
           table_name: string
         }[]
       }
+      kds_mark_order_ready_by_number: {
+        Args: { _display_number: number; _token: string }
+        Returns: Json
+      }
       kds_recall_order: { Args: { _order_id: string }; Returns: undefined }
       kds_recall_order_by_token: {
         Args: { _order_id: string; _token: string }

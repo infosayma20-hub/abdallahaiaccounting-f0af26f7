@@ -86,7 +86,10 @@ const KdsDisplaySection = ({ settings, onChange, ownerId }: Props) => {
 
   const linkFor = (d: Device) => {
     const base = getKdsPublicBaseUrl(settings.kds_public_base_url);
-    if (d.device_type === "kitchen_screen" || d.device_type === "heater_screen") {
+    if (d.device_type === "heater_screen") {
+      return `${base}/pos/heater-screen?token=${d.token}`;
+    }
+    if (d.device_type === "kitchen_screen") {
       return `${base}/pos/kitchen-display?token=${d.token}`;
     }
     return `${base}/pos/order-display?token=${d.token}`;
