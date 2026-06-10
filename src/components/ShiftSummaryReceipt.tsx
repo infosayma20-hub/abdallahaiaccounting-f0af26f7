@@ -143,16 +143,12 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
     });
   };
 
+  // ⚠️ Auto-print intentionally removed — POSPage.tsx fires the bridge call
+  // immediately on shift close. Keeping a second auto-print here caused TWO
+  // identical shift summaries to print every time.
   useEffect(() => {
-    if (open && data && !autoPrintDone.current) {
-      autoPrintDone.current = true;
-      const timer = setTimeout(() => {
-        printSummary();
-      }, 600);
-      return () => clearTimeout(timer);
-    }
     if (!open) autoPrintDone.current = false;
-  }, [open, data]);
+  }, [open]);
 
   if (!data) return null;
 
