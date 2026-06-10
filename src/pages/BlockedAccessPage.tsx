@@ -1,7 +1,9 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, LogOut } from "lucide-react";
+import { AlertTriangle, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { resolveUserAccessContext } from "@/lib/accessContext";
 
 type BlockKey =
   | "unlinked"
@@ -31,9 +33,41 @@ const COPY: Record<BlockKey, { title: string; body: string }> = {
 export default function BlockedAccessPage() {
   const { reason } = useParams<{ reason: BlockKey }>();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user, loading: authLoading } = useAuth();
   const key = (reason && (reason in COPY) ? reason : "unlinked") as BlockKey;
   const { title, body } = COPY[key];
+
+  // Self-healing: if the user is actually allowed somewhere now (e.g.
+  // employee record was linked after they bookmarked /blocked/unlinked,
+  // or the PWA shortcut is stuck on an old blocked URL), re-resolve
+  // their access context and bounce them to the correct destination.
+  const [resolving, setResolving] = useState(true);
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setResolving(false); return; }
+    let cancelled = false;
+    resolveUserAccessContext(user.id, { force: true })
+      .then((ctx) => {
+        if (cancelled) return;
+        if (ctx.defaultRoute && !ctx.defaultRoute.startsWith("/blocked")) {
+          setRedirectTo(ctx.defaultRoute);
+        }
+      })
+      .catch(() => { /* fall through to showing the blocked page */ })
+      .finally(() => { if (!cancelled) setResolving(false); });
+    return () => { cancelled = true; };
+  }, [user, authLoading]);
+
+  if (authLoading || resolving) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center" dir="rtl">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (redirectTo) return <Navigate to={redirectTo} replace />;
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-background p-6" dir="rtl">
