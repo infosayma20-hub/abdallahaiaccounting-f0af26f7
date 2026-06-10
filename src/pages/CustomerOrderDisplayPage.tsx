@@ -144,11 +144,13 @@ export default function CustomerOrderDisplayPage() {
           remember(ev.id);
           continue;
         }
+        console.info("[kds-audio] scheduling call", ev);
         remember(ev.id);
         const num = ev.display_number || "";
         if (!num) continue;
         setTimeout(async () => {
           const chimeOk = playChime();
+          console.info("[kds-audio] chime", { chimeOk, num });
           const result = await new Promise<any>((resolve) => setTimeout(() => {
             speakOrderCall(num, {
             template: voiceTemplate, language: voiceLang,
@@ -156,6 +158,7 @@ export default function CustomerOrderDisplayPage() {
               fallbackToBrowserTts: true, fallbackToBeep: true,
             }).then(resolve);
           }, chimeOk ? 450 : 0));
+          console.info("[kds-audio] voice result", result);
           if (result?.played === "none") playedEventsRef.current.delete(ev.id);
         }, i * 2500);
         i++;
