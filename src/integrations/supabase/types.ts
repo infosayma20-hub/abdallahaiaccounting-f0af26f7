@@ -19185,6 +19185,10 @@ export type Database = {
         Args: { _company: string; _user: string }
         Returns: boolean
       }
+      is_employee_policy_file: {
+        Args: { _auth_uid: string; _object_name: string }
+        Returns: boolean
+      }
       is_managed_branch_employee: {
         Args: { _employee_id: string }
         Returns: boolean
