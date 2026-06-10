@@ -70,13 +70,6 @@ export default function CustomerOrderDisplayPage() {
     installAudioUnlock();
     playAlertBeep();
     audioReadyAtRef.current = Date.now();
-    setTimeout(async () => { try {
-      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data } = await supabase.rpc("kds_recent_call_events", { _token: token, _since: since } as any);
-      ((data as Array<{ id: string; created_at: string }> | null) || [])
-        .filter((ev) => new Date(ev.created_at).getTime() <= audioReadyAtRef.current)
-        .forEach((ev) => remember(ev.id));
-    } catch {} }, 0);
     ensureVoicesLoaded().catch(() => {});
     try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
     setAudioUnlocked(isAudioUnlocked());
@@ -138,12 +131,10 @@ export default function CustomerOrderDisplayPage() {
       if (cancelled || !data) return;
       const events = data as Array<{ id: string; display_number: string | null; event_type: string; created_at: string }>;
       let i = 0;
-      for (const ev of events) {
+      const pending = events.filter((ev) => !playedEventsRef.current.has(ev.id));
+      const eventsToPlay = pending.length > 3 ? pending.slice(-3) : pending;
+      for (const ev of eventsToPlay) {
         if (playedEventsRef.current.has(ev.id)) continue;
-        if (audioReadyAtRef.current && new Date(ev.created_at).getTime() < audioReadyAtRef.current - 3000) {
-          remember(ev.id);
-          continue;
-        }
         console.info("[kds-audio] scheduling call", ev);
         remember(ev.id);
         const num = ev.display_number || "";
