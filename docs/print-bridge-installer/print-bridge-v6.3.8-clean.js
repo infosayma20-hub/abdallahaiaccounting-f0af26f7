@@ -635,7 +635,6 @@ function renderReceiptSVG(order, logoTopMargin) {
 
   // Header band (top border + labels + bottom border)
   push(40, (cy) => `
-    <line x1="${padX}" y1="${cy - headerTopOffset}" x2="${W - padX}" y2="${cy - headerTopOffset}" stroke="#000" stroke-width="1"/>
     <text x="${(colNameLeft + colNameRight) / 2}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">الصنف</text>
     <text x="${colQtyMid}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">الكمية</text>
     <text x="${colPriceMid}" y="${cy}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">السعر</text>
@@ -975,7 +974,6 @@ function renderShiftSVG(session, logoTopMargin) {
     const boxH = 116;
     const boxY = cy - 92;
     return `
-    <rect x="${padX}" y="${boxY}" width="${W - padX*2}" height="${boxH}" rx="6" fill="none" stroke="#000" stroke-width="3"/>
     <text x="${W/2}" y="${boxY + 44}" text-anchor="middle" font-size="32" font-weight="900" font-family="Tahoma">الفرق</text>
     <text x="${W/2}" y="${boxY + 88}" text-anchor="middle" font-size="38" font-weight="900" font-family="Tahoma">${esc(diffLabel)}</text>`;
   });
