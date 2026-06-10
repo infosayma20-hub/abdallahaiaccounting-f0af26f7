@@ -43,6 +43,7 @@ export default function CustomerOrderDisplayPage() {
   const [voiceMode, setVoiceMode] = useState<string>("browser_tts");
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const playedEventsRef = useRef<Set<string>>(new Set());
+  const audioReadyAtRef = useRef<number>(0);
   const storageKey = `kds-played-events:${token}`;
 
   useEffect(() => { installAudioUnlock(); }, []);
@@ -68,6 +69,7 @@ export default function CustomerOrderDisplayPage() {
   const unlock = useCallback(() => {
     installAudioUnlock();
     playAlertBeep();
+    audioReadyAtRef.current = Date.now();
     ensureVoicesLoaded().catch(() => {});
     try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
     setAudioUnlocked(isAudioUnlocked());
@@ -127,10 +129,14 @@ export default function CustomerOrderDisplayPage() {
       const { data } = await supabase.rpc("kds_recent_call_events",
         { _token: token, _since: since } as any);
       if (cancelled || !data) return;
-      const events = data as Array<{ id: string; display_number: string | null; event_type: string }>;
+      const events = data as Array<{ id: string; display_number: string | null; event_type: string; created_at: string }>;
       let i = 0;
       for (const ev of events) {
         if (playedEventsRef.current.has(ev.id)) continue;
+        if (audioReadyAtRef.current && new Date(ev.created_at).getTime() <= audioReadyAtRef.current) {
+          remember(ev.id);
+          continue;
+        }
         remember(ev.id);
         const num = ev.display_number || "";
         if (!num) continue;
