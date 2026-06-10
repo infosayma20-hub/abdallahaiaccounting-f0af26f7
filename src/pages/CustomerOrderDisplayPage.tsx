@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { speakOrderCall, playChime, ensureVoicesLoaded, playFallbackAlert, getLastVoiceError } from "@/lib/kds-voice";
+import { installAudioUnlock, isAudioUnlocked, playAlertBeep } from "@/lib/audio-unlock";
 
 interface OrderRow {
   order_id: string;
@@ -44,6 +45,8 @@ export default function CustomerOrderDisplayPage() {
   const playedEventsRef = useRef<Set<string>>(new Set());
   const storageKey = `kds-played-events:${token}`;
 
+  useEffect(() => { installAudioUnlock(); }, []);
+
   // Restore played events from localStorage to prevent repeat-on-reload
   useEffect(() => {
     if (!token) return;
@@ -63,9 +66,12 @@ export default function CustomerOrderDisplayPage() {
 
   // Unlock browser audio (mobile/TV browsers need a user gesture)
   const unlock = useCallback(() => {
+    installAudioUnlock();
+    playAlertBeep();
     ensureVoicesLoaded().catch(() => {});
     try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
-    setAudioUnlocked(true);
+    setAudioUnlocked(isAudioUnlocked());
+    setTimeout(() => setAudioUnlocked(isAudioUnlocked()), 300);
   }, []);
 
   const load = useCallback(async () => {
@@ -128,12 +134,16 @@ export default function CustomerOrderDisplayPage() {
         remember(ev.id);
         const num = ev.display_number || "";
         if (!num) continue;
-        setTimeout(() => {
-          playChime();
-          setTimeout(() => speakOrderCall(num, {
+        setTimeout(async () => {
+          const chimeOk = playChime();
+          const result = await new Promise<any>((resolve) => setTimeout(() => {
+            speakOrderCall(num, {
             template: voiceTemplate, language: voiceLang,
             mode: voiceMode as any, deviceToken: token,
-          }), 450);
+              fallbackToBrowserTts: true, fallbackToBeep: true,
+            }).then(resolve);
+          }, chimeOk ? 450 : 0));
+          if (result?.played === "none") playedEventsRef.current.delete(ev.id);
         }, i * 2500);
         i++;
       }
