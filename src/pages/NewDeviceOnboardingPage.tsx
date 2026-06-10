@@ -848,6 +848,11 @@ export default function NewDeviceOnboardingPage() {
                 <Download className="h-3.5 w-3.5" /> تحديث برنامج الطباعة
               </a>
             </Button>
+            <Button asChild size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" title="نسخة مخصّصة لأجهزة Windows 7 / Server 2008 R2 — مع Node 13.14 مضمّن">
+              <a href={PRINT_BRIDGE_WIN7_DOWNLOAD_URL} download>
+                <Download className="h-3.5 w-3.5" /> تحميل لـ Windows 7
+              </a>
+            </Button>
             <Button
               size="sm"
               variant="outline"
