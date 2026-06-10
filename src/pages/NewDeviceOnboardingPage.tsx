@@ -114,6 +114,7 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
 ];
 
 const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip?v=20260606-v638-receipt-grid";
+const PRINT_BRIDGE_WIN7_DOWNLOAD_URL = "/downloads/amwali-print-bridge-win7.zip?v=20260610-win7-v637";
 
 // Map our pos_printers role → the bridge's printer key (in device.json)
 function roleToBridgeKey(role: string): BridgePrinterKey | null {
@@ -845,6 +846,11 @@ export default function NewDeviceOnboardingPage() {
             <Button asChild size="sm" variant="secondary" className="h-7 px-2 gap-1 text-xs">
               <a href={PRINT_BRIDGE_DOWNLOAD_URL} download>
                 <Download className="h-3.5 w-3.5" /> تحديث برنامج الطباعة
+              </a>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" title="نسخة مخصّصة لأجهزة Windows 7 / Server 2008 R2 — مع Node 13.14 مضمّن">
+              <a href={PRINT_BRIDGE_WIN7_DOWNLOAD_URL} download>
+                <Download className="h-3.5 w-3.5" /> تحميل لـ Windows 7
               </a>
             </Button>
             <Button
