@@ -66,15 +66,20 @@ export default function CustomerOrderDisplayPage() {
   }, [storageKey]);
 
   // Unlock browser audio (mobile/TV browsers need a user gesture)
-  const unlock = useCallback(() => {
+  const unlock = useCallback(async () => {
     installAudioUnlock();
     playAlertBeep();
     audioReadyAtRef.current = Date.now();
+    try {
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data } = await supabase.rpc("kds_recent_call_events", { _token: token, _since: since } as any);
+      ((data as Array<{ id: string }> | null) || []).forEach((ev) => remember(ev.id));
+    } catch {}
     ensureVoicesLoaded().catch(() => {});
     try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
     setAudioUnlocked(isAudioUnlocked());
     setTimeout(() => setAudioUnlocked(isAudioUnlocked()), 300);
-  }, []);
+  }, [remember, token]);
 
   const load = useCallback(async () => {
     if (!token) { setError("لا يوجد توكن جهاز. أضف ?token=... للرابط."); return; }
@@ -133,7 +138,7 @@ export default function CustomerOrderDisplayPage() {
       let i = 0;
       for (const ev of events) {
         if (playedEventsRef.current.has(ev.id)) continue;
-        if (audioReadyAtRef.current && new Date(ev.created_at).getTime() <= audioReadyAtRef.current) {
+        if (audioReadyAtRef.current && new Date(ev.created_at).getTime() < audioReadyAtRef.current - 3000) {
           remember(ev.id);
           continue;
         }
