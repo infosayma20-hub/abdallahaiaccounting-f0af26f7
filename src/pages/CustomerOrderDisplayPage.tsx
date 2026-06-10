@@ -73,7 +73,9 @@ export default function CustomerOrderDisplayPage() {
     setTimeout(async () => { try {
       const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { data } = await supabase.rpc("kds_recent_call_events", { _token: token, _since: since } as any);
-      ((data as Array<{ id: string }> | null) || []).forEach((ev) => remember(ev.id));
+      ((data as Array<{ id: string; created_at: string }> | null) || [])
+        .filter((ev) => new Date(ev.created_at).getTime() <= audioReadyAtRef.current)
+        .forEach((ev) => remember(ev.id));
     } catch {} }, 0);
     ensureVoicesLoaded().catch(() => {});
     try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
