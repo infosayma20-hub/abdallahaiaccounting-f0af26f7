@@ -19261,6 +19261,7 @@ export type Database = {
           status: string
         }[]
       }
+      kds_get_display_settings: { Args: { _token: string }; Returns: Json }
       kds_get_kitchen_tickets: {
         Args: { _token: string }
         Returns: {

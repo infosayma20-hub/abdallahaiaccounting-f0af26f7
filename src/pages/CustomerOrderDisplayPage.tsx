@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { speakOrderCall, playChime, ensureVoicesLoaded, playFallbackAlert, getLastVoiceError } from "@/lib/kds-voice";
+import { installAudioUnlock, isAudioUnlocked, playAlertBeep } from "@/lib/audio-unlock";
 
 interface OrderRow {
   order_id: string;
@@ -42,7 +43,10 @@ export default function CustomerOrderDisplayPage() {
   const [voiceMode, setVoiceMode] = useState<string>("browser_tts");
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const playedEventsRef = useRef<Set<string>>(new Set());
+  const audioReadyAtRef = useRef<number>(0);
   const storageKey = `kds-played-events:${token}`;
+
+  useEffect(() => { installAudioUnlock(); }, []);
 
   // Restore played events from localStorage to prevent repeat-on-reload
   useEffect(() => {
@@ -63,10 +67,14 @@ export default function CustomerOrderDisplayPage() {
 
   // Unlock browser audio (mobile/TV browsers need a user gesture)
   const unlock = useCallback(() => {
+    installAudioUnlock();
+    playAlertBeep();
+    audioReadyAtRef.current = Date.now();
     ensureVoicesLoaded().catch(() => {});
     try { window.speechSynthesis?.speak(new SpeechSynthesisUtterance(" ")); } catch {}
-    setAudioUnlocked(true);
-  }, []);
+    setAudioUnlocked(isAudioUnlocked());
+    setTimeout(() => setAudioUnlocked(isAudioUnlocked()), 300);
+  }, [remember, token]);
 
   const load = useCallback(async () => {
     if (!token) { setError("لا يوجد توكن جهاز. أضف ?token=... للرابط."); return; }
@@ -95,12 +103,7 @@ export default function CustomerOrderDisplayPage() {
     if (!token) return;
     (async () => {
       try {
-        const { data: dev } = await (supabase as any).from("pos_display_devices")
-          .select("company_id, branch_id").eq("token", token).maybeSingle();
-        if (!dev) return;
-        const { data: cs } = await (supabase as any).from("company_settings")
-          .select("company_name, logo_url, pos_voice_template, pos_voice_language, pos_kds_voice_mode")
-          .eq("user_id", dev.company_id).maybeSingle();
+        const { data: cs } = await (supabase as any).rpc("kds_get_display_settings", { _token: token });
         if (cs) {
           setCompanyName(cs.company_name || "");
           setLogoUrl(cs.logo_url || "");
@@ -121,19 +124,25 @@ export default function CustomerOrderDisplayPage() {
       const { data } = await supabase.rpc("kds_recent_call_events",
         { _token: token, _since: since } as any);
       if (cancelled || !data) return;
-      const events = data as Array<{ id: string; display_number: string | null; event_type: string }>;
+      const events = data as Array<{ id: string; display_number: string | null; event_type: string; created_at: string }>;
       let i = 0;
-      for (const ev of events) {
+      const pending = events.filter((ev) => !playedEventsRef.current.has(ev.id));
+      const eventsToPlay = pending.length > 3 ? pending.slice(-3) : pending;
+      for (const ev of eventsToPlay) {
         if (playedEventsRef.current.has(ev.id)) continue;
         remember(ev.id);
         const num = ev.display_number || "";
         if (!num) continue;
-        setTimeout(() => {
-          playChime();
-          setTimeout(() => speakOrderCall(num, {
+        setTimeout(async () => {
+          const chimeOk = playChime();
+          const result = await new Promise<any>((resolve) => setTimeout(() => {
+            speakOrderCall(num, {
             template: voiceTemplate, language: voiceLang,
             mode: voiceMode as any, deviceToken: token,
-          }), 450);
+              fallbackToBrowserTts: true, fallbackToBeep: true,
+            }).then(resolve);
+          }, chimeOk ? 450 : 0));
+          if (result?.played === "none") playedEventsRef.current.delete(ev.id);
         }, i * 2500);
         i++;
       }
