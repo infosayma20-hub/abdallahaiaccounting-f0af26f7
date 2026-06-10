@@ -1467,6 +1467,8 @@ const InvoiceCreatePage = () => {
                 movement_type: delta > 0 ? "وارد" : "صادر",
                 reference_note: `تعديل فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} (فرق ${delta > 0 ? "+" : ""}${delta})`,
                 user_id: user.id,
+                reference_type: "invoice",
+                reference_id: editInvoiceId,
               } as any);
             }
           }
@@ -1555,6 +1557,8 @@ const InvoiceCreatePage = () => {
             movement_type: form.type === "sales" ? "صادر" : "وارد",
             reference_note: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}${bonusQty > 0 ? ` (شامل بونص: ${bonusQty})` : ""}`,
             user_id: user.id,
+            reference_type: "invoice",
+            reference_id: dbInv.id,
           } as any);
         }
 
