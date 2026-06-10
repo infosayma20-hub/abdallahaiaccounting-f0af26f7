@@ -249,6 +249,6 @@ export function playFallbackAlert() {
 }
 
 /** Quick chime to grab attention before the spoken call. */
-export function playChime() {
-  playAlertBeep();
+export function playChime(): boolean {
+  return playAlertBeep();
 }
