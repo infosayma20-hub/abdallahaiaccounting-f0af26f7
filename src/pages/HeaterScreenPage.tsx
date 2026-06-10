@@ -38,10 +38,13 @@ export default function HeaterScreenPage() {
       });
       if (error) throw error;
       const updated = (data as any)?.tickets_updated ?? 0;
-      if (updated === 0) {
-        toast.info(`الطلب رقم ${n} جاهز مسبقاً`);
-      } else {
+      const recalled = (data as any)?.recalled === true;
+      if (updated > 0) {
         toast.success(`✅ تم تحويل الطلب ${n} إلى جاهز`);
+      } else if (recalled) {
+        toast.success(`🔔 تم إعادة نداء الطلب ${n}`);
+      } else {
+        toast.info(`الطلب رقم ${n} جاهز مسبقاً`);
       }
       setLastOk(`#${n}`);
       setValue("");
