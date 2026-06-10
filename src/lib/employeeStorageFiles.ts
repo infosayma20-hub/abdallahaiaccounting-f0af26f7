@@ -44,6 +44,8 @@ export const openEmployeeFormsStorageFile = async (
     return;
   }
 
+  const previewWindow = window.open("about:blank", "_blank");
+
   // Prefer a signed URL (regular https) — blob: URLs get blocked by ad blockers like uBlock.
   const { data: signed, error: signedError } = await supabase
     .storage
@@ -51,9 +53,16 @@ export const openEmployeeFormsStorageFile = async (
     .createSignedUrl(storagePath, 60 * 10);
 
   if (!signedError && signed?.signedUrl) {
-    window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+    if (previewWindow) {
+      previewWindow.opener = null;
+      previewWindow.location.href = signed.signedUrl;
+    } else {
+      window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+    }
     return;
   }
+
+  previewWindow?.close();
 
   // Fallback: download the file and trigger a save (avoids blob: navigation blocks).
   const { data, error } = await supabase.storage.from(BUCKET_NAME).download(storagePath);
