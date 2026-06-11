@@ -18393,6 +18393,18 @@ export type Database = {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
       }
+      auto_close_open_attendance_sessions: {
+        Args: {
+          p_close_time?: string
+          p_employee_id?: string
+          p_min_age_hours?: number
+        }
+        Returns: {
+          check_in_time: string
+          close_time: string
+          employee_id: string
+        }[]
+      }
       calculate_health_score: { Args: { _contact_id: string }; Returns: number }
       cancel_cheque_deposit: {
         Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
