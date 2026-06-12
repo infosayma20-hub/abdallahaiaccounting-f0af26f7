@@ -60,11 +60,11 @@ Trigger `trg_invoice_item_stock_sync` على `public.invoice_items` يستدعي
 `idx_stock_mvt_invoice_lookup` على `(reference_type, reference_id, product_id) WHERE reference_type='invoice'`.
 غير فريد بسبب 25 فاتورة تاريخية فيها duplicates سابقة (تنظيفها مؤجل لـ P1).
 
-## ما المتبقي (P1، بعد الإطلاق)
-1. **Backfill**: إنشاء حركات للـ 47 فاتورة شراء قديمة بدون حركات (يحتاج قرار محاسبي لكل فاتورة بسبب تأثير COGS التاريخي).
-2. **Cleanup duplicates**: تنظيف الـ 25 فاتورة بحركات مكررة، ثم إضافة `UNIQUE INDEX` بديل للفهرس الحالي.
-3. **إزالة كاتب الواجهة**: حذف `supabase.from("stock_movements").insert(...)` من `InvoiceCreatePage.tsx`
-   (3 مواقع: ~1465, ~1555, ~1649) بعد التأكد أن الـ trigger يغطي كل الحالات لمدة أسبوع في الإنتاج.
+## حالة الإنجاز ✅ (2026-06-12)
+- [x] **Backfill**: 175 سطر فاتورة تاريخي (99 فاتورة) تم إنشاء حركاتهم.
+- [x] **Cleanup duplicates**: تم تنظيف الحركات المكررة وإضافة `UNIQUE INDEX uniq_stock_mvt_invoice_line`.
+- [x] **إزالة كاتب الواجهة**: حُذف كل `supabase.from("stock_movements").insert(...)` من `InvoiceCreatePage.tsx` و `InvoicesPage.tsx`.
+- **الحصيلة**: 1519 حركة مربوطة 1:1 بأسطر الفواتير، المصدر الوحيد = التريغر.
 
 ## اختبار القبول
 `docs/audit/wb1-invoice-stock-writer-acceptance.sql`
