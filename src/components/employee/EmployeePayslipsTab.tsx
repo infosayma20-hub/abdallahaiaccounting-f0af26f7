@@ -56,7 +56,7 @@ export default function EmployeePayslipsTab({ employeeId }: Props) {
       ) : (
         rows.map((p) => {
           const status = p.is_paid ? "paid" : (p.status || "pending");
-          const additions = safeNum(p.total_allowances) + safeNum(p.total_overtime);
+          const additions = safeNum(p.total_allowances);
           return (
             <button key={p.id} type="button" onClick={() => { setSelected(p); setOpen(true); }} className="w-full text-right">
               <Card className="border-border bg-card hover:bg-accent/30 transition-colors active:scale-[0.99]">
