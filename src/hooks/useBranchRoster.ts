@@ -108,7 +108,29 @@ export function useManagerBranches() {
         .eq("user_id", user!.id);
       if (error) throw error;
       const assignments = (data || []) as { branch_id: string; company_id: string }[];
-      if (!assignments.length) return [];
+      if (!assignments.length) {
+        // 3) Fallback: employee with can_manage_schedule / is_manager but no
+        // explicit branch_manager_assignments row — let them schedule their
+        // own branch (e.g. floor managers added via the employee record).
+        const { data: meRow } = await supabase
+          .from("employees")
+          .select("id, branch_id, company_id, can_manage_schedule, is_manager, full_name")
+          .eq("auth_user_id", user!.id)
+          .eq("user_id", dataOwnerId!)
+          .maybeSingle();
+        const me = meRow as any;
+        if (!me?.branch_id || !(me.can_manage_schedule || me.is_manager)) return [];
+        const { data: br } = await supabase
+          .from("branches")
+          .select("id, name")
+          .eq("id", me.branch_id)
+          .maybeSingle();
+        return [{
+          branch_id: me.branch_id,
+          company_id: me.company_id || dataOwnerId!,
+          branch_name: (br as any)?.name || "—",
+        }];
+      }
       const { data: br, error: brErr } = await supabase
         .from("branches")
         .select("id, name")
