@@ -323,6 +323,7 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
             </div>
             <div className="divide-y divide-border/60 bg-card">
               {carryOver > 0 && <Row label="رصيد أول الشهر (سابق)" value={formatCurrency(carryOver)} tone="bad" />}
+              {safeNum(payslip.deduction_opening_balance) > 0 && <Row label="رصيد افتتاحي" value={formatCurrency(payslip.deduction_opening_balance)} tone="bad" />}
               {safeNum(payslip.deduction_loan) > 0 && <Row label="قسط قرض" value={formatCurrency(payslip.deduction_loan)} tone="bad" />}
               {safeNum(payslip.deduction_new_advance) > 0 && <Row label="سلفة جديدة" value={formatCurrency(payslip.deduction_new_advance)} tone="bad" />}
               {safeNum(payslip.deduction_cash_advance) > 0 && <Row label="سلفة نقدية" value={formatCurrency(payslip.deduction_cash_advance)} tone="bad" />}
