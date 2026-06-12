@@ -24,12 +24,12 @@ export function monthsBetween(from?: string | null, to: Date = new Date()): numb
 
 export function periodLabel(month?: number | null, year?: number | null): string {
   if (!month || !year) return "—";
-  const d = new Date(year, (month || 1) - 1, 1);
-  try {
-    return d.toLocaleDateString("ar-EG-u-ca-gregory", { month: "long", year: "numeric" });
-  } catch {
-    return `${month}/${year}`;
-  }
+  const months = [
+    "يناير","فبراير","مارس","أبريل","مايو","يونيو",
+    "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+  ];
+  const m = months[(month - 1) % 12] || String(month);
+  return `${m} ${year}`;
 }
 
 /* ========== Loan eligibility ========== */
