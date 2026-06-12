@@ -46,7 +46,7 @@ export default function CategoryPrintRulesMatrix() {
       setBranches((b.data as Branch[]) || []);
       setCategories((c.data as Category[]) || []);
       setStations((s.data as Station[]) || []);
-      setRules((r.data as Rule[]) || []);
+      setRules(((r.data as unknown) as Rule[]) || []);
       setLoading(false);
     })();
   }, [user]);
@@ -105,7 +105,7 @@ export default function CategoryPrintRulesMatrix() {
           .select("id, branch_id, category_id, station_id")
           .single();
         if (error) throw error;
-        setRules((prev) => [...prev, data as Rule]);
+        setRules((prev) => [...prev, (data as unknown) as Rule]);
         toast.success("تم إيقاف الطباعة لهذا التصنيف على هذه المحطة");
       }
       invalidatePrintMuteRulesCache();
