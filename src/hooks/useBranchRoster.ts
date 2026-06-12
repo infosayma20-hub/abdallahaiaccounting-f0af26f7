@@ -138,9 +138,20 @@ export function useManagerBranches() {
         .order("name");
       if (brErr) throw brErr;
       const branchNames = new Map((br || []).map((b: any) => [b.id, b.name || "—"]));
+      // Canonical company_id comes from the manager's own employee row
+      // (shift_templates, daily_roster, employees all share this tenant id).
+      // branch_manager_assignments.company_id was historically populated with
+      // the owner's auth uid in some rows, which broke shift_templates lookup.
+      const { data: meRow } = await supabase
+        .from("employees")
+        .select("company_id")
+        .eq("auth_user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
+        .maybeSingle();
+      const canonicalCompanyId = (meRow as any)?.company_id || null;
       return assignments.map((a) => ({
         branch_id: a.branch_id,
-        company_id: a.company_id,
+        company_id: canonicalCompanyId || a.company_id,
         branch_name: branchNames.get(a.branch_id) || "—",
       }));
     },
