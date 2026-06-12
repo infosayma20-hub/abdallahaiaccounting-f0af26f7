@@ -1,0 +1,24 @@
+AMWALI Print Bridge — Windows 7 / Server 2008 R2 Package
+========================================================
+
+How to build the ZIP for cashiers:
+  1. Select ALL files inside this folder (Ctrl+A) — do NOT zip the folder
+     itself. Cashiers must get the files at the root of the archive, so
+     extraction lands them directly in C:\print-bridge\ with no nested
+     "print-bridge-installer-win7" subfolder.
+  2. Right-click → Send to → Compressed (zipped) folder.
+  3. Rename to:  print-bridge-win7.zip
+
+Node.js installer:
+  - The Node v13.14.0 MSI is NOT shipped inside the repo because of the
+    10 MB per-file commit limit. install-bridge.bat will auto-download
+    it from https://nodejs.org/dist/v13.14.0/node-v13.14.0-x64.msi on
+    first run.
+  - For fully-offline installs, manually drop
+        node-v13.14.0-x64.msi
+    next to install-bridge.bat BEFORE zipping. The installer will pick
+    it up automatically (no edits needed).
+
+Approved bridge script:
+  - print-bridge-v6.3.7-clean.js — the ONLY supported version.
+    Older 6.3.6 and newer 6.3.8 have been removed permanently.
