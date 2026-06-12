@@ -172,6 +172,7 @@ export default function ModifierModal({
         let extra = 0;
         groups.forEach((g) => {
           (next[g.id] || []).forEach((oid) => {
+            if (isNoneOptionId(oid)) return;
             const opt = g.options.find((o) => o.id === oid);
             if (!opt) return;
             modifiers.push({
@@ -218,6 +219,7 @@ export default function ModifierModal({
       const group = groups.find((g) => g.id === groupId);
       if (!group) return;
       optIds.forEach((optId) => {
+        if (isNoneOptionId(optId)) return;
         const opt = group.options.find((o) => o.id === optId);
         if (!opt) return;
         modifiers.push({
