@@ -306,9 +306,6 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
               {nextMonthAdv > 0 && (
                 <Row label="راتب الشهر القادم (مقدّم)" value={formatCurrency(nextMonthAdv)} tone="ok" />
               )}
-              {safeNum(payslip.total_overtime) > 0 && (
-                <Row label="إجمالي الأوفرتايم" value={formatCurrency(payslip.total_overtime)} tone="ok" />
-              )}
               <Row label="إجمالي الإضافات" value={formatCurrency(additions)} tone="ok" bold />
             </div>
           </div>
