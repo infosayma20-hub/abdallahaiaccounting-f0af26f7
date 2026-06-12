@@ -110,14 +110,9 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
   const nextMonthAdv = safeNum(payslip.next_month_salary_advance);
   // Overtime is intentionally excluded from what the employee sees.
   const additions = safeNum(payslip.total_allowances);
-  // total_deductions in DB also includes deduction_fixed_component, but that
-  // amount is already netted into the displayed "الراتب الثابت" (base_salary).
-  // Subtract it so the displayed total matches the sum of the listed items
-  // and is consistent with the net salary.
-  const deductions = Math.max(
-    0,
-    safeNum(payslip.total_deductions) - safeNum(payslip.deduction_fixed_component),
-  );
+  // total_deductions in DB is the authoritative figure and is already
+  // consistent with net_salary after HR corrections.
+  const deductions = safeNum(payslip.total_deductions);
   const carryOver = safeNum(payslip.carry_over_balance);
   const surplus = safeNum(payslip.surplus_amount);
   const status = payslip.is_paid ? "paid" : payslip.status || "pending";
