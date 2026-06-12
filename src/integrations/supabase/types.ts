@@ -10189,6 +10189,36 @@ export type Database = {
           },
         ]
       }
+      pos_category_print_rules: {
+        Row: {
+          branch_id: string | null
+          category_id: string
+          created_at: string
+          id: string
+          station_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          category_id: string
+          created_at?: string
+          id?: string
+          station_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          category_id?: string
+          created_at?: string
+          id?: string
+          station_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_companies: {
         Row: {
           address: string | null
