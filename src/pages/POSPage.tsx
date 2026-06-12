@@ -7235,6 +7235,10 @@ const POSPage = () => {
           <InlineAddonPanel
             product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
             groups={groups}
+            initialModifiers={item.modifiers || []}
+            initialNote={item.note || ""}
+            initialQuantity={item.qty}
+            confirmLabel={(item.modifiers?.length || 0) > 0 ? "حفظ التعديلات" : undefined}
             onConfirm={(data) => {
               setCart(prev => {
                 const next = [...prev];
@@ -7245,9 +7249,10 @@ const POSPage = () => {
                 next[editAddonCartIndex] = {
                   ...it,
                   modifiers: data.modifiers,
-                  note: data.note || it.note,
+                  note: data.note,
+                  qty: data.quantity || it.qty,
                   unit_price: newUnit,
-                  total: newUnit * it.qty,
+                  total: newUnit * (data.quantity || it.qty),
                 };
                 return next;
               });
