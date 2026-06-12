@@ -52,7 +52,14 @@ require_no_duplicate_node "$WIN7_SRC" "Windows 7 source"
 mkdir -p "$OUT_DIR"
 rm -f "$STD_ZIP" "$WIN7_ZIP"
 
-(cd "$STD_SRC" && zip -qr9 "$STD_ZIP" .)
+STD_WORK="$TMP_DIR/std"
+cp -R "$STD_SRC" "$STD_WORK"
+if [[ ! -f "$STD_WORK/node-v24.16.0-x64.msi" ]]; then
+  curl -fL --retry 3 --retry-delay 2 \
+    "https://nodejs.org/dist/v24.16.0/node-v24.16.0-x64.msi" \
+    -o "$STD_WORK/node-v24.16.0-x64.msi"
+fi
+(cd "$STD_WORK" && zip -qr9 "$STD_ZIP" .)
 
 WIN7_WORK="$TMP_DIR/win7"
 cp -R "$WIN7_SRC" "$WIN7_WORK"
