@@ -36,6 +36,7 @@ import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeek
 import { useIsMobile } from "@/hooks/use-mobile";
 import { multiWordMatchAny } from "@/lib/utils";
 import ManagerBranchesPicker from "@/components/employee/ManagerBranchesPicker";
+import ManagerTeamPicker from "@/components/employee/ManagerTeamPicker";
 
 interface Branch {
   id: string;
@@ -1373,6 +1374,15 @@ const EmployeesPage = () => {
                 <ManagerBranchesPicker
                   authUserId={(form as any).auth_user_id || null}
                   companyId={dataOwnerId || null}
+                  branches={branchesList as any}
+                />
+              </div>
+            )}
+            {(form as any).is_manager && editingId && dataOwnerId && (
+              <div className="col-span-2">
+                <ManagerTeamPicker
+                  managerEmployeeId={editingId}
+                  companyId={dataOwnerId}
                   branches={branchesList as any}
                 />
               </div>

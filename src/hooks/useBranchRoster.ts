@@ -156,13 +156,26 @@ export function useManagedBranchEmployees(branchId?: string | null) {
       }
 
       if (!allowedBranchIds.length) return [];
-      const { data, error } = await supabase
+      // Non-admin managers: restrict to their direct reports (employees.manager_employee_id).
+      // This lets multiple managers split a branch across different shifts.
+      let managerEmpId: string | null = null;
+      if (!isAdmin) {
+        const { data: meRow } = await supabase
+          .from("employees")
+          .select("id")
+          .eq("auth_user_id", user!.id)
+          .eq("user_id", dataOwnerId!)
+          .maybeSingle();
+        managerEmpId = (meRow as any)?.id ?? null;
+      }
+      let query = supabase
         .from("employees")
         .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id, department")
         .eq("user_id", dataOwnerId!)
         .in("branch_id", allowedBranchIds)
-        .eq("is_active", true)
-        .order("full_name");
+        .eq("is_active", true);
+      if (managerEmpId) query = query.eq("manager_employee_id", managerEmpId);
+      const { data, error } = await query.order("full_name");
       if (error) throw error;
       return (data || []) as ManagedBranchEmployee[];
     },
