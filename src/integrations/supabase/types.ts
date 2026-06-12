@@ -5896,6 +5896,7 @@ export type Database = {
           overtime_hours_val: number | null
           paid_date: string | null
           payment_method: string | null
+          payslip_number: string | null
           period_month: number
           period_year: number
           regular_hours: number | null
@@ -5957,6 +5958,7 @@ export type Database = {
           overtime_hours_val?: number | null
           paid_date?: string | null
           payment_method?: string | null
+          payslip_number?: string | null
           period_month: number
           period_year: number
           regular_hours?: number | null
@@ -6018,6 +6020,7 @@ export type Database = {
           overtime_hours_val?: number | null
           paid_date?: string | null
           payment_method?: string | null
+          payslip_number?: string | null
           period_month?: number
           period_year?: number
           regular_hours?: number | null
