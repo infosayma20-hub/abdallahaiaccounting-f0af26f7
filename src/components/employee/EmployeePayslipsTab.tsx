@@ -67,8 +67,8 @@ export default function EmployeePayslipsTab({ employeeId }: Props) {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[11px]">
                     <div className="rounded-lg bg-muted/30 p-1.5 text-center">
-                      <div className="text-muted-foreground">أساسي</div>
-                      <div className="font-semibold">{formatCurrency(p.base_salary)}</div>
+                      <div className="text-muted-foreground">راتب الحضور</div>
+                      <div className="font-semibold">{formatCurrency(p.attendance_salary)}</div>
                     </div>
                     <div className="rounded-lg bg-emerald-500/10 p-1.5 text-center">
                       <div className="text-emerald-700 dark:text-emerald-400">إضافات</div>
