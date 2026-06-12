@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MapPin, Phone, Truck, RefreshCw, X } from "lucide-react";
+import { MapPin, Phone, Truck, RefreshCw, X, Send } from "lucide-react";
 
 interface POSDeliveryPanelProps {
   orderId: string | null;
@@ -59,6 +59,84 @@ export default function POSDeliveryPanel({
   onDeliveryStatusChange,
 }: POSDeliveryPanelProps) {
   const [sending, setSending] = useState(false);
+  const [wheelsEligible, setWheelsEligible] = useState(false);
+  const [wheelsStatus, setWheelsStatus] = useState<string>("not_sent");
+  const [wheelsPrice, setWheelsPrice] = useState<number | null>(null);
+  const [wheelsError, setWheelsError] = useState<string>("");
+  const [wheelsSending, setWheelsSending] = useState(false);
+
+  // Check Wheels eligibility (branch active + area has wheels_area_id) and current status
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!orderId || !isDelivery) {
+        setWheelsEligible(false);
+        return;
+      }
+      try {
+        const { data: order } = await supabase
+          .from("pos_orders")
+          .select("branch_id, area_name, wheels_request_status, wheels_last_error, wheels_delivery_price")
+          .eq("id", orderId)
+          .maybeSingle();
+        if (cancelled || !order?.branch_id) { setWheelsEligible(false); return; }
+        setWheelsStatus((order as any).wheels_request_status || "not_sent");
+        setWheelsError((order as any).wheels_last_error || "");
+        setWheelsPrice((order as any).wheels_delivery_price ?? null);
+
+        const { data: cfg } = await supabase
+          .from("wheels_branch_config")
+          .select("is_active")
+          .eq("branch_id", order.branch_id)
+          .maybeSingle();
+        if (cancelled || !cfg?.is_active) { setWheelsEligible(false); return; }
+
+        const area = (areaName || (order as any).area_name || "").trim();
+        if (!area) { setWheelsEligible(false); return; }
+        const { data: zone } = await supabase
+          .from("delivery_zones")
+          .select("wheels_area_id")
+          .eq("branch_id", order.branch_id)
+          .eq("area_name", area)
+          .maybeSingle();
+        if (cancelled) return;
+        setWheelsEligible(!!zone?.wheels_area_id);
+      } catch {
+        if (!cancelled) setWheelsEligible(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [orderId, isDelivery, areaName]);
+
+  const handleSendToWheels = async () => {
+    if (!orderId) return;
+    setWheelsSending(true);
+    setWheelsError("");
+    setWheelsStatus("sending");
+    try {
+      const { data, error } = await supabase.functions.invoke("send-to-wheels", {
+        body: { order_id: orderId },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setWheelsStatus("sent");
+        setWheelsPrice(data.wheels_delivery_price ?? null);
+        toast.success("✅ تم إرسال الطلب إلى Wheels");
+      } else {
+        setWheelsStatus("failed");
+        const msg = data?.error || "فشل الإرسال إلى Wheels";
+        setWheelsError(msg);
+        toast.error(`❌ ${msg}`);
+      }
+    } catch (e: any) {
+      setWheelsStatus("failed");
+      const msg = e?.message || "فشل الإرسال إلى Wheels";
+      setWheelsError(msg);
+      toast.error(`❌ ${msg}`);
+    } finally {
+      setWheelsSending(false);
+    }
+  };
 
   // Realtime subscription for captain updates
   useEffect(() => {
