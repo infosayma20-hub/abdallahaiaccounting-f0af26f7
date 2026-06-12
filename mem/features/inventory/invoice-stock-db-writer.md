@@ -14,6 +14,11 @@ type: feature
 - التريغر `sync_invoice_item_stock` هو المصدر الوحيد لحركات المخزون المرتبطة بالفواتير.
 - المسارات الأخرى (`delivery_notes`, Dashboard quick-add) لا تستخدم `reference_type='invoice'` ولا تتعارض.
 
+## Backfill مكتمل (2026-06-12)
+- 175 سطر فاتورة تاريخي (99 فاتورة) أنشأت حركاتها عبر `UPDATE invoice_items SET quantity=quantity` الذي يطلق التريغر.
+- المجموع: **1519** حركة من نوع `reference_type='invoice'` مربوطة 1:1 بأسطر الفواتير.
+- الدالة تستخدم `'صادر'::stock_movement_type` / `'وارد'::stock_movement_type` (cast صريح لـ ENUM).
+
 ## التحديث (2026-06-12): الربط بسطر الفاتورة
 
 ## التحديث (2026-06-12): الربط بسطر الفاتورة
