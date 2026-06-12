@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import KitchenStationsManager from "./KitchenStationsManager";
+import CategoryPrintRulesMatrix from "./CategoryPrintRulesMatrix";
 import NetworkPrintersManager from "./NetworkPrintersManager";
 import DeliveryAppsManager from "./DeliveryAppsManager";
 import KdsDisplaySection from "./KdsDisplaySection";
@@ -306,6 +307,11 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
         <AccordionItem value="printers" className="border border-border rounded-lg px-4 bg-card">
           <AccordionTrigger className="text-sm font-semibold hover:no-underline">طابعات الشبكة</AccordionTrigger>
           <AccordionContent className="pt-2"><NetworkPrintersManager /></AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="category-print-rules" className="border border-border rounded-lg px-4 bg-card">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">قواعد طباعة التصنيفات على المحطات</AccordionTrigger>
+          <AccordionContent className="pt-2"><CategoryPrintRulesMatrix /></AccordionContent>
         </AccordionItem>
 
         {dataOwnerId && (
