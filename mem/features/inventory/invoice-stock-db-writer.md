@@ -6,6 +6,16 @@ type: feature
 
 # WB-1 — كاتب حركات المخزون على مستوى DB
 
+## حالة الواجهة الأمامية (2026-06-12)
+- تمت إزالة كل `supabase.from("stock_movements").insert(...)` المرتبطة بالفواتير من:
+  - `src/pages/InvoiceCreatePage.tsx` (مساري إنشاء + تعديل)
+  - `src/pages/InvoicesPage.tsx` (`updateInventory` legacy path)
+- تحديث `products.quantity` المباشر يبقى في الواجهة (مصدر العرض الفوري للرصيد).
+- التريغر `sync_invoice_item_stock` هو المصدر الوحيد لحركات المخزون المرتبطة بالفواتير.
+- المسارات الأخرى (`delivery_notes`, Dashboard quick-add) لا تستخدم `reference_type='invoice'` ولا تتعارض.
+
+## التحديث (2026-06-12): الربط بسطر الفاتورة
+
 ## التحديث (2026-06-12): الربط بسطر الفاتورة
 - المفتاح: `stock_movements.reference_line_id` = `invoice_items.id` (سطر واحد ↔ حركة واحدة).
 - `UNIQUE INDEX uniq_stock_mvt_invoice_line` على `(reference_line_id) WHERE reference_type='invoice'` يضمن 1:1.
