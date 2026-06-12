@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
       return respond({
         success: true,
         needsSetup: true,
-        message: "يجب ربط البوابة بحساب QOYOD أولاً",
+        message: "يجب ربط البوابة بحساب أموالي أولاً",
         sales: null,
         liquidity: null,
       });

@@ -1417,7 +1417,7 @@ main:has(> div > .finix-clean-screen) {
 /* ── Print Styles (removed — all printing via bridge) ── */
 
 /* ═══════════════════════════════════════════════ */
-/* QOYOD UNIFIED DESIGN SYSTEM                    */
+/* AMWALI UNIFIED DESIGN SYSTEM                   */
 /* ═══════════════════════════════════════════════ */
 
 /* ── Unified Metric Cards ── */
@@ -1562,7 +1562,7 @@ main:has(> div > .finix-clean-screen) {
   box-shadow: 0 0 0 2px rgba(27,58,92,0.1);
 }
 
-/* ── Override shadcn table to match QOYOD style ── */
+/* ── Override shadcn table to match Amwali style ── */
 [dir="rtl"] table thead tr,
 table thead tr {
   background: #1B3A5C !important;
