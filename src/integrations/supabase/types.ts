@@ -5858,6 +5858,7 @@ export type Database = {
         Row: {
           admin_allowance: number | null
           annual_allowance: number | null
+          annual_leave_days_taken: number
           approval_snapshot: Json | null
           approved_at: string | null
           approved_by: string | null
@@ -5865,6 +5866,7 @@ export type Database = {
           attendance_salary: number | null
           base_salary: number
           batch_id: string | null
+          branch_id: string | null
           carry_over_balance: number | null
           company_id: string | null
           created_at: string
@@ -5898,21 +5900,26 @@ export type Database = {
           period_year: number
           regular_hours: number | null
           rejection_reason: string | null
+          sick_leave_days: number
           special_allowance: number | null
           status: Database["public"]["Enums"]["payroll_status"]
           submitted_at: string | null
           submitted_by: string | null
+          surplus_amount: number
           total_allowances: number
           total_deductions: number
           total_overtime: number
           user_id: string
           vacation_hours_paid: number | null
+          vacation_work_allowance: number
           voucher_id: string | null
           working_days: number | null
+          working_hours: number
         }
         Insert: {
           admin_allowance?: number | null
           annual_allowance?: number | null
+          annual_leave_days_taken?: number
           approval_snapshot?: Json | null
           approved_at?: string | null
           approved_by?: string | null
@@ -5920,6 +5927,7 @@ export type Database = {
           attendance_salary?: number | null
           base_salary?: number
           batch_id?: string | null
+          branch_id?: string | null
           carry_over_balance?: number | null
           company_id?: string | null
           created_at?: string
@@ -5953,21 +5961,26 @@ export type Database = {
           period_year: number
           regular_hours?: number | null
           rejection_reason?: string | null
+          sick_leave_days?: number
           special_allowance?: number | null
           status?: Database["public"]["Enums"]["payroll_status"]
           submitted_at?: string | null
           submitted_by?: string | null
+          surplus_amount?: number
           total_allowances?: number
           total_deductions?: number
           total_overtime?: number
           user_id: string
           vacation_hours_paid?: number | null
+          vacation_work_allowance?: number
           voucher_id?: string | null
           working_days?: number | null
+          working_hours?: number
         }
         Update: {
           admin_allowance?: number | null
           annual_allowance?: number | null
+          annual_leave_days_taken?: number
           approval_snapshot?: Json | null
           approved_at?: string | null
           approved_by?: string | null
@@ -5975,6 +5988,7 @@ export type Database = {
           attendance_salary?: number | null
           base_salary?: number
           batch_id?: string | null
+          branch_id?: string | null
           carry_over_balance?: number | null
           company_id?: string | null
           created_at?: string
@@ -6008,19 +6022,37 @@ export type Database = {
           period_year?: number
           regular_hours?: number | null
           rejection_reason?: string | null
+          sick_leave_days?: number
           special_allowance?: number | null
           status?: Database["public"]["Enums"]["payroll_status"]
           submitted_at?: string | null
           submitted_by?: string | null
+          surplus_amount?: number
           total_allowances?: number
           total_deductions?: number
           total_overtime?: number
           user_id?: string
           vacation_hours_paid?: number | null
+          vacation_work_allowance?: number
           voucher_id?: string | null
           working_days?: number | null
+          working_hours?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_payroll_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_payroll_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employee_payroll_company_id_fkey"
             columns: ["company_id"]
