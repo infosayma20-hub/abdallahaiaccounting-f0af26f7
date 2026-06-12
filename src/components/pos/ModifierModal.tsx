@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { X, Minus, Plus } from "lucide-react";
+import { augmentGroupsWithNone, isNoneOptionId } from "@/lib/pos/modifier-none-option";
 
 interface ModifierOption {
   id: string;
@@ -130,10 +131,11 @@ function ModifierGroupSection({
 
 export default function ModifierModal({
   product,
-  groups,
+  groups: rawGroups,
   onConfirm,
   onClose,
 }: Props) {
+  const groups = useMemo(() => augmentGroupsWithNone(rawGroups), [rawGroups]);
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
     groups.forEach((g) => {
