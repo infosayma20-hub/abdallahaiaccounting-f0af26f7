@@ -1,0 +1,18 @@
+{
+  "name": "amwali-print-bridge",
+  "version": "6.3.6",
+  "description": "AMWALI Print Bridge - thermal printer service",
+  "main": "print-bridge-v6.3.6-clean.js",
+  "scripts": {
+    "start": "node print-bridge-v6.3.6-clean.js",
+    "install-service": "node service-install.js",
+    "uninstall-service": "node service-uninstall.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "sharp": "0.32.6",
+    "node-windows": "^1.0.0-beta.8"
+  }
+}

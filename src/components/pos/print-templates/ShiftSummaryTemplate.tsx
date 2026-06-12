@@ -107,13 +107,13 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       </div>
 
       {/* ═══ META ═══ */}
-      <div style={{ borderTop: '1px solid #333', margin: '8px 0' }} />
+      <div style={{ borderTop: '1px solid #333', margin: '14px 0 12px' }} />
       <Row label="الكاشير" value={data.cashierName} />
       {data.cashBoxName && <Row label="الصندوق" value={data.cashBoxName} />}
       <Row label="وقت الفتح" value={`${formatDate(data.openedAt)} ${formatTime(data.openedAt)}`} />
       <Row label="وقت الاغلاق" value={`${formatDate(data.closedAt)} ${formatTime(data.closedAt)}`} />
 
-      <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
+      <div style={{ borderTop: '1px dashed #333', margin: '16px 0 12px' }} />
 
       {/* ═══ SESSION DETAILS ═══ */}
       <SectionTitle text="تفاصيل الوردية" />
@@ -127,7 +127,7 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {/* ═══ CURRENCY BREAKDOWN ═══ */}
       {Object.keys(cb).length > 0 && (
         <>
-          <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
+          <div style={{ borderTop: '1px dashed #333', margin: '16px 0 12px' }} />
           <SectionTitle text="تفاصيل العملات المقبوضة" />
           {Object.entries(cb).map(([cur, info]) => (
             <Row key={cur} label={`${currencyLabel(cur)} (${info.count} طلب)`} value={formatCur(info.sales, cur)} />
@@ -138,7 +138,7 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {/* ═══ NON-CASH METHODS ═══ */}
       {nonCashMethods.length > 0 && (
         <>
-          <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
+          <div style={{ borderTop: '1px dashed #333', margin: '16px 0 12px' }} />
           <SectionTitle text="مبيعات غير نقدية" />
           {nonCashMethods.map(method => {
             const amounts = pmb[method] || {};
@@ -149,7 +149,7 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         </>
       )}
 
-      <div style={{ borderTop: '2px solid #000', margin: '12px 0' }} />
+      <div style={{ borderTop: '1px solid #000', margin: '18px 0 12px' }} />
 
       {/* ═══ CASH DELIVERY ═══ */}
       <SectionTitle text="تسليم النقدية" />
@@ -185,16 +185,18 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         </>
       )}
 
-      {/* ═══ TOTAL VARIANCE — no rule, no box ═══ */}
+      {/* ═══ TOTAL VARIANCE — no border, no box, no background (per request) ═══ */}
       <div style={{
         textAlign: 'center',
-        padding: '10px 4px 4px',
-        margin: '8px 0 0',
+        padding: '14px 4px 4px',
+        margin: '12px 0 0',
         fontWeight: 900,
         fontSize: '22px',
         lineHeight: 1.4,
         color: '#000',
         wordBreak: 'break-word',
+        border: 'none',
+        background: 'transparent',
       }}>
         {variancePrefix}: ₪{Math.abs(data.variance).toFixed(2)}
       </div>
@@ -231,12 +233,13 @@ function Row({ label, value, bold, large }: { label: string; value: string; bold
 }
 
 function SectionTitle({ text }: { text: string }) {
+  // No underline — the section divider already lives above the title with
+  // a comfortable margin so the rule never sits on top of the text.
   return (
     <div style={{
       fontSize: '24px', fontWeight: 900, color: '#000',
-      textAlign: 'center', margin: '8px 0 4px',
+      textAlign: 'center', margin: '4px 0 8px',
       lineHeight: 1.2,
-      borderBottom: '2px solid #000', paddingBottom: '4px',
     }}>
       {text}
     </div>

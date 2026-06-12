@@ -49,12 +49,9 @@ if "%IS_WIN7%"=="1" (
   set "WIN7_TLS_FIX="
 )
 
+REM Only one approved bridge script ships in the ZIP: v6.3.7-clean.
 set "BRIDGE_SCRIPT="
 if exist "%BRIDGE_DIR%\print-bridge-v6.3.7-clean.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.7-clean.js"
-if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.6-clean.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.6-clean.js"
-if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.3.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.3.js"
-if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge-v6.3.2.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.2.js"
-if "%BRIDGE_SCRIPT%"=="" if exist "%BRIDGE_DIR%\print-bridge.js" set "BRIDGE_SCRIPT=print-bridge.js"
 if "%BRIDGE_SCRIPT%"=="" goto :no_script
 echo [OK] Found bridge script: %BRIDGE_SCRIPT%
 echo.

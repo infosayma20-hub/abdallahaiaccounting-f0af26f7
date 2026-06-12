@@ -1,0 +1,18 @@
+AMWALI Print Bridge — Windows 10 / 11 Package
+=============================================
+
+How to build the ZIP for cashiers:
+  1. Select ALL files inside this folder (Ctrl+A) — do NOT zip the
+     folder itself. Files must extract directly into C:\print-bridge\
+     with no nested "print-bridge-installer" subfolder.
+  2. Right-click → Send to → Compressed (zipped) folder.
+  3. Rename to:  print-bridge.zip
+
+Windows 7 / Server 2008 R2:
+  - Use the SEPARATE folder docs/print-bridge-installer-win7/
+    and ship that zip independently. It bundles Node v13.14.0 + the
+    Win7-only helper scripts. Do NOT mix the two packages.
+
+Approved bridge script:
+  - print-bridge-v6.3.7-clean.js — the ONLY supported version.
+    Older 6.3.6 and newer 6.3.8 have been removed permanently.
