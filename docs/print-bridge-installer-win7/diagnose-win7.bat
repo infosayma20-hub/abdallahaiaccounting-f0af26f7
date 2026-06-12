@@ -12,8 +12,6 @@ for %%D in (
 ) do (
   if not defined BRIDGE_DIR (
     if exist "%%~fD\print-bridge-v6.3.7-clean.js" set "BRIDGE_DIR=%%~fD"
-    if not defined BRIDGE_DIR if exist "%%~fD\print-bridge-v6.3.6-clean.js" set "BRIDGE_DIR=%%~fD"
-    if not defined BRIDGE_DIR if exist "%%~fD\print-bridge.js" set "BRIDGE_DIR=%%~fD"
   )
 )
 if not defined BRIDGE_DIR set "BRIDGE_DIR=C:\print-bridge"
@@ -78,8 +76,6 @@ echo [6] Bridge folder contents at %BRIDGE_DIR%:
 if exist "%BRIDGE_DIR%" (
   set "MAIN_FOUND=0"
   if exist "%BRIDGE_DIR%\print-bridge-v6.3.7-clean.js" ( echo     [OK] print-bridge-v6.3.7-clean.js & set "MAIN_FOUND=1" )
-  if exist "%BRIDGE_DIR%\print-bridge-v6.3.6-clean.js" ( echo     [OK] print-bridge-v6.3.6-clean.js & set "MAIN_FOUND=1" )
-  if exist "%BRIDGE_DIR%\print-bridge.js" ( echo     [OK] print-bridge.js & set "MAIN_FOUND=1" )
   if "!MAIN_FOUND!"=="0" echo     [X] main bridge .js file NOT FOUND in this folder.
   if exist "%BRIDGE_DIR%\package.json" ( echo     [OK] package.json ) else ( echo     [X]  package.json MISSING )
   if exist "%BRIDGE_DIR%\node_modules" ( echo     [OK] node_modules ) else ( echo     [X]  node_modules MISSING — run install-bridge-win7.bat )
