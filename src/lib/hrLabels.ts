@@ -202,7 +202,14 @@ export function tPayrollStatus(s?: string | null | boolean): string {
   if (s === true) return "مدفوع";
   if (s === false) return "غير مدفوع";
   if (!s) return "—";
-  return PAYROLL_STATUS[String(s).toLowerCase()] || String(s);
+  const k = String(s).toLowerCase();
+  const extra: Record<string, string> = {
+    submitted: "مُرسلة",
+    paid: "مدفوع",
+    unpaid: "غير مدفوع",
+    rejected: "مرفوضة",
+  };
+  return PAYROLL_STATUS[k] || extra[k] || String(s);
 }
 
 export function payrollStatusTone(s?: string | null | boolean): string {
