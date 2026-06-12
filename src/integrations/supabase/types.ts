@@ -4852,6 +4852,8 @@ export type Database = {
           price: number
           updated_at: string
           user_id: string
+          wheels_area_id: number | null
+          wheels_fixed_price: number | null
         }
         Insert: {
           area_name: string
@@ -4864,6 +4866,8 @@ export type Database = {
           price?: number
           updated_at?: string
           user_id: string
+          wheels_area_id?: number | null
+          wheels_fixed_price?: number | null
         }
         Update: {
           area_name?: string
@@ -4876,6 +4880,8 @@ export type Database = {
           price?: number
           updated_at?: string
           user_id?: string
+          wheels_area_id?: number | null
+          wheels_fixed_price?: number | null
         }
         Relationships: [
           {
@@ -10767,6 +10773,11 @@ export type Database = {
           user_id: string
           warehouse_id: string | null
           was_offline: boolean | null
+          wheels_delivery_price: number | null
+          wheels_last_error: string | null
+          wheels_request_status: string
+          wheels_response: Json | null
+          wheels_sent_at: string | null
           zone_code: string | null
         }
         Insert: {
@@ -10847,6 +10858,11 @@ export type Database = {
           user_id: string
           warehouse_id?: string | null
           was_offline?: boolean | null
+          wheels_delivery_price?: number | null
+          wheels_last_error?: string | null
+          wheels_request_status?: string
+          wheels_response?: Json | null
+          wheels_sent_at?: string | null
           zone_code?: string | null
         }
         Update: {
@@ -10927,6 +10943,11 @@ export type Database = {
           user_id?: string
           warehouse_id?: string | null
           was_offline?: boolean | null
+          wheels_delivery_price?: number | null
+          wheels_last_error?: string | null
+          wheels_request_status?: string
+          wheels_response?: Json | null
+          wheels_sent_at?: string | null
           zone_code?: string | null
         }
         Relationships: [
@@ -17506,6 +17527,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      wheels_branch_config: {
+        Row: {
+          branch_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          secret_name: string
+          updated_at: string
+          user_id: string
+          wheels_branch_id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          secret_name: string
+          updated_at?: string
+          user_id: string
+          wheels_branch_id: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          secret_name?: string
+          updated_at?: string
+          user_id?: string
+          wheels_branch_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wheels_branch_config_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wheels_branch_config_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_shifts: {
         Row: {
