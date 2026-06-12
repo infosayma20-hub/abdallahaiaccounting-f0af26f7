@@ -191,6 +191,7 @@ export default function InvoiceHistoryDrawer({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [clockSkewMin, setClockSkewMin] = useState<number>(0);
 
   // Auto-focus search input when drawer opens
   useEffect(() => {
@@ -198,7 +199,13 @@ export default function InvoiceHistoryDrawer({
       setTimeout(() => searchInputRef.current?.focus(), 150);
       // Re-sync server clock each time the drawer opens so grace-window
       // calculations stay correct even if the device clock is wrong.
-      void initServerClock();
+      void initServerClock().then(() => {
+        if (isClockSkewed()) {
+          setClockSkewMin(Math.round(getClockSkewMs() / 60000));
+        } else {
+          setClockSkewMin(0);
+        }
+      });
     }
   }, [open]);
 
@@ -909,6 +916,20 @@ export default function InvoiceHistoryDrawer({
             <X className="h-4 w-4" style={{ color: "#64748B" }} />
           </button>
         </div>
+
+        {clockSkewMin !== 0 && (
+          <div
+            className="px-5 py-2 text-[11px] font-medium flex items-center gap-2"
+            style={{
+              fontFamily: "Tajawal, sans-serif",
+              background: "#FEF3C7",
+              color: "#92400E",
+              borderBottom: "1px solid #FCD34D",
+            }}
+          >
+            ⚠️ ساعة هذا الجهاز {clockSkewMin > 0 ? "متقدمة" : "متأخرة"} عن الخادم بحوالي {Math.abs(clockSkewMin)} دقيقة — يُرجى ضبط ساعة Windows لضمان عمل مهل الإلغاء/التعديل بشكل صحيح.
+          </div>
+        )}
 
         {/* Filters */}
         <div className="px-5 py-3 border-b space-y-2.5" style={{ borderColor: "#E2E8F0" }}>
