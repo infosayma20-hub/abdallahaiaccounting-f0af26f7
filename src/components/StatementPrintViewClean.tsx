@@ -1,5 +1,5 @@
 /**
- * Clean B&W Statement of Account Print View — QOYOD-inspired
+ * Clean B&W Statement of Account Print View — Amwali standard layout
  */
 
 interface StatementRow {

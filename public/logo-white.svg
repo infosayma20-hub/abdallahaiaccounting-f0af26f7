@@ -1,13 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
-  <!-- Qaf letter ق with decorative swirl - white version -->
-  <g transform="translate(120, 10)">
-    <path d="M80 100 C80 60, 50 30, 20 40 C-10 50, -15 80, 10 110 C30 135, 70 140, 100 125 C120 115, 125 95, 115 80 C108 70, 95 65, 85 72" 
-          stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round"/>
-    <path d="M100 125 C130 110, 150 85, 155 55 C158 35, 148 20, 135 25 C125 28, 122 40, 130 50" 
-          stroke="#C9A84C" stroke-width="10" fill="none" stroke-linecap="round"/>
-    <circle cx="40" cy="155" r="7" fill="#FFFFFF"/>
-    <circle cx="65" cy="155" r="7" fill="#FFFFFF"/>
-  </g>
-  <!-- QOYOD text white -->
-  <text x="200" y="195" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="36" fill="#FFFFFF" letter-spacing="8">QOYOD</text>
+  <!-- AMWALI brand mark — white version for dark backgrounds -->
+  <text x="200" y="115" text-anchor="middle" font-family="Tajawal, Amiri, Arial, sans-serif" font-weight="800" font-size="64" fill="#FFFFFF">أموالي</text>
+  <text x="200" y="170" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="32" fill="#C9A84C" letter-spacing="8">AMWALI</text>
 </svg>

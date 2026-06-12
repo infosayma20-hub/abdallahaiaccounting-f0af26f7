@@ -6,8 +6,8 @@ export const BRAND = {
   nameAr:       'أموالي',
   fullNameEn:   'AMWALI ERP Software',
   fullNameAr:   'أموالي — نظام إدارة الأعمال',
-  domain:       'amwali.com',
-  supportEmail: 'support@amwali.com',
+  domain:       'amwali.app',
+  supportEmail: 'support@amwali.app',
   version:      '1.0.0',
   copyright:    `© ${new Date().getFullYear()} AMWALI. جميع الحقوق محفوظة.`,
 
