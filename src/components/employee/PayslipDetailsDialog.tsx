@@ -207,13 +207,30 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
           />
         </section>
 
-        {/* 4. FIXED SALARY BREAKDOWN — Collapsible */}
+        {/* 4a. ATTENDANCE SALARY — from working hours */}
+        <section className="mx-4 mb-3 rounded-lg border border-border overflow-hidden">
+          <div className="flex items-stretch border-r-2 border-r-emerald-500/70">
+            <div className="flex-1 px-3 py-2 bg-card">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold">راتب الحضور</span>
+                <span className="text-sm font-bold tabular-nums">
+                  {formatCurrency(payslip.attendance_salary)}
+                </span>
+              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                محسوب من ساعات الدوام الفعلية
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4b. FIXED SALARY BREAKDOWN — Collapsible (sum of allowances) */}
         <section className="mx-4 mb-3 rounded-lg border border-border overflow-hidden">
           <Collapsible open={showFixedDetails} onOpenChange={setShowFixedDetails}>
             <div className="flex items-stretch border-r-2 border-r-primary/70">
               <div className="flex-1 px-3 py-2 bg-card">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold">الراتب الثابت</span>
+                  <span className="text-xs font-semibold">الراتب الثابت (مجموع العلاوات)</span>
                   <span className="text-sm font-bold tabular-nums">
                     {formatCurrency(baseSalary)}
                   </span>
@@ -274,7 +291,6 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
               الاستحقاقات
             </div>
             <div className="divide-y divide-border/60 bg-card">
-              <Row label="راتب الحضور" value={formatCurrency(payslip.attendance_salary)} />
               {vacationWork > 0 && (
                 <Row label="بدل دوام إضافي وإجازات" value={formatCurrency(vacationWork)} tone="ok" />
               )}
