@@ -7222,6 +7222,43 @@ const POSPage = () => {
 
       {/* Modifier Modal removed — replaced by InlineAddonPanel */}
 
+      {/* Cart-line addon editor — opens when cashier taps "إضافات" on a cart row */}
+      {editAddonCartIndex !== null && (() => {
+        const item = cart[editAddonCartIndex];
+        if (!item) return null;
+        const product = products.find(p => p.id === item.product_id);
+        if (!product) return null;
+        const groupIds = productModifierMap[product.id] || [];
+        const groups = modifierGroups.filter(g => groupIds.includes(g.id));
+        if (groups.length === 0) return null;
+        return (
+          <InlineAddonPanel
+            product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
+            groups={groups}
+            onConfirm={(data) => {
+              setCart(prev => {
+                const next = [...prev];
+                const it = next[editAddonCartIndex];
+                if (!it) return prev;
+                const extra = data.modifiers.reduce((s, m) => s + (m.extra_price || 0), 0);
+                const newUnit = product.sell_price + extra;
+                next[editAddonCartIndex] = {
+                  ...it,
+                  modifiers: data.modifiers,
+                  note: data.note || it.note,
+                  unit_price: newUnit,
+                  total: newUnit * it.qty,
+                };
+                return next;
+              });
+              setEditAddonCartIndex(null);
+              toast.success("✓ تم تحديث الإضافات");
+            }}
+            onClose={() => setEditAddonCartIndex(null)}
+          />
+        );
+      })()}
+
       {/* Quick Add Customer Dialog */}
       <Dialog open={showQuickAddCustomer} onOpenChange={setShowQuickAddCustomer}>
         <DialogContent className="sm:max-w-sm" dir="rtl">
