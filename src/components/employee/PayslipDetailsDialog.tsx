@@ -199,7 +199,7 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
           <Stat
             icon={Clock}
             label="ساعات العمل"
-            value={String(safeNum(payslip.working_hours))}
+            value={safeNum(payslip.working_hours).toFixed(2)}
           />
           <Stat
             icon={BedDouble}
