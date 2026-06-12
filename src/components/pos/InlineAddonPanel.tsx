@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { X, Check, Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SelectedModifier } from "@/components/pos/ModifierModal";
+import { augmentGroupsWithNone, isNoneOptionId } from "@/lib/pos/modifier-none-option";
 
 interface ModifierOption {
   id: string;
@@ -42,7 +43,8 @@ interface Props {
   flipUp?: boolean;
 }
 
-export default function InlineAddonPanel({ product, groups, onConfirm, onClose }: Props) {
+export default function InlineAddonPanel({ product, groups: rawGroups, onConfirm, onClose }: Props) {
+  const groups = useMemo(() => augmentGroupsWithNone(rawGroups), [rawGroups]);
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
     groups.forEach((g) => {
@@ -93,6 +95,7 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose }
         let extra = 0;
         groups.forEach((g) => {
           (next[g.id] || []).forEach((oid) => {
+            if (isNoneOptionId(oid)) return;
             const opt = g.options.find((o) => o.id === oid);
             if (!opt) return;
             modifiers.push({
@@ -138,6 +141,7 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose }
       const group = groups.find((g) => g.id === groupId);
       if (!group) return;
       optIds.forEach((optId) => {
+        if (isNoneOptionId(optId)) return;
         const opt = group.options.find((o) => o.id === optId);
         if (!opt) return;
         modifiers.push({
