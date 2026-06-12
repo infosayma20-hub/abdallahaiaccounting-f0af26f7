@@ -244,19 +244,21 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         className="rounded-2xl p-5 relative overflow-hidden"
         style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
       >
-        {hasMultipleWorkspaces && (
-          <button
-            type="button"
-            aria-label="الرجوع إلى اختيار مساحة العمل"
-            onClick={() => setSwitchOpen(true)}
-            className="absolute top-2 left-2 z-20 h-8 w-8 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur border border-white/20 flex items-center justify-center text-primary-foreground transition-colors"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-primary-foreground/60">مرحباً</p>
+            <div className="flex items-center gap-1.5">
+              {hasMultipleWorkspaces && (
+                <button
+                  type="button"
+                  aria-label="الرجوع إلى اختيار مساحة العمل"
+                  onClick={() => setSwitchOpen(true)}
+                  className="h-6 w-6 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur border border-white/20 flex items-center justify-center text-primary-foreground transition-colors shrink-0"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <p className="text-sm text-primary-foreground/60">مرحباً</p>
+            </div>
             <h1 className="text-xl font-bold text-primary-foreground truncate">{employeeName}</h1>
             <p className="text-xs mt-1 text-primary-foreground/50">
               {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
