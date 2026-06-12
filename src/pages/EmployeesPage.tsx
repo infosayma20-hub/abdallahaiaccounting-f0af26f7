@@ -35,6 +35,7 @@ import EmployeeOpeningBalance from "@/components/hr/EmployeeOpeningBalance";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { multiWordMatchAny } from "@/lib/utils";
+import ManagerBranchesPicker from "@/components/employee/ManagerBranchesPicker";
 
 interface Branch {
   id: string;
@@ -1321,6 +1322,15 @@ const EmployeesPage = () => {
               </Select>
             </div>
             <div className="col-span-2 grid grid-cols-1 gap-2 bg-muted/30 rounded-md p-3">
+              <label className="flex items-center justify-between gap-2 text-sm border-b pb-2 mb-1">
+                <span className="font-medium">هذا الموظف مدير فرع</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={!!(form as any).is_manager}
+                  onChange={e => setForm({ ...form, is_manager: e.target.checked } as any)}
+                />
+              </label>
               <label className="flex items-center justify-between gap-2 text-sm">
                 <span>يستطيع رؤية فريقه</span>
                 <input
@@ -1358,6 +1368,15 @@ const EmployeesPage = () => {
                 />
               </label>
             </div>
+            {(form as any).is_manager && (
+              <div className="col-span-2">
+                <ManagerBranchesPicker
+                  authUserId={(form as any).auth_user_id || null}
+                  companyId={dataOwnerId || null}
+                  branches={branchesList as any}
+                />
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
