@@ -806,6 +806,13 @@ const PayrollPage = () => {
           handleViewSlip(rec);
         }}
       />
+      <PayrollImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["payroll-records"] });
+        }}
+      />
     </div>
   );
 };
