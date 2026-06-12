@@ -105,8 +105,13 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
 
   if (!payslip) return null;
 
+  const vacationWork = safeNum(payslip.vacation_work_allowance);
+  const settlement = safeNum(payslip.settlement_amount);
+  const nextMonthAdv = safeNum(payslip.next_month_salary_advance);
   const additions = safeNum(payslip.total_allowances) + safeNum(payslip.total_overtime);
   const deductions = safeNum(payslip.total_deductions);
+  const carryOver = safeNum(payslip.carry_over_balance);
+  const surplus = safeNum(payslip.surplus_amount);
   const status = payslip.is_paid ? "paid" : payslip.status || "pending";
 
   // Fixed salary breakdown components
@@ -270,8 +275,18 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
             </div>
             <div className="divide-y divide-border/60 bg-card">
               <Row label="راتب الحضور" value={formatCurrency(payslip.attendance_salary)} />
-              <Row label="إجمالي البدلات" value={formatCurrency(payslip.total_allowances)} tone="ok" />
-              <Row label="إجمالي الأوفرتايم" value={formatCurrency(payslip.total_overtime)} tone="ok" />
+              {vacationWork > 0 && (
+                <Row label="بدل دوام إضافي وإجازات" value={formatCurrency(vacationWork)} tone="ok" />
+              )}
+              {settlement > 0 && (
+                <Row label="مخالصة ومستحقات" value={formatCurrency(settlement)} tone="ok" />
+              )}
+              {nextMonthAdv > 0 && (
+                <Row label="راتب الشهر القادم (مقدّم)" value={formatCurrency(nextMonthAdv)} tone="ok" />
+              )}
+              {safeNum(payslip.total_overtime) > 0 && (
+                <Row label="إجمالي الأوفرتايم" value={formatCurrency(payslip.total_overtime)} tone="ok" />
+              )}
               <Row label="إجمالي الإضافات" value={formatCurrency(additions)} tone="ok" bold />
             </div>
           </div>
@@ -281,11 +296,13 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
               الخصومات
             </div>
             <div className="divide-y divide-border/60 bg-card">
+              {carryOver > 0 && <Row label="رصيد أول الشهر (سابق)" value={formatCurrency(carryOver)} tone="bad" />}
               {safeNum(payslip.deduction_loan) > 0 && <Row label="قسط قرض" value={formatCurrency(payslip.deduction_loan)} tone="bad" />}
               {safeNum(payslip.deduction_new_advance) > 0 && <Row label="سلفة جديدة" value={formatCurrency(payslip.deduction_new_advance)} tone="bad" />}
               {safeNum(payslip.deduction_cash_advance) > 0 && <Row label="سلفة نقدية" value={formatCurrency(payslip.deduction_cash_advance)} tone="bad" />}
               {safeNum(payslip.deduction_purchases) > 0 && <Row label="مشتريات" value={formatCurrency(payslip.deduction_purchases)} tone="bad" />}
               {safeNum(payslip.deduction_cash_shortage) > 0 && <Row label="عجز صندوق" value={formatCurrency(payslip.deduction_cash_shortage)} tone="bad" />}
+              {surplus > 0 && <Row label="فائض" value={formatCurrency(surplus)} tone="bad" />}
               {safeNum(payslip.deduction_violations) > 0 && <Row label="مخالفات" value={formatCurrency(payslip.deduction_violations)} tone="bad" />}
               {safeNum(payslip.deduction_food_group) > 0 && <Row label="وجبات (مجموعة)" value={formatCurrency(payslip.deduction_food_group)} tone="bad" />}
               {safeNum(payslip.deduction_food_individual) > 0 && <Row label="وجبات (فردي)" value={formatCurrency(payslip.deduction_food_individual)} tone="bad" />}
