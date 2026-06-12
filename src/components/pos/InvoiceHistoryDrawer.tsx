@@ -19,6 +19,7 @@ import { assertPermission } from "@/lib/permissions/assertPermission";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import { printReceiptImage } from "@/lib/image-print-service";
+import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/lib/pos/server-clock";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -176,13 +177,13 @@ export default function InvoiceHistoryDrawer({
   // (the drawer is mounted live and re-renders on user interactions).
   const isWithinCancelGrace = (order: InvoiceOrder) => {
     if (!order.created_at) return false;
-    const ageMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+    const ageMin = (getServerNow() - new Date(order.created_at).getTime()) / 60000;
     return ageMin <= cancelWindowMinutes;
   };
   const canCashierSeeAmount = (order: InvoiceOrder) => {
     if (!cashierMode) return true;
     if (!order.created_at) return false;
-    const ageMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+    const ageMin = (getServerNow() - new Date(order.created_at).getTime()) / 60000;
     return ageMin <= amountVisibleMinutes;
   };
   // نفس مدة السماح للأمبر تُستخدم لإخفاء التفاصيل الحساسة عن الكاشير بعد ساعة
