@@ -76,18 +76,26 @@ export default function POSDeliveryPanel({
       try {
         const { data: order } = await supabase
           .from("pos_orders")
-          .select("branch_id, area_name, wheels_request_status, wheels_last_error, wheels_delivery_price")
+          .select("warehouse_id, area_name, wheels_request_status, wheels_last_error, wheels_delivery_price")
           .eq("id", orderId)
           .maybeSingle();
-        if (cancelled || !order?.branch_id) { setWheelsEligible(false); return; }
+        if (cancelled || !order?.warehouse_id) { setWheelsEligible(false); return; }
         setWheelsStatus((order as any).wheels_request_status || "not_sent");
         setWheelsError((order as any).wheels_last_error || "");
         setWheelsPrice((order as any).wheels_delivery_price ?? null);
 
+        const { data: wh } = await supabase
+          .from("warehouses")
+          .select("branch_id")
+          .eq("id", (order as any).warehouse_id)
+          .maybeSingle();
+        const branchId = (wh as any)?.branch_id;
+        if (cancelled || !branchId) { setWheelsEligible(false); return; }
+
         const { data: cfg } = await supabase
           .from("wheels_branch_config")
           .select("is_active")
-          .eq("branch_id", order.branch_id)
+          .eq("branch_id", branchId)
           .maybeSingle();
         if (cancelled || !cfg?.is_active) { setWheelsEligible(false); return; }
 
@@ -96,7 +104,7 @@ export default function POSDeliveryPanel({
         const { data: zone } = await supabase
           .from("delivery_zones")
           .select("wheels_area_id")
-          .eq("branch_id", order.branch_id)
+          .eq("branch_id", branchId)
           .eq("area_name", area)
           .maybeSingle();
         if (cancelled) return;
