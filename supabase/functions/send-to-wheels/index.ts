@@ -84,11 +84,25 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!order.branch_id) {
-      return new Response(JSON.stringify({ error: "الطلب بدون فرع" }), {
+    if (!order.warehouse_id) {
+      return new Response(JSON.stringify({ error: "الطلب بدون مستودع/فرع" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Resolve branch_id from warehouse_id
+    const { data: wh } = await admin
+      .from("warehouses")
+      .select("branch_id")
+      .eq("id", order.warehouse_id)
+      .maybeSingle();
+    const branchId = (wh as any)?.branch_id;
+    if (!branchId) {
+      return new Response(JSON.stringify({ error: "تعذر تحديد الفرع من المستودع" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!order.customer_name || !order.customer_phone || !order.customer_address) {
       return new Response(JSON.stringify({ error: "بيانات العميل غير مكتملة (الاسم/الهاتف/العنوان)" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -105,7 +119,7 @@ Deno.serve(async (req) => {
       .from("wheels_branch_config")
       .select("wheels_branch_id, secret_name, is_active")
       .eq("user_id", order.user_id)
-      .eq("branch_id", order.branch_id)
+      .eq("branch_id", branchId)
       .maybeSingle();
 
     if (!cfg || !cfg.is_active) {
@@ -132,7 +146,7 @@ Deno.serve(async (req) => {
       .from("delivery_zones")
       .select("wheels_area_id, wheels_fixed_price")
       .eq("user_id", order.user_id)
-      .eq("branch_id", order.branch_id)
+      .eq("branch_id", branchId)
       .eq("area_name", areaName)
       .maybeSingle();
 
