@@ -5891,6 +5891,7 @@ export type Database = {
           is_paid: boolean
           linked_transaction_id: string | null
           net_salary: number
+          next_month_salary_advance: number
           notes: string | null
           other_allowances_val: number | null
           overtime_hours_val: number | null
@@ -5901,6 +5902,7 @@ export type Database = {
           period_year: number
           regular_hours: number | null
           rejection_reason: string | null
+          settlement_amount: number
           sick_leave_days: number
           special_allowance: number | null
           status: Database["public"]["Enums"]["payroll_status"]
@@ -5953,6 +5955,7 @@ export type Database = {
           is_paid?: boolean
           linked_transaction_id?: string | null
           net_salary?: number
+          next_month_salary_advance?: number
           notes?: string | null
           other_allowances_val?: number | null
           overtime_hours_val?: number | null
@@ -5963,6 +5966,7 @@ export type Database = {
           period_year: number
           regular_hours?: number | null
           rejection_reason?: string | null
+          settlement_amount?: number
           sick_leave_days?: number
           special_allowance?: number | null
           status?: Database["public"]["Enums"]["payroll_status"]
@@ -6015,6 +6019,7 @@ export type Database = {
           is_paid?: boolean
           linked_transaction_id?: string | null
           net_salary?: number
+          next_month_salary_advance?: number
           notes?: string | null
           other_allowances_val?: number | null
           overtime_hours_val?: number | null
@@ -6025,6 +6030,7 @@ export type Database = {
           period_year?: number
           regular_hours?: number | null
           rejection_reason?: string | null
+          settlement_amount?: number
           sick_leave_days?: number
           special_allowance?: number | null
           status?: Database["public"]["Enums"]["payroll_status"]
