@@ -6,6 +6,14 @@ type: feature
 
 # WB-1 — كاتب حركات المخزون على مستوى DB
 
+## التحديث (2026-06-12): الربط بسطر الفاتورة
+- المفتاح: `stock_movements.reference_line_id` = `invoice_items.id` (سطر واحد ↔ حركة واحدة).
+- `UNIQUE INDEX uniq_stock_mvt_invoice_line` على `(reference_line_id) WHERE reference_type='invoice'` يضمن 1:1.
+- التريغر يستخدم `INSERT ... ON CONFLICT (reference_line_id) DO UPDATE` (UPSERT حقيقي).
+- الحياة: عند صفر كمية / مسودة / ملغاة / DELETE للسطر → التريغر يحذف الحركة المرتبطة.
+- **الـ bug السابق**: المفتاح كان `(invoice_id, product_id)` فيمنع الأسطر 2+ من نفس المنتج. تم إصلاحه باستخدام `invoice_items.id`.
+- **Backfill**: 1344 حركة قديمة تمت مزاوجتها مع الأسطر عبر `ROW_NUMBER OVER (PARTITION BY invoice_id, product_id ORDER BY created_at)`. الحركات اليتيمة (تعديلات قديمة قبل التريغر) تم حذفها نهائياً.
+
 ## السبب
 المسار القديم (`invoices.invoice_type='sale'|'sales'|'purchase'` + `invoice_items`) كان يعتمد على
 `InvoiceCreatePage.tsx` (سطر ~1555) لكتابة `stock_movements` من الواجهة. تدقيق 12/6/2026 كشف أن
