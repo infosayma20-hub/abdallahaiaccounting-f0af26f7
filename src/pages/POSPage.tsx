@@ -5725,6 +5725,31 @@ const POSPage = () => {
                           ) : (
                             <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
                           )}
+                          {/* Addon shortcut — only when product has addon groups AND this line has none yet */}
+                          {(() => {
+                            const hasAddonGroups = !!(productModifierMap[item.product_id]?.length);
+                            const lineHasMods = (item.modifiers?.length || 0) > 0;
+                            if (!hasAddonGroups || lineHasMods) return null;
+                            return (
+                              <button
+                                type="button"
+                                className="h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1"
+                                style={{
+                                  background: 'rgba(59,130,246,0.18)',
+                                  color: '#93c5fd',
+                                  border: '1px dashed rgba(59,130,246,0.5)',
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditAddonCartIndex(index);
+                                }}
+                                title="إضافة ملاحظات وإضافات للصنف"
+                              >
+                                <Plus className="h-3 w-3" />
+                                إضافات
+                              </button>
+                            );
+                          })()}
                           <div className="flex items-center gap-0">
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
