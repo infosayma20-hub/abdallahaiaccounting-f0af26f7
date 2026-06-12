@@ -249,9 +249,9 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
             type="button"
             aria-label="الرجوع إلى اختيار مساحة العمل"
             onClick={() => setSwitchOpen(true)}
-            className="absolute top-2 right-2 z-20 h-9 w-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur border border-white/20 flex items-center justify-center text-primary-foreground transition-colors"
+            className="absolute top-2 left-2 z-20 h-8 w-8 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur border border-white/20 flex items-center justify-center text-primary-foreground transition-colors"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         )}
         <div className="relative z-10 flex items-start gap-3">
