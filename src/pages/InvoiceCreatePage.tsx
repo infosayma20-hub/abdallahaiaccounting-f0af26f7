@@ -1462,15 +1462,9 @@ const InvoiceCreatePage = () => {
               await supabase.from("products").update(productUpdate as any).eq("id", pid);
             }
             if (delta !== 0) {
-              await supabase.from("stock_movements").insert({
-                product_id: pid,
-                quantity: Math.abs(delta),
-                movement_type: delta > 0 ? "وارد" : "صادر",
-                reference_note: `تعديل فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} (فرق ${delta > 0 ? "+" : ""}${delta})`,
-                user_id: user.id,
-                reference_type: "invoice",
-                reference_id: editInvoiceId,
-              } as any);
+              // stock_movements are now written by the DB trigger
+              // `sync_invoice_item_stock` (WB-1) keyed on invoice_items.id.
+              // No frontend insert needed — keeping products.quantity update only.
             }
           }
           // Refresh snapshot so a subsequent save in the same session uses the new baseline.
@@ -1552,15 +1546,8 @@ const InvoiceCreatePage = () => {
             }
           }
           await supabase.from("products").update(productUpdate as any).eq("id", item.productId);
-          await supabase.from("stock_movements").insert({
-            product_id: item.productId,
-            quantity: form.type === "sales" ? deliveredQty : item.quantity,
-            movement_type: form.type === "sales" ? "صادر" : "وارد",
-            reference_note: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}${bonusQty > 0 ? ` (شامل بونص: ${bonusQty})` : ""}`,
-            user_id: user.id,
-            reference_type: "invoice",
-            reference_id: dbInv.id,
-          } as any);
+          // stock_movements are written by the DB trigger
+          // `sync_invoice_item_stock` (WB-1) on invoice_items INSERT.
         }
 
         // ─── Post the GL entry (credit-only invoices) ───

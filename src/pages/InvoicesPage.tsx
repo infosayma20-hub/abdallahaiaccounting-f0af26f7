@@ -543,15 +543,8 @@ const InvoicesPage = () => {
         : Number(prod.quantity) + item.quantity;
 
       await supabase.from("products").update({ quantity: newQty } as any).eq("id", item.productId);
-
-      // Record stock movement
-      await supabase.from("stock_movements").insert({
-        product_id: item.productId,
-        quantity: item.quantity,
-        movement_type: type === "sales" ? "صادر" : "وارد",
-        reference_note: `فاتورة ${type === "sales" ? "مبيعات" : "مشتريات"}`,
-        user_id: user.id,
-      } as any);
+      // stock_movements are written by the DB trigger
+      // `sync_invoice_item_stock` (WB-1) on invoice_items INSERT.
     }
   };
 
