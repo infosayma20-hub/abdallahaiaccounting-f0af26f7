@@ -113,8 +113,14 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
   { value: "unified_kitchen",  label: "مطبخ موحّد",      emoji: "🧑‍🍳" },
 ];
 
-const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip?v=20260606-v638-receipt-grid";
-const PRINT_BRIDGE_WIN7_DOWNLOAD_URL = "/downloads/amwali-print-bridge-win7.zip?v=20260610-win7-v637";
+import bridgeStdAsset from "@/assets/amwali-print-bridge.zip.asset.json";
+import bridgeWin7Asset from "@/assets/amwali-print-bridge-win7.zip.asset.json";
+
+// Served from Lovable Assets (CDN) — single bridge file (v6.3.7) per ZIP,
+// no duplicate Node MSIs. Standard ZIP = Win10/11 + node 24.
+// Win7 ZIP = Win7 + node 13 (offline-ready). Rebuilt 2026-06-12.
+const PRINT_BRIDGE_DOWNLOAD_URL = bridgeStdAsset.url;
+const PRINT_BRIDGE_WIN7_DOWNLOAD_URL = bridgeWin7Asset.url;
 
 // Map our pos_printers role → the bridge's printer key (in device.json)
 function roleToBridgeKey(role: string): BridgePrinterKey | null {
