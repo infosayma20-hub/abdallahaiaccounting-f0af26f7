@@ -90,15 +90,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve branch_id from warehouse_id
-    const { data: wh } = await admin
-      .from("warehouses")
-      .select("branch_id")
-      .eq("id", order.warehouse_id)
-      .maybeSingle();
-    const branchId = (wh as any)?.branch_id;
+    // Resolve branch_id: prefer session → terminal → branch (POS canonical path);
+    // fall back to warehouse.branch_id when session is missing (legacy orders).
+    let branchId: string | null = null;
+    if (order.session_id) {
+      const { data: sess } = await admin
+        .from("pos_sessions")
+        .select("terminal_id")
+        .eq("id", order.session_id)
+        .maybeSingle();
+      const terminalId = (sess as any)?.terminal_id;
+      if (terminalId) {
+        const { data: term } = await admin
+          .from("pos_terminals")
+          .select("branch_id")
+          .eq("id", terminalId)
+          .maybeSingle();
+        branchId = (term as any)?.branch_id ?? null;
+      }
+    }
+    if (!branchId && order.warehouse_id) {
+      const { data: wh } = await admin
+        .from("warehouses")
+        .select("branch_id")
+        .eq("id", order.warehouse_id)
+        .maybeSingle();
+      branchId = (wh as any)?.branch_id ?? null;
+    }
     if (!branchId) {
-      return new Response(JSON.stringify({ error: "تعذر تحديد الفرع من المستودع" }), {
+      return new Response(JSON.stringify({ error: "تعذر تحديد فرع الطلب" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -135,14 +155,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3) Area lookup
-    const areaName = (order.area_name || "").trim();
+    // 3) Area lookup — order.area_name first; if empty, parse customer_address
+    //    (format: "<city> - <area>"); fall back to delivery_address.
+    function extractArea(addr: string | null | undefined): string {
+      if (!addr) return "";
+      const parts = addr.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean);
+      return parts.length >= 2 ? parts[parts.length - 1] : (parts[0] ?? "");
+    }
+    const areaName =
+      (order.area_name && String(order.area_name).trim()) ||
+      extractArea(order.customer_address) ||
+      extractArea(order.delivery_address);
+
     if (!areaName) {
       return new Response(JSON.stringify({ error: "المنطقة غير محددة على الطلب" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: zone } = await admin
+
+    // Try exact match first, then case-insensitive ILIKE
+    let { data: zone } = await admin
       .from("delivery_zones")
       .select("wheels_area_id, wheels_fixed_price")
       .eq("user_id", order.user_id)
@@ -151,7 +183,20 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!zone?.wheels_area_id) {
-      return new Response(JSON.stringify({ error: "هذه المنطقة غير مربوطة بمعرف Wheels" }), {
+      const { data: zone2 } = await admin
+        .from("delivery_zones")
+        .select("wheels_area_id, wheels_fixed_price")
+        .eq("user_id", order.user_id)
+        .eq("branch_id", branchId)
+        .ilike("area_name", areaName)
+        .not("wheels_area_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      zone = zone2 as any;
+    }
+
+    if (!zone?.wheels_area_id) {
+      return new Response(JSON.stringify({ error: `المنطقة "${areaName}" غير مربوطة بمعرف Wheels لهذا الفرع` }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
