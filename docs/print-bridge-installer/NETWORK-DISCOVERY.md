@@ -16,7 +16,7 @@ POST http://127.0.0.1:3001/discover-network-printers
    C:\print-bridge\discover-printers-addon.js
    ```
 
-2. افتح `C:\print-bridge\print-bridge-v6.3.2.js` وأضف **سطر واحد** في أي مكان
+2. افتح `C:\print-bridge\print-bridge-v6.3.7-clean.js` وأضف **سطر واحد** في أي مكان
    بعد `const app = express();` وقبل `app.listen(...)`:
    ```js
    require('./discover-printers-addon')(app);

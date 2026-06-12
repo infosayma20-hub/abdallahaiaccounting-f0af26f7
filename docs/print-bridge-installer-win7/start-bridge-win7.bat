@@ -19,8 +19,6 @@ for %%D in (
 ) do (
   if not defined BRIDGE_DIR (
     if exist "%%~fD\print-bridge-v6.3.7-clean.js" set "BRIDGE_DIR=%%~fD"
-    if not defined BRIDGE_DIR if exist "%%~fD\print-bridge-v6.3.6-clean.js" set "BRIDGE_DIR=%%~fD"
-    if not defined BRIDGE_DIR if exist "%%~fD\print-bridge.js" set "BRIDGE_DIR=%%~fD"
   )
 )
 if not defined BRIDGE_DIR (
@@ -39,8 +37,6 @@ sc stop "amwaliprintbridge.exe" >nul 2>&1
 
 set "BRIDGE_SCRIPT="
 if exist "print-bridge-v6.3.7-clean.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.7-clean.js"
-if "%BRIDGE_SCRIPT%"=="" if exist "print-bridge-v6.3.6-clean.js" set "BRIDGE_SCRIPT=print-bridge-v6.3.6-clean.js"
-if "%BRIDGE_SCRIPT%"=="" if exist "print-bridge.js" set "BRIDGE_SCRIPT=print-bridge.js"
 if "%BRIDGE_SCRIPT%"=="" (
   echo [ERROR] No bridge script found in %BRIDGE_DIR%.
   pause

@@ -9,14 +9,8 @@ bridgeDir = "C:\print-bridge"
 WshShell.CurrentDirectory = bridgeDir
 
 scriptName = ""
-If fso.FileExists(bridgeDir & "\print-bridge-v6.3.6-clean.js") Then
-    scriptName = "print-bridge-v6.3.6-clean.js"
-ElseIf fso.FileExists(bridgeDir & "\print-bridge-v6.3.3.js") Then
-    scriptName = "print-bridge-v6.3.3.js"
-ElseIf fso.FileExists(bridgeDir & "\print-bridge-v6.3.2.js") Then
-    scriptName = "print-bridge-v6.3.2.js"
-ElseIf fso.FileExists(bridgeDir & "\print-bridge.js") Then
-    scriptName = "print-bridge.js"
+If fso.FileExists(bridgeDir & "\print-bridge-v6.3.7-clean.js") Then
+    scriptName = "print-bridge-v6.3.7-clean.js"
 End If
 
 If scriptName = "" Then

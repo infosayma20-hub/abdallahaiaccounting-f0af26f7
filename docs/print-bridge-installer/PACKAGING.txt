@@ -13,6 +13,13 @@ Windows 7 / Server 2008 R2:
     and ship that zip independently. It bundles Node v13.14.0 + the
     Win7-only helper scripts. Do NOT mix the two packages.
 
+Canonical build command:
+  - Run from the project root:
+        bun run package:print-bridge
+  - This rebuilds the public download asset from this source folder and
+    adds Node v24.16.0 at packaging time. Do NOT store ZIP files or Node
+    MSI files in public/downloads or in this source folder.
+
 Approved bridge script:
   - print-bridge-v6.3.7-clean.js — the ONLY supported version.
     Older 6.3.6 and newer 6.3.8 have been removed permanently.

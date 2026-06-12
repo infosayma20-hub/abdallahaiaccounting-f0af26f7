@@ -10,14 +10,13 @@ How to build the ZIP for cashiers:
   3. Rename to:  print-bridge-win7.zip
 
 Node.js installer:
-  - The Node v13.14.0 MSI is NOT shipped inside the repo because of the
-    10 MB per-file commit limit. install-bridge.bat will auto-download
-    it from https://nodejs.org/dist/v13.14.0/node-v13.14.0-x64.msi on
-    first run.
-  - For fully-offline installs, manually drop
-        node-v13.14.0-x64.msi
-    next to install-bridge.bat BEFORE zipping. The installer will pick
-    it up automatically (no edits needed).
+  - The Node v13.14.0 MSI is NOT stored in the repo because of the 10 MB
+    per-file commit limit.
+  - Run from the project root:
+        bun run package:print-bridge
+    The build script downloads Node v13.14.0 into a temporary folder and
+    includes it in the Windows 7 download ZIP, without storing the MSI in
+    the source folder.
 
 Approved bridge script:
   - print-bridge-v6.3.7-clean.js — the ONLY supported version.

@@ -12,7 +12,7 @@
    C:\print-bridge
    ```
    يجب أن يحوي المجلد:
-   - `print-bridge-v6.3.4-generic.js`
+   - `print-bridge-v6.3.7-clean.js`
    - `device-config-addon.js`
    - `discover-printers-addon.js`
    - `install-bridge.bat`
@@ -43,7 +43,7 @@
 
 ## دعم Windows 7 / Server 2008 R2
 
-الحزمة تعمل **أوتوماتيكياً** على Windows 7 بدون أي تدخل يدوي وبدون أي تعديل على ملف البريدج (`print-bridge-v6.3.6-clean.js`).
+لأجهزة Windows 7 استخدم زر **تحميل لـ Windows 7** والحزمة المنفصلة الخاصة بها. ملف البريدج المعتمد في كل الحزم هو `print-bridge-v6.3.7-clean.js` فقط.
 
 عند تشغيل `install-bridge.bat` كمسؤول على Win7، يقوم المثبّت تلقائياً بـ:
 
@@ -66,7 +66,7 @@
 
 | الخطأ | السبب | الحل |
 |---|---|---|
-| `choco is not recognized` + `DownloadString ... underlying connection was closed` | Node 24/20 لا يعمل على Win7 → فُرض على المستخدم تنزيل Node قديم → ثم `sharp 0.33` حاول البناء من المصدر → node-gyp استدعى Chocolatey → فشل لأن TLS 1.0 | استخدم `install-bridge.bat` الجديد (يستعمل sharp 0.32.6 prebuilt + TLS 1.2 تلقائياً) |
+| `choco is not recognized` + `DownloadString ... underlying connection was closed` | Node 24/20 لا يعمل على Win7 → فُرض على المستخدم تنزيل Node قديم → ثم sharp حاول البناء من المصدر → node-gyp استدعى Chocolatey → فشل لأن TLS 1.0 | استخدم حزمة Windows 7 من الزر المخصص لها (تستعمل Node 13.14 و sharp متوافقاً مع Win7) |
 | `node is not recognized` بعد التثبيت | متغير PATH لم يُحدّث في نفس الجلسة | أغلق CMD وافتحه من جديد ثم شغّل `install-bridge.bat` |
 | `sharp.node not found` | فشل تنزيل prebuilt من GitHub | تأكد من اتصال الإنترنت ثم: `cd C:\print-bridge && npm rebuild sharp` |
 

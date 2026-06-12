@@ -9,10 +9,7 @@ const { Service } = require('node-windows');
 
 const BRIDGE_DIR = __dirname;
 const CANDIDATES = [
-  'print-bridge-v6.3.6-clean.js',
-  'print-bridge-v6.3.3.js',
-  'print-bridge-v6.3.2.js',
-  'print-bridge.js',
+  'print-bridge-v6.3.7-clean.js',
 ];
 
 let script = null;
@@ -23,7 +20,7 @@ for (const name of CANDIDATES) {
 
 const svc = new Service({
   name: 'AmwaliPrintBridge',
-  script: script || path.join(BRIDGE_DIR, 'print-bridge.js'),
+  script: script || path.join(BRIDGE_DIR, 'print-bridge-v6.3.7-clean.js'),
 });
 
 svc.on('uninstall', () => {

@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "package:print-bridge": "bash scripts/build-print-bridge-zips.sh",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

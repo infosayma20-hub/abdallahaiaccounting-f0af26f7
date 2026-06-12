@@ -116,9 +116,8 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
 import bridgeStdAsset from "@/assets/amwali-print-bridge.zip.asset.json";
 import bridgeWin7Asset from "@/assets/amwali-print-bridge-win7.zip.asset.json";
 
-// Served from Lovable Assets (CDN) — single bridge file (v6.3.7) per ZIP,
-// no duplicate Node MSIs. Standard ZIP = Win10/11 + node 24.
-// Win7 ZIP = Win7 + node 13 (offline-ready). Rebuilt 2026-06-12.
+// Single canonical download assets. Rebuild/update them from docs/* with:
+//   bun run package:print-bridge
 const PRINT_BRIDGE_DOWNLOAD_URL = bridgeStdAsset.url;
 const PRINT_BRIDGE_WIN7_DOWNLOAD_URL = bridgeWin7Asset.url;
 
@@ -849,7 +848,7 @@ export default function NewDeviceOnboardingPage() {
             <Button variant="outline" size="sm" onClick={() => { void recheckBridge(); }} disabled={bridgeChecking} className="h-7 px-2 gap-1 text-xs">
               <RefreshCw className={`h-3.5 w-3.5 ${bridgeChecking ? "animate-spin" : ""}`} /> فحص
             </Button>
-            <Button asChild size="sm" variant="secondary" className="h-7 px-2 gap-1 text-xs">
+            <Button asChild size="sm" className="h-7 px-2 gap-1 text-xs">
               <a href={PRINT_BRIDGE_DOWNLOAD_URL} download>
                 <Download className="h-3.5 w-3.5" /> تحديث برنامج الطباعة
               </a>
