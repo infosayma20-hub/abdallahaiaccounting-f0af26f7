@@ -29,16 +29,20 @@ export function augmentGroupsWithNone<G extends ModGroup>(groups: G[]): G[] {
   return groups.map((g) => {
     if (g.selection_type !== "single") return g;
     if (g.options.some((o) => o.id === NONE_OPTION_ID)) return g;
-    const hasRealDefault = g.options.some((o) => o.is_default);
     const noneOption: ModOption = {
       id: NONE_OPTION_ID,
       name: NONE_OPTION_NAME,
       extra_price: 0,
-      is_default: !hasRealDefault,
+      is_default: true,
       color: null,
       sort_order: -1,
     };
-    return { ...g, options: [noneOption, ...g.options.map((o) => ({ ...o, is_default: hasRealDefault ? o.is_default : false }))] };
+    // "بدون ملاحظة" is always the only default; any real option's is_default is cleared
+    // so opening the dialog never preselects a real modifier.
+    return {
+      ...g,
+      options: [noneOption, ...g.options.map((o) => ({ ...o, is_default: false }))],
+    };
   });
 }
 
