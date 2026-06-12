@@ -14219,6 +14219,7 @@ export type Database = {
           product_id: string
           quantity: number
           reference_id: string | null
+          reference_line_id: string | null
           reference_note: string | null
           reference_type: string | null
           unit_cost: number | null
@@ -14233,6 +14234,7 @@ export type Database = {
           product_id: string
           quantity: number
           reference_id?: string | null
+          reference_line_id?: string | null
           reference_note?: string | null
           reference_type?: string | null
           unit_cost?: number | null
@@ -14247,6 +14249,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           reference_id?: string | null
+          reference_line_id?: string | null
           reference_note?: string | null
           reference_type?: string | null
           unit_cost?: number | null
