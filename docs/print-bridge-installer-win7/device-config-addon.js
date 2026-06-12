@@ -2,13 +2,13 @@
  * AMWALI Print Bridge — Device Config Add-on
  * ─────────────────────────────────────────────
  * Drop-in module that adds GET/POST /device-config endpoints to the
- * existing print-bridge-v6.3.2.js. Stores config on disk in
+ * existing print-bridge-v6.3.7-clean.js. Stores config on disk in
  * c:\print-bridge\device.json so POS settings (branch / terminal /
  * bridge URL / label) survive any browser "Clear browsing data" wipe.
  *
  * ── Install ───────────────────────────────────
  * 1) Save this file as:  c:\print-bridge\device-config-addon.js
- * 2) Open print-bridge-v6.3.2.js and add ONE line, anywhere AFTER
+ * 2) Open print-bridge-v6.3.7-clean.js and add ONE line, anywhere AFTER
  *    `const app = express();` and BEFORE `app.listen(...)`:
  *
  *        const deviceCfg = require('./device-config-addon')(app);
@@ -28,7 +28,7 @@
  *
  * 4) Restart the bridge:
  *        cd c:\print-bridge
- *        node print-bridge-v6.3.2.js
+ *        node print-bridge-v6.3.7-clean.js
  *
  * You should see:
  *        [device-config] add-on loaded — file: c:\print-bridge\device.json

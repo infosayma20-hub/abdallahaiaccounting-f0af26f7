@@ -2,12 +2,12 @@
  * AMWALI Print Bridge — Network Printer Discovery Add-on
  * ──────────────────────────────────────────────────────
  * Adds POST /discover-network-printers to the existing
- * print-bridge-v6.3.2.js. Safely scans the local subnet for
+ * print-bridge-v6.3.7-clean.js. Safely scans the local subnet for
  * devices with TCP port 9100 open (typical thermal printers).
  *
  * ── Install ────────────────────────────────────────
  *   1) Save this file as c:\print-bridge\discover-printers-addon.js
- *   2) In print-bridge-v6.3.2.js, anywhere AFTER `const app = express();`
+ *   2) In print-bridge-v6.3.7-clean.js, anywhere AFTER `const app = express();`
  *      and BEFORE `app.listen(...)`, add ONE line:
  *
  *        require('./discover-printers-addon')(app);
