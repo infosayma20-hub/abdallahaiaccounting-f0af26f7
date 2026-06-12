@@ -4,10 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STD_SRC="$ROOT_DIR/docs/print-bridge-installer"
 WIN7_SRC="$ROOT_DIR/docs/print-bridge-installer-win7"
-OUT_DIR="$ROOT_DIR/public/downloads"
+TMP_DIR="$(mktemp -d)"
+OUT_DIR="$TMP_DIR/out"
 STD_ZIP="$OUT_DIR/amwali-print-bridge.zip"
 WIN7_ZIP="$OUT_DIR/amwali-print-bridge-win7.zip"
-TMP_DIR="$(mktemp -d)"
+STD_ASSET="$ROOT_DIR/src/assets/amwali-print-bridge.zip.asset.json"
+WIN7_ASSET="$ROOT_DIR/src/assets/amwali-print-bridge-win7.zip.asset.json"
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -63,3 +65,9 @@ fi
 
 echo "Built $STD_ZIP"
 echo "Built $WIN7_ZIP"
+
+lovable-assets create --file "$STD_ZIP" --filename "amwali-print-bridge.zip" > "$STD_ASSET"
+lovable-assets create --file "$WIN7_ZIP" --filename "amwali-print-bridge-win7.zip" > "$WIN7_ASSET"
+
+echo "Updated $STD_ASSET"
+echo "Updated $WIN7_ASSET"

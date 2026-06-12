@@ -113,10 +113,13 @@ const PRINTER_ROLES: { value: string; label: string; emoji: string }[] = [
   { value: "unified_kitchen",  label: "مطبخ موحّد",      emoji: "🧑‍🍳" },
 ];
 
-// Single canonical public download paths. Rebuild them from docs/* with:
+import bridgeStdAsset from "@/assets/amwali-print-bridge.zip.asset.json";
+import bridgeWin7Asset from "@/assets/amwali-print-bridge-win7.zip.asset.json";
+
+// Single canonical download assets. Rebuild/update them from docs/* with:
 //   bun run package:print-bridge
-const PRINT_BRIDGE_DOWNLOAD_URL = "/downloads/amwali-print-bridge.zip";
-const PRINT_BRIDGE_WIN7_DOWNLOAD_URL = "/downloads/amwali-print-bridge-win7.zip";
+const PRINT_BRIDGE_DOWNLOAD_URL = bridgeStdAsset.url;
+const PRINT_BRIDGE_WIN7_DOWNLOAD_URL = bridgeWin7Asset.url;
 
 // Map our pos_printers role → the bridge's printer key (in device.json)
 function roleToBridgeKey(role: string): BridgePrinterKey | null {
