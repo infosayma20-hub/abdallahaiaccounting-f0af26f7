@@ -202,8 +202,13 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
           />
           <Stat
             icon={BedDouble}
-            label="إجازات / مرضية"
-            value={`${safeNum(payslip.annual_leave_days_taken)} / ${safeNum(payslip.sick_leave_days)}`}
+            label="إجازات سنوية"
+            value={String(safeNum(payslip.annual_leave_days_taken))}
+          />
+          <Stat
+            icon={BedDouble}
+            label="إجازات مرضية"
+            value={String(safeNum(payslip.sick_leave_days))}
           />
         </section>
 
