@@ -3035,6 +3035,12 @@ const POSPage = () => {
     // Build product→station map from loaded products
     const productStationMap = new Map<string, string | null>();
     products.forEach(p => productStationMap.set(p.id, p.kitchen_station_id));
+    // Mute rules: skip stations where a product's category is muted
+    // for the current branch (vs all branches). Customer receipt unaffected.
+    const productCategoryMap = new Map<string, string | null>();
+    products.forEach((p: any) => productCategoryMap.set(p.id, p.pos_category_id || null));
+    const branchForMuteSK = (() => { try { return getDeviceBranchId() || null; } catch { return null; } })();
+    const isMutedSK = await loadMuteChecker(branchForMuteSK).catch(() => () => false);
 
     // Load station names
     const { data: stationsData } = await supabase
@@ -3051,6 +3057,9 @@ const POSPage = () => {
       const stationId = item.product_id ? productStationMap.get(item.product_id) : null;
       const itemData = { name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] };
       if (stationId && stationNames.has(stationId)) {
+        // Drop muted (category, station) pairs
+        const cat = item.product_id ? productCategoryMap.get(item.product_id) : null;
+        if (isMutedSK(cat, stationId)) return;
         if (!stationGroups[stationId]) {
           const info = stationNames.get(stationId)!;
           stationGroups[stationId] = { stationName: info.name, stationColor: info.color, items: [] };
