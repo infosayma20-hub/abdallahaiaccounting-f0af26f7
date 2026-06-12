@@ -250,6 +250,69 @@ export default function POSDeliveryPanel({
         style={inputStyle}
       />
 
+      {/* Wheels integration button */}
+      {wheelsEligible && wheelsStatus !== "sent" && (
+        <button
+          onClick={handleSendToWheels}
+          disabled={wheelsSending || !orderId || !customerAddress.trim()}
+          style={{
+            width: "100%",
+            height: "36px",
+            borderRadius: "10px",
+            border: "1.5px solid #10B981",
+            background: "rgba(16,185,129,0.15)",
+            color: "#86EFAC",
+            fontSize: "12px",
+            fontWeight: 600,
+            cursor: wheelsSending ? "wait" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            fontFamily: "Tajawal, sans-serif",
+            opacity: !orderId || !customerAddress.trim() ? 0.4 : 1,
+          }}
+        >
+          <Send className="h-4 w-4" />
+          {wheelsSending || wheelsStatus === "sending"
+            ? "⏳ جاري الإرسال إلى Wheels..."
+            : "🛵 إرسال إلى Wheels"}
+        </button>
+      )}
+
+      {wheelsStatus === "sent" && (
+        <div
+          style={{
+            background: "rgba(16,185,129,0.10)",
+            border: "1px solid rgba(16,185,129,0.35)",
+            borderRadius: "10px",
+            padding: "8px 12px",
+            fontSize: "12px",
+            color: "#86EFAC",
+            fontFamily: "Tajawal, sans-serif",
+            fontWeight: 600,
+          }}
+        >
+          ✅ تم إرسال الطلب إلى Wheels{wheelsPrice != null ? ` — سعر التوصيل: ${wheelsPrice} ₪` : ""}
+        </div>
+      )}
+
+      {wheelsStatus === "failed" && wheelsError && (
+        <div
+          style={{
+            background: "rgba(239,68,68,0.10)",
+            border: "1px solid rgba(239,68,68,0.35)",
+            borderRadius: "10px",
+            padding: "8px 12px",
+            fontSize: "11px",
+            color: "#FCA5A5",
+            fontFamily: "Tajawal, sans-serif",
+          }}
+        >
+          ❌ Wheels: {wheelsError}
+        </div>
+      )}
+
       {/* Zone + Area */}
       {/* Hidden — سيتم ربط المناطق وسعر التوصيل ببرنامج ويلز لاحقاً */}
       <div className="flex gap-1.5" style={{ display: "none" }}>
