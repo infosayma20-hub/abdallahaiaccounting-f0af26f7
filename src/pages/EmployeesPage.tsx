@@ -35,6 +35,7 @@ import EmployeeOpeningBalance from "@/components/hr/EmployeeOpeningBalance";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { multiWordMatchAny } from "@/lib/utils";
+import ManagerBranchesPicker from "@/components/employee/ManagerBranchesPicker";
 
 interface Branch {
   id: string;
