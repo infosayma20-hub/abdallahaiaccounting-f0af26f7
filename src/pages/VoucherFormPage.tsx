@@ -53,6 +53,7 @@ import {
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 import { calculateStatementBalanceFromTransactions, fetchContactStatementBalance } from "@/lib/contact-balance";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import { formatDbError } from "@/lib/db-error-toast";
 
 interface Contact {
   id: string;

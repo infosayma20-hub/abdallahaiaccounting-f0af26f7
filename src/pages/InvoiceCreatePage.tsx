@@ -47,6 +47,7 @@ import DraftStatusBadge, { type DraftStatus } from "@/components/invoice/DraftSt
 import DraftsHistoryDialog from "@/components/invoice/DraftsHistoryDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
 import { fetchManyContactStatementBalances, fetchContactStatementBalance } from "@/lib/contact-balance";
+import { formatDbError } from "@/lib/db-error-toast";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
