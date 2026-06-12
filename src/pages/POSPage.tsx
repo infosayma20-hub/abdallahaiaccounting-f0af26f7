@@ -5729,24 +5729,24 @@ const POSPage = () => {
                           {(() => {
                             const hasAddonGroups = !!(productModifierMap[item.product_id]?.length);
                             const lineHasMods = (item.modifiers?.length || 0) > 0;
-                            if (!hasAddonGroups || lineHasMods) return null;
+                            if (!hasAddonGroups) return null;
                             return (
                               <button
                                 type="button"
                                 className="h-7 px-2.5 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1"
                                 style={{
-                                  background: 'rgba(59,130,246,0.18)',
-                                  color: '#93c5fd',
-                                  border: '1px dashed rgba(59,130,246,0.5)',
+                                  background: lineHasMods ? 'rgba(16,185,129,0.18)' : 'rgba(59,130,246,0.18)',
+                                  color: lineHasMods ? '#86efac' : '#93c5fd',
+                                  border: `1px dashed ${lineHasMods ? 'rgba(16,185,129,0.5)' : 'rgba(59,130,246,0.5)'}`,
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setEditAddonCartIndex(index);
                                 }}
-                                title="إضافة ملاحظات وإضافات للصنف"
+                                title={lineHasMods ? "تعديل الإضافات والملاحظة" : "إضافة ملاحظات وإضافات للصنف"}
                               >
                                 <Plus className="h-3 w-3" />
-                                إضافات
+                                {lineHasMods ? "تعديل" : "إضافات"}
                               </button>
                             );
                           })()}
