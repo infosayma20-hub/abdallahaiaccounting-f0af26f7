@@ -58,7 +58,8 @@ import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
-import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge } from "@/lib/device-config";
+import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge, getDeviceBranchId } from "@/lib/device-config";
+import { loadMuteChecker } from "@/hooks/usePrintMuteRules";
 import { getCanSell } from "@/lib/pos-device-auth";
 import { usePOSShiftWatcher } from "@/hooks/usePOSShiftWatcher";
 import { ShiftClosedElsewhereDialog } from "@/components/pos/ShiftClosedElsewhereDialog";
@@ -3034,6 +3035,12 @@ const POSPage = () => {
     // Build product→station map from loaded products
     const productStationMap = new Map<string, string | null>();
     products.forEach(p => productStationMap.set(p.id, p.kitchen_station_id));
+    // Mute rules: skip stations where a product's category is muted
+    // for the current branch (vs all branches). Customer receipt unaffected.
+    const productCategoryMap = new Map<string, string | null>();
+    products.forEach((p: any) => productCategoryMap.set(p.id, p.pos_category_id || null));
+    const branchForMuteSK = (() => { try { return getDeviceBranchId() || null; } catch { return null; } })();
+    const isMutedSK = await loadMuteChecker(branchForMuteSK).catch(() => () => false);
 
     // Load station names
     const { data: stationsData } = await supabase
@@ -3050,6 +3057,9 @@ const POSPage = () => {
       const stationId = item.product_id ? productStationMap.get(item.product_id) : null;
       const itemData = { name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] };
       if (stationId && stationNames.has(stationId)) {
+        // Drop muted (category, station) pairs
+        const cat = item.product_id ? productCategoryMap.get(item.product_id) : null;
+        if (isMutedSK(cat, stationId)) return;
         if (!stationGroups[stationId]) {
           const info = stationNames.get(stationId)!;
           stationGroups[stationId] = { stationName: info.name, stationColor: info.color, items: [] };
@@ -3735,10 +3745,17 @@ const POSPage = () => {
           const productIds = cart.filter(i => i.product_id).map(i => i.product_id);
           const { data: productsWithStations } = await supabase
             .from("products")
-            .select("id, kitchen_station_id")
+            .select("id, kitchen_station_id, pos_category_id")
             .in("id", productIds);
 
           const stationMap = new Map((productsWithStations || []).map((p: any) => [p.id, p.kitchen_station_id]));
+          const categoryMap = new Map((productsWithStations || []).map((p: any) => [p.id, p.pos_category_id || null]));
+          // Mute rules: skip sending an item to a station when that
+          // (category, station, branch) is muted in pos_category_print_rules.
+          // Customer receipt is unaffected — this filter only narrows the
+          // kitchen ticket targets.
+          const branchForMute = (() => { try { return getDeviceBranchId() || null; } catch { return null; } })();
+          const isMuted = await loadMuteChecker(branchForMute).catch(() => () => false);
           // Detect if ANY product in the cart has an explicit station assignment.
           // If none do, we BROADCAST the full order to all stations (handled
           // downstream when kitchenJobs is empty) instead of funneling everything
@@ -3753,9 +3770,12 @@ const POSPage = () => {
           if (hasAnyAssignment) {
             cart.forEach(item => {
               const assigned = stationMap.get(item.product_id);
-              const targets: string[] = assigned
+              let targets: string[] = assigned
                 ? [assigned as string]
                 : (stationsData as any[]).map((s: any) => s.id); // broadcast unassigned
+              // Apply mute filter: drop stations where this product's category is muted.
+              const cat = categoryMap.get(item.product_id);
+              targets = targets.filter((sid) => !isMuted(cat, sid));
               for (const stationId of targets) {
                 if (!stationItems[stationId]) stationItems[stationId] = [];
                 stationItems[stationId].push({
