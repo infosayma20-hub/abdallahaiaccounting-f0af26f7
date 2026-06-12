@@ -36,6 +36,7 @@ import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeek
 import { useIsMobile } from "@/hooks/use-mobile";
 import { multiWordMatchAny } from "@/lib/utils";
 import ManagerBranchesPicker from "@/components/employee/ManagerBranchesPicker";
+import ManagerTeamPicker from "@/components/employee/ManagerTeamPicker";
 
 interface Branch {
   id: string;
