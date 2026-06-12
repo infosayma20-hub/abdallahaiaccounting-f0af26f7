@@ -1679,7 +1679,7 @@ const InvoiceCreatePage = () => {
       console.error("Invoice save error:", err);
       const message = isDuplicateInvoiceNumberError(err)
         ? "تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."
-        : err.message;
+        : formatDbError(err, "تعذّر حفظ الفاتورة");
       toast({ title: "خطأ في حفظ الفاتورة", description: message, variant: "destructive" });
     } finally {
       setCreating(false);

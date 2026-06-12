@@ -2224,7 +2224,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
     } catch (err: any) {
-      toast.error(err.message || "حدث خطأ");
+      toast.error(formatDbError(err, "حدث خطأ أثناء الحفظ"));
     } finally {
       setSaving(false);
     }
