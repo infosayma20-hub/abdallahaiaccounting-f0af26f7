@@ -18,6 +18,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { formatDbError } from "@/lib/db-error-toast";
 import {
   isVouchersRpcEnabled,
   callCreateJournalMultiPartyRpc,
@@ -500,7 +501,7 @@ export function useSaveJournalVoucher() {
       setSaving(false);
       return {
         success: false,
-        error: err?.message || "فشل حفظ السند",
+        error: formatDbError(err, "فشل حفظ السند"),
         rolledBack: !!createdVoucherId,
       };
     }
@@ -697,7 +698,7 @@ export function useSaveJournalVoucher() {
       return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
     } catch (err: any) {
       setSaving(false);
-      return { success: false, error: err?.message || "فشل تعديل السند" };
+      return { success: false, error: formatDbError(err, "فشل تعديل السند") };
     }
   };
 
@@ -736,7 +737,7 @@ export function useSaveJournalVoucher() {
       return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
     } catch (err: any) {
       setSaving(false);
-      return { success: false, error: err?.message || "فشل حذف السند" };
+      return { success: false, error: formatDbError(err, "فشل حذف السند") };
     }
   };
 

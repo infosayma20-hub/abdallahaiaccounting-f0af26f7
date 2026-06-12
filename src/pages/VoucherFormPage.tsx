@@ -53,6 +53,7 @@ import {
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 import { calculateStatementBalanceFromTransactions, fetchContactStatementBalance } from "@/lib/contact-balance";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import { formatDbError } from "@/lib/db-error-toast";
 
 interface Contact {
   id: string;
@@ -2224,7 +2225,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
     } catch (err: any) {
-      toast.error(err.message || "حدث خطأ");
+      toast.error(formatDbError(err, "حدث خطأ أثناء الحفظ"));
     } finally {
       setSaving(false);
     }
