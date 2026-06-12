@@ -1004,6 +1004,8 @@ const POSPage = () => {
     const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
     const [openAddonProductId, setOpenAddonProductId] = useState<string | null>(null);
    const [activeQuickMod, setActiveQuickMod] = useState<string | null>(null);
+   // Open modifier panel for an existing cart line (cashier forgot to add addons)
+   const [editAddonCartIndex, setEditAddonCartIndex] = useState<number | null>(null);
 
    const userId = user?.id;
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
