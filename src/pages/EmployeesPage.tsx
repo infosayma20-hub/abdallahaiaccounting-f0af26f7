@@ -1378,6 +1378,15 @@ const EmployeesPage = () => {
                 />
               </div>
             )}
+            {(form as any).is_manager && editingId && dataOwnerId && (
+              <div className="col-span-2">
+                <ManagerTeamPicker
+                  managerEmployeeId={editingId}
+                  companyId={dataOwnerId}
+                  branches={branchesList as any}
+                />
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
