@@ -108,7 +108,29 @@ export function useManagerBranches() {
         .eq("user_id", user!.id);
       if (error) throw error;
       const assignments = (data || []) as { branch_id: string; company_id: string }[];
-      if (!assignments.length) return [];
+      if (!assignments.length) {
+        // 3) Fallback: employee with can_manage_schedule / is_manager but no
+        // explicit branch_manager_assignments row — let them schedule their
+        // own branch (e.g. floor managers added via the employee record).
+        const { data: meRow } = await supabase
+          .from("employees")
+          .select("id, branch_id, company_id, can_manage_schedule, is_manager, full_name")
+          .eq("auth_user_id", user!.id)
+          .eq("user_id", dataOwnerId!)
+          .maybeSingle();
+        const me = meRow as any;
+        if (!me?.branch_id || !(me.can_manage_schedule || me.is_manager)) return [];
+        const { data: br } = await supabase
+          .from("branches")
+          .select("id, name")
+          .eq("id", me.branch_id)
+          .maybeSingle();
+        return [{
+          branch_id: me.branch_id,
+          company_id: me.company_id || dataOwnerId!,
+          branch_name: (br as any)?.name || "—",
+        }];
+      }
       const { data: br, error: brErr } = await supabase
         .from("branches")
         .select("id, name")
@@ -141,6 +163,7 @@ export function useManagedBranchEmployees(branchId?: string | null) {
       const isAdmin = roleList.includes("admin") || roleList.includes("hr_manager") || roleList.includes("super_admin");
 
       let allowedBranchIds: string[] = [];
+      let scheduleFallback = false;
       if (isAdmin && branchId) {
         allowedBranchIds = [branchId];
       } else if (isAdmin && !branchId) {
@@ -153,13 +176,29 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         if (assignmentError) throw assignmentError;
         allowedBranchIds = ((assignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
         if (branchId) allowedBranchIds = allowedBranchIds.filter((id) => id === branchId);
+        if (!allowedBranchIds.length) {
+          // Fallback: employee-flag-based schedule manager (no explicit assignment)
+          const { data: meBranch } = await supabase
+            .from("employees")
+            .select("branch_id, can_manage_schedule, is_manager")
+            .eq("auth_user_id", user!.id)
+            .eq("user_id", dataOwnerId!)
+            .maybeSingle();
+          const m = meBranch as any;
+          if (m?.branch_id && (m.can_manage_schedule || m.is_manager)) {
+            if (!branchId || branchId === m.branch_id) {
+              allowedBranchIds = [m.branch_id];
+              scheduleFallback = true;
+            }
+          }
+        }
       }
 
       if (!allowedBranchIds.length) return [];
       // Non-admin managers: restrict to their direct reports (employees.manager_employee_id).
       // This lets multiple managers split a branch across different shifts.
       let managerEmpId: string | null = null;
-      if (!isAdmin) {
+      if (!isAdmin && !scheduleFallback) {
         const { data: meRow } = await supabase
           .from("employees")
           .select("id")
