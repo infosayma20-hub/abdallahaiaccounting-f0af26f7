@@ -41,19 +41,50 @@ interface Props {
   }) => void;
   onClose: () => void;
   flipUp?: boolean;
+  /** Pre-selected modifiers (when editing an existing cart line) */
+  initialModifiers?: SelectedModifier[];
+  /** Pre-filled note (when editing) */
+  initialNote?: string;
+  /** Pre-filled quantity (when editing) */
+  initialQuantity?: number;
+  /** Hide the quantity stepper (useful when editing a single cart line) */
+  hideQuantity?: boolean;
+  /** Custom confirm button label */
+  confirmLabel?: string;
 }
 
-export default function InlineAddonPanel({ product, groups: rawGroups, onConfirm, onClose }: Props) {
+export default function InlineAddonPanel({
+  product,
+  groups: rawGroups,
+  onConfirm,
+  onClose,
+  initialModifiers,
+  initialNote,
+  initialQuantity,
+  hideQuantity,
+  confirmLabel,
+}: Props) {
   const groups = useMemo(() => augmentGroupsWithNone(rawGroups), [rawGroups]);
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
+    // If editing, hydrate from initialModifiers; otherwise use is_default flags.
+    if (initialModifiers && initialModifiers.length > 0) {
+      groups.forEach((g) => {
+        const picked = initialModifiers
+          .filter((m) => m.group_id === g.id)
+          .map((m) => m.option_id)
+          .filter((id) => g.options.some((o) => o.id === id));
+        defaults[g.id] = picked.length > 0 ? picked : g.options.filter((o) => o.is_default).map((o) => o.id);
+      });
+      return defaults;
+    }
     groups.forEach((g) => {
       defaults[g.id] = g.options.filter((o) => o.is_default).map((o) => o.id);
     });
     return defaults;
   });
-  const [note, setNote] = useState("");
-  const [quantity, setQuantity] = useState(1);
+  const [note, setNote] = useState(initialNote || "");
+  const [quantity, setQuantity] = useState(initialQuantity ?? 1);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -320,7 +351,7 @@ export default function InlineAddonPanel({ product, groups: rawGroups, onConfirm
             disabled={!isValid}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground bg-primary text-primary-foreground hover:opacity-90"
           >
-            <span>إضافة للطلب</span>
+            <span>{confirmLabel || "إضافة للطلب"}</span>
             <span className="rounded-md bg-primary-foreground/15 px-2 py-0.5 font-mono text-xs">
               ₪{totalPrice.toFixed(2)}
             </span>
