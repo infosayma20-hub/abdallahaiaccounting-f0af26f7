@@ -37,8 +37,8 @@ require_no_duplicate_node() {
   local label="$2"
   local count
   count="$(find "$src" -maxdepth 1 -type f -name 'node-v*-x64.msi' | wc -l | tr -d ' ')"
-  if (( count > 1 )); then
-    echo "ERROR: $label contains more than one Node installer" >&2
+  if (( count > 0 )); then
+    echo "ERROR: $label must not store Node installers in the repo. They are added only in a temporary packaging folder." >&2
     find "$src" -maxdepth 1 -type f -name 'node-v*-x64.msi' -print >&2
     exit 1
   fi
@@ -72,6 +72,11 @@ fi
 
 echo "Built $STD_ZIP"
 echo "Built $WIN7_ZIP"
+
+echo "Standard ZIP bridge/node files:"
+unzip -l "$STD_ZIP" | awk '{print $4}' | grep -E '^(print-bridge-v|node-v)' || true
+echo "Windows 7 ZIP bridge/node files:"
+unzip -l "$WIN7_ZIP" | awk '{print $4}' | grep -E '^(print-bridge-v|node-v)' || true
 
 lovable-assets create --file "$STD_ZIP" --filename "amwali-print-bridge.zip" > "$STD_ASSET"
 lovable-assets create --file "$WIN7_ZIP" --filename "amwali-print-bridge-win7.zip" > "$WIN7_ASSET"
