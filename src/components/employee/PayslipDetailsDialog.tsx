@@ -108,7 +108,8 @@ export default function PayslipDetailsDialog({ payslip, open, onOpenChange }: Pr
   const vacationWork = safeNum(payslip.vacation_work_allowance);
   const settlement = safeNum(payslip.settlement_amount);
   const nextMonthAdv = safeNum(payslip.next_month_salary_advance);
-  const additions = safeNum(payslip.total_allowances) + safeNum(payslip.total_overtime);
+  // Overtime is intentionally excluded from what the employee sees.
+  const additions = safeNum(payslip.total_allowances);
   const deductions = safeNum(payslip.total_deductions);
   const carryOver = safeNum(payslip.carry_over_balance);
   const surplus = safeNum(payslip.surplus_amount);
