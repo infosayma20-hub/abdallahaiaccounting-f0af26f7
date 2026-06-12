@@ -195,12 +195,10 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
         </tbody>
       </table>
 
-      <hr style={hrBold} />
-
-      {/* ═══ 4. ITEMS TABLE — name slightly smaller + wraps to avoid overlapping qty/price ═══ */}
-      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
+      {/* ═══ 4. ITEMS TABLE — no rule above column headers (per request) ═══ */}
+      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', marginTop: '6px' }}>
         <thead>
-          <tr style={{ borderBottom: '1px solid #000' }}>
+          <tr>
             <th style={{ padding: '4px 3px', fontSize: '17px', fontWeight: 800, textAlign: 'right', width: '46%' }}>الصنف</th>
             <th style={{ padding: '4px 3px', fontSize: '17px', fontWeight: 800, textAlign: 'center', width: '12%' }}>الكمية</th>
             <th style={{ padding: '4px 3px', fontSize: '17px', fontWeight: 800, textAlign: 'center', width: '20%' }}>السعر</th>
