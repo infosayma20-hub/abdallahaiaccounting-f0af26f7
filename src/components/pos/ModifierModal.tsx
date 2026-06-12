@@ -1,26 +1,6 @@
 import { useState, useMemo } from "react";
 import { X, Minus, Plus } from "lucide-react";
 
-const NONE_OPTION_ID = "__none__";
-const NONE_OPTION_NAME = "بدون ملاحظة";
-
-function augmentGroupsWithNone(groups: ModifierGroup[]): ModifierGroup[] {
-  return groups.map((g) => {
-    if (g.selection_type !== "single") return g;
-    if (g.options.some((o) => o.id === NONE_OPTION_ID)) return g;
-    const hasRealDefault = g.options.some((o) => o.is_default);
-    const noneOption: ModifierOption = {
-      id: NONE_OPTION_ID,
-      name: NONE_OPTION_NAME,
-      extra_price: 0,
-      is_default: !hasRealDefault,
-      color: null,
-      sort_order: -1,
-    };
-    return { ...g, options: [noneOption, ...g.options] };
-  });
-}
-
 interface ModifierOption {
   id: string;
   name: string;
