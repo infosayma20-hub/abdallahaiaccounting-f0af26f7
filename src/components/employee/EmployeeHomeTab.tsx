@@ -4,12 +4,26 @@ import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
-  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange
+  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
 import { getOpenAttendanceSession } from "@/lib/attendance-session";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useHasMultipleWorkspaces } from "@/hooks/useHasMultipleWorkspaces";
+import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type AttendanceDay = {
   id: string;
@@ -55,6 +69,23 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const hasMgmt = !!(canViewTeam || canManageSchedule || canManageAttendance);
   const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { hasMultiple: hasMultipleWorkspaces } = useHasMultipleWorkspaces();
+  const [switchOpen, setSwitchOpen] = useState(false);
+
+  const goToWorkspaceChooser = () => {
+    try {
+      if (user?.id) {
+        sessionStorage.removeItem(`workspace-choice:${user.id}`);
+        clearRoleRedirectCache(user.id);
+      }
+    } catch {
+      // session storage may be unavailable in restricted browsers
+    }
+    window.dispatchEvent(new Event("workspace-choice-changed"));
+    navigate("/choose-workspace", { replace: true });
+  };
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -213,6 +244,16 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         className="rounded-2xl p-5 relative overflow-hidden"
         style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
       >
+        {hasMultipleWorkspaces && (
+          <button
+            type="button"
+            aria-label="الرجوع إلى اختيار مساحة العمل"
+            onClick={() => setSwitchOpen(true)}
+            className="absolute top-2 right-2 z-20 h-9 w-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur border border-white/20 flex items-center justify-center text-primary-foreground transition-colors"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        )}
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-sm text-primary-foreground/60">مرحباً</p>
@@ -242,6 +283,21 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
         <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/5" />
       </div>
+
+      <AlertDialog open={switchOpen} onOpenChange={setSwitchOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">الرجوع إلى اختيار مساحة العمل</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              هل تريد الرجوع إلى صفحة اختيار مساحة العمل لتبديل التطبيق؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse sm:flex-row-reverse gap-2">
+            <AlertDialogAction onClick={goToWorkspaceChooser}>نعم، رجوع</AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Manager Section */}
       {hasMgmt && (
