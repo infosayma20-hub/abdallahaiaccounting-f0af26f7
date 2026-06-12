@@ -385,9 +385,10 @@ export default function PortalAttendanceTab({ theme }: Props) {
         </div>
         {isExpanded && (
           <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${t.border}` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 10, marginBottom: 10 }}>
               <MiniStat label="أيام" value={emp.total_days} color={t.text} t={t} />
               <MiniStat label="ساعات" value={emp.total_hours} color={t.text} t={t} />
+              <MiniStat label="إضافي" value={emp.total_overtime || 0} color={t.amber} t={t} />
               <MiniStat label="استراحة (د)" value={emp.total_break_minutes || 0} color={t.text} t={t} />
             </div>
             {emp.breaks && emp.breaks.length > 0 && (
