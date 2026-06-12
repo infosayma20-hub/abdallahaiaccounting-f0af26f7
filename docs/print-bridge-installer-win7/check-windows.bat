@@ -39,7 +39,7 @@ echo.
 echo [4] Bridge folder:
 if exist "C:\print-bridge" (
   echo     [OK] C:\print-bridge exists
-  if exist "C:\print-bridge\print-bridge-v6.3.6-clean.js" echo     [OK] bridge script present
+  if exist "C:\print-bridge\print-bridge-v6.3.7-clean.js" echo     [OK] bridge script present
   if exist "C:\print-bridge\node_modules\sharp" (
     echo     [OK] node_modules\sharp present
     dir /b "C:\print-bridge\node_modules\sharp\build\Release\*.node" 2>nul
