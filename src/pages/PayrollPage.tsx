@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, DollarSign, TrendingDown, Wallet, Users, Loader2, Eye, CheckCircle2, ClipboardEdit, Play, Zap, Layers } from "lucide-react";
+import { Download, DollarSign, TrendingDown, Wallet, Users, Loader2, Eye, CheckCircle2, ClipboardEdit, Play, Zap, Layers, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import type { PayrollEmployeeData, PayrollMonthInputs, PayrollPolicy as EnginePa
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import PayrollEmployeeDrawer from "@/pages/hr/components/PayrollEmployeeDrawer";
+import PayrollImportDialog from "@/components/hr/PayrollImportDialog";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const months = [
@@ -44,6 +45,7 @@ const PayrollPage = () => {
   const [drawerEmployeeId, setDrawerEmployeeId] = useState<string | null>(null);
   const [drawerRecord, setDrawerRecord] = useState<any | null>(null);
   const [drawerEmpName, setDrawerEmpName] = useState<string>("");
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: employees, isLoading: loadingEmp } = useQuery({
     queryKey: ["payroll-employees"],
@@ -652,6 +654,9 @@ const PayrollPage = () => {
           )}
           <Button variant="outline" size="sm" onClick={exportExcel} disabled={!payrollRecords?.length}>
             <Download className="h-4 w-4 ml-1" /> Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10">
+            <FileSpreadsheet className="h-4 w-4 ml-1" /> استيراد كشف Excel
           </Button>
         </div>
       </div>
