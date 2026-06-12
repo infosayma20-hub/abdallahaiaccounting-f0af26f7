@@ -196,6 +196,9 @@ export default function InvoiceHistoryDrawer({
   useEffect(() => {
     if (open) {
       setTimeout(() => searchInputRef.current?.focus(), 150);
+      // Re-sync server clock each time the drawer opens so grace-window
+      // calculations stay correct even if the device clock is wrong.
+      void initServerClock();
     }
   }, [open]);
 
