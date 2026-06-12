@@ -46,6 +46,7 @@ import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { initServerClock } from "@/lib/pos/server-clock";
 import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, STATION_TO_PRINTER, type KitchenJob } from "@/lib/image-print-service";
 import { printShiftSummaryImage } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
@@ -701,6 +702,12 @@ const POSPage = () => {
   // Cashier policy windows (loaded from company_settings, see fetch below).
   const [cashierCancelWindowMin, setCashierCancelWindowMin] = useState(30);
   const [cashierAmountVisibleMin, setCashierAmountVisibleMin] = useState(60);
+  // Measure clock skew between this device and the backend once at mount so
+  // grace-window logic (cancel/edit/detail visibility) is correct even when
+  // the POS PC's Windows clock is wrong.
+  useEffect(() => {
+    void initServerClock();
+  }, []);
   // Replacement-invoice flow: remember the last invoice the cashier just
   // cancelled in THIS session so we can offer a "هذه فاتورة معدّلة" toggle on
   // the next sale. Auto-suggested ON for the first sale after a cancel; the
