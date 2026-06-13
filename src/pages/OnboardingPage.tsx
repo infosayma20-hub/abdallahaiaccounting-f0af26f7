@@ -68,6 +68,56 @@ const OnboardingPage = () => {
   const [referral, setReferral] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    const restoreOrExitCompletedOnboarding = async () => {
+      try {
+        const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+        const ownerId = (ownerIdData as string | null) || user.id;
+        const { data: company } = await supabase
+          .from("companies")
+          .select("id, name")
+          .eq("owner_id", ownerId)
+          .maybeSingle();
+
+        if (cancelled || !company?.id) return;
+        const { data: profile } = await supabase
+          .from("company_profiles")
+          .select("onboarding_completed, onboarding_step, business_type, industry, industry_ar, city, has_employees, employees_count, annual_revenue, primary_currency, accounting_experience, referral_source, business_goals")
+          .eq("company_id", company.id)
+          .maybeSingle();
+
+        if (cancelled) return;
+        if (profile?.onboarding_completed) {
+          clearOnboardingStatusCache(user.id);
+          navigate("/apps", { replace: true });
+          return;
+        }
+
+        if (company.name) setCompanyName(company.name);
+        if (profile?.business_type) setSelectedTypes(String(profile.business_type).split(",").filter(Boolean));
+        setIndustry(String(profile?.industry_ar || profile?.industry || ""));
+        setCity(String(profile?.city || ""));
+        setHasEmployees(typeof profile?.has_employees === "boolean" ? profile.has_employees : null);
+        setEmployeeCount(String(profile?.employees_count || ""));
+        setRevenue(String(profile?.annual_revenue || ""));
+        if (profile?.primary_currency) setCurrency(String(profile.primary_currency));
+        setAccountingLevel(String(profile?.accounting_experience || ""));
+        setReferral(String(profile?.referral_source || ""));
+        setGoals(Array.isArray(profile?.business_goals) ? (profile.business_goals as string[]) : []);
+        const savedStep = Number(profile?.onboarding_step || 1);
+        if (savedStep >= 1 && savedStep <= TOTAL_STEPS) setStep(savedStep);
+      } catch (err) {
+        console.warn("[onboarding] restore failed:", err);
+      }
+    };
+
+    restoreOrExitCompletedOnboarding();
+    return () => { cancelled = true; };
+  }, [user?.id, navigate]);
+
   const saveProgress = async (stepData: any, stepNum: number) => {
     if (!user) return;
     try {
