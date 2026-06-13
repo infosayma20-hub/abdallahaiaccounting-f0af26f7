@@ -108,8 +108,9 @@ export const useOnboarding = () => {
     [userId]
   );
 
-  const shouldShowWelcome = !loading && !dismissed && !state.welcome_modal_shown && !state.dont_show_again;
-  const shouldShowTour = !loading && state.welcome_modal_shown && !state.full_tour_completed && !state.full_tour_skipped && !state.dont_show_again;
+  // الجولة التعريفية معطّلة كلياً بناءً على طلب المستخدم
+  const shouldShowWelcome = false;
+  const shouldShowTour = false;
 
   return { state, loading, update, shouldShowWelcome, shouldShowTour, businessType };
 };
