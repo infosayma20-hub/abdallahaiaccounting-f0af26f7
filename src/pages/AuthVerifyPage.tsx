@@ -35,7 +35,7 @@ const AuthVerifyPage = () => {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = code.replace(/\D/g, "");
-    if (token.length !== 6) {
+    if (token.length < 6 || token.length > 8) {
       toast({ title: "رمز غير صالح", description: "الرجاء إدخال الرمز كاملاً (6 أرقام)", variant: "destructive" });
       return;
     }
@@ -127,10 +127,10 @@ const AuthVerifyPage = () => {
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="[0-9]*"
-            maxLength={6}
+            maxLength={8}
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="000000"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            placeholder="00000000"
             className="w-full h-16 rounded-xl text-center"
             style={{
               background: "#F7F8FA",
