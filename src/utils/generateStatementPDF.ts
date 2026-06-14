@@ -61,6 +61,7 @@ export interface StatementPDFViewOptions {
   showContactInfo?: boolean;
   showSignature?: boolean;
   showAging?: boolean;
+  monochrome?: boolean;
 }
 
 const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
