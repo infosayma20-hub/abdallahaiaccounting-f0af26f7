@@ -426,8 +426,8 @@ export default function EmployeeFormsManagementPage() {
   const approvedAmount = financialFiltered.filter(f => f.status === "approved").reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
-      <div className="max-w-7xl mx-auto space-y-4">
+    <div className="min-h-screen bg-background p-3 md:p-5 w-full max-w-none hr-themed" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
+      <div className="w-full space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BackButton />
