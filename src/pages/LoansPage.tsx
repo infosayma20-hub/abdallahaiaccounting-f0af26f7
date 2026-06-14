@@ -38,6 +38,61 @@ export default function LoansPage() {
   const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingLoan, setEditingLoan] = useState<any | null>(null);
+  const [payingLoanId, setPayingLoanId] = useState<string | null>(null);
+
+  // Quick action: mark the next pending installment as paid
+  const handleMarkNextPaid = async (loan: any) => {
+    const installments = (loan.loan_installments || []).slice().sort(
+      (a: any, b: any) => a.month_number - b.month_number
+    );
+    const nextPending = installments.find((i: any) => i.status === "pending");
+    if (!nextPending) {
+      toast.info("لا يوجد قسط معلق لهذا القرض");
+      return;
+    }
+    const confirmMsg =
+      `تأشير القسط رقم ${nextPending.month_number} بقيمة ${fmtCurrency(Number(nextPending.installment_amount))} كمدفوع؟\n` +
+      `(${loan.employees?.full_name || ""})`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setPayingLoanId(loan.id);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const { error: instErr } = await supabase
+        .from("loan_installments")
+        .update({ status: "paid", paid_date: today })
+        .eq("id", nextPending.id);
+      if (instErr) throw instErr;
+
+      const newPaidMonths = Number(loan.paid_months || 0) + 1;
+      const newRemaining = Math.max(
+        0,
+        Number(loan.remaining_amount || 0) - Number(nextPending.installment_amount)
+      );
+      const isCompleted = newPaidMonths >= Number(loan.total_months || 0) || newRemaining === 0;
+
+      const { error: loanErr } = await supabase
+        .from("employee_loans")
+        .update({
+          paid_months: newPaidMonths,
+          remaining_amount: newRemaining,
+          status: isCompleted ? "completed" : "active",
+        })
+        .eq("id", loan.id);
+      if (loanErr) throw loanErr;
+
+      toast.success(
+        `تم تأشير قسط ${nextPending.month_number} كمدفوع` +
+        (isCompleted ? " — اكتمل سداد القرض ✓" : "")
+      );
+      queryClient.invalidateQueries({ queryKey: ["employee-loans"] });
+    } catch (err: any) {
+      console.error("Mark paid error:", err);
+      toast.error(err.message || "تعذّر تأشير القسط");
+    } finally {
+      setPayingLoanId(null);
+    }
+  };
 
   const { data: loans = [], isLoading } = useQuery({
     queryKey: ["employee-loans", user?.id],
