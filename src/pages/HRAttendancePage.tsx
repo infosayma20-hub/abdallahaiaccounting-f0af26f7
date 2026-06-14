@@ -954,7 +954,7 @@ export default function HRAttendancePage() {
       new_values: { ...editRecordForm }, changed_by: user!.id, reason: "تعديل يدوي من HR",
     });
     toast({ title: "تم التحديث" });
-    setEditRecord(null); fetchData();
+    setEditRecord(null); fetchData(); fetchMissingPunches();
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
