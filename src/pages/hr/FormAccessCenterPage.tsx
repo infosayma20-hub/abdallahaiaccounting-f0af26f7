@@ -24,6 +24,7 @@ const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
   accountant_senior: "محاسب",
   cashier: "كاشير",
+  call_center: "كول سنتر",
   supervisor: "مشرف",
   accountant_sales: "مندوب مبيعات",
   accountant_purchases: "محاسب مشتريات",
