@@ -61,6 +61,7 @@ export interface StatementPDFViewOptions {
   showContactInfo?: boolean;
   showSignature?: boolean;
   showAging?: boolean;
+  monochrome?: boolean;
 }
 
 const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
@@ -71,18 +72,47 @@ const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
   showContactInfo: true,
   showSignature: true,
   showAging: true,
+  monochrome: false,
 };
 
 // ─── Colors ───
-const navy: [number, number, number] = [13, 27, 46];       // #0D1B2E
-const navyLight: [number, number, number] = [27, 58, 92];  // #1B3A5C
-const lightGray: [number, number, number] = [248, 250, 252]; // #F8FAFC
-const borderColor: [number, number, number] = [226, 232, 240]; // #E2E8F0
+const ORIGINAL = {
+  navy: [13, 27, 46] as [number, number, number],
+  navyLight: [27, 58, 92] as [number, number, number],
+  borderColor: [226, 232, 240] as [number, number, number],
+  greenText: [22, 163, 74] as [number, number, number],
+  redText: [220, 38, 38] as [number, number, number],
+  warningBg: [255, 251, 235] as [number, number, number],
+  warningBorder: [234, 179, 8] as [number, number, number],
+};
+let navy = ORIGINAL.navy;
+let navyLight = ORIGINAL.navyLight;
+const lightGray: [number, number, number] = [248, 250, 252];
+let borderColor = ORIGINAL.borderColor;
 const darkText: [number, number, number] = [30, 30, 30];
-const greenText: [number, number, number] = [22, 163, 74];  // #16A34A
-const redText: [number, number, number] = [220, 38, 38];    // #DC2626
-const warningBg: [number, number, number] = [255, 251, 235];
-const warningBorder: [number, number, number] = [234, 179, 8];
+let greenText = ORIGINAL.greenText;
+let redText = ORIGINAL.redText;
+let warningBg = ORIGINAL.warningBg;
+let warningBorder = ORIGINAL.warningBorder;
+
+const applyMonochrome = () => {
+  navy = [0, 0, 0];
+  navyLight = [60, 60, 60];
+  borderColor = [180, 180, 180];
+  greenText = [30, 30, 30];
+  redText = [30, 30, 30];
+  warningBg = [245, 245, 245];
+  warningBorder = [160, 160, 160];
+};
+const resetColors = () => {
+  navy = ORIGINAL.navy;
+  navyLight = ORIGINAL.navyLight;
+  borderColor = ORIGINAL.borderColor;
+  greenText = ORIGINAL.greenText;
+  redText = ORIGINAL.redText;
+  warningBg = ORIGINAL.warningBg;
+  warningBorder = ORIGINAL.warningBorder;
+};
 
 // ─── Helpers ───
 const fmt = (n: number) =>
@@ -156,6 +186,7 @@ export const generateStatementPDF = (
   viewOpts: StatementPDFViewOptions = {}
 ): jsPDF => {
   const opts = { ...DEFAULT_PDF_VIEW_OPTS, ...viewOpts };
+  if (opts.monochrome) applyMonochrome();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.width;
   const H = doc.internal.pageSize.height;
@@ -570,5 +601,6 @@ export const generateStatementPDF = (
   doc.setFont('Amiri', 'normal');
   doc.text('1 ' + ar('من') + ' 1 ' + ar('صفحة'), margin, H - 5);
 
+  resetColors();
   return doc;
 };
