@@ -74,15 +74,25 @@ const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
 };
 
 // ─── Colors ───
-const navy: [number, number, number] = [13, 27, 46];       // #0D1B2E
-const navyLight: [number, number, number] = [27, 58, 92];  // #1B3A5C
+let navy: [number, number, number] = [13, 27, 46];       // #0D1B2E
+let navyLight: [number, number, number] = [27, 58, 92];  // #1B3A5C
 const lightGray: [number, number, number] = [248, 250, 252]; // #F8FAFC
-const borderColor: [number, number, number] = [226, 232, 240]; // #E2E8F0
+let borderColor: [number, number, number] = [226, 232, 240]; // #E2E8F0
 const darkText: [number, number, number] = [30, 30, 30];
-const greenText: [number, number, number] = [22, 163, 74];  // #16A34A
-const redText: [number, number, number] = [220, 38, 38];    // #DC2626
-const warningBg: [number, number, number] = [255, 251, 235];
-const warningBorder: [number, number, number] = [234, 179, 8];
+let greenText: [number, number, number] = [22, 163, 74];  // #16A34A
+let redText: [number, number, number] = [220, 38, 38];    // #DC2626
+let warningBg: [number, number, number] = [255, 251, 235];
+let warningBorder: [number, number, number] = [234, 179, 8];
+
+const applyMonochrome = () => {
+  navy = [0, 0, 0];
+  navyLight = [60, 60, 60];
+  borderColor = [180, 180, 180];
+  greenText = [30, 30, 30];
+  redText = [30, 30, 30];
+  warningBg = [245, 245, 245];
+  warningBorder = [160, 160, 160];
+};
 
 // ─── Helpers ───
 const fmt = (n: number) =>
