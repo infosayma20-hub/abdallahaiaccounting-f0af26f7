@@ -28,18 +28,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const stopRefreshCoordinator = startAuthRefreshCoordinator();
 
-    // Track whether we had a user before, so we can distinguish:
-    //   - SIGNED_OUT from a normal explicit signOut click (had user → now null,
-    //     navigated by the click handler itself), vs.
-    //   - SIGNED_OUT triggered by Supabase because the refresh token was
-    //     rejected by the server (we were idle/asleep and the session died).
-    // The second case needs a hard redirect to /auth?reason=session_expired
-    // so the user sees a friendly banner instead of landing on /blocked.
+    // Track whether we had a user before. We intentionally do NOT treat
+    // every SIGNED_OUT event as "session expired" because many call sites
+    // in the app still invoke `supabase.auth.signOut()` directly (sidebar
+    // logout, SessionManager idle-timeout, AuthPage cleanup, etc.) without
+    // going through our wrapper. The reliable signals for an *expired*
+    // session are: (1) the visibility/focus probe below, (2) accessContext
+    // RPCs returning a JWT error, (3) explicit 401s from REST/RPC. Those
+    // already call redirectToSessionExpired() directly.
     let hadUser = false;
-    let explicitSignOut = false;
-    // Expose a tiny flag so signOut() below can mark itself as explicit.
-    const markExplicitSignOut = () => { explicitSignOut = true; };
-    (window as any).__amwaliExplicitSignOut = markExplicitSignOut;
 
     const logEvent = async (event_type: string, sess: Session | null) => {
       const u = sess?.user;
@@ -95,15 +92,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (event === "USER_UPDATED") {
         setTimeout(() => logEvent("user_updated", session), 0);
       } else if (event === "SIGNED_OUT") {
-        // If the user was signed in moments ago and this SIGNED_OUT was NOT
-        // triggered by an explicit logout click, treat it as an expired
-        // session and redirect with the banner reason. The redirect helper
-        // is single-fire so it's safe even if multiple events race.
-        if (hadUser && !explicitSignOut) {
-          redirectToSessionExpired();
-        }
+        // Plain sign-out. Do not infer session-expiry from this event —
+        // the dedicated probes (visibilitychange/focus, accessContext, RPC
+        // 401 handlers) decide that. Just clear local tracking.
         hadUser = false;
-        explicitSignOut = false;
       } else if (event === "TOKEN_REFRESHED") {
         hadUser = !!session?.user;
       } else if (event === "INITIAL_SESSION") {
@@ -169,14 +161,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       stopRefreshCoordinator();
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleVisibility);
-      try { delete (window as any).__amwaliExplicitSignOut; } catch {}
     };
   }, []);
 
   const signOut = async () => {
-    // Mark this sign-out as explicit so onAuthStateChange does NOT treat
-    // the resulting SIGNED_OUT event as a session-expired redirect.
-    try { (window as any).__amwaliExplicitSignOut?.(); } catch {}
     const currentUser = user;
     if (currentUser) {
       try {
