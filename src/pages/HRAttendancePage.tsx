@@ -2034,7 +2034,7 @@ export default function HRAttendancePage() {
                         size="sm"
                         variant="outline"
                         className="h-7 gap-1"
-                        onClick={() => { setMissingDialog(null); openEditRecord(mr); }}
+                        onClick={() => { setEditFromMissing(true); openEditRecord(mr); }}
                       >
                         <Pencil className="h-3 w-3" /> تعديل
                       </Button>
