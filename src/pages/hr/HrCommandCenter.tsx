@@ -227,7 +227,7 @@ export default function HrCommandCenter() {
       </div>
 
       {/* ─── KPIs مختصرة ─── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <HrKpiCard
           label="إجمالي الموظفين"
           value={fmtShort(totals.total)}
@@ -235,14 +235,6 @@ export default function HrCommandCenter() {
           Icon={Users}
           tone="primary"
           onClick={() => navigate("/employees")}
-        />
-        <HrKpiCard
-          label="نسبة الحضور"
-          value={`${Math.round(totals.avgAttendanceRate * 100)}%`}
-          hint={`متوسط تأخير ${totals.avgDelayMinutes} د`}
-          Icon={Clock}
-          tone={totals.avgAttendanceRate < 0.8 ? "warning" : "positive"}
-          onClick={() => navigate("/hr-attendance")}
         />
         <HrKpiCard
           label="بصمات غير مكتملة"
