@@ -45,7 +45,7 @@ const ITEMS: Item[] = [
   { to: "/hr/settings", label: "إعدادات HR", Icon: Settings, perms: ["can_manage_hr_settings"], matchPrefixes: ["/hr/settings", "/hr/definitions", "/hr/day-types", "/hr/shifts", "/hr/policy-assignment", "/payroll-settings", "/hr-deductions"] },
 ];
 
-const VISIBLE_DESKTOP = 9; // all fit on a typical desktop; collapse to "more" only when needed.
+const VISIBLE_DESKTOP = 10; // all fit on a typical desktop; collapse to "more" only when needed.
 
 export function HRTopNav() {
   const { isAdmin, isHRManager, can } = useHRManagerPermissions();
