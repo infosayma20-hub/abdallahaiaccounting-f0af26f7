@@ -25,6 +25,8 @@ type Template = {
   frequency: string;
   target_job_title_names: string[];
   target_employee_ids: string[];
+  can_fill?: boolean;
+  can_view?: boolean;
 };
 
 type Submission = {
@@ -66,35 +68,59 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch all active templates (RLS scopes to system + own company)
-      const { data: tplData, error: tplErr } = await supabase
-        .from("form_templates")
-        .select("id, name, description, category, schema, frequency, target_job_title_names, target_employee_ids")
-        .eq("is_active", true)
-        .eq("is_deleted", false);
-      if (tplErr) throw tplErr;
-
-      // Filter client-side: match employee_id OR EXACT job_title name (after normalize).
-      // Strict equality only — never substring — to prevent other employees from seeing
-      // templates targeted at specific job titles (e.g. "مدير تسويق").
-      const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
-      const myJobs = [jobTitle, jobTitleName].filter(Boolean).map((s) => norm(s as string));
-      const matched = (tplData || []).filter((t: any) => {
-        const inEmps = (t.target_employee_ids || []).includes(employeeId);
-        const targets = (t.target_job_title_names || []).map((n: string) => norm(n));
-        const inJobs = targets.some((n: string) => myJobs.includes(n));
-        return inEmps || inJobs;
+      // Use authoritative RPC that returns per-template can_fill/can_view
+      const { data: accessData, error: accessErr } = await supabase.rpc("get_employee_form_access", {
+        p_employee_id: employeeId,
       });
-      setTemplates(matched as Template[]);
+      if (accessErr) throw accessErr;
+      const accessRows = (accessData || []) as any[];
+      const visibleIds = accessRows.filter((r) => r.can_view || r.can_fill).map((r) => r.template_id);
+
+      let tplData: any[] = [];
+      if (visibleIds.length) {
+        const { data, error: tplErr } = await supabase
+          .from("form_templates")
+          .select("id, name, description, category, schema, frequency, target_job_title_names, target_employee_ids")
+          .in("id", visibleIds);
+        if (tplErr) throw tplErr;
+        tplData = data || [];
+      }
+
+      const accessMap = new Map(accessRows.map((r) => [r.template_id, r]));
+      const matched: Template[] = tplData.map((t: any) => ({
+        ...t,
+        can_fill: !!accessMap.get(t.id)?.can_fill,
+        can_view: !!accessMap.get(t.id)?.can_view,
+      }));
+      setTemplates(matched);
 
       // Fetch my submissions for these templates
       if (matched.length) {
-        const { data: subs } = await supabase
-          .from("employee_forms")
-          .select("id, template_id, title, status, created_at, form_data")
-          .eq("employee_id", employeeId)
-          .in("template_id", matched.map((m: any) => m.id))
-          .order("created_at", { ascending: false });
+        // For "fill" templates show my submissions only; for "view-only" we'll
+        // fetch all tenant submissions for that template (RLS allows this).
+        const fillIds = matched.filter((m) => m.can_fill).map((m) => m.id);
+        const viewOnlyIds = matched.filter((m) => !m.can_fill && m.can_view).map((m) => m.id);
+        const queries: any[] = [];
+        if (fillIds.length) {
+          queries.push(
+            supabase.from("employee_forms")
+              .select("id, template_id, title, status, created_at, form_data")
+              .eq("employee_id", employeeId)
+              .in("template_id", fillIds)
+              .order("created_at", { ascending: false }),
+          );
+        }
+        if (viewOnlyIds.length) {
+          queries.push(
+            supabase.from("employee_forms")
+              .select("id, template_id, title, status, created_at, form_data")
+              .in("template_id", viewOnlyIds)
+              .order("created_at", { ascending: false })
+              .limit(50),
+          );
+        }
+        const results = await Promise.all(queries);
+        const subs = results.flatMap((r: any) => r.data || []);
         setSubmissions((subs as Submission[]) || []);
       } else {
         setSubmissions([]);
@@ -146,65 +172,38 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
 
   if (!templates.length) return null;
 
+  const fillTemplates = templates.filter((t) => t.can_fill);
+  const viewTemplates = templates.filter((t) => !t.can_fill && t.can_view);
+
   return (
     <div className="space-y-2" dir="rtl">
-      <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-        النماذج المسندة لي
-        <span className="mr-2 text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5">
-          {templates.length}
-        </span>
-      </h3>
+      {fillTemplates.length > 0 && (
+        <>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+            📝 نماذج للتعبئة
+            <span className="mr-2 text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5">
+              {fillTemplates.length}
+            </span>
+          </h3>
+          <div className="space-y-2">
+            {renderTemplateList(fillTemplates, false)}
+          </div>
+        </>
+      )}
 
-      <div className="space-y-2">
-        {templates.map((t) => {
-          const meta = categoryMeta(t.category);
-          const Icon = meta.icon;
-          const mySubs = submissions.filter((s) => s.template_id === t.id);
-          const lastSub = mySubs[0];
-          return (
-            <div key={t.id} className="space-y-1">
-              <button
-                onClick={() => setActiveTemplate(t)}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
-              >
-                <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
-                  <Icon className={`h-5 w-5 ${meta.color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-medium">{t.name}</span>
-                    <span className="text-[10px] bg-muted/70 text-muted-foreground rounded-full px-2 py-0.5 leading-none">
-                      {freqEmoji(t.frequency)} {freqLabel(t.frequency)}
-                    </span>
-                  </div>
-                  {t.description && (
-                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
-                      {t.description}
-                    </p>
-                  )}
-                </div>
-                <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
-              </button>
-
-              {mySubs.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 px-1">
-                  <span className="text-[10px] text-muted-foreground">تعبئاتي:</span>
-                  {mySubs.slice(0, 3).map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setViewSubmission(s)}
-                      className="inline-flex items-center gap-1 text-[10px] bg-muted/40 hover:bg-muted/70 rounded-full px-2 py-0.5 transition-colors"
-                    >
-                      <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
-                      {new Date(s.created_at).toLocaleDateString("ar")}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {viewTemplates.length > 0 && (
+        <>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-2 mt-4">
+            👁️ نماذج للاطلاع
+            <span className="mr-2 text-[10px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5">
+              {viewTemplates.length}
+            </span>
+          </h3>
+          <div className="space-y-2">
+            {renderTemplateList(viewTemplates, true)}
+          </div>
+        </>
+      )}
 
       {/* Fill template — mobile uses a full-screen overlay (Dialog has issues inside the employee PWA) */}
       {isMobile && activeTemplate && (
@@ -307,7 +306,6 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         );
       })()}
 
-      {/* View past submission dialog (read-only) — desktop only */}
       <Dialog open={!isMobile && !!viewSubmission} onOpenChange={(o) => !o && setViewSubmission(null)}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
@@ -331,4 +329,70 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       </Dialog>
     </div>
   );
+
+  function renderTemplateList(list: Template[], viewOnly: boolean) {
+    return list.map((t) => {
+          const meta = categoryMeta(t.category);
+          const Icon = meta.icon;
+          const mySubs = submissions.filter((s) => s.template_id === t.id);
+          return (
+            <div key={t.id} className="space-y-1">
+              <button
+                onClick={() => {
+                  if (viewOnly) {
+                    // open most-recent submission if any, else just no-op
+                    if (mySubs[0]) setViewSubmission(mySubs[0]);
+                  } else {
+                    setActiveTemplate(t);
+                  }
+                }}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
+              >
+                <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                  <Icon className={`h-5 w-5 ${meta.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium">{t.name}</span>
+                    {!viewOnly && (
+                      <span className="text-[10px] bg-muted/70 text-muted-foreground rounded-full px-2 py-0.5 leading-none">
+                        {freqEmoji(t.frequency)} {freqLabel(t.frequency)}
+                      </span>
+                    )}
+                    {viewOnly && (
+                      <span className="text-[10px] bg-muted/70 text-muted-foreground rounded-full px-2 py-0.5 leading-none">
+                        👁️ اطلاع فقط
+                      </span>
+                    )}
+                  </div>
+                  {t.description && (
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
+                      {t.description}
+                    </p>
+                  )}
+                </div>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
+
+              {mySubs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 px-1">
+                  <span className="text-[10px] text-muted-foreground">
+                    {viewOnly ? "تعبئات:" : "تعبئاتي:"}
+                  </span>
+                  {mySubs.slice(0, 3).map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setViewSubmission(s)}
+                      className="inline-flex items-center gap-1 text-[10px] bg-muted/40 hover:bg-muted/70 rounded-full px-2 py-0.5 transition-colors"
+                    >
+                      <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+                      {new Date(s.created_at).toLocaleDateString("ar")}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        });
+  }
 }

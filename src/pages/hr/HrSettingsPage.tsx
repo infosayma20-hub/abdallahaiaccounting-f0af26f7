@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Settings2, Building2, Clock, CalendarDays, Banknote, Layers, UserCog } from "lucide-react";
+import { Settings2, Building2, Clock, CalendarDays, Banknote, Layers, UserCog, ClipboardList } from "lucide-react";
 
 const SECTIONS: { to: string; title: string; desc: string; Icon: any }[] = [
   { to: "/hr/definitions", title: "التعريفات", desc: "الفروع، الأقسام والمسميات الوظيفية", Icon: Building2 },
@@ -9,6 +9,7 @@ const SECTIONS: { to: string; title: string; desc: string; Icon: any }[] = [
   { to: "/payroll-settings", title: "سياسات الرواتب", desc: "البدلات، الخصومات وإعدادات الاحتساب", Icon: Banknote },
   { to: "/hr-deductions", title: "البدلات والخصومات", desc: "إدارة الخصومات الشهرية", Icon: Layers },
   { to: "/hr/policy-assignment", title: "ربط الموظفين بالسياسات", desc: "تعيين الفرع/الشفت/سياسة الراتب لكل موظف", Icon: UserCog },
+  { to: "/hr/form-access", title: "إسناد النماذج والصلاحيات", desc: "تحديد النماذج التي يعبيها كل موظف وما يستطيع الاطلاع عليه", Icon: ClipboardList },
 ];
 
 export default function HrSettingsPage() {
