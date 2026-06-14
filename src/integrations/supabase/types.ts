@@ -6967,6 +6967,61 @@ export type Database = {
         }
         Relationships: []
       }
+      form_template_assignments: {
+        Row: {
+          access_level: string
+          assigned_at: string
+          assigned_by: string | null
+          employee_id: string
+          id: string
+          is_active: boolean
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          access_level: string
+          assigned_at?: string
+          assigned_by?: string | null
+          employee_id: string
+          id?: string
+          is_active?: boolean
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          access_level?: string
+          assigned_at?: string
+          assigned_by?: string | null
+          employee_id?: string
+          id?: string
+          is_active?: boolean
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_template_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_template_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_template_assignments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_templates: {
         Row: {
           category: string
@@ -18634,10 +18689,15 @@ export type Database = {
         }[]
       }
       calculate_health_score: { Args: { _contact_id: string }; Returns: number }
+      can_fill_form_template: {
+        Args: { _template_id: string }
+        Returns: boolean
+      }
       can_view_form_template: {
         Args: {
           _target_employee_ids: string[]
           _target_job_title_names: string[]
+          _template_id: string
         }
         Returns: boolean
       }
@@ -19362,6 +19422,20 @@ export type Database = {
         Returns: {
           timeout_minutes: number
           warning_minutes: number
+        }[]
+      }
+      get_employee_form_access: {
+        Args: { p_employee_id: string }
+        Returns: {
+          can_fill: boolean
+          can_view: boolean
+          fill_source: string
+          is_system: boolean
+          template_category: string
+          template_description: string
+          template_id: string
+          template_name: string
+          view_source: string
         }[]
       }
       get_employee_id_for_user: { Args: { _user: string }; Returns: string }
