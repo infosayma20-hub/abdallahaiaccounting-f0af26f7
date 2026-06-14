@@ -419,6 +419,10 @@ const App = () => (
             <CompanyThemeProvider>
             <GlobalFormFocusProvider />
             <AppUpdatePrompt />
+            {/* App-wide idle-timeout watcher. Reads tenant policy from
+                companies via RPC and is fully cross-tab synchronised.
+                Internally skips /auth, /pos and other public routes. */}
+            <IdleLogoutGuard />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
