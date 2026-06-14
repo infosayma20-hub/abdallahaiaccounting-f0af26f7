@@ -18628,6 +18628,13 @@ export type Database = {
         }[]
       }
       calculate_health_score: { Args: { _contact_id: string }; Returns: number }
+      can_view_form_template: {
+        Args: {
+          _target_employee_ids: string[]
+          _target_job_title_names: string[]
+        }
+        Returns: boolean
+      }
       cancel_cheque_deposit: {
         Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
         Returns: Json
