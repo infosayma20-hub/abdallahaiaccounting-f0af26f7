@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Loader2, ChevronLeft, CheckCircle2,
+  Loader2, ChevronLeft, CheckCircle2, X,
   Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer, { type FormSchema } from "@/components/forms/DynamicFormRenderer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   employeeId: string;
@@ -54,6 +55,7 @@ const categoryMeta = (c: string): { icon: any; color: string } => ({
 }[c] || { icon: FileText, color: "text-primary" });
 
 export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTitleName }: Props) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
