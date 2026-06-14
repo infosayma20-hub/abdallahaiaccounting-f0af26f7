@@ -5,7 +5,8 @@ const TABS = [
   { to: "/payroll/preview-all", label: "معاينة الرواتب" },
   { to: "/payroll", label: "احتساب الرواتب", exact: true },
   { to: "/payroll/approval", label: "اعتماد الرواتب" },
-  { to: "/payroll-settings", label: "سياسات الرواتب" },
+  { to: "/payroll-settings", label: "إعدادات الرواتب", exact: true },
+  { to: "/payroll-settings/policies", label: "السياسات المتعددة" },
 ];
 
 export default function PayrollSubNav() {

@@ -16,7 +16,8 @@ export function HRShell({ children }: { children: ReactNode }) {
   const showPayrollNav =
     pathname === "/payroll" ||
     pathname.startsWith("/payroll/") ||
-    pathname === "/payroll-settings";
+    pathname === "/payroll-settings" ||
+    pathname.startsWith("/payroll-settings/");
   return (
     <>
       <div className="sticky top-0 z-40 bg-card border-b border-border shadow-sm">
