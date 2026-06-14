@@ -355,7 +355,20 @@ export default function HRAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RowFilter>("all");
-  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "corrections" | "reports">("live");
+  // ⚓ Persist active tab in URL so refreshes/remounts don't bounce HR back to "live".
+  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "corrections" | "reports">(() => {
+    const t = searchParams.get("tab");
+    return (t === "monthly" || t === "corrections" || t === "reports" || t === "live") ? t : "live";
+  });
+  // Keep URL in sync whenever the tab changes (without polluting history).
+  useEffect(() => {
+    const current = searchParams.get("tab");
+    if (current === activeTab) return;
+    const next = new URLSearchParams(searchParams);
+    if (activeTab === "live") next.delete("tab"); else next.set("tab", activeTab);
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // Branch dialogs
   const [showBranchDialog, setShowBranchDialog] = useState(false);
