@@ -165,7 +165,7 @@ export default function CashLiquidityPage() {
                   {negativeAccounts.map((a) => (
                     <button
                       key={a.account_code}
-                      onClick={() => navigate(`/account-statement?account=${a.account_code}`)}
+                      onClick={() => navigate(`/account-statement?code=${a.account_code}`)}
                       className="flex items-center justify-between w-full text-sm bg-white dark:bg-card rounded-md p-2 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors"
                     >
                       <span className="font-medium">
@@ -193,7 +193,7 @@ export default function CashLiquidityPage() {
             {accounts.map((a) => (
               <button
                 key={a.account_code}
-                onClick={() => navigate(`/account-statement?account=${a.account_code}`)}
+                onClick={() => navigate(`/account-statement?code=${a.account_code}`)}
                 className="w-full p-4 text-right hover:bg-muted/30 transition-colors flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
