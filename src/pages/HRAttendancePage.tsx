@@ -1747,6 +1747,23 @@ export default function HRAttendancePage() {
                               {tAttendanceStatus(r.status)}
                             </Badge>
                           </td>
+                          <td className="px-3 py-3">
+                            {(() => {
+                              const cnt = missingByEmp.get(r.employee_id)?.length || 0;
+                              if (cnt === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => setMissingDialog({ employeeId: r.employee_id, employeeName: r.employees?.full_name || "" })}
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-1 rounded-md transition"
+                                  title="عرض الأيام الناقصة"
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  {cnt}
+                                </button>
+                              );
+                            })()}
+                          </td>
                           <td className="px-3 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</td>
                           <td className="px-3 py-3">
                             <DropdownMenu>
