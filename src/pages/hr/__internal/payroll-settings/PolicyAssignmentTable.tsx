@@ -50,11 +50,11 @@ export default function PolicyAssignmentTable({ policies }: { policies: PayrollP
     queryKey: ["branches-light", dataOwnerId],
     enabled: !!dataOwnerId,
     queryFn: async (): Promise<Branch[]> => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("branches")
         .select("id, name")
         .eq("company_id", dataOwnerId as string);
-      return (data as any) || [];
+      return (data as Branch[]) || [];
     },
   });
 
