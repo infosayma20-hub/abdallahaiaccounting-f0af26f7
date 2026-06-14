@@ -1970,7 +1970,19 @@ export default function HRAttendancePage() {
       {/* Edit record */}
       <Dialog open={!!editRecord} onOpenChange={(o) => { if (!o) { setEditRecord(null); setEditFromMissing(false); } }}>
         <DialogContent dir="rtl">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-primary" /> تعديل سجل {editRecord?.employees?.full_name}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" /> تعديل سجل {editRecord?.employees?.full_name}
+            </DialogTitle>
+            {editRecord && (
+              <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span>📅 {fmtDateDisplay(editRecord.attendance_date)}</span>
+                <span>دخول أصلي: <b className="tabular-nums">{editRecord.first_check_in ? format(new Date(editRecord.first_check_in), "hh:mm a") : "—"}</b></span>
+                <span>خروج أصلي: <b className="tabular-nums">{editRecord.last_check_out ? format(new Date(editRecord.last_check_out), "hh:mm a") : "—"}</b></span>
+                <span>الحالة: <b>{tAttendanceStatus(editRecord.status)}</b></span>
+              </div>
+            )}
+          </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground mb-1 block">الدخول</label><Input type="time" value={editRecordForm.first_check_in} onChange={e => setEditRecordForm(p => ({ ...p, first_check_in: e.target.value }))} dir="ltr" /></div>
