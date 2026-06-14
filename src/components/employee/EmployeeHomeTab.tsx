@@ -284,6 +284,16 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         {/* Decorative circle */}
         <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
         <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/5" />
+        {/* Logout button - top-left of banner */}
+        <button
+          type="button"
+          onClick={signOut}
+          aria-label="تسجيل الخروج"
+          className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur border border-white/25 text-primary-foreground transition-all"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="text-[11px] font-semibold">خروج</span>
+        </button>
       </div>
 
       <AlertDialog open={switchOpen} onOpenChange={setSwitchOpen}>
