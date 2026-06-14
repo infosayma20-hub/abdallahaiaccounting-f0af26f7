@@ -443,6 +443,8 @@ const App = () => (
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/choose-workspace" element={<ProtectedRoute><ChooseWorkspacePage /></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
+              <Route path="/employee/attendance" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp initialTab="attendance" /></RoleGuard></ProtectedRoute>} />
+              <Route path="/employee/alerts" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp initialTab="alerts" /></RoleGuard></ProtectedRoute>} />
               <Route path="/employee/roster" element={<ProtectedRoute><RoleGuard allowedRoles={["employee", "branch_scheduler", "admin", "hr_manager"]} fallback="/auth" allowEmployeePerm="can_manage_schedule"><EmployeeApp initialTab="manager-roster" /></RoleGuard></ProtectedRoute>} />
               <Route path="/employee/team" element={<ProtectedRoute><RoleGuard allowedRoles={["employee", "branch_scheduler", "admin", "hr_manager"]} fallback="/auth" allowEmployeePerm="can_view_team"><EmployeeApp initialTab="manager-team" /></RoleGuard></ProtectedRoute>} />
               <Route path="/employee/team-attendance" element={<ProtectedRoute><RoleGuard allowedRoles={["employee", "branch_scheduler", "admin", "hr_manager"]} fallback="/auth" allowEmployeePerm="can_manage_attendance"><EmployeeApp initialTab="manager-attendance" /></RoleGuard></ProtectedRoute>} />
