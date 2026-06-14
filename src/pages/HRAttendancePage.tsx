@@ -1650,17 +1650,18 @@ export default function HRAttendancePage() {
                           onChange={toggleSelectAllVisible}
                         />
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px] whitespace-nowrap">الموظف</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الفرع</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">القسم</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المسمى</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الدخول</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الخروج</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الساعات</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">التأخير</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إضافي</th>
+                      <SortableTh label="الموظف" k="employee" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} className="min-w-[200px]" />
+                      <SortableTh label="الفرع" k="branch" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="القسم" k="department" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="المسمى" k="job_title" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="الدخول" k="checkin" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="الخروج" k="checkout" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="الساعات" k="hours" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="التأخير" k="late" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="إضافي" k="overtime" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                       <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المشكلة</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الحالة</th>
+                      <SortableTh label="الحالة" k="status" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="بصمات ناقصة (30 يوم)" k="missing" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                       <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">ملاحظات</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إجراءات</th>
                     </tr>
