@@ -22,6 +22,7 @@ import { evaluateLoanEligibility, eligibilityBadgeClass, formatCurrency } from "
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
+import EmployeeAssignedTemplates from "@/components/employee/EmployeeAssignedTemplates";
 
 interface Props {
   employeeId: string;
@@ -31,6 +32,8 @@ interface Props {
   onRefresh: () => void;
   initialFormId?: string | null;
   onInitialFormConsumed?: () => void;
+  jobTitle?: string | null;
+  jobTitleName?: string | null;
 }
 
 type FormCard = {
@@ -80,7 +83,10 @@ const statusLabel = (s: string) => {
   }
 };
 
-export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrManager, onRefresh, initialFormId, onInitialFormConsumed }: Props) {
+export default function EmployeeFormsTab({
+  employeeId, userId, isManager, isHrManager, onRefresh,
+  initialFormId, onInitialFormConsumed, jobTitle, jobTitleName,
+}: Props) {
   const isMobile = useIsMobile();
   const [activeForm, setActiveForm] = useState<string | null>(null);
   const [activePolicy, setActivePolicy] = useState<string | null>(null);
@@ -1086,6 +1092,13 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   return (
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
       <h2 className="text-lg font-bold pt-2">📋 نماذج العمل</h2>
+
+      {/* Dynamic templates assigned to this employee (job title or individual) */}
+      <EmployeeAssignedTemplates
+        employeeId={employeeId}
+        jobTitle={jobTitle}
+        jobTitleName={jobTitleName}
+      />
 
       {/* Forms Section */}
       <div>
