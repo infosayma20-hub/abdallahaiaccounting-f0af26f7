@@ -76,21 +76,42 @@ const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
 };
 
 // ─── Colors ───
-const COLORS = {
+const ORIGINAL = {
   navy: [13, 27, 46] as [number, number, number],
   navyLight: [27, 58, 92] as [number, number, number],
-  lightGray: [248, 250, 252] as [number, number, number],
   borderColor: [226, 232, 240] as [number, number, number],
-  darkText: [30, 30, 30] as [number, number, number],
   greenText: [22, 163, 74] as [number, number, number],
   redText: [220, 38, 38] as [number, number, number],
   warningBg: [255, 251, 235] as [number, number, number],
   warningBorder: [234, 179, 8] as [number, number, number],
-  monoNavy: [0, 0, 0] as [number, number, number],
-  monoNavyLight: [60, 60, 60] as [number, number, number],
-  monoBorder: [180, 180, 180] as [number, number, number],
-  monoWarningBg: [245, 245, 245] as [number, number, number],
-  monoWarningBorder: [160, 160, 160] as [number, number, number],
+};
+let navy = ORIGINAL.navy;
+let navyLight = ORIGINAL.navyLight;
+const lightGray: [number, number, number] = [248, 250, 252];
+let borderColor = ORIGINAL.borderColor;
+const darkText: [number, number, number] = [30, 30, 30];
+let greenText = ORIGINAL.greenText;
+let redText = ORIGINAL.redText;
+let warningBg = ORIGINAL.warningBg;
+let warningBorder = ORIGINAL.warningBorder;
+
+const applyMonochrome = () => {
+  navy = [0, 0, 0];
+  navyLight = [60, 60, 60];
+  borderColor = [180, 180, 180];
+  greenText = [30, 30, 30];
+  redText = [30, 30, 30];
+  warningBg = [245, 245, 245];
+  warningBorder = [160, 160, 160];
+};
+const resetColors = () => {
+  navy = ORIGINAL.navy;
+  navyLight = ORIGINAL.navyLight;
+  borderColor = ORIGINAL.borderColor;
+  greenText = ORIGINAL.greenText;
+  redText = ORIGINAL.redText;
+  warningBg = ORIGINAL.warningBg;
+  warningBorder = ORIGINAL.warningBorder;
 };
 
 // ─── Helpers ───
