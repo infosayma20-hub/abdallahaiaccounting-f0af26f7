@@ -60,12 +60,12 @@ export function usePayrollPolicies() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("payroll_policy_id")
-        .eq("data_owner_id" as any, dataOwnerId as string)
-        .eq("is_active", true);
+        .select("payroll_policy_id, is_active, company_id")
+        .eq("company_id", dataOwnerId as string);
       const map = new Map<string, number>();
       if (!error && data) {
         for (const r of data as any[]) {
+          if (r.is_active === false) continue;
           const k = r.payroll_policy_id || "__none__";
           map.set(k, (map.get(k) || 0) + 1);
         }
