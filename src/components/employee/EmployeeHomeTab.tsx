@@ -70,7 +70,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { hasMultiple: hasMultipleWorkspaces } = useHasMultipleWorkspaces();
   const [switchOpen, setSwitchOpen] = useState(false);
 
