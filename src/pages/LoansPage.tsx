@@ -634,6 +634,19 @@ export default function LoansPage() {
                         <p className="text-sm font-bold text-foreground">{fmtCurrency(Number(loan.remaining_amount))}</p>
                         <p className="text-[10px] text-muted-foreground">متبقي من {fmtCurrency(Number(loan.total_amount))}</p>
                       </div>
+                      {loan.status === "active" && installments.some((i: any) => i.status === "pending") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                          disabled={payingLoanId === loan.id}
+                          onClick={(e) => { e.stopPropagation(); handleMarkNextPaid(loan); }}
+                          title="تأشير القسط التالي كمدفوع"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {payingLoanId === loan.id ? "جاري…" : "سداد القسط"}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
