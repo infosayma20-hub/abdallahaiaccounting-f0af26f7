@@ -1980,6 +1980,57 @@ export default function HRAttendancePage() {
         </DialogContent>
       </Dialog>
 
+      {/* Missing punches per employee */}
+      <Dialog open={!!missingDialog} onOpenChange={(o) => !o && setMissingDialog(null)}>
+        <DialogContent dir="rtl" className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              البصمات الناقصة — {missingDialog?.employeeName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-xs text-muted-foreground mb-2">
+            آخر 30 يوم — أيام فيها دخول بدون خروج أو خروج بدون دخول. اضغط «تعديل» لإكمال البصمة.
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-muted text-foreground">
+                  <th className="px-3 py-2 text-right text-xs">التاريخ</th>
+                  <th className="px-3 py-2 text-right text-xs">الدخول</th>
+                  <th className="px-3 py-2 text-right text-xs">الخروج</th>
+                  <th className="px-3 py-2 text-right text-xs">الحالة</th>
+                  <th className="px-3 py-2 text-right text-xs">إجراء</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(missingDialog ? (missingByEmp.get(missingDialog.employeeId) || []) : []).map((mr) => (
+                  <tr key={mr.id} className="border-b border-border/50">
+                    <td className="px-3 py-2 whitespace-nowrap">{fmtDateDisplay(mr.attendance_date)}</td>
+                    <td className="px-3 py-2 tabular-nums">{mr.first_check_in ? format(new Date(mr.first_check_in), "hh:mm a") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
+                    <td className="px-3 py-2 tabular-nums">{mr.last_check_out ? format(new Date(mr.last_check_out), "hh:mm a") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
+                    <td className="px-3 py-2"><Badge variant="outline" className={cn("text-xs", statusBadgeClass(mr.status))}>{tAttendanceStatus(mr.status)}</Badge></td>
+                    <td className="px-3 py-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1"
+                        onClick={() => { setMissingDialog(null); openEditRecord(mr); }}
+                      >
+                        <Pencil className="h-3 w-3" /> تعديل
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {missingDialog && (missingByEmp.get(missingDialog.employeeId) || []).length === 0 && (
+                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground text-sm">لا توجد بصمات ناقصة 🎉</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Note */}
       <Dialog open={!!noteRecord} onOpenChange={(o) => !o && setNoteRecord(null)}>
         <DialogContent dir="rtl">
