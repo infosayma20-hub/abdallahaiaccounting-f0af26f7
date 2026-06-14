@@ -67,7 +67,13 @@ export default function BranchRosterPage() {
     if (!user?.id) return;
     supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
       const roles = (data || []).map((r: any) => r.role);
-      setIsHrAdmin(roles.length === 0 || roles.includes("admin") || roles.includes("hr_manager"));
+      setIsHrAdmin(
+        roles.length === 0 ||
+          roles.includes("admin") ||
+          roles.includes("hr_manager") ||
+          roles.includes("super_admin") ||
+          roles.includes("manager"),
+      );
     });
   }, [user?.id]);
 
