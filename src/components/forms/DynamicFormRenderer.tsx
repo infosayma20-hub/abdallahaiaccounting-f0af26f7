@@ -112,16 +112,18 @@ function FieldInput({
       );
     case "select":
       return (
-        <Select value={value ?? ""} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger className={common}>
-            <SelectValue placeholder="اختر..." />
-          </SelectTrigger>
-          <SelectContent>
-            {(field.options || []).map((opt) => (
-              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className={`${common} bg-background appearance-none pr-3`}
+          dir="rtl"
+        >
+          <option value="" disabled>اختر...</option>
+          {(field.options || []).map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
       );
     case "multi_select":
       // Simple comma-separated implementation
