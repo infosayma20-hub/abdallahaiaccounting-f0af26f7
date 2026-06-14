@@ -179,7 +179,13 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         .select("role")
         .eq("user_id", user!.id);
       const roleList = (roles || []).map((r: any) => r.role);
-      const isAdmin = roleList.includes("admin") || roleList.includes("hr_manager") || roleList.includes("super_admin");
+      const isAdmin =
+        user!.id === dataOwnerId ||
+        roleList.length === 0 ||
+        roleList.includes("admin") ||
+        roleList.includes("hr_manager") ||
+        roleList.includes("super_admin") ||
+        roleList.includes("manager");
 
       let allowedBranchIds: string[] = [];
       let scheduleFallback = false;
