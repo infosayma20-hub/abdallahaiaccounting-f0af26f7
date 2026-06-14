@@ -185,6 +185,7 @@ const BranchRosterPage = lazy(() => import("./pages/manager/BranchRosterPage"));
 const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
 const PayrollEngineComparisonPage = lazy(() => import("./pages/hr/__internal/PayrollEngineComparisonPage"));
 const PayrollSettingsV2Page = lazy(() => import("./pages/hr/__internal/payroll-settings/PayrollSettingsPage"));
+const PayrollPoliciesPage = lazy(() => import("./pages/hr/__internal/payroll-settings/PayrollPoliciesPage"));
 const PayrollPreviewAllPage = lazy(() => import("./pages/hr/PayrollPreviewAllPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
@@ -648,6 +649,7 @@ const App = () => (
                       <Route path="/hr/import-employees" element={<Navigate to="/employees" replace />} />
                       <Route path="/hr/form-templates" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><FormTemplatesAdminPage /></RoleGuard></HRShell>} />
                       <Route path="/payroll-settings" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollSettingsPage /></HRPermGuard></RoleGuard></HRShell>} />
+                      <Route path="/payroll-settings/policies" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollPoliciesPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
