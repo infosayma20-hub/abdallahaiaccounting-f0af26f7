@@ -601,5 +601,6 @@ export const generateStatementPDF = (
   doc.setFont('Amiri', 'normal');
   doc.text('1 ' + ar('من') + ' 1 ' + ar('صفحة'), margin, H - 5);
 
+  resetColors();
   return doc;
 };
