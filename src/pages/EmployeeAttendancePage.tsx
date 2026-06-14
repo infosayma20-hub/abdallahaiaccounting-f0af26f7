@@ -327,13 +327,18 @@ export default function EmployeeAttendancePage() {
     );
   }
 
-  // Multi check-in/out: determine state from last event
+  // Multi check-in/out: determine state from TODAY's events only.
+  // An orphan check_in from a previous day (missing check-out) must NOT block
+  // a new check-in today — it stays as an alert under "بصمات ناقصة" and the
+  // employee/HR submit a correction request. The system never auto-stamps a
+  // check-out on behalf of the employee.
   const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
-  const openSession = getOpenAttendanceSession(recentEvents.length ? recentEvents : todayEvents);
+  const todayOpenSession = getOpenAttendanceSession(todayEvents);
+  const isTodayOpen = !!todayOpenSession || lastEvent?.event_type === "check_in";
   const isOnBreak = todayBreaks.some(b => !b.break_in);
-  const canCheckIn = !isOnBreak && !openSession && (!lastEvent || lastEvent.event_type === "check_out");
-  const canCheckOut = !isOnBreak && !!openSession;
-  const canBreakOut = !isOnBreak && !!openSession;
+  const canCheckIn = !isOnBreak && !isTodayOpen;
+  const canCheckOut = !isOnBreak && isTodayOpen;
+  const canBreakOut = !isOnBreak && isTodayOpen;
   const sessionCount = todayEvents.filter(e => e.event_type === "check_in").length;
   const todayStatus = todayRecord ? statusMap[todayRecord.status] || statusMap.absent : statusMap.absent;
   const totalBreakMinutes = todayRecord?.total_break_minutes || todayBreaks.filter(b => b.duration_minutes).reduce((s, b) => s + (b.duration_minutes || 0), 0);
