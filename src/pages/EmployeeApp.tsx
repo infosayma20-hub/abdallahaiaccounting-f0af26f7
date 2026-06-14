@@ -88,6 +88,8 @@ type Employee = {
   shift_id?: string | null;
   shift_start?: string | null;
   shift_end?: string | null;
+  job_title_id?: string | null;
+  job_title?: string | null;
 };
 
 export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
@@ -138,12 +140,23 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end, job_title_id, job_title")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
       setEmployee(emp as Employee | null);
       if (!emp) { setLoading(false); return; }
+
+      // Resolve job title name (linked entity takes precedence)
+      if ((emp as any).job_title_id) {
+        const { data: jt } = await supabase
+          .from("job_titles")
+          .select("name, name_ar")
+          .eq("id", (emp as any).job_title_id)
+          .maybeSingle();
+        if (jt) (emp as any).job_title_name_resolved = jt.name_ar || jt.name;
+      }
+      setEmployee(emp as Employee | null);
 
       if (emp.branch_id) {
         const { data: br } = await supabase.from("branches_safe").select("name").eq("id", emp.branch_id).single();
@@ -438,6 +451,8 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             onRefresh={fetchData}
             initialFormId={pendingFormId}
             onInitialFormConsumed={() => setPendingFormId(null)}
+            jobTitle={employee.position || employee.job_title || null}
+            jobTitleName={(employee as any).job_title_name_resolved || null}
           />
         )}
 
