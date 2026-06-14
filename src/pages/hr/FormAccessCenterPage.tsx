@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ClipboardList, Search, Loader2, Lock, UserCircle2, Info, Settings2, ShieldCheck, FileText, Eye } from "lucide-react";
+import { ClipboardList, Search, Loader2, Lock, UserCircle2, Settings2, ShieldCheck, FileText, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFormAccessManager } from "@/hooks/hr/useFormAccessManager";
 import { Link } from "react-router-dom";
@@ -136,17 +136,6 @@ export default function FormAccessCenterPage() {
           </Button>
         </div>
 
-        {/* Info banner — system forms */}
-        <Card className="border-blue-200 bg-blue-50/40 dark:border-blue-900/40 dark:bg-blue-950/20">
-          <CardContent className="p-3 flex items-start gap-2 text-sm">
-            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-            <div className="text-blue-900 dark:text-blue-200">
-              <strong>النماذج الأساسية</strong> (طلب إجازة، طلب سلفة، رسالة HR، تصحيح حضور)
-              متاحة لكل الموظفين تلقائياً ولا تحتاج إسناد يدوي. الإسناد هنا للنماذج
-              <strong> الإضافية</strong> الخاصة (خطة تسويقية، تقارير نظافة، إجراء عقابي... إلخ).
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Search */}
         <Card>
