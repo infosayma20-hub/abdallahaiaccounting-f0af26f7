@@ -10,7 +10,9 @@ import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 import TrialBanner from "../billing/TrialBanner";
 import TrialExpiredGate from "../trial/TrialExpiredGate";
 import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
-import SessionManager from "../SessionManager";
+// NOTE: SessionManager was removed in favour of the global <IdleLogoutGuard />
+// mounted in App.tsx. Idle-logout is now app-wide (not WebLayout-only) and
+// is driven by company-level policy via get_effective_session_policy.
 import { useSubscription } from "@/hooks/useSubscription";
 import { TabsProvider } from "@/contexts/TabsContext";
 
@@ -103,9 +105,6 @@ const WebLayout = ({ children }: WebLayoutProps) => {
 
       {/* Lightweight navigation loader */}
       <GlobalNavigationLoader />
-
-      {/* Session timeout manager */}
-      <SessionManager />
 
       {/* Noor Support Widget */}
       <NoorSupportWidget />
