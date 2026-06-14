@@ -215,6 +215,46 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // 🔴 Realtime: refetch portal state when HR (or any source) modifies this
+  // employee's attendance_events / attendance_days / correction_requests, so
+  // a check-out added by HR closes the open session and removes the
+  // "تسجيل خروج" button on the employee's home screen instantly — no reload.
+  useEffect(() => {
+    if (!employee?.id) return;
+    const empId = employee.id;
+    const channel = supabase
+      .channel(`employee-app-sync-${empId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attendance_events", filter: `employee_id=eq.${empId}` },
+        () => fetchData()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attendance_days", filter: `employee_id=eq.${empId}` },
+        () => fetchData()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "correction_requests", filter: `employee_id=eq.${empId}` },
+        () => fetchData()
+      )
+      .subscribe();
+
+    // Safety net for when Realtime is blocked (corporate Wi-Fi, etc.)
+    const onFocus = () => {
+      if (document.visibilityState === "visible") fetchData();
+    };
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [employee?.id, fetchData]);
+
   const handleNavigate = (tab: Tab) => {
     if (tab === "scan") {
       const canCheckOut = !!getOpenAttendanceSession(recentEvents.length ? recentEvents : todayEvents);
