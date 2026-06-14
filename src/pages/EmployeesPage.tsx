@@ -1253,7 +1253,6 @@ const EmployeesPage = () => {
                 <SelectContent>
                   <SelectItem value="_none">بدون</SelectItem>
                   {jobTitlesList
-                    .filter((j) => !form.department_id || !j.department_id || j.department_id === form.department_id)
                     .map((j) => <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>)}
                 </SelectContent>
               </Select>
