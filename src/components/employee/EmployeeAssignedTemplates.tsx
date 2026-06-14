@@ -204,8 +204,44 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         })}
       </div>
 
-      {/* Fill template dialog */}
-      <Dialog open={!!activeTemplate} onOpenChange={(o) => !o && setActiveTemplate(null)}>
+      {/* Fill template — mobile uses a full-screen overlay (Dialog has issues inside the employee PWA) */}
+      {isMobile && activeTemplate && (
+        <div
+          className="fixed inset-0 z-[100] bg-background flex flex-col"
+          dir="rtl"
+          style={{ height: "100dvh" }}
+        >
+          <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
+            <button
+              type="button"
+              onClick={() => setActiveTemplate(null)}
+              className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
+              aria-label="إغلاق"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h1 className="text-base font-bold truncate px-2">{activeTemplate.name}</h1>
+            <div className="w-9" />
+          </header>
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4"
+            style={{
+              WebkitOverflowScrolling: "touch",
+              paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
+            }}
+          >
+            <DynamicFormRenderer
+              schema={activeTemplate.schema}
+              draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+              submitting={submitting}
+              onSubmit={handleSubmit}
+              onSaveDraft={() => {}}
+            />
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => !o && setActiveTemplate(null)}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-right">{activeTemplate?.name}</DialogTitle>
@@ -225,8 +261,52 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         </DialogContent>
       </Dialog>
 
-      {/* View past submission dialog (read-only) */}
-      <Dialog open={!!viewSubmission} onOpenChange={(o) => !o && setViewSubmission(null)}>
+      {/* View past submission — mobile full-screen */}
+      {isMobile && viewSubmission && (() => {
+        const tpl = templates.find((t) => t.id === viewSubmission.template_id);
+        return (
+          <div
+            className="fixed inset-0 z-[100] bg-background flex flex-col"
+            dir="rtl"
+            style={{ height: "100dvh" }}
+          >
+            <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
+              <button
+                type="button"
+                onClick={() => setViewSubmission(null)}
+                className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
+                aria-label="إغلاق"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <h1 className="text-base font-bold truncate px-2">
+                {viewSubmission.title || "نموذج"} — {new Date(viewSubmission.created_at).toLocaleDateString("ar")}
+              </h1>
+              <div className="w-9" />
+            </header>
+            <div
+              className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4"
+              style={{
+                WebkitOverflowScrolling: "touch",
+                paddingBottom: "calc(48px + env(safe-area-inset-bottom, 0px))",
+              }}
+            >
+              {tpl ? (
+                <DynamicFormRenderer
+                  schema={tpl.schema}
+                  initialData={viewSubmission.form_data}
+                  readOnly
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">القالب غير متاح.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* View past submission dialog (read-only) — desktop only */}
+      <Dialog open={!isMobile && !!viewSubmission} onOpenChange={(o) => !o && setViewSubmission(null)}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-right">
