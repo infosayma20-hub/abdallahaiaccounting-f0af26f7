@@ -12,6 +12,8 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Calendar } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 
 export interface DateInputDMYProps {
   /** ISO date (yyyy-mm-dd) or empty string */
@@ -57,7 +59,7 @@ const maskDmy = (raw: string): string => {
 const DateInputDMY = React.forwardRef<HTMLInputElement, DateInputDMYProps>(
   ({ value, onChange, className, placeholder = "dd/mm/yyyy", disabled, onKeyDown }, ref) => {
     const [text, setText] = React.useState<string>(() => isoToDmy(value));
-    const hiddenRef = React.useRef<HTMLInputElement | null>(null);
+    const [open, setOpen] = React.useState(false);
 
     // Keep text in sync when parent value changes (e.g., reset)
     React.useEffect(() => {
@@ -81,18 +83,12 @@ const DateInputDMY = React.forwardRef<HTMLInputElement, DateInputDMYProps>(
       }
     };
 
-    const openPicker = (e?: React.MouseEvent) => {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      if (disabled) return;
-      const el = hiddenRef.current;
-      if (!el) return;
-      // Modern browsers
-      // @ts-ignore
-      if (typeof el.showPicker === "function") {
-        try { (el as any).showPicker(); return; } catch {}
-      }
-      try { el.focus(); el.click(); } catch {}
-    };
+    const selectedDate = React.useMemo(() => {
+      if (!value) return undefined;
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+      if (!m) return undefined;
+      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }, [value]);
 
     return (
       <div className={cn("relative", className)}>
@@ -109,40 +105,33 @@ const DateInputDMY = React.forwardRef<HTMLInputElement, DateInputDMYProps>(
           className="pr-8 font-mono"
           dir="ltr"
         />
-        <button
-          type="button"
-          onClick={openPicker}
-          tabIndex={-1}
-          className="absolute inset-y-0 right-1.5 flex items-center justify-center px-1 text-muted-foreground/70 hover:text-foreground transition-colors"
-          aria-label="فتح التقويم"
-        >
-          <Calendar className="h-3.5 w-3.5" />
-        </button>
-        <input
-          ref={hiddenRef}
-          type="date"
-          value={value || ""}
-          onChange={(e) => {
-            const iso = e.target.value;
-            setText(isoToDmy(iso));
-            onChange(iso);
-          }}
-          tabIndex={-1}
-          aria-hidden="true"
-          // sr-only-like positioning but WITHOUT pointer-events:none,
-          // so showPicker()/click() fallback can actually open the native picker.
-          style={{
-            position: "absolute",
-            right: 0,
-            bottom: 0,
-            width: 1,
-            height: 1,
-            opacity: 0,
-            border: 0,
-            padding: 0,
-            margin: 0,
-          }}
-        />
+        <Popover open={open} onOpenChange={(v) => !disabled && setOpen(v)}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              tabIndex={-1}
+              disabled={disabled}
+              className="absolute inset-y-0 right-1.5 flex items-center justify-center px-1 text-muted-foreground/70 hover:text-foreground transition-colors disabled:opacity-50"
+              aria-label="فتح التقويم"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end" dir="rtl">
+            <CalendarPicker
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => {
+                if (!d) return;
+                const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                setText(isoToDmy(iso));
+                onChange(iso);
+                setOpen(false);
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
       </div>
     );
   },
