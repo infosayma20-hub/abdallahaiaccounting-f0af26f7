@@ -627,7 +627,7 @@ export default function HRAttendancePage() {
 
   // ---- Missing punches (last 30 days) ----
   const fetchMissingPunches = useCallback(async () => {
-    if (!user || !dataOwnerId) return;
+    if (!user || !dataOwnerId) return new Map<string, AttendanceRecord[]>();
     const end = new Date(selectedDate);
     const start = new Date(end);
     start.setDate(start.getDate() - 29);
@@ -639,7 +639,7 @@ export default function HRAttendancePage() {
       .gte("attendance_date", startISO)
       .lte("attendance_date", endISO)
       .order("attendance_date", { ascending: false });
-    if (error) return;
+    if (error) return new Map<string, AttendanceRecord[]>();
     const rows = ((data as any[]) || []).filter(r => {
       // Missing = has one punch but not the other, and the day was a working day (status not leave/holiday/absent)
       const hasCi = !!r.first_check_in;
@@ -655,6 +655,7 @@ export default function HRAttendancePage() {
       m.set(r.employee_id, arr);
     });
     setMissingByEmp(m);
+    return m;
   }, [user, dataOwnerId, selectedDate]);
 
   useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
