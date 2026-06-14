@@ -738,8 +738,35 @@ export default function HRAttendancePage() {
         (x.row.employees?.job_title || "").toLowerCase().includes(q)
       );
     }
+    if (sortKey) {
+      const branchName = (id: string | null) => branches.find(b => b.id === id)?.name || "";
+      const tsVal = (s: string | null) => (s ? new Date(s).getTime() : Number.POSITIVE_INFINITY);
+      const getVal = (x: typeof rows[number]): string | number => {
+        switch (sortKey) {
+          case "employee": return x.row.employees?.full_name || "";
+          case "branch": return branchName(x.row.branch_id);
+          case "department": return x.row.employees?.department || "";
+          case "job_title": return x.row.employees?.job_title || "";
+          case "checkin": return tsVal(x.row.first_check_in);
+          case "checkout": return tsVal(x.row.last_check_out);
+          case "hours": return x.row.total_hours || 0;
+          case "late": return x.issue.lateMin || 0;
+          case "overtime": return x.row.overtime_hours || 0;
+          case "status": return tAttendanceStatus(x.row.status) || "";
+          case "missing": return (missingByEmp.get(x.row.employee_id)?.length) || 0;
+          default: return "";
+        }
+      };
+      rows = [...rows].sort((a, b) => {
+        const va = getVal(a); const vb = getVal(b);
+        let cmp = 0;
+        if (typeof va === "number" && typeof vb === "number") cmp = va - vb;
+        else cmp = String(va).localeCompare(String(vb), "ar");
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
     return rows;
-  }, [enriched, filter, search]);
+  }, [enriched, filter, search, sortKey, sortDir, branches, missingByEmp]);
 
   // ------------------ Branch CRUD (kept) ------------------
   const createBranch = async () => {
