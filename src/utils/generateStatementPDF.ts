@@ -191,7 +191,7 @@ export const generateStatementPDF = (
   const W = doc.internal.pageSize.width;
   const H = doc.internal.pageSize.height;
   const sym = getCurrencySymbol(data.currency);
-  const margin = 12;
+  const margin = 18;
 
   registerArabicFont(doc);
 
