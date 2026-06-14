@@ -7,6 +7,7 @@ import {
   Clock,
   CalendarDays,
   ClipboardList,
+  FileCheck,
   Banknote,
   HandCoins,
   Settings,
