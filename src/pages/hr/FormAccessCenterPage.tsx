@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -9,7 +8,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ClipboardList, Search, Loader2, Lock, UserCircle2, Info, Settings2, ShieldCheck, FileText, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFormAccessManager } from "@/hooks/hr/useFormAccessManager";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Link } from "react-router-dom";
 
 type EmployeeRow = {
@@ -38,13 +36,6 @@ const ROLE_LABELS: Record<string, string> = {
   portal: "بوابة",
 };
 const roleLabel = (r: string) => ROLE_LABELS[r] || r;
-
-const sourceLabel = (s: string | null) => {
-  if (s === "job_title") return { text: "منصب", color: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300" };
-  if (s === "manual") return { text: "يدوي", color: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300" };
-  if (s === "both") return { text: "كلاهما", color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" };
-  return null;
-};
 
 export default function FormAccessCenterPage() {
   const [search, setSearch] = useState("");
@@ -530,42 +521,3 @@ function TemplatePicker({
   );
 }
 
-function AccessCell({
-  checked, locked, disabled, label, onChange,
-}: { checked: boolean; locked: boolean; disabled: boolean; label: string; onChange: (v: boolean) => void }) {
-  const cell = (
-    <div className="flex flex-col items-center gap-0.5">
-      <div className="relative">
-        <Checkbox
-          checked={checked}
-          disabled={locked || disabled}
-          onCheckedChange={(v) => onChange(!!v)}
-        />
-        {locked && (
-          <Lock className="h-2.5 w-2.5 absolute -top-1 -right-1 text-muted-foreground" />
-        )}
-      </div>
-      <span className="text-[10px] text-muted-foreground">{label}</span>
-    </div>
-  );
-  if (!locked) return cell;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{cell}</TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
-        موروثة من المسمى الوظيفي — لا يمكن إلغاؤها يدوياً
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-function categoryLabel(c: string) {
-  return {
-    marketing: "تسويق",
-    operations: "تشغيلي",
-    hr: "موارد بشرية",
-    quality: "جودة",
-    finance: "مالي",
-    general: "عام",
-  }[c] || c;
-}
