@@ -1093,6 +1093,13 @@ export default function EmployeeFormsTab({
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
       <h2 className="text-lg font-bold pt-2">📋 نماذج العمل</h2>
 
+      {/* Dynamic templates assigned to this employee (job title or individual) */}
+      <EmployeeAssignedTemplates
+        employeeId={employeeId}
+        jobTitle={jobTitle}
+        jobTitleName={jobTitleName}
+      />
+
       {/* Forms Section */}
       <div>
         <h3 className="text-sm font-semibold text-muted-foreground mb-2">النماذج والطلبات</h3>
