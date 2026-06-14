@@ -1,64 +1,95 @@
+## الهدف
+إضافة قدرة عامة في النظام لتعريف نماذج (Forms) ديناميكية تُسند حسب المنصب (Job Title)، ويعبيها الموظف من بورتاله على الجوال — بدون أي hardcoding للحقول.
+المخرج الفعلي لهذه المرحلة: نموذج **"الخطة التسويقية الربعية"** جاهز ومُسند لمنصب "مدير التسويق" (علاء ناصر).
 
-# التحكم في طباعة التصنيفات حسب الفرع والمحطة
+---
 
-## الفكرة باختصار
-شاشة مصفوفة (Matrix) في إعدادات نقطة البيع:
-- **الصفوف**: تصنيفات المنتجات (item_categories / pos_categories)
-- **الأعمدة**: محطات الطباعة (kitchen_stations) لكل فرع
-- **الخلية**: مفتاح تشغيل/إطفاء
+## 1) قاعدة البيانات (Migration واحدة)
 
-افتراضياً كل شيء **مفعّل** (السلوك الحالي لا يتغير). فقط الإطفاء يُسجَّل كصف في الجدول.
+### جدول جديد: `form_templates`
+يحتوي تعريف القالب نفسه (الـ schema بصيغة JSON):
+- `name` (عنوان النموذج)
+- `description`
+- `category` (نص: marketing / operations / hr / quality ...)
+- `schema` (JSONB — الأقسام والحقول)
+- `target_job_title_ids` (uuid[] — أي مدير منصبه ضمنها يشوف النموذج)
+- `target_employee_ids` (uuid[] — استثناءات/إسناد فردي إضافي)
+- `reviewer_role` (نص: admin / hr_manager / branch_manager)
+- `is_active` (bool)
+- `frequency` (نص: once / weekly / monthly / quarterly — للعرض فقط)
+- `company_id`, `user_id`, `created_by`, timestamps
+- RLS: الموظف يقرأ القوالب اللي منصبه ضمن `target_job_title_ids` أو الموجود في `target_employee_ids`. الـ admin/HR يدير الكل ضمن نفس الشركة.
 
-## التغييرات على قاعدة البيانات
+### تعديل جدول `employee_forms` (الموجود)
+- إضافة عمود `template_id uuid references form_templates(id)` (nullable للحفاظ على التوافق).
+- إضافة عمود `title text` (لتخزين اسم النموذج وقت التعبئة).
+- لا تغيير على السياسات الحالية.
 
-### جدول جديد: `pos_category_print_rules`
-```sql
-- id uuid PK
-- user_id uuid (tenant)
-- branch_id uuid NULL  -- NULL = كل الفروع
-- category_id uuid NOT NULL → item_categories.id
-- station_id uuid NOT NULL → kitchen_stations.id
-- muted boolean default true  -- وجود الصف = مكتوم
-- created_at, updated_at
-- UNIQUE(user_id, branch_id, category_id, station_id)
-```
-- RLS: مالك حسب user_id فقط
-- GRANT للـ authenticated + service_role
+### Seed: نموذج "الخطة التسويقية الربعية"
+إدخال صف واحد في `form_templates` لكل شركة عندها منصب "مدير التسويق" (أو يدوياً للشركة الحالية فقط). الـ schema يغطي الـ 17 قسم:
+- الفترة (من/إلى) — حقول تاريخ
+- الحملات الشهرية — repeater (شهر، عنوان، مناسبة، هدف، ملاحظات)
+- العروض الترويجية — repeater (اسم العرض، مناسبة، فترة، مكونات، سعر قبل، سعر بعد، آلية)
+- المسابقات / خدمة مجتمعية / فعاليات الأطفال / المؤثرون / الفيديوهات / التطبيقات / الإذاعات / وسائل الإعلام — repeaters
+- مواقع التواصل (فيديوهات + تصاميم) — repeaters
+- الشركات المستهدفة / الشاشات الداخلية / ISO 22000 — repeaters
+- 5 أفكار إبداعية — repeater بسيط (نص)
+- الميزانية — repeater بنود ثابتة + إجمالي محسوب
+- التقرير الختامي — 5 textareas
+- اعتماد — 3 حقول توقيع (مدير التسويق، مدير العمليات، المدير العام) + تاريخ
 
-> ملاحظة: لن يُحذف ولن يُعدّل أي جدول قائم. ولن يُلمس وصل الزبون أبداً — التحكم يطال **تذاكر المحطات فقط**.
+---
 
-## التغييرات في الكود
+## 2) الواجهة الأمامية (Frontend فقط — لا منطق محاسبي)
 
-### 1) `src/pages/POSPage.tsx` (دالة الدفع + handleSendToKitchen)
-- عند تحميل المنتجات للسلة نضيف `category_id` في select.
-- بعد بناء `stationItems` (السطور 3752-3769) نمرر القائمة عبر فلتر:
-  - إذا وُجد صف في `pos_category_print_rules` يطابق (branch, category, station) → نزيل العنصر من تلك المحطة.
-  - فحص branch_id الخاص بالفرع + الصف العام (branch_id NULL).
-- النتيجة: إذا أُطفئت كل أصناف المحطة → لا تُرسل تذكرة لها (السلوك الموجود أصلاً مع `kitchenJobs.filter(items.length>0)`).
-- نفس المنطق في `handleSendToKitchen`.
+### مكوّن `DynamicFormRenderer` جديد
+`src/components/forms/DynamicFormRenderer.tsx` — يبني الفورم من schema:
+- يدعم الأنواع: `text`, `textarea`, `number`, `date`, `select` (مع options ثابتة)، `multi_select`, `repeater` (جدول قابل للإضافة/الحذف على الجوال — كل صف ككرت)، `signature` (Canvas)، `currency`.
+- Mobile-first: كل قسم Accordion (مفتوح/مغلق)، repeater كبطاقات Stacked على الموبايل وجدول على الديسكتوب.
+- زر "حفظ مسودة" + زر "إرسال". المسودة تُحفظ في localStorage عبر `useFormDraft` الموجود.
+- عند الإرسال: insert في `employee_forms` مع `template_id`, `form_type='dynamic_template'`, `form_data={...}`.
 
-### 2) Hook جديد: `src/hooks/usePrintMuteRules.ts`
-- يحمّل القواعد مرة واحدة + cache + realtime invalidate عبر BroadcastChannel "malaky-sync".
-- يصدّر `isMuted(branchId, categoryId, stationId): boolean`.
+### صفحة في بورتال الموظف: "النماذج المسندة لي"
+`src/pages/portal/PortalAssignedFormsPage.tsx`:
+- تجلب من `form_templates` القوالب اللي منصب الموظف الحالي ضمن `target_job_title_ids`.
+- بطاقات كبيرة بكل قالب (اسم، وصف، تكرار، آخر تعبئة).
+- اضغط → يفتح `DynamicFormRenderer`.
+- تبويب "سجل تعبئاتي" يعرض نماذجي السابقة من `employee_forms`.
+- إضافة دخول من البوتم نڤ الموجود في بورتال الموظف.
 
-### 3) شاشة إعدادات: `src/components/settings/CategoryPrintRulesMatrix.tsx`
-- منتقي فرع (مع خيار "كل الفروع").
-- جدول: تصنيفات (صفوف) × محطات نشطة للفرع المختار (أعمدة).
-- كل خلية Checkbox: ✓ تطبع، ✗ لا تطبع.
-- تغيير الخلية → upsert/delete في الجدول + بث `malaky-sync`.
-- زر "إطفاء كل أصناف هذا التصنيف على هذه المحطة لكل الفروع".
+### صفحة Admin: استعراض النماذج المُعبّأة
+نضيف تبويب "نماذج ديناميكية" داخل `Employee360Page` (موجود) يعرض `employee_forms` المرتبطة بـ template_id — يفتح modal فيه قراءة فقط للـ form_data بنفس الـ Renderer (read-only).
 
-### 4) ربطها في إعدادات نقطة البيع
-- إضافة قسم جديد "قواعد طباعة التصنيفات على المحطات" بجانب `KitchenStationsManager` في نفس صفحة الإعدادات الحالية للمطبخ/المحطات.
+### قائمة Admin "إدارة قوالب النماذج" (مبسطة لهالمرحلة)
+`src/pages/hr/FormTemplatesAdminPage.tsx`:
+- جدول بسيط: اسم، فئة، الأشخاص المستهدفون، نشط/متوقف، عدد التعبئات.
+- في هالمرحلة: **لا يوجد بناء visual** — تعديل القالب يدوياً عبر JSON Editor فقط (textarea). الـ Drag & Drop Designer يجي بمرحلة لاحقة (طلبك واضح: هالمرحلة فقط الخطة التسويقية).
+- زر "إسناد" → modal يحدد job_title_ids و employee_ids.
 
-## ما لن يتغير (لحماية الاستقرار)
-- وصل الزبون يُطبع دائماً كما هو.
-- لا تغيير على `image-print-service.ts` ولا على Print Bridge — الفلترة تتم **قبل** إرسال `kitchenJobs`.
-- لا تغيير على جداول kitchen_stations / pos_printers / products.
-- المنطق الموحّد لفرع رام الله بلازا (unified_kitchen) يبقى يعمل لأن الفلترة تسبق دمج الـ items.
+---
 
-## التحقق بعد البناء
-1. بدون أي قاعدة مكتومة → الطباعة تشتغل كما اليوم.
-2. كتم تصنيف "حلويات" على محطة "السخان" في فرع رام الله → بيع صنف حلويات يطبع وصل الزبون + لا تذكرة سخان. باقي الأصناف تطبع طبيعي.
-3. كتم تصنيف على كل المحطات → الصنف يطلع فقط بوصل الزبون.
-4. لا تأثير على بقية الفروع.
+## 3) ما لن يتم في هذه المرحلة (موثّق للمرحلة القادمة)
+- Form Builder بصري (Drag & Drop) — يأتي مع موجة النماذج الأربعة (نظافة، جودة، عقابي، أعطال).
+- تنبيهات realtime للمدير عند التعبئة.
+- جدولة تذكير (cron) للنماذج الدورية (ربعية/شهرية).
+- تصدير PDF لكل تعبئة بتصميم مطابق للنموذج الورقي.
+
+---
+
+## 4) خطوات التنفيذ بالترتيب
+1. Migration: إنشاء `form_templates` + إضافة الأعمدة على `employee_forms` + RLS + GRANTs + Seed للنموذج التسويقي.
+2. مكوّن `DynamicFormRenderer` (يدعم كل الأنواع المذكورة).
+3. صفحة بورتال الموظف "النماذج المسندة لي" + إضافتها للنڤ.
+4. صفحة Admin بسيطة لاستعراض التعبئات داخل بطاقة الموظف.
+5. صفحة Admin لإدارة القوالب (JSON Editor مؤقت).
+6. ترجمات في `hrLabels.ts` (`dynamic_template` → اسم القالب).
+7. Memory update: توثيق محرك النماذج الديناميكي.
+
+---
+
+## ملاحظات تقنية
+- لا تغييرات على المنطق المحاسبي أو قواعد POS.
+- نستخدم نفس نمط `Custom Dashboards Builder` الموجود (JSONB schema) كقاعدة للتصميم.
+- التحقق من المدخلات (Zod) داخل `DynamicFormRenderer` يولّد ديناميكياً من schema.
+
+هل أبلش التنفيذ؟
