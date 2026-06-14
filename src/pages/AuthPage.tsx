@@ -422,8 +422,10 @@ const AuthPage = () => {
               </p>
             </div>
 
-            {/* Session expired banner — shown when redirected here from a
-                stale tab whose Supabase refresh token already expired. */}
+            {/* Session ended banners. Two distinct reasons, two distinct
+                colours, so the user knows whether the system kicked them
+                for inactivity (blue, expected) or whether their refresh
+                token died from being away too long (amber, transient). */}
             {mode === "login" && searchParams.get("reason") === "session_expired" && (
               <div
                 role="alert"
@@ -438,6 +440,22 @@ const AuthPage = () => {
               >
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>انتهت فترة تصفحك للبرنامج</div>
                 <div>الرجاء تسجيل الدخول مرة أخرى للمتابعة.</div>
+              </div>
+            )}
+            {mode === "login" && searchParams.get("reason") === "session_timeout" && (
+              <div
+                role="alert"
+                className="mb-5 rounded-xl p-3 text-xs text-right"
+                style={{
+                  background: '#EAF2FB',
+                  border: '1px solid #B7D2EE',
+                  color: '#1B3E6F',
+                  fontFamily: 'Tajawal',
+                  lineHeight: 1.6,
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>تم تسجيل خروجك تلقائياً</div>
+                <div>بعد فترة من عدم النشاط، تم إنهاء جلستك لحماية بياناتك. الرجاء تسجيل الدخول مرة أخرى.</div>
               </div>
             )}
 

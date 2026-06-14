@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import IdleLogoutGuard from "@/components/IdleLogoutGuard";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -418,6 +419,10 @@ const App = () => (
             <CompanyThemeProvider>
             <GlobalFormFocusProvider />
             <AppUpdatePrompt />
+            {/* App-wide idle-timeout watcher. Reads tenant policy from
+                companies via RPC and is fully cross-tab synchronised.
+                Internally skips /auth, /pos and other public routes. */}
+            <IdleLogoutGuard />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />

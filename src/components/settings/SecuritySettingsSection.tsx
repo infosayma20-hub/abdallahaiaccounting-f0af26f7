@@ -10,6 +10,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
 import PasswordManagementSection from "./PasswordManagementSection";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   settings: CompanySettings;
@@ -17,24 +19,50 @@ interface Props {
 }
 
 const SecuritySettingsSection = ({ settings, onChange }: Props) => {
+  const { toast } = useToast();
   const timeoutValue = settings.security_session_timeout ?? 30;
   const warningValue = settings.security_warning_minutes ?? 2;
 
+  /**
+   * Persist the chosen policy to the canonical company-level columns via
+   * RPC (update_company_session_policy). Realtime on public.companies then
+   * fan-outs to every open tab — owner, employees, all devices — within
+   * a second. We also keep the legacy company_settings.security_* fields
+   * in sync for the transitional period (existing screens still read
+   * from there until they migrate).
+   */
+  const persistPolicy = async (timeout: number, warning: number) => {
+    const { error } = await supabase.rpc("update_company_session_policy", {
+      _timeout_minutes: timeout,
+      _warning_minutes: warning,
+    });
+    if (error) {
+      toast({
+        title: "تعذّر حفظ إعداد الجلسة",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleTimeoutChange = (v: string) => {
     const num = Number(v);
+    // Clamp warning so it never equals/exceeds timeout (the RPC also
+    // enforces this, but reflecting it in the UI avoids a server error
+    // when someone picks 30→0 with warning still at 5).
+    const safeWarning =
+      num === 0 ? 0 : Math.min(warningValue, Math.max(0, num - 1));
     onChange({ security_session_timeout: num });
-    // Sync to SessionManager via event
-    const s = { timeout: num, warning: warningValue };
-    localStorage.setItem("session_timeout_settings", JSON.stringify(s));
-    window.dispatchEvent(new Event("session_settings_updated"));
+    if (safeWarning !== warningValue) {
+      onChange({ security_warning_minutes: safeWarning });
+    }
+    void persistPolicy(num, safeWarning);
   };
 
   const handleWarningChange = (v: string) => {
     const num = Number(v);
     onChange({ security_warning_minutes: num });
-    const s = { timeout: timeoutValue, warning: num };
-    localStorage.setItem("session_timeout_settings", JSON.stringify(s));
-    window.dispatchEvent(new Event("session_settings_updated"));
+    void persistPolicy(timeoutValue, num);
   };
 
   return (
@@ -53,6 +81,12 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
         </h3>
 
         <div className="space-y-4 p-4 bg-muted/20 rounded-xl border border-border/30">
+          <Alert className="py-2">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs leading-relaxed">
+              هذا الإعداد يُطبَّق على كل مستخدمي الشركة (المالك، المدراء، الموظفين، البوابات). لا يشمل نقاط البيع (POS) لأن لها دورة وردية مستقلة.
+            </AlertDescription>
+          </Alert>
           <div className="space-y-2">
             <Label className="font-medium">مدة الخمول قبل تسجيل الخروج</Label>
             <Select value={String(timeoutValue)} onValueChange={handleTimeoutChange}>

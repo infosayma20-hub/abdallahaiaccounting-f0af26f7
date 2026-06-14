@@ -2095,6 +2095,8 @@ export type Database = {
           name: string
           owner_id: string
           phone: string | null
+          session_timeout_minutes: number
+          session_warning_minutes: number
           tax_number: string | null
           updated_at: string
         }
@@ -2110,6 +2112,8 @@ export type Database = {
           name?: string
           owner_id: string
           phone?: string | null
+          session_timeout_minutes?: number
+          session_warning_minutes?: number
           tax_number?: string | null
           updated_at?: string
         }
@@ -2125,6 +2129,8 @@ export type Database = {
           name?: string
           owner_id?: string
           phone?: string | null
+          session_timeout_minutes?: number
+          session_warning_minutes?: number
           tax_number?: string | null
           updated_at?: string
         }
@@ -19351,6 +19357,13 @@ export type Database = {
         Args: { p_date: string; p_user_id: string }
         Returns: string
       }
+      get_effective_session_policy: {
+        Args: { _uid: string }
+        Returns: {
+          timeout_minutes: number
+          warning_minutes: number
+        }[]
+      }
       get_employee_id_for_user: { Args: { _user: string }; Returns: string }
       get_employee_team_schedule: {
         Args: { _end_date: string; _start_date: string }
@@ -19780,6 +19793,10 @@ export type Database = {
         Returns: boolean
       }
       uaao_is_actor_admin: { Args: { _actor: string }; Returns: boolean }
+      update_company_session_policy: {
+        Args: { _timeout_minutes: number; _warning_minutes: number }
+        Returns: undefined
+      }
       update_last_seen: { Args: never; Returns: undefined }
       update_voucher_atomic: {
         Args: {
