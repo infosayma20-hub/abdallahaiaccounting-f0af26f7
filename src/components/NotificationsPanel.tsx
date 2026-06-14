@@ -536,9 +536,32 @@ export const NotificationsPanel = ({
             notifications.map((n, idx) => (
               <button
                 key={n.id}
-                onClick={() => {
+                onClick={async () => {
                   markAsRead(n.id);
-                  if (n.path) { navigate(n.path); onClose(); }
+                  if (n.path) {
+                    // Some server-generated notifications point to /employee/* paths
+                    // which are protected by RoleGuard(employee). For admin/hr_manager
+                    // viewers we remap to the equivalent admin route instead of 404.
+                    let target = n.path;
+                    if (target.startsWith("/employee/") || target === "/employee") {
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                          const { data: rolesData } = await supabase
+                            .from("user_roles").select("role").eq("user_id", user.id);
+                          const roles = (rolesData || []).map((r: any) => r.role);
+                          const isEmployee = roles.includes("employee") && !roles.includes("admin") && !roles.includes("hr_manager");
+                          if (!isEmployee) {
+                            target = target.includes("attendance") || target.includes("alerts")
+                              ? "/hr-attendance"
+                              : "/hr";
+                          }
+                        }
+                      } catch {}
+                    }
+                    navigate(target);
+                    onClose();
+                  }
                 }}
                 style={{
                   width: "100%",
