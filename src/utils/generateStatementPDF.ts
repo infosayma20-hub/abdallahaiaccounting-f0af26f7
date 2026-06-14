@@ -168,6 +168,7 @@ export const generateStatementPDF = (
   viewOpts: StatementPDFViewOptions = {}
 ): jsPDF => {
   const opts = { ...DEFAULT_PDF_VIEW_OPTS, ...viewOpts };
+  if (opts.monochrome) applyMonochrome();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.width;
   const H = doc.internal.pageSize.height;
