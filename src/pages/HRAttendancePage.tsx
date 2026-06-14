@@ -987,7 +987,23 @@ export default function HRAttendancePage() {
       new_values: { ...editRecordForm }, changed_by: user!.id, reason: "تعديل يدوي من HR",
     });
     toast({ title: "تم التحديث" });
-    setEditRecord(null); fetchData(); fetchMissingPunches();
+    const wasFromMissing = editFromMissing;
+    const empId = editRecord.employee_id;
+    const editedId = editRecord.id;
+    setEditRecord(null);
+    fetchData();
+    const freshMap = await fetchMissingPunches();
+    if (wasFromMissing) {
+      const list = (freshMap?.get(empId) || []).filter(x => x.id !== editedId);
+      if (list.length > 0) {
+        // Open the next missing day for the same employee
+        setTimeout(() => openEditRecord(list[0]), 50);
+      } else {
+        setEditFromMissing(false);
+        setMissingDialog(null);
+        toast({ title: "اكتملت جميع البصمات الناقصة لهذا الموظف" });
+      }
+    }
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
