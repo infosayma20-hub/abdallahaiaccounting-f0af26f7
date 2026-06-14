@@ -386,6 +386,8 @@ export default function HRAttendancePage() {
   // Missing punches (last 30 days, per employee)
   const [missingByEmp, setMissingByEmp] = useState<Map<string, AttendanceRecord[]>>(new Map());
   const [missingDialog, setMissingDialog] = useState<{ employeeId: string; employeeName: string } | null>(null);
+  // When true, saving the edit advances to the next missing day for the same employee
+  const [editFromMissing, setEditFromMissing] = useState(false);
 
   // Column sorting for the daily attendance table
   type SortKey =
@@ -627,7 +629,7 @@ export default function HRAttendancePage() {
 
   // ---- Missing punches (last 30 days) ----
   const fetchMissingPunches = useCallback(async () => {
-    if (!user || !dataOwnerId) return;
+    if (!user || !dataOwnerId) return new Map<string, AttendanceRecord[]>();
     const end = new Date(selectedDate);
     const start = new Date(end);
     start.setDate(start.getDate() - 29);
@@ -639,7 +641,7 @@ export default function HRAttendancePage() {
       .gte("attendance_date", startISO)
       .lte("attendance_date", endISO)
       .order("attendance_date", { ascending: false });
-    if (error) return;
+    if (error) return new Map<string, AttendanceRecord[]>();
     const rows = ((data as any[]) || []).filter(r => {
       // Missing = has one punch but not the other, and the day was a working day (status not leave/holiday/absent)
       const hasCi = !!r.first_check_in;
@@ -655,6 +657,7 @@ export default function HRAttendancePage() {
       m.set(r.employee_id, arr);
     });
     setMissingByEmp(m);
+    return m;
   }, [user, dataOwnerId, selectedDate]);
 
   useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
@@ -984,7 +987,23 @@ export default function HRAttendancePage() {
       new_values: { ...editRecordForm }, changed_by: user!.id, reason: "تعديل يدوي من HR",
     });
     toast({ title: "تم التحديث" });
-    setEditRecord(null); fetchData(); fetchMissingPunches();
+    const wasFromMissing = editFromMissing;
+    const empId = editRecord.employee_id;
+    const editedId = editRecord.id;
+    setEditRecord(null);
+    fetchData();
+    const freshMap = await fetchMissingPunches();
+    if (wasFromMissing) {
+      const list = (freshMap?.get(empId) || []).filter(x => x.id !== editedId);
+      if (list.length > 0) {
+        // Open the next missing day for the same employee
+        setTimeout(() => openEditRecord(list[0]), 50);
+      } else {
+        setEditFromMissing(false);
+        setMissingDialog(null);
+        toast({ title: "اكتملت جميع البصمات الناقصة لهذا الموظف" });
+      }
+    }
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
@@ -1949,7 +1968,7 @@ export default function HRAttendancePage() {
       </Dialog>
 
       {/* Edit record */}
-      <Dialog open={!!editRecord} onOpenChange={(o) => !o && setEditRecord(null)}>
+      <Dialog open={!!editRecord} onOpenChange={(o) => { if (!o) { setEditRecord(null); setEditFromMissing(false); } }}>
         <DialogContent dir="rtl">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-primary" /> تعديل سجل {editRecord?.employees?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
@@ -2015,7 +2034,7 @@ export default function HRAttendancePage() {
                         size="sm"
                         variant="outline"
                         className="h-7 gap-1"
-                        onClick={() => { setMissingDialog(null); openEditRecord(mr); }}
+                        onClick={() => { setEditFromMissing(true); openEditRecord(mr); }}
                       >
                         <Pencil className="h-3 w-3" /> تعديل
                       </Button>
