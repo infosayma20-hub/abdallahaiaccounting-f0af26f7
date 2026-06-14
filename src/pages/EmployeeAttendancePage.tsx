@@ -198,6 +198,46 @@ export default function EmployeeAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // 🔴 Realtime: refetch when HR (or any source) updates this employee's
+  // attendance_events / attendance_days / correction_requests so the portal
+  // reflects manual HR check-in/out instantly without needing a page reload.
+  useEffect(() => {
+    if (!employee?.id) return;
+    const empId = employee.id;
+    const channel = supabase
+      .channel(`employee-attendance-sync-${empId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attendance_events", filter: `employee_id=eq.${empId}` },
+        () => fetchData()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attendance_days", filter: `employee_id=eq.${empId}` },
+        () => fetchData()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "correction_requests", filter: `employee_id=eq.${empId}` },
+        () => fetchData()
+      )
+      .subscribe();
+
+    // Safety net: also refetch when tab regains focus, in case Realtime is
+    // throttled or blocked by the network.
+    const onFocus = () => {
+      if (document.visibilityState === "visible") fetchData();
+    };
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [employee?.id, fetchData]);
+
   const handleAttendanceAction = (action: "checkin" | "checkout" | "break_out" | "break_in") => {
     setPendingAction(action);
     setShowQRDialog(true);
