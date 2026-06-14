@@ -140,6 +140,41 @@ export default function FormAccessCenterPage() {
     });
   };
 
+  // Prefetch fill/view counts for all loaded employees so the table columns
+  // are populated without needing to open the "إدارة" dialog first.
+  useEffect(() => {
+    if (loadingList || employees.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const CONCURRENCY = 6;
+      const queue = [...employees];
+      const worker = async () => {
+        while (queue.length && !cancelled) {
+          const e = queue.shift();
+          if (!e) break;
+          try {
+            const { data } = await (supabase as any).rpc("get_employee_form_access", {
+              p_employee_id: e.id,
+            });
+            if (cancelled) return;
+            const rows = (data || []) as Array<{ can_fill: boolean; can_view: boolean }>;
+            const fill = rows.filter((r) => r.can_fill).length;
+            const view = rows.filter((r) => r.can_view).length;
+            setCounts((prev) => {
+              const m = new Map(prev);
+              m.set(e.id, { fill, view });
+              return m;
+            });
+          } catch {
+            /* skip silently — column will keep its dash */
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    })();
+    return () => { cancelled = true; };
+  }, [loadingList, employees]);
+
   return (
     <TooltipProvider delayDuration={150}>
       <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4" dir="rtl">
