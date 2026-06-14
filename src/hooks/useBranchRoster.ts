@@ -79,7 +79,15 @@ export function useManagerBranches() {
         .select("role")
         .eq("user_id", user!.id);
       const r = (roles || []).map((x: any) => x.role);
-      const isAdmin = r.includes("admin") || r.includes("hr_manager") || r.includes("super_admin");
+      // Tenant owner (logged in as themselves) is always treated as admin,
+      // even if they have no explicit user_roles row. Also accept 'manager'.
+      const isAdmin =
+        user!.id === dataOwnerId ||
+        r.length === 0 ||
+        r.includes("admin") ||
+        r.includes("hr_manager") ||
+        r.includes("super_admin") ||
+        r.includes("manager");
       if (isAdmin) {
         const { data: allBr, error: brErr } = await supabase
           .from("branches")
