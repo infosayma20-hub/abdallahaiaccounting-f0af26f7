@@ -22,6 +22,7 @@ import {
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 function startOfWeek(d: Date): Date {
@@ -58,7 +59,18 @@ type CellState = {
 
 export default function BranchRosterPage() {
   const { user } = useAuth();
-  const { data: branches = [], isLoading: bLoading, error: bError } = useManagerBranches();
+  const { dataOwnerId } = useDataOwnerId();
+  const {
+    data: branches = [],
+    isLoading: bLoading,
+    isFetching: bFetching,
+    isPending: bPending,
+    error: bError,
+  } = useManagerBranches();
+  // While auth/owner resolution is still in flight the query is `enabled:false`
+  // and react-query reports isLoading=false (data=undefined). Treat that
+  // window as "still loading" so we don't flash the empty state.
+  const branchesResolving = bLoading || bFetching || (bPending && (!user?.id || !dataOwnerId));
   const [branchId, setBranchId] = useState<string>("");
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
   const [isHrAdmin, setIsHrAdmin] = useState(false);
@@ -192,7 +204,16 @@ export default function BranchRosterPage() {
     );
   }, [filteredEmployees]);
 
-  if (bLoading) return <div className="p-8 text-center">جار التحميل…</div>;
+  if (branchesResolving) {
+    return (
+      <div className="flex h-full min-h-[200px] w-full items-center justify-center" dir="rtl">
+        <div
+          className="w-8 h-8 rounded-full border-2 border-transparent animate-spin"
+          style={{ borderTopColor: "hsl(var(--accent))", borderRightColor: "hsl(var(--accent) / 0.3)" }}
+        />
+      </div>
+    );
+  }
   if (bError) {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
