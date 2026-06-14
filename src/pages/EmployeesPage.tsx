@@ -194,6 +194,31 @@ const EmployeesPage = () => {
     finally { setResettingPassword(false); }
   };
 
+  // Disable / Enable auth account
+  const [togglingAuth, setTogglingAuth] = useState(false);
+  const handleToggleAuthAccount = async () => {
+    if (!selectedEmployee?.auth_user_id) return;
+    const disable = !(selectedEmployee as any).auth_disabled;
+    const confirmMsg = disable
+      ? `سيتم تعطيل حساب ${selectedEmployee.full_name} وتسجيل خروجه من كل الأجهزة. لن يستطيع تسجيل الدخول حتى يُعاد تفعيله. متابعة؟`
+      : `سيتم إعادة تفعيل حساب ${selectedEmployee.full_name} ويستطيع تسجيل الدخول مجدداً. متابعة؟`;
+    if (!window.confirm(confirmMsg)) return;
+    setTogglingAuth(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-employee-account", {
+        body: { action: disable ? "disable-account" : "enable-account", employee_id: selectedEmployee.id },
+      });
+      if (error || data?.error) {
+        toast.error(data?.error || error?.message || "فشلت العملية");
+      } else {
+        toast.success(data.message || (disable ? "تم التعطيل" : "تم التفعيل"));
+        setSelectedEmployee({ ...selectedEmployee, auth_disabled: disable } as any);
+        fetchEmployees();
+      }
+    } catch (err: any) { toast.error(err.message || "خطأ غير متوقع"); }
+    finally { setTogglingAuth(false); }
+  };
+
   // New dialogs
   const [showImport, setShowImport] = useState(false);
   const [showHolidays, setShowHolidays] = useState(false);
