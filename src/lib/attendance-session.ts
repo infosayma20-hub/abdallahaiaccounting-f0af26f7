@@ -9,7 +9,11 @@ export function getOpenAttendanceSession(events: AttendanceEventLike[], maxOpenH
 
   for (const event of sorted) {
     if (event.event_type === "check_in") {
-      if (!open) open = event;
+      // Always track the latest check_in. If a previous check_in was never
+      // matched by a check_out (orphan from a past day), it should NOT mask
+      // a fresh check_in — otherwise the UI thinks there's no open session
+      // and shows the wrong action button.
+      open = event;
     } else if (event.event_type === "check_out") {
       open = null;
     }
