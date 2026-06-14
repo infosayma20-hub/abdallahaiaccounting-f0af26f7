@@ -22,6 +22,7 @@ import { evaluateLoanEligibility, eligibilityBadgeClass, formatCurrency } from "
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
+import EmployeeAssignedTemplates from "@/components/employee/EmployeeAssignedTemplates";
 
 interface Props {
   employeeId: string;
@@ -31,6 +32,8 @@ interface Props {
   onRefresh: () => void;
   initialFormId?: string | null;
   onInitialFormConsumed?: () => void;
+  jobTitle?: string | null;
+  jobTitleName?: string | null;
 }
 
 type FormCard = {
@@ -80,7 +83,10 @@ const statusLabel = (s: string) => {
   }
 };
 
-export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrManager, onRefresh, initialFormId, onInitialFormConsumed }: Props) {
+export default function EmployeeFormsTab({
+  employeeId, userId, isManager, isHrManager, onRefresh,
+  initialFormId, onInitialFormConsumed, jobTitle, jobTitleName,
+}: Props) {
   const isMobile = useIsMobile();
   const [activeForm, setActiveForm] = useState<string | null>(null);
   const [activePolicy, setActivePolicy] = useState<string | null>(null);
