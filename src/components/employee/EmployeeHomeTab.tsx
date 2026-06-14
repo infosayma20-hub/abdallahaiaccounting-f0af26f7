@@ -92,11 +92,17 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
     return () => clearInterval(t);
   }, []);
 
-  // Multi check-in/out: use events to determine current state
+  // Multi check-in/out: use events to determine current state.
+  // IMPORTANT: derive open-session from the SAME source as lastEvent
+  // (todayEvents) so a stale event from a previous day in recentEvents
+  // can't desync the two checks and hide BOTH buttons.
   const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
-  const openSession = getOpenAttendanceSession(recentEvents.length ? recentEvents : todayEvents);
-  const canCheckIn = !openSession && (!lastEvent || lastEvent.event_type === "check_out");
-  const canCheckOut = !!openSession;
+  const openSession = getOpenAttendanceSession(todayEvents);
+  // Treat last check_in as an open session even if getOpenAttendanceSession
+  // returns null (e.g. unmatched check_out earlier in the list).
+  const isOpen = !!openSession || lastEvent?.event_type === "check_in";
+  const canCheckOut = isOpen;
+  const canCheckIn = !isOpen;
   const dayComplete = !!(todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2);
   const status = todayRecord ? statusMap[todayRecord.status] || null : null;
 
