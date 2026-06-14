@@ -357,7 +357,10 @@ Deno.serve(async (req) => {
 
       const sequenceEvents = recentSequenceEvents || [];
       const lastClosedIdx = [...sequenceEvents].map((e) => e.event_type).lastIndexOf("check_out");
-      const openSessionStart = sequenceEvents.slice(lastClosedIdx + 1).find((e) => e.event_type === "check_in") || null;
+      // Pick the MOST RECENT unclosed check_in (not the first), so an old orphan
+      // check_in from a previous day never hijacks today's check-out.
+      const openCandidates = sequenceEvents.slice(lastClosedIdx + 1).filter((e) => e.event_type === "check_in");
+      const openSessionStart = openCandidates.length > 0 ? openCandidates[openCandidates.length - 1] : null;
 
       // Check for open break
       const { data: openBreak } = await supabase
