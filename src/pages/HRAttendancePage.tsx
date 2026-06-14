@@ -104,6 +104,36 @@ type CorrectionReq = {
 type LeaveRow = { employee_id: string; start_date: string; end_date: string; leave_type: string };
 type HolidayRow = { holiday_date: string | null; name: string; is_recurring: boolean | null; recurring_month: number | null; recurring_day: number | null };
 
+function SortableTh<K extends string>({
+  label, k, sortKey, sortDir, onClick, className,
+}: {
+  label: string;
+  k: K;
+  sortKey: K | null;
+  sortDir: "asc" | "desc";
+  onClick: (k: K) => void;
+  className?: string;
+}) {
+  const active = sortKey === k;
+  const Icon = !active ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th className={cn("px-3 py-3 text-right text-xs font-semibold whitespace-nowrap", className)}>
+      <button
+        type="button"
+        onClick={() => onClick(k)}
+        className={cn(
+          "inline-flex items-center gap-1 hover:opacity-90 transition",
+          active ? "opacity-100" : "opacity-80"
+        )}
+        title="ترتيب"
+      >
+        <span>{label}</span>
+        <Icon className="h-3 w-3" />
+      </button>
+    </th>
+  );
+}
+
 // Day type for a given date for a given employee
 type DayType = "working" | "weekly_off" | "holiday" | "leave";
 
