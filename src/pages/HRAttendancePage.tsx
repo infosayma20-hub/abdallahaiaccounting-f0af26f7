@@ -22,6 +22,7 @@ import {
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
   Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info, Camera,
 } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
@@ -102,6 +103,36 @@ type CorrectionReq = {
 
 type LeaveRow = { employee_id: string; start_date: string; end_date: string; leave_type: string };
 type HolidayRow = { holiday_date: string | null; name: string; is_recurring: boolean | null; recurring_month: number | null; recurring_day: number | null };
+
+function SortableTh<K extends string>({
+  label, k, sortKey, sortDir, onClick, className,
+}: {
+  label: string;
+  k: K;
+  sortKey: K | null;
+  sortDir: "asc" | "desc";
+  onClick: (k: K) => void;
+  className?: string;
+}) {
+  const active = sortKey === k;
+  const Icon = !active ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th className={cn("px-3 py-3 text-right text-xs font-semibold whitespace-nowrap", className)}>
+      <button
+        type="button"
+        onClick={() => onClick(k)}
+        className={cn(
+          "inline-flex items-center gap-1 hover:opacity-90 transition",
+          active ? "opacity-100" : "opacity-80"
+        )}
+        title="ترتيب"
+      >
+        <span>{label}</span>
+        <Icon className="h-3 w-3" />
+      </button>
+    </th>
+  );
+}
 
 // Day type for a given date for a given employee
 type DayType = "working" | "weekly_off" | "holiday" | "leave";
@@ -352,6 +383,22 @@ export default function HRAttendancePage() {
   const [selfieLoading, setSelfieLoading] = useState(false);
   const [selfieCapturedAt, setSelfieCapturedAt] = useState<string | null>(null);
 
+  // Missing punches (last 30 days, per employee)
+  const [missingByEmp, setMissingByEmp] = useState<Map<string, AttendanceRecord[]>>(new Map());
+  const [missingDialog, setMissingDialog] = useState<{ employeeId: string; employeeName: string } | null>(null);
+
+  // Column sorting for the daily attendance table
+  type SortKey =
+    | "employee" | "branch" | "department" | "job_title"
+    | "checkin" | "checkout" | "hours" | "late" | "overtime"
+    | "status" | "missing";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("asc"); }
+  };
+
   // Day-type sources
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
@@ -578,6 +625,40 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // ---- Missing punches (last 30 days) ----
+  const fetchMissingPunches = useCallback(async () => {
+    if (!user || !dataOwnerId) return;
+    const end = new Date(selectedDate);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 29);
+    const startISO = start.toISOString().slice(0, 10);
+    const endISO = end.toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from("attendance_days")
+      .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id)")
+      .gte("attendance_date", startISO)
+      .lte("attendance_date", endISO)
+      .order("attendance_date", { ascending: false });
+    if (error) return;
+    const rows = ((data as any[]) || []).filter(r => {
+      // Missing = has one punch but not the other, and the day was a working day (status not leave/holiday/absent)
+      const hasCi = !!r.first_check_in;
+      const hasCo = !!r.last_check_out;
+      const oneMissing = (hasCi && !hasCo) || (!hasCi && hasCo);
+      const excluded = ["leave", "holiday", "absent"].includes(r.status);
+      return oneMissing && !excluded;
+    });
+    const m = new Map<string, AttendanceRecord[]>();
+    rows.forEach(r => {
+      const arr = m.get(r.employee_id) || [];
+      arr.push(r as AttendanceRecord);
+      m.set(r.employee_id, arr);
+    });
+    setMissingByEmp(m);
+  }, [user, dataOwnerId, selectedDate]);
+
+  useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
+
   // Fetch user roles for permission gating
   useEffect(() => {
     if (!user) return;
@@ -687,8 +768,35 @@ export default function HRAttendancePage() {
         (x.row.employees?.job_title || "").toLowerCase().includes(q)
       );
     }
+    if (sortKey) {
+      const branchName = (id: string | null) => branches.find(b => b.id === id)?.name || "";
+      const tsVal = (s: string | null) => (s ? new Date(s).getTime() : Number.POSITIVE_INFINITY);
+      const getVal = (x: typeof rows[number]): string | number => {
+        switch (sortKey) {
+          case "employee": return x.row.employees?.full_name || "";
+          case "branch": return branchName(x.row.branch_id);
+          case "department": return x.row.employees?.department || "";
+          case "job_title": return x.row.employees?.job_title || "";
+          case "checkin": return tsVal(x.row.first_check_in);
+          case "checkout": return tsVal(x.row.last_check_out);
+          case "hours": return x.row.total_hours || 0;
+          case "late": return x.issue.lateMin || 0;
+          case "overtime": return x.row.overtime_hours || 0;
+          case "status": return tAttendanceStatus(x.row.status) || "";
+          case "missing": return (missingByEmp.get(x.row.employee_id)?.length) || 0;
+          default: return "";
+        }
+      };
+      rows = [...rows].sort((a, b) => {
+        const va = getVal(a); const vb = getVal(b);
+        let cmp = 0;
+        if (typeof va === "number" && typeof vb === "number") cmp = va - vb;
+        else cmp = String(va).localeCompare(String(vb), "ar");
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
     return rows;
-  }, [enriched, filter, search]);
+  }, [enriched, filter, search, sortKey, sortDir, branches, missingByEmp]);
 
   // ------------------ Branch CRUD (kept) ------------------
   const createBranch = async () => {
@@ -876,7 +984,7 @@ export default function HRAttendancePage() {
       new_values: { ...editRecordForm }, changed_by: user!.id, reason: "تعديل يدوي من HR",
     });
     toast({ title: "تم التحديث" });
-    setEditRecord(null); fetchData();
+    setEditRecord(null); fetchData(); fetchMissingPunches();
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
@@ -1572,17 +1680,18 @@ export default function HRAttendancePage() {
                           onChange={toggleSelectAllVisible}
                         />
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px] whitespace-nowrap">الموظف</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الفرع</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">القسم</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المسمى</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الدخول</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الخروج</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الساعات</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">التأخير</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إضافي</th>
+                      <SortableTh label="الموظف" k="employee" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} className="min-w-[200px]" />
+                      <SortableTh label="الفرع" k="branch" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="القسم" k="department" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="المسمى" k="job_title" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="الدخول" k="checkin" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="الخروج" k="checkout" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="الساعات" k="hours" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="التأخير" k="late" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="إضافي" k="overtime" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                       <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المشكلة</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الحالة</th>
+                      <SortableTh label="الحالة" k="status" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
+                      <SortableTh label="بصمات ناقصة (30 يوم)" k="missing" sortKey={sortKey} sortDir={sortDir} onClick={toggleSort} />
                       <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">ملاحظات</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إجراءات</th>
                     </tr>
@@ -1637,6 +1746,23 @@ export default function HRAttendancePage() {
                             <Badge variant="outline" className={cn("text-xs", statusBadgeClass(r.status))}>
                               {tAttendanceStatus(r.status)}
                             </Badge>
+                          </td>
+                          <td className="px-3 py-3">
+                            {(() => {
+                              const cnt = missingByEmp.get(r.employee_id)?.length || 0;
+                              if (cnt === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => setMissingDialog({ employeeId: r.employee_id, employeeName: r.employees?.full_name || "" })}
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-1 rounded-md transition"
+                                  title="عرض الأيام الناقصة"
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  {cnt}
+                                </button>
+                              );
+                            })()}
                           </td>
                           <td className="px-3 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</td>
                           <td className="px-3 py-3">
@@ -1851,6 +1977,57 @@ export default function HRAttendancePage() {
             </div>
           </div>
           <DialogFooter><Button onClick={saveEditRecord} className="w-full">حفظ التعديل</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Missing punches per employee */}
+      <Dialog open={!!missingDialog} onOpenChange={(o) => !o && setMissingDialog(null)}>
+        <DialogContent dir="rtl" className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              البصمات الناقصة — {missingDialog?.employeeName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-xs text-muted-foreground mb-2">
+            آخر 30 يوم — أيام فيها دخول بدون خروج أو خروج بدون دخول. اضغط «تعديل» لإكمال البصمة.
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-muted text-foreground">
+                  <th className="px-3 py-2 text-right text-xs">التاريخ</th>
+                  <th className="px-3 py-2 text-right text-xs">الدخول</th>
+                  <th className="px-3 py-2 text-right text-xs">الخروج</th>
+                  <th className="px-3 py-2 text-right text-xs">الحالة</th>
+                  <th className="px-3 py-2 text-right text-xs">إجراء</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(missingDialog ? (missingByEmp.get(missingDialog.employeeId) || []) : []).map((mr) => (
+                  <tr key={mr.id} className="border-b border-border/50">
+                    <td className="px-3 py-2 whitespace-nowrap">{fmtDateDisplay(mr.attendance_date)}</td>
+                    <td className="px-3 py-2 tabular-nums">{mr.first_check_in ? format(new Date(mr.first_check_in), "hh:mm a") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
+                    <td className="px-3 py-2 tabular-nums">{mr.last_check_out ? format(new Date(mr.last_check_out), "hh:mm a") : <span className="text-red-600 font-semibold">ناقصة</span>}</td>
+                    <td className="px-3 py-2"><Badge variant="outline" className={cn("text-xs", statusBadgeClass(mr.status))}>{tAttendanceStatus(mr.status)}</Badge></td>
+                    <td className="px-3 py-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1"
+                        onClick={() => { setMissingDialog(null); openEditRecord(mr); }}
+                      >
+                        <Pencil className="h-3 w-3" /> تعديل
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {missingDialog && (missingByEmp.get(missingDialog.employeeId) || []).length === 0 && (
+                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground text-sm">لا توجد بصمات ناقصة 🎉</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </DialogContent>
       </Dialog>
 
