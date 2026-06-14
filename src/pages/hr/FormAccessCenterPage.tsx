@@ -52,7 +52,7 @@ export default function FormAccessCenterPage() {
       const { data: emps } = await (supabase as any)
         .from("employees")
         .select("id, full_name, job_title, branch_id, auth_user_id")
-        .eq("status", "active")
+        .eq("employment_status", "active")
         .eq("is_deleted", false)
         .order("full_name", { ascending: true })
         .limit(500);
