@@ -22,6 +22,7 @@ import {
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
   Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info, Camera,
 } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
@@ -351,6 +352,22 @@ export default function HRAttendancePage() {
   const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [selfieLoading, setSelfieLoading] = useState(false);
   const [selfieCapturedAt, setSelfieCapturedAt] = useState<string | null>(null);
+
+  // Missing punches (last 30 days, per employee)
+  const [missingByEmp, setMissingByEmp] = useState<Map<string, AttendanceRecord[]>>(new Map());
+  const [missingDialog, setMissingDialog] = useState<{ employeeId: string; employeeName: string } | null>(null);
+
+  // Column sorting for the daily attendance table
+  type SortKey =
+    | "employee" | "branch" | "department" | "job_title"
+    | "checkin" | "checkout" | "hours" | "late" | "overtime"
+    | "status" | "missing";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("asc"); }
+  };
 
   // Day-type sources
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
