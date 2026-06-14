@@ -5616,6 +5616,8 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          template_id: string | null
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -5630,6 +5632,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          template_id?: string | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
@@ -5644,6 +5648,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          template_id?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -5660,6 +5666,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_forms_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -6945,6 +6958,63 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      form_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          is_system: boolean
+          name: string
+          reviewer_role: string
+          schema: Json
+          target_employee_ids: string[]
+          target_job_title_names: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          is_system?: boolean
+          name: string
+          reviewer_role?: string
+          schema?: Json
+          target_employee_ids?: string[]
+          target_job_title_names?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          is_system?: boolean
+          name?: string
+          reviewer_role?: string
+          schema?: Json
+          target_employee_ids?: string[]
+          target_job_title_names?: string[]
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -19374,6 +19444,10 @@ export type Database = {
       }
       is_team_member: {
         Args: { _data_owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_template_assigned_to_employee: {
+        Args: { _employee_id: string; _template_id: string }
         Returns: boolean
       }
       kds_business_date: { Args: { _at?: string }; Returns: string }
