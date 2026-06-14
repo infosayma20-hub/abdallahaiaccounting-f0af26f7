@@ -357,7 +357,10 @@ Deno.serve(async (req) => {
 
       const sequenceEvents = recentSequenceEvents || [];
       const lastClosedIdx = [...sequenceEvents].map((e) => e.event_type).lastIndexOf("check_out");
-      const openSessionStart = sequenceEvents.slice(lastClosedIdx + 1).find((e) => e.event_type === "check_in") || null;
+      // Pick the MOST RECENT unclosed check_in (not the first), so an old orphan
+      // check_in from a previous day never hijacks today's check-out.
+      const openCandidates = sequenceEvents.slice(lastClosedIdx + 1).filter((e) => e.event_type === "check_in");
+      const openSessionStart = openCandidates.length > 0 ? openCandidates[openCandidates.length - 1] : null;
 
       // Check for open break
       const { data: openBreak } = await supabase
@@ -483,10 +486,18 @@ Deno.serve(async (req) => {
       // Validate sequence
       if (eventType === "check_in") {
         if (openSessionStart) {
-          return new Response(
-            JSON.stringify({ error: "لديك بصمة دخول مسجلة بدون خروج. سجّل خروجك أولاً" }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          // If the open check_in belongs to a previous attendance day (Hebron),
+          // treat it as a missing check-out — do NOT auto-stamp it (policy) and do
+          // NOT block the new day's check-in. The orphan day stays "incomplete"
+          // and surfaces in the employee's Alerts tab for correction.
+          const openDate = hebronDateFromIso(openSessionStart.event_time);
+          if (openDate === today) {
+            return new Response(
+              JSON.stringify({ error: "لديك بصمة دخول مسجلة بدون خروج. سجّل خروجك أولاً" }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          // Different day → allow the new check-in to proceed.
         }
       } else {
         // check_out
