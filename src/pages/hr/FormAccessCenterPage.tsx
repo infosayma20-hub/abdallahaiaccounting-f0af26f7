@@ -17,6 +17,7 @@ type EmployeeRow = {
   branch_name: string | null;
   auth_user_id: string | null;
   roles: string[];
+  is_call_center?: boolean;
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -62,12 +63,18 @@ export default function FormAccessCenterPage() {
       const branchIds = Array.from(new Set(list.map((e) => e.branch_id).filter(Boolean)));
       const authIds = Array.from(new Set(list.map((e) => e.auth_user_id).filter(Boolean)));
 
-      const [{ data: brs }, { data: rls }] = await Promise.all([
+      const [{ data: brs }, { data: rls }, { data: posU }] = await Promise.all([
         branchIds.length
           ? (supabase as any).from("branches_safe").select("id, name").in("id", branchIds)
           : Promise.resolve({ data: [] }),
         authIds.length
           ? (supabase as any).from("user_roles").select("user_id, role").in("user_id", authIds)
+          : Promise.resolve({ data: [] }),
+        authIds.length
+          ? (supabase as any)
+              .from("pos_users")
+              .select("auth_user_id, is_call_center, is_active")
+              .in("auth_user_id", authIds)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -79,16 +86,33 @@ export default function FormAccessCenterPage() {
         arr.push(r.role);
         rolesMap.set(r.user_id, arr);
       });
+      // Build set of auth users that are active call-center cashiers
+      const ccSet = new Set<string>();
+      (posU || []).forEach((p: any) => {
+        if (p?.is_active && p?.is_call_center && p?.auth_user_id) {
+          ccSet.add(p.auth_user_id);
+        }
+      });
 
       setEmployees(
-        list.map((e) => ({
-          id: e.id,
-          full_name: e.full_name,
-          job_title: e.job_title,
-          branch_name: e.branch_id ? brMap.get(e.branch_id) ?? null : null,
-          auth_user_id: e.auth_user_id,
-          roles: e.auth_user_id ? rolesMap.get(e.auth_user_id) || [] : [],
-        })),
+        list.map((e) => {
+          const baseRoles = e.auth_user_id ? rolesMap.get(e.auth_user_id) || [] : [];
+          const isCC = !!(e.auth_user_id && ccSet.has(e.auth_user_id));
+          // Display-level swap: if user is a call-center POS user, surface
+          // 'call_center' instead of 'cashier' so HR sees the real job.
+          const displayRoles = isCC
+            ? Array.from(new Set(baseRoles.map((r) => (r === "cashier" ? "call_center" : r))))
+            : baseRoles;
+          return {
+            id: e.id,
+            full_name: e.full_name,
+            job_title: e.job_title,
+            branch_name: e.branch_id ? brMap.get(e.branch_id) ?? null : null,
+            auth_user_id: e.auth_user_id,
+            roles: displayRoles,
+            is_call_center: isCC,
+          };
+        }),
       );
       setLoadingList(false);
     })();
