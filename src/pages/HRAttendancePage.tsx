@@ -595,6 +595,40 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // ---- Missing punches (last 30 days) ----
+  const fetchMissingPunches = useCallback(async () => {
+    if (!user || !dataOwnerId) return;
+    const end = new Date(selectedDate);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 29);
+    const startISO = start.toISOString().slice(0, 10);
+    const endISO = end.toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from("attendance_days")
+      .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id)")
+      .gte("attendance_date", startISO)
+      .lte("attendance_date", endISO)
+      .order("attendance_date", { ascending: false });
+    if (error) return;
+    const rows = ((data as any[]) || []).filter(r => {
+      // Missing = has one punch but not the other, and the day was a working day (status not leave/holiday/absent)
+      const hasCi = !!r.first_check_in;
+      const hasCo = !!r.last_check_out;
+      const oneMissing = (hasCi && !hasCo) || (!hasCi && hasCo);
+      const excluded = ["leave", "holiday", "absent"].includes(r.status);
+      return oneMissing && !excluded;
+    });
+    const m = new Map<string, AttendanceRecord[]>();
+    rows.forEach(r => {
+      const arr = m.get(r.employee_id) || [];
+      arr.push(r as AttendanceRecord);
+      m.set(r.employee_id, arr);
+    });
+    setMissingByEmp(m);
+  }, [user, dataOwnerId, selectedDate]);
+
+  useEffect(() => { fetchMissingPunches(); }, [fetchMissingPunches]);
+
   // Fetch user roles for permission gating
   useEffect(() => {
     if (!user) return;
