@@ -74,13 +74,15 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         .eq("is_deleted", false);
       if (tplErr) throw tplErr;
 
-      // Filter client-side: match employee_id OR job_title name
-      const myJobs = [jobTitle, jobTitleName].filter(Boolean) as string[];
+      // Filter client-side: match employee_id OR EXACT job_title name (after normalize).
+      // Strict equality only — never substring — to prevent other employees from seeing
+      // templates targeted at specific job titles (e.g. "مدير تسويق").
+      const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+      const myJobs = [jobTitle, jobTitleName].filter(Boolean).map((s) => norm(s as string));
       const matched = (tplData || []).filter((t: any) => {
         const inEmps = (t.target_employee_ids || []).includes(employeeId);
-        const inJobs = (t.target_job_title_names || []).some((n: string) =>
-          myJobs.some((my) => my && (my === n || my.includes(n) || n.includes(my)))
-        );
+        const targets = (t.target_job_title_names || []).map((n: string) => norm(n));
+        const inJobs = targets.some((n: string) => myJobs.includes(n));
         return inEmps || inJobs;
       });
       setTemplates(matched as Template[]);
