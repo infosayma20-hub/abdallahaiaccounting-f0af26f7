@@ -1613,46 +1613,7 @@ const AccountStatementV2Page = () => {
                     if (wrap) wrap.style.minHeight = h + "px";
                   } catch {}
                 }}
-                srcDoc={buildAccountStatementPrintHTML({
-                  company: {
-                    name: companyInfo.name || "AMWALI",
-                    logo_url: companyInfo.logo_url,
-                    address: companyInfo.address,
-                    phone: companyInfo.phone,
-                    email: companyInfo.email,
-                    tax_number: companyInfo.tax_number,
-                  },
-                  contact: {
-                    name: selectedEntityName,
-                    type: selectedContact?.contact_type || (isEmployeesTab ? "موظف" : isAccountsTab ? "حساب" : ""),
-                    code: selectedEntityCode,
-                    phone: selectedContact?.phone || "",
-                  },
-                  rows: filteredRows.map((r) => ({
-                    date: r.date,
-                    description: r.description,
-                    transaction_type: r.transaction_type,
-                    reference: r.reference,
-                    debit: r.debit,
-                    credit: r.credit,
-                    balance: r.balance,
-                    transaction_id: r.transaction_id,
-                    dueDate: r.dueDate,
-                  })),
-                  openingBalance,
-                  totalDebit,
-                  totalCredit,
-                  closingBalance,
-                  dateFrom,
-                  dateTo,
-                  statementNumber: stableSOANumber,
-                  currencyLabel: statementCurrency || "شيكل إسرائيلي (₪)",
-                  currencySymbol: getCurrencySymbol(statementCurrency || "شيكل"),
-                  includeInvoiceDetails: !!statementOptions.showInvoiceDetails,
-                  invoiceDetailsByRef: detailsMap.invoiceDetailsById || {},
-                  showReference: !!statementOptions.showReference,
-                  showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
-                })}
+                srcDoc={buildCurrentStatementPrintHTML()}
                 style={{
                   width: "100%",
                   height: "297mm",

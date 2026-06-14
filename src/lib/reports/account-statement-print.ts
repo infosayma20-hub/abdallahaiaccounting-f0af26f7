@@ -318,7 +318,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
 
   // ─── CSS (minimal, B&W, A4) ───
   const css = `
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 14mm 18mm; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #fff; color: #111; }
     body {
@@ -328,6 +328,13 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
       line-height: 1.45;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+    }
+    @media screen {
+      body {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 14mm 18mm;
+      }
     }
     .muted { color: #555; font-size: 10px; }
     em { font-style: italic; color: #444; }
@@ -343,8 +350,8 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     .doc-head__right { text-align: right; }
     .doc-head__left { text-align: left; }
     .doc-company { font-size: 16px; font-weight: 700; }
-    .doc-title { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
-    .doc-title-en { font-size: 9px; color: #555; letter-spacing: 1px; margin-top: 2px; }
+    .doc-title { font-size: 16px; font-weight: 700; letter-spacing: 0; }
+    .doc-title-en { font-size: 9px; color: #555; letter-spacing: 0; margin-top: 2px; }
     .doc-meta-line { font-size: 10px; color: #444; margin-top: 2px; }
 
     /* Info block */
@@ -445,6 +452,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     .doc-summary, .doc-info, .doc-head { page-break-inside: avoid; break-inside: avoid; }
 
     @media print {
+      body { padding: 0; }
       .no-print { display: none !important; }
     }
   `;
