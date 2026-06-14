@@ -422,6 +422,25 @@ const AuthPage = () => {
               </p>
             </div>
 
+            {/* Session expired banner — shown when redirected here from a
+                stale tab whose Supabase refresh token already expired. */}
+            {mode === "login" && searchParams.get("reason") === "session_expired" && (
+              <div
+                role="alert"
+                className="mb-5 rounded-xl p-3 text-xs text-right"
+                style={{
+                  background: '#FFF7E6',
+                  border: '1px solid #F5D38A',
+                  color: '#7A4A00',
+                  fontFamily: 'Tajawal',
+                  lineHeight: 1.6,
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>انتهت فترة تصفحك للبرنامج</div>
+                <div>الرجاء تسجيل الدخول مرة أخرى للمتابعة.</div>
+              </div>
+            )}
+
             {/* Biometric */}
             {mode === "login" && supportsPasskeys && savedEmail && (
               <button

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { resolveUserAccessContext } from "@/lib/accessContext";
+import { redirectToSessionExpired } from "@/lib/sessionExpired";
+import { supabase } from "@/integrations/supabase/client";
 
 type BlockKey =
   | "unlinked"
@@ -46,16 +48,39 @@ export default function BlockedAccessPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setResolving(false); return; }
+    if (!user) {
+      // Landed on /blocked without a user → almost always means the session
+      // just expired (refresh token rejected). Send the user to /auth with
+      // the friendly banner instead of showing the red blocked screen.
+      redirectToSessionExpired();
+      setResolving(false);
+      return;
+    }
     let cancelled = false;
-    resolveUserAccessContext(user.id, { force: true })
-      .then((ctx) => {
+    // Before doing the (heavier) access-context resolve, do a cheap session
+    // probe. If supabase says we have no live session, this is a stale-tab
+    // case — redirect to /auth and skip the blocked page entirely.
+    supabase.auth.getSession()
+      .then(({ data }) => {
         if (cancelled) return;
+        if (!data?.session) {
+          redirectToSessionExpired();
+          return;
+        }
+        return resolveUserAccessContext(user.id, { force: true });
+      })
+      .then((ctx) => {
+        if (cancelled || !ctx) return;
         if (ctx.defaultRoute && !ctx.defaultRoute.startsWith("/blocked")) {
           setRedirectTo(ctx.defaultRoute);
         }
       })
-      .catch(() => { /* fall through to showing the blocked page */ })
+      .catch((err) => {
+        // accessContext already triggers the session-expired redirect for
+        // JWT errors; we just stay quiet and let the navigation happen.
+        if ((err as Error)?.message === "session_expired") return;
+        /* fall through to showing the blocked page for other errors */
+      })
       .finally(() => { if (!cancelled) setResolving(false); });
     return () => { cancelled = true; };
   }, [user, authLoading]);

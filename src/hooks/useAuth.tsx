@@ -2,6 +2,7 @@ import { useEffect, useState, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { normalizeAuthSessionExpiry, releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
+import { redirectToSessionExpired } from "@/lib/sessionExpired";
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const stopRefreshCoordinator = startAuthRefreshCoordinator();
+
+    // Track whether we had a user before, so we can distinguish:
+    //   - SIGNED_OUT from a normal explicit signOut click (had user → now null,
+    //     navigated by the click handler itself), vs.
+    //   - SIGNED_OUT triggered by Supabase because the refresh token was
+    //     rejected by the server (we were idle/asleep and the session died).
+    // The second case needs a hard redirect to /auth?reason=session_expired
+    // so the user sees a friendly banner instead of landing on /blocked.
+    let hadUser = false;
+    let explicitSignOut = false;
+    // Expose a tiny flag so signOut() below can mark itself as explicit.
+    const markExplicitSignOut = () => { explicitSignOut = true; };
+    (window as any).__amwaliExplicitSignOut = markExplicitSignOut;
 
     const logEvent = async (event_type: string, sess: Session | null) => {
       const u = sess?.user;
@@ -65,6 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
 
       if (event === "SIGNED_IN") {
+        hadUser = true;
         // Clear any stale workspace-choice from a previous user in this tab
         // so the chooser screen re-appears after every fresh login (e.g. when
         // a cashier signs out and another employee signs in on the same
@@ -79,6 +94,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setTimeout(() => logEvent("password_recovery", session), 0);
       } else if (event === "USER_UPDATED") {
         setTimeout(() => logEvent("user_updated", session), 0);
+      } else if (event === "SIGNED_OUT") {
+        // If the user was signed in moments ago and this SIGNED_OUT was NOT
+        // triggered by an explicit logout click, treat it as an expired
+        // session and redirect with the banner reason. The redirect helper
+        // is single-fire so it's safe even if multiple events race.
+        if (hadUser && !explicitSignOut) {
+          redirectToSessionExpired();
+        }
+        hadUser = false;
+        explicitSignOut = false;
+      } else if (event === "TOKEN_REFRESHED") {
+        hadUser = !!session?.user;
+      } else if (event === "INITIAL_SESSION") {
+        hadUser = !!session?.user;
       }
     });
 
@@ -92,6 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (prev?.id === next?.id) return prev;
           return next;
         });
+        hadUser = !!session?.user;
       })
       .catch((err) => {
         // Network error / Supabase cold start — never leave the whole app
@@ -103,13 +133,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
       });
 
+    // When the tab becomes visible again after being backgrounded, verify
+    // the Supabase session is still alive on the server. If it isn't, our
+    // local React `user` is stale and any RPC will return null/401 — which
+    // is exactly what lands employees on the red "غير مرتبط بشركة" screen.
+    // We redirect them straight to /auth with a friendly banner instead.
+    const handleVisibility = async () => {
+      if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+      if (!hadUser) return;
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data?.session) {
+          // Server says the session is gone. Don't trust local state.
+          redirectToSessionExpired();
+          return;
+        }
+        // If the access token has already expired, force a refresh attempt.
+        const expiresAt = data.session.expires_at; // seconds since epoch
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (expiresAt && expiresAt <= nowSec) {
+          const { error: refErr } = await supabase.auth.refreshSession();
+          if (refErr) {
+            redirectToSessionExpired();
+          }
+        }
+      } catch {
+        // Network errors do NOT count as session expiry. Stay put.
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
+
     return () => {
       subscription.unsubscribe();
       stopRefreshCoordinator();
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
+      try { delete (window as any).__amwaliExplicitSignOut; } catch {}
     };
   }, []);
 
   const signOut = async () => {
+    // Mark this sign-out as explicit so onAuthStateChange does NOT treat
+    // the resulting SIGNED_OUT event as a session-expired redirect.
+    try { (window as any).__amwaliExplicitSignOut?.(); } catch {}
     const currentUser = user;
     if (currentUser) {
       try {
