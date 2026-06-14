@@ -6241,6 +6241,9 @@ export type Database = {
           admin_allowance: number | null
           annual_leave_balance: number | null
           annual_leave_days: number
+          auth_disabled: boolean
+          auth_disabled_at: string | null
+          auth_disabled_by: string | null
           auth_user_id: string | null
           bank_account: string | null
           bank_name: string | null
@@ -6314,6 +6317,9 @@ export type Database = {
           admin_allowance?: number | null
           annual_leave_balance?: number | null
           annual_leave_days?: number
+          auth_disabled?: boolean
+          auth_disabled_at?: string | null
+          auth_disabled_by?: string | null
           auth_user_id?: string | null
           bank_account?: string | null
           bank_name?: string | null
@@ -6387,6 +6393,9 @@ export type Database = {
           admin_allowance?: number | null
           annual_leave_balance?: number | null
           annual_leave_days?: number
+          auth_disabled?: boolean
+          auth_disabled_at?: string | null
+          auth_disabled_by?: string | null
           auth_user_id?: string | null
           bank_account?: string | null
           bank_name?: string | null

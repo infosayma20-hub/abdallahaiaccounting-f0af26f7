@@ -55,6 +55,76 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const action = body.action || "create";
 
+    // ==================== DISABLE / ENABLE ACCOUNT ====================
+    if (action === "disable-account" || action === "enable-account") {
+      const { employee_id } = body;
+      if (!employee_id) {
+        return new Response(
+          JSON.stringify({ error: "البيانات ناقصة" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: employee, error: empErr } = await supabase
+        .from("employees")
+        .select("id, full_name, auth_user_id")
+        .eq("id", employee_id)
+        .eq("user_id", adminUser.id)
+        .single();
+
+      if (empErr || !employee) {
+        return new Response(
+          JSON.stringify({ error: "الموظف غير موجود" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!employee.auth_user_id) {
+        return new Response(
+          JSON.stringify({ error: "هذا الموظف ليس لديه حساب" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const disable = action === "disable-account";
+      // Ban for 100 years to disable, or 'none' to re-enable
+      const banDuration = disable ? "876000h" : "none";
+      const { error: banErr } = await (supabase.auth.admin as any).updateUserById(
+        employee.auth_user_id,
+        { ban_duration: banDuration }
+      );
+      if (banErr) {
+        return new Response(
+          JSON.stringify({ error: banErr.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (disable) {
+        // Force sign-out from all active sessions
+        try { await (supabase.auth.admin as any).signOut(employee.auth_user_id, "global"); } catch (_) {}
+      }
+
+      await supabase
+        .from("employees")
+        .update({
+          auth_disabled: disable,
+          auth_disabled_at: disable ? new Date().toISOString() : null,
+          auth_disabled_by: disable ? adminUser.id : null,
+        } as any)
+        .eq("id", employee_id);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: disable
+            ? `تم تعطيل حساب ${employee.full_name} ولن يستطيع تسجيل الدخول ✅`
+            : `تم إعادة تفعيل حساب ${employee.full_name} ✅`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ==================== RESET PASSWORD ====================
     if (action === "reset-password") {
       const { employee_id, new_password } = body;

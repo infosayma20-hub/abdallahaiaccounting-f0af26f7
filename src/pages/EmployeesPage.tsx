@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import SalesRepToggleSection from "@/components/employees/SalesRepToggleSection";
 import CashierToggleSection from "@/components/employees/CashierToggleSection";
@@ -192,6 +192,31 @@ const EmployeesPage = () => {
       else { toast.success(data.message || "تم إعادة تعيين كلمة المرور بنجاح"); setShowResetPassword(false); setResetPasswordValue(""); }
     } catch (err: any) { toast.error(err.message || "خطأ غير متوقع"); }
     finally { setResettingPassword(false); }
+  };
+
+  // Disable / Enable auth account
+  const [togglingAuth, setTogglingAuth] = useState(false);
+  const handleToggleAuthAccount = async () => {
+    if (!selectedEmployee?.auth_user_id) return;
+    const disable = !(selectedEmployee as any).auth_disabled;
+    const confirmMsg = disable
+      ? `سيتم تعطيل حساب ${selectedEmployee.full_name} وتسجيل خروجه من كل الأجهزة. لن يستطيع تسجيل الدخول حتى يُعاد تفعيله. متابعة؟`
+      : `سيتم إعادة تفعيل حساب ${selectedEmployee.full_name} ويستطيع تسجيل الدخول مجدداً. متابعة؟`;
+    if (!window.confirm(confirmMsg)) return;
+    setTogglingAuth(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-employee-account", {
+        body: { action: disable ? "disable-account" : "enable-account", employee_id: selectedEmployee.id },
+      });
+      if (error || data?.error) {
+        toast.error(data?.error || error?.message || "فشلت العملية");
+      } else {
+        toast.success(data.message || (disable ? "تم التعطيل" : "تم التفعيل"));
+        setSelectedEmployee({ ...selectedEmployee, auth_disabled: disable } as any);
+        fetchEmployees();
+      }
+    } catch (err: any) { toast.error(err.message || "خطأ غير متوقع"); }
+    finally { setTogglingAuth(false); }
   };
 
   // New dialogs
@@ -899,10 +924,23 @@ const EmployeesPage = () => {
                 )}
                 {selectedEmployee.auth_user_id && (
                   <>
-                    <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                    {(selectedEmployee as any).auth_disabled ? (
+                      <Badge className="text-[10px] bg-destructive/15 text-destructive border-destructive/30">حساب معطّل ⛔</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                    )}
                     <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setResetPasswordValue(""); setShowResetPassword(true); }}>
                       <Shield className="h-3 w-3" /> إعادة كلمة المرور
                     </Button>
+                    {(selectedEmployee as any).auth_disabled ? (
+                      <Button size="sm" variant="outline" className="gap-1 text-xs text-emerald-600 border-emerald-300" onClick={handleToggleAuthAccount} disabled={togglingAuth}>
+                        <CheckCircle2 className="h-3 w-3" /> {togglingAuth ? "..." : "تفعيل الحساب"}
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" className="gap-1 text-xs text-destructive border-destructive/40" onClick={handleToggleAuthAccount} disabled={togglingAuth}>
+                        <Ban className="h-3 w-3" /> {togglingAuth ? "..." : "غير فعال (تعطيل الحساب)"}
+                      </Button>
+                    )}
                   </>
                 )}
                 <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={generateSalarySlip}>
