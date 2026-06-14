@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileText, CheckCircle2, Calendar, ChevronLeft } from "lucide-react";
+import {
+  Loader2, ChevronLeft, CheckCircle2,
+  Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer, { type FormSchema } from "@/components/forms/DynamicFormRenderer";
@@ -35,21 +36,22 @@ type Submission = {
 };
 
 const freqLabel = (f: string) => ({
-  once: "مرة واحدة", weekly: "أسبوعي", monthly: "شهري", quarterly: "ربعي", yearly: "سنوي",
+  once: "لمرة واحدة", weekly: "أسبوعي", monthly: "شهري",
+  quarterly: "كل ٣ شهور", yearly: "سنوي",
 }[f] || f);
 
-const categoryLabel = (c: string) => ({
-  marketing: "تسويق", operations: "عمليات", hr: "موارد بشرية",
-  quality: "جودة", general: "عام", finance: "مالية",
-}[c] || c);
+const freqEmoji = (f: string) => ({
+  once: "✨", weekly: "🗓️", monthly: "📅", quarterly: "🌸", yearly: "🎉",
+}[f] || "🗓️");
 
-const categoryColor = (c: string) => ({
-  marketing: "bg-pink-500/10 text-pink-600 border-pink-500/30",
-  operations: "bg-blue-500/10 text-blue-600 border-blue-500/30",
-  hr: "bg-purple-500/10 text-purple-600 border-purple-500/30",
-  quality: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
-  finance: "bg-amber-500/10 text-amber-600 border-amber-500/30",
-}[c] || "bg-muted text-muted-foreground border-border");
+const categoryMeta = (c: string): { icon: any; color: string } => ({
+  marketing:  { icon: Megaphone,    color: "text-pink-500" },
+  operations: { icon: ClipboardList, color: "text-blue-500" },
+  hr:         { icon: Users,         color: "text-purple-500" },
+  quality:    { icon: ShieldCheck,   color: "text-emerald-500" },
+  finance:    { icon: Coins,         color: "text-amber-500" },
+  general:    { icon: FileText,      color: "text-slate-500" },
+}[c] || { icon: FileText, color: "text-primary" });
 
 export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTitleName }: Props) {
   const [loading, setLoading] = useState(true);
@@ -142,76 +144,60 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
 
   return (
     <div className="space-y-2" dir="rtl">
-      <div className="flex items-center gap-2 px-1">
-        <FileText className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-bold">النماذج المسندة لي</h3>
-        <Badge variant="secondary" className="text-[10px] h-5">{templates.length}</Badge>
-      </div>
+      <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+        النماذج المسندة لي
+        <span className="mr-2 text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5">
+          {templates.length}
+        </span>
+      </h3>
 
-      <div className="grid grid-cols-1 gap-2">
+      <div className="space-y-2">
         {templates.map((t) => {
+          const meta = categoryMeta(t.category);
+          const Icon = meta.icon;
           const mySubs = submissions.filter((s) => s.template_id === t.id);
           const lastSub = mySubs[0];
           return (
-            <Card key={t.id} className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-              <CardContent className="p-3">
-                <div className="flex items-start gap-2 mb-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-sm font-bold">{t.name}</span>
-                      <Badge variant="outline" className={`text-[10px] h-5 ${categoryColor(t.category)}`}>
-                        {categoryLabel(t.category)}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px] h-5">
-                        <Calendar className="h-2.5 w-2.5 ml-1" />
-                        {freqLabel(t.frequency)}
-                      </Badge>
-                    </div>
-                    {t.description && (
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        {t.description}
-                      </p>
-                    )}
+            <div key={t.id} className="space-y-1">
+              <button
+                onClick={() => setActiveTemplate(t)}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
+              >
+                <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                  <Icon className={`h-5 w-5 ${meta.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-medium">{t.name}</span>
+                    <span className="text-[10px] bg-muted/70 text-muted-foreground rounded-full px-2 py-0.5 leading-none">
+                      {freqEmoji(t.frequency)} {freqLabel(t.frequency)}
+                    </span>
                   </div>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 h-8 text-xs"
-                    onClick={() => setActiveTemplate(t)}
-                  >
-                    تعبئة النموذج
-                    <ChevronLeft className="h-3 w-3 mr-1" />
-                  </Button>
-                </div>
-                {mySubs.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border/60">
-                    <p className="text-[10px] text-muted-foreground mb-1.5">
-                      تعبئاتي السابقة ({mySubs.length})
+                  {t.description && (
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
+                      {t.description}
                     </p>
-                    <div className="space-y-1">
-                      {mySubs.slice(0, 3).map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => setViewSubmission(s)}
-                          className="w-full text-right flex items-center justify-between text-[11px] bg-muted/40 hover:bg-muted/70 rounded-md px-2 py-1.5 transition-colors"
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                            {new Date(s.created_at).toLocaleDateString("ar")}
-                          </span>
-                          <Badge variant="outline" className="text-[9px] h-4">
-                            {s.status === "pending" ? "قيد المراجعة"
-                              : s.status === "approved" ? "معتمد"
-                              : s.status === "rejected" ? "مرفوض" : s.status}
-                          </Badge>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </div>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
+
+              {mySubs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 px-1">
+                  <span className="text-[10px] text-muted-foreground">تعبئاتي:</span>
+                  {mySubs.slice(0, 3).map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setViewSubmission(s)}
+                      className="inline-flex items-center gap-1 text-[10px] bg-muted/40 hover:bg-muted/70 rounded-full px-2 py-0.5 transition-colors"
+                    >
+                      <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+                      {new Date(s.created_at).toLocaleDateString("ar")}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
