@@ -18619,7 +18619,7 @@ export type Database = {
         Args: {
           p_close_time?: string
           p_employee_id?: string
-          p_min_age_hours?: number
+          p_min_hours_open?: number
         }
         Returns: {
           check_in_time: string
