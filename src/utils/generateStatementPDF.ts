@@ -71,6 +71,7 @@ const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
   showContactInfo: true,
   showSignature: true,
   showAging: true,
+  monochrome: false,
 };
 
 // ─── Colors ───
