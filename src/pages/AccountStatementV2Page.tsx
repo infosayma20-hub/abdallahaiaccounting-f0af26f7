@@ -766,58 +766,64 @@ const AccountStatementV2Page = () => {
     if (!selectedEntityId || filteredRows.length === 0) return;
     setPdfGenerating(true);
     try {
-      const entityType = isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTab === "customers" ? "عميل" : "مورد";
-      const entityPhone = isAccountsTab ? undefined : isEmployeesTab ? selectedEmployee?.phone || undefined : selectedContact?.phone || undefined;
-      const entityCode = isAccountsTab ? selectedAccount?.account_code : isEmployeesTab ? selectedEmployee?.account_code || undefined : selectedContact?.linked_account_code || undefined;
+      // Render the PDF directly from the LIVE PREVIEW iframe so the
+      // downloaded file is pixel-identical to the on-screen preview.
+      const wrap = document.getElementById("statement-preview-doc");
+      const iframe = wrap?.querySelector("iframe") as HTMLIFrameElement | null;
+      const idoc = iframe?.contentDocument;
+      const target = idoc?.body;
+      if (!iframe || !idoc || !target) {
+        throw new Error("preview-not-ready");
+      }
 
-      const doc = generateStatementPDF(
-        {
-          entityName: selectedEntityName,
-          entityType,
-          entityPhone,
-          entityCode,
-          dateFrom,
-          dateTo,
-          statementNumber: stableSOANumber,
-          currency: statementCurrency,
-          openingBalance,
-          closingBalance,
-          totalDebit,
-          totalCredit,
-          rows: statementRowsWithDetails.map(r => ({
-            date: r.date,
-            description: r.description,
-            reference: r.reference,
-            debit: r.debit,
-            credit: r.credit,
-            balance: r.balance,
-            dueDate: r.dueDate,
-            transaction_type: r.transaction_type,
-            isLineItem: r.isLineItem,
-          })),
-          agingData,
-          detailsMap,
-        },
-        {
-          name: companyInfo.name,
-          phone: companyInfo.phone,
-          email: companyInfo.email,
-          address: companyInfo.address,
-          tax_number: companyInfo.tax_number,
-          logo_url: companyInfo.logo_url,
-        },
-        {
-          showReference: statementOptions.showReference,
-          showDueDate: statementOptions.showDueDate,
-          showType: statementOptions.showType,
-          showCompanyLogo: statementOptions.showCompanyLogo,
-          showContactInfo: statementOptions.showContactInfo,
-          showSignature: statementOptions.showSignature,
-          showAging: statementOptions.showAging,
-        }
+      // Wait for any pending images (logo) inside the iframe to load.
+      const imgs = Array.from(idoc.images || []);
+      await Promise.all(
+        imgs.map((img) =>
+          img.complete && img.naturalWidth > 0
+            ? Promise.resolve()
+            : new Promise<void>((res) => {
+                img.addEventListener("load", () => res(), { once: true });
+                img.addEventListener("error", () => res(), { once: true });
+              })
+        )
       );
 
-      doc.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
+      const fullWidth = Math.max(target.scrollWidth, idoc.documentElement.scrollWidth);
+      const fullHeight = Math.max(target.scrollHeight, idoc.documentElement.scrollHeight);
+
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: false,
+        windowWidth: fullWidth,
+        windowHeight: fullHeight,
+        width: fullWidth,
+        height: fullHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+      const imgWidthMm = pageWidthMm;
+      const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      let heightLeft = imgHeightMm;
+      let position = 0;
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidthMm, imgHeightMm);
+      heightLeft -= pageHeightMm;
+      while (heightLeft > 0) {
+        position -= pageHeightMm;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidthMm, imgHeightMm);
+        heightLeft -= pageHeightMm;
+      }
+
+      pdf.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
       toast({ title: "تم تحميل PDF بنجاح ✓" });
     } catch (err) {
       console.error("PDF download error:", err);
@@ -825,7 +831,7 @@ const AccountStatementV2Page = () => {
     } finally {
       setPdfGenerating(false);
     }
-  }, [selectedEntityId, selectedEntityName, filteredRows, statementRowsWithDetails, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, detailsMap, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, statementOptions, toast]);
+  }, [selectedEntityId, selectedEntityName, filteredRows, dateFrom, toast]);
 
   const handlePrintStatement = useCallback(() => {
     if (!selectedEntityId || filteredRows.length === 0) return;
