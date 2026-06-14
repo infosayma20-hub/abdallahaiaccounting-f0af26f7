@@ -180,6 +180,7 @@ const HrDayTypesPage = lazy(() => import("./pages/hr/HrDayTypesPage"));
 const HrWorkShiftsPage = lazy(() => import("./pages/hr/HrWorkShiftsPage"));
 const HrSettingsPage = lazy(() => import("./pages/hr/HrSettingsPage"));
 const PolicyAssignmentPage = lazy(() => import("./pages/hr/PolicyAssignmentPage"));
+const FormAccessCenterPage = lazy(() => import("./pages/hr/FormAccessCenterPage"));
 const BranchRosterPage = lazy(() => import("./pages/manager/BranchRosterPage"));
 const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
 const PayrollEngineComparisonPage = lazy(() => import("./pages/hr/__internal/PayrollEngineComparisonPage"));
