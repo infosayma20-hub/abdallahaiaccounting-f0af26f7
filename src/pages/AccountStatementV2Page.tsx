@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
 import * as XLSX from "xlsx";
-import { generateStatementPDF } from "@/utils/generateStatementPDF";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
@@ -757,118 +756,137 @@ const AccountStatementV2Page = () => {
   const selectEntity = (id: string) => setSelectedEntityId(id);
 
   // ─── PDF PREVIEW ───
+  const buildCurrentStatementPrintHTML = useCallback(() => buildAccountStatementPrintHTML({
+    company: {
+      name: companyInfo.name || "AMWALI",
+      logo_url: companyInfo.logo_url,
+      address: companyInfo.address,
+      phone: companyInfo.phone,
+      email: companyInfo.email,
+      tax_number: companyInfo.tax_number,
+    },
+    contact: {
+      name: selectedEntityName,
+      type: selectedContact?.contact_type || (isEmployeesTab ? "موظف" : isAccountsTab ? "حساب" : ""),
+      code: selectedEntityCode,
+      phone: selectedContact?.phone || "",
+    },
+    rows: filteredRows.map((r) => ({
+      date: r.date,
+      description: r.description,
+      transaction_type: r.transaction_type,
+      reference: r.reference,
+      debit: r.debit,
+      credit: r.credit,
+      balance: r.balance,
+      transaction_id: r.transaction_id,
+      dueDate: r.dueDate,
+    })),
+    openingBalance,
+    totalDebit,
+    totalCredit,
+    closingBalance,
+    dateFrom,
+    dateTo,
+    statementNumber: stableSOANumber,
+    currencyLabel: statementCurrency || "شيكل إسرائيلي (₪)",
+    currencySymbol: getCurrencySymbol(statementCurrency || "شيكل"),
+    includeInvoiceDetails: !!statementOptions.showInvoiceDetails,
+    invoiceDetailsByRef: detailsMap.invoiceDetailsById || {},
+    showReference: !!statementOptions.showReference,
+    showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
+  }), [
+    companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
+    selectedEntityCode, filteredRows, openingBalance, totalDebit, totalCredit,
+    closingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
+    statementOptions, detailsMap.invoiceDetailsById,
+  ]);
+
   const handlePreviewPDF = useCallback(() => {
     if (!selectedEntityId || rows.length === 0) return;
     setShowPdfModal(true);
   }, [selectedEntityId, rows]);
 
-  const handleDownloadPDF = useCallback(() => {
+  const handleDownloadPDF = useCallback(async () => {
     if (!selectedEntityId || filteredRows.length === 0) return;
     setPdfGenerating(true);
+    let iframe: HTMLIFrameElement | null = null;
     try {
-      const pdf = generateStatementPDF(
-        {
-          entityName: selectedEntityName,
-          entityType: selectedContact?.contact_type || (isEmployeesTab ? "موظف" : isAccountsTab ? "حساب" : ""),
-          entityPhone: selectedContact?.phone || "",
-          entityCode: selectedEntityCode,
-          dateFrom,
-          dateTo,
-          statementNumber: stableSOANumber,
-          currency: statementCurrency,
-          openingBalance,
-          closingBalance,
-          totalDebit,
-          totalCredit,
-          rows: statementRowsWithDetails.map((r) => ({
-            date: r.date,
-            description: r.description,
-            reference: r.reference,
-            debit: r.debit,
-            credit: r.credit,
-            balance: r.balance,
-            isLineItem: r.isLineItem,
-            dueDate: r.dueDate,
-            transaction_type: r.transaction_type,
-          })),
-          agingData: agingData,
-        },
-        {
-          name: companyInfo.name,
-          phone: companyInfo.phone,
-          email: companyInfo.email,
-          address: companyInfo.address,
-          tax_number: companyInfo.tax_number,
-          logo_url: companyInfo.logo_url,
-        },
-        {
-          showReference: statementOptions.showReference,
-          showDueDate: statementOptions.showDueDate,
-          showType: statementOptions.showType,
-          showCompanyLogo: statementOptions.showCompanyLogo,
-          showContactInfo: statementOptions.showContactInfo,
-          showSignature: statementOptions.showSignature,
-          showAging: statementOptions.showAging,
-          monochrome: true,
-        }
-      );
+      iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.left = "-10000px";
+      iframe.style.top = "0";
+      iframe.style.width = "210mm";
+      iframe.style.height = "297mm";
+      iframe.style.border = "0";
+      iframe.style.background = "white";
+
+      const loaded = new Promise<void>((resolve) => {
+        const fallback = window.setTimeout(resolve, 1500);
+        iframe!.onload = () => {
+          window.clearTimeout(fallback);
+          resolve();
+        };
+      });
+      document.body.appendChild(iframe);
+      iframe.srcdoc = buildCurrentStatementPrintHTML();
+      await loaded;
+
+      const idoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!idoc?.body) throw new Error("PDF preview document was not ready");
+      await (idoc as any).fonts?.ready?.catch?.(() => undefined);
+      await Promise.all(Array.from(idoc.images).map((img) => img.complete ? Promise.resolve() : new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      })));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+      const target = idoc.body;
+      const captureWidth = Math.ceil(Math.max(target.scrollWidth, idoc.documentElement.scrollWidth));
+      const captureHeight = Math.ceil(Math.max(target.scrollHeight, idoc.documentElement.scrollHeight, target.offsetHeight));
+      const canvas = await html2canvas(target, {
+        backgroundColor: "#ffffff",
+        scale: Math.max(2, Math.min(3, window.devicePixelRatio || 2)),
+        useCORS: true,
+        logging: false,
+        width: captureWidth,
+        height: captureHeight,
+        windowWidth: captureWidth,
+        windowHeight: captureHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight, undefined, "FAST");
+      let remaining = imgHeight - pageHeight;
+      let pageIndex = 1;
+      while (remaining > 0.5) {
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, -pageHeight * pageIndex, pageWidth, imgHeight, undefined, "FAST");
+        remaining -= pageHeight;
+        pageIndex += 1;
+      }
+
       pdf.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
       toast({ title: "تم تحميل PDF بنجاح ✓" });
     } catch (err) {
       console.error("PDF download error:", err);
       toast({ title: "خطأ في تحميل PDF", variant: "destructive" });
     } finally {
+      iframe?.remove();
       setPdfGenerating(false);
     }
-  }, [
-    selectedEntityId, selectedEntityName, selectedEntityCode, selectedContact,
-    isEmployeesTab, isAccountsTab, dateFrom, dateTo, stableSOANumber,
-    statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit,
-    statementRowsWithDetails, agingData, companyInfo, statementOptions, toast,
-  ]);
+  }, [selectedEntityId, filteredRows.length, buildCurrentStatementPrintHTML, selectedEntityName, dateFrom, toast]);
 
   const handlePrintStatement = useCallback(() => {
     if (!selectedEntityId || filteredRows.length === 0) return;
-    const html = buildAccountStatementPrintHTML({
-      company: {
-        name: companyInfo.name || "AMWALI",
-        logo_url: companyInfo.logo_url,
-        address: companyInfo.address,
-        phone: companyInfo.phone,
-        email: companyInfo.email,
-        tax_number: companyInfo.tax_number,
-      },
-      contact: {
-        name: selectedEntityName,
-        type: selectedContact?.contact_type || (isEmployeesTab ? "موظف" : isAccountsTab ? "حساب" : ""),
-        code: selectedEntityCode,
-        phone: selectedContact?.phone || "",
-      },
-      rows: filteredRows.map((r) => ({
-        date: r.date,
-        description: r.description,
-        transaction_type: r.transaction_type,
-        reference: r.reference,
-        debit: r.debit,
-        credit: r.credit,
-        balance: r.balance,
-        transaction_id: r.transaction_id,
-        dueDate: r.dueDate,
-      })),
-      openingBalance,
-      totalDebit,
-      totalCredit,
-      closingBalance,
-      dateFrom,
-      dateTo,
-      statementNumber: stableSOANumber,
-      currencyLabel: statementCurrency || "شيكل إسرائيلي (₪)",
-      currencySymbol: getCurrencySymbol(statementCurrency || "شيكل"),
-      includeInvoiceDetails: !!statementOptions.showInvoiceDetails,
-      invoiceDetailsByRef: detailsMap.invoiceDetailsById || {},
-      showReference: !!statementOptions.showReference,
-      showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
-    });
+    const html = buildCurrentStatementPrintHTML();
     // Print via hidden iframe to avoid the "about:blank" footer that
     // appears when using window.open("","_blank").
     const existing = document.getElementById("__soa_print_iframe__");
@@ -898,13 +916,7 @@ const AccountStatementV2Page = () => {
     };
     // Wait for fonts/images
     setTimeout(triggerPrint, 700);
-  }, [
-    selectedEntityId, selectedEntityName, selectedEntityCode, selectedContact,
-    isEmployeesTab, isAccountsTab,
-    filteredRows, openingBalance, totalDebit, totalCredit, closingBalance,
-    dateFrom, dateTo, stableSOANumber, statementCurrency,
-    companyInfo, statementOptions, detailsMap,
-  ]);
+  }, [selectedEntityId, filteredRows.length, buildCurrentStatementPrintHTML]);
 
   // Balance color helper
   const balColor = (val: number) => {
