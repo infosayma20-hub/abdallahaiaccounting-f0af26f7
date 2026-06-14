@@ -924,10 +924,23 @@ const EmployeesPage = () => {
                 )}
                 {selectedEmployee.auth_user_id && (
                   <>
-                    <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                    {(selectedEmployee as any).auth_disabled ? (
+                      <Badge className="text-[10px] bg-destructive/15 text-destructive border-destructive/30">حساب معطّل ⛔</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                    )}
                     <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setResetPasswordValue(""); setShowResetPassword(true); }}>
                       <Shield className="h-3 w-3" /> إعادة كلمة المرور
                     </Button>
+                    {(selectedEmployee as any).auth_disabled ? (
+                      <Button size="sm" variant="outline" className="gap-1 text-xs text-emerald-600 border-emerald-300" onClick={handleToggleAuthAccount} disabled={togglingAuth}>
+                        <CheckCircle2 className="h-3 w-3" /> {togglingAuth ? "..." : "تفعيل الحساب"}
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" className="gap-1 text-xs text-destructive border-destructive/40" onClick={handleToggleAuthAccount} disabled={togglingAuth}>
+                        <Ban className="h-3 w-3" /> {togglingAuth ? "..." : "غير فعال (تعطيل الحساب)"}
+                      </Button>
+                    )}
                   </>
                 )}
                 <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={generateSalarySlip}>
