@@ -9,6 +9,8 @@ import {
 import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
 import * as XLSX from "xlsx";
 import { generateStatementPDF } from "@/utils/generateStatementPDF";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
