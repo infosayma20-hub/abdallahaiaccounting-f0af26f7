@@ -386,6 +386,8 @@ export default function HRAttendancePage() {
   // Missing punches (last 30 days, per employee)
   const [missingByEmp, setMissingByEmp] = useState<Map<string, AttendanceRecord[]>>(new Map());
   const [missingDialog, setMissingDialog] = useState<{ employeeId: string; employeeName: string } | null>(null);
+  // When true, saving the edit advances to the next missing day for the same employee
+  const [editFromMissing, setEditFromMissing] = useState(false);
 
   // Column sorting for the daily attendance table
   type SortKey =
