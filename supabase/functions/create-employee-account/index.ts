@@ -87,6 +87,30 @@ Deno.serve(async (req) => {
       }
 
       const disable = action === "disable-account";
+
+      // Guard 1: Prevent self-lockout
+      if (disable && employee.auth_user_id === adminUser.id) {
+        return new Response(
+          JSON.stringify({ error: "لا يمكنك تعطيل حسابك الشخصي من هنا" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Guard 2: Block disabling other admins / super_admins
+      if (disable) {
+        const { data: targetRoles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", employee.auth_user_id);
+        const roles = (targetRoles || []).map((r: any) => r.role);
+        if (roles.includes("admin") || roles.includes("super_admin")) {
+          return new Response(
+            JSON.stringify({ error: "لا يمكن تعطيل حساب مدير عام. أزل صلاحية المدير أولاً." }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       // Ban for 100 years to disable, or 'none' to re-enable
       const banDuration = disable ? "876000h" : "none";
       const { error: banErr } = await (supabase.auth.admin as any).updateUserById(
@@ -101,8 +125,8 @@ Deno.serve(async (req) => {
       }
 
       if (disable) {
-        // Force sign-out from all active sessions
-        try { await (supabase.auth.admin as any).signOut(employee.auth_user_id, "global"); } catch (_) {}
+        // Force sign-out from all active sessions (revokes refresh tokens)
+        try { await (supabase.auth.admin as any).signOut(employee.auth_user_id); } catch (_) {}
       }
 
       await supabase
