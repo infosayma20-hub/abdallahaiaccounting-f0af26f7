@@ -41,20 +41,30 @@ export default function FormAccessCenterPage() {
       setSearching(true);
       try {
         const q = `%${debouncedSearch.trim()}%`;
-        const { data } = await supabase
+        const { data } = await (supabase as any)
           .from("employees")
-          .select("id, full_name, job_title, branch:branches_safe(name)")
+          .select("id, full_name, job_title, branch_id")
           .or(`full_name.ilike.${q},job_title.ilike.${q}`)
           .eq("status", "active")
           .eq("is_deleted", false)
           .limit(20);
         if (cancelled) return;
+        const list = (data || []) as any[];
+        const branchIds = Array.from(new Set(list.map((e) => e.branch_id).filter(Boolean)));
+        let branchMap = new Map<string, string>();
+        if (branchIds.length) {
+          const { data: brs } = await (supabase as any)
+            .from("branches_safe")
+            .select("id, name")
+            .in("id", branchIds);
+          (brs || []).forEach((b: any) => branchMap.set(b.id, b.name));
+        }
         setResults(
-          (data || []).map((e: any) => ({
+          list.map((e) => ({
             id: e.id,
             full_name: e.full_name,
             job_title: e.job_title,
-            branch_name: e.branch?.name ?? null,
+            branch_name: e.branch_id ? branchMap.get(e.branch_id) ?? null : null,
           })),
         );
       } finally {
