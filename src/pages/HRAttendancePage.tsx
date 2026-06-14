@@ -1968,7 +1968,7 @@ export default function HRAttendancePage() {
       </Dialog>
 
       {/* Edit record */}
-      <Dialog open={!!editRecord} onOpenChange={(o) => !o && setEditRecord(null)}>
+      <Dialog open={!!editRecord} onOpenChange={(o) => { if (!o) { setEditRecord(null); setEditFromMissing(false); } }}>
         <DialogContent dir="rtl">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-primary" /> تعديل سجل {editRecord?.employees?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
