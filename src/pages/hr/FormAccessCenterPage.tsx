@@ -130,7 +130,7 @@ export default function FormAccessCenterPage() {
             </p>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/employee-forms-management">
+            <Link to="/hr/form-templates">
               <FileText className="h-4 w-4 ml-1" /> إدارة قوالب النماذج
             </Link>
           </Button>
