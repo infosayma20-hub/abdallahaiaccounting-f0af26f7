@@ -9,6 +9,44 @@ function hebronDateFromIso(iso: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date(iso));
 }
 
+function timeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value || 0);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - date.getTime();
+}
+
+function localDateTimeToUtcIso(datePart: string, hour = 0, minute = 0, second = 0): string {
+  const [year, month, day] = datePart.split("-").map(Number);
+  const timeZone = "Asia/Hebron";
+  let utc = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  utc = new Date(utc.getTime() - timeZoneOffsetMs(utc, timeZone));
+  utc = new Date(Date.UTC(year, month - 1, day, hour, minute, second) - timeZoneOffsetMs(utc, timeZone));
+  return utc.toISOString();
+}
+
+function addDays(datePart: string, days: number): string {
+  const [year, month, day] = datePart.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day + days));
+  return d.toISOString().slice(0, 10);
+}
+
+function hebronDayRangeUtc(datePart: string): { start: string; end: string } {
+  return {
+    start: localDateTimeToUtcIso(datePart, 0, 0, 0),
+    end: localDateTimeToUtcIso(addDays(datePart, 1), 0, 0, 0),
+  };
+}
+
 function hebronHour(iso: string): number {
   const hour = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Hebron",
