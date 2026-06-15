@@ -471,14 +471,13 @@ Deno.serve(async (req) => {
       // 🛡️  SERVER-SIDE GUARD — close-open-session-first
       // If the client asked for "checkin" but the employee already has an
       // OPEN session (check_in without a matching check_out) from a previous
-      // day AND the punch is still within MAX_OPEN_SHIFT_HOURS of that
-      // check_in, treat this punch as a check_OUT for that open session
+      // day, treat this punch as a check_OUT for that open session
       // rather than opening a brand-new day.
       // Real-world example: employee checks in 4:32 PM on 14 Jun, forgets
       // to check out, then punches at 1:26 AM on 15 Jun → the 1:26 AM punch
       // must close the 14 Jun session, NOT start 15 Jun.
       // ───────────────────────────────────────────────────────────────
-      const MAX_OPEN_SHIFT_HOURS = 18; // a single shift cannot reasonably exceed 18h
+      const MAX_OPEN_SHIFT_HOURS = 18; // same-day duplicate safety; previous-day sessions always close first
       let autoFlippedToCheckout = false;
       if (bodyAction === "checkin" && openSessionStart && !isOnBreak) {
         const openAgeHours =
