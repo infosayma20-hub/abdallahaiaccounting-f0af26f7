@@ -5,6 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-secret",
 };
 
+function hebronDateFromIso(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron" }).format(new Date(iso));
+}
+
+function hebronHour(iso: string): number {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Hebron",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso)).find((p) => p.type === "hour")?.value;
+  return Number(hour || 0);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -45,7 +58,11 @@ Deno.serve(async (req) => {
       let processed = 0;
       let errors: string[] = [];
 
-      for (const punch of punches) {
+      const sortedPunches = [...punches].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      for (const punch of sortedPunches) {
         try {
           const { fingerprint_id, timestamp, punch_type } = punch;
 
@@ -68,27 +85,50 @@ Deno.serve(async (req) => {
           }
 
           const eventTime = new Date(timestamp);
-          const today = eventTime.toISOString().split("T")[0];
-          const eventType = punch_type === 1 ? "check_out" : "check_in";
+          const punchIso = eventTime.toISOString();
+          const today = hebronDateFromIso(punchIso);
+          let eventType = punch_type === 1 ? "check_out" : "check_in";
 
           // Check for duplicate event (same employee, same minute)
           const minuteStart = new Date(eventTime);
           minuteStart.setSeconds(0, 0);
           const minuteEnd = new Date(minuteStart.getTime() + 60000);
 
-          const { data: existingEvent } = await supabase
+          const { data: existingAnyEvent } = await supabase
             .from("attendance_events")
             .select("id")
             .eq("employee_id", employee.id)
-            .eq("event_type", eventType)
             .gte("event_time", minuteStart.toISOString())
             .lt("event_time", minuteEnd.toISOString())
             .limit(1);
 
-          if (existingEvent && existingEvent.length > 0) {
+          if (existingAnyEvent && existingAnyEvent.length > 0) {
             // Already recorded, skip
             continue;
           }
+
+          const lookbackStart = new Date(eventTime.getTime() - 7 * 86400_000).toISOString();
+          const { data: recentSequenceEvents } = await supabase
+            .from("attendance_events")
+            .select("event_type, event_time")
+            .eq("employee_id", employee.id)
+            .gte("event_time", lookbackStart)
+            .lte("event_time", punchIso)
+            .eq("status", "valid")
+            .order("event_time", { ascending: true });
+
+          const sequenceEvents = recentSequenceEvents || [];
+          const lastClosedIdx = [...sequenceEvents].map((e) => e.event_type).lastIndexOf("check_out");
+          const openCandidates = sequenceEvents.slice(lastClosedIdx + 1).filter((e) => e.event_type === "check_in");
+          const openSessionStart = openCandidates.length > 0 ? openCandidates[openCandidates.length - 1] : null;
+
+          if (eventType === "check_in" && openSessionStart) {
+            eventType = "check_out";
+          }
+
+          const attendanceDate = eventType === "check_out" && openSessionStart
+            ? hebronDateFromIso(openSessionStart.event_time)
+            : today;
 
           // Insert attendance event
           const { error: eventErr } = await supabase.from("attendance_events").insert({
