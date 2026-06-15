@@ -93,18 +93,14 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   }, []);
 
   // Multi check-in/out: use events to determine current state.
-  // 🛡️ Use recentEvents (last 60d) so an OPEN session from yesterday
-  // (employee forgot to check out) still shows "تسجيل خروج" instead of
-  // misleading the user with "تسجيل دخول" — which would otherwise open a
-  // brand-new day at e.g. 1:26 AM and lose yesterday's shift.
-  // Falls back to todayEvents when recentEvents is empty.
+  // 🛡️ The button reflects the LATEST actual event only — this way a manual
+  // check_out inserted by HR immediately flips the button back to "تسجيل دخول",
+  // and a stale unmatched check_in from a previous day can no longer hijack
+  // today's UI. (Pairing/aggregation logic still uses full event history.)
   const eventsForState = recentEvents.length > 0 ? recentEvents : todayEvents;
   const lastEvent =
     eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
-  const openSession = getOpenAttendanceSession(eventsForState, 24 * 7);
-  // Treat last check_in as an open session even if getOpenAttendanceSession
-  // returns null (e.g. unmatched check_out earlier in the list).
-  const isOpen = !!openSession || lastEvent?.event_type === "check_in";
+  const isOpen = lastEvent?.event_type === "check_in";
   const canCheckOut = isOpen;
   const canCheckIn = !isOpen;
   const dayComplete = !!(todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2);
