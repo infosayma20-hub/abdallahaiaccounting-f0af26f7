@@ -484,7 +484,8 @@ Deno.serve(async (req) => {
         const openAgeHours =
           (Date.now() - new Date(openSessionStart.event_time).getTime()) /
           3_600_000;
-        if (openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
+        const openDate = hebronDateFromIso(openSessionStart.event_time);
+        if (openDate !== today || openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
           bodyAction = "checkout";
           autoFlippedToCheckout = true;
           console.info("[attendance] auto-flipped checkin→checkout to close open session", {
@@ -495,6 +496,25 @@ Deno.serve(async (req) => {
         }
       }
       const eventType = bodyAction === "checkin" ? "check_in" : "check_out";
+
+      // 2.0 Selfie requirement check — مطلوب فقط عند تسجيل الدخول الحقيقي.
+      // الخروج يكتفي بمسح QR، بما فيه الخروج الذي تم تحويله تلقائياً لإغلاق جلسة مفتوحة.
+      selfieRequired = !!branch.require_attendance_selfie && eventType === "check_in";
+      if (selfieRequired) {
+        if (!selfie_base64 || typeof selfie_base64 !== "string" || selfie_base64.length < 1000) {
+          return new Response(
+            JSON.stringify({ error: "هذا الفرع يتطلب التقاط صورة سيلفي عند البصمة." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // Limit ~5MB binary => ~6.7MB base64. Reject larger to match bucket policy.
+        if (selfie_base64.length > 6_900_000) {
+          return new Response(
+            JSON.stringify({ error: "حجم الصورة كبير جداً. يرجى إعادة الالتقاط." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
 
       // Validate sequence
       if (eventType === "check_in") {
@@ -510,9 +530,8 @@ Deno.serve(async (req) => {
               { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          // Different day AND open session older than MAX_OPEN_SHIFT_HOURS →
-          // the orphan is too stale to auto-close; let the new check-in proceed
-          // and surface the stale session in the Alerts tab for correction.
+          // Different day open sessions are closed first by the guard above;
+          // never let a new check-in open while any previous-day session is open.
         }
       } else {
         // check_out
