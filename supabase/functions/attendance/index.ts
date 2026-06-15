@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       const body = await req.json();
       const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64, device_fingerprint } = body;
-      const bodyAction = body.action || path;
+      let bodyAction = body.action || path;
       
       const validActions = ["checkin", "checkout", "break_out", "break_in"];
       if (!validActions.includes(bodyAction)) {
@@ -203,25 +203,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 2.0 Selfie requirement check — مطلوب فقط عند تسجيل الدخول.
-      // الخروج يكتفي بمسح QR (قرار سياسي للتسريع وتفادي مشاكل الكاميرا الأمامية).
-      const selfieRequired = !!branch.require_attendance_selfie &&
-        bodyAction === "checkin";
-      if (selfieRequired) {
-        if (!selfie_base64 || typeof selfie_base64 !== "string" || selfie_base64.length < 1000) {
-          return new Response(
-            JSON.stringify({ error: "هذا الفرع يتطلب التقاط صورة سيلفي عند البصمة." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        // Limit ~5MB binary => ~6.7MB base64. Reject larger to match bucket policy.
-        if (selfie_base64.length > 6_900_000) {
-          return new Response(
-            JSON.stringify({ error: "حجم الصورة كبير جداً. يرجى إعادة الالتقاط." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
+      // Selfie is validated after the server decides the FINAL action.
+      // مهم: إذا أرسل العميل checkin بالخطأ بعد منتصف الليل وفيه جلسة مفتوحة،
+      // سنحوّلها إلى checkout، والخروج لا يحتاج سيلفي.
+      let selfieRequired = false;
 
       // 2. Geofencing check (per-branch toggle, default ON)
       const gpsRequired = branch.require_gps !== false;
@@ -345,7 +330,8 @@ Deno.serve(async (req) => {
 
       const events = todayEvents || [];
       const lastEvent = events.length > 0 ? events[events.length - 1] : null;
-      const MAX_OPEN_SESSION_MS = 36 * 60 * 60 * 1000;
+       const OPEN_SESSION_LOOKBACK_DAYS = 7;
+       const MAX_OPEN_SESSION_MS = OPEN_SESSION_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
       const openLookbackStart = new Date(Date.now() - MAX_OPEN_SESSION_MS).toISOString();
       const { data: recentSequenceEvents } = await supabase
         .from("attendance_events")
@@ -485,20 +471,20 @@ Deno.serve(async (req) => {
       // 🛡️  SERVER-SIDE GUARD — close-open-session-first
       // If the client asked for "checkin" but the employee already has an
       // OPEN session (check_in without a matching check_out) from a previous
-      // day AND the punch is still within MAX_OPEN_SHIFT_HOURS of that
-      // check_in, treat this punch as a check_OUT for that open session
+      // day, treat this punch as a check_OUT for that open session
       // rather than opening a brand-new day.
       // Real-world example: employee checks in 4:32 PM on 14 Jun, forgets
       // to check out, then punches at 1:26 AM on 15 Jun → the 1:26 AM punch
       // must close the 14 Jun session, NOT start 15 Jun.
       // ───────────────────────────────────────────────────────────────
-      const MAX_OPEN_SHIFT_HOURS = 18; // a single shift cannot reasonably exceed 18h
+      const MAX_OPEN_SHIFT_HOURS = 18; // same-day duplicate safety; previous-day sessions always close first
       let autoFlippedToCheckout = false;
       if (bodyAction === "checkin" && openSessionStart && !isOnBreak) {
         const openAgeHours =
           (Date.now() - new Date(openSessionStart.event_time).getTime()) /
           3_600_000;
-        if (openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
+        const openDate = hebronDateFromIso(openSessionStart.event_time);
+        if (openDate !== today || openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
           bodyAction = "checkout";
           autoFlippedToCheckout = true;
           console.info("[attendance] auto-flipped checkin→checkout to close open session", {
@@ -509,6 +495,25 @@ Deno.serve(async (req) => {
         }
       }
       const eventType = bodyAction === "checkin" ? "check_in" : "check_out";
+
+      // 2.0 Selfie requirement check — مطلوب فقط عند تسجيل الدخول الحقيقي.
+      // الخروج يكتفي بمسح QR، بما فيه الخروج الذي تم تحويله تلقائياً لإغلاق جلسة مفتوحة.
+      selfieRequired = !!branch.require_attendance_selfie && eventType === "check_in";
+      if (selfieRequired) {
+        if (!selfie_base64 || typeof selfie_base64 !== "string" || selfie_base64.length < 1000) {
+          return new Response(
+            JSON.stringify({ error: "هذا الفرع يتطلب التقاط صورة سيلفي عند البصمة." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // Limit ~5MB binary => ~6.7MB base64. Reject larger to match bucket policy.
+        if (selfie_base64.length > 6_900_000) {
+          return new Response(
+            JSON.stringify({ error: "حجم الصورة كبير جداً. يرجى إعادة الالتقاط." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
 
       // Validate sequence
       if (eventType === "check_in") {
@@ -524,9 +529,8 @@ Deno.serve(async (req) => {
               { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          // Different day AND open session older than MAX_OPEN_SHIFT_HOURS →
-          // the orphan is too stale to auto-close; let the new check-in proceed
-          // and surface the stale session in the Alerts tab for correction.
+          // Different day open sessions are closed first by the guard above;
+          // never let a new check-in open while any previous-day session is open.
         }
       } else {
         // check_out

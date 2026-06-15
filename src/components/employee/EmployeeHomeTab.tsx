@@ -101,7 +101,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   const eventsForState = recentEvents.length > 0 ? recentEvents : todayEvents;
   const lastEvent =
     eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
-  const openSession = getOpenAttendanceSession(eventsForState);
+  const openSession = getOpenAttendanceSession(eventsForState, 24 * 7);
   // Treat last check_in as an open session even if getOpenAttendanceSession
   // returns null (e.g. unmatched check_out earlier in the list).
   const isOpen = !!openSession || lastEvent?.event_type === "check_in";
