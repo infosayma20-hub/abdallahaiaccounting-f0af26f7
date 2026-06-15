@@ -146,19 +146,18 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     setObExistingRef(ref);
     (async () => {
       const { data } = await supabase
-        .from("journal_entries")
-        .select("debit, credit, account_code, entry_date")
+        .from("transactions")
+        .select("amount, debit_account_code, credit_account_code, transaction_date")
         .eq("user_id", user.id)
-        .eq("reference_number", ref)
-        .eq("account_code", existingAccount.account_code)
+        .eq("reference", ref)
+        .eq("is_opening_balance", true)
+        .eq("is_deleted", false)
         .limit(1);
       const row: any = data?.[0];
       if (row) {
-        const d = Number(row.debit) || 0;
-        const c = Number(row.credit) || 0;
-        setObAmount(d > 0 ? d : c);
-        setObType(d > 0 ? "debit" : "credit");
-        setObDate(row.entry_date || obDate);
+        setObAmount(Number(row.amount) || 0);
+        setObType(row.debit_account_code === existingAccount.account_code ? "debit" : "credit");
+        setObDate(row.transaction_date || obDate);
       }
       setObLoaded(true);
     })();
