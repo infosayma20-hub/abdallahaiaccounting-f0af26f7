@@ -61,21 +61,23 @@ export default function FormShareSheet({
         .in("role", ["admin", "hr_manager"]);
       const ids = (roleRows || []).map((r: any) => r.user_id);
       if (!ids.length) return;
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, phone")
-        .in("id", ids);
-      const byUser = new Map((profs || []).map((p: any) => [p.id, p]));
+      const [{ data: profs }, { data: emps }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name").in("id", ids),
+        supabase.from("employees").select("user_id, full_name, phone, email").in("user_id", ids),
+      ]);
+      const empByUser = new Map((emps || []).map((e: any) => [e.user_id, e]));
+      const profByUser = new Map((profs || []).map((p: any) => [p.id, p]));
       const adminList: Recipient[] = [];
       const hrList: Recipient[] = [];
       for (const r of roleRows || []) {
-        const p: any = byUser.get(r.user_id);
-        if (!p) continue;
+        const p: any = profByUser.get(r.user_id);
+        const e: any = empByUser.get(r.user_id);
+        if (!p && !e) continue;
         const item: Recipient = {
           id: r.user_id,
-          name: p.full_name || p.email || "—",
-          phone: p.phone,
-          email: p.email,
+          name: e?.full_name || p?.full_name || e?.email || "—",
+          phone: e?.phone || null,
+          email: e?.email || null,
           role: r.role,
         };
         if (r.role === "admin") adminList.push(item);
