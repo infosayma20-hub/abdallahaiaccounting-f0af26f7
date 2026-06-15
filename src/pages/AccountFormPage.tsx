@@ -134,8 +134,35 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   useEffect(() => {
     if (accountType && DEFAULT_BALANCE[accountType]) {
       setNaturalBalance(DEFAULT_BALANCE[accountType]);
+      // Default OB type follows natural balance
+      if (!obLoaded) setObType(DEFAULT_BALANCE[accountType]);
     }
-  }, [accountType]);
+  }, [accountType, obLoaded]);
+
+  // Load existing opening balance (edit mode) from journal entries
+  useEffect(() => {
+    if (mode !== "edit" || !existingAccount || !user) return;
+    const ref = `OB-ACC-${existingAccount.id.slice(0, 8)}`;
+    setObExistingRef(ref);
+    (async () => {
+      const { data } = await supabase
+        .from("journal_entries")
+        .select("debit, credit, account_code, entry_date")
+        .eq("user_id", user.id)
+        .eq("reference_number", ref)
+        .eq("account_code", existingAccount.account_code)
+        .limit(1);
+      const row: any = data?.[0];
+      if (row) {
+        const d = Number(row.debit) || 0;
+        const c = Number(row.credit) || 0;
+        setObAmount(d > 0 ? d : c);
+        setObType(d > 0 ? "debit" : "credit");
+        setObDate(row.entry_date || obDate);
+      }
+      setObLoaded(true);
+    })();
+  }, [mode, existingAccount, user]);
 
   // Validate code
   useEffect(() => {
