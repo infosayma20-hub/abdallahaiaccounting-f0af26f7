@@ -5610,54 +5610,241 @@ export type Database = {
           },
         ]
       }
+      employee_form_approvals: {
+        Row: {
+          action: string
+          actor_employee_id: string | null
+          actor_role: string | null
+          actor_user_id: string | null
+          company_id: string
+          created_at: string
+          form_id: string
+          from_status:
+            | Database["public"]["Enums"]["employee_form_workflow_status"]
+            | null
+          id: string
+          notes: string | null
+          to_status:
+            | Database["public"]["Enums"]["employee_form_workflow_status"]
+            | null
+        }
+        Insert: {
+          action: string
+          actor_employee_id?: string | null
+          actor_role?: string | null
+          actor_user_id?: string | null
+          company_id: string
+          created_at?: string
+          form_id: string
+          from_status?:
+            | Database["public"]["Enums"]["employee_form_workflow_status"]
+            | null
+          id?: string
+          notes?: string | null
+          to_status?:
+            | Database["public"]["Enums"]["employee_form_workflow_status"]
+            | null
+        }
+        Update: {
+          action?: string
+          actor_employee_id?: string | null
+          actor_role?: string | null
+          actor_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          form_id?: string
+          from_status?:
+            | Database["public"]["Enums"]["employee_form_workflow_status"]
+            | null
+          id?: string
+          notes?: string | null
+          to_status?:
+            | Database["public"]["Enums"]["employee_form_workflow_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_form_approvals_actor_employee_id_fkey"
+            columns: ["actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_approvals_actor_employee_id_fkey"
+            columns: ["actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_approvals_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "employee_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_form_shares: {
+        Row: {
+          channel: Database["public"]["Enums"]["employee_form_share_channel"]
+          company_id: string
+          created_at: string
+          error_message: string | null
+          form_id: string
+          id: string
+          message: string | null
+          pdf_url: string | null
+          recipient: string | null
+          recipient_employee_id: string | null
+          recipient_name: string | null
+          shared_by_employee_id: string | null
+          shared_by_user_id: string | null
+          status: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["employee_form_share_channel"]
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          form_id: string
+          id?: string
+          message?: string | null
+          pdf_url?: string | null
+          recipient?: string | null
+          recipient_employee_id?: string | null
+          recipient_name?: string | null
+          shared_by_employee_id?: string | null
+          shared_by_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["employee_form_share_channel"]
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          form_id?: string
+          id?: string
+          message?: string | null
+          pdf_url?: string | null
+          recipient?: string | null
+          recipient_employee_id?: string | null
+          recipient_name?: string | null
+          shared_by_employee_id?: string | null
+          shared_by_user_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_form_shares_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "employee_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_shares_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_shares_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_shares_shared_by_employee_id_fkey"
+            columns: ["shared_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_form_shares_shared_by_employee_id_fkey"
+            columns: ["shared_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_forms: {
         Row: {
           attachment_url: string | null
+          company_id: string | null
           created_at: string
+          current_approver_role:
+            | Database["public"]["Enums"]["employee_form_approver_role"]
+            | null
           employee_id: string
           form_data: Json
           form_type: string
           id: string
+          pdf_storage_path: string | null
+          pdf_url: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          submitted_at: string | null
           template_id: string | null
           title: string | null
           updated_at: string
           user_id: string
+          workflow_status: Database["public"]["Enums"]["employee_form_workflow_status"]
         }
         Insert: {
           attachment_url?: string | null
+          company_id?: string | null
           created_at?: string
+          current_approver_role?:
+            | Database["public"]["Enums"]["employee_form_approver_role"]
+            | null
           employee_id: string
           form_data?: Json
           form_type: string
           id?: string
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          submitted_at?: string | null
           template_id?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
+          workflow_status?: Database["public"]["Enums"]["employee_form_workflow_status"]
         }
         Update: {
           attachment_url?: string | null
+          company_id?: string | null
           created_at?: string
+          current_approver_role?:
+            | Database["public"]["Enums"]["employee_form_approver_role"]
+            | null
           employee_id?: string
           form_data?: Json
           form_type?: string
           id?: string
+          pdf_storage_path?: string | null
+          pdf_url?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          submitted_at?: string | null
           template_id?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
+          workflow_status?: Database["public"]["Enums"]["employee_form_workflow_status"]
         }
         Relationships: [
           {
@@ -20041,6 +20228,14 @@ export type Database = {
         | "waiting_dev"
         | "resolved"
         | "closed"
+      employee_form_approver_role: "management" | "hr"
+      employee_form_share_channel: "whatsapp" | "management" | "hr" | "email"
+      employee_form_workflow_status:
+        | "draft"
+        | "submitted"
+        | "under_review"
+        | "approved"
+        | "rejected"
       payroll_status:
         | "submitted"
         | "approved"
@@ -20297,6 +20492,15 @@ export const Constants = {
         "waiting_dev",
         "resolved",
         "closed",
+      ],
+      employee_form_approver_role: ["management", "hr"],
+      employee_form_share_channel: ["whatsapp", "management", "hr", "email"],
+      employee_form_workflow_status: [
+        "draft",
+        "submitted",
+        "under_review",
+        "approved",
+        "rejected",
       ],
       payroll_status: [
         "submitted",
