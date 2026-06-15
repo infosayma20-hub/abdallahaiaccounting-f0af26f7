@@ -152,7 +152,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     if (!activeTemplate) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("employee_forms").insert({
+      const { data: inserted, error } = await supabase.from("employee_forms").insert({
         employee_id: employeeId,
         user_id: (await supabase.auth.getUser()).data.user?.id,
         form_type: "dynamic_template",
@@ -160,10 +160,16 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         title: activeTemplate.name,
         form_data: formData,
         status: "pending",
-      });
+      })
+      .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+      .single();
       if (error) throw error;
-      toast({ title: "تم إرسال النموذج", description: "سيراجعه المسؤول قريباً." });
+      toast({
+        title: "تم حفظ النموذج",
+        description: "يمكنك الآن تنزيله كـ PDF أو مشاركته عبر واتساب أو إرساله للمراجعة.",
+      });
       setActiveTemplate(null);
+      if (inserted) setViewSubmission(inserted as Submission);
       fetchData();
     } catch (err: any) {
       toast({ title: "تعذر الإرسال", description: err.message, variant: "destructive" });
