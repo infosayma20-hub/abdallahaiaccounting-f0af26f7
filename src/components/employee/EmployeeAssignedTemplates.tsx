@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Loader2, ChevronLeft, CheckCircle2, X,
-  Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText,
+  Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText, Share2, FileDown, Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer, { type FormSchema } from "@/components/forms/DynamicFormRenderer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
+import FormShareSheet from "@/components/employee/forms/FormShareSheet";
+import { exportEmployeeFormPdf, downloadBlob } from "@/lib/employee-forms/exportFormPdf";
 
 interface Props {
   employeeId: string;
@@ -34,6 +38,9 @@ type Submission = {
   template_id: string;
   title: string | null;
   status: string;
+  workflow_status?: string | null;
+  pdf_url?: string | null;
+  company_id?: string | null;
   created_at: string;
   form_data: Record<string, any>;
 };
@@ -64,6 +71,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [shareTarget, setShareTarget] = useState<Submission | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -104,7 +114,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         if (fillIds.length) {
           queries.push(
             supabase.from("employee_forms")
-              .select("id, template_id, title, status, created_at, form_data")
+              .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
               .eq("employee_id", employeeId)
               .in("template_id", fillIds)
               .order("created_at", { ascending: false }),
@@ -113,7 +123,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         if (viewOnlyIds.length) {
           queries.push(
             supabase.from("employee_forms")
-              .select("id, template_id, title, status, created_at, form_data")
+              .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
               .in("template_id", viewOnlyIds)
               .order("created_at", { ascending: false })
               .limit(50),
@@ -159,6 +169,54 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       toast({ title: "تعذر الإرسال", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const ensureCompanyId = async (sub: Submission): Promise<string> => {
+    if (sub.company_id) return sub.company_id;
+    const { data: emp } = await supabase.from("employees").select("company_id").eq("id", employeeId).maybeSingle();
+    return (emp as any)?.company_id;
+  };
+
+  const exportPdf = async (sub: Submission, downloadOnly = false): Promise<string | null> => {
+    if (!printRef.current) return null;
+    setExporting(true);
+    try {
+      const companyId = await ensureCompanyId(sub);
+      if (!companyId) throw new Error("لم يتم العثور على الشركة");
+      const { blob, signedUrl } = await exportEmployeeFormPdf({
+        element: printRef.current,
+        formId: sub.id,
+        companyId,
+        fileName: sub.title || "form",
+      });
+      if (downloadOnly) {
+        downloadBlob(blob, `${(sub.title || "form").replace(/[^\w-]/g, "_")}.pdf`);
+        toast({ title: "تم تنزيل النموذج" });
+      }
+      // refresh submissions to pick up pdf_url
+      fetchData();
+      return signedUrl;
+    } catch (e: any) {
+      toast({ title: "فشل تصدير PDF", description: e.message, variant: "destructive" });
+      return null;
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const submitForReview = async (sub: Submission) => {
+    try {
+      const { error } = await supabase
+        .from("employee_forms")
+        .update({ workflow_status: "submitted", current_approver_role: "management" })
+        .eq("id", sub.id);
+      if (error) throw error;
+      toast({ title: "تم إرسال النموذج للمراجعة" });
+      fetchData();
+      setViewSubmission((prev) => prev ? { ...prev, workflow_status: "submitted" } : prev);
+    } catch (e: any) {
+      toast({ title: "تعذر الإرسال", description: e.message, variant: "destructive" });
     }
   };
 
