@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       const body = await req.json();
       const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64, device_fingerprint } = body;
-      const bodyAction = body.action || path;
+      let bodyAction = body.action || path;
       
       const validActions = ["checkin", "checkout", "break_out", "break_in"];
       if (!validActions.includes(bodyAction)) {
@@ -203,25 +203,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 2.0 Selfie requirement check — مطلوب فقط عند تسجيل الدخول.
-      // الخروج يكتفي بمسح QR (قرار سياسي للتسريع وتفادي مشاكل الكاميرا الأمامية).
-      const selfieRequired = !!branch.require_attendance_selfie &&
-        bodyAction === "checkin";
-      if (selfieRequired) {
-        if (!selfie_base64 || typeof selfie_base64 !== "string" || selfie_base64.length < 1000) {
-          return new Response(
-            JSON.stringify({ error: "هذا الفرع يتطلب التقاط صورة سيلفي عند البصمة." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        // Limit ~5MB binary => ~6.7MB base64. Reject larger to match bucket policy.
-        if (selfie_base64.length > 6_900_000) {
-          return new Response(
-            JSON.stringify({ error: "حجم الصورة كبير جداً. يرجى إعادة الالتقاط." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
+      // Selfie is validated after the server decides the FINAL action.
+      // مهم: إذا أرسل العميل checkin بالخطأ بعد منتصف الليل وفيه جلسة مفتوحة،
+      // سنحوّلها إلى checkout، والخروج لا يحتاج سيلفي.
+      let selfieRequired = false;
 
       // 2. Geofencing check (per-branch toggle, default ON)
       const gpsRequired = branch.require_gps !== false;
@@ -345,7 +330,8 @@ Deno.serve(async (req) => {
 
       const events = todayEvents || [];
       const lastEvent = events.length > 0 ? events[events.length - 1] : null;
-      const MAX_OPEN_SESSION_MS = 36 * 60 * 60 * 1000;
+       const OPEN_SESSION_LOOKBACK_DAYS = 7;
+       const MAX_OPEN_SESSION_MS = OPEN_SESSION_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
       const openLookbackStart = new Date(Date.now() - MAX_OPEN_SESSION_MS).toISOString();
       const { data: recentSequenceEvents } = await supabase
         .from("attendance_events")
