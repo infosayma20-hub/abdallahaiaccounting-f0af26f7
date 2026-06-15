@@ -284,8 +284,10 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     setIsLoading(true);
 
     try {
+      let savedAccountId = accountId;
+      let savedAccountCode = code;
       if (mode === "create") {
-        const { error } = await supabase.from("accounts").insert({
+        const { data: ins, error } = await supabase.from("accounts").insert({
           user_id: user.id,
           account_code: code,
           account_name: name.trim(),
@@ -293,8 +295,10 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           parent_code: parentCode,
           description_ar: descriptionAr.trim() || null,
           notes: notes.trim() || null,
-        });
+        }).select("id, account_code").single();
         if (error) throw error;
+        savedAccountId = ins?.id;
+        savedAccountCode = ins?.account_code || code;
         toast({ title: "✅ تم إنشاء الحساب", description: `${code} — ${name}` });
         clearDraft();
       } else {
@@ -316,6 +320,37 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         if (error) throw error;
         toast({ title: "✅ تم حفظ التغييرات" });
       }
+
+      // ─── Opening Balance posting (idempotent via RPC) ───
+      if (savedAccountId && code !== "3110") {
+        const ref = `OB-ACC-${savedAccountId.slice(0, 8)}`;
+        if (obAmount > 0) {
+          const debitCode = obType === "debit" ? savedAccountCode : "3110";
+          const creditCode = obType === "debit" ? "3110" : savedAccountCode;
+          const { data: rpcRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
+            p_user_id: user.id,
+            p_debit_account_code: debitCode,
+            p_credit_account_code: creditCode,
+            p_amount: obAmount,
+            p_balance_date: obDate,
+            p_description: `رصيد افتتاحي - ${name.trim()}`,
+            p_currency: "شيكل",
+            p_contact_id: null,
+            p_reference: ref,
+            p_replace_existing: true,
+            p_idempotency_key: `${ref}-${Date.now()}`,
+          });
+          const r = rpcRes as any;
+          if (obErr || (r && r.success === false)) {
+            toast({ title: "⚠ خطأ في الرصيد الافتتاحي", description: obErr?.message || r?.error || "فشل التسجيل", variant: "destructive" });
+          }
+        } else if (mode === "edit" && obExistingRef) {
+          // Amount cleared → soft-delete existing OB transactions
+          await supabase.from("transactions").update({ is_deleted: true } as any)
+            .eq("user_id", user.id).eq("reference", obExistingRef).eq("is_opening_balance", true);
+        }
+      }
+
       navigate("/accounts");
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
