@@ -585,7 +585,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       key: "details",
       title: "تفاصيل إضافية",
       defaultOpen: false,
-      summary: <span className="text-[11px] text-muted-foreground">اختياري</span>,
+      summary: <span className="text-[11px] text-muted-foreground">اختياري — اضغط للفتح</span>,
       children: (
         <div className="px-4 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
