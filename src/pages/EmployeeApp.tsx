@@ -257,7 +257,9 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
   const handleNavigate = (tab: Tab) => {
     if (tab === "scan") {
-      const canCheckOut = !!getOpenAttendanceSession(recentEvents.length ? recentEvents : todayEvents);
+      const eventsForState = recentEvents.length ? recentEvents : todayEvents;
+      const lastEvent = eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
+      const canCheckOut = !!getOpenAttendanceSession(eventsForState, 24 * 7) || lastEvent?.event_type === "check_in";
       setScanAction(canCheckOut ? "checkout" : "checkin");
       setScanOpen(true);
     } else {
