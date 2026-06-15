@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MessageCircle, Building2, Users, Mail, Loader2, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Recipient {
   id: string;
@@ -39,6 +41,7 @@ const normalizePhonePalestine = (raw: string): string => {
 export default function FormShareSheet({
   open, onClose, formId, formTitle, pdfUrl, ensurePdf, companyId, defaultMessage,
 }: Props) {
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<"whatsapp" | "management" | "hr" | "email">("whatsapp");
   const [managers, setManagers] = useState<Recipient[]>([]);
   const [hrs, setHrs] = useState<Recipient[]>([]);
@@ -168,16 +171,8 @@ export default function FormShareSheet({
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg w-[95vw]" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="text-right flex items-center gap-2">
-            <FileDown className="h-5 w-5 text-primary" /> مشاركة النموذج
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-3">
+  const body = (
+    <div className="space-y-3">
           <div>
             <Label className="text-xs">رسالة (اختياري)</Label>
             <Textarea
@@ -190,10 +185,22 @@ export default function FormShareSheet({
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
             <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="whatsapp"><MessageCircle className="h-4 w-4 ml-1" />واتساب</TabsTrigger>
-              <TabsTrigger value="management"><Building2 className="h-4 w-4 ml-1" />إدارة</TabsTrigger>
-              <TabsTrigger value="hr"><Users className="h-4 w-4 ml-1" />HR</TabsTrigger>
-              <TabsTrigger value="email"><Mail className="h-4 w-4 ml-1" />بريد</TabsTrigger>
+              <TabsTrigger value="whatsapp" className="text-xs sm:text-sm px-1 sm:px-3">
+                <MessageCircle className="h-4 w-4 sm:ml-1" />
+                <span className="hidden sm:inline">واتساب</span>
+              </TabsTrigger>
+              <TabsTrigger value="management" className="text-xs sm:text-sm px-1 sm:px-3">
+                <Building2 className="h-4 w-4 sm:ml-1" />
+                <span className="hidden sm:inline">إدارة</span>
+              </TabsTrigger>
+              <TabsTrigger value="hr" className="text-xs sm:text-sm px-1 sm:px-3">
+                <Users className="h-4 w-4 sm:ml-1" />
+                <span className="hidden sm:inline">HR</span>
+              </TabsTrigger>
+              <TabsTrigger value="email" className="text-xs sm:text-sm px-1 sm:px-3">
+                <Mail className="h-4 w-4 sm:ml-1" />
+                <span className="hidden sm:inline">بريد</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="whatsapp" className="space-y-3 pt-3">
@@ -287,7 +294,37 @@ export default function FormShareSheet({
               </Button>
             </TabsContent>
           </Tabs>
-        </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+        <SheetContent
+          side="bottom"
+          dir="rtl"
+          className="max-h-[92dvh] overflow-y-auto rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+        >
+          <SheetHeader>
+            <SheetTitle className="text-right flex items-center gap-2">
+              <FileDown className="h-5 w-5 text-primary" /> مشاركة النموذج
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-3">{body}</div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-right flex items-center gap-2">
+            <FileDown className="h-5 w-5 text-primary" /> مشاركة النموذج
+          </DialogTitle>
+        </DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );
