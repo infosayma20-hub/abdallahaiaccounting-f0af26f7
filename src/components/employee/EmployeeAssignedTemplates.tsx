@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Loader2, ChevronLeft, CheckCircle2, X,
-  Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText,
+  Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText, Share2, FileDown, Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer, { type FormSchema } from "@/components/forms/DynamicFormRenderer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
+import FormShareSheet from "@/components/employee/forms/FormShareSheet";
+import { exportEmployeeFormPdf, downloadBlob } from "@/lib/employee-forms/exportFormPdf";
 
 interface Props {
   employeeId: string;
@@ -34,6 +38,9 @@ type Submission = {
   template_id: string;
   title: string | null;
   status: string;
+  workflow_status?: string | null;
+  pdf_url?: string | null;
+  company_id?: string | null;
   created_at: string;
   form_data: Record<string, any>;
 };
@@ -64,6 +71,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [shareTarget, setShareTarget] = useState<Submission | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -104,7 +114,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         if (fillIds.length) {
           queries.push(
             supabase.from("employee_forms")
-              .select("id, template_id, title, status, created_at, form_data")
+              .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
               .eq("employee_id", employeeId)
               .in("template_id", fillIds)
               .order("created_at", { ascending: false }),
@@ -113,7 +123,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         if (viewOnlyIds.length) {
           queries.push(
             supabase.from("employee_forms")
-              .select("id, template_id, title, status, created_at, form_data")
+              .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
               .in("template_id", viewOnlyIds)
               .order("created_at", { ascending: false })
               .limit(50),
@@ -159,6 +169,54 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       toast({ title: "تعذر الإرسال", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const ensureCompanyId = async (sub: Submission): Promise<string> => {
+    if (sub.company_id) return sub.company_id;
+    const { data: emp } = await supabase.from("employees").select("company_id").eq("id", employeeId).maybeSingle();
+    return (emp as any)?.company_id;
+  };
+
+  const exportPdf = async (sub: Submission, downloadOnly = false): Promise<string | null> => {
+    if (!printRef.current) return null;
+    setExporting(true);
+    try {
+      const companyId = await ensureCompanyId(sub);
+      if (!companyId) throw new Error("لم يتم العثور على الشركة");
+      const { blob, signedUrl } = await exportEmployeeFormPdf({
+        element: printRef.current,
+        formId: sub.id,
+        companyId,
+        fileName: sub.title || "form",
+      });
+      if (downloadOnly) {
+        downloadBlob(blob, `${(sub.title || "form").replace(/[^\w-]/g, "_")}.pdf`);
+        toast({ title: "تم تنزيل النموذج" });
+      }
+      // refresh submissions to pick up pdf_url
+      fetchData();
+      return signedUrl;
+    } catch (e: any) {
+      toast({ title: "فشل تصدير PDF", description: e.message, variant: "destructive" });
+      return null;
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const submitForReview = async (sub: Submission) => {
+    try {
+      const { error } = await supabase
+        .from("employee_forms")
+        .update({ workflow_status: "submitted", current_approver_role: "management" })
+        .eq("id", sub.id);
+      if (error) throw error;
+      toast({ title: "تم إرسال النموذج للمراجعة" });
+      fetchData();
+      setViewSubmission((prev) => prev ? { ...prev, workflow_status: "submitted" } : prev);
+    } catch (e: any) {
+      toast({ title: "تعذر الإرسال", description: e.message, variant: "destructive" });
     }
   };
 
@@ -283,7 +341,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               <h1 className="text-base font-bold truncate px-2">
                 {viewSubmission.title || "نموذج"} — {new Date(viewSubmission.created_at).toLocaleDateString("ar")}
               </h1>
-              <div className="w-9" />
+              <FormStatusBadge status={viewSubmission.workflow_status || "draft"} />
             </header>
             <div
               className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4"
@@ -293,14 +351,18 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               }}
             >
               {tpl ? (
-                <DynamicFormRenderer
-                  schema={tpl.schema}
-                  initialData={viewSubmission.form_data}
-                  readOnly
-                />
+                <div ref={printRef} className="bg-white p-4 rounded-lg">
+                  <h2 className="text-lg font-bold mb-3 text-center">{viewSubmission.title || tpl.name}</h2>
+                  <DynamicFormRenderer
+                    schema={tpl.schema}
+                    initialData={viewSubmission.form_data}
+                    readOnly
+                  />
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">القالب غير متاح.</p>
               )}
+              {renderSubmissionActions(viewSubmission)}
             </div>
           </div>
         );
@@ -309,26 +371,85 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       <Dialog open={!isMobile && !!viewSubmission} onOpenChange={(o) => !o && setViewSubmission(null)}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-right">
-              {viewSubmission?.title || "نموذج"} —{" "}
-              {viewSubmission && new Date(viewSubmission.created_at).toLocaleDateString("ar")}
+            <DialogTitle className="text-right flex items-center gap-2 flex-wrap">
+              <span>{viewSubmission?.title || "نموذج"} — {viewSubmission && new Date(viewSubmission.created_at).toLocaleDateString("ar")}</span>
+              {viewSubmission && <FormStatusBadge status={viewSubmission.workflow_status || "draft"} />}
             </DialogTitle>
           </DialogHeader>
           {viewSubmission && (() => {
             const tpl = templates.find((t) => t.id === viewSubmission.template_id);
             if (!tpl) return <p className="text-sm text-muted-foreground">القالب غير متاح.</p>;
             return (
-              <DynamicFormRenderer
-                schema={tpl.schema}
-                initialData={viewSubmission.form_data}
-                readOnly
-              />
+              <>
+                <div ref={printRef} className="bg-white p-4 rounded-lg">
+                  <h2 className="text-lg font-bold mb-3 text-center">{viewSubmission.title || tpl.name}</h2>
+                  <DynamicFormRenderer
+                    schema={tpl.schema}
+                    initialData={viewSubmission.form_data}
+                    readOnly
+                  />
+                </div>
+                {renderSubmissionActions(viewSubmission)}
+              </>
             );
           })()}
         </DialogContent>
       </Dialog>
+
+      {shareTarget && (
+        <FormShareSheet
+          open={!!shareTarget}
+          onClose={() => setShareTarget(null)}
+          formId={shareTarget.id}
+          formTitle={shareTarget.title || "نموذج"}
+          pdfUrl={shareTarget.pdf_url || null}
+          companyId={shareTarget.company_id || ""}
+          ensurePdf={async () => (await exportPdf(shareTarget!, false)) || ""}
+        />
+      )}
     </div>
   );
+
+  function renderSubmissionActions(sub: Submission) {
+    const canSubmit = (sub.workflow_status || "draft") === "draft";
+    return (
+      <div className="mt-4 flex flex-wrap items-center gap-2 sticky bottom-0 bg-background/95 backdrop-blur py-3 px-1 border-t">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2"
+          disabled={exporting}
+          onClick={() => exportPdf(sub, true)}
+        >
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+          تنزيل PDF
+        </Button>
+        <Button
+          size="sm"
+          className="gap-2"
+          disabled={exporting}
+          onClick={async () => {
+            // ensure PDF before opening share
+            let pdf = sub.pdf_url;
+            if (!pdf) pdf = (await exportPdf(sub, false)) || null;
+            setShareTarget({ ...sub, pdf_url: pdf || sub.pdf_url || null });
+          }}
+        >
+          <Share2 className="h-4 w-4" /> مشاركة
+        </Button>
+        {canSubmit && (
+          <Button
+            size="sm"
+            variant="secondary"
+            className="gap-2"
+            onClick={() => submitForReview(sub)}
+          >
+            <Send className="h-4 w-4" /> إرسال للمراجعة
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   function renderTemplateList(list: Template[], viewOnly: boolean) {
     return list.map((t) => {
