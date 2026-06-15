@@ -8,6 +8,7 @@ import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
 import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { getFreshFormPdfUrl } from "@/lib/employee-forms/pdfUrl";
 
 interface FormRow {
   id: string;
@@ -17,6 +18,7 @@ interface FormRow {
   workflow_status: string;
   current_approver_role: string | null;
   pdf_url: string | null;
+  pdf_storage_path: string | null;
   submitted_at: string | null;
   reviewed_at: string | null;
   review_notes: string | null;
@@ -24,7 +26,7 @@ interface FormRow {
   employee_id: string;
   template_id: string | null;
   employees?: { full_name: string; branch_id: string | null } | null;
-  form_templates?: { name: string; category: string } | null;
+  form_templates?: { name: string; category: string; schema: any } | null;
 }
 
 export default function AdminFormsInboxPage() {
@@ -40,7 +42,7 @@ export default function AdminFormsInboxPage() {
     try {
       let q = supabase
         .from("employee_forms")
-        .select("id,title,form_type,form_data,workflow_status,current_approver_role,pdf_url,submitted_at,reviewed_at,review_notes,created_at,employee_id,template_id,employees:employee_id(full_name,branch_id),form_templates:template_id(name,category)")
+        .select("id,title,form_type,form_data,workflow_status,current_approver_role,pdf_url,pdf_storage_path,submitted_at,reviewed_at,review_notes,created_at,employee_id,template_id,employees:employee_id(full_name,branch_id),form_templates:template_id(name,category,schema)")
         .neq("workflow_status", "draft")
         .order("created_at", { ascending: false })
         .limit(200);
@@ -83,23 +85,48 @@ export default function AdminFormsInboxPage() {
     }
   };
 
+  const openPdf = async (row: FormRow) => {
+    try {
+      const fresh = await getFreshFormPdfUrl(row.id, row.pdf_url, row.pdf_storage_path);
+      if (!fresh) {
+        toast({ title: "لا يوجد PDF متاح", variant: "destructive" });
+        return;
+      }
+      window.open(fresh, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast({ title: "تعذر فتح الملف", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const fieldLabel = (row: FormRow, key: string): string => {
+    const fields = (row.form_templates?.schema as any)?.fields;
+    if (Array.isArray(fields)) {
+      const f = fields.find((x: any) => x?.id === key || x?.name === key || x?.key === key);
+      if (f?.label) return String(f.label);
+    }
+    return key;
+  };
+
   const counts = {
     submitted: rows.filter((r) => r.workflow_status === "submitted").length,
     under_review: rows.filter((r) => r.workflow_status === "under_review").length,
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto" dir="rtl">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold flex items-center gap-2">
+    <div
+      className="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+      dir="rtl"
+    >
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+        <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
           <FileText className="h-6 w-6 text-primary" /> صندوق النماذج
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto -mx-1 px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(["all","submitted","under_review","approved","rejected"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
                 filter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
               }`}
             >
@@ -123,11 +150,13 @@ export default function AdminFormsInboxPage() {
               <Card key={r.id} className="overflow-hidden">
                 <button
                   onClick={() => setExpanded(isOpen ? null : r.id)}
-                  className="w-full p-4 flex items-center gap-3 hover:bg-muted/40 transition text-right"
+                  className="w-full p-3 sm:p-4 flex items-center gap-3 hover:bg-muted/40 transition text-right"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm">{r.title || r.form_templates?.name || "نموذج"}</span>
+                      <span className="font-semibold text-sm truncate max-w-[60vw] sm:max-w-none">
+                        {r.title || r.form_templates?.name || "نموذج"}
+                      </span>
                       <FormStatusBadge status={r.workflow_status} />
                       {r.current_approver_role && (
                         <Badge variant="outline" className="text-[10px]">
@@ -143,20 +172,31 @@ export default function AdminFormsInboxPage() {
                 </button>
 
                 {isOpen && (
-                  <div className="border-t bg-muted/20 p-4 space-y-3">
-                    {r.pdf_url && (
-                      <Button variant="outline" size="sm" className="gap-2" asChild>
-                        <a href={r.pdf_url} target="_blank" rel="noreferrer">
-                          <ExternalLink className="h-4 w-4" /> فتح PDF
-                        </a>
+                  <div className="border-t bg-muted/20 p-3 sm:p-4 space-y-3">
+                    {(r.pdf_url || r.pdf_storage_path) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 w-full sm:w-auto"
+                        onClick={() => openPdf(r)}
+                      >
+                        <ExternalLink className="h-4 w-4" /> فتح PDF
                       </Button>
                     )}
 
                     <div className="rounded-lg bg-background border p-3 text-xs">
                       {Object.entries(r.form_data || {}).map(([k, v]) => (
-                        <div key={k} className="flex gap-2 py-1 border-b last:border-0">
-                          <span className="font-medium text-muted-foreground min-w-[140px]">{k}:</span>
-                          <span className="break-all">{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
+                        <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-2 py-1.5 border-b last:border-0">
+                          <span className="font-medium text-muted-foreground sm:min-w-[160px]">
+                            {fieldLabel(r, k)}:
+                          </span>
+                          <span className="break-all text-foreground">
+                            {v === null || v === undefined || v === ""
+                              ? "—"
+                              : typeof v === "object"
+                                ? JSON.stringify(v)
+                                : String(v)}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -174,16 +214,16 @@ export default function AdminFormsInboxPage() {
                       rows={2}
                     />
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                       {r.workflow_status === "submitted" && (
-                        <Button size="sm" variant="secondary" onClick={() => setStatus(r, "under_review")} disabled={busy === r.id} className="gap-1">
+                        <Button size="sm" variant="secondary" onClick={() => setStatus(r, "under_review")} disabled={busy === r.id} className="gap-1 w-full sm:w-auto">
                           <Eye className="h-4 w-4" /> بدء المراجعة
                         </Button>
                       )}
-                      <Button size="sm" onClick={() => setStatus(r, "approved")} disabled={busy === r.id} className="gap-1 bg-emerald-600 hover:bg-emerald-700">
+                      <Button size="sm" onClick={() => setStatus(r, "approved")} disabled={busy === r.id} className="gap-1 bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto">
                         <CheckCircle2 className="h-4 w-4" /> اعتماد
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => setStatus(r, "rejected")} disabled={busy === r.id} className="gap-1">
+                      <Button size="sm" variant="destructive" onClick={() => setStatus(r, "rejected")} disabled={busy === r.id} className="gap-1 w-full sm:w-auto">
                         <XCircle className="h-4 w-4" /> رفض
                       </Button>
                     </div>

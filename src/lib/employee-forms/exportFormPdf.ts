@@ -15,9 +15,14 @@ export async function exportEmployeeFormPdf(opts: {
 }): Promise<{ blob: Blob; storagePath: string; signedUrl: string }> {
   const { element, formId, companyId } = opts;
 
+  // Adaptive scale: keep memory usage reasonable on mobile devices.
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const scale = isMobile ? Math.min(1.5, dpr) : Math.min(2, dpr > 1 ? 2 : 1.75);
+
   // Render the HTML element to canvas
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale,
     useCORS: true,
     backgroundColor: "#ffffff",
     logging: false,
