@@ -184,9 +184,13 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Upsert attendance day
+          const attendanceRange = hebronDayRangeUtc(attendanceDate);
+          const attendanceCalcEnd = eventType === "check_out"
+            ? new Date(eventTime.getTime() + 1000).toISOString()
+            : attendanceRange.end;
+
           if (eventType === "check_in") {
-            const hour = eventTime.getHours();
+            const hour = hebronHour(punchIso);
             const isLate = hour >= 9;
 
             await supabase.from("attendance_days").upsert(
@@ -194,8 +198,8 @@ Deno.serve(async (req) => {
                 employee_id: employee.id,
                 auth_user_id: employee.auth_user_id || "00000000-0000-0000-0000-000000000000",
                 branch_id: employee.branch_id,
-                attendance_date: today,
-                first_check_in: eventTime.toISOString(),
+                attendance_date: attendanceDate,
+                first_check_in: punchIso,
                 status: isLate ? "late" : "present",
               },
               { onConflict: "employee_id,attendance_date" }
@@ -206,7 +210,7 @@ Deno.serve(async (req) => {
               .from("attendance_days")
               .select("first_check_in")
               .eq("employee_id", employee.id)
-              .eq("attendance_date", today)
+              .eq("attendance_date", attendanceDate)
               .single();
 
             if (dayRecord?.first_check_in) {
