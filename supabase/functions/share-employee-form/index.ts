@@ -37,6 +37,18 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey)
 
+    // SECURITY: validate caller belongs to the same company as the form
+    const { data: callerProfile } = await admin
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!callerProfile || callerProfile.company_id !== companyId) {
+      return new Response(JSON.stringify({ error: 'Forbidden: company mismatch' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Load form + sender employee
     const { data: form } = await admin
       .from('employee_forms')
@@ -46,6 +58,11 @@ Deno.serve(async (req) => {
     if (!form) {
       return new Response(JSON.stringify({ error: 'Form not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (form.company_id !== companyId) {
+      return new Response(JSON.stringify({ error: 'Form does not belong to this company' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
