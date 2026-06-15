@@ -65,7 +65,7 @@ export default function AdminFormsInboxPage() {
     // eslint-disable-next-line
   }, []);
 
-  const setStatus = async (row: FormRow, status: string) => {
+  const setStatus = async (row: FormRow, status: "draft" | "submitted" | "under_review" | "approved" | "rejected") => {
     setBusy(row.id);
     try {
       const notes = reviewNotes[row.id] || null;
