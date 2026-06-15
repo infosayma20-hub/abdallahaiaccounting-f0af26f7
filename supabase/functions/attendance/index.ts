@@ -481,6 +481,33 @@ Deno.serve(async (req) => {
       }
 
       // ─── Original checkin/checkout logic ───
+      // ───────────────────────────────────────────────────────────────
+      // 🛡️  SERVER-SIDE GUARD — close-open-session-first
+      // If the client asked for "checkin" but the employee already has an
+      // OPEN session (check_in without a matching check_out) from a previous
+      // day AND the punch is still within MAX_OPEN_SHIFT_HOURS of that
+      // check_in, treat this punch as a check_OUT for that open session
+      // rather than opening a brand-new day.
+      // Real-world example: employee checks in 4:32 PM on 14 Jun, forgets
+      // to check out, then punches at 1:26 AM on 15 Jun → the 1:26 AM punch
+      // must close the 14 Jun session, NOT start 15 Jun.
+      // ───────────────────────────────────────────────────────────────
+      const MAX_OPEN_SHIFT_HOURS = 18; // a single shift cannot reasonably exceed 18h
+      let autoFlippedToCheckout = false;
+      if (bodyAction === "checkin" && openSessionStart && !isOnBreak) {
+        const openAgeHours =
+          (Date.now() - new Date(openSessionStart.event_time).getTime()) /
+          3_600_000;
+        if (openAgeHours <= MAX_OPEN_SHIFT_HOURS) {
+          bodyAction = "checkout";
+          autoFlippedToCheckout = true;
+          console.info("[attendance] auto-flipped checkin→checkout to close open session", {
+            employee_id: employee.id,
+            open_check_in: openSessionStart.event_time,
+            open_age_hours: Number(openAgeHours.toFixed(2)),
+          });
+        }
+      }
       const eventType = bodyAction === "checkin" ? "check_in" : "check_out";
 
       // Validate sequence
@@ -497,7 +524,9 @@ Deno.serve(async (req) => {
               { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          // Different day → allow the new check-in to proceed.
+          // Different day AND open session older than MAX_OPEN_SHIFT_HOURS →
+          // the orphan is too stale to auto-close; let the new check-in proceed
+          // and surface the stale session in the Alerts tab for correction.
         }
       } else {
         // check_out
