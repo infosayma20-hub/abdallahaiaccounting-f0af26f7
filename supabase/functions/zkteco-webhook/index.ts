@@ -214,20 +214,41 @@ Deno.serve(async (req) => {
               .single();
 
             if (dayRecord?.first_check_in) {
-              const totalHours =
-                (eventTime.getTime() - new Date(dayRecord.first_check_in).getTime()) / 3600000;
+              const { data: allEvents } = await supabase
+                .from("attendance_events")
+                .select("event_type, event_time")
+                .eq("employee_id", employee.id)
+                .gte("event_time", attendanceRange.start)
+                .lt("event_time", attendanceCalcEnd)
+                .eq("status", "valid")
+                .order("event_time", { ascending: true });
+
+              const evts = allEvents || [];
+              const firstCheckIn = evts.find((e) => e.event_type === "check_in")?.event_time || dayRecord.first_check_in;
+              const lastCheckOut = [...evts].reverse().find((e) => e.event_type === "check_out")?.event_time || punchIso;
+              let totalHours = 0;
+              let sessionStart: string | null = null;
+              for (const evt of evts) {
+                if (evt.event_type === "check_in") sessionStart = evt.event_time;
+                else if (evt.event_type === "check_out" && sessionStart) {
+                  const durMs = new Date(evt.event_time).getTime() - new Date(sessionStart).getTime();
+                  if (durMs >= 60_000) totalHours += durMs / 3600000;
+                  sessionStart = null;
+                }
+              }
               const dailyHours = employee.work_hours_per_day || 8;
               const overtime = Math.max(0, totalHours - dailyHours);
 
               await supabase
                 .from("attendance_days")
                 .update({
-                  last_check_out: eventTime.toISOString(),
+                  first_check_in: firstCheckIn,
+                  last_check_out: lastCheckOut,
                   total_hours: Math.round(totalHours * 100) / 100,
                   overtime_hours: Math.round(overtime * 100) / 100,
                 })
                 .eq("employee_id", employee.id)
-                .eq("attendance_date", today);
+                .eq("attendance_date", attendanceDate);
             } else {
               // No check-in yet — create day with check-out only (manual correction needed)
               await supabase.from("attendance_days").upsert(
@@ -235,8 +256,8 @@ Deno.serve(async (req) => {
                   employee_id: employee.id,
                   auth_user_id: employee.auth_user_id || "00000000-0000-0000-0000-000000000000",
                   branch_id: employee.branch_id,
-                  attendance_date: today,
-                  last_check_out: eventTime.toISOString(),
+                  attendance_date: attendanceDate,
+                  last_check_out: punchIso,
                   status: "incomplete",
                 },
                 { onConflict: "employee_id,attendance_date" }
