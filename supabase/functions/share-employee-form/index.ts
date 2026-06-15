@@ -82,17 +82,17 @@ Deno.serve(async (req) => {
         userIds = (profs || []).map((p: any) => p.id)
       }
 
-      // Insert notifications
+      // Insert notifications into notification_log (in-app inbox)
       for (const uid of userIds) {
-        await admin.from('admin_notifications').insert({
+        await admin.from('notification_log').insert({
           user_id: uid,
-          company_id: companyId,
+          channel: 'in_app',
           type: 'employee_form_shared',
           title: `📄 نموذج جديد: ${form.title || 'بدون عنوان'}`,
-          message: `${senderEmployee?.full_name || 'موظف'} أرسل نموذجاً ${
+          body: `${senderEmployee?.full_name || 'موظف'} أرسل نموذجاً ${
             channel === 'management' ? 'للإدارة' : 'لـ HR'
-          }. ${message || ''}\n${pdfUrl}`,
-          metadata: { form_id: formId, pdf_url: pdfUrl, channel },
+          }. ${message || ''}`,
+          path: `/admin/forms-inbox`,
         })
       }
     } else if (channel === 'email') {
