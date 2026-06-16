@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer, TrendingUp, TrendingDown } from "lucide-react";
-import PageHeader from "@/components/layout/PageHeader";
+import {
+  Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer,
+  TrendingUp, TrendingDown, RefreshCw, Calculator,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -17,6 +19,7 @@ import {
   SupabaseTransaction, SupabaseAccount, buildAccountTree, flattenAccountTree, FlatAccountLine,
 } from "@/lib/supabase-data";
 import { format, endOfMonth, startOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
+import { FinanceShell, type ActionTab, type FilterCondition, type FilterField } from "@/components/finance/shell";
 
 const LEVEL_OPTIONS = [
   { value: 1, label: "المستوى 1 — الفئات الرئيسية" },
@@ -288,20 +291,54 @@ const BalanceSheetPage = () => {
   const liabLines = useMemo(() => flattenAccountTree(current.liabilityTree, detailLevel).filter(l => showZeroAccounts || l.balance !== 0), [current.liabilityTree, detailLevel, showZeroAccounts]);
   const eqLines = useMemo(() => flattenAccountTree(current.equityTree, detailLevel).filter(l => showZeroAccounts || l.balance !== 0), [current.equityTree, detailLevel, showZeroAccounts]);
 
-  return (
-    <div className="px-4 pt-6 space-y-5 pb-8" dir="rtl">
-      {/* Header */}
-      <PageHeader title="قائمة المركز المالي" breadcrumb={["المحاسبة", "التقارير", "قائمة المركز المالي"]} />
+  const actionTabs: ActionTab[] = useMemo(() => ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "actions", label: "إجراءات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => {
+          if (!user || !dataOwnerId) return;
+          (async () => {
+            setLoading(true);
+            try {
+              const [txData, accData] = await Promise.all([fetchTransactions(dataOwnerId), fetchAccounts(dataOwnerId)]);
+              setTransactions(txData); setAccounts(accData);
+            } finally { setLoading(false); }
+          })();
+        }},
+        { key: "center", label: "مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+      ]},
+      { key: "print", label: "طباعة", items: [
+        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: loading },
+        { key: "pdf", label: "PDF", icon: Download, onClick: handleExportPDF, disabled: loading },
+      ]},
+      { key: "export", label: "تصدير", items: [
+        { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExportExcel, disabled: loading },
+      ]},
+    ],
+  }]), [user, dataOwnerId, loading, navigate]);
 
-      {/* Controls Card */}
-      <Card className="border-0 shadow-sm rounded-2xl p-4 space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">كما في:</span>
-            <Input type="date" value={asOfDate} onChange={e => { setAsOfDate(e.target.value); setActivePeriod("custom"); }} className="w-[160px] h-8 text-xs" />
-          </div>
+  return (
+    <FinanceShell
+      title="قائمة المركز المالي"
+      subtitle="الأصول = الالتزامات + حقوق الملكية — وفقاً لمعايير IAS 1"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "التقارير" },
+        { label: "المركز المالي" },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={
+        <div className="flex items-center gap-1.5">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-[12.5px] text-muted-foreground">كما في</span>
+          <Input type="date" value={asOfDate} onChange={e => { setAsOfDate(e.target.value); setActivePeriod("custom"); }} className="w-[150px] h-8 text-xs" />
         </div>
+      }
+    >
+      <div className="space-y-4 max-w-[1300px] mx-auto" dir="rtl">
+      {/* Inline controls */}
+      <Card className="border-0 shadow-sm rounded-2xl p-3 space-y-2 print:hidden">
         <div className="flex gap-1.5 flex-wrap">
           {quickPeriods.map(p => (
             <button key={p.key} onClick={() => handleQuickPeriod(p.key)}
@@ -328,17 +365,6 @@ const BalanceSheetPage = () => {
               </button>
             ))}
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportExcel} disabled={loading}>
-            <FileSpreadsheet className="h-3 w-3" /> Excel
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading}>
-            <Download className="h-3 w-3" /> PDF
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading}>
-            <Printer className="h-3 w-3" /> طباعة PDF
-          </Button>
         </div>
       </Card>
 
@@ -401,7 +427,8 @@ const BalanceSheetPage = () => {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
