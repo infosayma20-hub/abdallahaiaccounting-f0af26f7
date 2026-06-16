@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   LayoutGrid,
   Building2,
@@ -209,6 +210,7 @@ export default function HoldingConsolePage() {
   const [toDate, setToDate] = useState(fy.to);
   const [rows, setRows] = useState<TBRow[]>([]);
   const [loadingRows, setLoadingRows] = useState(false);
+  const [provisioning, setProvisioning] = useState(false);
 
   const t = T[lang];
   const dir = lang === "ar" ? "rtl" : "ltr";
@@ -295,6 +297,26 @@ export default function HoldingConsolePage() {
     navigate(`/g/${holdingId}`);
   };
 
+  const provisionSubs = async () => {
+    if (provisioning) return;
+    setProvisioning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-create-sparta-subs", { body: {} });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("تم إنشاء الفروع الثلاثة وربطها ✓");
+      const { data: list } = await supabase
+        .from("holding_companies")
+        .select("owner_id, display_name_ar, sector, sort_order")
+        .eq("holding_id", holdingId).eq("is_active", true).order("sort_order");
+      setSubs((list as Subsidiary[]) || []);
+    } catch (e: any) {
+      toast.error(e?.message || "فشل الإنشاء");
+    } finally {
+      setProvisioning(false);
+    }
+  };
+
   if (checking) {
     return (
       <div style={{ direction: dir, fontFamily: "'Cairo', sans-serif", minHeight: "100dvh", backgroundColor: "#FFFFFF", color: "#111827", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -367,7 +389,10 @@ export default function HoldingConsolePage() {
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <button style={btnGhost()}><Download size={14} />{t.exportExcel}</button>
                   <button onClick={() => setNav("trial_balance")} style={btnGhost()}><Scale size={14} />{t.consolidatedTB}</button>
-                  <button style={btnPrimary()}><Plus size={14} />{t.linkCompany}</button>
+                  <button onClick={provisionSubs} disabled={provisioning} style={btnPrimary()}>
+                    <Plus size={14} />
+                    {subs.length === 0 ? (provisioning ? "جارٍ الإنشاء..." : "إنشاء فروع سبارتا (3)") : t.linkCompany}
+                  </button>
                 </div>
               </div>
 
