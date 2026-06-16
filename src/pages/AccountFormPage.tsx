@@ -84,6 +84,13 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Track whether the user manually edited the code (disables auto-fill)
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
 
+  // ─── Opening Balance ───
+  const [obAmount, setObAmount] = useState<number>(0);
+  const [obType, setObType] = useState<"debit" | "credit">("debit");
+  const [obDate, setObDate] = useState<string>(new Date().getFullYear() + "-01-01");
+  const [obLoaded, setObLoaded] = useState(false);
+  const [obExistingRef, setObExistingRef] = useState<string | null>(null);
+
   // Load accounts for parent selector
   useEffect(() => {
     if (!user) return;
@@ -127,8 +134,34 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   useEffect(() => {
     if (accountType && DEFAULT_BALANCE[accountType]) {
       setNaturalBalance(DEFAULT_BALANCE[accountType]);
+      // Default OB type follows natural balance
+      if (!obLoaded) setObType(DEFAULT_BALANCE[accountType]);
     }
-  }, [accountType]);
+  }, [accountType, obLoaded]);
+
+  // Load existing opening balance (edit mode) from journal entries
+  useEffect(() => {
+    if (mode !== "edit" || !existingAccount || !user) return;
+    const ref = `OB-ACC-${existingAccount.id.slice(0, 8)}`;
+    setObExistingRef(ref);
+    (async () => {
+      const { data } = await supabase
+        .from("transactions")
+        .select("amount, debit_account_code, credit_account_code, transaction_date")
+        .eq("user_id", user.id)
+        .eq("reference", ref)
+        .eq("is_opening_balance", true)
+        .eq("is_deleted", false)
+        .limit(1);
+      const row: any = data?.[0];
+      if (row) {
+        setObAmount(Number(row.amount) || 0);
+        setObType(row.debit_account_code === existingAccount.account_code ? "debit" : "credit");
+        setObDate(row.transaction_date || obDate);
+      }
+      setObLoaded(true);
+    })();
+  }, [mode, existingAccount, user]);
 
   // Validate code
   useEffect(() => {
@@ -251,8 +284,10 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     setIsLoading(true);
 
     try {
+      let savedAccountId = accountId;
+      let savedAccountCode = code;
       if (mode === "create") {
-        const { error } = await supabase.from("accounts").insert({
+        const { data: ins, error } = await supabase.from("accounts").insert({
           user_id: user.id,
           account_code: code,
           account_name: name.trim(),
@@ -260,8 +295,10 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           parent_code: parentCode,
           description_ar: descriptionAr.trim() || null,
           notes: notes.trim() || null,
-        });
+        }).select("id, account_code").single();
         if (error) throw error;
+        savedAccountId = ins?.id;
+        savedAccountCode = ins?.account_code || code;
         toast({ title: "✅ تم إنشاء الحساب", description: `${code} — ${name}` });
         clearDraft();
       } else {
@@ -283,6 +320,37 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         if (error) throw error;
         toast({ title: "✅ تم حفظ التغييرات" });
       }
+
+      // ─── Opening Balance posting (idempotent via RPC) ───
+      if (savedAccountId && code !== "3110") {
+        const ref = `OB-ACC-${savedAccountId.slice(0, 8)}`;
+        if (obAmount > 0) {
+          const debitCode = obType === "debit" ? savedAccountCode : "3110";
+          const creditCode = obType === "debit" ? "3110" : savedAccountCode;
+          const { data: rpcRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
+            p_user_id: user.id,
+            p_debit_account_code: debitCode,
+            p_credit_account_code: creditCode,
+            p_amount: obAmount,
+            p_balance_date: obDate,
+            p_description: `رصيد افتتاحي - ${name.trim()}`,
+            p_currency: "شيكل",
+            p_contact_id: null,
+            p_reference: ref,
+            p_replace_existing: true,
+            p_idempotency_key: `${ref}-${Date.now()}`,
+          });
+          const r = rpcRes as any;
+          if (obErr || (r && r.success === false)) {
+            toast({ title: "⚠ خطأ في الرصيد الافتتاحي", description: obErr?.message || r?.error || "فشل التسجيل", variant: "destructive" });
+          }
+        } else if (mode === "edit" && obExistingRef) {
+          // Amount cleared → soft-delete existing OB transactions
+          await supabase.from("transactions").update({ is_deleted: true } as any)
+            .eq("user_id", user.id).eq("reference", obExistingRef).eq("is_opening_balance", true);
+        }
+      }
+
       navigate("/accounts");
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -514,10 +582,107 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       ),
     },
     {
+      key: "opening_balance",
+      title: "الرصيد الافتتاحي",
+      defaultOpen: true,
+      summary: obAmount > 0 ? (
+        <span className="flex items-center gap-1.5 text-[11px]">
+          <span className={cn("px-2 py-0.5 rounded font-mono font-bold",
+            obType === "debit" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")} dir="ltr">
+            {obAmount.toLocaleString()} ₪
+          </span>
+          <span className="text-muted-foreground">{obType === "debit" ? "مدين" : "دائن"}</span>
+        </span>
+      ) : <span className="text-[11px] text-muted-foreground">لا يوجد رصيد افتتاحي</span>,
+      children: (
+        <div className="px-4 py-4 space-y-4">
+          {code === "3110" ? (
+            <div className="text-[12px] text-muted-foreground bg-muted/30 border border-dashed rounded-md p-3">
+              لا يمكن إضافة رصيد افتتاحي لحساب الأرصدة الافتتاحية نفسه (3110).
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-12 items-center gap-3">
+                <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                  المبلغ
+                </Label>
+                <div className="col-span-12 sm:col-span-9 flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={obAmount || ""}
+                    onChange={(e) => setObAmount(Number(e.target.value) || 0)}
+                    placeholder="0.00"
+                    min={0}
+                    step={0.01}
+                    className="h-10 w-48 font-mono"
+                    dir="ltr"
+                  />
+                  <span className="text-[12px] text-muted-foreground">₪ شيكل</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 items-center gap-3">
+                <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                  النوع
+                </Label>
+                <div className="col-span-12 sm:col-span-9">
+                  <div className="inline-flex rounded-md border bg-background p-0.5 gap-0.5">
+                    {(["debit", "credit"] as const).map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setObType(val)}
+                        className={cn(
+                          "px-4 py-1.5 rounded text-[12px] font-semibold transition-all min-w-[90px]",
+                          obType === val
+                            ? val === "debit"
+                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                              : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                            : "text-muted-foreground hover:bg-muted/60"
+                        )}
+                      >
+                        {val === "debit" ? "مدين" : "دائن"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 items-center gap-3">
+                <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                  تاريخ الرصيد
+                </Label>
+                <div className="col-span-12 sm:col-span-9">
+                  <Input
+                    type="date"
+                    value={obDate}
+                    onChange={(e) => setObDate(e.target.value)}
+                    className="h-10 w-48"
+                  />
+                </div>
+              </div>
+
+              {obAmount > 0 && (
+                <div className="rounded-md border bg-[#1B3A5C]/5 border-[#1B3A5C]/15 px-3 py-2 text-[11.5px] text-foreground/80 leading-relaxed">
+                  <strong className="text-[#1B3A5C]">سيتم تسجيل قيد افتتاحي:</strong>{" "}
+                  {obType === "debit" ? (
+                    <>مدين <span className="font-mono font-bold text-emerald-700">{code || "هذا الحساب"}</span> / دائن <span className="font-mono font-bold text-rose-700">3110 — الأرصدة الافتتاحية</span></>
+                  ) : (
+                    <>مدين <span className="font-mono font-bold text-emerald-700">3110 — الأرصدة الافتتاحية</span> / دائن <span className="font-mono font-bold text-rose-700">{code || "هذا الحساب"}</span></>
+                  )}
+                  {" "}بمبلغ <span className="font-mono font-bold" dir="ltr">{obAmount.toLocaleString()} ₪</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "details",
       title: "تفاصيل إضافية",
       defaultOpen: false,
-      summary: <span className="text-[11px] text-muted-foreground">اختياري</span>,
+      summary: <span className="text-[11px] text-muted-foreground">اختياري — اضغط للفتح</span>,
       children: (
         <div className="px-4 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
@@ -595,7 +760,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       ]}
     >
       <SmartFormScope firstFieldSelector="[data-smart-first]">
-        <form id="account-form" onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-3">
+        <form id="account-form" onSubmit={handleSubmit} className="w-full px-2 sm:px-4 space-y-3">
           {/* Auto-Draft restore */}
           {hasDraft && (
             <DraftRestoreBanner
