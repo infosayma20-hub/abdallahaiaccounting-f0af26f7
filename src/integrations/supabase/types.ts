@@ -7164,7 +7164,7 @@ export type Database = {
           assignee_employee_id: string
           company_id: string | null
           created_at: string
-          form_id: string
+          form_id: string | null
           id: string
           notes: string | null
           section_key: string
@@ -7180,7 +7180,7 @@ export type Database = {
           assignee_employee_id: string
           company_id?: string | null
           created_at?: string
-          form_id: string
+          form_id?: string | null
           id?: string
           notes?: string | null
           section_key: string
@@ -7196,7 +7196,7 @@ export type Database = {
           assignee_employee_id?: string
           company_id?: string | null
           created_at?: string
-          form_id?: string
+          form_id?: string | null
           id?: string
           notes?: string | null
           section_key?: string
@@ -20440,6 +20440,10 @@ export type Database = {
         Returns: boolean
       }
       user_can_access_setup: { Args: { _uid: string }; Returns: boolean }
+      user_manages_employee_branch: {
+        Args: { _employee_id: string }
+        Returns: boolean
+      }
       user_manages_form_branch: { Args: { _form_id: string }; Returns: boolean }
       verify_malaki_login: {
         Args: { p_password: string; p_username: string }
