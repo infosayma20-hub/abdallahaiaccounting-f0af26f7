@@ -19098,6 +19098,10 @@ export type Database = {
         }[]
       }
       calculate_health_score: { Args: { _contact_id: string }; Returns: number }
+      can_access_employee_form_export: {
+        Args: { _object_name: string }
+        Returns: boolean
+      }
       can_fill_form_template: {
         Args: { _template_id: string }
         Returns: boolean
