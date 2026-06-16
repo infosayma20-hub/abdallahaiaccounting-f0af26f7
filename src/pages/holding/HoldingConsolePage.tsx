@@ -358,7 +358,17 @@ export default function HoldingConsolePage() {
 
   // ===== Layout =====
   return (
-    <div style={{ direction: dir, fontFamily: "'Cairo', sans-serif", minHeight: "100dvh", backgroundColor: "#FFFFFF", color: "#0F172A" }}>
+    <div className="holding-console" style={{ direction: dir, fontFamily: "'Cairo', sans-serif", minHeight: "100dvh", backgroundColor: "#FFFFFF", color: "#0F172A" }}>
+      <style>{`
+        .holding-console thead,
+        .holding-console thead tr,
+        .holding-console thead th {
+          background: #F5F1F3 !important;
+          color: #867C88 !important;
+          border-color: #EEE3E8 !important;
+        }
+        .holding-console thead th { font-weight: 700 !important; }
+      `}</style>
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: "100dvh" }}>
         {/* Main area */}
         <main style={{ padding: "28px 36px 48px", order: 2 }}>
