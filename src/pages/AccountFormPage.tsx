@@ -274,8 +274,8 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
 
   // ─── Auto-Draft (تعريف حساب) ───
   const accountDraftSnapshot = useMemo(() => ({
-    code, name, accountType, parentCode, descriptionAr, notes,
-  }), [code, name, accountType, parentCode, descriptionAr, notes]);
+    code, name, accountType, parentCode, descriptionAr, notes, currency,
+  }), [code, name, accountType, parentCode, descriptionAr, notes, currency]);
 
   const applyAccountDraft = useCallback((d: any) => {
     if (d.code) setCode(d.code);
@@ -284,6 +284,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     if (d.parentCode !== undefined) setParentCode(d.parentCode);
     if (d.descriptionAr) setDescriptionAr(d.descriptionAr);
     if (d.notes) setNotes(d.notes);
+    if (d.currency) setCurrency(d.currency);
     toast({ title: "✅ تم استعادة المسودة" });
   }, [toast]);
 
@@ -424,9 +425,11 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       setParentCode(existingAccount.parent_code);
       setDescriptionAr(existingAccount.description_ar ?? "");
       setNotes(existingAccount.notes ?? "");
+      setCurrency(existingAccount.currency || "شيكل");
     } else {
       setCode(""); setName(""); setAccountType(""); setParentCode(null);
       setDescriptionAr(""); setNotes("");
+      setCurrency("شيكل");
       clearDraft();
     }
   };
