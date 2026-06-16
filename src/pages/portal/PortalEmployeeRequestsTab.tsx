@@ -133,12 +133,22 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
     <div style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
-        {[
-          { label: 'إجمالي', value: requests.length, color: t.text },
-          { label: 'قيد المراجعة', value: pendingCount, color: '#FBBF24' },
-          { label: 'موافق', value: approvedCount, color: '#22C55E' },
-          { label: 'مرفوض', value: rejectedCount, color: '#EF4444' },
-        ].map(k => (
+        {(() => {
+          // KPIs respect the active category so totals match the visible chips/list
+          const catCfg = CATEGORY_CHIPS.find(c => c.key === category);
+          const scope = !catCfg || catCfg.key === 'all'
+            ? requests
+            : requests.filter(r => catCfg.types.includes(r.formType));
+          const kPending = scope.filter(r => r.status === 'pending').length;
+          const kApproved = scope.filter(r => r.status === 'approved').length;
+          const kRejected = scope.filter(r => r.status === 'rejected').length;
+          return [
+            { label: 'إجمالي', value: scope.length, color: t.text },
+            { label: 'قيد المراجعة', value: kPending, color: '#FBBF24' },
+            { label: 'موافق', value: kApproved, color: '#22C55E' },
+            { label: 'مرفوض', value: kRejected, color: '#EF4444' },
+          ];
+        })().map(k => (
           <div key={k.label} style={{
             background: t.card, borderRadius: 10, padding: '10px 12px',
             border: `1px solid ${t.border}`,
