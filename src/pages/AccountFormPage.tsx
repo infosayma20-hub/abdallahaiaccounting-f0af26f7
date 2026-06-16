@@ -675,7 +675,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         <span className="flex items-center gap-1.5 text-[11px]">
           <span className={cn("px-2 py-0.5 rounded font-mono font-bold",
             obType === "debit" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")} dir="ltr">
-            {obAmount.toLocaleString()} ₪
+            {obAmount.toLocaleString()} {CURRENCIES.find(c => c.value === currency)?.symbol || "₪"}
           </span>
           <span className="text-muted-foreground">{obType === "debit" ? "مدين" : "دائن"}</span>
         </span>
