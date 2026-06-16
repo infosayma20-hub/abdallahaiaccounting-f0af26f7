@@ -760,7 +760,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       ]}
     >
       <SmartFormScope firstFieldSelector="[data-smart-first]">
-        <form id="account-form" onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-3">
+        <form id="account-form" onSubmit={handleSubmit} className="w-full px-2 sm:px-4 space-y-3">
           {/* Auto-Draft restore */}
           {hasDraft && (
             <DraftRestoreBanner
