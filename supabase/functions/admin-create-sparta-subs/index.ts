@@ -41,14 +41,9 @@ Deno.serve(async (req) => {
     const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
     let allowed = isSuper;
     if (!allowed) {
-      const { data: isMember } = await admin.rpc("is_holding_member", { _holding_id: holdingId, _user_id: user.id } as any)
-        .then((r: any) => r, () => ({ data: null }));
-      if (isMember === true) allowed = true;
-      else {
-        // fallback: direct membership lookup
-        const { data: m } = await admin.from("holding_members").select("holding_id").eq("holding_id", holdingId).limit(1);
-        if (m && m.length > 0) allowed = true;
-      }
+      const { data: m } = await admin.from("holding_members")
+        .select("id").eq("holding_id", holdingId).eq("auth_user_id", user.id).limit(1);
+      if (m && m.length > 0) allowed = true;
     }
     if (!allowed) return json({ error: "ACCESS_DENIED" }, 403);
 
