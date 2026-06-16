@@ -46,6 +46,7 @@ export default function WorkspaceSelect() {
   const navigate = useNavigate();
   const [holding, setHolding] = useState<Branding | null>(null);
   const [subs, setSubs] = useState<Sub[]>([]);
+  const [emails, setEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
   const [userName, setUserName] = useState("");
@@ -70,6 +71,13 @@ export default function WorkspaceSelect() {
         .select("owner_id, display_name_ar, sector, sort_order")
         .eq("holding_id", b.id).eq("is_active", true).order("sort_order");
       setSubs((list as Sub[]) || []);
+      // Fetch owner emails for prefill on subsidiary login
+      const { data: emailRows } = await supabase.rpc("holding_company_emails", { p_holding_id: b.id });
+      if (Array.isArray(emailRows)) {
+        const map: Record<string, string> = {};
+        for (const r of emailRows as any[]) map[r.owner_id] = r.email;
+        setEmails(map);
+      }
       setLoading(false);
 
       // Auto-resume last workspace if ?auto=1
@@ -221,13 +229,21 @@ export default function WorkspaceSelect() {
                     background: canAccess ? gradient : "#E5E7EB", color: canAccess ? "#FFFFFF" : "#9CA3AF",
                     fontFamily: "inherit", fontWeight: 800, fontSize: 12,
                   }}>{lang === "ar" ? "عرض الميزان" : "View Balance"}</button>
-                  <button disabled title={lang === "ar" ? "قريباً" : "Coming soon"} style={{
-                    width: "100%", padding: "9px 12px", borderRadius: 10, border: "1px solid #E5E7EB", cursor: "not-allowed",
-                    background: "#F9FAFB", color: "#9CA3AF", fontFamily: "inherit", fontWeight: 700, fontSize: 11,
+                  <button
+                    onClick={() => {
+                      const e = emails[s.owner_id];
+                      const url = `/auth${e ? `?email=${encodeURIComponent(e)}` : ""}`;
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }}
+                    disabled={!emails[s.owner_id]}
+                    title={emails[s.owner_id] || (lang === "ar" ? "غير متاح" : "Unavailable")}
+                    style={{
+                    width: "100%", padding: "9px 12px", borderRadius: 10, border: "1px solid #E5E7EB",
+                    cursor: emails[s.owner_id] ? "pointer" : "not-allowed",
+                    background: "#FFFFFF", color: emails[s.owner_id] ? accent : "#9CA3AF", fontFamily: "inherit", fontWeight: 700, fontSize: 11,
                     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
                   }}>
-                    <Lock size={12} />
-                    {lang === "ar" ? "تشغيل الشركة · قريباً" : "Open ledger · Soon"}
+                    {lang === "ar" ? "تشغيل الشركة" : "Open ledger"}
                   </button>
                 </div>
               </div>
