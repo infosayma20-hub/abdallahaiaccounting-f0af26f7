@@ -56,7 +56,14 @@ interface Account {
   description_ar?: string | null;
   notes?: string | null;
   is_system_protected?: boolean | null;
+  currency?: string | null;
 }
+
+const CURRENCIES = [
+  { value: "شيكل", label: "شيكل", symbol: "₪", code: "ILS" },
+  { value: "دينار", label: "دينار", symbol: "د.أ", code: "JOD" },
+  { value: "دولار", label: "دولار", symbol: "$", code: "USD" },
+];
 
 const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const navigate = useNavigate();
@@ -84,17 +91,21 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Track whether the user manually edited the code (disables auto-fill)
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
 
+  // ─── Account Currency ───
+  const [currency, setCurrency] = useState<string>("شيكل");
+
   // ─── Opening Balance ───
   const [obAmount, setObAmount] = useState<number>(0);
   const [obType, setObType] = useState<"debit" | "credit">("debit");
   const [obDate, setObDate] = useState<string>(new Date().getFullYear() + "-01-01");
   const [obLoaded, setObLoaded] = useState(false);
   const [obExistingRef, setObExistingRef] = useState<string | null>(null);
+  const [obExchangeRate, setObExchangeRate] = useState<number>(0);
 
   // Load accounts for parent selector
   useEffect(() => {
     if (!user) return;
-    supabase.from("accounts").select("id, account_code, account_name, account_type, parent_code, description_ar, notes, is_system_protected")
+    supabase.from("accounts").select("id, account_code, account_name, account_type, parent_code, description_ar, notes, is_system_protected, currency")
       .eq("user_id", user.id).order("account_code")
       .then(({ data }) => setAccounts(data ?? []))
       .then(() => setDraftReady(true), () => setDraftReady(true));
@@ -113,6 +124,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         setDescriptionAr(acc.description_ar ?? "");
         setNotes(acc.notes ?? "");
         setNaturalBalance(DEFAULT_BALANCE[normalizeType(acc.account_type)] ?? "debit");
+        setCurrency(acc.currency || "شيكل");
       }
     }
   }, [mode, accountId, accounts]);
@@ -142,12 +154,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Load existing opening balance (edit mode) from journal entries
   useEffect(() => {
     if (mode !== "edit" || !existingAccount || !user) return;
-    const ref = `OB-ACC-${existingAccount.id.slice(0, 8)}`;
+    const ref = `OB-ACC-${existingAccount.id}`;
     setObExistingRef(ref);
     (async () => {
       const { data } = await supabase
         .from("transactions")
-        .select("amount, debit_account_code, credit_account_code, transaction_date")
+        .select("amount, foreign_amount, exchange_rate, debit_account_code, credit_account_code, transaction_date, currency")
         .eq("user_id", user.id)
         .eq("reference", ref)
         .eq("is_opening_balance", true)
@@ -155,13 +167,28 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         .limit(1);
       const row: any = data?.[0];
       if (row) {
-        setObAmount(Number(row.amount) || 0);
+        const isFX = row.currency && row.currency !== "شيكل" && Number(row.foreign_amount) > 0;
+        setObAmount(isFX ? Number(row.foreign_amount) : Number(row.amount) || 0);
+        if (isFX) setObExchangeRate(Number(row.exchange_rate) || 0);
         setObType(row.debit_account_code === existingAccount.account_code ? "debit" : "credit");
         setObDate(row.transaction_date || obDate);
       }
       setObLoaded(true);
     })();
   }, [mode, existingAccount, user]);
+
+  // Auto-fetch latest exchange rate when currency switches to foreign
+  useEffect(() => {
+    if (!user || currency === "شيكل") { setObExchangeRate(0); return; }
+    if (obExchangeRate > 0) return; // keep user-edited rate
+    (async () => {
+      const { data } = await supabase.rpc("get_latest_exchange_rate", {
+        p_user_id: user.id, p_currency_name: currency,
+      });
+      const r = Number(data);
+      if (r > 0) setObExchangeRate(r);
+    })();
+  }, [currency, user]);
 
   // Validate code
   useEffect(() => {
@@ -247,8 +274,8 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
 
   // ─── Auto-Draft (تعريف حساب) ───
   const accountDraftSnapshot = useMemo(() => ({
-    code, name, accountType, parentCode, descriptionAr, notes,
-  }), [code, name, accountType, parentCode, descriptionAr, notes]);
+    code, name, accountType, parentCode, descriptionAr, notes, currency,
+  }), [code, name, accountType, parentCode, descriptionAr, notes, currency]);
 
   const applyAccountDraft = useCallback((d: any) => {
     if (d.code) setCode(d.code);
@@ -257,6 +284,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     if (d.parentCode !== undefined) setParentCode(d.parentCode);
     if (d.descriptionAr) setDescriptionAr(d.descriptionAr);
     if (d.notes) setNotes(d.notes);
+    if (d.currency) setCurrency(d.currency);
     toast({ title: "✅ تم استعادة المسودة" });
   }, [toast]);
 
@@ -286,6 +314,30 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     try {
       let savedAccountId = accountId;
       let savedAccountCode = code;
+
+      // Guard: prevent OB posting to a parent account (has children)
+      const hasChildren = accounts.some(a => a.parent_code === code);
+      if (obAmount > 0 && hasChildren) {
+        toast({
+          title: "⚠️ لا يمكن تسجيل رصيد افتتاحي",
+          description: "هذا حساب رئيسي (له حسابات فرعية). سجّل الرصيد على حساب فرعي.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Guard: foreign currency requires an exchange rate
+      if (obAmount > 0 && currency !== "شيكل" && (!obExchangeRate || obExchangeRate <= 0)) {
+        toast({
+          title: "⚠️ سعر الصرف مطلوب",
+          description: `أدخل سعر صرف الـ${currency} مقابل الشيكل لتسجيل الرصيد الافتتاحي.`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       if (mode === "create") {
         const { data: ins, error } = await supabase.from("accounts").insert({
           user_id: user.id,
@@ -295,6 +347,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           parent_code: parentCode,
           description_ar: descriptionAr.trim() || null,
           notes: notes.trim() || null,
+          currency,
         }).select("id, account_code").single();
         if (error) throw error;
         savedAccountId = ins?.id;
@@ -313,6 +366,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           parent_code: parentCode,
           description_ar: descriptionAr.trim() || null,
           notes: notes.trim() || null,
+          currency,
         };
         if (!isProtected) updateData.account_code = code;
 
@@ -323,22 +377,26 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
 
       // ─── Opening Balance posting (idempotent via RPC) ───
       if (savedAccountId && code !== "3110") {
-        const ref = `OB-ACC-${savedAccountId.slice(0, 8)}`;
+        const ref = `OB-ACC-${savedAccountId}`;
         if (obAmount > 0) {
           const debitCode = obType === "debit" ? savedAccountCode : "3110";
           const creditCode = obType === "debit" ? "3110" : savedAccountCode;
+          const isFX = currency !== "شيكل";
+          const ilsAmount = isFX ? obAmount * obExchangeRate : obAmount;
           const { data: rpcRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
             p_user_id: user.id,
             p_debit_account_code: debitCode,
             p_credit_account_code: creditCode,
-            p_amount: obAmount,
+            p_amount: ilsAmount,
             p_balance_date: obDate,
             p_description: `رصيد افتتاحي - ${name.trim()}`,
-            p_currency: "شيكل",
+            p_currency: currency,
             p_contact_id: null,
             p_reference: ref,
             p_replace_existing: true,
             p_idempotency_key: `${ref}-${Date.now()}`,
+            p_foreign_amount: isFX ? obAmount : null,
+            p_exchange_rate: isFX ? obExchangeRate : null,
           });
           const r = rpcRes as any;
           if (obErr || (r && r.success === false)) {
@@ -367,9 +425,11 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       setParentCode(existingAccount.parent_code);
       setDescriptionAr(existingAccount.description_ar ?? "");
       setNotes(existingAccount.notes ?? "");
+      setCurrency(existingAccount.currency || "شيكل");
     } else {
       setCode(""); setName(""); setAccountType(""); setParentCode(null);
       setDescriptionAr(""); setNotes("");
+      setCurrency("شيكل");
       clearDraft();
     }
   };
@@ -557,6 +617,35 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
             </div>
           </div>
 
+          {/* 5. عملة الحساب */}
+          <div className="grid grid-cols-12 items-center gap-3">
+            <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+              عملة الحساب <span className="text-destructive">*</span>
+            </Label>
+            <div className="col-span-12 sm:col-span-9 flex items-center gap-2 flex-wrap">
+              <div className="inline-flex rounded-md border bg-background p-0.5 gap-0.5">
+                {CURRENCIES.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setCurrency(c.value)}
+                    disabled={!!isProtected}
+                    className={cn(
+                      "px-4 py-1.5 rounded text-[12px] font-semibold transition-all min-w-[100px] flex items-center justify-center gap-1.5",
+                      currency === c.value
+                        ? "bg-[#1B3A5C]/10 text-[#1B3A5C] ring-1 ring-[#1B3A5C]/30"
+                        : "text-muted-foreground hover:bg-muted/60"
+                    )}
+                  >
+                    <span className="font-mono text-[11px] opacity-70" dir="ltr">{c.symbol}</span>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-muted-foreground">العملة الطبيعية للحساب (للحسابات البنكية وحسابات العملات الأجنبية)</span>
+            </div>
+          </div>
+
           {/* Siblings reference panel */}
           {!isProtected && mode === "create" && siblings.length > 0 && (
             <div className="mt-2 rounded-md border bg-slate-50/60 dark:bg-slate-900/20 px-3 py-2.5">
@@ -589,7 +678,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         <span className="flex items-center gap-1.5 text-[11px]">
           <span className={cn("px-2 py-0.5 rounded font-mono font-bold",
             obType === "debit" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")} dir="ltr">
-            {obAmount.toLocaleString()} ₪
+            {obAmount.toLocaleString()} {CURRENCIES.find(c => c.value === currency)?.symbol || "₪"}
           </span>
           <span className="text-muted-foreground">{obType === "debit" ? "مدين" : "دائن"}</span>
         </span>
@@ -617,9 +706,40 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
                     className="h-10 w-48 font-mono"
                     dir="ltr"
                   />
-                  <span className="text-[12px] text-muted-foreground">₪ شيكل</span>
+                  <span className="text-[12px] font-semibold text-[#1B3A5C]">
+                    {CURRENCIES.find(c => c.value === currency)?.symbol} {currency}
+                  </span>
                 </div>
               </div>
+
+              {/* Exchange Rate (for foreign currencies only) */}
+              {currency !== "شيكل" && (
+                <div className="grid grid-cols-12 items-center gap-3">
+                  <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                    سعر الصرف <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="col-span-12 sm:col-span-9 flex items-center gap-2 flex-wrap">
+                    <Input
+                      type="number"
+                      value={obExchangeRate || ""}
+                      onChange={(e) => setObExchangeRate(Number(e.target.value) || 0)}
+                      placeholder="0.00"
+                      min={0}
+                      step={0.0001}
+                      className="h-10 w-40 font-mono"
+                      dir="ltr"
+                    />
+                    <span className="text-[11px] text-muted-foreground">
+                      1 {currency} = <span className="font-mono font-bold" dir="ltr">{obExchangeRate || "—"}</span> شيكل
+                    </span>
+                    {obAmount > 0 && obExchangeRate > 0 && (
+                      <span className="text-[11px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">
+                        المعادل: <span className="font-mono font-bold" dir="ltr">{(obAmount * obExchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })} ₪</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-12 items-center gap-3">
                 <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
@@ -670,7 +790,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
                   ) : (
                     <>مدين <span className="font-mono font-bold text-emerald-700">3110 — الأرصدة الافتتاحية</span> / دائن <span className="font-mono font-bold text-rose-700">{code || "هذا الحساب"}</span></>
                   )}
-                  {" "}بمبلغ <span className="font-mono font-bold" dir="ltr">{obAmount.toLocaleString()} ₪</span>
+                  {" "}بمبلغ <span className="font-mono font-bold" dir="ltr">
+                    {obAmount.toLocaleString()} {CURRENCIES.find(c => c.value === currency)?.symbol}
+                  </span>
+                  {currency !== "شيكل" && obExchangeRate > 0 && (
+                    <> (= <span className="font-mono font-bold text-[#1B3A5C]" dir="ltr">{(obAmount * obExchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })} ₪</span> بسعر {obExchangeRate})</>
+                  )}
                 </div>
               )}
             </>
