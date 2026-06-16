@@ -313,6 +313,30 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     try {
       let savedAccountId = accountId;
       let savedAccountCode = code;
+
+      // Guard: prevent OB posting to a parent account (has children)
+      const hasChildren = accounts.some(a => a.parent_code === code);
+      if (obAmount > 0 && hasChildren) {
+        toast({
+          title: "⚠️ لا يمكن تسجيل رصيد افتتاحي",
+          description: "هذا حساب رئيسي (له حسابات فرعية). سجّل الرصيد على حساب فرعي.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Guard: foreign currency requires an exchange rate
+      if (obAmount > 0 && currency !== "شيكل" && (!obExchangeRate || obExchangeRate <= 0)) {
+        toast({
+          title: "⚠️ سعر الصرف مطلوب",
+          description: `أدخل سعر صرف الـ${currency} مقابل الشيكل لتسجيل الرصيد الافتتاحي.`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       if (mode === "create") {
         const { data: ins, error } = await supabase.from("accounts").insert({
           user_id: user.id,
@@ -322,6 +346,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           parent_code: parentCode,
           description_ar: descriptionAr.trim() || null,
           notes: notes.trim() || null,
+          currency,
         }).select("id, account_code").single();
         if (error) throw error;
         savedAccountId = ins?.id;
@@ -340,6 +365,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           parent_code: parentCode,
           description_ar: descriptionAr.trim() || null,
           notes: notes.trim() || null,
+          currency,
         };
         if (!isProtected) updateData.account_code = code;
 
@@ -350,22 +376,26 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
 
       // ─── Opening Balance posting (idempotent via RPC) ───
       if (savedAccountId && code !== "3110") {
-        const ref = `OB-ACC-${savedAccountId.slice(0, 8)}`;
+        const ref = `OB-ACC-${savedAccountId}`;
         if (obAmount > 0) {
           const debitCode = obType === "debit" ? savedAccountCode : "3110";
           const creditCode = obType === "debit" ? "3110" : savedAccountCode;
+          const isFX = currency !== "شيكل";
+          const ilsAmount = isFX ? obAmount * obExchangeRate : obAmount;
           const { data: rpcRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
             p_user_id: user.id,
             p_debit_account_code: debitCode,
             p_credit_account_code: creditCode,
-            p_amount: obAmount,
+            p_amount: ilsAmount,
             p_balance_date: obDate,
             p_description: `رصيد افتتاحي - ${name.trim()}`,
-            p_currency: "شيكل",
+            p_currency: currency,
             p_contact_id: null,
             p_reference: ref,
             p_replace_existing: true,
             p_idempotency_key: `${ref}-${Date.now()}`,
+            p_foreign_amount: isFX ? obAmount : null,
+            p_exchange_rate: isFX ? obExchangeRate : null,
           });
           const r = rpcRes as any;
           if (obErr || (r && r.success === false)) {
