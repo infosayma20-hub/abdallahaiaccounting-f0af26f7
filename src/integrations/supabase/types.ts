@@ -14536,6 +14536,7 @@ export type Database = {
       }
       smart_accountant_categories: {
         Row: {
+          affects_stock: boolean
           ambiguity_resolution_policy: string
           code: string
           created_at: string
@@ -14543,15 +14544,17 @@ export type Database = {
           credit_role: string | null
           debit_code_fallback: string | null
           debit_role: string | null
-          description_ar: string | null
-          id: string
+          default_currency: string
           is_active: boolean
+          keywords: string[]
           name_ar: string
-          sort_order: number
+          name_en: string | null
+          posting_target: string
+          sort_order: number | null
           updated_at: string
-          user_id: string
         }
         Insert: {
+          affects_stock?: boolean
           ambiguity_resolution_policy?: string
           code: string
           created_at?: string
@@ -14559,15 +14562,17 @@ export type Database = {
           credit_role?: string | null
           debit_code_fallback?: string | null
           debit_role?: string | null
-          description_ar?: string | null
-          id?: string
+          default_currency?: string
           is_active?: boolean
+          keywords?: string[]
           name_ar: string
-          sort_order?: number
+          name_en?: string | null
+          posting_target: string
+          sort_order?: number | null
           updated_at?: string
-          user_id: string
         }
         Update: {
+          affects_stock?: boolean
           ambiguity_resolution_policy?: string
           code?: string
           created_at?: string
@@ -14575,13 +14580,14 @@ export type Database = {
           credit_role?: string | null
           debit_code_fallback?: string | null
           debit_role?: string | null
-          description_ar?: string | null
-          id?: string
+          default_currency?: string
           is_active?: boolean
+          keywords?: string[]
           name_ar?: string
-          sort_order?: number
+          name_en?: string | null
+          posting_target?: string
+          sort_order?: number | null
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -20113,12 +20119,12 @@ export type Database = {
         Returns: string
       }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
+      sa_guess_category: { Args: { p_text: string }; Returns: string }
       sa_resolve_account: {
         Args: {
-          p_code_fallback?: string
-          p_preferred_code?: string
-          p_role?: string
-          p_user_id: string
+          p_data_owner_id: string
+          p_fallback_code: string
+          p_role: string
         }
         Returns: Json
       }
