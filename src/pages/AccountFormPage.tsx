@@ -787,7 +787,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
                   ) : (
                     <>مدين <span className="font-mono font-bold text-emerald-700">3110 — الأرصدة الافتتاحية</span> / دائن <span className="font-mono font-bold text-rose-700">{code || "هذا الحساب"}</span></>
                   )}
-                  {" "}بمبلغ <span className="font-mono font-bold" dir="ltr">{obAmount.toLocaleString()} ₪</span>
+                  {" "}بمبلغ <span className="font-mono font-bold" dir="ltr">
+                    {obAmount.toLocaleString()} {CURRENCIES.find(c => c.value === currency)?.symbol}
+                  </span>
+                  {currency !== "شيكل" && obExchangeRate > 0 && (
+                    <> (= <span className="font-mono font-bold text-[#1B3A5C]" dir="ltr">{(obAmount * obExchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })} ₪</span> بسعر {obExchangeRate})</>
+                  )}
                 </div>
               )}
             </>
