@@ -311,6 +311,15 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
             }}
           >
+            {isManager && (
+              <div className="mb-4">
+                <FormSectionAssignmentsPanel
+                  mode="template"
+                  templateId={activeTemplate.id}
+                  schema={activeTemplate.schema as any}
+                />
+              </div>
+            )}
             <DynamicFormRenderer
               schema={activeTemplate.schema}
               draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
@@ -331,13 +340,24 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             )}
           </DialogHeader>
           {activeTemplate && (
-            <DynamicFormRenderer
-              schema={activeTemplate.schema}
-              draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
-              submitting={submitting}
-              onSubmit={handleSubmit}
-              onSaveDraft={() => {}}
-            />
+            <>
+              {isManager && (
+                <div className="mb-4">
+                  <FormSectionAssignmentsPanel
+                    mode="template"
+                    templateId={activeTemplate.id}
+                    schema={activeTemplate.schema as any}
+                  />
+                </div>
+              )}
+              <DynamicFormRenderer
+                schema={activeTemplate.schema}
+                draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onSaveDraft={() => {}}
+              />
+            </>
           )}
         </DialogContent>
       </Dialog>
