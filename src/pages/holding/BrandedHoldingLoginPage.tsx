@@ -141,19 +141,8 @@ export default function BrandedHoldingLoginPage() {
       toast.error(t.badCreds);
       return;
     }
-    // Resolve post-login destination
-    try {
-      const { data: isMember } = await supabase.rpc("is_holding_member", { _holding_id: holding.id });
-      if (!isMember) { navigate(`/holding/${holding.id}`); return; }
-      const { count } = await supabase
-        .from("holding_companies")
-        .select("owner_id", { count: "exact", head: true })
-        .eq("holding_id", holding.id).eq("is_active", true);
-      if (!count || count <= 1) navigate(`/holding/${holding.id}`, { replace: true });
-      else navigate(`/g/${holding.slug}/select?auto=1`, { replace: true });
-    } catch {
-      navigate(`/holding/${holding.id}`);
-    }
+    // Always go to the workspace selection portal after login
+    navigate(`/g/${holding.slug}/select`, { replace: true });
   };
 
   const onReset = async (e: React.FormEvent) => {
