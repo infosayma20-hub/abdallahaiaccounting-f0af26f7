@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   ArrowDown, ArrowUp, Landmark, FileText, AlertTriangle, 
   ChevronLeft, Plus, TrendingUp, TrendingDown, ExternalLink,
-  ArrowRight
+  ArrowRight, RefreshCw, Printer
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 const FinanceHomePage = () => {
   const navigate = useNavigate();
