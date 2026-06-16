@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { getFreshFormPdfUrl } from "@/lib/employee-forms/pdfUrl";
 import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
 import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
+import FormSectionAssignmentsPanel from "@/components/employee/forms/FormSectionAssignmentsPanel";
 
 interface FormRow {
   id: string;
@@ -27,6 +28,7 @@ interface FormRow {
   created_at: string;
   employee_id: string;
   template_id: string | null;
+  user_id?: string | null;
   employees?: { full_name: string; branch_id: string | null } | null;
   form_templates?: { name: string; category: string; schema: any } | null;
 }
@@ -44,7 +46,7 @@ export default function AdminFormsInboxPage() {
     try {
       let q = supabase
         .from("employee_forms")
-        .select("id,title,form_type,form_data,workflow_status,current_approver_role,pdf_url,pdf_storage_path,submitted_at,reviewed_at,review_notes,created_at,employee_id,template_id,employees:employee_id(full_name,branch_id),form_templates:template_id(name,category,schema)")
+        .select("id,title,form_type,form_data,workflow_status,current_approver_role,pdf_url,pdf_storage_path,submitted_at,reviewed_at,review_notes,created_at,employee_id,template_id,user_id,employees:employee_id(full_name,branch_id),form_templates:template_id(name,category,schema)")
         .neq("workflow_status", "draft")
         .order("created_at", { ascending: false })
         .limit(200);
@@ -232,6 +234,15 @@ export default function AdminFormsInboxPage() {
                           </div>
                         ))}
                       </div>
+                    )}
+
+                    {r.form_type === "dynamic_template" && r.form_templates?.schema && (
+                      <FormSectionAssignmentsPanel
+                        formId={r.id}
+                        templateId={r.template_id}
+                        schema={r.form_templates.schema}
+                        companyUserId={r.user_id || null}
+                      />
                     )}
 
                     {r.review_notes && (
