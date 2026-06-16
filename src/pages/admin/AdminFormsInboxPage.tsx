@@ -11,8 +11,6 @@ import { format } from "date-fns";
 import { getFreshFormPdfUrl } from "@/lib/employee-forms/pdfUrl";
 import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
 import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
-import FormSectionAssignmentsPanel from "@/components/employee/forms/FormSectionAssignmentsPanel";
-
 interface FormRow {
   id: string;
   title: string | null;
@@ -234,15 +232,6 @@ export default function AdminFormsInboxPage() {
                           </div>
                         ))}
                       </div>
-                    )}
-
-                    {r.form_type === "dynamic_template" && r.form_templates?.schema && (
-                      <FormSectionAssignmentsPanel
-                        formId={r.id}
-                        templateId={r.template_id}
-                        schema={r.form_templates.schema}
-                        companyUserId={r.user_id || null}
-                      />
                     )}
 
                     {r.review_notes && (

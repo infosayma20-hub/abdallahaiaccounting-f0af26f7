@@ -53,7 +53,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sidebarCollapsed]);
   const { subscription } = useSubscription();
-  const isHRRoute = ["/hr", "/employees", "/employee-forms-management", "/hr-attendance", "/attendance/roster", "/manager/roster", "/leaves", "/loans", "/advances", "/hr-deductions", "/payroll", "/payroll-settings"].some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isHRRoute = ["/hr", "/employees", "/employee-forms-management", "/hr-attendance", "/attendance/roster", "/manager/roster", "/manager/forms-inbox", "/leaves", "/loans", "/advances", "/hr-deductions", "/payroll", "/payroll-settings"].some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
   const isTrial = subscription?.isTrial ?? false;
