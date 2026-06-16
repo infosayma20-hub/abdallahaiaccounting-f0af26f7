@@ -154,12 +154,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Load existing opening balance (edit mode) from journal entries
   useEffect(() => {
     if (mode !== "edit" || !existingAccount || !user) return;
-    const ref = `OB-ACC-${existingAccount.id.slice(0, 8)}`;
+    const ref = `OB-ACC-${existingAccount.id}`;
     setObExistingRef(ref);
     (async () => {
       const { data } = await supabase
         .from("transactions")
-        .select("amount, debit_account_code, credit_account_code, transaction_date")
+        .select("amount, foreign_amount, exchange_rate, debit_account_code, credit_account_code, transaction_date, currency")
         .eq("user_id", user.id)
         .eq("reference", ref)
         .eq("is_opening_balance", true)
@@ -167,13 +167,28 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         .limit(1);
       const row: any = data?.[0];
       if (row) {
-        setObAmount(Number(row.amount) || 0);
+        const isFX = row.currency && row.currency !== "شيكل" && Number(row.foreign_amount) > 0;
+        setObAmount(isFX ? Number(row.foreign_amount) : Number(row.amount) || 0);
+        if (isFX) setObExchangeRate(Number(row.exchange_rate) || 0);
         setObType(row.debit_account_code === existingAccount.account_code ? "debit" : "credit");
         setObDate(row.transaction_date || obDate);
       }
       setObLoaded(true);
     })();
   }, [mode, existingAccount, user]);
+
+  // Auto-fetch latest exchange rate when currency switches to foreign
+  useEffect(() => {
+    if (!user || currency === "شيكل") { setObExchangeRate(0); return; }
+    if (obExchangeRate > 0) return; // keep user-edited rate
+    (async () => {
+      const { data } = await supabase.rpc("get_latest_exchange_rate", {
+        p_user_id: user.id, p_currency_name: currency,
+      });
+      const r = Number(data);
+      if (r > 0) setObExchangeRate(r);
+    })();
+  }, [currency, user]);
 
   // Validate code
   useEffect(() => {
