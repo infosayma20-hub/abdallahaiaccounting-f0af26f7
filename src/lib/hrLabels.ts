@@ -44,6 +44,13 @@ const FORM_TYPE: Record<string, string> = {
   facility_quality: "جودة المرافق",
   equipment_fault: "أعطال المعدات",
   inventory_balance: "رصيد الأصناف",
+  dynamic_template: "نموذج مخصص",
+  custom_form: "نموذج مخصص",
+  marketing_plan: "خطة تسويقية",
+  permission: "طلب استئذان",
+  permission_request: "طلب استئذان",
+  suggestion: "اقتراح",
+  suggestions: "اقتراح",
   general: "طلب عام",
 };
 

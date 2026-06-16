@@ -19,6 +19,7 @@ import {
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
+import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -48,6 +49,7 @@ const formTypeLabels: Record<string, string> = {
   facility_quality: "🏢 جودة المرافق",
   equipment_fault: "🔧 إبلاغ أعطال",
   inventory_balance: "📦 رصيد الأصناف",
+  dynamic_template: "📋 نموذج مخصص",
   // Virtual types from correction_requests:
   _attendance_correction: "✏️ تصحيح بصمة",
   _hr_message: "💬 رسالة HR",
@@ -63,6 +65,18 @@ const statusConfig: Record<string, { label: string; variant: "default" | "destru
 };
 
 const financialTypes = ["advance_request", "loan_request"];
+
+// Quick-filter category chips. Each maps to a set of form_type values.
+type CategoryKey = "all" | "leaves" | "loans" | "attendance" | "messages" | "custom" | "info";
+const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
+  { key: "all",        label: "الكل",                  icon: "📋", types: [] },
+  { key: "leaves",     label: "الإجازات",              icon: "🏖️", types: ["leave_request"] },
+  { key: "loans",      label: "السلف والقروض",         icon: "💰", types: ["advance_request", "loan_request"] },
+  { key: "attendance", label: "الحضور والاستئذان",     icon: "✏️", types: ["correction_request", "overtime_request", "_attendance_correction"] },
+  { key: "messages",   label: "الرسائل والشكاوى",      icon: "💬", types: ["hr_message", "complaints", "disciplinary_action", "_hr_message", "_hr_inquiry", "_hr_warning", "_hr_penalty"] },
+  { key: "custom",     label: "النماذج المخصصة",       icon: "📑", types: ["dynamic_template", "facility_quality", "equipment_fault", "inventory_balance"] },
+  { key: "info",       label: "المعلومات الشخصية",     icon: "👤", types: ["employee_info", "birthday_whatsapp"] },
+];
 
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
@@ -80,6 +94,7 @@ export default function EmployeeFormsManagementPage() {
   const [search, setSearch] = useState("");
   const [searchParams] = useSearchParams();
   const [filterType, setFilterType] = useState(searchParams.get("type") || "all");
+  const [filterCategory, setFilterCategory] = useState<CategoryKey>("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
@@ -97,6 +112,7 @@ export default function EmployeeFormsManagementPage() {
 
   const [policiesTab, setPoliciesTab] = useState("forms");
   const [policies, setPolicies] = useState<any[]>([]);
+  const [templateSchemas, setTemplateSchemas] = useState<Record<string, { name: string; schema: TemplateSchema }>>({});
   const [showUploadPolicy, setShowUploadPolicy] = useState(false);
   const [policyForm, setPolicyForm] = useState({ title: "", description: "", category: "" });
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
@@ -109,6 +125,7 @@ export default function EmployeeFormsManagementPage() {
       fetchCorrections();
       fetchEmployees();
       fetchPolicies();
+      fetchTemplates();
     }
   }, [user, dataOwnerId]);
 
@@ -215,6 +232,17 @@ export default function EmployeeFormsManagementPage() {
       .select("*")
       .order("created_at", { ascending: false });
     setPolicies(data || []);
+  };
+
+  const fetchTemplates = async () => {
+    const { data } = await supabase
+      .from("form_templates")
+      .select("id, name, schema");
+    const map: Record<string, { name: string; schema: TemplateSchema }> = {};
+    (data || []).forEach((t: any) => {
+      map[t.id] = { name: t.name, schema: (t.schema as TemplateSchema) || { sections: [] } };
+    });
+    setTemplateSchemas(map);
   };
 
   const handleAction = async (action: "approved" | "rejected", form: any) => {
@@ -389,6 +417,11 @@ export default function EmployeeFormsManagementPage() {
   };
 
   const filtered = allItems.filter(f => {
+    // Category chip filter (applied first)
+    if (filterCategory !== "all") {
+      const cat = CATEGORY_CHIPS.find(c => c.key === filterCategory);
+      if (cat && !cat.types.includes(f.form_type)) return false;
+    }
     if (filterType !== "all" && f.form_type !== filterType) return false;
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
     const emp = employeeMap[f.employee_id];
@@ -418,6 +451,14 @@ export default function EmployeeFormsManagementPage() {
     rejected: allItems.filter(f => f.status === "rejected").length,
     total: allItems.length,
   };
+
+  // Per-category counts for chips (status-agnostic, branch/date/type-agnostic).
+  const categoryCounts: Record<CategoryKey, number> = CATEGORY_CHIPS.reduce((acc, c) => {
+    acc[c.key] = c.key === "all"
+      ? allItems.length
+      : allItems.filter(f => c.types.includes(f.form_type)).length;
+    return acc;
+  }, {} as Record<CategoryKey, number>);
 
   // Financial totals for filtered results
   const financialFiltered = filtered.filter(f => financialTypes.includes(f.form_type));
@@ -489,6 +530,32 @@ export default function EmployeeFormsManagementPage() {
           </TabsList>
 
           <TabsContent value="forms" className="mt-4 space-y-3">
+            {/* Category chips */}
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_CHIPS.map(c => {
+                const active = filterCategory === c.key;
+                const count = categoryCounts[c.key] || 0;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => { setFilterCategory(c.key); setFilterType("all"); setPage(1); }}
+                    className={`h-9 px-3 rounded-full text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+                      active
+                        ? "bg-[#0D1B2E] text-white border-[#0D1B2E]"
+                        : "bg-card text-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    <span>{c.icon}</span>
+                    <span>{c.label}</span>
+                    <span className={`text-[10px] rounded-full px-1.5 py-0.5 ${active ? "bg-white/20" : "bg-muted-foreground/10"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Filters — same pattern as Attendance toolbar */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
@@ -571,7 +638,11 @@ export default function EmployeeFormsManagementPage() {
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
                               <TableCell className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap text-right">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap text-right">
+                                {f.form_type === "dynamic_template" && (f as any).title
+                                  ? `📋 ${(f as any).title}`
+                                  : (formTypeLabels[f.form_type] || f.form_type)}
+                              </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
                               <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
                                 {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
@@ -700,18 +771,42 @@ export default function EmployeeFormsManagementPage() {
 
       {/* Form detail dialog */}
       <Dialog open={!!selectedForm} onOpenChange={o => { if (!o) setSelectedForm(null); }}>
-        <DialogContent className="max-w-lg bg-card border-border max-h-[85vh] overflow-y-auto" dir="rtl">
+        <DialogContent
+          className="bg-card border-border p-0 gap-0 overflow-hidden
+                     w-screen h-[100dvh] max-w-none rounded-none
+                     sm:w-auto sm:h-auto sm:max-w-3xl sm:max-h-[90vh] sm:rounded-2xl"
+          dir="rtl"
+        >
+          <div className="flex flex-col h-full max-h-[100dvh] sm:max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{formTypeLabels[selectedForm?.form_type] || selectedForm?.form_type}</DialogTitle>
-            <DialogDescription className="text-xs">
+            <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-border bg-muted/30">
+            <DialogTitle className="text-base sm:text-lg">
+              {selectedForm?.form_type === "dynamic_template" && (selectedForm as any)?.title
+                ? `📋 ${(selectedForm as any).title}`
+                : (formTypeLabels[selectedForm?.form_type] || selectedForm?.form_type)}
+            </DialogTitle>
+            <DialogDescription className="text-[11px] sm:text-xs mt-1">
               مقدم من: {employeeMap[selectedForm?.employee_id]?.name || "—"}
               {employeeMap[selectedForm?.employee_id]?.branch && ` — ${employeeMap[selectedForm?.employee_id]?.branch}`}
               {" — "}{selectedForm && format(new Date(selectedForm.created_at), "dd/MM/yyyy HH:mm")}
             </DialogDescription>
+            </div>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3">
             {(() => {
               if (!selectedForm) return null;
+              // Dynamic templates: render with their schema for a professional view.
+              if (selectedForm.form_type === "dynamic_template") {
+                const tid = (selectedForm as any).template_id as string | undefined;
+                const tpl = tid ? templateSchemas[tid] : undefined;
+                return (
+                  <DynamicTemplateView
+                    schema={tpl?.schema}
+                    data={selectedForm.form_data}
+                    title={(selectedForm as any).title || tpl?.name}
+                  />
+                );
+              }
               const groups = getDetailGroups(selectedForm);
               const hasAnyDetail = groups.some(g => g.title === "تفاصيل النموذج" && g.fields.length);
               return (
@@ -757,7 +852,7 @@ export default function EmployeeFormsManagementPage() {
                 </>
               );
             })()}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-2 border-t border-border/60">
               <span className="text-sm text-muted-foreground">الحالة الحالية:</span>
               <Badge variant={statusConfig[selectedForm?.status]?.variant || "outline"}>
                 {statusConfig[selectedForm?.status]?.label || selectedForm?.status}
@@ -852,7 +947,7 @@ export default function EmployeeFormsManagementPage() {
                   <label className="text-xs text-muted-foreground mb-1 block">ملاحظات المراجعة</label>
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
                   <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved", selectedForm)} disabled={!!processing}>
                     <CheckCircle2 className="h-4 w-4" /> موافقة
                   </Button>
@@ -862,6 +957,7 @@ export default function EmployeeFormsManagementPage() {
                 </div>
               </>
             )}
+          </div>
           </div>
         </DialogContent>
       </Dialog>
