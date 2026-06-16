@@ -95,24 +95,30 @@ Deno.serve(async (req) => {
 
     const amount = Number(body.amount ?? intent.amount ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) {
-      // Still create as pending so the user can fix it in UI.
+      return json({
+        ok: false,
+        error: "amount_required",
+        hint: "AI couldn't extract a positive amount; ask the user to provide one.",
+        intent,
+        category: { code: category.code, name_ar: category.name_ar },
+      }, 422);
     }
 
     const insertPayload = {
       user_id: userId,
       category_code: category.code,
       description: intent.description ?? body.text.slice(0, 500),
-      amount: amount > 0 ? amount : null,
+      amount,
       currency: body.currency ?? intent.currency ?? category.default_currency ?? "شيكل",
       transaction_date: body.transaction_date ?? intent.transaction_date ?? new Date().toISOString().slice(0, 10),
       debit_account_id: debit.status === "resolved" ? debit.account_id : null,
       credit_account_id: credit.status === "resolved" ? credit.account_id : null,
-      debit_resolution: debit,
-      credit_resolution: credit,
+      debit_resolver_state: debit,
+      credit_resolver_state: credit,
       status,
       source: body.source ?? "ai",
       source_text: body.text,
-      ai_intent: intent as unknown as Record<string, unknown>,
+      notes: `AI: ${intent.reasoning?.slice(0, 200) ?? ""}`,
     };
 
     const { data: draft, error: insErr } = await admin
