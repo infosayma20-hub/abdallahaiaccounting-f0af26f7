@@ -298,7 +298,8 @@ const FinanceHomePage = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
