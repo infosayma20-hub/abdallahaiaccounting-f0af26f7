@@ -23,10 +23,22 @@ const LS_KEY = "sparta:last-workspace";
 
 const SECTOR_VISUAL: Record<string, { Icon: any; bg: string; fg: string; pillBg: string; pillFg: string; cur: string; sym: string }> = {
   dental: { Icon: Stethoscope, bg: "#F3EAF6", fg: "#7A4A8E", pillBg: "#F3EAF6", pillFg: "#7A4A8E", cur: "ILS", sym: "₪" },
+  medical_dental: { Icon: Stethoscope, bg: "#F3EAF6", fg: "#7A4A8E", pillBg: "#F3EAF6", pillFg: "#7A4A8E", cur: "ILS", sym: "₪" },
   import: { Icon: Building2, bg: "#E7F3EE", fg: "#2E7D5B", pillBg: "#E7F3EE", pillFg: "#2E7D5B", cur: "JPY", sym: "¥" },
+  import_medical: { Icon: Building2, bg: "#E7F3EE", fg: "#2E7D5B", pillBg: "#E7F3EE", pillFg: "#2E7D5B", cur: "JPY", sym: "¥" },
   education: { Icon: GraduationCap, bg: "#FBEEDB", fg: "#A06A1E", pillBg: "#FBEEDB", pillFg: "#A06A1E", cur: "ILS", sym: "₪" },
+  training: { Icon: GraduationCap, bg: "#FBEEDB", fg: "#A06A1E", pillBg: "#FBEEDB", pillFg: "#A06A1E", cur: "ILS", sym: "₪" },
+  medical_tender: { Icon: Building2, bg: "#E7F3EE", fg: "#2E7D5B", pillBg: "#E7F3EE", pillFg: "#2E7D5B", cur: "JPY", sym: "¥" },
 };
-const SECTOR_LABEL: Record<string, string> = { dental: "زرعات أسنان", import: "عطاءات · استيراد", education: "تعليم وتدريب" };
+const SECTOR_LABEL: Record<string, string> = {
+  dental: "زرعات أسنان",
+  medical_dental: "طب أسنان",
+  import: "عطاءات · استيراد",
+  import_medical: "عطاءات · استيراد",
+  education: "تعليم وتدريب",
+  training: "تعليم وتدريب",
+  medical_tender: "مستلزمات طبية",
+};
 
 export default function WorkspaceSelect() {
   const { slug = "" } = useParams();
