@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
 import FormShareSheet from "@/components/employee/forms/FormShareSheet";
 import { exportEmployeeFormPdf, downloadBlob } from "@/lib/employee-forms/exportFormPdf";
+import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
+import { downloadEmployeeFormWord, sanitizeExportFileName } from "@/lib/employee-forms/exportFormWord";
 
 interface Props {
   employeeId: string;
@@ -197,7 +199,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         fileName: sub.title || "form",
       });
       if (downloadOnly) {
-        downloadBlob(blob, `${(sub.title || "form").replace(/[^\w-]/g, "_")}.pdf`);
+        downloadBlob(blob, `${sanitizeExportFileName(sub.title || "نموذج")}.pdf`);
         toast({ title: "تم تنزيل النموذج" });
       }
       // refresh submissions to pick up pdf_url
@@ -209,6 +211,17 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     } finally {
       setExporting(false);
     }
+  };
+
+  const exportWord = (sub: Submission) => {
+    const tpl = templates.find((t) => t.id === sub.template_id);
+    downloadEmployeeFormWord({
+      title: sub.title || tpl?.name || "نموذج",
+      createdAt: sub.created_at,
+      schema: tpl?.schema as any,
+      data: sub.form_data,
+    });
+    toast({ title: "تم تنزيل ملف Word" });
   };
 
   const submitForReview = async (sub: Submission) => {
