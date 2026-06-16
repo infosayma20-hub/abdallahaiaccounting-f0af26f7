@@ -91,12 +91,16 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Track whether the user manually edited the code (disables auto-fill)
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
 
+  // ─── Account Currency ───
+  const [currency, setCurrency] = useState<string>("شيكل");
+
   // ─── Opening Balance ───
   const [obAmount, setObAmount] = useState<number>(0);
   const [obType, setObType] = useState<"debit" | "credit">("debit");
   const [obDate, setObDate] = useState<string>(new Date().getFullYear() + "-01-01");
   const [obLoaded, setObLoaded] = useState(false);
   const [obExistingRef, setObExistingRef] = useState<string | null>(null);
+  const [obExchangeRate, setObExchangeRate] = useState<number>(0);
 
   // Load accounts for parent selector
   useEffect(() => {
