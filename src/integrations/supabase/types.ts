@@ -20609,9 +20609,17 @@ export type Database = {
         }
         Returns: Json
       }
+      seed_company_coa: {
+        Args: { p_owner_id: string; p_profile?: string }
+        Returns: Json
+      }
       seed_default_financial_dimensions: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      seed_sector_accounts: {
+        Args: { p_owner_id: string; p_sector: string }
+        Returns: Json
       }
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
