@@ -318,7 +318,7 @@ export default function HoldingConsolePage() {
   }
 
   // --- Sidebar nav config ---
-  const NAV_ITEMS: { key: NavKey; label: string; Icon: React.ComponentType<{ size?: number }> }[] = [
+  const NAV_ITEMS: { key: NavKey; label: string; Icon: any }[] = [
     { key: "dashboard", label: t.nav.dashboard, Icon: LayoutGrid },
     { key: "subsidiaries", label: t.nav.subsidiaries, Icon: Building2 },
     { key: "trial_balance", label: t.nav.trial_balance, Icon: Scale },
