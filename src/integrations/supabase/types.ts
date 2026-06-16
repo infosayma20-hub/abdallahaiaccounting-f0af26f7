@@ -14534,6 +14534,57 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_accountant_categories: {
+        Row: {
+          ambiguity_resolution_policy: string
+          code: string
+          created_at: string
+          credit_code_fallback: string | null
+          credit_role: string | null
+          debit_code_fallback: string | null
+          debit_role: string | null
+          description_ar: string | null
+          id: string
+          is_active: boolean
+          name_ar: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ambiguity_resolution_policy?: string
+          code: string
+          created_at?: string
+          credit_code_fallback?: string | null
+          credit_role?: string | null
+          debit_code_fallback?: string | null
+          debit_role?: string | null
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ambiguity_resolution_policy?: string
+          code?: string
+          created_at?: string
+          credit_code_fallback?: string | null
+          credit_role?: string | null
+          debit_code_fallback?: string | null
+          debit_role?: string | null
+          description_ar?: string | null
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       statement_send_log: {
         Row: {
           balance_at_send: number | null
@@ -20062,6 +20113,15 @@ export type Database = {
         Returns: string
       }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
+      sa_resolve_account: {
+        Args: {
+          p_code_fallback?: string
+          p_preferred_code?: string
+          p_role?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       seed_default_financial_dimensions: {
         Args: { p_user_id: string }
         Returns: undefined
