@@ -20440,6 +20440,7 @@ export type Database = {
         Returns: boolean
       }
       user_can_access_setup: { Args: { _uid: string }; Returns: boolean }
+      user_manages_form_branch: { Args: { _form_id: string }; Returns: boolean }
       verify_malaki_login: {
         Args: { p_password: string; p_username: string }
         Returns: Json
