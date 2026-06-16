@@ -531,6 +531,23 @@ export default function HoldingConsolePage() {
 
           {/* Nav */}
           <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+            {holdingSlug && (
+              <button
+                onClick={() => navigate(`/g/${holdingSlug}/select`)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, width: "100%",
+                  fontFamily: "inherit", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                  color: ACCENT, background: "#FBEDF0", border: "1px solid #F6E5E9",
+                  padding: "10px 14px", borderRadius: 12, marginBottom: 10,
+                  textAlign: dir === "rtl" ? "right" : "left",
+                }}
+              >
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7" />
+                </svg>
+                {lang === "ar" ? "تبديل مساحة العمل" : "Switch workspace"}
+              </button>
+            )}
             {NAV_ITEMS.map((it) => {
               const active = nav === it.key;
               const Icon = it.Icon;
