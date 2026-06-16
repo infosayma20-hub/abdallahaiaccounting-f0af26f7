@@ -443,6 +443,9 @@ const App = () => (
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+              <Route path="/super-admin/holdings" element={<ProtectedRoute><SuperAdminHoldingsPage /></ProtectedRoute>} />
+              <Route path="/g/:slug" element={<BrandedHoldingLoginPage />} />
+              <Route path="/holding/:id" element={<ProtectedRoute><HoldingConsolePage /></ProtectedRoute>} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/choose-workspace" element={<ProtectedRoute><ChooseWorkspacePage /></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
