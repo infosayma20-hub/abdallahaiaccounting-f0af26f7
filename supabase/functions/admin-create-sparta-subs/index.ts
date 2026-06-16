@@ -36,10 +36,10 @@ Deno.serve(async (req) => {
     if (hErr || !hold) return json({ error: "HOLDING_NOT_FOUND" }, 404);
     const holdingId = (hold as any).id as string;
 
-    // Allow: super_admin OR member of the sparta holding
+    // Allow: super_admin / admin / member of the sparta holding
     const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
-    const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
-    let allowed = isSuper;
+    const roleList = (roles ?? []).map((r: any) => r.role);
+    let allowed = roleList.includes("super_admin") || roleList.includes("admin");
     if (!allowed) {
       const { data: m } = await admin.from("holding_members")
         .select("id").eq("holding_id", holdingId).eq("auth_user_id", user.id).limit(1);
