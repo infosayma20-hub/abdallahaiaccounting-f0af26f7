@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import PageHeader from "@/components/layout/PageHeader";
 import {
-  ArrowRight, Loader2, RefreshCw, Search, BookOpen, FileSpreadsheet,
+  Loader2, RefreshCw, Search, BookOpen, FileSpreadsheet, Printer,
   X, ArrowUpDown, ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown,
   Check, ChevronsUpDown,
 } from "lucide-react";
@@ -17,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface LedgerRow {
@@ -224,23 +224,47 @@ const GeneralLedgerPage = () => {
     </button>
   );
 
-  return (
-    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      <PageHeader title="دفتر الأستاذ العام" breadcrumb={["المحاسبة", "دفتر الأستاذ"]} />
-      
-      <div className="flex items-center gap-2 justify-start">
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-lg" onClick={fetchData}>
-          <RefreshCw className="h-3.5 w-3.5" /> تحديث
-        </Button>
-        <Button className="gap-1.5 rounded-lg q-btn-primary" onClick={handleExport} disabled={allRows.length === 0}>
-          <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
-        </Button>
-      </div>
+  const actionTabs: ActionTab[] = useMemo(() => ([
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        { key: "data", label: "بيانات", items: [
+          { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
+        ]},
+        { key: "export", label: "إخراج", items: [
+          { key: "excel", label: "تصدير Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: allRows.length === 0 },
+          { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print() },
+        ]},
+      ],
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ]), [allRows.length]);
 
-      {/* Filters */}
+  return (
+    <FinanceShell
+      title="دفتر الأستاذ العام"
+      subtitle="حركات الحساب التفصيلية مع رصيد افتتاحي وختامي"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "دفتر الأستاذ" },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={
+        <div className="flex items-center gap-1.5">
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+            className="h-8 w-[140px] text-[12.5px]" aria-label="من تاريخ" />
+          <span className="text-[12px] text-muted-foreground">→</span>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+            className="h-8 w-[140px] text-[12.5px]" aria-label="إلى تاريخ" />
+        </div>
+      }
+    >
+      <div className="space-y-5 max-w-[1500px] mx-auto" dir="rtl">
+      {/* Account picker */}
       <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/40">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-1">
             <label className="text-[11px] text-muted-foreground font-medium">الحساب</label>
             <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
               <PopoverTrigger asChild>
@@ -272,16 +296,6 @@ const GeneralLedgerPage = () => {
                 </Command>
               </PopoverContent>
             </Popover>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground font-medium">من تاريخ</label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 rounded-xl bg-muted/30 border-0 text-sm" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground font-medium">إلى تاريخ</label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 rounded-xl bg-muted/30 border-0 text-sm" />
           </div>
         </div>
       </div>
@@ -454,7 +468,8 @@ const GeneralLedgerPage = () => {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
