@@ -97,40 +97,37 @@ const FinanceHomePage = () => {
   if (draftVouchers.length > 0) alerts.push({ color: "🔵", text: `${draftVouchers.length} سندات في حالة مسودة لم تُرحَّل`, path: "/finance/receipts" });
   if (returnedCheques.length > 0) alerts.push({ color: "⚫", text: `${returnedCheques.length} شيكات مرتجعة تحتاج معالجة`, path: "/finance/cheques" });
 
+  const actionTabs: ActionTab[] = [
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        { key: "new", label: "إنشاء", items: [
+          { key: "receipt", label: "سند قبض", icon: ArrowDown, onClick: () => navigate("/finance/receipt/new"), variant: "primary" as const },
+          { key: "payment", label: "سند صرف", icon: ArrowUp, onClick: () => navigate("/finance/payment/new") },
+          { key: "journal", label: "سند قيد", icon: FileText, onClick: () => navigate("/finance/journal/new") },
+          { key: "cheque", label: "تسجيل شيك", icon: FileText, onClick: () => navigate("/finance/cheques?new=1") },
+        ]},
+        { key: "data", label: "بيانات", items: [
+          { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => window.location.reload() },
+          { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print() },
+        ]},
+      ],
+    },
+  ];
+
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>المالية</h1>
-          <p className="text-sm text-muted-foreground">مستندات، شيكات، وأرصدة البنوك</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground hidden sm:block">{arabicDate}</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="gap-2 bg-[#0A2342] hover:bg-[#0D1B2A]">
-                <Plus className="h-4 w-4" />
-                إجراء مالي سريع
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[180px]">
-              <DropdownMenuItem onClick={() => navigate("/finance/receipt/new")}>
-                <ArrowDown className="h-4 w-4 ml-2 text-emerald-600" />سند قبض جديد
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/finance/payment/new")}>
-                <ArrowUp className="h-4 w-4 ml-2 text-red-600" />سند صرف جديد
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/finance/journal/new")}>
-                <FileText className="h-4 w-4 ml-2 text-blue-600" />سند قيد جديد
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/finance/cheques?new=1")}>
-                <FileText className="h-4 w-4 ml-2 text-orange-600" />تسجيل شيك
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+    <FinanceShell
+      title="المالية"
+      subtitle="مستندات، شيكات، وأرصدة البنوك"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "الرئيسية" },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={<span className="text-[12px] text-muted-foreground hidden sm:block">{arabicDate}</span>}
+    >
+      <div className="space-y-6 max-w-7xl mx-auto" dir="rtl">
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
