@@ -75,8 +75,8 @@ export default function FormSectionAssignmentsPanel({
             .select("id, section_key, assignee_employee_id, status, notes")
             .eq("form_id", formId),
         ]);
-        setEmployees((empRes.data as Employee[]) || []);
-        setAssignments((asnRes.data as Assignment[]) || []);
+        setEmployees(((empRes.data as unknown) as Employee[]) || []);
+        setAssignments(((asnRes.data as unknown) as Assignment[]) || []);
       } finally {
         setLoading(false);
       }
@@ -133,7 +133,7 @@ export default function FormSectionAssignmentsPanel({
         .from("form_section_assignments" as any)
         .select("id, section_key, assignee_employee_id, status, notes")
         .eq("form_id", formId);
-      setAssignments((data as Assignment[]) || []);
+      setAssignments(((data as unknown) as Assignment[]) || []);
       setSearch((p) => ({ ...p, [section.key]: "" }));
       toast({ title: "تم الإسناد", description: `${section.title} → ${employee.full_name}` });
     } catch (e: any) {
