@@ -875,7 +875,7 @@ Deno.serve(async (req) => {
     if (action === "employee_requests") {
       const { data: forms } = await supabase
         .from("employee_forms")
-        .select("id, employee_id, form_type, status, created_at, form_data")
+        .select("id, employee_id, form_type, status, created_at, form_data, template_id, title")
         .eq("user_id", linkedUserId)
         .order("created_at", { ascending: false })
         .limit(500);
@@ -893,8 +893,20 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Fetch any referenced templates so the portal can render schema-driven views.
+      const templateIds = [...new Set((forms || []).map((f: any) => f.template_id).filter(Boolean))];
+      const templateMap: Record<string, { name: string; schema: any }> = {};
+      if (templateIds.length > 0) {
+        const { data: tpls } = await supabase
+          .from("form_templates")
+          .select("id, name, schema")
+          .in("id", templateIds);
+        (tpls || []).forEach((t: any) => { templateMap[t.id] = { name: t.name, schema: t.schema || { sections: [] } }; });
+      }
+
       const requests = (forms || []).map((f: any) => {
         const fd = f.form_data || {};
+        const tpl = f.template_id ? templateMap[f.template_id] : null;
         return {
           id: f.id,
           employeeName: empMap[f.employee_id] || "غير معروف",
@@ -903,6 +915,10 @@ Deno.serve(async (req) => {
           amount: fd.amount || fd.advance_amount || fd.loan_amount || null,
           createdAt: f.created_at,
           details: fd,
+          templateId: f.template_id || null,
+          templateName: tpl?.name || f.title || null,
+          templateSchema: tpl?.schema || null,
+          title: f.title || null,
         };
       });
 
