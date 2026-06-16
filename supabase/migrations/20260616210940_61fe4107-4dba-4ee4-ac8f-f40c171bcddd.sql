@@ -1,0 +1,1 @@
+UPDATE public.holdings SET primary_color = '#9E2B43', secondary_color = '#B23A55' WHERE slug = 'sparta';
