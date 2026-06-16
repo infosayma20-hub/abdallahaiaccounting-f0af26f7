@@ -572,7 +572,7 @@ function linkBtn(): React.CSSProperties {
   return { background: "transparent", border: "none", padding: 0, color: ACCENT, fontFamily: "inherit", fontWeight: 700, fontSize: 13, cursor: "pointer" };
 }
 function Th({ children }: { children: React.ReactNode }) {
-  return <th style={{ padding: "12px 16px", textAlign: "inherit", fontWeight: 700, color: "#6B7280", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 }}>{children}</th>;
+  return <th style={{ padding: "12px 16px", textAlign: "inherit", fontWeight: 700, color: "#867C88", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, background: "#F5F1F3", borderBottom: "1px solid #EEE3E8" }}>{children}</th>;
 }
 function Td({ children }: { children: React.ReactNode }) {
   return <td style={{ padding: "14px 16px", verticalAlign: "middle" }}>{children}</td>;
@@ -582,9 +582,9 @@ function Pill({ children, bg, fg }: { children: React.ReactNode; bg: string; fg:
 }
 function DateInput({ value, onChange, prefix }: { value: string; onChange: (v: string) => void; prefix: string }) {
   return (
-    <label style={{ position: "relative", display: "block" }}>
-      <span style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", insetInlineEnd: 14, fontSize: 12, color: "#9CA3AF", pointerEvents: "none" }}>{prefix}</span>
-      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} style={{ ...selectStyle(), paddingInlineEnd: 40, direction: "ltr", textAlign: "left" } as React.CSSProperties} />
+    <label style={{ display: "inline-flex", alignItems: "center", gap: 9, padding: "8px 14px", borderRadius: 12, border: "1px solid #E5E7EB", background: "#FFFFFF", minWidth: 0 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: "#4B4550", flexShrink: 0 }}>{prefix}</span>
+      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} style={{ border: 0, background: "transparent", fontFamily: "inherit", outline: "none", fontSize: 13, color: "#0F172A", direction: "ltr", minWidth: 0, width: "100%" } as React.CSSProperties} />
     </label>
   );
 }
