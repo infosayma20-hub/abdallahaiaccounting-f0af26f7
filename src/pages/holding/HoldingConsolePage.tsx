@@ -194,13 +194,16 @@ function currentFY(): { from: string; to: string } {
 export default function HoldingConsolePage() {
   const { id: holdingId = "" } = useParams();
   const navigate = useNavigate();
+  const location = (typeof window !== "undefined") ? window.location : ({ search: "" } as any);
+  const initialCompany = new URLSearchParams(location.search).get("company");
 
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [holdingName, setHoldingName] = useState<string>("");
+  const [holdingSlug, setHoldingSlug] = useState<string>("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [subs, setSubs] = useState<Subsidiary[]>([]);
-  const [selected, setSelected] = useState<string | null>(null); // null = root (consolidated)
+  const [selected, setSelected] = useState<string | null>(initialCompany); // null = root (consolidated)
   const [nav, setNav] = useState<NavKey>("subsidiaries");
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem("holding-lang") as Lang) || "ar");
   const [search, setSearch] = useState("");
@@ -231,7 +234,7 @@ export default function HoldingConsolePage() {
     if (!allowed) return;
     (async () => {
       const [{ data: h }, { data: list }] = await Promise.all([
-        supabase.from("holdings").select("name_ar, logo_url").eq("id", holdingId).maybeSingle(),
+        supabase.from("holdings").select("name_ar, slug, logo_url").eq("id", holdingId).maybeSingle(),
         supabase
           .from("holding_companies")
           .select("owner_id, display_name_ar, sector, sort_order")
@@ -241,6 +244,7 @@ export default function HoldingConsolePage() {
       ]);
       if (h) {
         setHoldingName(h.name_ar);
+        setHoldingSlug((h as any).slug || "");
         setLogoUrl(h.logo_url);
       }
       setSubs((list as Subsidiary[]) || []);
