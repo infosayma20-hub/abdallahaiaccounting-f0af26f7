@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, ChevronDown } from 'lucide-react';
 import { multiWordMatchAny } from "@/lib/utils";
+import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
+import { getDetailGroups } from "@/lib/employeeRequestDisplay";
+import { displayReason } from "@/lib/hrMessages";
 
 const ACCENT = '#2A7B9B';
 
@@ -19,6 +22,10 @@ interface EmployeeRequest {
   amount: number | null;
   createdAt: string;
   details: any;
+  templateId?: string | null;
+  templateName?: string | null;
+  templateSchema?: TemplateSchema | null;
+  title?: string | null;
 }
 
 const formTypeLabels: Record<string, string> = {
@@ -31,14 +38,40 @@ const formTypeLabels: Record<string, string> = {
   overtime: '⏰ أوفرتايم',
   overtime_request: '⏰ أوفرتايم',
   attendance_correction: '📋 تصحيح بصمة',
+  correction_request: '📋 تصحيح بصمة',
   complaint: '📝 شكوى',
+  complaints: '📝 شكوى وملاحظات',
   facility_quality: '🏢 جودة مرافق',
   equipment_issue: '🔧 أعطال معدات',
   equipment_fault: '🔧 أعطال معدات',
   disciplinary: '⚠️ إجراء عقابي',
+  disciplinary_action: '⚠️ إجراء عقابي',
   stock_balance: '📦 رصيد أصناف',
   inventory_balance: '📦 رصيد أصناف',
+  hr_message: '💬 رسالة لـ HR',
+  employee_info: '👤 معلومات الموظف',
+  birthday_whatsapp: '🎂 ميلاد وواتساب',
+  dynamic_template: '📑 نموذج مخصص',
+  permission: '🕐 استئذان',
+  permission_request: '🕐 استئذان',
+  suggestion: '💡 اقتراح',
+  suggestions: '💡 اقتراح',
+  resignation: '📤 استقالة',
+  document_request: '📄 طلب مستند',
+  general: '📋 طلب عام',
 };
+
+// Category chips
+type CategoryKey = 'all' | 'leaves' | 'loans' | 'attendance' | 'messages' | 'custom' | 'info';
+const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
+  { key: 'all',        label: 'الكل',              icon: '📋', types: [] },
+  { key: 'leaves',     label: 'إجازات',            icon: '🏖️', types: ['leave', 'leave_request'] },
+  { key: 'loans',      label: 'سلف وقروض',         icon: '💰', types: ['advance', 'advance_request', 'loan', 'loan_request'] },
+  { key: 'attendance', label: 'حضور واستئذان',     icon: '📋', types: ['attendance_correction', 'correction_request', 'overtime', 'overtime_request', 'permission', 'permission_request'] },
+  { key: 'messages',   label: 'رسائل وشكاوى',      icon: '💬', types: ['hr_message', 'complaint', 'complaints', 'disciplinary', 'disciplinary_action', 'suggestion', 'suggestions'] },
+  { key: 'custom',     label: 'نماذج مخصصة',       icon: '📑', types: ['dynamic_template', 'facility_quality', 'equipment_issue', 'equipment_fault', 'inventory_balance', 'stock_balance'] },
+  { key: 'info',       label: 'معلومات شخصية',     icon: '👤', types: ['employee_info', 'birthday_whatsapp'] },
+];
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'قيد المراجعة', color: '#FBBF24', bg: 'rgba(251,191,36,0.15)' },
@@ -50,6 +83,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
   const [requests, setRequests] = useState<EmployeeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
+  const [category, setCategory] = useState<CategoryKey>('all');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const t = getThemeColors(theme);
@@ -78,6 +112,10 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
 
   const filtered = requests.filter(r => {
     if (filter !== 'all' && r.status !== filter) return false;
+    if (category !== 'all') {
+      const cat = CATEGORY_CHIPS.find(c => c.key === category);
+      if (cat && !cat.types.includes(r.formType)) return false;
+    }
     if (search && !r.employeeName.includes(search) && !formTypeLabels[r.formType]?.includes(search)) return false;
     return true;
   });
@@ -86,8 +124,13 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
   const approvedCount = requests.filter(r => r.status === 'approved').length;
   const rejectedCount = requests.filter(r => r.status === 'rejected').length;
 
+  const labelFor = (r: EmployeeRequest) =>
+    r.formType === 'dynamic_template' && (r.templateName || r.title)
+      ? `📑 ${r.templateName || r.title}`
+      : (formTypeLabels[r.formType] || `📋 ${r.formType}`);
+
   return (
-    <div>
+    <div style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
         {[
@@ -104,6 +147,33 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontFamily: 'JetBrains Mono, monospace' }}>{k.value}</div>
           </div>
         ))}
+      </div>
+
+      {/* Category chips */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+        {CATEGORY_CHIPS.map(c => {
+          const active = category === c.key;
+          const count = c.key === 'all'
+            ? requests.length
+            : requests.filter(r => c.types.includes(r.formType)).length;
+          return (
+            <button key={c.key} onClick={() => setCategory(c.key)} style={{
+              padding: '7px 12px', borderRadius: 18, fontSize: 11, fontWeight: 600,
+              background: active ? ACCENT : t.chipBg,
+              border: `1px solid ${active ? ACCENT : t.border}`,
+              color: active ? '#fff' : t.textMuted,
+              cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+              whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              <span>{c.icon}</span>
+              <span>{c.label}</span>
+              <span style={{
+                fontSize: 10, padding: '1px 6px', borderRadius: 10,
+                background: active ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.06)',
+              }}>{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter Buttons */}
@@ -174,7 +244,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             }
             
             // Always show reason/notes if present
-            if (details.reason) detailParts.push(`📝 ${details.reason}`);
+            if (details.reason) detailParts.push(`📝 ${displayReason(details.reason)}`);
             if (details.notes && details.notes !== details.reason) detailParts.push(`📝 ${details.notes}`);
             if (details.description && details.description !== details.reason) detailParts.push(details.description);
             if (details.items) detailParts.push(`📦 ${details.items}`);
@@ -211,7 +281,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 11, color: t.textMuted }}>
-                      {formTypeLabels[r.formType] || r.formType}
+                      {labelFor(r)}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {r.amount && (
@@ -230,11 +300,93 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                     </div>
                   )}
                 </div>
+                {/* Expanded body — full professional content */}
+                {isExpanded && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      borderTop: `1px solid ${t.border}`,
+                      background: t.expandBg,
+                      padding: '14px',
+                    }}
+                  >
+                    {r.formType === 'dynamic_template' ? (
+                      <DynamicTemplateView
+                        schema={r.templateSchema || undefined}
+                        data={r.details}
+                        title={r.templateName || r.title || undefined}
+                      />
+                    ) : (
+                      <GenericDetailView request={r} theme={t} />
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Generic field-by-field renderer for non-dynamic-template forms. */
+function GenericDetailView({ request, theme }: { request: EmployeeRequest; theme: ReturnType<typeof getThemeColors> }) {
+  const r: any = {
+    form_type: request.formType,
+    form_data: request.details,
+    status: request.status,
+    created_at: request.createdAt,
+    reason: request.details?.reason,
+  };
+  const groups = getDetailGroups(r);
+  // Drop "معلومات الطلب" — already visible in the card header.
+  const useful = groups.filter(g => g.title !== 'معلومات الطلب' && g.fields.length > 0);
+
+  if (!useful.length) {
+    return (
+      <div style={{ fontSize: 12, color: theme.textMuted, textAlign: 'center', padding: 12 }}>
+        لا توجد تفاصيل إضافية
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} dir="rtl">
+      {useful.map(g => (
+        <div key={g.title} style={{
+          background: theme.card, borderRadius: 10,
+          border: `1px solid ${theme.border}`, overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '6px 10px', fontSize: 11, fontWeight: 700,
+            color: theme.text, background: theme.chipBg,
+            borderBottom: `1px solid ${theme.border}`,
+          }}>{g.title}</div>
+          <div>
+            {g.fields.map((f, i) => {
+              const v = f.value;
+              const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v);
+              return (
+                <div key={i} style={{
+                  display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8,
+                  padding: '7px 10px', fontSize: 12,
+                  borderTop: i === 0 ? 'none' : `1px solid ${theme.border}`,
+                }}>
+                  <div style={{ color: theme.textMuted }}>{f.label}</div>
+                  <div style={{ color: theme.text, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                    {f.isUrl ? (
+                      <a href={valStr} target="_blank" rel="noreferrer" style={{ color: ACCENT, textDecoration: 'underline' }}>
+                        فتح المرفق
+                      </a>
+                    ) : valStr}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
