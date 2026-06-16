@@ -298,7 +298,7 @@ export default function HoldingConsolePage() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate(`/g/${holdingId}`);
+    navigate(`/g/${holdingSlug || holdingId}`);
   };
 
   const provisionSubs = async () => {
