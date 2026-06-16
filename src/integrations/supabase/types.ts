@@ -14591,6 +14591,168 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_accountant_drafts: {
+        Row: {
+          amount: number
+          category_code: string
+          contact_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          credit_account_id: string | null
+          credit_resolver_state: Json | null
+          currency: string
+          debit_account_id: string | null
+          debit_resolver_state: Json | null
+          description: string
+          exchange_rate: number | null
+          foreign_amount: number | null
+          id: string
+          notes: string | null
+          posted_at: string | null
+          posted_transaction_id: string | null
+          reference: string | null
+          source: string
+          source_text: string | null
+          status: string
+          transaction_date: string
+          updated_at: string
+          user_id: string
+          workshop_id: string | null
+        }
+        Insert: {
+          amount: number
+          category_code: string
+          contact_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit_account_id?: string | null
+          credit_resolver_state?: Json | null
+          currency?: string
+          debit_account_id?: string | null
+          debit_resolver_state?: Json | null
+          description: string
+          exchange_rate?: number | null
+          foreign_amount?: number | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_transaction_id?: string | null
+          reference?: string | null
+          source?: string
+          source_text?: string | null
+          status?: string
+          transaction_date?: string
+          updated_at?: string
+          user_id: string
+          workshop_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category_code?: string
+          contact_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit_account_id?: string | null
+          credit_resolver_state?: Json | null
+          currency?: string
+          debit_account_id?: string | null
+          debit_resolver_state?: Json | null
+          description?: string
+          exchange_rate?: number | null
+          foreign_amount?: number | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          posted_transaction_id?: string | null
+          reference?: string | null
+          source?: string
+          source_text?: string | null
+          status?: string
+          transaction_date?: string
+          updated_at?: string
+          user_id?: string
+          workshop_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_accountant_drafts_category_code_fkey"
+            columns: ["category_code"]
+            isOneToOne: false
+            referencedRelation: "smart_accountant_categories"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_posted_transaction_id_fkey"
+            columns: ["posted_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_posted_transaction_id_fkey"
+            columns: ["posted_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_idempotency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_posted_transaction_id_fkey"
+            columns: ["posted_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_posted_transaction_id_fkey"
+            columns: ["posted_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_same_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_posted_transaction_id_fkey"
+            columns: ["posted_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_zero_amount"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_accountant_drafts_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statement_send_log: {
         Row: {
           balance_at_send: number | null
@@ -20120,6 +20282,10 @@ export type Database = {
       }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
       sa_guess_category: { Args: { p_text: string }; Returns: string }
+      sa_post_journal_voucher: {
+        Args: { p_draft_id: string; p_dry_run?: boolean }
+        Returns: Json
+      }
       sa_resolve_account: {
         Args: {
           p_data_owner_id: string
