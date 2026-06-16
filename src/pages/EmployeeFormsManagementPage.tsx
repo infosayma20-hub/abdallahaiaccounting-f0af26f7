@@ -19,6 +19,7 @@ import {
   Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
+import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -48,6 +49,7 @@ const formTypeLabels: Record<string, string> = {
   facility_quality: "🏢 جودة المرافق",
   equipment_fault: "🔧 إبلاغ أعطال",
   inventory_balance: "📦 رصيد الأصناف",
+  dynamic_template: "📋 نموذج مخصص",
   // Virtual types from correction_requests:
   _attendance_correction: "✏️ تصحيح بصمة",
   _hr_message: "💬 رسالة HR",
@@ -63,6 +65,18 @@ const statusConfig: Record<string, { label: string; variant: "default" | "destru
 };
 
 const financialTypes = ["advance_request", "loan_request"];
+
+// Quick-filter category chips. Each maps to a set of form_type values.
+type CategoryKey = "all" | "leaves" | "loans" | "attendance" | "messages" | "custom" | "info";
+const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
+  { key: "all",        label: "الكل",                  icon: "📋", types: [] },
+  { key: "leaves",     label: "الإجازات",              icon: "🏖️", types: ["leave_request"] },
+  { key: "loans",      label: "السلف والقروض",         icon: "💰", types: ["advance_request", "loan_request"] },
+  { key: "attendance", label: "الحضور والاستئذان",     icon: "✏️", types: ["correction_request", "overtime_request", "_attendance_correction"] },
+  { key: "messages",   label: "الرسائل والشكاوى",      icon: "💬", types: ["hr_message", "complaints", "disciplinary_action", "_hr_message", "_hr_inquiry", "_hr_warning", "_hr_penalty"] },
+  { key: "custom",     label: "النماذج المخصصة",       icon: "📑", types: ["dynamic_template", "facility_quality", "equipment_fault", "inventory_balance"] },
+  { key: "info",       label: "المعلومات الشخصية",     icon: "👤", types: ["employee_info", "birthday_whatsapp"] },
+];
 
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
@@ -80,6 +94,7 @@ export default function EmployeeFormsManagementPage() {
   const [search, setSearch] = useState("");
   const [searchParams] = useSearchParams();
   const [filterType, setFilterType] = useState(searchParams.get("type") || "all");
+  const [filterCategory, setFilterCategory] = useState<CategoryKey>("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
@@ -97,6 +112,7 @@ export default function EmployeeFormsManagementPage() {
 
   const [policiesTab, setPoliciesTab] = useState("forms");
   const [policies, setPolicies] = useState<any[]>([]);
+  const [templateSchemas, setTemplateSchemas] = useState<Record<string, { name: string; schema: TemplateSchema }>>({});
   const [showUploadPolicy, setShowUploadPolicy] = useState(false);
   const [policyForm, setPolicyForm] = useState({ title: "", description: "", category: "" });
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
@@ -109,6 +125,7 @@ export default function EmployeeFormsManagementPage() {
       fetchCorrections();
       fetchEmployees();
       fetchPolicies();
+      fetchTemplates();
     }
   }, [user, dataOwnerId]);
 
@@ -215,6 +232,17 @@ export default function EmployeeFormsManagementPage() {
       .select("*")
       .order("created_at", { ascending: false });
     setPolicies(data || []);
+  };
+
+  const fetchTemplates = async () => {
+    const { data } = await supabase
+      .from("form_templates")
+      .select("id, name, schema");
+    const map: Record<string, { name: string; schema: TemplateSchema }> = {};
+    (data || []).forEach((t: any) => {
+      map[t.id] = { name: t.name, schema: (t.schema as TemplateSchema) || { sections: [] } };
+    });
+    setTemplateSchemas(map);
   };
 
   const handleAction = async (action: "approved" | "rejected", form: any) => {
@@ -389,6 +417,11 @@ export default function EmployeeFormsManagementPage() {
   };
 
   const filtered = allItems.filter(f => {
+    // Category chip filter (applied first)
+    if (filterCategory !== "all") {
+      const cat = CATEGORY_CHIPS.find(c => c.key === filterCategory);
+      if (cat && !cat.types.includes(f.form_type)) return false;
+    }
     if (filterType !== "all" && f.form_type !== filterType) return false;
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
     const emp = employeeMap[f.employee_id];
@@ -418,6 +451,14 @@ export default function EmployeeFormsManagementPage() {
     rejected: allItems.filter(f => f.status === "rejected").length,
     total: allItems.length,
   };
+
+  // Per-category counts for chips (status-agnostic, branch/date/type-agnostic).
+  const categoryCounts: Record<CategoryKey, number> = CATEGORY_CHIPS.reduce((acc, c) => {
+    acc[c.key] = c.key === "all"
+      ? allItems.length
+      : allItems.filter(f => c.types.includes(f.form_type)).length;
+    return acc;
+  }, {} as Record<CategoryKey, number>);
 
   // Financial totals for filtered results
   const financialFiltered = filtered.filter(f => financialTypes.includes(f.form_type));
