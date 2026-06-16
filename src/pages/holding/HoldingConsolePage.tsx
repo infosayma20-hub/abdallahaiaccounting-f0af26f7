@@ -339,7 +339,7 @@ export default function HoldingConsolePage() {
     <div style={{ direction: dir, fontFamily: "'Cairo', sans-serif", minHeight: "100dvh", backgroundColor: "#FFFFFF", color: "#0F172A" }}>
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: "100dvh" }}>
         {/* Main area */}
-        <main style={{ padding: "28px 36px 48px", order: dir === "rtl" ? 1 : 2 }}>
+        <main style={{ padding: "28px 36px 48px", order: 2 }}>
           {/* Top bar: page title + lang switcher */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: "#0F172A" }}>{headerLabelByNav[nav]}</h1>
@@ -470,7 +470,7 @@ export default function HoldingConsolePage() {
 
         {/* Sidebar */}
         <aside style={{
-          order: dir === "rtl" ? 2 : 1,
+          order: 1,
           backgroundColor: "#FFFFFF",
           borderInlineStart: dir === "rtl" ? "1px solid #EEF0F3" : undefined,
           borderInlineEnd: dir === "ltr" ? "1px solid #EEF0F3" : undefined,
