@@ -28,23 +28,24 @@ export async function exportEmployeeFormPdf(opts: {
     logging: false,
   });
 
-  const imgData = canvas.toDataURL("image/jpeg", 0.92);
+  const imgData = canvas.toDataURL("image/jpeg", 0.95);
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
+  const margin = 8;
+  const imgWidth = pageWidth - margin * 2;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  let position = 0;
+  let position = margin;
   let heightLeft = imgHeight;
-  pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
-  heightLeft -= pageHeight;
+  pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, "FAST");
+  heightLeft -= pageHeight - margin * 2;
 
   while (heightLeft > 0) {
-    position -= pageHeight;
+    position -= pageHeight - margin * 2;
     pdf.addPage();
-    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST");
-    heightLeft -= pageHeight;
+    pdf.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight, undefined, "FAST");
+    heightLeft -= pageHeight - margin * 2;
   }
 
   const blob = pdf.output("blob");
@@ -63,10 +64,11 @@ export async function exportEmployeeFormPdf(opts: {
   if (signedErr) throw signedErr;
 
   // Persist on the form row (uses RLS; safe if user can update)
-  await supabase
+  const { error: updateErr } = await supabase
     .from("employee_forms")
     .update({ pdf_url: signed.signedUrl, pdf_storage_path: storagePath })
     .eq("id", formId);
+  if (updateErr) throw updateErr;
 
   return { blob, storagePath, signedUrl: signed.signedUrl };
 }
