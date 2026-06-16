@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer, TrendingUp, TrendingDown } from "lucide-react";
-import PageHeader from "@/components/layout/PageHeader";
+import {
+  Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer,
+  TrendingUp, TrendingDown, RefreshCw, Calculator,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -17,6 +19,7 @@ import {
   SupabaseTransaction, SupabaseAccount, buildAccountTree, flattenAccountTree, FlatAccountLine,
 } from "@/lib/supabase-data";
 import { format, endOfMonth, startOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
+import { FinanceShell, type ActionTab, type FilterCondition, type FilterField } from "@/components/finance/shell";
 
 const LEVEL_OPTIONS = [
   { value: 1, label: "المستوى 1 — الفئات الرئيسية" },
