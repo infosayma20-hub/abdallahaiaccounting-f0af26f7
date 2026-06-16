@@ -530,6 +530,32 @@ export default function EmployeeFormsManagementPage() {
           </TabsList>
 
           <TabsContent value="forms" className="mt-4 space-y-3">
+            {/* Category chips */}
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_CHIPS.map(c => {
+                const active = filterCategory === c.key;
+                const count = categoryCounts[c.key] || 0;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => { setFilterCategory(c.key); setFilterType("all"); setPage(1); }}
+                    className={`h-9 px-3 rounded-full text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+                      active
+                        ? "bg-[#0D1B2E] text-white border-[#0D1B2E]"
+                        : "bg-card text-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    <span>{c.icon}</span>
+                    <span>{c.label}</span>
+                    <span className={`text-[10px] rounded-full px-1.5 py-0.5 ${active ? "bg-white/20" : "bg-muted-foreground/10"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Filters — same pattern as Attendance toolbar */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
