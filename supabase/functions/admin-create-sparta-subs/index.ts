@@ -29,16 +29,23 @@ Deno.serve(async (req) => {
       return json({ error: "UNAUTHENTICATED" }, 401);
     }
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
-    if (!(roles ?? []).some((r: any) => r.role === "super_admin")) {
-      return json({ error: "ACCESS_DENIED" }, 403);
-    }
 
     // locate holding
     const { data: hold, error: hErr } = await admin
       .from("holdings").select("id").eq("slug", "sparta").maybeSingle();
     if (hErr || !hold) return json({ error: "HOLDING_NOT_FOUND" }, 404);
     const holdingId = (hold as any).id as string;
+
+    // Allow: super_admin OR member of the sparta holding
+    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
+    const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
+    let allowed = isSuper;
+    if (!allowed) {
+      const { data: m } = await admin.from("holding_members")
+        .select("id").eq("holding_id", holdingId).eq("auth_user_id", user.id).limit(1);
+      if (m && m.length > 0) allowed = true;
+    }
+    if (!allowed) return json({ error: "ACCESS_DENIED" }, 403);
 
     // existing users
     const { data: list, error: lErr } = await admin.auth.admin.listUsers({ page: 1, perPage: 500 });
