@@ -611,7 +611,13 @@ function CellDialog({
               {STATUS_OPTIONS.map((s) => (
                 <button
                   key={s.value}
-                  onClick={() => setStatus(s.value)}
+                  onClick={() => {
+                    setStatus(s.value);
+                    // Auto-save instantly for statuses that don't need a shift selection
+                    if (s.value === "off" || s.value === "leave") {
+                      onSave({ status: s.value, shift_template_id: null, notes });
+                    }
+                  }}
                   className={`px-3 py-3 rounded-md text-base border transition ${status === s.value ? "border-primary bg-primary/10 font-bold" : "border-border"}`}
                 >
                   {s.label}
@@ -627,7 +633,11 @@ function CellDialog({
                 {templates.map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setShiftId(t.id)}
+                    onClick={() => {
+                      setShiftId(t.id);
+                      // Auto-save & close on shift pick
+                      onSave({ status, shift_template_id: t.id, notes });
+                    }}
                     className={`flex items-center gap-2 px-3 py-3 rounded-md border text-right transition ${shiftId === t.id ? "border-primary bg-primary/10 font-bold" : "border-border"}`}
                   >
                     <span className="w-3 h-3 rounded-full" style={{ background: t.color }} />
