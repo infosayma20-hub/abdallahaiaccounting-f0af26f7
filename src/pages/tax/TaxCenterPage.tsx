@@ -1,21 +1,26 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/layout/PageHeader";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Receipt, FileText, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Clock, CalendarDays } from "lucide-react";
+import {
+  Receipt, FileText, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Clock, CalendarDays,
+  RefreshCw, Calculator, Printer, Settings,
+} from "lucide-react";
 import TaxPeriodicReport from "@/components/tax/TaxPeriodicReport";
 import TaxSalesLedger from "@/components/tax/TaxSalesLedger";
 import TaxPurchasesLedger from "@/components/tax/TaxPurchasesLedger";
 import TaxSubmissions from "@/components/tax/TaxSubmissions";
 import TaxSettingsSection from "@/components/tax/TaxSettingsSection";
 import { calculateTaxSummary } from "@/lib/reports/tax-summary";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
 export default function TaxCenterPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [ownerId, setOwnerId] = useState<string>("");
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +28,7 @@ export default function TaxCenterPage() {
   // Shared period state — cards + periodic report read/write the same year/month
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [activeTab, setActiveTab] = useState<string>("periodic");
 
   useEffect(() => {
     if (!user) return;
@@ -87,12 +93,68 @@ export default function TaxCenterPage() {
 
   const monthName = `${MONTHS_AR[month - 1]} ${year}`;
 
-  return (
-    <div className="space-y-6" dir="rtl">
-      <PageHeader title="المحاسبة الضريبية" breadcrumb={["المالية", "مركز الضريبة"]} />
+  const yearOptions = useMemo(() => {
+    const y = now.getFullYear();
+    return [y - 2, y - 1, y, y + 1];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  const actionTabs: ActionTab[] = useMemo(() => ([
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        { key: "actions", label: "إجراءات", items: [
+          { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => loadSummary() },
+          { key: "center", label: "مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+        ]},
+        { key: "print", label: "طباعة", items: [
+          { key: "print", label: "طباعة الصفحة", icon: Printer, onClick: () => window.print() },
+        ]},
+        { key: "config", label: "إعداد", items: [
+          { key: "settings", label: "إعدادات الضريبة", icon: Settings, onClick: () => setActiveTab("settings") },
+        ]},
+      ],
+    },
+  ]), [loadSummary, navigate]);
+
+  return (
+    <FinanceShell
+      title="المحاسبة الضريبية"
+      subtitle="ملخص ضريبة القيمة المضافة (16%) — مدخلات، مخرجات، وصافي الالتزام"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "مركز الضريبة" },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={
+        <div className="flex items-center gap-1.5">
+          <select
+            value={month}
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="h-8 rounded-md border border-input bg-background px-2 text-[12.5px]"
+            aria-label="الشهر"
+          >
+            {MONTHS_AR.map((m, i) => (
+              <option key={i + 1} value={i + 1}>{m}</option>
+            ))}
+          </select>
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="h-8 rounded-md border border-input bg-background px-2 text-[12.5px]"
+            aria-label="السنة"
+          >
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+      }
+    >
+      <div className="space-y-5 max-w-[1500px] mx-auto" dir="rtl">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="p-5 border border-border">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs text-muted-foreground">ضريبة المبيعات (مخرجات)</span>
@@ -156,7 +218,7 @@ export default function TaxCenterPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="periodic" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="bg-muted/50 p-1 rounded-xl">
           <TabsTrigger value="periodic" className="rounded-lg text-xs">التقرير الدوري</TabsTrigger>
           <TabsTrigger value="sales" className="rounded-lg text-xs">ضريبة المبيعات</TabsTrigger>
@@ -187,6 +249,7 @@ export default function TaxCenterPage() {
           <TaxSettingsSection ownerId={ownerId} />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </FinanceShell>
   );
 }
