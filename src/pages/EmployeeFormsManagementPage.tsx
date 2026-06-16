@@ -771,18 +771,42 @@ export default function EmployeeFormsManagementPage() {
 
       {/* Form detail dialog */}
       <Dialog open={!!selectedForm} onOpenChange={o => { if (!o) setSelectedForm(null); }}>
-        <DialogContent className="max-w-lg bg-card border-border max-h-[85vh] overflow-y-auto" dir="rtl">
+        <DialogContent
+          className="bg-card border-border p-0 gap-0 overflow-hidden
+                     w-screen h-[100dvh] max-w-none rounded-none
+                     sm:w-auto sm:h-auto sm:max-w-3xl sm:max-h-[90vh] sm:rounded-2xl"
+          dir="rtl"
+        >
+          <div className="flex flex-col h-full max-h-[100dvh] sm:max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{formTypeLabels[selectedForm?.form_type] || selectedForm?.form_type}</DialogTitle>
-            <DialogDescription className="text-xs">
+            <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-border bg-muted/30">
+            <DialogTitle className="text-base sm:text-lg">
+              {selectedForm?.form_type === "dynamic_template" && (selectedForm as any)?.title
+                ? `📋 ${(selectedForm as any).title}`
+                : (formTypeLabels[selectedForm?.form_type] || selectedForm?.form_type)}
+            </DialogTitle>
+            <DialogDescription className="text-[11px] sm:text-xs mt-1">
               مقدم من: {employeeMap[selectedForm?.employee_id]?.name || "—"}
               {employeeMap[selectedForm?.employee_id]?.branch && ` — ${employeeMap[selectedForm?.employee_id]?.branch}`}
               {" — "}{selectedForm && format(new Date(selectedForm.created_at), "dd/MM/yyyy HH:mm")}
             </DialogDescription>
+            </div>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3">
             {(() => {
               if (!selectedForm) return null;
+              // Dynamic templates: render with their schema for a professional view.
+              if (selectedForm.form_type === "dynamic_template") {
+                const tid = (selectedForm as any).template_id as string | undefined;
+                const tpl = tid ? templateSchemas[tid] : undefined;
+                return (
+                  <DynamicTemplateView
+                    schema={tpl?.schema}
+                    data={selectedForm.form_data}
+                    title={(selectedForm as any).title || tpl?.name}
+                  />
+                );
+              }
               const groups = getDetailGroups(selectedForm);
               const hasAnyDetail = groups.some(g => g.title === "تفاصيل النموذج" && g.fields.length);
               return (
@@ -828,7 +852,7 @@ export default function EmployeeFormsManagementPage() {
                 </>
               );
             })()}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-2 border-t border-border/60">
               <span className="text-sm text-muted-foreground">الحالة الحالية:</span>
               <Badge variant={statusConfig[selectedForm?.status]?.variant || "outline"}>
                 {statusConfig[selectedForm?.status]?.label || selectedForm?.status}
@@ -923,7 +947,7 @@ export default function EmployeeFormsManagementPage() {
                   <label className="text-xs text-muted-foreground mb-1 block">ملاحظات المراجعة</label>
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 sticky bottom-0 bg-card pt-2">
                   <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved", selectedForm)} disabled={!!processing}>
                     <CheckCircle2 className="h-4 w-4" /> موافقة
                   </Button>
@@ -933,6 +957,7 @@ export default function EmployeeFormsManagementPage() {
                 </div>
               </>
             )}
+          </div>
           </div>
         </DialogContent>
       </Dialog>
