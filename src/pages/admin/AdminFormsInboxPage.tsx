@@ -186,33 +186,53 @@ export default function AdminFormsInboxPage() {
 
                 {isOpen && (
                   <div className="border-t bg-muted/20 p-3 sm:p-4 space-y-3">
-                    {(r.pdf_url || r.pdf_storage_path) && (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      {(r.pdf_url || r.pdf_storage_path) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 w-full sm:w-auto"
+                          onClick={() => openPdf(r)}
+                        >
+                          <ExternalLink className="h-4 w-4" /> فتح PDF
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
                         className="gap-2 w-full sm:w-auto"
-                        onClick={() => openPdf(r)}
+                        onClick={() => downloadWord(r)}
                       >
-                        <ExternalLink className="h-4 w-4" /> فتح PDF
+                        <FileDown className="h-4 w-4" /> تنزيل Word
                       </Button>
-                    )}
-
-                    <div className="rounded-lg bg-background border p-3 text-xs">
-                      {Object.entries(r.form_data || {}).map(([k, v]) => (
-                        <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-2 py-1.5 border-b last:border-0">
-                          <span className="font-medium text-muted-foreground sm:min-w-[160px]">
-                            {fieldLabel(r, k)}:
-                          </span>
-                          <span className="break-all text-foreground">
-                            {v === null || v === undefined || v === ""
-                              ? "—"
-                              : typeof v === "object"
-                                ? JSON.stringify(v)
-                                : String(v)}
-                          </span>
-                        </div>
-                      ))}
                     </div>
+
+                    {r.form_templates?.schema ? (
+                      <div className="rounded-lg bg-background border p-3 text-xs">
+                        <DynamicTemplateView
+                          schema={r.form_templates.schema}
+                          data={r.form_data}
+                          title={r.title || r.form_templates.name}
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded-lg bg-background border p-3 text-xs">
+                        {Object.entries(r.form_data || {}).map(([k, v]) => (
+                          <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-2 py-1.5 border-b last:border-0">
+                            <span className="font-medium text-muted-foreground sm:min-w-[160px]">
+                              {fieldLabel(r, k)}:
+                            </span>
+                            <span className="break-all text-foreground">
+                              {v === null || v === undefined || v === ""
+                                ? "—"
+                                : typeof v === "object"
+                                  ? JSON.stringify(v)
+                                  : String(v)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {r.review_notes && (
                       <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs">
