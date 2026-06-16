@@ -61,6 +61,7 @@
     "face-api.js": "^0.22.2",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.34.3",
+    "html-docx-js-typescript": "^0.1.5",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "input-otp": "^1.4.2",

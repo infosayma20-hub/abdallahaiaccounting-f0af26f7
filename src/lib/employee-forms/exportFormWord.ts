@@ -1,4 +1,5 @@
 import type { TemplateSchema } from "@/components/employee/DynamicTemplateView";
+import { asBlob } from "html-docx-js-typescript";
 
 type ExportRow = { label: string; value: string };
 
@@ -138,13 +139,19 @@ export function downloadEmployeeFormWord(opts: {
   data?: Record<string, any> | null;
 }) {
   const html = buildEmployeeFormWordHtml(opts);
-  const blob = new Blob(["\ufeff", html], { type: "application/msword;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${sanitizeExportFileName(opts.title)}.doc`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // Build a REAL .docx (Open XML) via html-docx-js-typescript so the file
+  // opens correctly on mobile (Google Docs / WPS) and desktop Word.
+  // Saving HTML with a .doc extension caused "File appears to be corrupt"
+  // on Android viewers.
+  const result = asBlob(html, { orientation: "portrait", margins: { top: 720, bottom: 720, left: 720, right: 720 } });
+  Promise.resolve(result).then((blob) => {
+    const url = URL.createObjectURL(blob as Blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${sanitizeExportFileName(opts.title)}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
 }

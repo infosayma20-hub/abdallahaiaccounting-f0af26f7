@@ -26,6 +26,12 @@ export async function exportEmployeeFormPdf(opts: {
     useCORS: true,
     backgroundColor: "#ffffff",
     logging: false,
+    // CRITICAL: use foreignObject rendering so the browser shapes Arabic
+    // glyphs (RTL joining) instead of html2canvas drawing characters one
+    // by one which breaks Arabic.
+    foreignObjectRendering: true,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
   });
 
   const imgData = canvas.toDataURL("image/jpeg", 0.95);
