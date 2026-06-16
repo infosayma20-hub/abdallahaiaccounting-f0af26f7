@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowRight, Loader2, Plus, Search, X, Trash2,
+  ArrowRight, Loader2, Plus, Search, X, Trash2, RefreshCw, Printer,
   FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
   ArrowUpDown, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Ban,
   SlidersHorizontal
@@ -24,6 +24,7 @@ import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 interface JournalLine {
   id: string;
@@ -416,28 +417,36 @@ const FinanceJournalPage = () => {
     </button>
   );
 
+  const actionTabs: ActionTab[] = useMemo(() => ([
+    {
+      key: "general",
+      label: "عام",
+      groups: [
+        { key: "new", label: "إنشاء", items: [
+          { key: "new-voucher", label: "سند قيد جديد", icon: Plus, onClick: () => navigate("/finance/journal/new"), variant: "primary" as const },
+        ]},
+        { key: "data", label: "بيانات", items: [
+          { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
+        ]},
+        { key: "export", label: "إخراج", items: [
+          { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print() },
+        ]},
+      ],
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ]), [fetchData, navigate]);
+
   return (
-    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/finance/receipts")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">القيود اليومية</h1>
-              <p className="text-xs text-muted-foreground">إدارة القيود المحاسبية اليدوية</p>
-            </div>
-          </div>
-        </div>
-        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => navigate("/finance/journal/new")}>
-          <Plus className="h-4 w-4" /> سند قيد جديد
-        </Button>
-      </div>
+    <FinanceShell
+      title="القيود اليومية"
+      subtitle="إدارة القيود المحاسبية اليدوية"
+      breadcrumb={[
+        { label: "المالية", href: "/accounting-center" },
+        { label: "القيود اليومية" },
+      ]}
+      actionTabs={actionTabs}
+    >
+      <div className="space-y-5 max-w-[1500px] mx-auto" dir="rtl">
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1014,7 +1023,8 @@ const FinanceJournalPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
