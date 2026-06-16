@@ -7157,6 +7157,86 @@ export type Database = {
         }
         Relationships: []
       }
+      form_section_assignments: {
+        Row: {
+          assigned_by: string | null
+          assignee_auth_user_id: string | null
+          assignee_employee_id: string
+          company_id: string | null
+          created_at: string
+          form_id: string
+          id: string
+          notes: string | null
+          section_key: string
+          section_title: string
+          status: string
+          template_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assignee_auth_user_id?: string | null
+          assignee_employee_id: string
+          company_id?: string | null
+          created_at?: string
+          form_id: string
+          id?: string
+          notes?: string | null
+          section_key: string
+          section_title: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assignee_auth_user_id?: string | null
+          assignee_employee_id?: string
+          company_id?: string | null
+          created_at?: string
+          form_id?: string
+          id?: string
+          notes?: string | null
+          section_key?: string
+          section_title?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_section_assignments_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_section_assignments_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_section_assignments_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "employee_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_section_assignments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_template_assignments: {
         Row: {
           access_level: string
