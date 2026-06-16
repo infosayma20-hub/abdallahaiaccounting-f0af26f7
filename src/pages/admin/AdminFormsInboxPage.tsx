@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
-import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink } from "lucide-react";
+import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { getFreshFormPdfUrl } from "@/lib/employee-forms/pdfUrl";
+import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
+import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 
 interface FormRow {
   id: string;
@@ -105,6 +107,17 @@ export default function AdminFormsInboxPage() {
       if (f?.label) return String(f.label);
     }
     return key;
+  };
+
+  const downloadWord = (row: FormRow) => {
+    downloadEmployeeFormWord({
+      title: row.title || row.form_templates?.name || "نموذج",
+      employeeName: row.employees?.full_name,
+      createdAt: row.created_at,
+      schema: row.form_templates?.schema,
+      data: row.form_data,
+    });
+    toast({ title: "تم تنزيل ملف Word" });
   };
 
   const counts = {
