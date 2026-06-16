@@ -105,7 +105,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Load accounts for parent selector
   useEffect(() => {
     if (!user) return;
-    supabase.from("accounts").select("id, account_code, account_name, account_type, parent_code, description_ar, notes, is_system_protected")
+    supabase.from("accounts").select("id, account_code, account_name, account_type, parent_code, description_ar, notes, is_system_protected, currency")
       .eq("user_id", user.id).order("account_code")
       .then(({ data }) => setAccounts(data ?? []))
       .then(() => setDraftReady(true), () => setDraftReady(true));
