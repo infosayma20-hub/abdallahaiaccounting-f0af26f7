@@ -20281,9 +20281,17 @@ export type Database = {
         Returns: string
       }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
+      sa_ensure_baseline_accounts: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       sa_guess_category: { Args: { p_text: string }; Returns: string }
       sa_post_journal_voucher: {
         Args: { p_draft_id: string; p_dry_run?: boolean }
+        Returns: Json
+      }
+      sa_post_journal_voucher_live: {
+        Args: { p_draft_id: string }
         Returns: Json
       }
       sa_resolve_account: {
