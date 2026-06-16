@@ -153,9 +153,11 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         {CATEGORY_CHIPS.map(c => {
           const active = category === c.key;
+          // Respect current status filter so the chip count matches the visible list
+          const statusScoped = filter === 'all' ? requests : requests.filter(r => r.status === filter);
           const count = c.key === 'all'
-            ? requests.length
-            : requests.filter(r => c.types.includes(r.formType)).length;
+            ? statusScoped.length
+            : statusScoped.filter(r => c.types.includes(r.formType)).length;
           return (
             <button key={c.key} onClick={() => setCategory(c.key)} style={{
               padding: '7px 12px', borderRadius: 18, fontSize: 11, fontWeight: 600,
