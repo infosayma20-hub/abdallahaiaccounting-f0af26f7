@@ -36,17 +36,25 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
   const [mentionSearch, setMentionSearch] = useState("");
   const [mentionLoaded, setMentionLoaded] = useState(false);
 
-  const streamRef = useRef<MediaStream | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animFrameRef = useRef<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mentionRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
   const stateRef = useRef<DockState>("idle");
+
+  // ─── Voice recording session (single source of truth) ───
+  // Every press creates a new session object. All callbacks check
+  // `session.id === sessionRef.current?.id` before mutating state, so
+  // stale events from a previous press can never interfere.
+  type VoiceSession = {
+    id: number;
+    recognition: any;
+    finished: boolean;
+    transcript: string;
+    timerId: number | null;
+    waveTimeoutId: number | null;
+  };
+  const sessionRef = useRef<VoiceSession | null>(null);
+  const sessionCounterRef = useRef(0);
   const startingRef = useRef(false);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const fakeWaveRef = useRef<number>(0);
 
   useEffect(() => { stateRef.current = state; }, [state]);
 
