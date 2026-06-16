@@ -191,6 +191,35 @@ export type Database = {
         }
         Relationships: []
       }
+      active_owner_context: {
+        Row: {
+          auth_user_id: string
+          holding_id: string
+          owner_id: string
+          set_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          holding_id: string
+          owner_id: string
+          set_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          holding_id?: string
+          owner_id?: string
+          set_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_owner_context_holding_id_fkey"
+            columns: ["holding_id"]
+            isOneToOne: false
+            referencedRelation: "holdings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_log: {
         Row: {
           action: string
@@ -7388,6 +7417,137 @@ export type Database = {
           report_type?: string
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      holding_companies: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          display_name_ar: string
+          holding_id: string
+          id: string
+          is_active: boolean
+          owner_id: string
+          sector: string | null
+          sort_order: number
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          display_name_ar: string
+          holding_id: string
+          id?: string
+          is_active?: boolean
+          owner_id: string
+          sector?: string | null
+          sort_order?: number
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          display_name_ar?: string
+          holding_id?: string
+          id?: string
+          is_active?: boolean
+          owner_id?: string
+          sector?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holding_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "holding_companies_holding_id_fkey"
+            columns: ["holding_id"]
+            isOneToOne: false
+            referencedRelation: "holdings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holding_members: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          holding_id: string
+          id: string
+          role: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          holding_id: string
+          id?: string
+          role?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          holding_id?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holding_members_holding_id_fkey"
+            columns: ["holding_id"]
+            isOneToOne: false
+            referencedRelation: "holdings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holdings: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          login_background_url: string | null
+          logo_url: string | null
+          name_ar: string
+          name_en: string | null
+          presentation_currency: string
+          primary_color: string
+          secondary_color: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          login_background_url?: string | null
+          logo_url?: string | null
+          name_ar: string
+          name_en?: string | null
+          presentation_currency?: string
+          primary_color?: string
+          secondary_color?: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          login_background_url?: string | null
+          logo_url?: string | null
+          name_ar?: string
+          name_en?: string | null
+          presentation_currency?: string
+          primary_color?: string
+          secondary_color?: string
+          slug?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -19149,6 +19309,14 @@ export type Database = {
         Args: { p_device_tag: string; p_order_id: string }
         Returns: boolean
       }
+      add_holding_member: {
+        Args: {
+          p_holding_id: string
+          p_role?: string
+          p_target_user_id: string
+        }
+        Returns: undefined
+      }
       allocate_voucher_to_invoices_atomic: {
         Args: {
           p_allocations: Json
@@ -19976,6 +20144,19 @@ export type Database = {
         Args: { _app: string; _feature: string; _perm: string; _user: string }
         Returns: string
       }
+      get_holding_branding_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          id: string
+          login_background_url: string
+          logo_url: string
+          name_ar: string
+          name_en: string
+          primary_color: string
+          secondary_color: string
+          slug: string
+        }[]
+      }
       get_latest_exchange_rate: {
         Args: { p_currency_name: string; p_user_id: string }
         Returns: number
@@ -20017,6 +20198,31 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      holding_consolidated_trial_balance: {
+        Args: { p_from: string; p_holding_id: string; p_to: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          balance: number
+          total_credit: number
+          total_debit: number
+        }[]
+      }
+      holding_subsidiary_trial_balance: {
+        Args: {
+          p_from: string
+          p_holding_id: string
+          p_owner_id: string
+          p_to: string
+        }
+        Returns: {
+          account_code: string
+          account_name: string
+          balance: number
+          total_credit: number
+          total_debit: number
+        }[]
+      }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
         Returns: boolean
@@ -20031,6 +20237,10 @@ export type Database = {
       }
       is_employee_policy_file: {
         Args: { _auth_uid: string; _object_name: string }
+        Returns: boolean
+      }
+      is_holding_member: {
+        Args: { _holding_id: string; _uid?: string }
         Returns: boolean
       }
       is_managed_branch_employee: {
