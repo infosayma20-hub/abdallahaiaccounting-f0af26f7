@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowRight, Loader2, Plus, Search, X, Trash2,
+  Loader2, Plus, Search, X, Trash2, RefreshCw, Printer,
   FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
   ArrowUpDown, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Ban,
   SlidersHorizontal
@@ -24,6 +24,7 @@ import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 interface JournalLine {
   id: string;
