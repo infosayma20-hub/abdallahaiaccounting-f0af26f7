@@ -36,6 +36,13 @@ const AuthPage = () => {
     if (stored) setSavedEmail(stored);
   }, []);
 
+  // Prefill email from ?email= (used by holding workspace selector to open a subsidiary login)
+  useEffect(() => {
+    const prefill = (searchParams.get("email") || "").trim();
+    if (prefill) setEmail(prefill);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // التقاط الروابط القديمة (one-time link منتهي/مستهلك) وتحويلها لمسار الكود.
   useEffect(() => {
     const err = searchParams.get("error_code") || searchParams.get("error");
