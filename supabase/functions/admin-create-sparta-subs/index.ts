@@ -36,10 +36,11 @@ Deno.serve(async (req) => {
     if (hErr || !hold) return json({ error: "HOLDING_NOT_FOUND" }, 404);
     const holdingId = (hold as any).id as string;
 
-    // Allow: super_admin / admin / member of the sparta holding
+    // Tenant-isolation: caller MUST be a member of THIS holding, OR super_admin.
+    // `admin` role is NOT sufficient — admins of other tenants must never act on this holding.
     const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
-    const roleList = (roles ?? []).map((r: any) => r.role);
-    let allowed = roleList.includes("super_admin") || roleList.includes("admin");
+    const isSuperAdmin = (roles ?? []).some((r: any) => r.role === "super_admin");
+    let allowed = isSuperAdmin;
     if (!allowed) {
       const { data: m } = await admin.from("holding_members")
         .select("id").eq("holding_id", holdingId).eq("auth_user_id", user.id).limit(1);
