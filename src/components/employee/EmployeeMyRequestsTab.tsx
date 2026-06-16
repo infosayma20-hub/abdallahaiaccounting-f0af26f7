@@ -5,6 +5,7 @@ import { FileText, ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import RequestDetailsDialog from "./RequestDetailsDialog";
+import EmployeeAssignedSectionsList from "./EmployeeAssignedSectionsList";
 import {
   getRequestTitle,
   getRequestSummary,
@@ -40,6 +41,8 @@ export default function EmployeeMyRequestsTab({ employeeId }: Props) {
 
   return (
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
+      <EmployeeAssignedSectionsList employeeId={employeeId} />
+
       <h2 className="text-lg font-bold pt-2 flex items-center gap-2">
         <FileText className="h-5 w-5 text-primary" />
         طلباتي السابقة ({submissions.length})
