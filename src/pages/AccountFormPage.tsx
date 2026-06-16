@@ -124,6 +124,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         setDescriptionAr(acc.description_ar ?? "");
         setNotes(acc.notes ?? "");
         setNaturalBalance(DEFAULT_BALANCE[normalizeType(acc.account_type)] ?? "debit");
+        setCurrency(acc.currency || "شيكل");
       }
     }
   }, [mode, accountId, accounts]);
