@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, ChevronDown } from 'lucide-react';
+import { Loader2, Search, ChevronDown, FileDown } from 'lucide-react';
 import { multiWordMatchAny } from "@/lib/utils";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
 import { getDetailGroups } from "@/lib/employeeRequestDisplay";
 import { displayReason } from "@/lib/hrMessages";
+import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 
 const ACCENT = '#2A7B9B';
 
@@ -128,6 +129,16 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
     r.formType === 'dynamic_template' && (r.templateName || r.title)
       ? `📑 ${r.templateName || r.title}`
       : (formTypeLabels[r.formType] || `📋 ${r.formType}`);
+
+  const downloadWord = (r: EmployeeRequest) => {
+    downloadEmployeeFormWord({
+      title: r.templateName || r.title || labelFor(r),
+      employeeName: r.employeeName,
+      createdAt: r.createdAt,
+      schema: r.templateSchema || undefined,
+      data: r.details,
+    });
+  };
 
   return (
     <div style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
@@ -322,6 +333,18 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                       padding: '14px',
                     }}
                   >
+                    <button
+                      type="button"
+                      onClick={() => downloadWord(r)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '7px 10px', borderRadius: 8, marginBottom: 10,
+                        border: `1px solid ${t.border}`, background: t.card,
+                        color: t.text, fontSize: 11, fontFamily: 'Tajawal, sans-serif',
+                      }}
+                    >
+                      <FileDown size={14} /> تنزيل Word
+                    </button>
                     {r.formType === 'dynamic_template' ? (
                       <DynamicTemplateView
                         schema={r.templateSchema || undefined}

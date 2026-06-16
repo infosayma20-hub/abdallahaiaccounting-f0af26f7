@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
-import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink } from "lucide-react";
+import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { getFreshFormPdfUrl } from "@/lib/employee-forms/pdfUrl";
+import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
+import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 
 interface FormRow {
   id: string;
@@ -107,6 +109,17 @@ export default function AdminFormsInboxPage() {
     return key;
   };
 
+  const downloadWord = (row: FormRow) => {
+    downloadEmployeeFormWord({
+      title: row.title || row.form_templates?.name || "نموذج",
+      employeeName: row.employees?.full_name,
+      createdAt: row.created_at,
+      schema: row.form_templates?.schema,
+      data: row.form_data,
+    });
+    toast({ title: "تم تنزيل ملف Word" });
+  };
+
   const counts = {
     submitted: rows.filter((r) => r.workflow_status === "submitted").length,
     under_review: rows.filter((r) => r.workflow_status === "under_review").length,
@@ -173,33 +186,53 @@ export default function AdminFormsInboxPage() {
 
                 {isOpen && (
                   <div className="border-t bg-muted/20 p-3 sm:p-4 space-y-3">
-                    {(r.pdf_url || r.pdf_storage_path) && (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      {(r.pdf_url || r.pdf_storage_path) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 w-full sm:w-auto"
+                          onClick={() => openPdf(r)}
+                        >
+                          <ExternalLink className="h-4 w-4" /> فتح PDF
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
                         className="gap-2 w-full sm:w-auto"
-                        onClick={() => openPdf(r)}
+                        onClick={() => downloadWord(r)}
                       >
-                        <ExternalLink className="h-4 w-4" /> فتح PDF
+                        <FileDown className="h-4 w-4" /> تنزيل Word
                       </Button>
-                    )}
-
-                    <div className="rounded-lg bg-background border p-3 text-xs">
-                      {Object.entries(r.form_data || {}).map(([k, v]) => (
-                        <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-2 py-1.5 border-b last:border-0">
-                          <span className="font-medium text-muted-foreground sm:min-w-[160px]">
-                            {fieldLabel(r, k)}:
-                          </span>
-                          <span className="break-all text-foreground">
-                            {v === null || v === undefined || v === ""
-                              ? "—"
-                              : typeof v === "object"
-                                ? JSON.stringify(v)
-                                : String(v)}
-                          </span>
-                        </div>
-                      ))}
                     </div>
+
+                    {r.form_templates?.schema ? (
+                      <div className="rounded-lg bg-background border p-3 text-xs">
+                        <DynamicTemplateView
+                          schema={r.form_templates.schema}
+                          data={r.form_data}
+                          title={r.title || r.form_templates.name}
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded-lg bg-background border p-3 text-xs">
+                        {Object.entries(r.form_data || {}).map(([k, v]) => (
+                          <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-2 py-1.5 border-b last:border-0">
+                            <span className="font-medium text-muted-foreground sm:min-w-[160px]">
+                              {fieldLabel(r, k)}:
+                            </span>
+                            <span className="break-all text-foreground">
+                              {v === null || v === undefined || v === ""
+                                ? "—"
+                                : typeof v === "object"
+                                  ? JSON.stringify(v)
+                                  : String(v)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {r.review_notes && (
                       <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs">

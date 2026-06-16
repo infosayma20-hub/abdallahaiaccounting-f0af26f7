@@ -1,5 +1,4 @@
 import { Download, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 /**
  * Renders a `dynamic_template` submission against its form_template schema.

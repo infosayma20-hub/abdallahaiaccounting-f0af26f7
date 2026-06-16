@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
 import FormShareSheet from "@/components/employee/forms/FormShareSheet";
 import { exportEmployeeFormPdf, downloadBlob } from "@/lib/employee-forms/exportFormPdf";
+import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
+import { downloadEmployeeFormWord, sanitizeExportFileName } from "@/lib/employee-forms/exportFormWord";
 
 interface Props {
   employeeId: string;
@@ -197,7 +199,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         fileName: sub.title || "form",
       });
       if (downloadOnly) {
-        downloadBlob(blob, `${(sub.title || "form").replace(/[^\w-]/g, "_")}.pdf`);
+        downloadBlob(blob, `${sanitizeExportFileName(sub.title || "نموذج")}.pdf`);
         toast({ title: "تم تنزيل النموذج" });
       }
       // refresh submissions to pick up pdf_url
@@ -209,6 +211,17 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     } finally {
       setExporting(false);
     }
+  };
+
+  const exportWord = (sub: Submission) => {
+    const tpl = templates.find((t) => t.id === sub.template_id);
+    downloadEmployeeFormWord({
+      title: sub.title || tpl?.name || "نموذج",
+      createdAt: sub.created_at,
+      schema: tpl?.schema as any,
+      data: sub.form_data,
+    });
+    toast({ title: "تم تنزيل ملف Word" });
   };
 
   const submitForReview = async (sub: Submission) => {
@@ -357,13 +370,12 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               }}
             >
               {tpl ? (
-                <div ref={printRef} className="bg-white p-4 rounded-lg">
-                  <h2 className="text-lg font-bold mb-3 text-center">{viewSubmission.title || tpl.name}</h2>
-                  <DynamicFormRenderer
-                    schema={tpl.schema}
-                    initialData={viewSubmission.form_data}
-                    readOnly
-                  />
+                <div ref={printRef} className="bg-background text-foreground p-5 rounded-lg border border-border shadow-sm">
+                  <div className="border-b-4 border-primary pb-3 mb-4 text-center">
+                    <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
+                  </div>
+                  <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">القالب غير متاح.</p>
@@ -387,13 +399,12 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             if (!tpl) return <p className="text-sm text-muted-foreground">القالب غير متاح.</p>;
             return (
               <>
-                <div ref={printRef} className="bg-white p-4 rounded-lg">
-                  <h2 className="text-lg font-bold mb-3 text-center">{viewSubmission.title || tpl.name}</h2>
-                  <DynamicFormRenderer
-                    schema={tpl.schema}
-                    initialData={viewSubmission.form_data}
-                    readOnly
-                  />
+                <div ref={printRef} className="bg-background text-foreground p-6 rounded-lg border border-border shadow-sm">
+                  <div className="border-b-4 border-primary pb-3 mb-5 text-center">
+                    <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
+                  </div>
+                  <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
                 </div>
                 {renderSubmissionActions(viewSubmission)}
               </>
@@ -429,6 +440,15 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         >
           {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
           تنزيل PDF
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2"
+          onClick={() => exportWord(sub)}
+        >
+          <FileText className="h-4 w-4" />
+          تنزيل Word
         </Button>
         <Button
           size="sm"
