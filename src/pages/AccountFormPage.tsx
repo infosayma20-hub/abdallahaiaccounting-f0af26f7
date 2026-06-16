@@ -703,9 +703,40 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
                     className="h-10 w-48 font-mono"
                     dir="ltr"
                   />
-                  <span className="text-[12px] text-muted-foreground">₪ شيكل</span>
+                  <span className="text-[12px] font-semibold text-[#1B3A5C]">
+                    {CURRENCIES.find(c => c.value === currency)?.symbol} {currency}
+                  </span>
                 </div>
               </div>
+
+              {/* Exchange Rate (for foreign currencies only) */}
+              {currency !== "شيكل" && (
+                <div className="grid grid-cols-12 items-center gap-3">
+                  <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                    سعر الصرف <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="col-span-12 sm:col-span-9 flex items-center gap-2 flex-wrap">
+                    <Input
+                      type="number"
+                      value={obExchangeRate || ""}
+                      onChange={(e) => setObExchangeRate(Number(e.target.value) || 0)}
+                      placeholder="0.00"
+                      min={0}
+                      step={0.0001}
+                      className="h-10 w-40 font-mono"
+                      dir="ltr"
+                    />
+                    <span className="text-[11px] text-muted-foreground">
+                      1 {currency} = <span className="font-mono font-bold" dir="ltr">{obExchangeRate || "—"}</span> شيكل
+                    </span>
+                    {obAmount > 0 && obExchangeRate > 0 && (
+                      <span className="text-[11px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">
+                        المعادل: <span className="font-mono font-bold" dir="ltr">{(obAmount * obExchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })} ₪</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-12 items-center gap-3">
                 <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
