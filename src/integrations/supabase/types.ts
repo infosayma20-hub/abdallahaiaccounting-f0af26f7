@@ -19317,6 +19317,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      add_holding_member_by_email: {
+        Args: { p_email: string; p_holding_id: string; p_role?: string }
+        Returns: string
+      }
+      admin_list_companies: {
+        Args: never
+        Returns: {
+          company_id: string
+          name: string
+          owner_id: string
+          tax_number: string
+        }[]
+      }
       allocate_voucher_to_invoices_atomic: {
         Args: {
           p_allocations: Json
