@@ -15,6 +15,8 @@ import FormShareSheet from "@/components/employee/forms/FormShareSheet";
 import { exportEmployeeFormPdf, downloadBlob } from "@/lib/employee-forms/exportFormPdf";
 import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
 import { downloadEmployeeFormWord, sanitizeExportFileName } from "@/lib/employee-forms/exportFormWord";
+import FormSectionAssignmentsPanel from "@/components/employee/forms/FormSectionAssignmentsPanel";
+import { useIsBranchManager } from "@/hooks/useIsBranchManager";
 
 interface Props {
   employeeId: string;
@@ -67,6 +69,7 @@ const categoryMeta = (c: string): { icon: any; color: string } => ({
 
 export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTitleName }: Props) {
   const isMobile = useIsMobile();
+  const { isManager } = useIsBranchManager();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -308,6 +311,15 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
             }}
           >
+            {isManager && (
+              <div className="mb-4">
+                <FormSectionAssignmentsPanel
+                  mode="template"
+                  templateId={activeTemplate.id}
+                  schema={activeTemplate.schema as any}
+                />
+              </div>
+            )}
             <DynamicFormRenderer
               schema={activeTemplate.schema}
               draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
@@ -328,13 +340,24 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             )}
           </DialogHeader>
           {activeTemplate && (
-            <DynamicFormRenderer
-              schema={activeTemplate.schema}
-              draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
-              submitting={submitting}
-              onSubmit={handleSubmit}
-              onSaveDraft={() => {}}
-            />
+            <>
+              {isManager && (
+                <div className="mb-4">
+                  <FormSectionAssignmentsPanel
+                    mode="template"
+                    templateId={activeTemplate.id}
+                    schema={activeTemplate.schema as any}
+                  />
+                </div>
+              )}
+              <DynamicFormRenderer
+                schema={activeTemplate.schema}
+                draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onSaveDraft={() => {}}
+              />
+            </>
           )}
         </DialogContent>
       </Dialog>

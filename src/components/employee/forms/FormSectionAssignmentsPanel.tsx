@@ -44,12 +44,19 @@ export default function FormSectionAssignmentsPanel({
   templateId,
   schema,
   companyUserId,
+  mode = "form",
 }: {
-  formId: string;
+  formId?: string | null;
   templateId: string | null;
   schema: any;
   /** Account-owner user_id (employee_forms.user_id), used to scope employees. */
   companyUserId?: string | null;
+  /**
+   * "form"     → assignments tied to a submitted employee_form (form_id required)
+   * "template" → planning-mode assignments by the current branch manager
+   *               for a template (form_id NULL, scoped by assigned_by = me)
+   */
+  mode?: "form" | "template";
 }) {
   const sections = useMemo(() => extractAssignableSections(schema), [schema]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -57,31 +64,37 @@ export default function FormSectionAssignmentsPanel({
   const [search, setSearch] = useState<Record<string, string>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [meUserId, setMeUserId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
+        const { data: ures } = await supabase.auth.getUser();
+        const uid = ures.user?.id || null;
+        setMeUserId(uid);
         let q = supabase
           .from("employees")
           .select("id, full_name, job_title, department")
           .eq("is_active", true)
           .order("full_name");
         if (companyUserId) q = q.eq("user_id", companyUserId);
-        const [empRes, asnRes] = await Promise.all([
-          q,
-          supabase
-            .from("form_section_assignments" as any)
-            .select("id, section_key, assignee_employee_id, status, notes")
-            .eq("form_id", formId),
-        ]);
+        let asnQuery = supabase
+          .from("form_section_assignments" as any)
+          .select("id, section_key, assignee_employee_id, status, notes");
+        if (mode === "form" && formId) {
+          asnQuery = asnQuery.eq("form_id", formId);
+        } else if (mode === "template" && templateId && uid) {
+          asnQuery = asnQuery.is("form_id", null).eq("template_id", templateId).eq("assigned_by", uid);
+        }
+        const [empRes, asnRes] = await Promise.all([q, asnQuery]);
         setEmployees(((empRes.data as unknown) as Employee[]) || []);
         setAssignments(((asnRes.data as unknown) as Assignment[]) || []);
       } finally {
         setLoading(false);
       }
     })();
-  }, [formId, companyUserId]);
+  }, [formId, templateId, companyUserId, mode]);
 
   const empById = useMemo(() => {
     const m: Record<string, Employee> = {};
@@ -116,23 +129,29 @@ export default function FormSectionAssignmentsPanel({
           .eq("id", existing.id);
         if (error) throw error;
       } else {
+        const payload: any = {
+          template_id: templateId,
+          section_key: section.key,
+          section_title: section.title,
+          assignee_employee_id: employee.id,
+          user_id: companyUserId, // trigger will fill if null
+        };
+        if (mode === "form" && formId) payload.form_id = formId;
         const { error } = await supabase
           .from("form_section_assignments" as any)
-          .insert({
-            form_id: formId,
-            template_id: templateId,
-            section_key: section.key,
-            section_title: section.title,
-            assignee_employee_id: employee.id,
-            user_id: companyUserId, // trigger will fill if null
-          } as any);
+          .insert(payload);
         if (error) throw error;
       }
       // reload
-      const { data } = await supabase
+      let reloadQ = supabase
         .from("form_section_assignments" as any)
-        .select("id, section_key, assignee_employee_id, status, notes")
-        .eq("form_id", formId);
+        .select("id, section_key, assignee_employee_id, status, notes");
+      if (mode === "form" && formId) {
+        reloadQ = reloadQ.eq("form_id", formId);
+      } else if (mode === "template" && templateId && meUserId) {
+        reloadQ = reloadQ.is("form_id", null).eq("template_id", templateId).eq("assigned_by", meUserId);
+      }
+      const { data } = await reloadQ;
       setAssignments(((data as unknown) as Assignment[]) || []);
       setSearch((p) => ({ ...p, [section.key]: "" }));
       toast({ title: "تم الإسناد", description: `${section.title} → ${employee.full_name}` });
