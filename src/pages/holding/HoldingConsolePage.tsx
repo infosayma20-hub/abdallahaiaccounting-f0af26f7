@@ -432,53 +432,65 @@ export default function HoldingConsolePage() {
                 </div>
               </div>
 
-              {/* Companies table */}
-              <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ backgroundColor: "#FAFAFB", borderBottom: "1px solid #EEF0F3" }}>
-                      <Th>{t.cols.icon}</Th>
-                      <Th>{t.cols.company}</Th>
-                      <Th>{t.cols.sector}</Th>
-                      <Th>{t.cols.currency}</Th>
-                      <Th>{t.cols.status}</Th>
-                      <Th>{t.cols.actions}</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredSubs.length === 0 ? (
-                      <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#9CA3AF" }}>{t.empty}</td></tr>
-                    ) : filteredSubs.map((s) => {
-                      const sv = (s.sector && SECTOR_VISUAL[s.sector]) || { icon: Building2, bg: "#F3F4F6", fg: "#374151", iconBg: "#FBEAF1" };
-                      const SIcon = sv.icon;
-                      const cur = (s.sector && SECTOR_CURRENCY[s.sector]) || { code: "ILS", symbol: "₪" };
-                      return (
-                        <tr key={s.owner_id} style={{ borderBottom: "1px solid #F1F2F4" }}>
-                          <Td>
-                            <div style={{ width: 40, height: 40, borderRadius: 10, background: sv.iconBg, color: ACCENT, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <SIcon size={20} />
-                            </div>
-                          </Td>
-                          <Td>
-                            <div style={{ fontWeight: 700, color: "#0F172A" }}>{s.display_name_ar}</div>
-                            <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2, fontFamily: "'Inter', sans-serif", letterSpacing: 0.5 }}>
-                              SPARTA-{(s.sector || "CO").slice(0, 4).toUpperCase()} · {String(s.sort_order || 0).padStart(4, "0")}
-                            </div>
-                          </Td>
-                          <Td><Pill bg={sv.bg} fg={sv.fg}>{(s.sector && SECTOR_LABEL[s.sector]) || s.sector || "—"}</Pill></Td>
-                          <Td><span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, color: "#374151" }}>{cur.code} {cur.symbol}</span></Td>
-                          <Td><Pill bg="#FBEAF1" fg={ACCENT}>{t.statusActive}</Pill></Td>
-                          <Td>
-                            <div style={{ display: "flex", gap: 12 }}>
-                              <button onClick={() => { setSelected(s.owner_id); setNav("trial_balance"); }} style={linkBtn()}>{t.viewTB}</button>
-                              <button style={linkBtn()}>{t.details}</button>
-                            </div>
-                          </Td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              {/* Companies table — div-grid (independent from shared <table>) */}
+              <div className="holding-table" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, overflow: "hidden" }}>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "72px 1.6fr 1.1fr 0.9fr 0.9fr 1fr",
+                  gap: 14,
+                  background: "#F5F1F3",
+                  color: "#867C88",
+                  fontWeight: 700,
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  padding: "14px 18px",
+                  borderBottom: "1px solid #EEE3E8",
+                }}>
+                  <span>{t.cols.icon}</span>
+                  <span>{t.cols.company}</span>
+                  <span>{t.cols.sector}</span>
+                  <span>{t.cols.currency}</span>
+                  <span>{t.cols.status}</span>
+                  <span>{t.cols.actions}</span>
+                </div>
+                {filteredSubs.length === 0 ? (
+                  <div style={{ padding: 32, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>{t.empty}</div>
+                ) : filteredSubs.map((s) => {
+                  const sv = (s.sector && SECTOR_VISUAL[s.sector]) || { icon: Building2, bg: "#F3F4F6", fg: "#374151", iconBg: "#FBEAF1" };
+                  const SIcon = sv.icon;
+                  const cur = (s.sector && SECTOR_CURRENCY[s.sector]) || { code: "ILS", symbol: "₪" };
+                  return (
+                    <div key={s.owner_id} style={{
+                      display: "grid",
+                      gridTemplateColumns: "72px 1.6fr 1.1fr 0.9fr 0.9fr 1fr",
+                      gap: 14,
+                      alignItems: "center",
+                      padding: "14px 18px",
+                      borderBottom: "1px solid #F1F2F4",
+                      fontSize: 13,
+                    }}>
+                      <div>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: sv.iconBg, color: ACCENT, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <SIcon size={20} />
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, color: "#0F172A" }}>{s.display_name_ar}</div>
+                        <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2, fontFamily: "'Inter', sans-serif", letterSpacing: 0.5 }}>
+                          SPARTA-{(s.sector || "CO").slice(0, 4).toUpperCase()} · {String(s.sort_order || 0).padStart(4, "0")}
+                        </div>
+                      </div>
+                      <div><Pill bg={sv.bg} fg={sv.fg}>{(s.sector && SECTOR_LABEL[s.sector]) || s.sector || "—"}</Pill></div>
+                      <div><span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, color: "#374151" }}>{cur.code} {cur.symbol}</span></div>
+                      <div><Pill bg="#FBEAF1" fg={ACCENT}>{t.statusActive}</Pill></div>
+                      <div style={{ display: "flex", gap: 12 }}>
+                        <button onClick={() => { setSelected(s.owner_id); setNav("trial_balance"); }} style={linkBtn()}>{t.viewTB}</button>
+                        <button style={linkBtn()}>{t.details}</button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
