@@ -614,6 +614,35 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
             </div>
           </div>
 
+          {/* 5. عملة الحساب */}
+          <div className="grid grid-cols-12 items-center gap-3">
+            <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+              عملة الحساب <span className="text-destructive">*</span>
+            </Label>
+            <div className="col-span-12 sm:col-span-9 flex items-center gap-2 flex-wrap">
+              <div className="inline-flex rounded-md border bg-background p-0.5 gap-0.5">
+                {CURRENCIES.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setCurrency(c.value)}
+                    disabled={!!isProtected}
+                    className={cn(
+                      "px-4 py-1.5 rounded text-[12px] font-semibold transition-all min-w-[100px] flex items-center justify-center gap-1.5",
+                      currency === c.value
+                        ? "bg-[#1B3A5C]/10 text-[#1B3A5C] ring-1 ring-[#1B3A5C]/30"
+                        : "text-muted-foreground hover:bg-muted/60"
+                    )}
+                  >
+                    <span className="font-mono text-[11px] opacity-70" dir="ltr">{c.symbol}</span>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-muted-foreground">العملة الطبيعية للحساب (للحسابات البنكية وحسابات العملات الأجنبية)</span>
+            </div>
+          </div>
+
           {/* Siblings reference panel */}
           {!isProtected && mode === "create" && siblings.length > 0 && (
             <div className="mt-2 rounded-md border bg-slate-50/60 dark:bg-slate-900/20 px-3 py-2.5">
