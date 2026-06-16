@@ -1023,7 +1023,8 @@ const FinanceJournalPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </FinanceShell>
   );
 };
 
