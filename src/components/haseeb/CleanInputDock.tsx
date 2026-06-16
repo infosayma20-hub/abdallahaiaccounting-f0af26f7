@@ -117,9 +117,15 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
     if (sessionRef.current?.id === s.id) sessionRef.current = null;
   };
 
-  const startVoiceInput = useCallback(async () => {
-    // Prevent double-trigger from onMouseDown + onTouchStart on touch devices
-    if (startingRef.current || stateRef.current !== "idle") return;
+  // ─── State machine ───
+  // idle → recording (on press)
+  // recording → processing → idle  (on result)
+  // recording → idle                (on cancel / no-speech / error)
+  // Only one session lives in sessionRef at a time. Stale callbacks
+  // (id mismatch) are dropped — no flag soup, no stuck states.
+  const startVoiceInput = useCallback(() => {
+    if (startingRef.current) return;
+    if (stateRef.current !== "idle") return;
     startingRef.current = true;
 
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -129,93 +135,119 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
       return;
     }
 
+    // Tear down any leftover session defensively (shouldn't exist, but be safe).
+    if (sessionRef.current) teardownSession(sessionRef.current, "abort");
+
+    let recognition: any;
     try {
-      // IMPORTANT: SpeechRecognition opens its own mic stream — do NOT also call
-      // getUserMedia (causes "NotReadableError" / hangs on iOS & some Android Chromes).
-      // We render an animated pseudo-waveform instead.
-      const recognition = new SR();
+      recognition = new SR();
       recognition.lang = "ar-SA";
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
+    } catch {
+      startingRef.current = false;
+      toast({ title: "تعذّر بدء التسجيل", description: "حاول مرة أخرى" });
+      return;
+    }
 
-      let resultText = "";
-      let finished = false;
+    const sessionId = ++sessionCounterRef.current;
+    const session: VoiceSession = {
+      id: sessionId,
+      recognition,
+      finished: false,
+      transcript: "",
+      timerId: null,
+      waveTimeoutId: null,
+    };
 
-      const finish = (text: string | null, errored = false) => {
-        if (finished) return;
-        finished = true;
-        stopRecordingCleanup();
-        setAudioLevels(new Array(40).fill(2));
-        setRecordingTime(0);
-        if (text && text.trim()) {
-          setState("processing");
-          setTimeout(() => {
-            setState("idle");
-            onSend(text.trim(), true);
-          }, 350);
-        } else {
-          setState("idle");
-          if (errored) {
-            toast({ title: "تعذّر التسجيل", description: "تأكد من السماح بالميكروفون وحاول مرة أخرى" });
-          }
-        }
-      };
+    // The single exit point for this session. Idempotent.
+    const finish = (text: string | null, errored: boolean, mode: "stop" | "abort" = "stop") => {
+      if (session.finished) return;
+      session.finished = true;
+      // Drop stale callbacks if a new session has started in the meantime.
+      const isCurrent = sessionRef.current?.id === session.id;
+      teardownSession(session, mode);
+      if (!isCurrent) return;
 
-      recognition.onresult = (e: any) => {
-        try { resultText = e.results[0][0].transcript || ""; } catch { resultText = ""; }
-      };
-      recognition.onerror = (e: any) => {
-        const code = e?.error || "";
-        // "no-speech" / "aborted" shouldn't show a scary error
-        const benign = code === "no-speech" || code === "aborted";
-        finish(resultText || null, !benign);
-      };
-      recognition.onend = () => finish(resultText || null, false);
-
-      try {
-        recognition.start();
-      } catch (err) {
-        // already started or invalid state
-        startingRef.current = false;
-        finish(null, true);
-        return;
-      }
-
-      recognitionRef.current = recognition;
-      if (navigator.vibrate) navigator.vibrate(30);
-      setState("recording");
+      setAudioLevels(new Array(40).fill(2));
       setRecordingTime(0);
-      timerRef.current = setInterval(() => setRecordingTime(prev => {
+
+      if (text && text.trim()) {
+        setState("processing");
+        // Short delay so the user perceives the "analyzing" beat
+        // before the message bubble appears.
+        setTimeout(() => {
+          if (stateRef.current === "processing") setState("idle");
+          onSend(text.trim(), true);
+        }, 350);
+      } else {
+        setState("idle");
+        if (errored) {
+          toast({ title: "تعذّر التسجيل", description: "تأكد من السماح بالميكروفون وحاول مرة أخرى" });
+        }
+      }
+    };
+
+    recognition.onresult = (e: any) => {
+      try { session.transcript = e.results[0][0].transcript || ""; } catch { /* ignore */ }
+    };
+    recognition.onerror = (e: any) => {
+      const code = e?.error || "";
+      const benign = code === "no-speech" || code === "aborted";
+      finish(session.transcript || null, !benign, "abort");
+    };
+    recognition.onend = () => finish(session.transcript || null, false, "stop");
+
+    try {
+      recognition.start();
+    } catch {
+      startingRef.current = false;
+      finish(null, true, "abort");
+      return;
+    }
+
+    sessionRef.current = session;
+    if (navigator.vibrate) navigator.vibrate(30);
+    setState("recording");
+    setRecordingTime(0);
+
+    // 1-second tick + hard 60s safety stop.
+    session.timerId = window.setInterval(() => {
+      setRecordingTime(prev => {
         const next = prev + 1;
-        if (next >= 60) { // safety: hard stop after 60s
-          try { recognition.stop(); } catch {}
+        if (next >= 60) {
+          try { recognition.stop(); } catch { /* ignore */ }
         }
         return next;
-      }), 1000);
+      });
+    }, 1000);
 
-      // Pseudo waveform animation (no mic stream required)
-      const animate = () => {
-        const levels = new Array(40).fill(0).map(() => 4 + Math.random() * 36);
-        setAudioLevels(levels);
-        fakeWaveRef.current = requestAnimationFrame(() => {
-          // throttle to ~12fps
-          setTimeout(animate, 80);
-        });
-      };
-      animate();
-    } catch (err) {
-      stopRecordingCleanup();
-      setState("idle");
-      toast({ title: "تعذّر بدء التسجيل", description: "حاول مرة أخرى" });
-    } finally {
-      startingRef.current = false;
-    }
+    // Pseudo waveform — driven by setTimeout only (single timer id we can clear).
+    // Bug fix: previous version mixed rAF + setTimeout and only cancelled the
+    // rAF id, leaving the loop running forever after teardown.
+    const animate = () => {
+      if (session.finished) return;
+      setAudioLevels(new Array(40).fill(0).map(() => 4 + Math.random() * 36));
+      session.waveTimeoutId = window.setTimeout(animate, 80);
+    };
+    animate();
+
+    startingRef.current = false;
   }, [onSend, toast]);
 
   const cancelRecording = useCallback(() => {
-    try { recognitionRef.current?.abort?.(); } catch {}
-    stopRecordingCleanup();
+    const s = sessionRef.current;
+    if (!s) {
+      setState("idle");
+      setAudioLevels(new Array(40).fill(2));
+      setRecordingTime(0);
+      return;
+    }
+    // Mark finished BEFORE abort so the onerror("aborted") that fires next
+    // is a no-op and can't race with the user clicking the mic again.
+    s.finished = true;
+    teardownSession(s, "abort");
     setAudioLevels(new Array(40).fill(2));
     setRecordingTime(0);
     setState("idle");
