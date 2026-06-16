@@ -42,6 +42,13 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mentionRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const stateRef = useRef<DockState>("idle");
+  const startingRef = useRef(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const fakeWaveRef = useRef<number>(0);
+
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   const hasText = inputValue.trim().length > 0;
 
@@ -91,71 +98,119 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
   const stopRecordingCleanup = () => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
+    if (fakeWaveRef.current) {
+      cancelAnimationFrame(fakeWaveRef.current);
+      fakeWaveRef.current = 0;
+    }
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
     analyserRef.current = null;
+    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+      audioCtxRef.current.close().catch(() => {});
+    }
+    audioCtxRef.current = null;
+    try { recognitionRef.current?.stop(); } catch {}
+    recognitionRef.current = null;
   };
 
   const startVoiceInput = useCallback(async () => {
+    // Prevent double-trigger from onMouseDown + onTouchStart on touch devices
+    if (startingRef.current || stateRef.current !== "idle") return;
+    startingRef.current = true;
+
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { toast({ title: "المتصفح لا يدعم التسجيل الصوتي" }); return; }
+    if (!SR) {
+      startingRef.current = false;
+      toast({ title: "المتصفح لا يدعم التسجيل الصوتي", description: "جرّب Chrome على أندرويد أو Safari الحديث على آيفون" });
+      return;
+    }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      streamRef.current = stream;
-
-      const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const visualize = () => {
-        analyser.getByteTimeDomainData(dataArray);
-        const levels: number[] = [];
-        const step = Math.floor(dataArray.length / 40);
-        for (let i = 0; i < 40; i++) {
-          const val = dataArray[i * step] || 128;
-          levels.push(Math.max(2, Math.abs(val - 128) / 128 * 48 + 2));
-        }
-        setAudioLevels(levels);
-        animFrameRef.current = requestAnimationFrame(visualize);
-      };
-      visualize();
-
-      if (navigator.vibrate) navigator.vibrate(30);
-      setState("recording");
-      setRecordingTime(0);
-      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
-
+      // IMPORTANT: SpeechRecognition opens its own mic stream — do NOT also call
+      // getUserMedia (causes "NotReadableError" / hangs on iOS & some Android Chromes).
+      // We render an animated pseudo-waveform instead.
       const recognition = new SR();
       recognition.lang = "ar-SA";
       recognition.continuous = false;
       recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      let resultText = "";
+      let finished = false;
+
+      const finish = (text: string | null, errored = false) => {
+        if (finished) return;
+        finished = true;
+        stopRecordingCleanup();
+        setAudioLevels(new Array(40).fill(2));
+        setRecordingTime(0);
+        if (text && text.trim()) {
+          setState("processing");
+          setTimeout(() => {
+            setState("idle");
+            onSend(text.trim(), true);
+          }, 350);
+        } else {
+          setState("idle");
+          if (errored) {
+            toast({ title: "تعذّر التسجيل", description: "تأكد من السماح بالميكروفون وحاول مرة أخرى" });
+          }
+        }
+      };
+
       recognition.onresult = (e: any) => {
-        const text = e.results[0][0].transcript;
-        stopRecordingCleanup();
-        setAudioLevels(new Array(40).fill(2));
-        setRecordingTime(0);
-        setState("processing");
-        setTimeout(() => { setState("idle"); onSend(text, true); }, 500);
+        try { resultText = e.results[0][0].transcript || ""; } catch { resultText = ""; }
       };
-      recognition.onerror = () => { stopRecordingCleanup(); setAudioLevels(new Array(40).fill(2)); setRecordingTime(0); setState("idle"); };
-      recognition.onend = () => {
-        stopRecordingCleanup();
-        setAudioLevels(new Array(40).fill(2));
-        setRecordingTime(0);
-        if (state === "recording") setState("idle");
+      recognition.onerror = (e: any) => {
+        const code = e?.error || "";
+        // "no-speech" / "aborted" shouldn't show a scary error
+        const benign = code === "no-speech" || code === "aborted";
+        finish(resultText || null, !benign);
       };
-      recognition.start();
-    } catch {
-      toast({ title: "لم يتم السماح بالميكروفون" });
+      recognition.onend = () => finish(resultText || null, false);
+
+      try {
+        recognition.start();
+      } catch (err) {
+        // already started or invalid state
+        startingRef.current = false;
+        finish(null, true);
+        return;
+      }
+
+      recognitionRef.current = recognition;
+      if (navigator.vibrate) navigator.vibrate(30);
+      setState("recording");
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => setRecordingTime(prev => {
+        const next = prev + 1;
+        if (next >= 60) { // safety: hard stop after 60s
+          try { recognition.stop(); } catch {}
+        }
+        return next;
+      }), 1000);
+
+      // Pseudo waveform animation (no mic stream required)
+      const animate = () => {
+        const levels = new Array(40).fill(0).map(() => 4 + Math.random() * 36);
+        setAudioLevels(levels);
+        fakeWaveRef.current = requestAnimationFrame(() => {
+          // throttle to ~12fps
+          setTimeout(animate, 80);
+        });
+      };
+      animate();
+    } catch (err) {
+      stopRecordingCleanup();
+      setState("idle");
+      toast({ title: "تعذّر بدء التسجيل", description: "حاول مرة أخرى" });
+    } finally {
+      startingRef.current = false;
     }
-  }, [onSend, toast, state]);
+  }, [onSend, toast]);
 
   const cancelRecording = useCallback(() => {
+    try { recognitionRef.current?.abort?.(); } catch {}
     stopRecordingCleanup();
     setAudioLevels(new Array(40).fill(2));
     setRecordingTime(0);
@@ -501,8 +556,8 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onTouchStart={startVoiceInput}
-                  onMouseDown={(e) => { e.preventDefault(); startVoiceInput(); }}
+                  onClick={(e) => { e.preventDefault(); startVoiceInput(); }}
+                  type="button"
                   className="rounded-full flex items-center justify-center active:scale-95 transition-all"
                   style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
                   aria-label="تسجيل صوتي"
