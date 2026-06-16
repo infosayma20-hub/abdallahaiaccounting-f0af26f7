@@ -582,6 +582,103 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       ),
     },
     {
+      key: "opening_balance",
+      title: "الرصيد الافتتاحي",
+      defaultOpen: true,
+      summary: obAmount > 0 ? (
+        <span className="flex items-center gap-1.5 text-[11px]">
+          <span className={cn("px-2 py-0.5 rounded font-mono font-bold",
+            obType === "debit" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")} dir="ltr">
+            {obAmount.toLocaleString()} ₪
+          </span>
+          <span className="text-muted-foreground">{obType === "debit" ? "مدين" : "دائن"}</span>
+        </span>
+      ) : <span className="text-[11px] text-muted-foreground">لا يوجد رصيد افتتاحي</span>,
+      children: (
+        <div className="px-4 py-4 space-y-4">
+          {code === "3110" ? (
+            <div className="text-[12px] text-muted-foreground bg-muted/30 border border-dashed rounded-md p-3">
+              لا يمكن إضافة رصيد افتتاحي لحساب الأرصدة الافتتاحية نفسه (3110).
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-12 items-center gap-3">
+                <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                  المبلغ
+                </Label>
+                <div className="col-span-12 sm:col-span-9 flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={obAmount || ""}
+                    onChange={(e) => setObAmount(Number(e.target.value) || 0)}
+                    placeholder="0.00"
+                    min={0}
+                    step={0.01}
+                    className="h-10 w-48 font-mono"
+                    dir="ltr"
+                  />
+                  <span className="text-[12px] text-muted-foreground">₪ شيكل</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 items-center gap-3">
+                <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                  النوع
+                </Label>
+                <div className="col-span-12 sm:col-span-9">
+                  <div className="inline-flex rounded-md border bg-background p-0.5 gap-0.5">
+                    {(["debit", "credit"] as const).map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setObType(val)}
+                        className={cn(
+                          "px-4 py-1.5 rounded text-[12px] font-semibold transition-all min-w-[90px]",
+                          obType === val
+                            ? val === "debit"
+                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                              : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                            : "text-muted-foreground hover:bg-muted/60"
+                        )}
+                      >
+                        {val === "debit" ? "مدين" : "دائن"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 items-center gap-3">
+                <Label className="col-span-12 sm:col-span-3 text-[12px] font-semibold sm:text-end">
+                  تاريخ الرصيد
+                </Label>
+                <div className="col-span-12 sm:col-span-9">
+                  <Input
+                    type="date"
+                    value={obDate}
+                    onChange={(e) => setObDate(e.target.value)}
+                    className="h-10 w-48"
+                  />
+                </div>
+              </div>
+
+              {obAmount > 0 && (
+                <div className="rounded-md border bg-[#1B3A5C]/5 border-[#1B3A5C]/15 px-3 py-2 text-[11.5px] text-foreground/80 leading-relaxed">
+                  <strong className="text-[#1B3A5C]">سيتم تسجيل قيد افتتاحي:</strong>{" "}
+                  {obType === "debit" ? (
+                    <>مدين <span className="font-mono font-bold text-emerald-700">{code || "هذا الحساب"}</span> / دائن <span className="font-mono font-bold text-rose-700">3110 — الأرصدة الافتتاحية</span></>
+                  ) : (
+                    <>مدين <span className="font-mono font-bold text-emerald-700">3110 — الأرصدة الافتتاحية</span> / دائن <span className="font-mono font-bold text-rose-700">{code || "هذا الحساب"}</span></>
+                  )}
+                  {" "}بمبلغ <span className="font-mono font-bold" dir="ltr">{obAmount.toLocaleString()} ₪</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "details",
       title: "تفاصيل إضافية",
       defaultOpen: false,
