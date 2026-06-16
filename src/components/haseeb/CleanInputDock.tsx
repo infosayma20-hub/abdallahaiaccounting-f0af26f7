@@ -100,25 +100,21 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
   }, [showMentions]);
 
   useEffect(() => {
-    return () => stopRecordingCleanup();
+    return () => teardownSession(sessionRef.current, "stop");
   }, []);
 
-  const stopRecordingCleanup = () => {
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (fakeWaveRef.current) {
-      cancelAnimationFrame(fakeWaveRef.current);
-      fakeWaveRef.current = 0;
-    }
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-    analyserRef.current = null;
-    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-      audioCtxRef.current.close().catch(() => {});
-    }
-    audioCtxRef.current = null;
-    try { recognitionRef.current?.stop(); } catch {}
-    recognitionRef.current = null;
+  // Centralised teardown. Idempotent — safe to call multiple times on the
+  // same session. `mode` controls whether we politely `stop()` (let
+  // pending results arrive) or hard `abort()` (drop everything now).
+  const teardownSession = (s: VoiceSession | null, mode: "stop" | "abort") => {
+    if (!s) return;
+    if (s.timerId !== null) { clearInterval(s.timerId); s.timerId = null; }
+    if (s.waveTimeoutId !== null) { clearTimeout(s.waveTimeoutId); s.waveTimeoutId = null; }
+    try {
+      if (mode === "abort") s.recognition?.abort?.();
+      else s.recognition?.stop?.();
+    } catch { /* InvalidStateError if already stopped — ignore */ }
+    if (sessionRef.current?.id === s.id) sessionRef.current = null;
   };
 
   const startVoiceInput = useCallback(async () => {
