@@ -20211,6 +20211,13 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      holding_company_emails: {
+        Args: { p_holding_id: string }
+        Returns: {
+          email: string
+          owner_id: string
+        }[]
+      }
       holding_consolidated_trial_balance: {
         Args: { p_from: string; p_holding_id: string; p_to: string }
         Returns: {
