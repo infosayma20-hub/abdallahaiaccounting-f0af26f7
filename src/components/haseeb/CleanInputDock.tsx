@@ -556,8 +556,8 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onTouchStart={startVoiceInput}
-                  onMouseDown={(e) => { e.preventDefault(); startVoiceInput(); }}
+                  onClick={(e) => { e.preventDefault(); startVoiceInput(); }}
+                  type="button"
                   className="rounded-full flex items-center justify-center active:scale-95 transition-all"
                   style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
                   aria-label="تسجيل صوتي"
