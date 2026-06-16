@@ -56,7 +56,14 @@ interface Account {
   description_ar?: string | null;
   notes?: string | null;
   is_system_protected?: boolean | null;
+  currency?: string | null;
 }
+
+const CURRENCIES = [
+  { value: "شيكل", label: "شيكل", symbol: "₪", code: "ILS" },
+  { value: "دينار", label: "دينار", symbol: "د.أ", code: "JOD" },
+  { value: "دولار", label: "دولار", symbol: "$", code: "USD" },
+];
 
 const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const navigate = useNavigate();
