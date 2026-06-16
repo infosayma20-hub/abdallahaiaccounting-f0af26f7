@@ -638,7 +638,11 @@ export default function EmployeeFormsManagementPage() {
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
                               <TableCell className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap text-right">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap text-right">
+                                {f.form_type === "dynamic_template" && (f as any).title
+                                  ? `📋 ${(f as any).title}`
+                                  : (formTypeLabels[f.form_type] || f.form_type)}
+                              </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
                               <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
                                 {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
