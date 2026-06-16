@@ -370,10 +370,10 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               }}
             >
               {tpl ? (
-                <div ref={printRef} className="bg-white text-slate-950 p-5 rounded-lg border border-slate-200 shadow-sm">
-                  <div className="border-b-4 border-slate-900 pb-3 mb-4 text-center">
-                    <h2 className="text-xl font-bold text-slate-950">{viewSubmission.title || tpl.name}</h2>
-                    <p className="text-xs text-slate-500 mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
+                <div ref={printRef} className="bg-background text-foreground p-5 rounded-lg border border-border shadow-sm">
+                  <div className="border-b-4 border-primary pb-3 mb-4 text-center">
+                    <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
                   <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
                 </div>
@@ -399,10 +399,10 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             if (!tpl) return <p className="text-sm text-muted-foreground">القالب غير متاح.</p>;
             return (
               <>
-                <div ref={printRef} className="bg-white text-slate-950 p-6 rounded-lg border border-slate-200 shadow-sm">
-                  <div className="border-b-4 border-slate-900 pb-3 mb-5 text-center">
-                    <h2 className="text-xl font-bold text-slate-950">{viewSubmission.title || tpl.name}</h2>
-                    <p className="text-xs text-slate-500 mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
+                <div ref={printRef} className="bg-background text-foreground p-6 rounded-lg border border-border shadow-sm">
+                  <div className="border-b-4 border-primary pb-3 mb-5 text-center">
+                    <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
+                    <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
                   <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
                 </div>
