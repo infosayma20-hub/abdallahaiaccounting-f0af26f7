@@ -337,7 +337,7 @@ export default function HoldingConsolePage() {
   // ===== Layout =====
   return (
     <div style={{ direction: dir, fontFamily: "'Cairo', sans-serif", minHeight: "100dvh", backgroundColor: "#FFFFFF", color: "#0F172A" }}>
-      <div style={{ display: "grid", gridTemplateColumns: dir === "rtl" ? "1fr 280px" : "280px 1fr", minHeight: "100dvh" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: "100dvh" }}>
         {/* Main area */}
         <main style={{ padding: "28px 36px 48px", order: dir === "rtl" ? 1 : 2 }}>
           {/* Top bar: page title + lang switcher */}
