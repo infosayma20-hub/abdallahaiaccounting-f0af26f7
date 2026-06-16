@@ -41,7 +41,7 @@ const SECTOR_LABEL: Record<string, string> = {
 };
 
 // Sector → (icon, pill colors). Falls back to a neutral grey pill.
-const SECTOR_VISUAL: Record<string, { icon: React.ComponentType<{ size?: number }>; bg: string; fg: string; iconBg: string }> = {
+const SECTOR_VISUAL: Record<string, { icon: any; bg: string; fg: string; iconBg: string }> = {
   medical_dental: { icon: Stethoscope, bg: "#F3E8FF", fg: "#6B21A8", iconBg: "#FBEAF1" },
   dental: { icon: Stethoscope, bg: "#F3E8FF", fg: "#6B21A8", iconBg: "#FBEAF1" },
   medical_tender: { icon: Ship, bg: "#DCFCE7", fg: "#166534", iconBg: "#FBEAF1" },
