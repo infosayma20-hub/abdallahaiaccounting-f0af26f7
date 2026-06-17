@@ -31,7 +31,7 @@ type LeaveRow = {
   start_date: string;
   end_date: string;
   days_count: number | null;
-  reason: string | null;
+  reason: string | null; // mapped from employee_leaves.notes for back-compat
   review_notes: string | null;
 };
 
@@ -77,7 +77,7 @@ export default function HRLeavesTab({
   const [colStatus, setColStatus] = useState<string>("all"); // all | ok | needs_policy | low
   const [colLeaveType, setColLeaveType] = useState<string>("all"); // category of last leave
 
-  // Pull all leave_requests for the year (for balance/used calc) and the period (for "during selected period")
+  // Pull all leave records for the year from employee_leaves (canonical) — see src/hooks/hr/hrCanonicalSources.ts
   const yearStart = useMemo(() => `${dateFrom.slice(0, 4)}-01-01`, [dateFrom]);
   const yearEnd = useMemo(() => `${dateFrom.slice(0, 4)}-12-31`, [dateFrom]);
 
@@ -85,12 +85,22 @@ export default function HRLeavesTab({
     queryKey: ["hr-reports-leaves", yearStart, yearEnd],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("leave_requests")
-        .select("id,employee_id,leave_type,status,start_date,end_date,days_count,reason,review_notes")
+        .from("employee_leaves")
+        .select("id,employee_id,leave_type,status,start_date,end_date,days_count,notes,review_notes")
         .gte("start_date", yearStart)
         .lte("start_date", yearEnd);
       if (error) throw error;
-      return (data || []) as LeaveRow[];
+      return ((data || []) as any[]).map((r) => ({
+        id: r.id,
+        employee_id: r.employee_id,
+        leave_type: r.leave_type,
+        status: r.status,
+        start_date: r.start_date,
+        end_date: r.end_date,
+        days_count: r.days_count,
+        reason: r.notes ?? null,
+        review_notes: r.review_notes ?? null,
+      })) as LeaveRow[];
     },
   });
 

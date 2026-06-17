@@ -116,7 +116,7 @@ const LeavesPage = () => {
   }, [balanceData, search]);
 
   const handleApprove = async (leave: any) => {
-    const { error } = await supabase.from("employee_leaves").update({ status: "موافقة", reviewed_at: new Date().toISOString() }).eq("id", leave.id);
+    const { error } = await supabase.from("employee_leaves").update({ status: "approved", reviewed_at: new Date().toISOString() }).eq("id", leave.id);
     if (error) { toast.error("خطأ في الاعتماد"); return; }
     toast.success("تم اعتماد الإجازة");
     queryClient.invalidateQueries({ queryKey: ["leaves-all-records"] });
@@ -125,7 +125,7 @@ const LeavesPage = () => {
   const handleReject = async () => {
     if (!selectedLeave) return;
     const { error } = await supabase.from("employee_leaves").update({
-      status: "مرفوضة",
+      status: "rejected",
       reviewed_at: new Date().toISOString(),
       review_notes: reviewNotes,
     }).eq("id", selectedLeave.id);

@@ -92,7 +92,7 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
       end_date: form.end_date,
       days_count: form.days_count,
       notes: form.notes,
-      status: "معلقة",
+      status: "pending",
     } as any);
 
     if (error) toast.error("خطأ في الحفظ");
