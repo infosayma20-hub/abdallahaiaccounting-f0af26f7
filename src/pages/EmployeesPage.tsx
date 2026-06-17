@@ -1208,7 +1208,17 @@ const EmployeesPage = () => {
             </div>
             <div><label className="text-xs text-muted-foreground">تاريخ الميلاد</label><Input type="date" value={form.date_of_birth || ""} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">الجنسية</label><Input value={form.nationality || ""} onChange={e => setForm({ ...form, nationality: e.target.value })} placeholder="فلسطينية" /></div>
-            <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={form.phone || ""} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">الهاتف (واتساب)</label>
+              <Input
+                value={form.phone || ""}
+                onChange={e => { setForm({ ...form, phone: e.target.value }); if (formErrors.phone) setFormErrors(p => { const n = { ...p }; delete n.phone; return n; }); }}
+                placeholder="+970599123456"
+                dir="ltr"
+                className={formErrors.phone ? "border-destructive focus-visible:ring-destructive/30" : ""}
+              />
+              {formErrors.phone && <p className="text-[10px] text-destructive mt-1">{formErrors.phone}</p>}
+            </div>
             <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
             <div>
