@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      _archive_leave_requests_dropped_2026_06_17: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          days_count: number | null
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          reason: string | null
+          review_notes: string | null
+          start_date: string
+          status: string | null
+          temporary_exit_hours: number | null
+          temporary_exit_return_time: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_count?: number | null
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          review_notes?: string | null
+          start_date: string
+          status?: string | null
+          temporary_exit_hours?: number | null
+          temporary_exit_return_time?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_count?: number | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          review_notes?: string | null
+          start_date?: string
+          status?: string | null
+          temporary_exit_hours?: number | null
+          temporary_exit_return_time?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accountant_permissions: {
         Row: {
           accountant_auth_id: string
@@ -5986,8 +6058,12 @@ export type Database = {
           id: string
           leave_type: string
           notes: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           start_date: string
           status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -5998,8 +6074,12 @@ export type Database = {
           id?: string
           leave_type: string
           notes?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           start_date: string
           status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -6010,8 +6090,12 @@ export type Database = {
           id?: string
           leave_type?: string
           notes?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           start_date?: string
           status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -9155,78 +9239,6 @@ export type Database = {
             columns: ["station_id"]
             isOneToOne: false
             referencedRelation: "kitchen_stations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      leave_requests: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          created_at: string | null
-          days_count: number | null
-          employee_id: string
-          end_date: string
-          id: string
-          leave_type: string
-          reason: string | null
-          review_notes: string | null
-          start_date: string
-          status: string | null
-          temporary_exit_hours: number | null
-          temporary_exit_return_time: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string | null
-          days_count?: number | null
-          employee_id: string
-          end_date: string
-          id?: string
-          leave_type?: string
-          reason?: string | null
-          review_notes?: string | null
-          start_date: string
-          status?: string | null
-          temporary_exit_hours?: number | null
-          temporary_exit_return_time?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string | null
-          days_count?: number | null
-          employee_id?: string
-          end_date?: string
-          id?: string
-          leave_type?: string
-          reason?: string | null
-          review_notes?: string | null
-          start_date?: string
-          status?: string | null
-          temporary_exit_hours?: number | null
-          temporary_exit_return_time?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leave_requests_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leave_requests_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
         ]
