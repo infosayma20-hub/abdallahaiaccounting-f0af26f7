@@ -1,16 +1,21 @@
 import type { TemplateSchema } from "@/components/employee/DynamicTemplateView";
-import { asBlob } from "html-docx-js-typescript";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  ShadingType,
+  PageOrientation,
+} from "docx";
 
 type ExportRow = { label: string; value: string };
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 function formatValue(value: unknown): string {
   if (value == null || value === "") return "—";
@@ -68,67 +73,136 @@ function collectFields(schema: TemplateSchema | null | undefined, data: Record<s
   }).filter((section: any) => section.rows?.length || section.groups?.length);
 }
 
-export function buildEmployeeFormWordHtml(opts: {
+/* RTL helpers for the docx library */
+const FONT = "Arial";
+
+function rtlPara(opts: {
+  text?: string;
+  bold?: boolean;
+  size?: number;
+  color?: string;
+  heading?: typeof HeadingLevel[keyof typeof HeadingLevel];
+  shading?: string;
+  spacingBefore?: number;
+  spacingAfter?: number;
+}) {
+  return new Paragraph({
+    bidirectional: true,
+    alignment: AlignmentType.RIGHT,
+    heading: opts.heading,
+    shading: opts.shading ? { type: ShadingType.CLEAR, fill: opts.shading, color: "auto" } : undefined,
+    spacing: { before: opts.spacingBefore ?? 80, after: opts.spacingAfter ?? 80, line: 320 },
+    children: opts.text
+      ? [new TextRun({ text: opts.text, bold: !!opts.bold, size: opts.size ?? 22, color: opts.color, font: FONT, rightToLeft: true })]
+      : [],
+  });
+}
+
+function rtlMultilinePara(text: string, size = 22) {
+  const lines = String(text ?? "").split(/\r?\n/);
+  return new Paragraph({
+    bidirectional: true,
+    alignment: AlignmentType.RIGHT,
+    spacing: { before: 40, after: 40, line: 320 },
+    children: lines.flatMap((line, i) =>
+      i === 0
+        ? [new TextRun({ text: line, size, font: FONT, rightToLeft: true })]
+        : [new TextRun({ text: line, size, font: FONT, rightToLeft: true, break: 1 })]
+    ),
+  });
+}
+
+function rtlCell(opts: { children: Paragraph[]; width: number; shading?: string; isHeader?: boolean }) {
+  const border = { style: BorderStyle.SINGLE, size: 4, color: "D1D5DB" };
+  return new TableCell({
+    width: { size: opts.width, type: WidthType.DXA },
+    shading: opts.shading ? { type: ShadingType.CLEAR, fill: opts.shading, color: "auto" } : undefined,
+    margins: { top: 100, bottom: 100, left: 120, right: 120 },
+    borders: { top: border, bottom: border, left: border, right: border },
+    children: opts.children,
+  });
+}
+
+function buildRowsTable(rows: ExportRow[]) {
+  // RTL table: label on right, value on left. docx renders LTR by default,
+  // so put label first cell + set bidiVisual on table for proper visual RTL.
+  const TABLE_W = 9000;
+  const LABEL_W = 2900;
+  const VALUE_W = TABLE_W - LABEL_W;
+
+  const tableRows = rows.map((row) =>
+    new TableRow({
+      children: [
+        rtlCell({
+          width: LABEL_W,
+          shading: "F9FAFB",
+          isHeader: true,
+          children: [rtlPara({ text: row.label, bold: true, size: 20, color: "374151" })],
+        }),
+        rtlCell({
+          width: VALUE_W,
+          children: [rtlMultilinePara(row.value, 22)],
+        }),
+      ],
+    })
+  );
+
+  return new Table({
+    width: { size: TABLE_W, type: WidthType.DXA },
+    columnWidths: [LABEL_W, VALUE_W],
+    visuallyRightToLeft: true,
+    rows: tableRows,
+  });
+}
+
+function buildBody(opts: {
   title: string;
   employeeName?: string | null;
   createdAt?: string | null;
   schema?: TemplateSchema | null;
   data?: Record<string, any> | null;
-}) {
+}): (Paragraph | Table)[] {
   const sections = collectFields(opts.schema, opts.data);
-  const createdAt = opts.createdAt ? new Date(opts.createdAt).toLocaleDateString("ar") : new Date().toLocaleDateString("ar");
-  const metaRows = [
-    opts.employeeName ? `<span>الموظف: <b>${escapeHtml(opts.employeeName)}</b></span>` : "",
-    `<span>التاريخ: <b>${escapeHtml(createdAt)}</b></span>`,
-  ].filter(Boolean).join("");
+  const createdAt = opts.createdAt
+    ? new Date(opts.createdAt).toLocaleDateString("ar")
+    : new Date().toLocaleDateString("ar");
 
-  const body = sections.map((section: any) => {
+  const out: (Paragraph | Table)[] = [];
+
+  // Header
+  out.push(rtlPara({ text: opts.title, bold: true, size: 36, color: "0D1B2E", spacingBefore: 0, spacingAfter: 120 }));
+  if (opts.employeeName) {
+    out.push(rtlPara({ text: `الموظف: ${opts.employeeName}`, size: 22, color: "374151", spacingAfter: 40 }));
+  }
+  out.push(rtlPara({ text: `التاريخ: ${createdAt}`, size: 22, color: "374151", spacingAfter: 240 }));
+
+  if (!sections.length) {
+    out.push(rtlPara({ text: "لا توجد بيانات", color: "6B7280" }));
+    return out;
+  }
+
+  for (const section of sections as any[]) {
+    out.push(rtlPara({
+      text: section.title,
+      bold: true,
+      size: 28,
+      color: "0D1B2E",
+      shading: "F3F4F6",
+      spacingBefore: 240,
+      spacingAfter: 120,
+    }));
+
     if (section.groups) {
-      return `
-        <h2>${escapeHtml(section.title)}</h2>
-        ${section.groups.map((group: any) => `
-          <h3>${escapeHtml(group.title)}</h3>
-          <table>${group.rows.map((row: ExportRow) => `
-            <tr><th>${escapeHtml(row.label)}</th><td>${escapeHtml(row.value).replace(/\n/g, "<br>")}</td></tr>
-          `).join("")}</table>
-        `).join("")}
-      `;
+      for (const group of section.groups) {
+        out.push(rtlPara({ text: group.title, bold: true, size: 24, color: "374151", spacingBefore: 120, spacingAfter: 60 }));
+        out.push(buildRowsTable(group.rows));
+      }
+    } else if (section.rows?.length) {
+      out.push(buildRowsTable(section.rows));
     }
-    return `
-      <h2>${escapeHtml(section.title)}</h2>
-      <table>${section.rows.map((row: ExportRow) => `
-        <tr><th>${escapeHtml(row.label)}</th><td>${escapeHtml(row.value).replace(/\n/g, "<br>")}</td></tr>
-      `).join("")}</table>
-    `;
-  }).join("") || `<p class="empty">لا توجد بيانات</p>`;
+  }
 
-  return `<!doctype html>
-  <html dir="rtl" lang="ar">
-    <head>
-      <meta charset="utf-8" />
-      <style>
-        @page { size: A4; margin: 18mm 14mm; }
-        body { direction: rtl; font-family: Tahoma, Arial, sans-serif; color: #111827; line-height: 1.8; }
-        .header { border-bottom: 3px solid #0D1B2E; padding-bottom: 12px; margin-bottom: 18px; }
-        h1 { font-size: 24px; margin: 0 0 8px; color: #0D1B2E; }
-        .meta { display: flex; gap: 18px; color: #374151; font-size: 12px; }
-        h2 { font-size: 17px; color: #0D1B2E; background: #F3F4F6; padding: 8px 10px; margin: 18px 0 8px; border-right: 4px solid #0D1B2E; }
-        h3 { font-size: 14px; color: #374151; margin: 12px 0 6px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
-        th, td { border: 1px solid #D1D5DB; padding: 8px 10px; vertical-align: top; font-size: 12px; word-break: break-word; white-space: pre-wrap; }
-        th { width: 32%; background: #F9FAFB; color: #374151; text-align: right; }
-        td { color: #111827; }
-        .empty { text-align: center; color: #6B7280; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>${escapeHtml(opts.title)}</h1>
-        <div class="meta">${metaRows}</div>
-      </div>
-      ${body}
-    </body>
-  </html>`;
+  return out;
 }
 
 export function downloadEmployeeFormWord(opts: {
@@ -138,14 +212,34 @@ export function downloadEmployeeFormWord(opts: {
   schema?: TemplateSchema | null;
   data?: Record<string, any> | null;
 }) {
-  const html = buildEmployeeFormWordHtml(opts);
-  // Build a REAL .docx (Open XML) via html-docx-js-typescript so the file
-  // opens correctly on mobile (Google Docs / WPS) and desktop Word.
-  // Saving HTML with a .doc extension caused "File appears to be corrupt"
-  // on Android viewers.
-  const result = asBlob(html, { orientation: "portrait", margins: { top: 720, bottom: 720, left: 720, right: 720 } });
-  Promise.resolve(result).then((blob) => {
-    const url = URL.createObjectURL(blob as Blob);
+  // Build a REAL OOXML .docx via the `docx` library. The previous
+  // html-docx-js output produced loose XML that Android viewers (Google
+  // Docs / WPS) rendered as a black screen. With native docx + proper RTL
+  // flags (bidirectional, rightToLeft, visuallyRightToLeft) the file
+  // opens identically on phones and desktops.
+  const doc = new Document({
+    creator: "Amwali",
+    title: opts.title,
+    styles: {
+      default: {
+        document: { run: { font: FONT, size: 22 } },
+      },
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838, orientation: PageOrientation.PORTRAIT }, // A4
+            margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 },
+          },
+        },
+        children: buildBody(opts),
+      },
+    ],
+  });
+
+  Packer.toBlob(doc).then((blob) => {
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `${sanitizeExportFileName(opts.title)}.docx`;
