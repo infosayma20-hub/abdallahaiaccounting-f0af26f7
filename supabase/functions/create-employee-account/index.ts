@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     const { data: callerRoles } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", ownerId);
+      .eq("user_id", adminUser.id);
     const roleList = (callerRoles ?? []).map((r: any) => r.role);
     const allowed = roleList.some((r: string) =>
       ["admin", "hr_manager", "super_admin"].includes(r)
