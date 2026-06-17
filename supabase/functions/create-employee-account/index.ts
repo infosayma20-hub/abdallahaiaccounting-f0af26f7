@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     const { data: callerRoles } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", adminUser.id);
+      .eq("user_id", ownerId);
     const roleList = (callerRoles ?? []).map((r: any) => r.role);
     const allowed = roleList.some((r: string) =>
       ["admin", "hr_manager", "super_admin"].includes(r)
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         .from("employees")
         .select("id, full_name, auth_user_id")
         .eq("id", employee_id)
-        .eq("user_id", adminUser.id)
+        .eq("user_id", ownerId)
         .single();
 
       if (empErr || !employee) {
@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
         .from("employees")
         .select("id, full_name, auth_user_id")
         .eq("id", employee_id)
-        .eq("user_id", adminUser.id)
+        .eq("user_id", ownerId)
         .single();
 
       if (empErr || !employee) {
@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
       .from("employees")
       .select("id, full_name, auth_user_id, user_id")
       .eq("id", employee_id)
-      .eq("user_id", adminUser.id)
+      .eq("user_id", ownerId)
       .single();
 
     if (empErr || !employee) {
