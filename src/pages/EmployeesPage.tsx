@@ -1384,7 +1384,23 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">الحالة الاجتماعية</label>
               <Select value={form.marital_status || "single"} onValueChange={v => setForm({ ...form, marital_status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="single">أعزب</SelectItem><SelectItem value="married">متزوج</SelectItem><SelectItem value="divorced">مطلق</SelectItem></SelectContent>
+                <SelectContent>
+                  {form.gender === "female" ? (
+                    <>
+                      <SelectItem value="single_f">عزباء</SelectItem>
+                      <SelectItem value="married_f">متزوجة</SelectItem>
+                      <SelectItem value="divorced_f">مطلقة</SelectItem>
+                      <SelectItem value="widowed_f">أرملة</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="single">أعزب</SelectItem>
+                      <SelectItem value="married">متزوج</SelectItem>
+                      <SelectItem value="divorced">مطلق</SelectItem>
+                      <SelectItem value="widowed">أرمل</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">عدد الأبناء</label><Input type="number" value={form.children_count || 0} onChange={e => setForm({ ...form, children_count: Number(e.target.value) })} /></div>
