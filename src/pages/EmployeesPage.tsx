@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2 } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { validatePhoneOptional } from "@/lib/hr/phoneValidation";
 import { Switch } from "@/components/ui/switch";
 import SalesRepToggleSection from "@/components/employees/SalesRepToggleSection";
 import CashierToggleSection from "@/components/employees/CashierToggleSection";
@@ -167,6 +169,9 @@ const EmployeesPage = () => {
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [accountForm, setAccountForm] = useState({ email: "", password: "" });
   const [creatingAccount, setCreatingAccount] = useState(false);
+
+  // Per-field form errors (red borders + inline messages). Cleared on field change.
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Reset password
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -379,22 +384,69 @@ const EmployeesPage = () => {
   };
 
   const handleSave = async () => {
-    if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
+    if (!user) return;
+
+    // ── Client-side validation (preserve all entered data; highlight bad fields) ──
+    const errs: Record<string, string> = {};
+    if (!form.full_name?.trim()) errs.full_name = "اسم الموظف مطلوب";
+
+    const phoneCheck = validatePhoneOptional(form.phone || "");
+    if (!phoneCheck.valid) errs.phone = phoneCheck.error;
+
+    const emergencyCheck = validatePhoneOptional(form.emergency_phone || "");
+    if (!emergencyCheck.valid) errs.emergency_phone = emergencyCheck.error;
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      toast.error("راجع الحقول المظللة بالأحمر — البيانات المدخلة محفوظة، صحح الأخطاء فقط.");
+      return;
+    }
+    setFormErrors({});
+
+    // Normalize phones before save
+    if (phoneCheck.valid && phoneCheck.normalized) form.phone = phoneCheck.normalized;
+    if (emergencyCheck.valid && emergencyCheck.normalized) form.emergency_phone = emergencyCheck.normalized;
+
     const payload = { ...form, user_id: dataOwnerId };
     let savedId: string | null = editingId;
+    let saveOk = false;
     if (editingId) {
       const { error } = await supabase.from("employees").update(payload as any).eq("id", editingId);
-      if (error) toast.error("خطأ في التحديث"); else { toast.success("تم التحديث"); setShowForm(false); setEditingId(null); fetchEmployees(); }
+      if (error) {
+        toast.error("خطأ في التحديث — البيانات المدخلة محفوظة، حاول مرة أخرى.");
+      } else {
+        toast.success("تم التحديث");
+        saveOk = true;
+        setShowForm(false);
+        setEditingId(null);
+        await fetchEmployees();
+        // Auto-refresh open drawer if this was the selected employee
+        if (selectedEmployee?.id === editingId) {
+          const { data: fresh } = await supabase
+            .from("employees")
+            .select("*")
+            .eq("id", editingId)
+            .maybeSingle();
+          if (fresh) setSelectedEmployee(fresh as any);
+          fetchEmployeeDetails(editingId);
+        }
+      }
     } else {
       const { data: inserted, error } = await supabase.from("employees").insert(payload as any).select("id").single();
-      if (error) toast.error("خطأ في الإضافة");
+      if (error) {
+        toast.error("خطأ في الإضافة — البيانات المدخلة محفوظة، حاول مرة أخرى.");
+      }
       else {
         savedId = inserted?.id || null;
-        toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); await ensureEmployeeAccount(form.full_name!);
+        saveOk = true;
+        toast.success("تمت الإضافة");
+        setShowForm(false);
+        fetchEmployees();
+        await ensureEmployeeAccount(form.full_name!);
       }
     }
-    // Sync allowed extra branches
-    if (savedId) {
+    // Sync allowed extra branches (only when save succeeded)
+    if (saveOk && savedId) {
       try {
         await supabase.from("employee_allowed_branches").delete().eq("employee_id", savedId);
         const rows = allowedExtraBranchIds
@@ -405,8 +457,11 @@ const EmployeesPage = () => {
         }
       } catch (e) { console.error("allowed branches sync failed", e); }
     }
-    setForm(emptyEmployee);
-    setAllowedExtraBranchIds([]);
+    // CRITICAL: only reset the form on success — otherwise user loses everything they typed.
+    if (saveOk) {
+      setForm(emptyEmployee);
+      setAllowedExtraBranchIds([]);
+    }
   };
 
   const handleDelete = async (id: string) => {
