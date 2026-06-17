@@ -3,7 +3,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, Download, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FIXED_HOLIDAYS } from "@/lib/hr-utils";
@@ -18,6 +28,8 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
   const [holidays, setHolidays] = useState<any[]>([]);
   const [form, setForm] = useState({ holiday_date: "", name: "", multiplier: "2" });
   const [loading, setLoading] = useState(false);
+  // Confirmation before bulk-inserting a preset year
+  const [seedYear, setSeedYear] = useState<number | null>(null);
 
   const fetchHolidays = async () => {
     const { data } = await supabase
@@ -53,7 +65,7 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
     setLoading(false);
   };
 
-  const seedFixedHolidays = async (year: number) => {
+  const performSeed = async (year: number) => {
     const toInsert = FIXED_HOLIDAYS.map(h => ({
       user_id: userId,
       holiday_date: `${year}-${String(h.month).padStart(2, "0")}-${String(h.day).padStart(2, "0")}`,
@@ -69,6 +81,7 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
       toast.success(`تمت إضافة ${toInsert.length} عطل لسنة ${year}`);
       fetchHolidays();
     }
+    setSeedYear(null);
   };
 
   const deleteHoliday = async (id: string) => {
@@ -88,9 +101,24 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
 
         <div className="space-y-4">
           {/* Quick seed */}
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => seedFixedHolidays(2025)}>إضافة عطل 2025</Button>
-            <Button size="sm" variant="outline" onClick={() => seedFixedHolidays(2026)}>إضافة عطل 2026</Button>
+          <div className="space-y-1">
+            <p className="text-[11px] text-muted-foreground">
+              استيراد سريع لقائمة العطل الفلسطينية الرسمية لسنة كاملة دفعة واحدة:
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {[2025, 2026, 2027].map((y) => (
+                <Button
+                  key={y}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() => setSeedYear(y)}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  استيراد عطل {y}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* Add form */}
@@ -134,6 +162,39 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>إغلاق</Button>
         </DialogFooter>
+
+        {/* Confirm dialog before bulk seeding */}
+        <AlertDialog open={seedYear !== null} onOpenChange={(o) => !o && setSeedYear(null)}>
+          <AlertDialogContent dir="rtl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                استيراد عطل سنة {seedYear}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2 text-right">
+                <span className="block">
+                  سيتم إضافة <b>{FIXED_HOLIDAYS.length}</b> عطلة رسمية فلسطينية إلى القائمة:
+                </span>
+                <ul className="text-xs bg-muted/40 rounded p-2 max-h-40 overflow-y-auto list-disc pr-5">
+                  {FIXED_HOLIDAYS.map((h, i) => (
+                    <li key={i}>
+                      {h.name} — {String(h.day).padStart(2, "0")}/{String(h.month).padStart(2, "0")}/{seedYear}
+                    </li>
+                  ))}
+                </ul>
+                <span className="block text-[11px] text-amber-700 dark:text-amber-500">
+                  ملاحظة: إذا كانت بعض هذه العطل موجودة مسبقاً قد تُضاف مكرَّرة.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction onClick={() => seedYear && performSeed(seedYear)}>
+                تأكيد الإضافة
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
