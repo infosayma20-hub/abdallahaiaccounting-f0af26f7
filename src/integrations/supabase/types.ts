@@ -1255,6 +1255,7 @@ export type Database = {
         Row: {
           auth_user_id: string
           branch_id: string
+          client_reported_time: string | null
           created_at: string
           device_info: string | null
           employee_id: string
@@ -1265,11 +1266,14 @@ export type Database = {
           longitude: number | null
           notes: string | null
           qr_token_used: string | null
+          server_recorded: boolean
           status: string
+          time_skew_seconds: number | null
         }
         Insert: {
           auth_user_id: string
           branch_id: string
+          client_reported_time?: string | null
           created_at?: string
           device_info?: string | null
           employee_id: string
@@ -1280,11 +1284,14 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           qr_token_used?: string | null
+          server_recorded?: boolean
           status?: string
+          time_skew_seconds?: number | null
         }
         Update: {
           auth_user_id?: string
           branch_id?: string
+          client_reported_time?: string | null
           created_at?: string
           device_info?: string | null
           employee_id?: string
@@ -1295,7 +1302,9 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           qr_token_used?: string | null
+          server_recorded?: boolean
           status?: string
+          time_skew_seconds?: number | null
         }
         Relationships: [
           {
@@ -2117,6 +2126,7 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          company_timezone: string
           created_at: string
           email: string | null
           id: string
@@ -2134,6 +2144,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          company_timezone?: string
           created_at?: string
           email?: string | null
           id?: string
@@ -2151,6 +2162,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          company_timezone?: string
           created_at?: string
           email?: string | null
           id?: string
