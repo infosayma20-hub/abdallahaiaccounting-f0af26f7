@@ -173,7 +173,11 @@ Deno.serve(async (req) => {
     // POST /attendance/checkin or /attendance/checkout or /attendance/break_out or /attendance/break_in
     if (req.method === "POST") {
       const body = await req.json();
-      const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64, device_fingerprint } = body;
+      const { branch_id, qr_token, latitude, longitude, device_info, reason, selfie_base64, device_fingerprint, client_time } = body;
+      // Audit-only: the timestamp reported by the employee's device. Never trusted —
+      // the DB trigger `enforce_server_event_time` overrides event_time with now()
+      // and stores this value in `client_reported_time` to detect tampering.
+      const clientReportedTime: string | null = typeof client_time === 'string' ? client_time : null;
       let bodyAction = body.action || path;
       
       const validActions = ["checkin", "checkout", "break_out", "break_in"];
@@ -632,6 +636,10 @@ Deno.serve(async (req) => {
         qr_token_used: qr_token,
         device_info: device_info || null,
         status: "valid",
+        // Audit-only: the device's reported time. DB trigger overrides event_time = now()
+        // and stores this in client_reported_time + computes skew.
+        client_reported_time: clientReportedTime,
+        server_recorded: true,
       }).select("id").single();
       if (eventErr) {
         // Roll back the orphan selfie if event creation failed.

@@ -177,6 +177,8 @@ Deno.serve(async (req) => {
             event_time: eventTime.toISOString(),
             device_info: "ZKTeco K40",
             status: "valid",
+            // Physical fingerprint device — preserve its timestamp (do NOT override with now())
+            server_recorded: false,
           });
 
           if (eventErr) {
