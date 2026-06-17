@@ -227,7 +227,7 @@ export function useNotifications() {
         .from("employee_leaves")
         .select("*, employees!inner(full_name)")
         .eq("user_id", user.id)
-        .eq("status", "موافق عليها")
+        .eq("status", "approved")
         .lte("start_date", new Date(now.getTime() + 3 * 86400000).toISOString().split("T")[0])
         .gte("end_date", today);
 

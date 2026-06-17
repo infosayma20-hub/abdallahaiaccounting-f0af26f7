@@ -30,7 +30,7 @@ const HRLeaveReport = () => {
       const { data, error } = await supabase
         .from("employee_leaves")
         .select("employee_id, leave_type, days_count, status")
-        .eq("status", "موافقة");
+        .eq("status", "approved");
       if (error) throw error;
       return data || [];
     },

@@ -4,7 +4,10 @@
  * هذا الملف يثبّت المصادر الرسمية لبيانات الموارد البشرية في النظام.
  * أي قراءة جديدة من جداول HR يجب أن تستخدم الجداول المذكورة أدناه فقط.
  *
- *  ✅ Leaves           → employee_leaves     (statuses: "معلقة" | "موافقة" | "مرفوضة")
+ *  ✅ Leaves           → employee_leaves
+ *      statuses (canonical English, CHECK-enforced):
+ *        "pending" | "approved" | "rejected" | "cancelled"
+ *      UI translation via src/lib/hr/leaveStatus.ts → formatLeaveStatus()
  *  ✅ Attendance       → attendance_days + attendance_events
  *  ✅ Requests/Forms   → employee_forms      (إجازة/سلفة/مغادرة/خدمات)
  *  ✅ Corrections      → correction_requests
@@ -14,7 +17,9 @@
  *  ✅ Movements        → employee_financial_movements
  *
  * ⛔ Deprecated tables (DO NOT READ / DO NOT WRITE):
- *  - leave_requests   → اُستبدل بـ employee_leaves. مجمّد للأرشفة لاحقاً.
+ *  - leave_requests   → أُرشف باسم `_archive_leave_requests_dropped_2026_06_17`
+ *                       (rename بدل drop كشبكة أمان). كل القراءة/الكتابة الآن
+ *                       على employee_leaves حصراً.
  *
  * ملاحظة الإنتاج: لم نحذف الجدول المُهمل من قاعدة البيانات حفاظاً على الـ history
  * في حال احتاجت الأرشفة لاحقاً. كل ما عملناه هو إيقاف القراءة والكتابة منه في الواجهة.
@@ -31,10 +36,15 @@ export function warnDeprecatedTable(tableName: "leave_requests"): void {
   }
 }
 
-/** Pending leave statuses as stored in employee_leaves (Arabic + legacy English). */
-export const LEAVE_STATUS_PENDING = ["معلقة", "pending"] as const;
-export const LEAVE_STATUS_APPROVED = ["موافقة", "معتمدة", "approved"] as const;
-export const LEAVE_STATUS_REJECTED = ["مرفوضة", "rejected"] as const;
+/**
+ * Leave status canonical = English (CHECK-enforced at DB).
+ * Arabic legacy values kept here ONLY for backwards-compat in read-side filters
+ * (in case any historical row leaked Arabic before the migration). New writes
+ * MUST use English values; see src/lib/hr/leaveStatus.ts.
+ */
+export const LEAVE_STATUS_PENDING = ["pending", "معلقة"] as const;
+export const LEAVE_STATUS_APPROVED = ["approved", "موافقة", "معتمدة", "موافق عليها"] as const;
+export const LEAVE_STATUS_REJECTED = ["rejected", "مرفوضة"] as const;
 
 export type LeaveStatusGroup = "pending" | "approved" | "rejected";
 
