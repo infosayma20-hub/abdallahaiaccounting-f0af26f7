@@ -1398,7 +1398,17 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">البنك</label><Input value={form.bank_name || ""} onChange={e => setForm({ ...form, bank_name: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">رقم الحساب البنكي</label><Input value={form.bank_account || ""} onChange={e => setForm({ ...form, bank_account: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">جهة اتصال طوارئ</label><Input value={form.emergency_contact || ""} onChange={e => setForm({ ...form, emergency_contact: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">هاتف الطوارئ</label><Input value={form.emergency_phone || ""} onChange={e => setForm({ ...form, emergency_phone: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">هاتف الطوارئ (واتساب)</label>
+              <Input
+                value={form.emergency_phone || ""}
+                onChange={e => { setForm({ ...form, emergency_phone: e.target.value }); if (formErrors.emergency_phone) setFormErrors(p => { const n = { ...p }; delete n.emergency_phone; return n; }); }}
+                placeholder="+970599123456"
+                dir="ltr"
+                className={formErrors.emergency_phone ? "border-destructive focus-visible:ring-destructive/30" : ""}
+              />
+              {formErrors.emergency_phone && <p className="text-[10px] text-destructive mt-1">{formErrors.emergency_phone}</p>}
+            </div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">العنوان</label><Input value={form.address || ""} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
             <div className="col-span-2 border-t border-border pt-3 mt-2">
