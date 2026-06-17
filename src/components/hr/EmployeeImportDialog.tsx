@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Upload, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Download, Upload, Loader2, AlertCircle, CheckCircle2, ArrowDownToLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -107,11 +107,11 @@ export default function EmployeeImportDialog({ open, onClose, userId, onSuccess 
 
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            حمّل القالب أولاً، املأ بيانات الموظفين، ثم ارفع الملف.
+            نزّل القالب أولاً على جهازك، عبّي بيانات الموظفين، ثم ارفع الملف هنا.
           </p>
 
           <Button variant="outline" onClick={downloadTemplate} className="w-full gap-2">
-            <Download className="h-4 w-4" /> تحميل القالب
+            <ArrowDownToLine className="h-4 w-4" /> تنزيل القالب (Excel)
           </Button>
 
           <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
@@ -129,7 +129,7 @@ export default function EmployeeImportDialog({ open, onClose, userId, onSuccess 
               className="gap-2"
             >
               {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {importing ? "جاري الاستيراد..." : "رفع ملف Excel"}
+              {importing ? "جاري الاستيراد..." : "رفع الملف المعبّأ"}
             </Button>
           </div>
 

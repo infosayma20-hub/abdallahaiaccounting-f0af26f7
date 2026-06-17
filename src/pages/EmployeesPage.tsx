@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2 } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { validatePhoneOptional } from "@/lib/hr/phoneValidation";
 import { Switch } from "@/components/ui/switch";
 import SalesRepToggleSection from "@/components/employees/SalesRepToggleSection";
 import CashierToggleSection from "@/components/employees/CashierToggleSection";
@@ -167,6 +169,9 @@ const EmployeesPage = () => {
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [accountForm, setAccountForm] = useState({ email: "", password: "" });
   const [creatingAccount, setCreatingAccount] = useState(false);
+
+  // Per-field form errors (red borders + inline messages). Cleared on field change.
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Reset password
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -379,22 +384,69 @@ const EmployeesPage = () => {
   };
 
   const handleSave = async () => {
-    if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
+    if (!user) return;
+
+    // ── Client-side validation (preserve all entered data; highlight bad fields) ──
+    const errs: Record<string, string> = {};
+    if (!form.full_name?.trim()) errs.full_name = "اسم الموظف مطلوب";
+
+    const phoneCheck = validatePhoneOptional(form.phone || "");
+    if (!phoneCheck.valid) errs.phone = (phoneCheck as { valid: false; error: string }).error;
+
+    const emergencyCheck = validatePhoneOptional(form.emergency_phone || "");
+    if (!emergencyCheck.valid) errs.emergency_phone = (emergencyCheck as { valid: false; error: string }).error;
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      toast.error("راجع الحقول المظللة بالأحمر — البيانات المدخلة محفوظة، صحح الأخطاء فقط.");
+      return;
+    }
+    setFormErrors({});
+
+    // Normalize phones before save
+    if (phoneCheck.valid && phoneCheck.normalized) form.phone = phoneCheck.normalized;
+    if (emergencyCheck.valid && emergencyCheck.normalized) form.emergency_phone = emergencyCheck.normalized;
+
     const payload = { ...form, user_id: dataOwnerId };
     let savedId: string | null = editingId;
+    let saveOk = false;
     if (editingId) {
       const { error } = await supabase.from("employees").update(payload as any).eq("id", editingId);
-      if (error) toast.error("خطأ في التحديث"); else { toast.success("تم التحديث"); setShowForm(false); setEditingId(null); fetchEmployees(); }
+      if (error) {
+        toast.error("خطأ في التحديث — البيانات المدخلة محفوظة، حاول مرة أخرى.");
+      } else {
+        toast.success("تم التحديث");
+        saveOk = true;
+        setShowForm(false);
+        setEditingId(null);
+        await fetchEmployees();
+        // Auto-refresh open drawer if this was the selected employee
+        if (selectedEmployee?.id === editingId) {
+          const { data: fresh } = await supabase
+            .from("employees")
+            .select("*")
+            .eq("id", editingId)
+            .maybeSingle();
+          if (fresh) setSelectedEmployee(fresh as any);
+          fetchEmployeeDetails(editingId);
+        }
+      }
     } else {
       const { data: inserted, error } = await supabase.from("employees").insert(payload as any).select("id").single();
-      if (error) toast.error("خطأ في الإضافة");
+      if (error) {
+        toast.error("خطأ في الإضافة — البيانات المدخلة محفوظة، حاول مرة أخرى.");
+      }
       else {
         savedId = inserted?.id || null;
-        toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); await ensureEmployeeAccount(form.full_name!);
+        saveOk = true;
+        toast.success("تمت الإضافة");
+        setShowForm(false);
+        fetchEmployees();
+        await ensureEmployeeAccount(form.full_name!);
       }
     }
-    // Sync allowed extra branches
-    if (savedId) {
+    // Sync allowed extra branches (only when save succeeded)
+    if (saveOk && savedId) {
       try {
         await supabase.from("employee_allowed_branches").delete().eq("employee_id", savedId);
         const rows = allowedExtraBranchIds
@@ -405,8 +457,11 @@ const EmployeesPage = () => {
         }
       } catch (e) { console.error("allowed branches sync failed", e); }
     }
-    setForm(emptyEmployee);
-    setAllowedExtraBranchIds([]);
+    // CRITICAL: only reset the form on success — otherwise user loses everything they typed.
+    if (saveOk) {
+      setForm(emptyEmployee);
+      setAllowedExtraBranchIds([]);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -680,12 +735,12 @@ const EmployeesPage = () => {
             <CalendarDays className="h-4 w-4" /> العطل الرسمية
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1 rounded-xl">
-            <Upload className="h-4 w-4" /> استيراد Excel
+            <ArrowDownToLine className="h-4 w-4" /> استيراد Excel
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1 rounded-xl">
-            <Download className="h-4 w-4" /> تصدير المسحوبات
+            <ArrowUpFromLine className="h-4 w-4" /> تصدير المسحوبات
           </Button>
-          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
+          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setFormErrors({}); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
             <Plus className="h-4 w-4" /> إضافة موظف
           </Button>
         </div>
@@ -1019,7 +1074,14 @@ const EmployeesPage = () => {
                       ["الهاتف", selectedEmployee.phone],
                       ["البريد", selectedEmployee.email],
                       ["الجنس", (selectedEmployee as any).gender === "female" ? "أنثى" : "ذكر"],
-                      ["الحالة الاجتماعية", (selectedEmployee as any).marital_status === "married" ? "متزوج" : (selectedEmployee as any).marital_status === "divorced" ? "مطلق" : "أعزب"],
+                      ["الحالة الاجتماعية", (() => {
+                        const ms = (selectedEmployee as any).marital_status;
+                        const map: Record<string, string> = {
+                          single: "أعزب", married: "متزوج", divorced: "مطلق", widowed: "أرمل",
+                          single_f: "عزباء", married_f: "متزوجة", divorced_f: "مطلقة", widowed_f: "أرملة",
+                        };
+                        return map[ms] || (ms || "—");
+                      })()],
                       ["عدد الأبناء", (selectedEmployee as any).children_count || 0],
                       ["المنصب", selectedEmployee.position],
                       ["الفرع", getBranchName(selectedEmployee)],
@@ -1142,7 +1204,15 @@ const EmployeesPage = () => {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
           <DialogHeader><DialogTitle>{editingId ? "تعديل موظف" : "إضافة موظف جديد"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-muted-foreground">الاسم الكامل *</label><Input value={form.full_name || ""} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">الاسم الكامل *</label>
+              <Input
+                value={form.full_name || ""}
+                onChange={e => { setForm({ ...form, full_name: e.target.value }); if (formErrors.full_name) setFormErrors(p => { const n = { ...p }; delete n.full_name; return n; }); }}
+                className={formErrors.full_name ? "border-destructive focus-visible:ring-destructive/30" : ""}
+              />
+              {formErrors.full_name && <p className="text-[10px] text-destructive mt-1">{formErrors.full_name}</p>}
+            </div>
             <div><label className="text-xs text-muted-foreground">الرقم الوظيفي</label><Input value={(form as any).employee_number || ""} onChange={e => setForm({ ...form, employee_number: e.target.value } as any)} /></div>
             <div><label className="text-xs text-muted-foreground">رقم الهوية</label><Input value={form.id_number || ""} onChange={e => setForm({ ...form, id_number: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">الجنس</label>
@@ -1153,7 +1223,17 @@ const EmployeesPage = () => {
             </div>
             <div><label className="text-xs text-muted-foreground">تاريخ الميلاد</label><Input type="date" value={form.date_of_birth || ""} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">الجنسية</label><Input value={form.nationality || ""} onChange={e => setForm({ ...form, nationality: e.target.value })} placeholder="فلسطينية" /></div>
-            <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={form.phone || ""} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">الهاتف (واتساب)</label>
+              <Input
+                value={form.phone || ""}
+                onChange={e => { setForm({ ...form, phone: e.target.value }); if (formErrors.phone) setFormErrors(p => { const n = { ...p }; delete n.phone; return n; }); }}
+                placeholder="+970599123456"
+                dir="ltr"
+                className={formErrors.phone ? "border-destructive focus-visible:ring-destructive/30" : ""}
+              />
+              {formErrors.phone && <p className="text-[10px] text-destructive mt-1">{formErrors.phone}</p>}
+            </div>
             <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
             <div>
@@ -1319,7 +1399,23 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">الحالة الاجتماعية</label>
               <Select value={form.marital_status || "single"} onValueChange={v => setForm({ ...form, marital_status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="single">أعزب</SelectItem><SelectItem value="married">متزوج</SelectItem><SelectItem value="divorced">مطلق</SelectItem></SelectContent>
+                <SelectContent>
+                  {form.gender === "female" ? (
+                    <>
+                      <SelectItem value="single_f">عزباء</SelectItem>
+                      <SelectItem value="married_f">متزوجة</SelectItem>
+                      <SelectItem value="divorced_f">مطلقة</SelectItem>
+                      <SelectItem value="widowed_f">أرملة</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="single">أعزب</SelectItem>
+                      <SelectItem value="married">متزوج</SelectItem>
+                      <SelectItem value="divorced">مطلق</SelectItem>
+                      <SelectItem value="widowed">أرمل</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">عدد الأبناء</label><Input type="number" value={form.children_count || 0} onChange={e => setForm({ ...form, children_count: Number(e.target.value) })} /></div>
@@ -1333,7 +1429,17 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">البنك</label><Input value={form.bank_name || ""} onChange={e => setForm({ ...form, bank_name: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">رقم الحساب البنكي</label><Input value={form.bank_account || ""} onChange={e => setForm({ ...form, bank_account: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">جهة اتصال طوارئ</label><Input value={form.emergency_contact || ""} onChange={e => setForm({ ...form, emergency_contact: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">هاتف الطوارئ</label><Input value={form.emergency_phone || ""} onChange={e => setForm({ ...form, emergency_phone: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">هاتف الطوارئ (واتساب)</label>
+              <Input
+                value={form.emergency_phone || ""}
+                onChange={e => { setForm({ ...form, emergency_phone: e.target.value }); if (formErrors.emergency_phone) setFormErrors(p => { const n = { ...p }; delete n.emergency_phone; return n; }); }}
+                placeholder="+970599123456"
+                dir="ltr"
+                className={formErrors.emergency_phone ? "border-destructive focus-visible:ring-destructive/30" : ""}
+              />
+              {formErrors.emergency_phone && <p className="text-[10px] text-destructive mt-1">{formErrors.emergency_phone}</p>}
+            </div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">العنوان</label><Input value={form.address || ""} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
             <div className="col-span-2 border-t border-border pt-3 mt-2">

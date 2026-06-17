@@ -43,6 +43,9 @@ export default function HrDefinitionsPage() {
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
+  // Controlled tab — must NOT reset to "departments" when data refreshes
+  // after adding a job title (that was the navigation bug).
+  const [activeTab, setActiveTab] = useState<"departments" | "jobs">("departments");
 
   // Add forms
   const [newDeptName, setNewDeptName] = useState("");
@@ -56,9 +59,9 @@ export default function HrDefinitionsPage() {
   const [editingJobValue, setEditingJobValue] = useState("");
   const [editingJobDept, setEditingJobDept] = useState<string>(NONE);
 
-  const fetchAll = async () => {
+  const fetchAll = async (showSpinner = false) => {
     if (!user) return;
-    setLoading(true);
+    if (showSpinner) setLoading(true);
     const [dRes, jRes] = await Promise.all([
       supabase
         .from("departments")
@@ -77,11 +80,11 @@ export default function HrDefinitionsPage() {
     if (jRes.error) toast.error("تعذر تحميل المسميات");
     setDepartments((dRes.data as any) || []);
     setJobTitles((jRes.data as any) || []);
-    setLoading(false);
+    if (showSpinner) setLoading(false);
   };
 
   useEffect(() => {
-    fetchAll();
+    fetchAll(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
@@ -225,7 +228,7 @@ export default function HrDefinitionsPage() {
           <Loader2 className="h-5 w-5 animate-spin ml-2" /> جارٍ التحميل…
         </div>
       ) : (
-        <Tabs defaultValue="departments" dir="rtl">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} dir="rtl">
           <TabsList>
             <TabsTrigger value="departments" className="gap-2">
               <Building2 className="h-4 w-4" /> الأقسام
