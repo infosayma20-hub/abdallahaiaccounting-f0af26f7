@@ -1074,7 +1074,14 @@ const EmployeesPage = () => {
                       ["الهاتف", selectedEmployee.phone],
                       ["البريد", selectedEmployee.email],
                       ["الجنس", (selectedEmployee as any).gender === "female" ? "أنثى" : "ذكر"],
-                      ["الحالة الاجتماعية", (selectedEmployee as any).marital_status === "married" ? "متزوج" : (selectedEmployee as any).marital_status === "divorced" ? "مطلق" : "أعزب"],
+                      ["الحالة الاجتماعية", (() => {
+                        const ms = (selectedEmployee as any).marital_status;
+                        const map: Record<string, string> = {
+                          single: "أعزب", married: "متزوج", divorced: "مطلق", widowed: "أرمل",
+                          single_f: "عزباء", married_f: "متزوجة", divorced_f: "مطلقة", widowed_f: "أرملة",
+                        };
+                        return map[ms] || (ms || "—");
+                      })()],
                       ["عدد الأبناء", (selectedEmployee as any).children_count || 0],
                       ["المنصب", selectedEmployee.position],
                       ["الفرع", getBranchName(selectedEmployee)],
