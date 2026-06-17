@@ -632,6 +632,12 @@ Deno.serve(async (req) => {
         qr_token_used: qr_token,
         device_info: device_info || null,
         status: "valid",
+        // Audit-only: capture what the employee's device claims the time is.
+        // The DB trigger `enforce_server_event_time` will overwrite event_time
+        // with now() and store this in client_reported_time + compute skew.
+        client_reported_time: (typeof (globalThis as any).__client_time === 'string')
+          ? (globalThis as any).__client_time : null,
+        server_recorded: true,
       }).select("id").single();
       if (eventErr) {
         // Roll back the orphan selfie if event creation failed.
