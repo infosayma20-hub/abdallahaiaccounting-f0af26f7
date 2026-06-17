@@ -391,10 +391,10 @@ const EmployeesPage = () => {
     if (!form.full_name?.trim()) errs.full_name = "اسم الموظف مطلوب";
 
     const phoneCheck = validatePhoneOptional(form.phone || "");
-    if (!phoneCheck.valid) errs.phone = phoneCheck.error;
+    if (!phoneCheck.valid) errs.phone = (phoneCheck as { valid: false; error: string }).error;
 
     const emergencyCheck = validatePhoneOptional(form.emergency_phone || "");
-    if (!emergencyCheck.valid) errs.emergency_phone = emergencyCheck.error;
+    if (!emergencyCheck.valid) errs.emergency_phone = (emergencyCheck as { valid: false; error: string }).error;
 
     if (Object.keys(errs).length > 0) {
       setFormErrors(errs);
