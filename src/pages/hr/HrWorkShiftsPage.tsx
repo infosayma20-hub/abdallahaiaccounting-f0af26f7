@@ -11,7 +11,26 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Save, X, Loader2, Clock, Trash2 } from "lucide-react";
+import { Plus, Pencil, Save, X, Loader2, Clock, Trash2, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+/** Small inline help icon with hover/tap tooltip — used to demystify shift fields. */
+function HelpHint({ text }: { text: string }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground">
+            <Info className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[260px] text-[11px] leading-relaxed text-right" dir="rtl">
+          {text}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 type WorkShift = {
   id: string;
@@ -276,27 +295,42 @@ function ShiftDialog({
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-xs text-muted-foreground">سماح التأخير (د)</label>
+              <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                سماح التأخير (د)
+                <HelpHint text="عدد الدقائق المسموح تأخيرها بعد بداية الشفت قبل احتساب الموظف متأخراً. مثلاً: 15 دقيقة = من 9:00 إلى 9:15 يُعتبر حضور في الموعد." />
+              </label>
               <Input type="number" min={0} max={120} value={row.late_tolerance_minutes ?? 15}
                 onChange={e => setRow({ ...row, late_tolerance_minutes: parseInt(e.target.value) || 0 })} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">راحة (د)</label>
+              <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                راحة (د)
+                <HelpHint text="مدة الاستراحة المخصومة من الشفت (تُحسب ضمن وقت العمل لكن لا تُحتسب ساعات إنتاج). مثلاً: شفت 8 ساعات + 30 دقيقة راحة = 7.5 ساعة عمل فعلي." />
+              </label>
               <Input type="number" min={0} max={240} value={row.break_duration_minutes ?? 30}
                 onChange={e => setRow({ ...row, break_duration_minutes: parseInt(e.target.value) || 0 })} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">إضافي بعد (د)</label>
+              <label className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                إضافي بعد (د)
+                <HelpHint text="بعد كم دقيقة من نهاية الشفت يبدأ احتساب الوقت كساعات إضافية (Overtime). مثلاً: 30 دقيقة يعني الموظف لازم يبقى أكثر من نصف ساعة بعد نهاية الشفت ليُحسب له إضافي." />
+              </label>
               <Input type="number" min={0} max={240} value={row.overtime_after_minutes ?? 30}
                 onChange={e => setRow({ ...row, overtime_after_minutes: parseInt(e.target.value) || 0 })} />
             </div>
           </div>
           <label className="flex items-center justify-between gap-2 bg-muted/30 rounded p-2 text-sm">
-            <span>يعبر منتصف الليل (شفت ليلي)</span>
+            <span className="inline-flex items-center gap-1">
+              يعبر منتصف الليل (شفت ليلي)
+              <HelpHint text="فعِّل هذا الخيار إذا كان وقت النهاية أصغر من وقت البداية (مثلاً يبدأ 22:00 وينتهي 06:00 صباحاً)، ليفهم النظام أن الشفت يمتد لليوم التالي. بدون تفعيله، النظام سيظن أن الشفت 16 ساعة بالعكس." />
+            </span>
             <Switch checked={!!row.crosses_midnight} onCheckedChange={v => setRow({ ...row, crosses_midnight: v })} />
           </label>
           <label className="flex items-center justify-between gap-2 bg-muted/30 rounded p-2 text-sm">
-            <span>نشط</span>
+            <span className="inline-flex items-center gap-1">
+              نشط
+              <HelpHint text="نشط = الشفت متاح للاختيار في ملفات الموظفين. موقوف = الشفت يبقى محفوظاً للسجلات القديمة لكنه يختفي من قائمة الإضافة الجديدة." />
+            </span>
             <Switch checked={row.is_active ?? true} onCheckedChange={v => setRow({ ...row, is_active: v })} />
           </label>
         </div>
