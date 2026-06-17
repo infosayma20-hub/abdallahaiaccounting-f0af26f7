@@ -740,7 +740,7 @@ const EmployeesPage = () => {
           <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1 rounded-xl">
             <ArrowUpFromLine className="h-4 w-4" /> تصدير المسحوبات
           </Button>
-          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
+          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setFormErrors({}); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
             <Plus className="h-4 w-4" /> إضافة موظف
           </Button>
         </div>
@@ -1204,7 +1204,15 @@ const EmployeesPage = () => {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
           <DialogHeader><DialogTitle>{editingId ? "تعديل موظف" : "إضافة موظف جديد"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-muted-foreground">الاسم الكامل *</label><Input value={form.full_name || ""} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">الاسم الكامل *</label>
+              <Input
+                value={form.full_name || ""}
+                onChange={e => { setForm({ ...form, full_name: e.target.value }); if (formErrors.full_name) setFormErrors(p => { const n = { ...p }; delete n.full_name; return n; }); }}
+                className={formErrors.full_name ? "border-destructive focus-visible:ring-destructive/30" : ""}
+              />
+              {formErrors.full_name && <p className="text-[10px] text-destructive mt-1">{formErrors.full_name}</p>}
+            </div>
             <div><label className="text-xs text-muted-foreground">الرقم الوظيفي</label><Input value={(form as any).employee_number || ""} onChange={e => setForm({ ...form, employee_number: e.target.value } as any)} /></div>
             <div><label className="text-xs text-muted-foreground">رقم الهوية</label><Input value={form.id_number || ""} onChange={e => setForm({ ...form, id_number: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">الجنس</label>
