@@ -1,145 +1,102 @@
-# خطة: تصدير ومشاركة النماذج المعبأة + دورة اعتماد
 
-## الهدف
-تمكين الموظف (مثلاً مدير التسويق) من تصدير نموذج معبأ (خطة تسويق، تقرير، إلخ) كـ PDF احترافي بترويسة الشركة، ومشاركته عبر واتساب / بوابة الإدارة / HR / البريد الإلكتروني، مع دورة اعتماد رسمية (مسودة → مرسلة → قيد المراجعة → معتمدة/مرفوضة).
+# خطة تحسينات الموارد البشرية (HR Manager)
 
-النطاق: **كل النماذج المسندة للموظفين** عبر `form_templates` + `employee_forms`.
+استناداً للملاحظات الـ19 وأجوبتك على الأسئلة. الشغل مقسّم على 3 موجات بحيث كل موجة تترك النظام مستقر وقابل للاختبار.
 
 ---
 
-## 1) تعديلات قاعدة البيانات (Migration واحدة)
+## الموجة 1 — تحسينات الواجهة السريعة (بدون تعديل قاعدة بيانات)
 
-### 1.1 توسيع `employee_forms`
-أعمدة جديدة:
-- `workflow_status` enum: `draft | submitted | under_review | approved | rejected` (افتراضي `draft`)
-- `submitted_at`, `reviewed_at`, `reviewed_by` (uuid → employees)
-- `review_notes` (text)
-- `current_approver_role` (`management | hr`)
-- `pdf_url` (text, آخر PDF منشور في Storage)
+ملاحظات تُحلّ هنا: 2، 4 جزئياً، 6، 7، 8، 10، 11، 12، 15، 16، 19.
 
-### 1.2 جدول جديد `employee_form_shares`
-سجل كل عملية مشاركة (Audit):
-```
-id, form_id (→employee_forms), shared_by (employee_id), 
-channel (whatsapp|management|hr|email), recipient (phone/email/role), 
-recipient_name, pdf_url, message, status (sent|failed|read), 
-created_at, company_id
-```
-RLS: tenant isolation + GRANT للـauthenticated/service_role.
-
-### 1.3 جدول جديد `employee_form_approvals`
-تاريخ القرارات (للأودِت ودعم تعدد المراحل لاحقاً):
-```
-id, form_id, action (submit|review|approve|reject|return),
-actor_id, actor_role, notes, created_at, company_id
-```
-
-### 1.4 Storage Bucket
-`employee-form-exports` (private) مع RLS path-based: `{company_id}/{form_id}/{timestamp}.pdf`.
-
-### 1.5 Triggers
-- عند تغيير `workflow_status` → إدخال تلقائي في `employee_form_approvals`.
-- إشعار في `notification_log` لمستلمي القناة المختارة (management/hr).
+1. **رقم الهاتف بـ Validation:** يقبل فقط `+970` أو `+972` كمقدمة، يرفض أي طول غير صحيح، رسالة خطأ عربية واضحة تحت الحقل.
+2. **الحالة الاجتماعية موسّعة:** أعزب / متزوج / عزباء / مطلقة / متزوجة / أرمل/أرملة. (Enum بالواجهة، نفس العمود بقاعدة البيانات).
+3. **حفظ المدخلات عند الخطأ:** إذا فشل حفظ الموظف، النموذج يحتفظ بكل البيانات + يلوّن الحقل الخاطئ أحمر مع رسالة تحت كل حقل (Zod + react-hook-form errors).
+4. **Auto-refresh ملف الموظف:** بعد التعديل يبقى المستخدم بنفس الشاشة، يعيد جلب البيانات تلقائياً (invalidate React Query)، بدون رجوع للقائمة السابقة.
+5. **اتجاه أسهم Import/Export:** الاستيراد سهم لتحت ⬇، التصدير سهم لفوق ⬆ في كل شاشات المسحوبات/الموظفين/الرواتب.
+6. **زر "تحميل القالب" → "تنزيل القالب":** توضيح أن المستخدم يُنزّل القالب على جهازه (بدل ما تتفسّر upload).
+7. **Bug تنقّل المسميات الوظيفية:** بعد إضافة مسمى وظيفي، البقاء بنفس التبويب بدل الرجوع للأقسام.
+8. **زر "إضافة عطل 2025/2026/2027" → "استيراد عطل 2025 تلقائياً":** إعادة تسمية + إضافة Confirm Dialog يعرض قائمة العطل قبل الإدراج.
+9. **Tooltips للشفتات:** توضيح "إضافي بعد X دقيقة"، "يعبر منتصف الليل"، "افتح/سكر شفت ليلي" — مع وصف عربي مبسّط بكل tooltip.
+10. **QR الفرع بشكل بارز:** زر QR ثابت أعلى شاشة الحضور (Sticky) + Modal كبير عند النقر بدل ما يكون مدفون.
 
 ---
 
-## 2) محرك التصدير PDF (Frontend)
+## الموجة 2 — تعديلات قاعدة البيانات والمنطق (Migration + UI)
 
-ملف جديد: `src/lib/employee-forms/pdf-exporter.ts`
-- يبني PDF احترافي بـ `jsPDF` + خط `Amiri` (موجود) + `ar()` Reshaper (موجود).
-- ترويسة: شعار الشركة (من `company_profiles`) + الاسم + رقم النموذج + التاريخ.
-- جدول حقول النموذج (label/value) — يدعم كل أنواع الحقول (text/number/date/select/textarea/checkbox/file link).
-- تذييل: اسم الموظف + التوقيع الرقمي (الوقت) + حالة الـworkflow + ترقيم الصفحات.
-- يرفع الناتج إلى bucket `employee-form-exports` ويرجّع `pdf_url` ويحدّث `employee_forms.pdf_url`.
+ملاحظات تُحلّ هنا: 1، 3، 4، 5، 9، 17، 18.
 
-دالة موحّدة:
-```ts
-exportEmployeeFormToPdf(formId): Promise<{ blob, publicUrl, storagePath }>
-```
+### A. نظام العطل الرسمية الجديد
 
----
+- **إضافة أعمدة على `official_holidays`:**
+  - `date_to DATE` (NULL = يوم واحد فقط)
+  - `working_hours_count NUMERIC(4,2)` (عدد الساعات المحتسبة لليوم — افتراضي 8)
+  - `multiplier_within_hours NUMERIC(3,2)` (افتراضي 1.5)
+  - `multiplier_over_hours NUMERIC(3,2)` (افتراضي 2.0)
+  - `is_paid BOOLEAN DEFAULT true`
+  - `affects_salary BOOLEAN DEFAULT true`
+- **UI:** نموذج العطلة الواحد يقبل فترة (من/إلى)، ساعات، مضاعفين، وخيارَي "مدفوعة" و"تؤثر على الراتب".
+- **زر تعديل العطلة:** إضافة قلم Edit بجانب كل سجل بقائمة العطل.
+- **توضيح الفروقات مباشرة بالنموذج (Helper Text):**
+  - *عطلة (Holiday)*: تاريخ ثابت (عيد/مناسبة) تطبّق على الجميع.
+  - *إجازة (Leave)*: طلب فردي من موظف معين.
+  - *مدفوع*: المؤسسة تدفع راتبها كاملاً عن هذه الفترة.
+  - *تؤثر على الراتب*: تُحتسب ضمن أيام العمل الأساسية (وقد تحتاج مضاعف).
 
-## 3) Edge Function: `share-employee-form`
+### B. إعدادات الإجازات المركزية (مدير HR يتحكم بكل شي)
 
-`supabase/functions/share-employee-form/index.ts`
-المدخلات: `{ formId, channel, recipient?, recipientName?, message? }`
-السلوك:
-- يتحقق من الصلاحية (الموظف صاحب النموذج أو HR/Admin).
-- إذا لم يوجد `pdf_url` حديث → يستدعي توليده (أو يستخدم الموجود).
-- حسب القناة:
-  - **whatsapp**: يولّد رابط `wa.me/<phone>?text=<msg+pdf_link>` ويُرجعه للواجهة لفتحه.
-  - **management**: ينشئ `admin_notifications` + `notification_log` لكل مدير (role=admin).
-  - **hr**: نفس الشيء لمن لديهم `hr_manager` أو `admin`.
-  - **email**: يستدعي `send-transactional-email` بقالب جديد `employee-form-shared`.
-- يسجّل صفاً في `employee_form_shares`.
-- يحدث `workflow_status` إلى `submitted` إذا كان `draft`.
+- **جدول جديد `hr_leave_policies`** أو توسيع `hr_payroll_policies` بأعمدة:
+  - `annual_leave_days INT` (سنوي)
+  - `sick_leave_days INT` (مرضي)
+  - `unpaid_leave_max_days INT` (أقصى غير مدفوع)
+  - `carry_over_enabled BOOLEAN`
+  - `carry_over_max_days INT`
+  - `accrual_method` (شهري/سنوي)
+  - `requires_approval BOOLEAN`
+  - `min_notice_days INT`
+- **شاشة جديدة:** `/payroll-settings/leaves` فيها كل هذه الإعدادات بواجهة واضحة + إمكانية إنشاء سياسات متعددة وربطها بالموظفين (نفس نمط `hr_payroll_policies` الحالي).
 
----
+### C. علاوة إدارية + إضافة الفروع لشاشة التعريفات
 
-## 4) قالب البريد `employee-form-shared.tsx`
-
-في `supabase/functions/_shared/transactional-email-templates/`
-- ترويسة الشركة + اسم الموظف + اسم النموذج.
-- زر "تحميل PDF" → `pdf_url` (Signed URL ساعة 24).
-- رسالة الموظف (اختياري).
-- يضاف إلى `registry.ts`.
+- إضافة "علاوة إدارية" إلى enum/قائمة `employee_allowances.allowance_type` (أو في `hr_payroll_components`).
+- إضافة Tab "الفروع" في شاشة التعريفات الموحدة بحيث يصير عنا: الفروع / الأقسام / المسميات الوظيفية.
 
 ---
 
-## 5) واجهات المستخدم
+## الموجة 3 — السلوك الدقيق (Timezone + توضيحات)
 
-### 5.1 بوابة الموظف — صفحة النموذج المعبأ
-`src/components/employee/EmployeeFormFillPage.tsx` (موجود) — نضيف:
-- شريط حالة workflow (Badge ملوّن).
-- زر **"معاينة PDF"** → Modal HTML preview.
-- زر **"تصدير PDF"** → تنزيل مباشر.
-- زر **"مشاركة"** → `ShareFormSheet` جديد:
-  - تبويبات: واتساب / إدارة / HR / بريد.
-  - واتساب: حقل رقم + قائمة منسدلة بأرقام المديرين (من `employees` حيث role=admin/hr_manager).
-  - بريد: حقل إيميل + قائمة منسدلة.
-  - إدارة/HR: قائمة المستلمين (multi-select) + نص رسالة.
-  - زر إرسال يستدعي `share-employee-form`.
-- زر **"إرسال للمراجعة"** (إذا الحالة draft) → ينقل إلى `submitted`.
+ملاحظات تُحلّ هنا: 14.
 
-### 5.2 بوابة الإدارة — Inbox النماذج
-صفحة جديدة `src/pages/admin/AdminFormsInboxPage.tsx`:
-- جدول النماذج المرسلة للإدارة (`workflow_status in submitted/under_review`).
-- فلاتر: حالة / موظف / قالب / تاريخ.
-- صف قابل للتوسعة يعرض الحقول + زر تنزيل PDF.
-- أزرار: **بدء المراجعة** / **اعتماد** / **رفض** (مع ملاحظة).
-- يدخل في `AdminApp` navigation تحت "صندوق النماذج" مع badge للعدد غير المقروء.
+### تثبيت توقيت البصمة
 
-### 5.3 بوابة HR — تبويب مماثل
-في `EmployeeFormsManagementPage` (موجود) — نضيف:
-- عمود "حالة الاعتماد" (workflow_status).
-- نفس أزرار المراجعة/الاعتماد/الرفض.
-- فلتر "موجّه لـHR" يستثني ما هو للإدارة فقط.
-
-### 5.4 مكوّن مشترك: `FormWorkflowActions.tsx`
-يحتوي منطق أزرار (Submit/Approve/Reject/Return) ويستخدم في كل البوابات.
+- **المشكلة الحالية:** الوقت يُعرض من `attendance_events.event_time` بـ timezone جهاز المتصفح، فلو فتح الموظف من موبايل بساعة غلط، البصمات تظهر بأوقات مختلفة.
+- **الحل:**
+  1. تخزين `event_time` كـ `TIMESTAMPTZ` (لو مش كذلك) — تأكيد المخزون UTC.
+  2. إضافة عمود `company_timezone` على `companies` (مثلاً `Asia/Hebron`).
+  3. كل العرض في الواجهة يستخدم `formatInTimeZone(event_time, company.timezone)` بدل `toLocaleString()`.
+  4. إنشاء helper `src/lib/hr/hrTimeDisplay.ts` يُستخدم في كل مكان يعرض وقت بصمة.
 
 ---
 
-## 6) الإشعارات والتنبيهات الفورية
-- اشتراك Supabase Realtime على `employee_forms` في بوابة الإدارة + HR → badge لحظي.
-- توست (toast) عند اعتماد/رفض النموذج للموظف.
+## مؤجَّل (مش الآن، حسب طلبك)
+
+- **(ملاحظة 13):** استيراد Excel ونطاقه (بيانات فقط vs سياسات احتساب). نرجعلها لما تحدد.
+- **(ملاحظة 17):** حذف الأقسام — مؤجَّل لحين توضيح سلوك الحذف عند وجود موظفين مرتبطين.
 
 ---
 
-## 7) ترتيب التنفيذ
-1. Migration (الجداول + Bucket + Triggers + GRANTs).
-2. PDF Exporter موحّد + رفع إلى Storage.
-3. Edge Function `share-employee-form` + قالب البريد.
-4. ShareFormSheet + أزرار workflow في بوابة الموظف.
-5. صفحة Admin Forms Inbox + تكامل HR.
-6. Realtime + الإشعارات + اختبار E2E.
+## تفاصيل تقنية
+
+- كل التغييرات تحترم `company_id` + RLS الموجود.
+- تعديلات `official_holidays` و`hr_payroll_policies` ستكون migration واحدة مع `GRANT` للأدوار المناسبة و triggers لتحديث `updated_at`.
+- ملف Validation للهاتف: `src/lib/hr/phoneValidation.ts` (Zod schema يقبل `+970|+972` ثم 9 أرقام).
+- React Query: `invalidateQueries(["employee", id])` بعد كل mutation بدل `navigate(-1)`.
+- شاشة سياسات الإجازات الجديدة: تقتدي بنمط `PayrollPoliciesPage.tsx` الموجود حالياً.
 
 ---
 
-## ملاحظات تقنية
-- نلتزم بمعيار العزل: كل الاستعلامات تعتمد RLS على `company_id` (بدون فلترة يدوية بـuser_id).
-- لا حذف فعلي للنماذج المعتمدة — Soft delete فقط مع حفظ نسخة PDF.
-- جميع تواريخ workflow بـ`now() AT TIME ZONE 'UTC'`.
-- نصوص الواجهة بالعربية (Palestinian dialect for AI labels).
+## ترتيب التنفيذ المقترح
 
-هل أبدأ التنفيذ؟
+أبدأ بـ **الموجة 1** فوراً (تعديلات UI بحتة، لا تكسر شي)، ثم بعد موافقتك أنتقل لـ **الموجة 2** (تحتاج migration وتعديل سلوك)، ثم **الموجة 3** (timezone).
+
+أكدلي إذا الترتيب والنطاق مناسبين، وأبلش بالموجة 1.
