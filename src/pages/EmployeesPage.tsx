@@ -735,10 +735,10 @@ const EmployeesPage = () => {
             <CalendarDays className="h-4 w-4" /> العطل الرسمية
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1 rounded-xl">
-            <Upload className="h-4 w-4" /> استيراد Excel
+            <ArrowDownToLine className="h-4 w-4" /> استيراد Excel
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1 rounded-xl">
-            <Download className="h-4 w-4" /> تصدير المسحوبات
+            <ArrowUpFromLine className="h-4 w-4" /> تصدير المسحوبات
           </Button>
           <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
             <Plus className="h-4 w-4" /> إضافة موظف
