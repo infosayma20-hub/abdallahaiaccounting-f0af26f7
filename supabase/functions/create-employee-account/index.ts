@@ -37,12 +37,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
-    const { data: hasAdmin } = await supabase.rpc("has_role", {
-      _user_id: adminUser.id,
-      _role: "admin",
-    });
-    if (!hasAdmin) {
+    // Check role: admin / hr_manager / super_admin can manage employee accounts
+    const { data: callerRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", adminUser.id);
+    const roleList = (callerRoles ?? []).map((r: any) => r.role);
+    const allowed = roleList.some((r: string) =>
+      ["admin", "hr_manager", "super_admin"].includes(r)
+    );
+    if (!allowed) {
       return new Response(
         JSON.stringify({ error: "ليس لديك صلاحية" }),
         {
@@ -50,6 +54,18 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // Resolve the effective data-owner so sub-accounts (HR manager invited by owner)
+    // can manage the owner's employees, not an empty tenant scoped to their own uid.
+    let ownerId = adminUser.id;
+    try {
+      const { data: resolvedOwner } = await supabase.rpc("get_team_owner_id", {
+        _user_id: adminUser.id,
+      });
+      if (resolvedOwner) ownerId = resolvedOwner as string;
+    } catch (_) {
+      // fall back to caller id
     }
 
     const body = await req.json();
@@ -69,7 +85,7 @@ Deno.serve(async (req) => {
         .from("employees")
         .select("id, full_name, auth_user_id")
         .eq("id", employee_id)
-        .eq("user_id", adminUser.id)
+        .eq("user_id", ownerId)
         .single();
 
       if (empErr || !employee) {
@@ -172,7 +188,7 @@ Deno.serve(async (req) => {
         .from("employees")
         .select("id, full_name, auth_user_id")
         .eq("id", employee_id)
-        .eq("user_id", adminUser.id)
+        .eq("user_id", ownerId)
         .single();
 
       if (empErr || !employee) {
@@ -239,7 +255,7 @@ Deno.serve(async (req) => {
       .from("employees")
       .select("id, full_name, auth_user_id, user_id")
       .eq("id", employee_id)
-      .eq("user_id", adminUser.id)
+      .eq("user_id", ownerId)
       .single();
 
     if (empErr || !employee) {
