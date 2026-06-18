@@ -48,8 +48,22 @@ interface Props {
 
 function makeEmptyRow(fields: FieldDef[]): Record<string, any> {
   const row: Record<string, any> = {};
-  fields.forEach((f) => (row[f.key] = ""));
+  fields.forEach((f) => (row[f.key] = f.type === "date" ? todayISO() : ""));
   return row;
+}
+
+function todayISO(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatDMY(iso: string): string {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
 
 function buildInitialData(schema: FormSchema, initial?: Record<string, any>): Record<string, any> {
@@ -58,7 +72,9 @@ function buildInitialData(schema: FormSchema, initial?: Record<string, any>): Re
     if (s.type === "fields") {
       data[s.key] = initial?.[s.key] || {};
       s.fields.forEach((f) => {
-        if (data[s.key][f.key] === undefined) data[s.key][f.key] = "";
+        if (data[s.key][f.key] === undefined || data[s.key][f.key] === "") {
+          data[s.key][f.key] = f.type === "date" ? todayISO() : "";
+        }
       });
     } else {
       const arr = initial?.[s.key];
@@ -103,13 +119,13 @@ function FieldInput({
       );
     case "date":
       return (
-        <Input
-          type="date"
-          value={value ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className={common}
-        />
+        <div
+          className={`${common} flex items-center justify-between px-3 rounded-md border bg-muted/40 text-sm`}
+          title="التاريخ يُعبَّأ تلقائياً من النظام ولا يمكن تعديله"
+        >
+          <span className="font-semibold">{formatDMY(value) || formatDMY(todayISO())}</span>
+          <span className="text-[10px] text-muted-foreground">🔒 تلقائي</span>
+        </div>
       );
     case "select":
       return (
@@ -315,11 +331,32 @@ export default function DynamicFormRenderer({
   };
 
   const handleSubmit = () => {
+    // Force overwrite ALL date fields with system time (anti-tampering)
+    const today = todayISO();
+    const sanitized: Record<string, any> = { ...data };
+    for (const section of schema.sections) {
+      if (section.type === "fields") {
+        const dateKeys = section.fields.filter((f) => f.type === "date").map((f) => f.key);
+        if (dateKeys.length) {
+          sanitized[section.key] = { ...(sanitized[section.key] || {}) };
+          dateKeys.forEach((k) => (sanitized[section.key][k] = today));
+        }
+      } else {
+        const dateKeys = section.fields.filter((f) => f.type === "date").map((f) => f.key);
+        if (dateKeys.length && Array.isArray(sanitized[section.key])) {
+          sanitized[section.key] = sanitized[section.key].map((row: any) => {
+            const next = { ...row };
+            dateKeys.forEach((k) => (next[k] = today));
+            return next;
+          });
+        }
+      }
+    }
     // Validate required fields
     for (const section of schema.sections) {
       if (section.type === "fields") {
         for (const f of section.fields) {
-          if (f.required && !data[section.key]?.[f.key]) {
+          if (f.required && !sanitized[section.key]?.[f.key]) {
             toast({
               title: "حقل مطلوب",
               description: `${section.title} - ${f.label}`,
@@ -330,7 +367,7 @@ export default function DynamicFormRenderer({
         }
       }
     }
-    onSubmit?.(data);
+    onSubmit?.(sanitized);
     if (draftKey) {
       try { localStorage.removeItem(`dyn-form-draft:${draftKey}`); } catch {}
     }
