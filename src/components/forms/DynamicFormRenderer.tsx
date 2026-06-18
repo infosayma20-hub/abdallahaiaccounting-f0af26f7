@@ -119,13 +119,13 @@ function FieldInput({
       );
     case "date":
       return (
-        <Input
-          type="date"
-          value={value ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className={common}
-        />
+        <div
+          className={`${common} flex items-center justify-between px-3 rounded-md border bg-muted/40 text-sm`}
+          title="التاريخ يُعبَّأ تلقائياً من النظام ولا يمكن تعديله"
+        >
+          <span className="font-semibold">{formatDMY(value) || formatDMY(todayISO())}</span>
+          <span className="text-[10px] text-muted-foreground">🔒 تلقائي</span>
+        </div>
       );
     case "select":
       return (
