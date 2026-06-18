@@ -334,7 +334,11 @@ Deno.serve(async (req) => {
 
       const events = todayEvents || [];
       const lastEvent = events.length > 0 ? events[events.length - 1] : null;
-       const OPEN_SESSION_LOOKBACK_DAYS = 7;
+       // 🛡️ Lookback long enough to catch stale orphans (employee forgot to
+       // checkout for >1 week, e.g. vacation). Without this the server returns
+       // "لا يوجد بصمة دخول مفتوحة" while the client UI still shows the
+       // checkout button derived from the old check_in.
+       const OPEN_SESSION_LOOKBACK_DAYS = 30;
        const MAX_OPEN_SESSION_MS = OPEN_SESSION_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
       const openLookbackStart = new Date(Date.now() - MAX_OPEN_SESSION_MS).toISOString();
       const { data: recentSequenceEvents } = await supabase
