@@ -179,16 +179,6 @@ export default function ManagerFormsInboxPage() {
                 {isOpen && (
                   <div className="border-t bg-muted/20 p-3 sm:p-4 space-y-3">
                     <div className="flex flex-col sm:flex-row gap-2">
-                      {(r.pdf_url || r.pdf_storage_path) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2 w-full sm:w-auto"
-                          onClick={() => openPdf(r)}
-                        >
-                          <ExternalLink className="h-4 w-4" /> فتح PDF
-                        </Button>
-                      )}
                       <Button
                         variant="outline"
                         size="sm"

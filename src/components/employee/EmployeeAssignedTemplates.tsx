@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Loader2, ChevronLeft, CheckCircle2, X,
-  Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText, Share2, FileDown, Send,
+  Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText, FileDown, Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -11,10 +11,8 @@ import DynamicFormRenderer, { type FormSchema } from "@/components/forms/Dynamic
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
-import FormShareSheet from "@/components/employee/forms/FormShareSheet";
-import { exportEmployeeFormPdf, downloadBlob } from "@/lib/employee-forms/exportFormPdf";
 import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
-import { downloadEmployeeFormWord, sanitizeExportFileName } from "@/lib/employee-forms/exportFormWord";
+import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
 import FormSectionAssignmentsPanel from "@/components/employee/forms/FormSectionAssignmentsPanel";
 import { useIsBranchManager } from "@/hooks/useIsBranchManager";
 
@@ -43,7 +41,6 @@ type Submission = {
   title: string | null;
   status: string;
   workflow_status?: string | null;
-  pdf_url?: string | null;
   company_id?: string | null;
   created_at: string;
   form_data: Record<string, any>;
@@ -76,9 +73,6 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [shareTarget, setShareTarget] = useState<Submission | null>(null);
-  const [exporting, setExporting] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -171,7 +165,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       if (error) throw error;
       toast({
         title: "تم حفظ النموذج",
-        description: "يمكنك الآن تنزيله كـ PDF أو مشاركته عبر واتساب أو إرساله للمراجعة.",
+        description: "يمكنك تنزيله كـ Word أو إرساله للمراجعة.",
       });
       setActiveTemplate(null);
       if (inserted) setViewSubmission(inserted as Submission);
@@ -180,39 +174,6 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       toast({ title: "تعذر الإرسال", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const ensureCompanyId = async (sub: Submission): Promise<string> => {
-    if (sub.company_id) return sub.company_id;
-    const { data: emp } = await supabase.from("employees").select("company_id").eq("id", employeeId).maybeSingle();
-    return (emp as any)?.company_id;
-  };
-
-  const exportPdf = async (sub: Submission, downloadOnly = false): Promise<string | null> => {
-    if (!printRef.current) return null;
-    setExporting(true);
-    try {
-      const companyId = await ensureCompanyId(sub);
-      if (!companyId) throw new Error("لم يتم العثور على الشركة");
-      const { blob, signedUrl } = await exportEmployeeFormPdf({
-        element: printRef.current,
-        formId: sub.id,
-        companyId,
-        fileName: sub.title || "form",
-      });
-      if (downloadOnly) {
-        downloadBlob(blob, `${sanitizeExportFileName(sub.title || "نموذج")}.pdf`);
-        toast({ title: "تم تنزيل النموذج" });
-      }
-      // refresh submissions to pick up pdf_url
-      fetchData();
-      return signedUrl;
-    } catch (e: any) {
-      toast({ title: "فشل تصدير PDF", description: e.message, variant: "destructive" });
-      return null;
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -393,7 +354,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               }}
             >
               {tpl ? (
-                <div ref={printRef} className="bg-background text-foreground p-5 rounded-lg border border-border shadow-sm">
+                <div className="bg-background text-foreground p-5 rounded-lg border border-border shadow-sm">
                   <div className="border-b-4 border-primary pb-3 mb-4 text-center">
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
@@ -422,7 +383,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             if (!tpl) return <p className="text-sm text-muted-foreground">القالب غير متاح.</p>;
             return (
               <>
-                <div ref={printRef} className="bg-background text-foreground p-6 rounded-lg border border-border shadow-sm">
+                <div className="bg-background text-foreground p-6 rounded-lg border border-border shadow-sm">
                   <div className="border-b-4 border-primary pb-3 mb-5 text-center">
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
@@ -436,17 +397,6 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         </DialogContent>
       </Dialog>
 
-      {shareTarget && (
-        <FormShareSheet
-          open={!!shareTarget}
-          onClose={() => setShareTarget(null)}
-          formId={shareTarget.id}
-          formTitle={shareTarget.title || "نموذج"}
-          pdfUrl={shareTarget.pdf_url || null}
-          companyId={shareTarget.company_id || ""}
-          ensurePdf={async () => (await exportPdf(shareTarget!, false)) || ""}
-        />
-      )}
     </div>
   );
 
@@ -458,33 +408,10 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           size="sm"
           variant="outline"
           className="gap-2"
-          disabled={exporting}
-          onClick={() => exportPdf(sub, true)}
-        >
-          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-          تنزيل PDF
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-2"
           onClick={() => exportWord(sub)}
         >
-          <FileText className="h-4 w-4" />
+          <FileDown className="h-4 w-4" />
           تنزيل Word
-        </Button>
-        <Button
-          size="sm"
-          className="gap-2"
-          disabled={exporting}
-          onClick={async () => {
-            // ensure PDF before opening share
-            let pdf = sub.pdf_url;
-            if (!pdf) pdf = (await exportPdf(sub, false)) || null;
-            setShareTarget({ ...sub, pdf_url: pdf || sub.pdf_url || null });
-          }}
-        >
-          <Share2 className="h-4 w-4" /> مشاركة
         </Button>
         {canSubmit && (
           <Button
