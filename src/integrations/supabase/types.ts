@@ -20967,15 +20967,34 @@ export type Database = {
       }
       notif_queue_requeue: { Args: { _ids: string[] }; Returns: number }
       notif_queue_stats: { Args: never; Returns: Json }
-      notify_employee_push: {
+      notification_is_stale: {
         Args: {
-          _body: string
-          _path?: string
-          _title: string
-          _user_id: string
+          _event_type: string
+          _max_age_hours?: number
+          _source_created_at: string
         }
-        Returns: undefined
+        Returns: boolean
       }
+      notify_employee_push:
+        | {
+            Args: {
+              _body: string
+              _path?: string
+              _title: string
+              _user_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _body: string
+              _path?: string
+              _sensitivity?: string
+              _title: string
+              _user_id: string
+            }
+            Returns: undefined
+          }
       open_van_day: {
         Args: {
           p_load_transfer_id?: string
