@@ -331,11 +331,32 @@ export default function DynamicFormRenderer({
   };
 
   const handleSubmit = () => {
+    // Force overwrite ALL date fields with system time (anti-tampering)
+    const today = todayISO();
+    const sanitized: Record<string, any> = { ...data };
+    for (const section of schema.sections) {
+      if (section.type === "fields") {
+        const dateKeys = section.fields.filter((f) => f.type === "date").map((f) => f.key);
+        if (dateKeys.length) {
+          sanitized[section.key] = { ...(sanitized[section.key] || {}) };
+          dateKeys.forEach((k) => (sanitized[section.key][k] = today));
+        }
+      } else {
+        const dateKeys = section.fields.filter((f) => f.type === "date").map((f) => f.key);
+        if (dateKeys.length && Array.isArray(sanitized[section.key])) {
+          sanitized[section.key] = sanitized[section.key].map((row: any) => {
+            const next = { ...row };
+            dateKeys.forEach((k) => (next[k] = today));
+            return next;
+          });
+        }
+      }
+    }
     // Validate required fields
     for (const section of schema.sections) {
       if (section.type === "fields") {
         for (const f of section.fields) {
-          if (f.required && !data[section.key]?.[f.key]) {
+          if (f.required && !sanitized[section.key]?.[f.key]) {
             toast({
               title: "حقل مطلوب",
               description: `${section.title} - ${f.label}`,
@@ -346,7 +367,7 @@ export default function DynamicFormRenderer({
         }
       }
     }
-    onSubmit?.(data);
+    onSubmit?.(sanitized);
     if (draftKey) {
       try { localStorage.removeItem(`dyn-form-draft:${draftKey}`); } catch {}
     }
