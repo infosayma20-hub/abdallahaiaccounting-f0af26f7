@@ -14,6 +14,7 @@ import {
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
 import UserSecurityAuditTab from "@/components/super-admin/UserSecurityAuditTab";
+import NotificationsQueuePanel from "@/components/super-admin/NotificationsQueuePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -2156,6 +2157,7 @@ export default function SuperAdminDashboard() {
                 { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
                 { value: "leads", icon: UserPlus, label: "زبائن سامي" },
                 { value: "revenue", icon: BarChart3, label: "الإيرادات" },
+                { value: "notifications", icon: Bell, label: "الإشعارات" },
               ].map(tab => (
                 <TabsTrigger key={tab.value} value={tab.value} className="whitespace-nowrap text-xs sm:text-sm"
                   style={{
@@ -2485,6 +2487,9 @@ export default function SuperAdminDashboard() {
           </TabsContent>
           <TabsContent value="leads">
             <SamiLeadsPanel />
+          </TabsContent>
+          <TabsContent value="notifications">
+            <NotificationsQueuePanel />
           </TabsContent>
         </Tabs>
       </div>
