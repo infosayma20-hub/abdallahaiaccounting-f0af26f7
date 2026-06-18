@@ -29,6 +29,8 @@ export interface AccessContext {
   blockingReason?: BlockingReason;
 }
 
+type RoleRow = { role: string | null };
+
 const cache = new Map<string, { ctx: AccessContext; ts: number }>();
 const TTL = 30_000;
 
@@ -121,19 +123,7 @@ export async function resolveUserAccessContext(
   }
   const accountsCount = accountsResult.count;
 
-  // If any call returned an auth/JWT error, the session is dead even though
-  // React may still be holding a stale `user`. Don't fall through to the
-  // "unlinked" branch (which would show /blocked/unlinked) — sign out and
-  // bounce the user to /auth with a friendly "session expired" banner.
-  const probeErrors = [
-    (accountType as any)?.error,
-    (canSetup as any)?.error,
-    (rolesRows as any)?.error,
-    (accountsCount as any)?.error,
-  ];
-  // The destructured `data` fields above never carry an .error — supabase
-  // returns { data, error } at the top level of each call. We re-probe by
-  // running a single lightweight call to confirm the session is alive only
+  // Re-probe by running a single lightweight call to confirm the session is alive only
   // when accountType came back null AND rolesRows is empty AND there's no
   // accounts row — that's exactly the shape that historically routed users
   // to /blocked/unlinked after a token expiry.
@@ -158,11 +148,8 @@ export async function resolveUserAccessContext(
       if ((e as Error)?.message === "session_expired") throw e;
     }
   }
-  // Silence the unused-var lint for the audit array kept for future use.
-  void probeErrors;
-
   const type = (accountType as AccountType) || "unlinked";
-  const roles = (rolesRows || []).map((r: any) => String(r.role));
+  const roles = ((rolesRows || []) as RoleRow[]).map((r) => String(r.role));
   const companySetupComplete = (accountsCount || 0) > 0 || type !== "company_owner";
   const canAccessSetup = canSetup === true;
 
