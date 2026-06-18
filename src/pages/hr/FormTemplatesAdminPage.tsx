@@ -285,6 +285,7 @@ export default function FormTemplatesAdminPage() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="once">مرة واحدة</SelectItem>
+                      <SelectItem value="daily">يومي</SelectItem>
                       <SelectItem value="weekly">أسبوعي</SelectItem>
                       <SelectItem value="monthly">شهري</SelectItem>
                       <SelectItem value="quarterly">ربعي</SelectItem>
