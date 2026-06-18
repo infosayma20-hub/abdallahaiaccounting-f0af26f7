@@ -137,6 +137,111 @@ function FieldInput({
           className={common}
         />
       );
+    case "checkbox":
+      return (
+        <label className="flex items-center gap-2 h-10 px-3 rounded-md border bg-background text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!!value}
+            onChange={(e) => onChange(e.target.checked)}
+            disabled={disabled}
+            className="h-4 w-4 accent-primary"
+          />
+          <span>{field.placeholder || "نعم"}</span>
+        </label>
+      );
+    case "yes_no":
+      return (
+        <div className="flex gap-2">
+          {[
+            { v: "yes", label: "نعم", cls: "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100" },
+            { v: "no", label: "لا", cls: "bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100" },
+            { v: "na", label: "لا ينطبق", cls: "bg-muted border-border text-muted-foreground hover:bg-muted/70" },
+          ].map((opt) => (
+            <button
+              key={opt.v}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(opt.v)}
+              className={`flex-1 h-10 text-xs rounded-md border transition ${opt.cls} ${value === opt.v ? "ring-2 ring-primary ring-offset-1" : "opacity-70"}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      );
+    case "radio":
+      return (
+        <div className="flex flex-wrap gap-2">
+          {(field.options || []).map((opt) => (
+            <label
+              key={opt}
+              className={`flex items-center gap-1.5 h-9 px-3 rounded-md border text-xs cursor-pointer transition ${value === opt ? "border-primary bg-primary/10 text-primary font-semibold" : "bg-background hover:bg-muted"}`}
+            >
+              <input
+                type="radio"
+                checked={value === opt}
+                onChange={() => onChange(opt)}
+                disabled={disabled}
+                className="h-3.5 w-3.5 accent-primary"
+              />
+              {opt}
+            </label>
+          ))}
+        </div>
+      );
+    case "rating": {
+      const max = 5;
+      const cur = Number(value) || 0;
+      return (
+        <div className="flex items-center gap-1 h-10">
+          {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(n)}
+              className={`text-2xl leading-none transition ${n <= cur ? "text-amber-500" : "text-muted-foreground/40"}`}
+              aria-label={`${n}`}
+            >
+              ★
+            </button>
+          ))}
+          {cur > 0 && (
+            <span className="text-xs text-muted-foreground mr-2">{cur}/{max}</span>
+          )}
+        </div>
+      );
+    }
+    case "checklist": {
+      const arr: string[] = Array.isArray(value) ? value : [];
+      const toggle = (opt: string) => {
+        if (arr.includes(opt)) onChange(arr.filter((x) => x !== opt));
+        else onChange([...arr, opt]);
+      };
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {(field.options || []).map((opt) => {
+            const checked = arr.includes(opt);
+            return (
+              <label
+                key={opt}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md border text-xs cursor-pointer transition ${checked ? "border-primary bg-primary/10" : "bg-background hover:bg-muted"}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(opt)}
+                  disabled={disabled}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className={checked ? "font-semibold text-primary" : ""}>{opt}</span>
+              </label>
+            );
+          })}
+        </div>
+      );
+    }
     default:
       return (
         <Input
