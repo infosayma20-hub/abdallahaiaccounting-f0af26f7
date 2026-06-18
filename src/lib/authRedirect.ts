@@ -160,6 +160,6 @@ export async function resolvePostSignupDestination(userId: string): Promise<stri
     const completed = await readOwnerOnboardingCompleted(userId);
     return completed ? "/apps" : "/onboarding";
   } catch {
-    return "/onboarding"; // safest default for a fresh signup
+    return "/"; // fail-safe: re-run role routing instead of forcing onboarding
   }
 }
