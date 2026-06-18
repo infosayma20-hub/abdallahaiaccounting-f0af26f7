@@ -18,5 +18,4 @@ export const firebaseConfig = {
 export const FIREBASE_VAPID_KEY = "m0H-yvtTCOtC87zo5uYlJq_tEhY0KgRUHzz74Zfrglk";
 
 export const isFirebaseConfigured = () =>
-  !firebaseConfig.apiKey.startsWith("TODO_") &&
-  !FIREBASE_VAPID_KEY.startsWith("TODO_");
+  firebaseConfig.apiKey.length > 0 && FIREBASE_VAPID_KEY.length > 0;

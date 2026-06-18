@@ -5,8 +5,8 @@
 //
 // SECURITY: Firebase web config values (apiKey, projectId, etc.) are PUBLIC by design
 // for Firebase web SDK. They are NOT secrets. Service workers cannot read import.meta.env,
-// so values must live inline here. Replace the TODO placeholders once with the values
-// from your Firebase project console (Project Settings → General → Your apps → Web app).
+// so values must live inline here. Values below are filled from your Firebase Console
+// (Project Settings → General → Your apps → Web app).
 
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
