@@ -354,7 +354,7 @@ export default function DynamicFormRenderer({
               {section.type === "fields" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {section.fields.map((f) => (
-                    <div key={f.key} className={f.type === "textarea" ? "md:col-span-2" : ""}>
+                    <div key={f.key} className={(f.type === "textarea" || f.type === "checklist") ? "md:col-span-2" : ""}>
                       <Label className="text-xs font-semibold mb-1.5 block">
                         {f.label}
                         {f.required && <span className="text-destructive mr-1">*</span>}
@@ -365,6 +365,9 @@ export default function DynamicFormRenderer({
                         onChange={(v) => setSectionFieldValue(section.key, f.key, v)}
                         disabled={readOnly}
                       />
+                      {f.help && (
+                        <p className="text-[10px] text-muted-foreground mt-1">{f.help}</p>
+                      )}
                     </div>
                   ))}
                 </div>
