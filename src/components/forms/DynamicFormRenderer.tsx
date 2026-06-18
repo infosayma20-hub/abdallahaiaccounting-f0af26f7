@@ -16,10 +16,11 @@ import { toast } from "@/hooks/use-toast";
 export type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "date" | "select" | "multi_select" | "currency";
+  type: "text" | "textarea" | "number" | "date" | "select" | "multi_select" | "currency" | "checkbox" | "radio" | "rating" | "yes_no" | "checklist";
   required?: boolean;
   options?: string[];
   placeholder?: string;
+  help?: string;
 };
 
 export type SectionDef =
