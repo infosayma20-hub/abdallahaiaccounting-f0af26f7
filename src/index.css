@@ -1306,10 +1306,15 @@ main:has(> div > .finix-clean-screen) {
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Hide tooltips on touch devices */
+/* Hide tooltips on touch devices.
+ * IMPORTANT: keep this selector scoped to Radix Tooltip ONLY.
+ * The previous broad selector `[data-state][data-side]` matched every
+ * Radix popper content (Select / Popover / DropdownMenu / HoverCard),
+ * which made all dropdowns invisible on mobile. Do NOT re-add it.
+ */
 @media (hover: none) {
   [data-radix-popper-content-wrapper] [role="tooltip"],
-  [data-state][data-side] {
+  [data-radix-tooltip-content] {
     display: none !important;
   }
 }
