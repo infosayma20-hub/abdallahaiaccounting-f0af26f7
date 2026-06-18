@@ -21,6 +21,8 @@ import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import { supabase } from '@/integrations/supabase/client';
+import { enablePushNotifications, pushSupported, isIos, isIosStandalone } from '@/lib/push-notifications';
+import { toast } from 'sonner';
 
 const PRIMARY = '#0D1B2E';
 
@@ -526,11 +528,26 @@ export default function PortalDashboard() {
           }}>
             <RefreshCw size={16} color="rgba(255,255,255,0.7)" style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
           </button>
-          <button style={{
-            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, width: 36, height: 36,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative',
-          }}>
-            <Bell size={16} color="rgba(255,255,255,0.7)" />
+          <button
+            onClick={async () => {
+              if (!(await pushSupported())) { toast.error('المتصفح لا يدعم إشعارات Push.'); return; }
+              if (isIos() && !isIosStandalone()) {
+                toast.message('على iPhone: أضف التطبيق للشاشة الرئيسية أولاً ثم فعّل الإشعارات من داخله.');
+                return;
+              }
+              const res = await enablePushNotifications();
+              if (res.ok) toast.success('تم تفعيل الإشعارات على هذا الجهاز.');
+              else toast.error(res.reason);
+            }}
+            title="تفعيل الإشعارات على هذا الجهاز"
+            style={{
+              background: typeof Notification !== 'undefined' && Notification.permission === 'granted'
+                ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.1)',
+              border: 'none', borderRadius: 10, width: 36, height: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative',
+            }}
+          >
+            <Bell size={16} color="rgba(255,255,255,0.85)" />
           </button>
           <button onClick={toggleTheme} style={{
             background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, width: 36, height: 36,
