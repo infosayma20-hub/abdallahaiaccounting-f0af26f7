@@ -13,6 +13,7 @@ import {
   Settings,
   BarChart3,
   ChevronDown,
+  Bell,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -105,6 +106,24 @@ export function HRTopNav() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+          {/* مركز الإشعارات — متاح للأدمن ومدير الموارد البشرية */}
+          {(isAdmin || isHRManager) && (
+            <NavLink
+              to="/admin/notifications"
+              title="مركز الإشعارات — إرسال إشعارات للموظفين"
+              className={({ isActive: na }) =>
+                cn(
+                  "flex items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm rounded-md transition-colors mr-auto",
+                  na
+                    ? "bg-primary text-primary-foreground"
+                    : "text-rose-600 hover:bg-rose-500/10"
+                )
+              }
+            >
+              <Bell className="h-4 w-4" />
+              <span>الإشعارات</span>
+            </NavLink>
           )}
         </nav>
       </div>

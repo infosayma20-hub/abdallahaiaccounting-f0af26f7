@@ -72,6 +72,8 @@ export default function NotificationsAdminPage() {
   const [history, setHistory] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const CATEGORY_ORDER = ["circular", "announcement", "meeting", "reminder", "payroll", "alert", "greeting", "general"];
+
   // --- form ---
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [title, setTitle] = useState("");
@@ -88,6 +90,18 @@ export default function NotificationsAdminPage() {
     () => templates.find((t) => t.id === selectedTemplateId),
     [templates, selectedTemplateId],
   );
+
+  // Group templates by category for cleaner dropdown
+  const groupedTemplates = useMemo(() => {
+    const groups: Record<string, Template[]> = {};
+    templates.forEach((t) => {
+      const k = t.category || "general";
+      if (!groups[k]) groups[k] = [];
+      groups[k].push(t);
+    });
+    Object.values(groups).forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name, "ar")));
+    return CATEGORY_ORDER.filter((c) => groups[c]?.length).map((c) => ({ category: c, items: groups[c] }));
+  }, [templates]);
 
   // ---- load ----
   const loadAll = async () => {
@@ -180,7 +194,7 @@ export default function NotificationsAdminPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl space-y-4" dir="rtl">
+    <div dir="rtl" className="w-full min-h-full p-4 md:p-6 space-y-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <Bell className="w-5 h-5 text-primary" />
@@ -191,7 +205,7 @@ export default function NotificationsAdminPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="compose">
+      <Tabs defaultValue="compose" dir="rtl">
         <TabsList>
           <TabsTrigger value="compose"><Send className="w-4 h-4 ml-1" /> إنشاء وإرسال</TabsTrigger>
           <TabsTrigger value="history"><History className="w-4 h-4 ml-1" /> السجل</TabsTrigger>
@@ -204,15 +218,24 @@ export default function NotificationsAdminPage() {
             <Card className="p-4 space-y-4">
               <div>
                 <Label className="flex items-center gap-1 mb-2"><FileText className="w-4 h-4" /> النموذج</Label>
-                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId} dir="rtl">
                   <SelectTrigger><SelectValue placeholder="اختر نموذج جاهز (اختياري)" /></SelectTrigger>
-                  <SelectContent>
-                    {templates.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.icon ?? ""} {t.name}
-                        <Badge variant="outline" className="mr-2 text-[10px]">{CATEGORY_LABELS[t.category] ?? t.category}</Badge>
-                        {t.is_system && <Badge variant="secondary" className="mr-1 text-[10px]">نظام</Badge>}
-                      </SelectItem>
+                  <SelectContent className="max-h-[360px]">
+                    {groupedTemplates.map((group, gi) => (
+                      <div key={group.category}>
+                        {gi > 0 && <div className="h-px bg-border my-1" />}
+                        <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+                          {CATEGORY_LABELS[group.category] ?? group.category}
+                        </div>
+                        {group.items.map((t) => (
+                          <SelectItem key={t.id} value={t.id} className="py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base leading-none">{t.icon ?? "🔔"}</span>
+                              <span className="text-sm">{t.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
                     ))}
                   </SelectContent>
                 </Select>

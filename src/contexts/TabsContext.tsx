@@ -7,7 +7,7 @@ import {
   BarChart3, Settings, Receipt, BookOpen, Landmark, Banknote,
   ShoppingCart, TrendingUp, Calculator, ClipboardList, Building2,
   UserCheck, DollarSign, Briefcase, PieChart, Store, Bot,
-  Globe, Layers
+  Globe, Layers, Bell
 } from "lucide-react";
 
 export interface AppTab {
@@ -89,6 +89,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/admin/sales-rep-orders": { title: "طلبيات المندوبين", icon: "truck" },
   "/admin/rep-unposted-orders": { title: "طلبات مندوب غير مرحّلة", icon: "truck" },
   "/admin/sales-reps-live": { title: "متابعة المندوبين", icon: "truck" },
+  "/admin/notifications": { title: "مركز الإشعارات", icon: "bell" },
   "/accounting-center": { title: "مركز المالية", icon: "calculator" },
   "/warehouses": { title: "المستودعات", icon: "package" },
   "/stock-transfers": { title: "سندات تحويل المخزون", icon: "package" },
@@ -225,6 +226,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   bot: Bot,
   globe: Globe,
   layers: Layers,
+  bell: Bell,
 };
 
 // أنماط ديناميكية: مسارات تحتوي على :id (UUID/رقم) — تستخرج العنوان من البادئة
