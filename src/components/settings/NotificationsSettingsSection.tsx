@@ -4,6 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Info } from "lucide-react";
 import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import PushNotificationCard from "./PushNotificationCard";
 
 interface Props {
   settings: CompanySettings;
@@ -99,6 +100,8 @@ const NotificationsSettingsSection = ({ settings, onChange }: Props) => {
           ))}
         </div>
       </SettingsSection>
+
+      <PushNotificationCard />
     </div>
     </TooltipProvider>
   );
