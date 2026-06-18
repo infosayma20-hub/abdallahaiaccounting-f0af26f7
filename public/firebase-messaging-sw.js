@@ -12,11 +12,12 @@ importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-  apiKey: "TODO_FIREBASE_API_KEY",
-  authDomain: "TODO_FIREBASE_AUTH_DOMAIN",
-  projectId: "TODO_FIREBASE_PROJECT_ID",
-  messagingSenderId: "TODO_FIREBASE_MESSAGING_SENDER_ID",
-  appId: "TODO_FIREBASE_APP_ID",
+  apiKey: "AIzaSyDL8qrIFu7d0pp7v0-hqdKY4ALxhBxAw2g",
+  authDomain: "amwali-74aa6.firebaseapp.com",
+  projectId: "amwali-74aa6",
+  storageBucket: "amwali-74aa6.firebasestorage.app",
+  messagingSenderId: "673285338010",
+  appId: "1:673285338010:web:6243f5cc32508970988023",
 });
 
 const messaging = firebase.messaging();

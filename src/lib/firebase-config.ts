@@ -5,16 +5,17 @@
 // (service workers cannot read env vars or imports).
 
 export const firebaseConfig = {
-  apiKey: "TODO_FIREBASE_API_KEY",
-  authDomain: "TODO_FIREBASE_AUTH_DOMAIN",
-  projectId: "TODO_FIREBASE_PROJECT_ID",
-  messagingSenderId: "TODO_FIREBASE_MESSAGING_SENDER_ID",
-  appId: "TODO_FIREBASE_APP_ID",
+  apiKey: "AIzaSyDL8qrIFu7d0pp7v0-hqdKY4ALxhBxAw2g",
+  authDomain: "amwali-74aa6.firebaseapp.com",
+  projectId: "amwali-74aa6",
+  storageBucket: "amwali-74aa6.firebasestorage.app",
+  messagingSenderId: "673285338010",
+  appId: "1:673285338010:web:6243f5cc32508970988023",
 };
 
 // VAPID public key from Firebase Console → Project Settings → Cloud Messaging
 // → Web configuration → "Web Push certificates". Public by design.
-export const FIREBASE_VAPID_KEY = "TODO_FIREBASE_VAPID_PUBLIC_KEY";
+export const FIREBASE_VAPID_KEY = "m0H-yvtTCOtC87zo5uYlJq_tEhY0KgRUHzz74Zfrglk";
 
 export const isFirebaseConfigured = () =>
   !firebaseConfig.apiKey.startsWith("TODO_") &&
