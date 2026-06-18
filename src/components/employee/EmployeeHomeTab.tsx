@@ -4,8 +4,12 @@ import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
-  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight
+  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight,
+  Bell, BellOff, BellRing
 } from "lucide-react";
+import { toast } from "sonner";
+import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";
+import { isFirebaseConfigured } from "@/lib/firebase-config";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
