@@ -285,6 +285,7 @@ function DrillDialog({ state, onClose }: { state: DrillState; onClose: () => voi
 // ────────────── Main Page ──────────────
 export default function HRReportsPage() {
   const navigate = useNavigate();
+  const { dataOwnerId } = useDataOwnerId();
   const today = new Date();
   const [month, setMonth] = useState(format(today, "yyyy-MM"));
   const [dateFrom, setDateFrom] = useState(toIsoDate(startOfMonth(today)));
