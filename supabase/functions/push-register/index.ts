@@ -44,13 +44,14 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Use the caller's JWT so the row is written under their auth.uid() via RLS.
-    const supabase = createClient(supabaseUrl, anonKey, {
+    // Validate the caller using their JWT.
+    const authClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    const { data: userData, error: userErr } = await authClient.auth.getUser();
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -59,7 +60,14 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    const { error } = await supabase
+    // Use service role for the write so re-registration of a token
+    // previously owned by a different account doesn't trip RLS.
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // Reassign any existing row with this token to the current user.
+    await admin.from("device_tokens").delete().eq("token", token).neq("user_id", userId);
+
+    const { error } = await admin
       .from("device_tokens")
       .upsert(
         {
