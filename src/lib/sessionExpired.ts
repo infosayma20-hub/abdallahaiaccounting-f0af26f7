@@ -28,10 +28,15 @@ export function isAuthSessionExpiredError(err: unknown): boolean {
   if (e.status === 401) return true;
   const code = (e.code || "").toString();
   const msg = (e.message || "").toString().toLowerCase();
+  if (e.status === 403 && (code === "bad_jwt" || msg.includes("jwt") || msg.includes("token"))) return true;
   if (code === "PGRST301" || code === "PGRST302") return true;
+  if (code === "bad_jwt") return true;
   if (code === "refresh_token_not_found" || code === "refresh_token_already_used") return true;
   if (msg.includes("jwt expired")) return true;
   if (msg.includes("invalid jwt")) return true;
+  if (msg.includes("token is expired")) return true;
+  if (msg.includes("token has invalid claims")) return true;
+  if (msg.includes("unable to parse or verify signature")) return true;
   if (msg.includes("invalid refresh token")) return true;
   if (msg.includes("refresh token not found")) return true;
   if (msg.includes("auth session missing")) return true;
