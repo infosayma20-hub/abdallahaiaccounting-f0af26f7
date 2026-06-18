@@ -252,43 +252,7 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
         تغيير كلمة المرور
       </Button>
 
-      {/* Push Notifications CTA */}
-      {isFirebaseConfigured() && pushReady !== false && (
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            disabled={
-              pushLoading ||
-              pushReady === null ||
-              (isIos() && !isIosStandalone()) ||
-              pushPerm === "denied"
-            }
-            className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary bg-card hover:bg-slate-50 hover:text-primary hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
-            onClick={handleEnablePush}
-          >
-            <Bell className="h-4 w-4" />
-            {pushLoading
-              ? "جارٍ التفعيل..."
-              : pushPerm === "granted"
-                ? "الإشعارات مفعّلة ✓ — إعادة التسجيل"
-                : "تفعيل الإشعارات"}
-          </Button>
-          {isIos() && !isIosStandalone() && (
-            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] leading-relaxed">
-              <Smartphone className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <div>
-                على iPhone: افتح Safari ← مشاركة ← <strong>إضافة إلى الشاشة الرئيسية</strong>،
-                ثم افتح التطبيق من الأيقونة وفعّل الإشعارات من هنا.
-              </div>
-            </div>
-          )}
-          {pushPerm === "denied" && (
-            <p className="text-[11px] text-muted-foreground px-1">
-              الإشعارات مرفوضة — فعّلها من إعدادات المتصفح/النظام ثم أعد المحاولة.
-            </p>
-          )}
-        </div>
-      )}
+      {/* Push Notifications moved to the home top bar (bell icon next to logo). */}
 
       {/* Info Card */}
       <Card className="border-border bg-card">
