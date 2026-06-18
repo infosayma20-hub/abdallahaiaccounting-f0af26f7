@@ -10,10 +10,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Plus, Edit2, Eye, Loader2, Copy as CopyIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer from "@/components/forms/DynamicFormRenderer";
+import FormSchemaBuilder, { BuilderSchema } from "@/components/hr/FormSchemaBuilder";
 
 type Template = {
   id: string;
@@ -74,6 +76,9 @@ export default function FormTemplatesAdminPage() {
       // Parse schema if string
       let schema = editing.schema;
       if (typeof schema === "string") schema = JSON.parse(schema);
+      if (!schema || !Array.isArray(schema.sections)) {
+        throw new Error("الهيكل غير صالح: يجب أن يحتوي على sections");
+      }
 
       if (editing.id) {
         const { error } = await supabase
@@ -110,6 +115,16 @@ export default function FormTemplatesAdminPage() {
     } catch (err: any) {
       toast({ title: "تعذر الحفظ", description: err.message, variant: "destructive" });
     }
+  };
+
+  // Safe schema for the builder (always an object with sections)
+  const normalizeSchema = (s: any): BuilderSchema => {
+    if (!s) return { sections: [] };
+    if (typeof s === "string") {
+      try { const p = JSON.parse(s); return p && Array.isArray(p.sections) ? p : { sections: [] }; }
+      catch { return { sections: [] }; }
+    }
+    return Array.isArray(s.sections) ? s : { sections: [] };
   };
 
   const cloneAsCustom = async (tpl: Template) => {
@@ -318,29 +333,39 @@ export default function FormTemplatesAdminPage() {
               </div>
 
               <div>
-                <Label className="text-xs flex items-center justify-between">
-                  <span>هيكل النموذج (JSON Schema)</span>
-                  <a
-                    href="https://lovable.dev/docs"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] text-primary underline"
-                  >
-                    دليل البنية
-                  </a>
-                </Label>
-                <Textarea
-                  rows={14}
-                  className="font-mono text-[11px]"
-                  dir="ltr"
-                  value={typeof editing.schema === "string"
-                    ? editing.schema
-                    : JSON.stringify(editing.schema, null, 2)}
-                  onChange={(e) => setEditing({ ...editing, schema: e.target.value as any })}
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  محرر JSON مؤقت. محرر النماذج المرئي (Drag & Drop) قادم بمرحلة لاحقة.
-                </p>
+                <Label className="text-xs mb-2 block">بناء النموذج</Label>
+                <Tabs defaultValue="builder" dir="rtl">
+                  <TabsList className="w-full grid grid-cols-3 h-9">
+                    <TabsTrigger value="builder" className="text-xs">🧱 محرر مرئي</TabsTrigger>
+                    <TabsTrigger value="preview" className="text-xs">👁️ معاينة</TabsTrigger>
+                    <TabsTrigger value="json" className="text-xs">{`{ } JSON متقدم`}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="builder" className="mt-3">
+                    <FormSchemaBuilder
+                      value={normalizeSchema(editing.schema)}
+                      onChange={(s) => setEditing({ ...editing, schema: s })}
+                    />
+                  </TabsContent>
+                  <TabsContent value="preview" className="mt-3">
+                    <div className="rounded-xl border bg-muted/20 p-3 max-h-[60vh] overflow-y-auto">
+                      <DynamicFormRenderer schema={normalizeSchema(editing.schema) as any} readOnly />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="json" className="mt-3">
+                    <Textarea
+                      rows={14}
+                      className="font-mono text-[11px]"
+                      dir="ltr"
+                      value={typeof editing.schema === "string"
+                        ? editing.schema
+                        : JSON.stringify(editing.schema, null, 2)}
+                      onChange={(e) => setEditing({ ...editing, schema: e.target.value as any })}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      للاستخدامات المتقدمة فقط — تعديلات تظهر بالمحرر المرئي بعد إغلاق وإعادة فتح التبويب.
+                    </p>
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           )}
