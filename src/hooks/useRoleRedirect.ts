@@ -289,9 +289,17 @@ export function useRoleRedirect() {
         if (isCancelled) return;
         if (nextPath !== "/setup") redirectCache.set(user.id, nextPath);
         setTargetPath(nextPath);
-      } catch {
+      } catch (err) {
         if (isCancelled) return;
-        setTargetPath("/apps");
+        console.error("[role-redirect] resolve failed → fallback to /auth:", err);
+        if (isAuthSessionExpiredError(err)) {
+          redirectToSessionExpired();
+          return;
+        }
+        // Don't dump the user into /apps when role lookup failed — that's
+        // exactly how transient errors used to cascade into the "phantom
+        // onboarding" bug. Send them back to /auth to re-establish identity.
+        setTargetPath("/auth");
       } finally {
         if (!isCancelled) {
           setChecking(false);
