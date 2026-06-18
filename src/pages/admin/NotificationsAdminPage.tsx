@@ -261,7 +261,7 @@ export default function NotificationsAdminPage() {
                       <Input
                         value={varValues[v] ?? ""}
                         onChange={(e) => setVarValues({ ...varValues, [v]: e.target.value })}
-                        placeholder={`قيمة ${v}`}
+                        placeholder={VAR_EXAMPLES[v] ? `مثال: ${VAR_EXAMPLES[v]}` : `قيمة ${v}`}
                         className="h-8"
                       />
                     </div>
