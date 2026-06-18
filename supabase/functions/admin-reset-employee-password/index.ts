@@ -115,15 +115,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Lookup auth user by email
-    const { data: list, error: listErr } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    if (listErr) throw listErr;
-    const target = list.users.find(
-      (u) => (u.email ?? "").toLowerCase() === reqRow.email.toLowerCase(),
-    );
+    // Lookup auth user by email (paginate — listUsers caps at perPage)
+    const targetEmail = (reqRow.email ?? "").toLowerCase();
+    let target: any = null;
+    const perPage = 1000;
+    for (let page = 1; page <= 50; page++) {
+      const { data: list, error: listErr } = await admin.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+      if (listErr) throw listErr;
+      target = list.users.find(
+        (u) => (u.email ?? "").toLowerCase() === targetEmail,
+      );
+      if (target) break;
+      if (!list.users.length || list.users.length < perPage) break;
+    }
     if (!target) {
       return new Response(
         JSON.stringify({ error: "لم يتم العثور على المستخدم في النظام" }),
