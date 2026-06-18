@@ -14125,6 +14125,136 @@ export type Database = {
         }
         Relationships: []
       }
+      rep_edit_audit: {
+        Row: {
+          after_snapshot: Json
+          before_snapshot: Json
+          created_at: string
+          edit_request_id: string | null
+          edited_by: string
+          id: string
+          invoice_id: string
+          new_invoice_id: string | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          after_snapshot: Json
+          before_snapshot: Json
+          created_at?: string
+          edit_request_id?: string | null
+          edited_by: string
+          id?: string
+          invoice_id: string
+          new_invoice_id?: string | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          after_snapshot?: Json
+          before_snapshot?: Json
+          created_at?: string
+          edit_request_id?: string | null
+          edited_by?: string
+          id?: string
+          invoice_id?: string
+          new_invoice_id?: string | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rep_edit_audit_edit_request_id_fkey"
+            columns: ["edit_request_id"]
+            isOneToOne: false
+            referencedRelation: "rep_edit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rep_edit_requests: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_id: string
+          new_invoice_id: string | null
+          original_snapshot: Json | null
+          proposed_items: Json
+          reason: string
+          requested_by: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sales_rep_id: string | null
+          status: Database["public"]["Enums"]["rep_edit_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_id: string
+          new_invoice_id?: string | null
+          original_snapshot?: Json | null
+          proposed_items: Json
+          reason: string
+          requested_by: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sales_rep_id?: string | null
+          status?: Database["public"]["Enums"]["rep_edit_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          new_invoice_id?: string | null
+          original_snapshot?: Json | null
+          proposed_items?: Json
+          reason?: string
+          requested_by?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sales_rep_id?: string | null
+          status?: Database["public"]["Enums"]["rep_edit_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rep_edit_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rep_edit_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_invoice_no_link"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rep_edit_requests_new_invoice_id_fkey"
+            columns: ["new_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rep_edit_requests_new_invoice_id_fkey"
+            columns: ["new_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_invoice_no_link"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_folders: {
         Row: {
           color: string | null
@@ -19366,6 +19496,7 @@ export type Database = {
         Returns: Json
       }
       apply_referral_signup: { Args: { p_code: string }; Returns: undefined }
+      apply_rep_invoice_edit: { Args: { p_request_id: string }; Returns: Json }
       approve_procurement_request: {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
@@ -19382,6 +19513,7 @@ export type Database = {
           employee_id: string
         }[]
       }
+      build_invoice_snapshot: { Args: { p_invoice_id: string }; Returns: Json }
       calculate_health_score: { Args: { _contact_id: string }; Returns: number }
       can_access_employee_form_export: {
         Args: { _object_name: string }
@@ -20596,6 +20728,10 @@ export type Database = {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
         Returns: Json
       }
+      reject_rep_invoice_edit: {
+        Args: { p_note: string; p_request_id: string }
+        Returns: Json
+      }
       reorder_pos_products: {
         Args: { p_product_ids: string[] }
         Returns: undefined
@@ -20607,6 +20743,10 @@ export type Database = {
       rep_invoice_post_now: { Args: { p_invoice_id: string }; Returns: Json }
       rep_invoice_void_legacy: {
         Args: { p_invoice_id: string; p_reason?: string }
+        Returns: Json
+      }
+      request_rep_invoice_edit: {
+        Args: { p_invoice_id: string; p_proposed_items: Json; p_reason: string }
         Returns: Json
       }
       resolve_account_type: { Args: { _uid: string }; Returns: string }
@@ -20865,6 +21005,7 @@ export type Database = {
         | "مواد تعبئة"
         | "قطع غيار"
         | "أخرى"
+      rep_edit_status: "pending" | "approved" | "rejected"
       return_status_enum: "draft" | "confirmed" | "cancelled"
       return_type_enum: "sales" | "purchase"
       stock_movement_type: "وارد" | "صادر" | "تعديل يدوي"
@@ -21133,6 +21274,7 @@ export const Constants = {
         "قطع غيار",
         "أخرى",
       ],
+      rep_edit_status: ["pending", "approved", "rejected"],
       return_status_enum: ["draft", "confirmed", "cancelled"],
       return_type_enum: ["sales", "purchase"],
       stock_movement_type: ["وارد", "صادر", "تعديل يدوي"],
