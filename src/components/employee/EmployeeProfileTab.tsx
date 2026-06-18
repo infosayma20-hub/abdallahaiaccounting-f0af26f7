@@ -20,6 +20,7 @@ import {
   pushSupported,
 } from "@/lib/push-notifications";
 import { isFirebaseConfigured } from "@/lib/firebase-config";
+import MyNotificationPreferencesCard from "@/components/notifications/MyNotificationPreferencesCard";
 
 interface Employee {
   full_name: string;
