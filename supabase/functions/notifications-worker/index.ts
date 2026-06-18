@@ -250,6 +250,15 @@ Deno.serve(async (req) => {
         });
         if (res.ok) {
           okCount++;
+          // Stamp validation so cleanup knows this device is alive.
+          await supabase
+            .from("device_tokens")
+            .update({
+              last_validated_at: new Date().toISOString(),
+              last_seen_at: new Date().toISOString(),
+              fail_count: 0,
+            })
+            .eq("id", t.id);
         } else {
           const errBody = await res.json().catch(() => ({}));
           const errCode =
@@ -267,6 +276,12 @@ Deno.serve(async (req) => {
               .from("device_tokens")
               .update({ is_active: false })
               .eq("id", t.id);
+          } else {
+            // Transient failure → bump counter; cleanup may deactivate later.
+            await supabase.rpc("increment_device_token_failures", { _id: t.id }).then(
+              () => {},
+              () => {},
+            );
           }
         }
       }
