@@ -137,6 +137,15 @@ export async function bindForegroundMessagingIfReady(): Promise<void> {
   if (Notification.permission !== "granted") return;
   try {
     await ensureMessaging();
+    // Phase 2: weekly silent re-registration so last_validated_at stays fresh
+    // and tokens rotated by FCM don't go stale.
+    const KEY = "__amwali_push_last_register";
+    const last = Number(localStorage.getItem(KEY) || 0);
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+    if (!last || Date.now() - last > ONE_WEEK) {
+      const res = await enablePushNotifications();
+      if (res.ok) localStorage.setItem(KEY, String(Date.now()));
+    }
   } catch {
     /* no-op */
   }
