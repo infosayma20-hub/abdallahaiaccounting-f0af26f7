@@ -4,15 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import {
   LogOut, User, Building2, Briefcase, Phone, Mail, Cake, IdCard,
   Heart, Users as UsersIcon, GraduationCap, Calendar, Clock, MessageSquare,
-  PenLine, Image as ImageIcon, KeyRound, Eye, EyeOff
+  PenLine, Image as ImageIcon, KeyRound, Eye, EyeOff, Bell, Smartphone
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  enablePushNotifications,
+  isIos,
+  isIosStandalone,
+  pushSupported,
+} from "@/lib/push-notifications";
+import { isFirebaseConfigured } from "@/lib/firebase-config";
 
 interface Employee {
   full_name: string;
@@ -76,6 +83,29 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
   const [confirmPwd, setConfirmPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Push notifications state
+  const [pushReady, setPushReady] = useState<boolean | null>(null);
+  const [pushPerm, setPushPerm] = useState<NotificationPermission | "unsupported">(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+  );
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    pushSupported().then(setPushReady);
+  }, []);
+
+  const handleEnablePush = async () => {
+    setPushLoading(true);
+    const res = await enablePushNotifications();
+    setPushLoading(false);
+    if (res.ok === true) {
+      setPushPerm("granted");
+      toast.success("تم تفعيل الإشعارات على هذا الجهاز ✓");
+    } else {
+      toast.error(res.reason);
+    }
+  };
 
   const handleChangePassword = async () => {
     if (!oldPwd) {
@@ -221,6 +251,44 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
         <KeyRound className="h-4 w-4" />
         تغيير كلمة المرور
       </Button>
+
+      {/* Push Notifications CTA */}
+      {isFirebaseConfigured() && pushReady !== false && (
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            disabled={
+              pushLoading ||
+              pushReady === null ||
+              (isIos() && !isIosStandalone()) ||
+              pushPerm === "denied"
+            }
+            className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary bg-card hover:bg-slate-50 hover:text-primary hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
+            onClick={handleEnablePush}
+          >
+            <Bell className="h-4 w-4" />
+            {pushLoading
+              ? "جارٍ التفعيل..."
+              : pushPerm === "granted"
+                ? "الإشعارات مفعّلة ✓ — إعادة التسجيل"
+                : "تفعيل الإشعارات"}
+          </Button>
+          {isIos() && !isIosStandalone() && (
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] leading-relaxed">
+              <Smartphone className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div>
+                على iPhone: افتح Safari ← مشاركة ← <strong>إضافة إلى الشاشة الرئيسية</strong>،
+                ثم افتح التطبيق من الأيقونة وفعّل الإشعارات من هنا.
+              </div>
+            </div>
+          )}
+          {pushPerm === "denied" && (
+            <p className="text-[11px] text-muted-foreground px-1">
+              الإشعارات مرفوضة — فعّلها من إعدادات المتصفح/النظام ثم أعد المحاولة.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Info Card */}
       <Card className="border-border bg-card">
