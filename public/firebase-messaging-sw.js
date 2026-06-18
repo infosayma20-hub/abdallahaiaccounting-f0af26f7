@@ -23,13 +23,16 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload?.notification?.title || "إشعار جديد";
-  const body = payload?.notification?.body || "";
-  const path = payload?.data?.path || "/";
+  // Data-only payload (see push-send/index.ts). Read fields from data.
+  const title = payload?.data?.title || payload?.notification?.title || "إشعار جديد";
+  const body  = payload?.data?.body  || payload?.notification?.body  || "";
+  const path  = payload?.data?.path  || "/";
   self.registration.showNotification(title, {
     body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
+    tag: "amwali-broadcast",
+    renotify: false,
     data: { path },
   });
 });
