@@ -9822,6 +9822,45 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          channel_push: boolean
+          created_at: string
+          digest_mode: string
+          event_type: string | null
+          id: string
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          recipient_user_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          channel_push?: boolean
+          created_at?: string
+          digest_mode?: string
+          event_type?: string | null
+          id?: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          recipient_user_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          channel_push?: boolean
+          created_at?: string
+          digest_mode?: string
+          event_type?: string | null
+          id?: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          recipient_user_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_queue: {
         Row: {
           attempts: number
@@ -19862,6 +19901,15 @@ export type Database = {
         Args: { p_order_id: string; p_payments: Json; p_user_id: string }
         Returns: Json
       }
+      compute_scheduled_for: {
+        Args: {
+          _event_type: string
+          _priority: number
+          _recipient: string
+          _requested: string
+        }
+        Returns: string
+      }
       confirm_stock_transfer: { Args: { p_transfer_id: string }; Returns: Json }
       create_bank_deposit_atomic: {
         Args: {
@@ -20565,6 +20613,16 @@ export type Database = {
       get_day_type_for_date: {
         Args: { p_date: string; p_user_id: string }
         Returns: string
+      }
+      get_effective_notification_pref: {
+        Args: { _event_type: string; _recipient: string }
+        Returns: {
+          channel_push: boolean
+          digest_mode: string
+          quiet_hours_end: string
+          quiet_hours_start: string
+          timezone: string
+        }[]
       }
       get_effective_session_policy: {
         Args: { _uid: string }

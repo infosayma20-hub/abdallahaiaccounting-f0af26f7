@@ -179,8 +179,45 @@ Deno.serve(async (req) => {
     if (rows.length === 0) break;
     totalClaimed += rows.length;
 
+    // Phase 3 digest: collapse multiple rows for the same recipient in this
+    // batch into a single summary notification. Keeps one row as the "carrier"
+    // and marks the rest as sent (digested) so we don't fire N pushes.
+    const rowsByRecipient = new Map<string, QueueRow[]>();
+    for (const r of rows) {
+      const arr = rowsByRecipient.get(r.recipient_user_id) ?? [];
+      arr.push(r);
+      rowsByRecipient.set(r.recipient_user_id, arr);
+    }
+    const digestedExtras: QueueRow[] = [];
+    const rowsToSend: QueueRow[] = [];
+    for (const [, recRows] of rowsByRecipient) {
+      if (recRows.length === 1) {
+        rowsToSend.push(recRows[0]);
+        continue;
+      }
+      // Use the highest-priority (lowest number) row as carrier.
+      recRows.sort((a, b) => (a as any).priority - (b as any).priority);
+      const carrier = { ...recRows[0] };
+      carrier.title = `لديك ${recRows.length} إشعارات جديدة`;
+      carrier.body = "افتح التطبيق لعرض التفاصيل";
+      carrier.sensitivity = "high";
+      carrier.data = { ...(carrier.data ?? {}), digest_count: recRows.length };
+      rowsToSend.push(carrier);
+      for (let i = 1; i < recRows.length; i++) digestedExtras.push(recRows[i]);
+    }
+    if (digestedExtras.length > 0) {
+      await supabase
+        .from("notification_queue")
+        .update({
+          status: "sent",
+          sent_at: new Date().toISOString(),
+          last_error: "digested",
+        })
+        .in("id", digestedExtras.map((r) => r.id));
+    }
+
     // Defensive: load tokens grouped by recipient in one query.
-    const recipientIds = Array.from(new Set(rows.map((r) => r.recipient_user_id)));
+    const recipientIds = Array.from(new Set(rowsToSend.map((r) => r.recipient_user_id)));
     const { data: allTokens } = await supabase
       .from("device_tokens")
       .select("id, user_id, token")
@@ -194,7 +231,7 @@ Deno.serve(async (req) => {
     }
 
     // Send for each row, concurrency limited.
-    const settled = await runWithConcurrency(rows, CONCURRENCY, async (row) => {
+    const settled = await runWithConcurrency(rowsToSend, CONCURRENCY, async (row) => {
       const tokens = tokensByUser.get(row.recipient_user_id) ?? [];
       if (tokens.length === 0) {
         await supabase
