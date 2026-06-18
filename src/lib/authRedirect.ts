@@ -78,7 +78,7 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
 
 export async function fetchOnboardingStatus(userId: string): Promise<OnboardingStatus> {
   try {
-    const [{ data: rolesData }, { data: emp }] = await Promise.all([
+    const [rolesResult, empResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase
         .from("employees")
@@ -86,6 +86,8 @@ export async function fetchOnboardingStatus(userId: string): Promise<OnboardingS
         .eq("auth_user_id", userId)
         .maybeSingle(),
     ]);
+    const rolesData = assertQueryOk(rolesResult);
+    const emp = assertQueryOk(empResult);
     const roles = (rolesData || []).map((r) => String(r.role));
     const hasAdminAccess = roles.some(
       (r) => r === "admin" || r === "hr_manager" || r.startsWith("accountant")
@@ -97,6 +99,7 @@ export async function fetchOnboardingStatus(userId: string): Promise<OnboardingS
     if (roles.includes("worker") && roles.length === 1) return "na";
     if (roles.includes("sales_rep") && !hasAdminAccess) return "na";
     if (roles.includes("cashier") && !roles.includes("admin")) return "na";
+    if (roles.includes("employee") && !hasAdminAccess) return "na";
 
     const isEmployee = !!emp && emp.is_active && !emp.is_terminated;
     if (isEmployee && !hasAdminAccess) return "na";
@@ -122,7 +125,7 @@ export async function fetchOnboardingStatus(userId: string): Promise<OnboardingS
  */
 export async function resolvePostSignupDestination(userId: string): Promise<string> {
   try {
-    const [{ data: rolesData }, { data: emp }] = await Promise.all([
+    const [rolesResult, empResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase
         .from("employees")
@@ -130,6 +133,8 @@ export async function resolvePostSignupDestination(userId: string): Promise<stri
         .eq("auth_user_id", userId)
         .maybeSingle(),
     ]);
+    const rolesData = assertQueryOk(rolesResult);
+    const emp = assertQueryOk(empResult);
     const roles = (rolesData || []).map((r) => String(r.role));
     const hasAdminAccess = roles.some(
       (r) => r === "admin" || r === "super_admin" || r === "hr_manager" || r.startsWith("accountant")
