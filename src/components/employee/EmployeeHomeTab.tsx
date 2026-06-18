@@ -4,8 +4,12 @@ import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
-  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight
+  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet, BarChart3, CalendarRange, ChevronRight,
+  Bell, BellOff, BellRing
 } from "lucide-react";
+import { toast } from "sonner";
+import { enablePushNotifications, isIos, isIosStandalone, pushSupported } from "@/lib/push-notifications";
+import { isFirebaseConfigured } from "@/lib/firebase-config";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect, useMemo } from "react";
@@ -290,6 +294,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-white/30 shadow-md"
             />
           )}
+          <PushBellButton />
         </div>
         {/* Decorative circle */}
         <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
@@ -642,5 +647,53 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         <span>يتم التحقق من موقعك الجغرافي تلقائياً عند التسجيل</span>
       </div>
     </div>
+  );
+}
+
+function PushBellButton() {
+  const [supported, setSupported] = useState<boolean | null>(null);
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported">(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+  );
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => { pushSupported().then(setSupported); }, []);
+
+  if (!isFirebaseConfigured() || supported === false) return null;
+
+  const granted = perm === "granted";
+  const denied  = perm === "denied";
+  const iosNeedsInstall = isIos() && !isIosStandalone();
+
+  const handle = async () => {
+    if (iosNeedsInstall) {
+      toast.message("على iPhone: أضف التطبيق للشاشة الرئيسية أولاً ثم فعّل الإشعارات من داخله.");
+      return;
+    }
+    if (denied) {
+      toast.error("الإشعارات مرفوضة — فعّلها من إعدادات المتصفح/النظام.");
+      return;
+    }
+    setLoading(true);
+    const res = await enablePushNotifications();
+    setLoading(false);
+    if (res.ok === true) { setPerm("granted"); toast.success("تم تفعيل الإشعارات ✓"); }
+    else toast.error(res.reason);
+  };
+
+  const Icon = granted ? BellRing : denied ? BellOff : Bell;
+  const bg = granted ? "bg-emerald-400/25 border-emerald-200/40" : "bg-white/15 border-white/20";
+
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      disabled={loading}
+      aria-label="تفعيل الإشعارات على هذا الجهاز"
+      title={granted ? "الإشعارات مفعّلة" : "تفعيل الإشعارات على هذا الجهاز"}
+      className={`h-10 w-10 rounded-xl ${bg} backdrop-blur border flex items-center justify-center text-primary-foreground shrink-0 transition-colors disabled:opacity-60`}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
   );
 }
