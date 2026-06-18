@@ -89,6 +89,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/admin/sales-rep-orders": { title: "طلبيات المندوبين", icon: "truck" },
   "/admin/rep-unposted-orders": { title: "طلبات مندوب غير مرحّلة", icon: "truck" },
   "/admin/sales-reps-live": { title: "متابعة المندوبين", icon: "truck" },
+  "/admin/notifications": { title: "مركز الإشعارات", icon: "bell" },
   "/accounting-center": { title: "مركز المالية", icon: "calculator" },
   "/warehouses": { title: "المستودعات", icon: "package" },
   "/stock-transfers": { title: "سندات تحويل المخزون", icon: "package" },
