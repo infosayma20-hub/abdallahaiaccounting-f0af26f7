@@ -112,7 +112,8 @@ export async function fetchOnboardingStatus(userId: string): Promise<OnboardingS
 
     const completed = await readOwnerOnboardingCompleted(userId);
     return completed ? "completed" : "incomplete";
-  } catch {
+  } catch (err) {
+    console.error("[onboarding-status] fail-open → 'na' due to:", err);
     return "na"; // fail open — never block on transient errors
   }
 }
@@ -159,7 +160,8 @@ export async function resolvePostSignupDestination(userId: string): Promise<stri
     // Owner-like (admin / accountant_* / hr_manager / brand-new owner with no roles yet)
     const completed = await readOwnerOnboardingCompleted(userId);
     return completed ? "/apps" : "/onboarding";
-  } catch {
+  } catch (err) {
+    console.error("[post-signup-destination] fail-safe → '/' due to:", err);
     return "/"; // fail-safe: re-run role routing instead of forcing onboarding
   }
 }
