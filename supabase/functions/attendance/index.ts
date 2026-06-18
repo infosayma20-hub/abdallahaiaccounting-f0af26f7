@@ -589,13 +589,13 @@ Deno.serve(async (req) => {
         : attendanceRange.end;
 
       // 5.b Idempotency guard — if an identical event for this employee was
-      // recorded within the last 30 seconds (e.g. user retried after a blank
+      // recorded within the last 60 seconds (e.g. camera emitted QR twice or user retried after a blank
       // screen / network blip), short-circuit instead of inserting a duplicate.
       {
-        const thirtySecondsAgo = new Date(Date.now() - 30_000).toISOString();
+        const duplicateWindowAgo = new Date(Date.now() - 60_000).toISOString();
         const recentSameType = events
           .filter((e) => e.event_type === (bodyAction === "checkin" ? "check_in" : "check_out"))
-          .filter((e) => new Date(e.event_time).getTime() >= new Date(thirtySecondsAgo).getTime());
+          .filter((e) => new Date(e.event_time).getTime() >= new Date(duplicateWindowAgo).getTime());
         if (recentSameType.length > 0) {
           return new Response(
             JSON.stringify({
