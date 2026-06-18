@@ -538,6 +538,7 @@ export default function PortalDashboard() {
               const res = await enablePushNotifications();
               if (res.ok) toast.success('تم تفعيل الإشعارات على هذا الجهاز.');
               else toast.error(res.reason);
+              return res;
             }}
             title="تفعيل الإشعارات على هذا الجهاز"
             style={{
