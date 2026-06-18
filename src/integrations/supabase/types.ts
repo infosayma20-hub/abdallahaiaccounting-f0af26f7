@@ -20617,6 +20617,15 @@ export type Database = {
         Returns: number
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      notify_employee_push: {
+        Args: {
+          _body: string
+          _path?: string
+          _title: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       open_van_day: {
         Args: {
           p_load_transfer_id?: string
