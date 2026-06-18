@@ -98,9 +98,13 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
   // and a stale unmatched check_in from a previous day can no longer hijack
   // today's UI. (Pairing/aggregation logic still uses full event history.)
   const eventsForState = recentEvents.length > 0 ? recentEvents : todayEvents;
-  const lastEvent =
-    eventsForState.length > 0 ? eventsForState[eventsForState.length - 1] : null;
-  const isOpen = lastEvent?.event_type === "check_in";
+  // 🛡️ Use the shared session helper so an orphan check_in from a previous
+  // day (employee forgot to checkout) does NOT keep the UI stuck on
+  // "تسجيل خروج" forever. After ~36h the orphan is considered closed and
+  // the button flips back to "تسجيل دخول" — matching the server's tolerance
+  // and preventing the "لا يوجد بصمة دخول مفتوحة" error when scanning.
+  const openSession = getOpenAttendanceSession(eventsForState, 36);
+  const isOpen = !!openSession;
   const canCheckOut = isOpen;
   const canCheckIn = !isOpen;
   const dayComplete = !!(todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2);
