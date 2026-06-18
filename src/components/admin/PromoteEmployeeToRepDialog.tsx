@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ interface Props {
 
 export default function PromoteEmployeeToRepDialog({ open, onOpenChange, onDone }: Props) {
   const { toast } = useToast();
+  const { dataOwnerId } = useDataOwnerId();
   const [employees, setEmployees] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [cashBoxes, setCashBoxes] = useState<any[]>([]);
@@ -25,21 +27,25 @@ export default function PromoteEmployeeToRepDialog({ open, onOpenChange, onDone 
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !dataOwnerId) return;
     setEmployeeId(""); setWarehouseId(""); setCashBoxId("");
     setLoading(true);
     (async () => {
+      // Tenant-safe: filter every dropdown source by the effective owner (P0-2026-06).
       const [emp, wh, cb] = await Promise.all([
-        supabase.from("employees").select("id, full_name, auth_user_id, is_active").eq("is_active", true).order("full_name"),
-        (supabase as any).from("warehouses").select("id, name").order("name"),
-        (supabase as any).from("cash_boxes").select("id, name, currency").eq("is_active", true).order("name"),
+        supabase.from("employees").select("id, full_name, auth_user_id, is_active")
+          .eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
+        (supabase as any).from("warehouses").select("id, name")
+          .eq("user_id", dataOwnerId).order("name"),
+        (supabase as any).from("cash_boxes").select("id, name, currency")
+          .eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
       ]);
       setEmployees((emp.data as any[]) || []);
       setWarehouses(wh.data || []);
       setCashBoxes(cb.data || []);
       setLoading(false);
     })();
-  }, [open]);
+  }, [open, dataOwnerId]);
 
   const handleSubmit = async () => {
     if (!employeeId || !warehouseId || !cashBoxId) {
