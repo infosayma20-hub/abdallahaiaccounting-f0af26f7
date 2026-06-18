@@ -161,6 +161,10 @@ Deno.serve(async (req) => {
           const openSessionStart = openCandidates.length > 0 ? openCandidates[openCandidates.length - 1] : null;
 
           if (eventType === "check_in" && openSessionStart) {
+            const openAgeMs = eventTime.getTime() - new Date(openSessionStart.event_time).getTime();
+            if (openAgeMs >= 0 && openAgeMs < 60_000) {
+              continue;
+            }
             eventType = "check_out";
           }
 
