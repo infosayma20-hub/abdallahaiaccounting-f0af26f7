@@ -20,6 +20,7 @@ import {
   pushSupported,
 } from "@/lib/push-notifications";
 import { isFirebaseConfigured } from "@/lib/firebase-config";
+import MyNotificationPreferencesCard from "@/components/notifications/MyNotificationPreferencesCard";
 
 interface Employee {
   full_name: string;
@@ -253,6 +254,9 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
       </Button>
 
       {/* Push Notifications moved to the home top bar (bell icon next to logo). */}
+
+      {/* Personal notification preferences (push toggle, digest, quiet hours) */}
+      <MyNotificationPreferencesCard />
 
       {/* Info Card */}
       <Card className="border-border bg-card">
