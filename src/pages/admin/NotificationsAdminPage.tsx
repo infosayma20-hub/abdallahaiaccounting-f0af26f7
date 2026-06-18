@@ -60,9 +60,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   announcement: "إعلان", general: "عام",
 };
 
+const VAR_EXAMPLES: Record<string, string> = {
+  time: "08:00 ص",
+  name: "أحمد",
+  month: "يناير",
+  when: "غداً الساعة 10:00 ص",
+  location: "قاعة الاجتماعات",
+  holiday_name: "عيد الفطر",
+  message: "نص الرسالة هنا...",
+};
+
 function applyVariables(template: string, values: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => values[k] ?? `{{${k}}}`);
 }
+
 
 export default function NotificationsAdminPage() {
   // --- data ---
@@ -250,7 +261,7 @@ export default function NotificationsAdminPage() {
                       <Input
                         value={varValues[v] ?? ""}
                         onChange={(e) => setVarValues({ ...varValues, [v]: e.target.value })}
-                        placeholder={`قيمة ${v}`}
+                        placeholder={VAR_EXAMPLES[v] ? `مثال: ${VAR_EXAMPLES[v]}` : `قيمة ${v}`}
                         className="h-8"
                       />
                     </div>
