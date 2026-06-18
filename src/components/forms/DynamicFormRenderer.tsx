@@ -48,8 +48,22 @@ interface Props {
 
 function makeEmptyRow(fields: FieldDef[]): Record<string, any> {
   const row: Record<string, any> = {};
-  fields.forEach((f) => (row[f.key] = ""));
+  fields.forEach((f) => (row[f.key] = f.type === "date" ? todayISO() : ""));
   return row;
+}
+
+function todayISO(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatDMY(iso: string): string {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
 
 function buildInitialData(schema: FormSchema, initial?: Record<string, any>): Record<string, any> {
@@ -58,7 +72,9 @@ function buildInitialData(schema: FormSchema, initial?: Record<string, any>): Re
     if (s.type === "fields") {
       data[s.key] = initial?.[s.key] || {};
       s.fields.forEach((f) => {
-        if (data[s.key][f.key] === undefined) data[s.key][f.key] = "";
+        if (data[s.key][f.key] === undefined || data[s.key][f.key] === "") {
+          data[s.key][f.key] = f.type === "date" ? todayISO() : "";
+        }
       });
     } else {
       const arr = initial?.[s.key];
