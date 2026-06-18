@@ -48,6 +48,23 @@ const goalChips = [
   "تنظيم حسابات عملائي", "تحليل أداء العمل",
 ];
 
+type OnboardingStepData = Partial<{
+  company_name: string;
+  business_type: string;
+  industry: string;
+  industry_ar: string;
+  city: string;
+  country: string;
+  has_employees: boolean | null;
+  employees_count: string;
+  annual_revenue: string;
+  primary_currency: string;
+  accounting_experience: string;
+  referral_source: string;
+  business_goals: string[];
+  onboarding_completed: boolean;
+}>;
+
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -131,7 +148,7 @@ const OnboardingPage = () => {
     return () => { cancelled = true; };
   }, [user?.id, navigate]);
 
-  const saveProgress = async (stepData: any, stepNum: number) => {
+  const saveProgress = async (stepData: OnboardingStepData, stepNum: number) => {
     if (!user) return;
     try {
       // Resolve the *real* tenant owner — a team admin invited into an
@@ -210,7 +227,7 @@ const OnboardingPage = () => {
 
         await Promise.all([
           supabase.from("profiles").update({ company_name: trimmedCompanyName }).eq("user_id", user.id),
-          supabase.from("company_settings" as any).upsert({ user_id: user.id, company_name: trimmedCompanyName } as any, { onConflict: "user_id" }),
+          supabase.from("company_settings" as never).upsert({ user_id: user.id, company_name: trimmedCompanyName } as never, { onConflict: "user_id" }),
           supabase.auth.updateUser({ data: { company_name: trimmedCompanyName } }),
         ]);
       }
