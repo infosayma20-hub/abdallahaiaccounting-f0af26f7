@@ -171,7 +171,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
       if (error) throw error;
       toast({
         title: "تم حفظ النموذج",
-        description: "يمكنك الآن تنزيله كـ PDF أو مشاركته عبر واتساب أو إرساله للمراجعة.",
+        description: "يمكنك تنزيله كـ Word أو إرساله للمراجعة.",
       });
       setActiveTemplate(null);
       if (inserted) setViewSubmission(inserted as Submission);
@@ -458,33 +458,10 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           size="sm"
           variant="outline"
           className="gap-2"
-          disabled={exporting}
-          onClick={() => exportPdf(sub, true)}
-        >
-          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-          تنزيل PDF
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-2"
           onClick={() => exportWord(sub)}
         >
-          <FileText className="h-4 w-4" />
+          <FileDown className="h-4 w-4" />
           تنزيل Word
-        </Button>
-        <Button
-          size="sm"
-          className="gap-2"
-          disabled={exporting}
-          onClick={async () => {
-            // ensure PDF before opening share
-            let pdf = sub.pdf_url;
-            if (!pdf) pdf = (await exportPdf(sub, false)) || null;
-            setShareTarget({ ...sub, pdf_url: pdf || sub.pdf_url || null });
-          }}
-        >
-          <Share2 className="h-4 w-4" /> مشاركة
         </Button>
         {canSubmit && (
           <Button
