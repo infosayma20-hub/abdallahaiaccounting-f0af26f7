@@ -85,7 +85,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           for (const key of Object.keys(sessionStorage)) {
             if (key.startsWith("workspace-choice:")) sessionStorage.removeItem(key);
           }
-        } catch {}
+        } catch {
+          // Storage cleanup is best-effort.
+        }
         setTimeout(() => logEvent("login_success", session), 0);
       } else if (event === "PASSWORD_RECOVERY") {
         setTimeout(() => logEvent("password_recovery", session), 0);
