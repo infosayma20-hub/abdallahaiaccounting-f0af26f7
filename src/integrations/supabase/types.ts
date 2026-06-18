@@ -20946,6 +20946,27 @@ export type Database = {
         Returns: number
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      notif_queue_recent: {
+        Args: { _limit?: number; _status?: string }
+        Returns: {
+          attempts: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string
+          owner_id: string
+          priority: number
+          recipient_user_id: string
+          scheduled_for: string
+          sensitivity: string
+          sent_at: string
+          status: string
+          title: string
+          updated_at: string
+        }[]
+      }
+      notif_queue_requeue: { Args: { _ids: string[] }; Returns: number }
+      notif_queue_stats: { Args: never; Returns: Json }
       notify_employee_push: {
         Args: {
           _body: string
