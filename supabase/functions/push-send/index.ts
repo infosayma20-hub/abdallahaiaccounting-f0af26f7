@@ -84,6 +84,34 @@ Deno.serve(async (req) => {
     });
   }
 
+  // --- Authorization gate: service_role only ---
+  // push-send must NEVER be callable with the public anon key. We require the
+  // caller to present the service role key as a Bearer token and compare it
+  // against SUPABASE_SERVICE_ROLE_KEY using a constant-time comparison to
+  // mitigate timing attacks.
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const presented = authHeader.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : "";
+
+  const timingSafeEqual = (a: string, b: string): boolean => {
+    const enc = new TextEncoder();
+    const ab = enc.encode(a);
+    const bb = enc.encode(b);
+    if (ab.length !== bb.length) return false;
+    let diff = 0;
+    for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+    return diff === 0;
+  };
+
+  if (!serviceRoleKey || !presented || !timingSafeEqual(presented, serviceRoleKey)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { user_id, title, body, path } = await req.json();
     if (!user_id || !title || !body) {
