@@ -294,6 +294,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
               className="h-14 w-14 rounded-xl bg-white object-contain p-1.5 shrink-0 border border-white/30 shadow-md"
             />
           )}
+          <PushBellButton />
         </div>
         {/* Decorative circle */}
         <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
