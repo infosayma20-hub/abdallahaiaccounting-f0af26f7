@@ -7,7 +7,7 @@ import {
   BarChart3, Settings, Receipt, BookOpen, Landmark, Banknote,
   ShoppingCart, TrendingUp, Calculator, ClipboardList, Building2,
   UserCheck, DollarSign, Briefcase, PieChart, Store, Bot,
-  Globe, Layers
+  Globe, Layers, Bell
 } from "lucide-react";
 
 export interface AppTab {
@@ -226,6 +226,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   bot: Bot,
   globe: Globe,
   layers: Layers,
+  bell: Bell,
 };
 
 // أنماط ديناميكية: مسارات تحتوي على :id (UUID/رقم) — تستخرج العنوان من البادئة
