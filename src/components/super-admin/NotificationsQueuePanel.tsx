@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Bell, RefreshCw, RotateCcw, Loader2, Send, Smartphone } from "lucide-react";
+import { Bell, RefreshCw, RotateCcw, Loader2, Smartphone } from "lucide-react";
 
 type Stats = {
   by_status: Record<string, number>;
@@ -86,22 +86,6 @@ export default function NotificationsQueuePanel() {
       await load();
     } catch (e: any) {
       toast.error(e?.message || "فشلت إعادة الجدولة");
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  const runWorkerNow = async () => {
-    setRunning(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("notifications-worker", {
-        body: {},
-      });
-      if (error) throw error;
-      toast.success(`تشغيل الـ worker: مُرسل ${data?.sent ?? 0}، فاشل ${data?.failed ?? 0}`);
-      await load();
-    } catch (e: any) {
-      toast.error(e?.message || "فشل تشغيل الـ worker");
     } finally {
       setRunning(false);
     }
@@ -199,16 +183,10 @@ export default function NotificationsQueuePanel() {
         >
           <RotateCcw className="h-3.5 w-3.5" /> إعادة جدولة ({selected.size})
         </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={runWorkerNow}
-          disabled={running}
-          className="gap-1.5 mr-auto"
-        >
-          {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-          تشغيل الـ Worker الآن
-        </Button>
+        <div className="mr-auto text-[11px] text-muted-foreground flex items-center gap-1">
+          {running && <Loader2 className="h-3 w-3 animate-spin" />}
+          الـ Worker يعمل تلقائياً كل دقيقة عبر cron
+        </div>
       </div>
 
       {/* Table */}
