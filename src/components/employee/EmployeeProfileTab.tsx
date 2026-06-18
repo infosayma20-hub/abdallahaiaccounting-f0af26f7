@@ -254,6 +254,9 @@ export default function EmployeeProfileTab({ employee, branchName, latestInfoFor
 
       {/* Push Notifications moved to the home top bar (bell icon next to logo). */}
 
+      {/* Personal notification preferences (push toggle, digest, quiet hours) */}
+      <MyNotificationPreferencesCard />
+
       {/* Info Card */}
       <Card className="border-border bg-card">
         <CardContent className="p-4 space-y-3">
