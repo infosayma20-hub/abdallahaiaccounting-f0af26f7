@@ -26,12 +26,12 @@ const PushNotificationCard = () => {
     setLoading(true);
     const res = await enablePushNotifications();
     setLoading(false);
-    if (res.ok) {
+    if (res.ok === true) {
       setPermission("granted");
       toast.success("تم تفعيل إشعارات Push على هذا الجهاز.");
-    } else {
-      toast.error(res.reason);
+      return;
     }
+    toast.error(res.reason);
   };
 
   const configured = isFirebaseConfigured();
