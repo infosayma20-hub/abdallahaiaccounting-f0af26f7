@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import { clearOnboardingStatusCache } from "@/components/auth/OnboardingGate";
+import { fetchOnboardingStatus } from "@/lib/authRedirect";
 
 const TOTAL_STEPS = 6;
 
@@ -74,6 +75,18 @@ const OnboardingPage = () => {
 
     const restoreOrExitCompletedOnboarding = async () => {
       try {
+        const onboardingStatus = await fetchOnboardingStatus(user.id);
+        if (cancelled) return;
+        if (onboardingStatus === "na") {
+          navigate("/", { replace: true });
+          return;
+        }
+        if (onboardingStatus === "completed") {
+          clearOnboardingStatusCache(user.id);
+          navigate("/apps", { replace: true });
+          return;
+        }
+
         const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
         const ownerId = (ownerIdData as string | null) || user.id;
         const { data: company } = await supabase
