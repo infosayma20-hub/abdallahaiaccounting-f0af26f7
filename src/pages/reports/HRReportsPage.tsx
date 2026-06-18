@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -317,16 +318,18 @@ export default function HRReportsPage() {
   }, [month]);
 
   // Reference data (branches, departments, employees, shifts, work_week, holidays)
+  // Tenant-safe: every reference table filtered by effective owner (P0-2026-06).
   const { data: refData } = useQuery({
-    queryKey: ["hr-reports-ref"],
+    queryKey: ["hr-reports-ref", dataOwnerId],
+    enabled: !!dataOwnerId,
     queryFn: async () => {
       const [branchesQ, depsQ, empsQ, shiftsQ, weekQ, holsQ] = await Promise.all([
-        supabase.from("branches").select("id,name").eq("is_active", true),
-        supabase.from("departments").select("id,name,name_ar").eq("is_active", true).eq("is_deleted", false),
-        supabase.from("employees").select("id,full_name,department,branch_id,shift_id,is_active,is_terminated,date_of_birth,start_date,phone,annual_leave_balance,annual_leave_days,previous_year_balance").eq("is_active", true),
-        supabase.from("work_shifts").select("id,start_time,end_time,late_tolerance_minutes,days_of_week").eq("is_active", true),
-        supabase.from("hr_work_week_config").select("working_days").maybeSingle(),
-        supabase.from("official_holidays").select("holiday_date").eq("is_active", true),
+        supabase.from("branches").select("id,name").eq("user_id", dataOwnerId!).eq("is_active", true),
+        supabase.from("departments").select("id,name,name_ar").eq("user_id", dataOwnerId!).eq("is_active", true).eq("is_deleted", false),
+        supabase.from("employees").select("id,full_name,department,branch_id,shift_id,is_active,is_terminated,date_of_birth,start_date,phone,annual_leave_balance,annual_leave_days,previous_year_balance").eq("user_id", dataOwnerId!).eq("is_active", true),
+        supabase.from("work_shifts").select("id,start_time,end_time,late_tolerance_minutes,days_of_week").eq("user_id", dataOwnerId!).eq("is_active", true),
+        supabase.from("hr_work_week_config").select("working_days").eq("user_id", dataOwnerId!).maybeSingle(),
+        supabase.from("official_holidays").select("holiday_date").eq("user_id", dataOwnerId!).eq("is_active", true),
       ]);
       return {
         branches: (branchesQ.data || []) as Branch[],
