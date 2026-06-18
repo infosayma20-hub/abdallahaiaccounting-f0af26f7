@@ -10,8 +10,8 @@ import { performSessionTimeout } from "@/lib/sessionLogout";
  *  - /pos and /pos/*: POS uses its own shift lifecycle (6 AM cutoff +
  *    business-day rules — see Memory: POS System). Idle logout here would
  *    interrupt long-running cashier sessions in production.
- *  - /employee and /employee/*: Employee portal — موظفو الملكي يحتاجون
- *    استقبال الإشعارات حتى لو تركوا الجهاز، فلا نسجّل خروج صامت لهم.
+ *  - /employee and /employee/*: Employee portal — any employee using Amwali
+ *    needs to keep receiving notifications even if the device is left idle.
  *  - Public marketing pages: no user context, nothing to guard.
  */
 const DISABLED_PREFIXES = [
