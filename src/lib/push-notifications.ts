@@ -59,8 +59,10 @@ async function ensureMessaging(): Promise<Messaging> {
   if (!onMessageBound) {
     onMessageBound = true;
     onMessage(messagingInstance, (payload) => {
-      const title = payload?.notification?.title || "إشعار";
-      const body = payload?.notification?.body || "";
+      // Data-only payload from push-send (see edge function).
+      const data: any = payload?.data || {};
+      const title = data.title || payload?.notification?.title || "إشعار";
+      const body  = data.body  || payload?.notification?.body  || "";
       toast(title, { description: body });
     });
   }

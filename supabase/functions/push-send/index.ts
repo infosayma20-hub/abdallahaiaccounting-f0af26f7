@@ -154,13 +154,22 @@ Deno.serve(async (req) => {
 
     const results: Array<{ token: string; ok: boolean; error?: string }> = [];
     for (const t of tokens) {
+      // IMPORTANT: data-only message (no top-level `notification` block).
+      // If we include `notification`, FCM auto-displays the system notification
+      // AND triggers onBackgroundMessage in the SW (which also calls
+      // showNotification) → duplicate notifications on web/iOS PWA.
+      // SW reads title/body/path from `data` and shows the notification once.
       const payload = {
         message: {
           token: t.token,
-          notification: { title, body },
-          data: path ? { path: String(path) } : undefined,
+          data: {
+            title: String(title),
+            body: String(body),
+            ...(path ? { path: String(path) } : {}),
+          },
           webpush: {
-            fcm_options: path ? { link: String(path) } : undefined,
+            headers: { Urgency: "high" },
+            ...(path ? { fcm_options: { link: String(path) } } : {}),
           },
         },
       };
