@@ -1,121 +1,112 @@
+## المرحلة 0 — نتائج المراجعة (الوضع الحالي)
 
-# خطة: تعديل طلبيات المندوبين بصلاحية إدارية
+### جدول `device_tokens`
+| الحقل | الحالة | ملاحظة |
+|---|---|---|
+| `user_id` (FK→auth.users) | ✅ | لا يوجد `company_id` ولا `employee_id` ولا `owner_id` |
+| `token` UNIQUE | ✅ | dedupe على مستوى التوكن — تمام |
+| `is_active`, `last_seen_at`, `platform`, `device_info` | ✅ | موجودة |
+| `last_validated_at` | ❌ | غير موجود |
+| RLS | policy واحد فقط: `auth.uid() = user_id` (FOR ALL) | لا يوجد فلتر tenant — Service Role يتجاوزها وهو من يكتب |
+| البيانات الحالية | صف واحد فقط active | المرحلة مبكرة، آمنة لإضافات breaking-safe |
 
-## 1. الصلاحيات والمسارات
+### جداول الإشعارات الموجودة
+- `notification_log` — سجل الإشعارات الناتجة عن broadcasts فقط (بدون `owner_id`، بدون `event_type`، بدون `dedup_key`).
+- `notification_templates` + `notification_broadcasts` — للبثّ اليدوي من الأدمن (sync).
+- لا يوجد: `notification_queue`، لا `notification_preferences`، لا digest، لا quiet hours.
 
-- **الأدمن:** يعدّل أي فاتورة مندوب مباشرة من شاشة الفاتورة في لوحة الإدارة.
-- **المندوب نفسه:** يقدّم **طلب تعديل** على فاتورته من شاشة /rep/orders، ولا يُنفَّذ التعديل إلا بعد موافقة الأدمن.
-- أي دور آخر (محاسب، كاشير...) لا يرى زر "تعديل" على فواتير مصدرها `rep`.
+### Edge functions الحالية
+- `push-send` — Service-role only. يعمل: `SELECT * FROM device_tokens WHERE user_id=? AND is_active`، يستدعي FCM v1، JWT signing **مع cache token** (السطور 14, 37–76 — `cachedToken` صالح ~ساعة). الإرسال **داخل loop تسلسلي**، deactivate عند `UNREGISTERED/NOT_FOUND/INVALID_ARGUMENT`. لا يوجد timeout صريح.
+- `notifications-broadcast` — يحلّ الجمهور ثم `Promise.all` batches من 25، كل batch يستدعي `push-send` واحد لكل user → 1000 موظف = 1000 invocation منفصل. **خطر timeout** ضمن invocation الـ broadcast نفسه.
+- `push-register`, `push-admin-test`, `push-test`, `notify-admin-signup` — تسجيل/اختبار.
 
-## 2. سير العمل (Workflow)
+### Triggers الحالية التي تطلق إشعارات
+| Trigger | الجدول | يستدعي | tenant filter |
+|---|---|---|---|
+| `trg_notify_payslip_paid` | `employee_payroll` | `notify_employee_push` | عبر `employees.auth_user_id` → ضمني، **محتوى مالي حسّاس** في body |
+| `trg_notify_missing_fingerprint` | `attendance_days` | `notify_employee_push` | ضمني عبر employees |
+| `trg_notify_correction_answered` | `correction_requests` | `notify_employee_push` | ضمني |
+| `notify_employee_push()` | RPC داخلي | `net.http_post → push-send` **SYNCHRONOUS داخل trigger** | كل trigger = HTTP call فوري |
 
-```text
-[المندوب] ──يطلب تعديل──▶ rep_edit_requests (pending)
-                              │
-                              ▼
-                  [إشعار للأدمن في الجرس]
-                              │
-              ┌───────────────┴───────────────┐
-              ▼                               ▼
-        [موافقة]                          [رفض]
-              │                               │
-              ▼                               ▼
-   apply_rep_invoice_edit RPC          status=rejected
-   (Delete & Recreate ذرّي)            + سبب الرفض
-              │                               │
-              ▼                               ▼
-   [إشعار للمندوب: تم/رُفض] ◀──────────────────┘
-```
+### الـ ownership helper
+- `resolve_effective_owner_id(auth_uid)` متاح ويعطي owner من: sales_rep / employees / invited_by / نفسه. سيُستخدم في `notification_queue.owner_id`.
 
-أما الأدمن فيستطيع تخطّي خطوة الطلب وتنفيذ التعديل مباشرة (يُكتب الطلب والموافقة تلقائياً باسمه للحفاظ على وحدة السجل).
-
-## 3. نطاق التعديل المسموح
-
-- استبدال صنف بصنف آخر داخل نفس البند.
-- تعديل الكمية و/أو سعر الوحدة.
-- إضافة بنود جديدة.
-- حذف بنود قائمة.
-
-**ممنوع في هذه المرحلة:** تغيير العميل، طريقة الدفع (نقد/آجل)، التاريخ، أو رقم الفاتورة. هذه تتطلب Credit Note وفاتورة جديدة وتُعالَج لاحقاً.
-
-## 4. آلية التنفيذ المحاسبية: Delete & Recreate ذرّي
-
-داخل معاملة DB واحدة (`apply_rep_invoice_edit`):
-
-1. **التحقق من القفل:** الفترة المالية مفتوحة + الفاتورة `is_voided=false` + `linked_transaction_id IS NOT NULL`.
-2. **لقطة "قبل":** نسخ صفوف `invoices` + `invoice_items` + `stock_movements` + `transactions` + `voucher_lines` كاملةً إلى `rep_edit_audit` (JSONB).
-3. **عكس الأثر القديم:**
-   - حذف كل `voucher_lines` التابعة لـ `linked_transaction_id`.
-   - حذف رأس `transactions`.
-   - حذف كل `stock_movements` للفاتورة + إرجاع الكميات إلى `products.quantity`.
-   - حذف `receipt_vouchers` التلقائية للبيع النقدي إن وُجدت.
-4. **حذف البنود القديمة:** `DELETE FROM invoice_items WHERE invoice_id = ?`.
-5. **إنشاء البنود الجديدة:** insert صفوف جديدة بقيم `cost_price` و `line_profit` المحدّثة من `products.buy_price`.
-6. **إعادة احتساب الإجمالي** وتحديث `invoices` (نفس `id` ونفس `invoice_number`).
-7. **إعادة بناء الأثر:** استدعاء نفس منطق `create_rep_sale_atomic`:
-   - قيد جديد في `transactions` + `voucher_lines` وربطه بـ `invoices.linked_transaction_id`.
-   - `stock_movements` جديدة + خصم/زيادة `products.quantity`.
-   - سند قبض جديد إن كانت `cash` (مع إلغاء/استبدال السند القديم).
-8. **لقطة "بعد":** تخزينها بنفس صف `rep_edit_audit`.
-
-## 5. المخطط (Schema)
-
-### جدول `rep_edit_requests`
-- `invoice_id` (FK invoices)
-- `requested_by` (المندوب user_id)
-- `reason` NOT NULL
-- `proposed_changes` JSONB (شكل البنود الجديد كامل)
-- `status` enum: `pending | approved | rejected`
-- `reviewed_by` / `reviewed_at` / `review_note`
-
-### جدول `rep_edit_audit`
-- `invoice_id`
-- `edit_request_id` (FK)
-- `edited_by`
-- `reason`
-- `before_snapshot` JSONB (رأس + بنود + قيد + حركات)
-- `after_snapshot` JSONB
-- `diff` JSONB محسوب (للحقول المتغيرة فقط)
-
-### RPC جديدة
-- `request_rep_invoice_edit(invoice_id, reason, proposed_items)` — للمندوب.
-- `apply_rep_invoice_edit(edit_request_id)` — للأدمن، تُنفّذ منطق Delete & Recreate.
-- `reject_rep_invoice_edit(edit_request_id, note)` — للأدمن.
-
-### RLS
-- المندوب يرى/ينشئ طلباته فقط على فواتيره فقط.
-- الأدمن يرى الكل، وحده يستدعي `apply_*` و `reject_*` (CHECK داخل الـ RPC).
-
-## 6. الواجهة (UI)
-
-- **شاشة المندوب** `/rep/orders/:id`: زر "طلب تعديل" يفتح Modal بنفس واجهة الطلب الجديد لكن محمّلة بالبنود الحالية + حقل سبب إلزامي.
-- **شاشة الأدمن** صفحة جديدة `/admin/rep-edit-requests`: قائمة الطلبات المعلّقة + Modal مقارنة (قبل/بعد) + زرّا "موافقة" و"رفض".
-- **شاشة الفاتورة في لوحة الإدارة**: زر "تعديل مباشر" (للأدمن فقط) يفتح نفس الـ Modal ويستدعي مسار Auto-Approve.
-- **سجل الفاتورة**: تبويب جديد "سجل التعديلات" يعرض `rep_edit_audit` (من، متى، السبب، قبل/بعد لكل حقل متغيّر).
-
-## 7. الإشعارات
-
-- عند `pending`: إشعار للأدمن (admin_notifications).
-- عند `approved` / `rejected`: إشعار للمندوب (notification_log) مع رابط الفاتورة.
-
-## 8. حماية وضوابط
-
-- الفترة المالية المغلقة ترفض التعديل (نستفيد من `fiscal-period-db-guard` القائم).
-- فاتورة ملغاة/مرتجعة لا تقبل تعديل.
-- قفل تفاؤلي بـ `updated_at` لمنع تعديلين متزامنين.
-- أي خطأ داخل الـ RPC → rollback كامل (الفاتورة تبقى كما كانت).
-
-## 9. مراحل التنفيذ
-
-1. Migration: الجدولان + الـ enums + الـ RLS + GRANTs.
-2. RPC: `request_rep_invoice_edit` و `reject_rep_invoice_edit`.
-3. RPC: `apply_rep_invoice_edit` (الأثقل — Delete & Recreate).
-4. UI المندوب: زر "طلب تعديل" + Modal.
-5. UI الأدمن: صفحة الطلبات + Modal المقارنة + زر "تعديل مباشر".
-6. تبويب "سجل التعديلات" في الفاتورة.
-7. الإشعارات.
-8. اختبارات: نقد، آجل، استبدال صنف، تغيير كمية، حذف بند، إضافة بند، فترة مغلقة، عميل آخر يحاول.
+### المخاطر المؤكّدة الآن
+1. كل trigger = HTTP call داخل المعاملة (لو فشل `net.http_post` ما بيرجع خطأ لكن بيستهلك وقت + موارد).
+2. لا يوجد dedup → POS resync أو retry يرسل إشعارات مكرّرة.
+3. body الراتب يحتوي رقم محتمل (يتسرّب lock screen).
+4. `device_tokens` بدون عمود tenant — التحقق الدفاعي يعتمد على ربط عكسي.
+5. broadcast لـ 1000 مستخدم = 1000 HTTP call داخل invocation = timeout 150s محتمل.
 
 ---
 
-هل نمشي بهذه الخطة، أم تحب أعدّل أي نقطة قبل ما أبدأ التنفيذ؟
+## خطة التنفيذ — 6 مراحل، كل مرحلة قابلة للمراجعة
+
+### المرحلة 1 — Queue + Worker (جوهر الحل)
+**Migration (additive):**
+- `notification_queue` (id, owner_id, recipient_user_id, event_type, sensitivity 'low'/'high', title, body, data jsonb, priority smallint, dedup_key text UNIQUE, scheduled_for timestamptz, status 'pending'/'sent'/'failed'/'skipped'/'deferred', attempts int, last_error, created_at, updated_at, sent_at).
+- indexes: `(status, scheduled_for)` partial WHERE status='pending'، `(owner_id, recipient_user_id, created_at DESC)`، unique `dedup_key`.
+- GRANT: `service_role ALL`، `authenticated SELECT` على صفوف `recipient_user_id = auth.uid()` فقط (لو احتجناها لاحقاً).
+- RLS: deny by default، policy للقراءة الذاتية للمستلم، policy admin (has_role) للقراءة على نفس الـ tenant.
+- دالة `enqueue_notification(...)` SECURITY DEFINER تستخدم `resolve_effective_owner_id` لحلّ owner_id، تُولّد `dedup_key` افتراضياً من `(event_type || recipient || source_id)` لو ما تم تمريره.
+
+**Edge function جديدة `notifications-worker`:**
+- تأخذ batch=200، تستخدم `SELECT ... FOR UPDATE SKIP LOCKED` لمنع التداخل بين الـ runs.
+- access token caching موجود أصلاً — يُنقل لنفس النمط.
+- إرسال مع `Promise.allSettled` و concurrency=25.
+- يستخدم FCM HTTP v1 (لا multicast endpoint رسمي لـ v1 — يبقى per-token مع concurrency).
+- update status + attempts + sent_at، وعند `UNREGISTERED/NOT_FOUND/INVALID_ARGUMENT` → `is_active=false`.
+
+**Cron (pg_cron + pg_net) عبر insert tool:** كل دقيقة تستدعي `notifications-worker`.
+
+**الـ triggers الحالية:**
+- `notify_employee_push` يُعاد كتابتها لتكون `INSERT INTO notification_queue` فقط — **لا HTTP call**.
+- التواقيع نفسها → ما في breaking change على الـ triggers.
+
+### المرحلة 2 — Stale tokens + re-registration
+- `ALTER device_tokens ADD COLUMN last_validated_at timestamptz`.
+- worker يحدّث `last_validated_at = now()` عند نجاح الإرسال.
+- العميل (`push-notifications.ts`) يعمل `push-register` عند كل cold start إذا `Notification.permission==='granted'`.
+- Cron يومي: deactivate حيث `last_seen_at < now()-60d`.
+
+### المرحلة 3 — الخصوصية (sensitivity)
+- عمود `sensitivity` على `notification_queue` (`low` افتراضي، `high` للراتب/المالي).
+- worker عند `sensitivity='high'`: يرسل title عام ("قسيمة راتب جديدة") + body عام ("افتح التطبيق للعرض")، التفاصيل في `data` فقط.
+- `trg_notify_payslip_paid` يُحدّث ليرسل sensitivity='high' بدون أي رقم في body.
+
+### المرحلة 4 — Notification preferences + digest + quiet hours
+- `notification_preferences` (recipient_user_id, event_type, channel_push bool default true, digest_mode bool default false, quiet_hours_start time, quiet_hours_end time, timezone text default 'Asia/Hebron'). PK مركّب.
+- RLS: المستخدم يدير preferences الخاصة فيه فقط.
+- في `enqueue_notification`: قبل insert يفحص preference → لو مطفي = insert مع status='skipped' للأودِت. لو ضمن quiet hours: status='deferred' + `scheduled_for` = نهاية الصمت بتوقيت timezone.
+- digest للمدراء: trigger البصمة الفردي يدخل صف بـ `event_type='attendance_daily_digest'`، وworker مجدول 9:00 ص يجمّعها لكل manager ويرسل ملخّص واحد.
+
+### المرحلة 5 — Tenant safety (دفاع متعدد الطبقات)
+- `notification_queue.owner_id` يُحلّ من مصدر الحدث (`employees.user_id`) لا من جلسة المستخدم.
+- في worker قبل كل إرسال: تحقّق أن كل `device_tokens.user_id` للمستلم يحلّ إلى نفس `owner_id` (عبر `resolve_effective_owner_id`). لو لا → status='skipped' + `last_error='tenant_mismatch'` + RAISE WARNING.
+- RLS على `notification_queue`: deny by default + policy admin يرى صفوف tenant الخاص به (مطابقة owner_id مع owner المستخدم).
+
+### المرحلة 6 — Race conditions + late events
+- العمود `dedup_key` UNIQUE → conflict = noop. تمرير `ON CONFLICT DO NOTHING` في `enqueue_notification`.
+- العمود `source_created_at` على notification_queue. الـ triggers تمرره من الصف الأصلي.
+- worker: قبل الإرسال لو `event_type IN ('pos_order_synced', ...)` و `now() - source_created_at > interval '2 hours'` → status='skipped' + reason='stale_event'.
+
+---
+
+## معايير القبول (سأختبرها بعد كل مرحلة)
+1. ✅ trigger يكتب صف queue فقط، صفر HTTP calls.
+2. ✅ 3000 token عبر batches من 200/min، concurrency 25 → لا timeout.
+3. ✅ token محذوف → deactivate بعد أول فشل، لا retry.
+4. ✅ إشعار راتب: title/body عامّين، الأرقام في data فقط.
+5. ✅ مدير 50 موظف → digest واحد بدل 50.
+6. ✅ اختبار صريح: حدث شركة A لا يصل لـ tokens شركة B.
+7. ✅ POS متأخر 3 أيام → skipped.
+8. ✅ resync نفس الحدث → dedup_key يمنع التكرار.
+
+## تفاصيل تقنية
+- لا تعديل على RLS الحالية، لا تعديل على triggers بخلاف جسم `notify_employee_push` (نفس التوقيع).
+- جميع الجداول الجديدة بـ `GRANT` كاملة في نفس الـ migration.
+- Vault key الحالي `email_queue_service_role_key` يبقى للاتصال trigger→worker (لو احتجناه)، لكن الجديد: trigger يكتب SQL فقط، الـ cron يستدعي worker بـ service role من جدوله.
+- pg_cron + pg_net سيُفعّلان عبر insert tool (لأن URL + key خاصّان بالمشروع).
+- migration واحدة لكل مرحلة، تنفيذ تسلسلي مع توقّف للمراجعة بينها.
+
+هل أبدأ بـ **المرحلة 1** (queue + worker + إعادة كتابة `notify_employee_push`)؟

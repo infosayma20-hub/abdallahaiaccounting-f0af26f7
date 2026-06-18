@@ -9816,6 +9816,72 @@ export type Database = {
           },
         ]
       }
+      notification_queue: {
+        Row: {
+          attempts: number
+          body: string
+          created_at: string
+          data: Json
+          dedup_key: string
+          event_type: string
+          id: string
+          last_error: string | null
+          owner_id: string
+          path: string | null
+          priority: number
+          recipient_user_id: string
+          scheduled_for: string
+          sensitivity: string
+          sent_at: string | null
+          source_created_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          created_at?: string
+          data?: Json
+          dedup_key: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          owner_id: string
+          path?: string | null
+          priority?: number
+          recipient_user_id: string
+          scheduled_for?: string
+          sensitivity?: string
+          sent_at?: string | null
+          source_created_at?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          created_at?: string
+          data?: Json
+          dedup_key?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          owner_id?: string
+          path?: string | null
+          priority?: number
+          recipient_user_id?: string
+          scheduled_for?: string
+          sensitivity?: string
+          sent_at?: string | null
+          source_created_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_templates: {
         Row: {
           body_template: string
@@ -20184,6 +20250,22 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      enqueue_notification: {
+        Args: {
+          _body: string
+          _data?: Json
+          _dedup_key?: string
+          _event_type: string
+          _path?: string
+          _priority?: number
+          _recipient_user_id: string
+          _scheduled_for?: string
+          _sensitivity?: string
+          _source_created_at?: string
+          _title: string
+        }
+        Returns: string
       }
       ensure_advance_accounts: {
         Args: { p_user_id: string }
