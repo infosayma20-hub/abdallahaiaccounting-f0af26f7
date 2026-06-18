@@ -32,6 +32,14 @@ export interface AccessContext {
 const cache = new Map<string, { ctx: AccessContext; ts: number }>();
 const TTL = 30_000;
 
+const unwrap = <T,>(result: { data: T; error: unknown }): T => {
+  if (result.error) {
+    if (isAuthSessionExpiredError(result.error)) redirectToSessionExpired();
+    throw result.error;
+  }
+  return result.data;
+};
+
 export function clearAccessContextCache(userId?: string) {
   if (userId) cache.delete(userId);
   else cache.clear();
@@ -90,10 +98,10 @@ export async function resolveUserAccessContext(
   }
 
   const [
-    { data: accountType },
-    { data: canSetup },
-    { data: rolesRows },
-    { count: accountsCount },
+    accountTypeResult,
+    canSetupResult,
+    rolesResult,
+    accountsResult,
   ] = await Promise.all([
     supabase.rpc("resolve_account_type", { _uid: userId }),
     supabase.rpc("user_can_access_setup", { _uid: userId }),
@@ -103,6 +111,15 @@ export async function resolveUserAccessContext(
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
   ]);
+
+  const accountType = unwrap(accountTypeResult);
+  const canSetup = unwrap(canSetupResult);
+  const rolesRows = unwrap(rolesResult);
+  if (accountsResult.error) {
+    if (isAuthSessionExpiredError(accountsResult.error)) redirectToSessionExpired();
+    throw accountsResult.error;
+  }
+  const accountsCount = accountsResult.count;
 
   // If any call returned an auth/JWT error, the session is dead even though
   // React may still be holding a stale `user`. Don't fall through to the
