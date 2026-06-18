@@ -85,7 +85,6 @@ export function defaultRouteFor(
       return { route: "/blocked/unlinked", blockingReason: "unlinked_account" };
   }
   // Any unknown/garbage account type — NEVER fall through to /setup.
-  // eslint-disable-next-line no-console
   console.error("[access] unknown accountType, blocking", { type, roles });
   return { route: "/blocked/unlinked", blockingReason: "unknown_state" };
 }
@@ -172,7 +171,6 @@ export async function resolveUserAccessContext(
   };
 
   // Structured single-line log for every decision.
-  // eslint-disable-next-line no-console
   console.info("[access] resolve", {
     uid: userId,
     type,
