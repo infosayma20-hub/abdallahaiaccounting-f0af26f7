@@ -2,7 +2,7 @@ import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
   Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
-  Activity, PieChart, Scale, LayoutDashboard, PhoneCall,
+  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -308,6 +308,11 @@ export const navigationSections: NavSection[] = [
         color: "text-sky-400", bgColor: "bg-sky-400/10", path: "/tasks", isDirect: true,
         enableSetting: "has_tasks",
         keywords: ["مهام", "تكليف", "متابعة", "tasks"],
+      },
+      {
+        id: "notifications", label: "الإشعارات", description: "إرسال تنبيهات للموظفين والمدراء والمحاسبين", module: "settings", icon: Bell,
+        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/admin/notifications", isDirect: true,
+        keywords: ["إشعار", "تنبيه", "broadcast", "notifications"],
       },
       {
         id: "travel", label: "إدارة مالية السياحة والسفر", description: "حجوزات، موردون، عمولات، وأرباح", module: "travel", icon: Plane,
