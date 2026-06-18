@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Receipt, RefreshCw, AlertCircle, Trash2, XCircle } from "lucide-react";
+import { Loader2, Receipt, RefreshCw, AlertCircle, Trash2, XCircle, FileEdit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { broadcastChange } from "@/lib/crossTabSync";
+import { RepEditRequestDialog } from "./components/RepEditRequestDialog";
 
 export default function RepOrdersPage() {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export default function RepOrdersPage() {
   const [filter, setFilter] = useState<"today" | "all">("today");
   const [showCancelled, setShowCancelled] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
 
   const load = async () => {
     if (!user) return;
@@ -205,13 +207,27 @@ export default function RepOrdersPage() {
       )}
 
       {orders.map((o) => (
-        <RepOrderRow key={o.id} o={o} busy={busyId === o.id} onDelete={() => deleteDraft(o)} onCancel={() => cancelOrder(o)} />
+        <RepOrderRow
+          key={o.id}
+          o={o}
+          busy={busyId === o.id}
+          onDelete={() => deleteDraft(o)}
+          onCancel={() => cancelOrder(o)}
+          onEdit={() => setEditTarget(o)}
+        />
       ))}
+
+      <RepEditRequestDialog
+        open={!!editTarget}
+        onOpenChange={(o) => !o && setEditTarget(null)}
+        invoice={editTarget}
+        onSubmitted={() => { setEditTarget(null); load(); }}
+      />
     </div>
   );
 }
 
-function RepOrderRow({ o, busy, onDelete, onCancel }: { o: any; busy: boolean; onDelete: () => void; onCancel: () => void }) {
+function RepOrderRow({ o, busy, onDelete, onCancel, onEdit }: { o: any; busy: boolean; onDelete: () => void; onCancel: () => void; onEdit: () => void }) {
   const cancelled = Boolean(o.is_voided) || ["cancelled", "void", "reversed", "ملغي", "ملغى"].includes((o.status || "").toLowerCase());
   // Heuristic: if status is 'draft' or 'pending' OR there's no linked txn metadata, treat as draft.
   // We rely on what the list query returned. Posted = status not in (draft, cancelled, void, reversed)
@@ -244,9 +260,14 @@ function RepOrderRow({ o, busy, onDelete, onCancel }: { o: any; busy: boolean; o
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             </Button>
           ) : (
-            <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy} className="text-destructive">
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-            </Button>
+            <>
+              <Button size="sm" variant="ghost" onClick={onEdit} disabled={busy} className="text-primary" title="طلب تعديل">
+                <FileEdit className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy} className="text-destructive" title="إلغاء الطلب">
+                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+              </Button>
+            </>
           )
         )}
       </div>
