@@ -77,6 +77,8 @@ Deno.serve(async (req) => {
           device_info,
           is_active: true,
           last_seen_at: new Date().toISOString(),
+          last_validated_at: new Date().toISOString(),
+          fail_count: 0,
         },
         { onConflict: "token" },
       );
