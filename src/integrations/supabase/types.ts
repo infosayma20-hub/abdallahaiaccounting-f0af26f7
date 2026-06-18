@@ -5065,9 +5065,11 @@ export type Database = {
         Row: {
           created_at: string
           device_info: string | null
+          fail_count: number
           id: string
           is_active: boolean
           last_seen_at: string
+          last_validated_at: string | null
           platform: string
           token: string
           user_id: string
@@ -5075,9 +5077,11 @@ export type Database = {
         Insert: {
           created_at?: string
           device_info?: string | null
+          fail_count?: number
           id?: string
           is_active?: boolean
           last_seen_at?: string
+          last_validated_at?: string | null
           platform: string
           token: string
           user_id: string
@@ -5085,9 +5089,11 @@ export type Database = {
         Update: {
           created_at?: string
           device_info?: string | null
+          fail_count?: number
           id?: string
           is_active?: boolean
           last_seen_at?: string
+          last_validated_at?: string | null
           platform?: string
           token?: string
           user_id?: string
@@ -19829,6 +19835,7 @@ export type Database = {
         }
       }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
+      cleanup_stale_device_tokens: { Args: never; Returns: Json }
       clear_must_change_password: { Args: never; Returns: boolean }
       close_pos_session_atomic: {
         Args: {
@@ -20691,6 +20698,10 @@ export type Database = {
           total_credit: number
           total_debit: number
         }[]
+      }
+      increment_device_token_failures: {
+        Args: { _id: string }
+        Returns: undefined
       }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
