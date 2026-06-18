@@ -179,11 +179,43 @@ Deno.serve(async (req) => {
     if (rows.length === 0) break;
     totalClaimed += rows.length;
 
+    // M1: Skip notifications whose source event is too old (>72h).
+    // Late delivery of stale events (e.g. POS) is noise — mark skipped.
+    const STALE_HOURS = 72;
+    const staleCutoffMs = Date.now() - STALE_HOURS * 3600 * 1000;
+    const NEVER_STALE = new Set(["legacy_push", "manager_digest"]);
+    const staleRows: QueueRow[] = [];
+    const freshRows: QueueRow[] = [];
+    for (const r of rows) {
+      const src = r.source_created_at ? Date.parse(r.source_created_at) : NaN;
+      if (
+        !NEVER_STALE.has(r.event_type) &&
+        Number.isFinite(src) &&
+        src < staleCutoffMs
+      ) {
+        staleRows.push(r);
+      } else {
+        freshRows.push(r);
+      }
+    }
+    if (staleRows.length > 0) {
+      await supabase
+        .from("notification_queue")
+        .update({
+          status: "skipped",
+          last_error: "stale_source",
+          sent_at: new Date().toISOString(),
+        })
+        .in("id", staleRows.map((r) => r.id));
+      totalSkipped += staleRows.length;
+    }
+    if (freshRows.length === 0) continue;
+
     // Phase 3 digest: collapse multiple rows for the same recipient in this
     // batch into a single summary notification. Keeps one row as the "carrier"
     // and marks the rest as sent (digested) so we don't fire N pushes.
     const rowsByRecipient = new Map<string, QueueRow[]>();
-    for (const r of rows) {
+    for (const r of freshRows) {
       const arr = rowsByRecipient.get(r.recipient_user_id) ?? [];
       arr.push(r);
       rowsByRecipient.set(r.recipient_user_id, arr);
