@@ -20699,6 +20699,10 @@ export type Database = {
           total_debit: number
         }[]
       }
+      increment_device_token_failures: {
+        Args: { _id: string }
+        Returns: undefined
+      }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
         Returns: boolean
