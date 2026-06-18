@@ -35,6 +35,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   const [upfrontSelfieRequired, setUpfrontSelfieRequired] = useState<boolean | null>(null);
   const [checkingBranch, setCheckingBranch] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const processingRef = useRef(false);
   const scannerDivId = "qr-reader-employee";
 
   const stopScanner = useCallback(async () => {
@@ -60,6 +61,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       setPrefetchedSelfie(null);
       setUpfrontSelfieRequired(null);
       setCheckingBranch(false);
+      processingRef.current = false;
     }
   }, [open, stopScanner]);
 
@@ -131,7 +133,8 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
   };
 
   const processQR = async (qrPayload: string) => {
-    if (processing) return;
+    if (processingRef.current) return;
+    processingRef.current = true;
     setProcessing(true);
     setResult(null);
 
@@ -140,6 +143,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       if (colonIdx === -1) {
         setResult({ success: false, message: "صيغة QR غير صحيحة" });
         setProcessing(false);
+        processingRef.current = false;
         return;
       }
       const branchId = qrPayload.substring(0, colonIdx);
@@ -165,6 +169,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
         await stopScanner();
         setPendingScan({ branchId, token, lat: 0, lng: 0 });
         setProcessing(false);
+        processingRef.current = false;
         // اعرض شاشة وسيطة تتطلب نقرة مستخدم لفتح الكاميرا (gesture جديد لـ Safari).
         setAwaitingSelfieGesture(true);
         return;
@@ -175,6 +180,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
     } catch (e: any) {
       setResult({ success: false, message: e.message });
       setProcessing(false);
+      processingRef.current = false;
     }
   };
 
@@ -242,6 +248,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess,
       }
     }
     setProcessing(false);
+    processingRef.current = false;
   };
 
   const handleSelfieCapture = async (base64: string) => {
