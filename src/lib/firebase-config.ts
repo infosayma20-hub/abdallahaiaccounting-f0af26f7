@@ -15,7 +15,7 @@ export const firebaseConfig = {
 
 // VAPID public key from Firebase Console → Project Settings → Cloud Messaging
 // → Web configuration → "Web Push certificates". Public by design.
-export const FIREBASE_VAPID_KEY = "m0H-yvtTCOtC87zo5uYlJq_tEhY0KgRUHzz74Zfrglk";
+export const FIREBASE_VAPID_KEY = "BN23xk6yf8jxBsnk1s0IC5GazRL7KIDVAPh6JXGUo0yXzvHDm1HiY9SGrbYS43evNbhWtmtZTvUllHkXFezbSlg";
 
 export const isFirebaseConfigured = () =>
   firebaseConfig.apiKey.length > 0 && FIREBASE_VAPID_KEY.length > 0;
