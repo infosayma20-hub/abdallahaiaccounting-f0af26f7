@@ -77,6 +77,9 @@ export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
   if (status === "incomplete" && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
+  if (status === "na" && location.pathname === "/onboarding") {
+    return <Navigate to="/" replace />;
+  }
   if (status === "completed" && location.pathname === "/onboarding") {
     return <Navigate to="/apps" replace />;
   }

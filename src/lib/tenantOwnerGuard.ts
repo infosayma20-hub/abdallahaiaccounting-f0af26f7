@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 
 // Roles that DO NOT belong to a tenant owner. Tenant owners only ever
 // hold `admin` (or no role). Anyone with one of these is bound to an
@@ -14,6 +15,14 @@ const NON_OWNER_ROLES = new Set<string>([
 type ProfileTenantMarker = { invited_by?: string | null; role?: string | null };
 type EmployeeTenantMarker = { user_id?: string | null; is_active?: boolean | null; is_terminated?: boolean | null };
 type LinkedTenantMarker = { user_id?: string | null; is_active?: boolean | null };
+
+const dataOrFail = <T,>(result: { data: T; error: unknown }): T => {
+  if (result.error) {
+    if (isAuthSessionExpiredError(result.error)) redirectToSessionExpired();
+    throw result.error;
+  }
+  return result.data;
+};
 
 export interface TenantOwnerCheck {
   /** True when the user is allowed to run the company-registration wizard. */
@@ -35,12 +44,12 @@ export interface TenantOwnerCheck {
  */
 export async function canUserCreateTenant(authUserId: string): Promise<TenantOwnerCheck> {
   const [
-    { data: rolesRows },
-    { data: profileRow },
-    { data: empRow },
-    { data: posUserRow },
-    { data: portalUserRow },
-    { data: featurePermRows },
+    rolesResult,
+    profileResult,
+    empResult,
+    posUserResult,
+    portalUserResult,
+    featurePermResult,
   ] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", authUserId),
     supabase
@@ -70,6 +79,13 @@ export async function canUserCreateTenant(authUserId: string): Promise<TenantOwn
       .eq("access_state", "allow")
       .limit(1),
   ]);
+
+  const rolesRows = dataOrFail(rolesResult);
+  const profileRow = dataOrFail(profileResult);
+  const empRow = dataOrFail(empResult);
+  const posUserRow = dataOrFail(posUserResult);
+  const portalUserRow = dataOrFail(portalUserResult);
+  const featurePermRows = dataOrFail(featurePermResult);
 
   const profile = profileRow as ProfileTenantMarker | null;
   const employee = empRow as EmployeeTenantMarker | null;

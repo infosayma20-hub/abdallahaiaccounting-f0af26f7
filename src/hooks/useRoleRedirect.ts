@@ -2,12 +2,21 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { canUserCreateTenant } from "@/lib/tenantOwnerGuard";
+import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 
 const redirectCache = new Map<string, string | null>();
 
 type ProfileRouteMarker = { role?: string | null };
 type PosRouteMarker = { is_active?: boolean | null };
 type PortalRouteMarker = { is_active?: boolean | null };
+
+const readDataOrThrow = <T,>(result: { data: T; error: unknown }): T => {
+  if (result.error) {
+    if (isAuthSessionExpiredError(result.error)) redirectToSessionExpired();
+    throw result.error;
+  }
+  return result.data;
+};
 
 const readWorkspaceChoice = (userId: string) => {
   try {
@@ -67,11 +76,11 @@ export function useRoleRedirect() {
     const resolve = async () => {
       try {
         const [
-          { data: rolesData },
-          { data: profileRow },
-          { data: empRow },
-          { data: posUserRow },
-          { data: portalUserRow },
+          rolesResult,
+          profileResult,
+          empResult,
+          posUserResult,
+          portalUserResult,
         ] = await Promise.all([
           supabase.from("user_roles").select("role").eq("user_id", user.id),
           supabase
@@ -95,6 +104,12 @@ export function useRoleRedirect() {
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
+
+        const rolesData = readDataOrThrow(rolesResult);
+        const profileRow = readDataOrThrow(profileResult);
+        const empRow = readDataOrThrow(empResult);
+        const posUserRow = readDataOrThrow(posUserResult);
+        const portalUserRow = readDataOrThrow(portalUserResult);
 
         const profile = profileRow as ProfileRouteMarker | null;
         const posUser = posUserRow as PosRouteMarker | null;

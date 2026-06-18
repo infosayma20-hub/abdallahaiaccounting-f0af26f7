@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 
 /**
  * Reads owner-onboarding completion for a given user.
@@ -10,50 +11,66 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export type OnboardingStatus = "na" | "incomplete" | "completed";
 
+const assertQueryOk = <T,>(result: { data: T; error: unknown }): T => {
+  if (result.error) {
+    if (isAuthSessionExpiredError(result.error)) redirectToSessionExpired();
+    throw result.error;
+  }
+  return result.data;
+};
+
 async function checkFeedbackOnly(userId: string): Promise<boolean> {
-  const { data } = await supabase
+  const data = assertQueryOk(await supabase
     .from("user_feature_permissions")
     .select("id")
     .eq("target_user_id", userId)
     .eq("app_key", "call_center_feedback")
     .eq("access_state", "allow")
-    .limit(1);
+    .limit(1));
   return !!(data && data.length > 0);
 }
 
 async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | null> {
-  const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
+  const ownerIdData = assertQueryOk(await supabase.rpc("get_team_owner_id", { _user_id: userId }));
   const ownerId = (ownerIdData as string | null) || userId;
-  const { data: company } = await supabase
+  const company = assertQueryOk(await supabase
     .from("companies")
     .select("id")
     .eq("owner_id", ownerId)
-    .maybeSingle();
+    .maybeSingle());
   if (!company) {
     // No `companies` row but the tenant may still be an established legacy
     // user (chart of accounts seeded, invoices, employees, contacts). Don't
     // force them into the wizard.
-    const { count: accountsCount } = await supabase
+    const { count: accountsCount, error: accountsError } = await supabase
       .from("accounts")
       .select("id", { count: "exact", head: true })
       .eq("user_id", ownerId);
+    if (accountsError) {
+      if (isAuthSessionExpiredError(accountsError)) redirectToSessionExpired();
+      throw accountsError;
+    }
     if ((accountsCount ?? 0) > 5) return true;
     return false; // truly new → must onboard
   }
-  const { data: profile } = await supabase
+  const profile = assertQueryOk(await supabase
     .from("company_profiles")
     .select("onboarding_completed")
     .eq("company_id", company.id)
-    .maybeSingle();
+    .maybeSingle());
   if (profile?.onboarding_completed) return true;
   // Fallback for legacy tenants who own a company but never went through the
   // 6-step wizard: if they already have substantive data, treat as completed
   // so the gate doesn't loop them back to /onboarding.
   if (!profile) {
-    const { count: accountsCount } = await supabase
+    const { count: accountsCount, error: accountsError } = await supabase
       .from("accounts")
       .select("id", { count: "exact", head: true })
       .eq("user_id", ownerId);
+    if (accountsError) {
+      if (isAuthSessionExpiredError(accountsError)) redirectToSessionExpired();
+      throw accountsError;
+    }
     if ((accountsCount ?? 0) > 5) return true;
   }
   return false;
@@ -61,7 +78,7 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
 
 export async function fetchOnboardingStatus(userId: string): Promise<OnboardingStatus> {
   try {
-    const [{ data: rolesData }, { data: emp }] = await Promise.all([
+    const [rolesResult, empResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase
         .from("employees")
@@ -69,6 +86,8 @@ export async function fetchOnboardingStatus(userId: string): Promise<OnboardingS
         .eq("auth_user_id", userId)
         .maybeSingle(),
     ]);
+    const rolesData = assertQueryOk(rolesResult);
+    const emp = assertQueryOk(empResult);
     const roles = (rolesData || []).map((r) => String(r.role));
     const hasAdminAccess = roles.some(
       (r) => r === "admin" || r === "hr_manager" || r.startsWith("accountant")
@@ -80,6 +99,7 @@ export async function fetchOnboardingStatus(userId: string): Promise<OnboardingS
     if (roles.includes("worker") && roles.length === 1) return "na";
     if (roles.includes("sales_rep") && !hasAdminAccess) return "na";
     if (roles.includes("cashier") && !roles.includes("admin")) return "na";
+    if (roles.includes("employee") && !hasAdminAccess) return "na";
 
     const isEmployee = !!emp && emp.is_active && !emp.is_terminated;
     if (isEmployee && !hasAdminAccess) return "na";
@@ -105,7 +125,7 @@ export async function fetchOnboardingStatus(userId: string): Promise<OnboardingS
  */
 export async function resolvePostSignupDestination(userId: string): Promise<string> {
   try {
-    const [{ data: rolesData }, { data: emp }] = await Promise.all([
+    const [rolesResult, empResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase
         .from("employees")
@@ -113,6 +133,8 @@ export async function resolvePostSignupDestination(userId: string): Promise<stri
         .eq("auth_user_id", userId)
         .maybeSingle(),
     ]);
+    const rolesData = assertQueryOk(rolesResult);
+    const emp = assertQueryOk(empResult);
     const roles = (rolesData || []).map((r) => String(r.role));
     const hasAdminAccess = roles.some(
       (r) => r === "admin" || r === "super_admin" || r === "hr_manager" || r.startsWith("accountant")
@@ -138,6 +160,6 @@ export async function resolvePostSignupDestination(userId: string): Promise<stri
     const completed = await readOwnerOnboardingCompleted(userId);
     return completed ? "/apps" : "/onboarding";
   } catch {
-    return "/onboarding"; // safest default for a fresh signup
+    return "/"; // fail-safe: re-run role routing instead of forcing onboarding
   }
 }

@@ -2,7 +2,7 @@ import { useEffect, useState, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { normalizeAuthSessionExpiry, releaseAuthRefreshLeadership, startAuthRefreshCoordinator } from "@/lib/auth-cross-tab";
-import { redirectToSessionExpired } from "@/lib/sessionExpired";
+import { isAuthSessionExpiredError, redirectToSessionExpired } from "@/lib/sessionExpired";
 
 interface AuthContextType {
   user: User | null;
@@ -85,7 +85,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           for (const key of Object.keys(sessionStorage)) {
             if (key.startsWith("workspace-choice:")) sessionStorage.removeItem(key);
           }
-        } catch {}
+        } catch {
+          // Storage cleanup is best-effort.
+        }
         setTimeout(() => logEvent("login_success", session), 0);
       } else if (event === "PASSWORD_RECOVERY") {
         setTimeout(() => logEvent("password_recovery", session), 0);
@@ -147,9 +149,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const { error: refErr } = await supabase.auth.refreshSession();
           if (refErr) {
             redirectToSessionExpired();
+            return;
           }
         }
-      } catch {
+        const { data: freshUser, error: userErr } = await supabase.auth.getUser();
+        if (userErr) {
+          if (isAuthSessionExpiredError(userErr)) redirectToSessionExpired();
+          return;
+        }
+        if (!freshUser?.user) redirectToSessionExpired();
+      } catch (err) {
+        if (isAuthSessionExpiredError(err)) redirectToSessionExpired();
         // Network errors do NOT count as session expiry. Stay put.
       }
     };
