@@ -472,6 +472,32 @@ Deno.serve(async (req) => {
 
       // ─── Original checkin/checkout logic ───
       // ───────────────────────────────────────────────────────────────
+      // 🛡️  SERVER-SIDE GUARD — duplicate mobile scan protection
+      // Camera scanners can emit the same QR multiple times before the stream
+      // fully stops. If the client sends another "checkin" seconds after a
+      // fresh check_in, treat it as the same punch — never auto-convert it into
+      // a checkout, otherwise the employee appears to have a 5–10s workday.
+      // ───────────────────────────────────────────────────────────────
+      const DUPLICATE_CHECKIN_WINDOW_MS = 60_000;
+      if (bodyAction === "checkin" && openSessionStart && !isOnBreak) {
+        const openAgeMs = Date.now() - new Date(openSessionStart.event_time).getTime();
+        const openDate = hebronDateFromIso(openSessionStart.event_time);
+        if (openDate === today && openAgeMs >= 0 && openAgeMs <= DUPLICATE_CHECKIN_WINDOW_MS) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              duplicate_suppressed: true,
+              message: "تم تسجيل الدخول مسبقاً ✅",
+              event_type: "check_in",
+              time: openSessionStart.event_time,
+              branch: branch.name,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // ───────────────────────────────────────────────────────────────
       // 🛡️  SERVER-SIDE GUARD — close-open-session-first
       // If the client asked for "checkin" but the employee already has an
       // OPEN session (check_in without a matching check_out) from a previous
