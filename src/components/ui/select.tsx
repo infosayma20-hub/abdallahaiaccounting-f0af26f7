@@ -2,7 +2,6 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -69,8 +68,13 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   SelectContentProps
 >(({ className, children, position = "popper", portal, portalContainer, sideOffset = 4, ...props }, ref) => {
-  const isMobile = useIsMobile();
-  const shouldPortal = portal ?? !isMobile;
+  // Portal MUST default to true — especially on mobile.
+  // Without a portal, SelectContent renders inside the nearest overflow:hidden
+  // ancestor (WebLayout has two, AccountingShell has overflow-x:auto) and gets
+  // clipped or invisible. The previous `!isMobile` default was the root cause
+  // of the mobile-dropdown bug. Callers may still pass `portal={false}` if
+  // they have a very specific reason (e.g. embedding inside a custom popover).
+  const shouldPortal = portal ?? true;
 
   const content = (
     <SelectPrimitive.Content
