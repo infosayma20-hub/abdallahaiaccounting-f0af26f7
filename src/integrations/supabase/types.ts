@@ -9688,11 +9688,86 @@ export type Database = {
           },
         ]
       }
+      notification_broadcasts: {
+        Row: {
+          audience_filter: Json | null
+          audience_type: string
+          body: string
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          error_summary: string | null
+          failed_count: number
+          id: string
+          path: string | null
+          recipients_count: number
+          sent_by: string
+          sent_count: number
+          status: string
+          template_id: string | null
+          title: string
+        }
+        Insert: {
+          audience_filter?: Json | null
+          audience_type: string
+          body: string
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_summary?: string | null
+          failed_count?: number
+          id?: string
+          path?: string | null
+          recipients_count?: number
+          sent_by: string
+          sent_count?: number
+          status?: string
+          template_id?: string | null
+          title: string
+        }
+        Update: {
+          audience_filter?: Json | null
+          audience_type?: string
+          body?: string
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_summary?: string | null
+          failed_count?: number
+          id?: string
+          path?: string | null
+          recipients_count?: number
+          sent_by?: string
+          sent_count?: number
+          status?: string
+          template_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_broadcasts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_broadcasts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_log: {
         Row: {
           body: string | null
+          broadcast_id: string | null
           channel: string
           created_at: string
+          delivery_error: string | null
+          delivery_status: string | null
           id: string
           path: string | null
           read_at: string | null
@@ -9703,8 +9778,11 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          broadcast_id?: string | null
           channel?: string
           created_at?: string
+          delivery_error?: string | null
+          delivery_status?: string | null
           id?: string
           path?: string | null
           read_at?: string | null
@@ -9715,8 +9793,11 @@ export type Database = {
         }
         Update: {
           body?: string | null
+          broadcast_id?: string | null
           channel?: string
           created_at?: string
+          delivery_error?: string | null
+          delivery_status?: string | null
           id?: string
           path?: string | null
           read_at?: string | null
@@ -9725,7 +9806,74 @@ export type Database = {
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_log_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "notification_broadcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          body_template: string
+          category: string
+          code: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          title_template: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          body_template: string
+          category?: string
+          code: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          title_template: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          body_template?: string
+          category?: string
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          title_template?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       official_holidays: {
         Row: {
