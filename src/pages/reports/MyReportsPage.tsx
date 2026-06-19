@@ -49,6 +49,7 @@ import {
 import FoldersSidebar, { FolderFilter } from "@/components/report-builder/FoldersSidebar";
 import VersionHistoryDialog from "@/components/report-builder/VersionHistoryDialog";
 import { useReportFolders } from "@/hooks/useReportFolders";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface SavedReport {
   id: string;
@@ -85,7 +86,7 @@ export default function MyReportsPage() {
       .select(
         "id, name, description, data_source, is_favorite, is_archived, archived_at, folder_id, use_count, last_used_at, created_at",
       )
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .order("is_favorite", { ascending: false })
       .order("last_used_at", { ascending: false, nullsFirst: false });
     setReports((data as any) || []);
@@ -157,7 +158,7 @@ export default function MyReportsPage() {
       .maybeSingle();
     if (!full) return;
     const { error } = await supabase.from("custom_reports").insert({
-      user_id: user.id,
+      user_id: dataOwnerId!,
       name: `${full.name} - نسخة`,
       description: full.description,
       data_source: full.data_source,

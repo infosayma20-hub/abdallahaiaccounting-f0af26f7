@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,7 @@ export default function LoanAttachments({ loanId, userId }: LoanAttachmentsProps
 
         await supabase.from("loan_attachments" as any).insert({
           loan_id: loanId,
-          user_id: userId,
+          user_id: dataOwnerId!,
           file_name: file.name,
           file_url: urlData.publicUrl,
           file_type: file.type,

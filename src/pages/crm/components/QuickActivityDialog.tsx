@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { ACTIVITY_META } from "../types";
@@ -44,7 +45,7 @@ export default function QuickActivityDialog({ open, contactId, onClose, onSaved 
     }
     setSaving(true);
     const { error } = await supabase.from("crm_activities").insert({
-      user_id: user.id,
+      user_id: dataOwnerId!,
       contact_id: contactId,
       activity_type: form.activity_type,
       title: form.title.trim(),

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 
 export interface JournalTemplateLine {
@@ -88,7 +89,7 @@ export function useJournalTemplates() {
       const { data, error } = await supabase
         .from("journal_templates" as any)
         .insert({
-          user_id: user.id,
+          user_id: dataOwnerId!,
           name: input.name.trim(),
           icon: input.icon || "📋",
           description: input.description || null,

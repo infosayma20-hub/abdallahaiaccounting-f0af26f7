@@ -32,6 +32,7 @@ import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker"
 import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
@@ -230,8 +231,8 @@ const JournalNewPage = () => {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).neq("is_archived", true),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId!).eq("is_active", true).order("account_code"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId!).neq("is_archived", true),
     ]).then(([aRes, cRes]) => {
       setAccounts(aRes.data || []);
       setContacts(cRes.data || []);
@@ -241,7 +242,7 @@ const JournalNewPage = () => {
   // Auto-generate ref number
   useEffect(() => {
     if (!user) return;
-    supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1)
+    supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId!).eq("type", "journal").order("created_at", { ascending: false }).limit(1)
       .then(({ data }) => {
         const lastRef = (data || [])[0]?.ref_number || "";
         const match = lastRef.match(/(\d+)$/);
@@ -311,7 +312,7 @@ const JournalNewPage = () => {
           .from("vouchers")
           .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type")
           .eq("id", editingVoucherId)
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .maybeSingle();
         if (vErr || !v) {
           toast.error("السند غير موجود أو ليس لديك صلاحية");
@@ -523,7 +524,7 @@ const JournalNewPage = () => {
     try {
       const contactType = quickAddType === "customer" ? "عميل" : "مورد";
       const { data, error } = await supabase.from("contacts").insert({
-        user_id: user.id,
+        user_id: dataOwnerId!,
         contact_name: quickAddName.trim(),
         contact_type: contactType,
         current_balance: 0,
@@ -835,7 +836,7 @@ const JournalNewPage = () => {
       let q = supabase
         .from("vouchers")
         .select("id, ref_number, created_at")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("type", "journal");
       if (editingCreatedAt) {
         if (direction === "prev") {
@@ -943,7 +944,7 @@ const JournalNewPage = () => {
     if (!user) return;
     // Generate a new ref number
     const { data } = await supabase
-      .from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal")
+      .from("vouchers").select("ref_number").eq("user_id", dataOwnerId!).eq("type", "journal")
       .order("created_at", { ascending: false }).limit(1);
     const lastRef = (data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);

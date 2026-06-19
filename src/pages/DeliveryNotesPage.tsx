@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { fmtDateDisplay } from "@/lib/utils";
@@ -68,7 +69,7 @@ const DeliveryNotesPage = () => {
     const { data } = await supabase
       .from("delivery_notes")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .order("created_at", { ascending: false });
     setNotes((data as any[]) || []);
     setLoading(false);
@@ -76,7 +77,7 @@ const DeliveryNotesPage = () => {
 
   const fetchProducts = async () => {
     if (!user) return;
-    const { data } = await supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", user.id);
+    const { data } = await supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", dataOwnerId!);
     setProducts(data || []);
   };
 
@@ -110,7 +111,7 @@ const DeliveryNotesPage = () => {
             quantity: Math.max(0, (product.quantity || 0) - item.quantity),
           }).eq("id", item.product_id);
           movementRows.push({
-            user_id: user!.id,
+            user_id: dataOwnerId!,
             product_id: item.product_id,
             movement_type: "صادر",
             quantity: -Math.abs(item.quantity),
@@ -135,7 +136,7 @@ const DeliveryNotesPage = () => {
     try {
       const { data: items } = await supabase.from("delivery_note_items").select("*").eq("delivery_note_id", note.id);
       const invoiceData = {
-        user_id: user!.id,
+        user_id: dataOwnerId!,
         invoice_type: "sale",
         contact_id: note.contact_id,
         contact_name: note.contact_name,

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Edit, Search, Phone, Mail, Globe } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 const SUPPLIER_SUBTYPES: Record<string, string> = {
   airline: "شركة طيران",
@@ -49,7 +50,7 @@ export default function TravelSuppliersPage() {
   const handleSave = async () => {
     if (!user || !form.contact_name) return;
     const payload: any = {
-      user_id: user.id,
+      user_id: dataOwnerId!,
       contact_type: "supplier",
       contact_name: form.contact_name,
       phone: form.phone || null,

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Brain, TrendingUp, Users, Repeat, Clock, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Badge } from "@/components/ui/badge";
 
 interface PatternData {
@@ -40,7 +41,7 @@ const SmartMemory = () => {
       const { data } = await supabase
         .from("transactions")
         .select("amount, description, debit_account_code, credit_account_code, transaction_date, transaction_type, payment_method, contact_id, created_at, is_deleted")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("is_deleted", false)
         .order("created_at", { ascending: false })
         .limit(2000);

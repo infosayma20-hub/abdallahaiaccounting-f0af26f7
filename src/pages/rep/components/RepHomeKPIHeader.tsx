@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Banknote, Lock, Loader2 } from "lucide-react";
 
@@ -43,7 +44,7 @@ export default function RepHomeKPIHeader({ repId, userId, cashBoxId }: Props) {
       const { data: invs } = await (supabase as any)
         .from("invoices")
         .select("id, subtotal, total_amount, discount_amount, status, is_voided")
-        .eq("user_id", userId)
+        .eq("user_id", dataOwnerId!)
         .eq("salesperson_id", repId)
         .eq("is_voided", false)
         .gte("created_at", isoStart);
@@ -66,7 +67,7 @@ export default function RepHomeKPIHeader({ repId, userId, cashBoxId }: Props) {
         const { data: today } = await (supabase as any)
           .from("transactions")
           .select("amount, credit_account_code, transaction_type, reversed_by_id")
-          .eq("user_id", userId)
+          .eq("user_id", dataOwnerId!)
           .eq("is_deleted", false)
           .eq("debit_account_code", cashAccountCode)
           .gte("created_at", isoStart);
@@ -82,7 +83,7 @@ export default function RepHomeKPIHeader({ repId, userId, cashBoxId }: Props) {
         const { data: all } = await (supabase as any)
           .from("transactions")
           .select("amount, debit_account_code, credit_account_code, transaction_type, reversed_by_id")
-          .eq("user_id", userId)
+          .eq("user_id", dataOwnerId!)
           .eq("is_deleted", false)
           .or(`debit_account_code.eq.${cashAccountCode},credit_account_code.eq.${cashAccountCode}`);
         repBalance = ((all as any[]) || [])

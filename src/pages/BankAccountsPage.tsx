@@ -12,6 +12,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const PALESTINIAN_BANKS = [
@@ -130,8 +131,8 @@ const BankAccountsPage = () => {
     if (!user) return;
     setLoading(true);
     const [{ data: bankData }, { data: accData }] = await Promise.all([
-      supabase.from("bank_accounts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+      supabase.from("bank_accounts").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId!).eq("is_active", true).order("account_code"),
     ]);
     setBanks(bankData || []);
     setAccounts(accData || []);
@@ -194,8 +195,8 @@ const BankAccountsPage = () => {
 
     const isNew = !editingBankId;
     const { error } = isNew
-      ? await supabase.from("bank_accounts").insert({ ...payload, user_id: user.id })
-      : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", user.id);
+      ? await supabase.from("bank_accounts").insert({ ...payload, user_id: dataOwnerId! })
+      : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", dataOwnerId!);
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });

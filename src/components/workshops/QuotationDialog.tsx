@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,7 @@ const QuotationDialog = ({
     let query = supabase
       .from("quotations")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId!)
       .order("created_at", { ascending: false });
     if (workshopId) {
       query = query.eq("workshop_id", workshopId);
@@ -142,7 +143,7 @@ const QuotationDialog = ({
     const { count } = await supabase
       .from("quotations")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
+      .eq("user_id", dataOwnerId!);
     const seq = String((count || 0) + 1).padStart(4, "0");
     return `QUO-${year}-${seq}`;
   };
@@ -177,7 +178,7 @@ const QuotationDialog = ({
     try {
       const quoteNumber = await generateQuoteNumber();
       const { error } = await supabase.from("quotations").insert({
-        user_id: userId,
+        user_id: dataOwnerId!,
         workshop_id: workshopId || null,
         quote_number: quoteNumber,
         client_name: clientNameField,

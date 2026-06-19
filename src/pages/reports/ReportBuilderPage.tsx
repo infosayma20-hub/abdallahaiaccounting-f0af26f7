@@ -55,6 +55,7 @@ import { exportReportToPdf, PdfTemplate } from "@/lib/report-builder/pdf-export"
 import { ChevronDown, Briefcase, Coins, Minimize2, FileStack } from "lucide-react";
 import VersionHistoryDialog from "@/components/report-builder/VersionHistoryDialog";
 import { useReportFolders } from "@/hooks/useReportFolders";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 const DRAFT_KEY = "report-builder-draft";
 const VIEW_KEY_PREFIX = "report-builder-view-"; // per-source last view
@@ -135,7 +136,7 @@ export default function ReportBuilderPage() {
           .from("custom_reports")
           .select("*")
           .eq("id", loadId)
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .maybeSingle();
         if (rec) {
           setSourceKey(rec.data_source);
@@ -349,7 +350,7 @@ export default function ReportBuilderPage() {
       } else {
         const { data: created, error } = await supabase
           .from("custom_reports")
-          .insert({ user_id: user.id, ...payload })
+          .insert({ user_id: dataOwnerId!, ...payload })
           .select("id")
           .single();
         if (error) throw error;

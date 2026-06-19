@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { useCostCenters } from "@/hooks/useCostCenters";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { Can } from "@/components/permissions/Can";
 import { Input } from "@/components/ui/input";
@@ -101,11 +102,11 @@ export default function FinancePaymentsPage() {
     if (!user) return;
     setLoading(true);
     const [rvRes, cRes, cbRes, baRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment")
+      supabase.from("vouchers").select("*").eq("user_id", dataOwnerId!).eq("type", "payment")
         .order("date", { ascending: false }),
-      supabase.from("contacts").select("id, contact_name").eq("user_id", user.id),
-      supabase.from("cash_boxes").select("id, name, currency").eq("user_id", user.id),
-      supabase.from("bank_accounts").select("id, name, currency").eq("user_id", user.id),
+      supabase.from("contacts").select("id, contact_name").eq("user_id", dataOwnerId!),
+      supabase.from("cash_boxes").select("id, name, currency").eq("user_id", dataOwnerId!),
+      supabase.from("bank_accounts").select("id, name, currency").eq("user_id", dataOwnerId!),
     ]);
     const cMap = new Map<string, string>((cRes.data || []).map((c: any) => [c.id, c.contact_name]));
     const cbMap = new Map<string, any>((cbRes.data || []).map((b: any) => [b.id, b]));
@@ -301,7 +302,7 @@ export default function FinancePaymentsPage() {
       supabase.from("document_edit_history" as any).insert({
         document_id: warnTarget.id, document_type: "payment",
         old_data: warnTarget.raw, edit_reason: "فتح تعديل مستند مرحّل",
-        edited_by: user.id, user_id: user.id,
+        edited_by: user.id, user_id: dataOwnerId!,
       } as any);
     }
     setWarnOpen(false);
@@ -338,7 +339,7 @@ export default function FinancePaymentsPage() {
       await supabase.from("document_edit_history" as any).insert({
         document_id: delTarget.id, document_type: "payment",
         old_data: delTarget.raw, edit_reason: reason,
-        edited_by: user.id, user_id: user.id,
+        edited_by: user.id, user_id: dataOwnerId!,
         changes: { action: "delete", reason },
       } as any);
       toast({ title: "تم إلغاء السند وعكس تأثيره ✅" });

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -207,7 +208,7 @@ export default function POSUserManagementPage() {
   }, [selectedCompany]);
 
   const loadCompanies = async () => {
-    const { data } = await supabase.from("pos_companies").select("id, name").eq("user_id", user?.id);
+    const { data } = await supabase.from("pos_companies").select("id, name").eq("user_id", dataOwnerId!);
     setCompanies(data || []);
     if (data && data.length > 0) {
       setSelectedCompany(data[0].id);
@@ -312,7 +313,7 @@ export default function POSUserManagementPage() {
         await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
 
         await supabase.from("pos_user_permissions").upsert({
-          user_id: user!.id,
+          user_id: dataOwnerId!,
           pos_user_id: editingUser.id,
           company_id: selectedCompany,
           ...userPerms,
@@ -322,7 +323,7 @@ export default function POSUserManagementPage() {
         if (assignedDevices.length > 0) {
           await supabase.from("pos_user_device_access").insert(
             assignedDevices.map(did => ({
-              user_id: user!.id, pos_user_id: editingUser.id, device_id: did, can_login: true,
+              user_id: dataOwnerId!, pos_user_id: editingUser.id, device_id: did, can_login: true,
             }))
           );
         }
@@ -342,7 +343,7 @@ export default function POSUserManagementPage() {
 
         const { data: newUser, error: insertErr } = await supabase.from("pos_users").insert({
           id: tempId,
-          user_id: user!.id,
+          user_id: dataOwnerId!,
           company_id: selectedCompany,
           name: userForm.name,
           phone: userForm.phone || null,
@@ -356,7 +357,7 @@ export default function POSUserManagementPage() {
         if (insertErr) throw insertErr;
 
         await supabase.from("pos_user_permissions").insert({
-          user_id: user!.id,
+          user_id: dataOwnerId!,
           pos_user_id: newUser.id,
           company_id: selectedCompany,
           ...userPerms,
@@ -365,7 +366,7 @@ export default function POSUserManagementPage() {
         if (assignedDevices.length > 0) {
           await supabase.from("pos_user_device_access").insert(
             assignedDevices.map(did => ({
-              user_id: user!.id, pos_user_id: newUser.id, device_id: did, can_login: true,
+              user_id: dataOwnerId!, pos_user_id: newUser.id, device_id: did, can_login: true,
             }))
           );
         }
@@ -504,7 +505,7 @@ export default function POSUserManagementPage() {
         toast.success("الجهاز مسجل مسبقاً");
       } else {
         const { error: devErr } = await supabase.from("pos_devices").insert({
-          user_id: user!.id,
+          user_id: dataOwnerId!,
           company_id: selectedCompany,
           device_name: deviceForm.device_name,
           device_fingerprint: currentFingerprint,

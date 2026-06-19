@@ -11,6 +11,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 
 export type ActionType = 'deposit' | 'collected' | 'bounced' | 'endorse' | 'return_to_customer' | 'cancel' | 'cashed' | 'outgoing_bounced' | 'recover';
@@ -148,14 +149,14 @@ const ChequeActionModal = ({
       const { data: existing } = await supabase
         .from('contacts')
         .select('id, contact_name, contact_type')
-        .eq('user_id', user.id)
+        .eq("user_id", dataOwnerId!)
         .eq('contact_name', name)
         .maybeSingle();
       let created: any = existing;
       if (!existing) {
         const { data, error } = await supabase
           .from('contacts')
-          .insert({ user_id: user.id, contact_name: name, contact_type: 'مورد' })
+          .insert({ user_id: dataOwnerId!, contact_name: name, contact_type: 'مورد' })
           .select('id, contact_name, contact_type')
           .single();
         if (error) throw error;

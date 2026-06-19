@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ export default function TerminationDialog({ open, onClose, employee, userId, onS
 
     // Create termination record
     const { error: termError } = await supabase.from("termination_records").insert({
-      user_id: userId,
+      user_id: dataOwnerId!,
       employee_id: employee.id,
       termination_date: termDate,
       termination_reason: reason,

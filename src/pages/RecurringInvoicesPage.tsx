@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ const RecurringInvoicesPage = () => {
     const { data } = await supabase
       .from("recurring_invoices")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .order("created_at", { ascending: false });
     setInvoices((data as any[]) || []);
     setLoading(false);

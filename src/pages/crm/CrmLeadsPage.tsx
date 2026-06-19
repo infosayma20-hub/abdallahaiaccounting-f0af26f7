@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, Search, Phone, MessageCircle, Mail, MapPin, ArrowRight, Trash2, Edit3, UserCheck, ExternalLink } from "lucide-react";
 import { useCrmLeads } from "./hooks/useCrmData";
@@ -91,7 +92,7 @@ export default function CrmLeadsPage() {
 
     // 2) Create opportunity
     const oppPayload: any = {
-      user_id: userId,
+      user_id: dataOwnerId!,
       title: l.title,
       lead_id: l.id,
       contact_id: contact.id,

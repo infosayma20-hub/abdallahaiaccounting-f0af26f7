@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SalesRep {
@@ -92,7 +93,7 @@ export default function VanCommissionsPage() {
       const { data, error } = await supabase
         .from("sales_representatives")
         .select("id, full_name, default_warehouse_id, sales_commission_rate, collection_commission_rate, linked_account_name")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("is_active", true)
         .order("full_name");
       setLoading(false);
@@ -129,7 +130,7 @@ export default function VanCommissionsPage() {
       const { data: invs, error: e1 } = await supabase
         .from("invoices")
         .select("id, total_amount")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("warehouse_id", warehouseId)
         .eq("invoice_type", "sale")
         .eq("is_voided", false)
@@ -147,7 +148,7 @@ export default function VanCommissionsPage() {
       const { data: warehouseInvoices } = await supabase
         .from("invoices")
         .select("contact_id")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("warehouse_id", warehouseId)
         .eq("is_voided", false)
         .not("status", "in", "(cancelled,void,reversed)");
@@ -159,7 +160,7 @@ export default function VanCommissionsPage() {
         const { data: rcps } = await supabase
           .from("transactions")
           .select("id, amount")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .in("transaction_type", ["receipt", "سند قبض"])
           .gte("transaction_date", from)
           .lte("transaction_date", to)
@@ -176,7 +177,7 @@ export default function VanCommissionsPage() {
     const { data: hist } = await supabase
       .from("commissions")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("representative_id", selectedRep.id)
       .gte("created_at", `${from}T00:00:00`)
       .lte("created_at", `${to}T23:59:59`)

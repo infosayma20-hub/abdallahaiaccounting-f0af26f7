@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { format } from "date-fns";
 
 export default function WarrantyReportsPage() {
@@ -29,7 +30,7 @@ export default function WarrantyReportsPage() {
       const { data: exp } = await supabase
         .from("warranty_cards")
         .select("*, product:products(name_ar)")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("status", "active")
         .gte("end_date", todayStr)
         .lte("end_date", monthEndStr)
@@ -40,7 +41,7 @@ export default function WarrantyReportsPage() {
       const { data: claims } = await supabase
         .from("warranty_claims")
         .select("warranty_card_id, cost, card:warranty_cards(product:products(id, name_ar))")
-        .eq("user_id", user.id);
+        .eq("user_id", dataOwnerId!);
       const productMap: Record<string, { name: string; count: number; total_cost: number }> = {};
       (claims || []).forEach((c: any) => {
         const pid = c.card?.product?.id;
@@ -57,7 +58,7 @@ export default function WarrantyReportsPage() {
       const { data: sup } = await supabase
         .from("warranty_supplier_claims")
         .select("*, supplier:contacts(contact_name)")
-        .eq("user_id", user.id);
+        .eq("user_id", dataOwnerId!);
       const supMap: Record<string, { name: string; total: number; covered: number; ours: number }> = {};
       (sup || []).forEach((s: any) => {
         const id = s.supplier_id;

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ReturnRow {
@@ -54,7 +55,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
     const { data, error } = await supabase
       .from("returns" as any)
       .select("id, return_number, return_date, contact_name, total_amount, status, reason, related_invoice_id, notes")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("return_type", returnType)
       .eq("is_deleted", false)
       .order("created_at", { ascending: false });

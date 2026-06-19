@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 
 const FinanceHomePage = () => {
@@ -26,9 +27,9 @@ const FinanceHomePage = () => {
     const fetchData = async () => {
       setLoading(true);
       const [vRes, cRes, bRes] = await Promise.all([
-        supabase.from("vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
-        supabase.from("cheques").select("*").eq("user_id", user.id),
-        supabase.from("bank_accounts").select("*").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("vouchers").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }).limit(10),
+        supabase.from("cheques").select("*").eq("user_id", dataOwnerId!),
+        supabase.from("bank_accounts").select("*").eq("user_id", dataOwnerId!).eq("is_active", true),
       ]);
       setVouchers(vRes.data || []);
       setCheques(cRes.data || []);

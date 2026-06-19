@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -173,7 +174,7 @@ const UsersSettingsSection = () => {
       const { data: logs } = await supabase
         .from("activity_log")
         .select("id, actor_name, action, entity_type, entity_label, details, created_at")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .order("created_at", { ascending: false })
         .limit(50);
       if (logs) setAuditLogs(logs as AuditEntry[]);

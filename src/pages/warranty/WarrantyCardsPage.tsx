@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { format } from "date-fns";
 
 interface Card {
@@ -43,7 +44,7 @@ export default function WarrantyCardsPage() {
     let q = supabase
       .from("warranty_cards")
       .select("*, product:products(name_ar)")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .order("created_at", { ascending: false });
     if (statusFilter !== "all") q = q.eq("status", statusFilter);
     const { data } = await q;

@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { KPI_METRICS } from "./KpiWidget";
 import type { WidgetType, DashboardWidget } from "@/hooks/useCustomDashboards";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { TrendingUp, FileBarChart, Type, Sparkles } from "lucide-react";
 
 interface Props {
@@ -40,7 +41,7 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
       setConfig({ metric: "sales_total", period: "month" });
     }
     if (user) {
-      supabase.from("custom_reports").select("id, name").eq("user_id", user.id).order("name").then(({ data }) => {
+      supabase.from("custom_reports").select("id, name").eq("user_id", dataOwnerId!).order("name").then(({ data }) => {
         setReports((data as any) || []);
       });
     }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,7 +65,7 @@ export default function DeductionsExportDialog({ open, onClose, userId, employee
       let query = supabase
         .from("employee_financial_movements")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", dataOwnerId!)
         .eq("movement_type", "debit")
         .eq("status", "approved")
         .gte("movement_date", fromDate)

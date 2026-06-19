@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import PageHeader from "@/components/layout/PageHeader";
 import BackButton from "@/components/BackButton";
@@ -66,13 +67,13 @@ export default function HrDefinitionsPage() {
       supabase
         .from("departments")
         .select("id,name,name_ar,is_active,is_deleted")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("is_deleted", false)
         .order("name", { ascending: true }),
       supabase
         .from("job_titles")
         .select("id,name,name_ar,department_id,is_active,is_deleted")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("is_deleted", false)
         .order("name", { ascending: true }),
     ]);
@@ -107,7 +108,7 @@ export default function HrDefinitionsPage() {
       return;
     }
     const { error } = await supabase.from("departments").insert({
-      user_id: user.id,
+      user_id: dataOwnerId!,
       name,
       name_ar: name,
       is_active: true,
@@ -168,7 +169,7 @@ export default function HrDefinitionsPage() {
       return;
     }
     const { error } = await supabase.from("job_titles").insert({
-      user_id: user.id,
+      user_id: dataOwnerId!,
       name,
       name_ar: name,
       department_id: dept,

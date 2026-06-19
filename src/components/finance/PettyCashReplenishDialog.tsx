@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -71,7 +72,7 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
 
       // Record cash transfer
       await supabase.from("cash_transfers").insert({
-        user_id: userId,
+        user_id: dataOwnerId!,
         from_box_id: fromBox.id,
         to_box_id: toBox.id,
         amount: amountNum,

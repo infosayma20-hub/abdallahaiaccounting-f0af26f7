@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export interface CustomDashboard {
   id: string;
@@ -60,7 +61,7 @@ export function useCustomDashboards() {
     const { data, error } = await supabase
       .from("custom_dashboards")
       .insert({
-        user_id: user.id,
+        user_id: dataOwnerId!,
         name: input.name || "لوحة بدون اسم",
         description: input.description ?? null,
         icon: input.icon || "📊",
@@ -118,7 +119,7 @@ export function useDashboardWidgets(dashboardId: string | null) {
       .from("dashboard_widgets")
       .insert({
         dashboard_id: dashboardId,
-        user_id: user.id,
+        user_id: dataOwnerId!,
         widget_type: input.widget_type,
         title: input.title || null,
         config: input.config || {},

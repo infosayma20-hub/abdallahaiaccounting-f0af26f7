@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
@@ -55,7 +56,7 @@ export default function VanReportsPage() {
     const { data: repsData } = await supabase
       .from("sales_representatives")
       .select("id, full_name, default_warehouse_id")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("is_active", true)
       .order("full_name");
     const repsList = (repsData || []) as SalesRep[];
@@ -77,7 +78,7 @@ export default function VanReportsPage() {
       const { data: invs } = await supabase
         .from("invoices")
         .select("id, total_amount, warehouse_id, status, is_voided")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("invoice_type", "sale")
         .in("warehouse_id", warehouseIds)
         .eq("is_voided", false)
@@ -125,7 +126,7 @@ export default function VanReportsPage() {
       const { data: invsWithContact } = await supabase
         .from("invoices")
         .select("contact_id, warehouse_id, status, is_voided")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .in("warehouse_id", warehouseIds)
         .eq("is_voided", false)
         .gte("invoice_date", from)
@@ -142,7 +143,7 @@ export default function VanReportsPage() {
         const { data: rcps } = await supabase
           .from("transactions")
           .select("amount, contact_id")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .in("transaction_type", ["receipt", "سند قبض"])
           .gte("transaction_date", from)
           .lte("transaction_date", to)
@@ -165,7 +166,7 @@ export default function VanReportsPage() {
     const { data: comms } = await supabase
       .from("commissions")
       .select("id, representative_id, commission_type, base_amount, commission_rate, commission_amount, is_paid, paid_date, created_at, reference_description")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .gte("created_at", `${from}T00:00:00`)
       .lte("created_at", `${to}T23:59:59`)
       .order("created_at", { ascending: false });
@@ -198,7 +199,7 @@ export default function VanReportsPage() {
     const { data: daysData } = await supabase
       .from("van_sales_days")
       .select("id, day_number, day_date, status, sales_rep_id, total_sales, total_collections, expected_cash, actual_cash_collected, cash_variance")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .gte("day_date", from)
       .lte("day_date", to)
       .order("day_date", { ascending: false });

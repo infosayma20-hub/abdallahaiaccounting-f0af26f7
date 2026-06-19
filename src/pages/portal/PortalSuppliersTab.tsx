@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, MessageCircle, Phone, ArrowUpDown, Share2 } from 'lucide-react';
 import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
@@ -68,7 +69,7 @@ export default function PortalSuppliersTab({ theme = 'light', portalCompanyName 
       const { data } = await supabase
         .from('shared_statements')
         .insert({
-          user_id: userId,
+          user_id: dataOwnerId!,
           company_id: null,
           contact_id: contact.id,
           contact_name: contact.name,
