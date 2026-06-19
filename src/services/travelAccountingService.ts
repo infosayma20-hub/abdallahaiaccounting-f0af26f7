@@ -83,7 +83,7 @@ export async function createBookingJournalEntry(params: {
     // Full payment: Debit cash/bank, Credit revenue
     const debitCode = getPaymentAccountCode(paymentMethod);
     const { data, error } = await supabase.from("transactions").insert({
-      user_id: userId,
+      user_id: dataOwnerId!,
       transaction_date: new Date().toISOString().split("T")[0],
       description: `حجز سياحي - ${bookingNumber} - ${customerName || ""}`,
       debit_account_code: debitCode,
@@ -99,7 +99,7 @@ export async function createBookingJournalEntry(params: {
   } else {
     // Partial or no payment: Debit receivables, Credit revenue
     const { data } = await supabase.from("transactions").insert({
-      user_id: userId,
+      user_id: dataOwnerId!,
       transaction_date: new Date().toISOString().split("T")[0],
       description: `حجز سياحي (آجل) - ${bookingNumber} - ${customerName || ""}`,
       debit_account_code: "1135", // ذمم عملاء السياحة
@@ -116,7 +116,7 @@ export async function createBookingJournalEntry(params: {
     if (amountPaid > 0) {
       const debitCode = getPaymentAccountCode(paymentMethod);
       await supabase.from("transactions").insert({
-        user_id: userId,
+        user_id: dataOwnerId!,
         transaction_date: new Date().toISOString().split("T")[0],
         description: `دفعة حجز سياحي - ${bookingNumber} - ${customerName || ""}`,
         debit_account_code: debitCode,
@@ -149,7 +149,7 @@ export async function createPaymentJournalEntry(params: {
   const debitCode = getPaymentAccountCode(paymentMethod);
   
   await supabase.from("transactions").insert({
-    user_id: userId,
+    user_id: dataOwnerId!,
     transaction_date: new Date().toISOString().split("T")[0],
     description: `دفعة حجز سياحي - ${bookingNumber} - ${customerName || ""}`,
     debit_account_code: debitCode,
@@ -184,7 +184,7 @@ export async function reverseCancellationEntries(params: {
 
   // Create reversal entries (swap debit/credit)
   const reversals = originals.map(tx => ({
-    user_id: userId,
+    user_id: dataOwnerId!,
     transaction_date: new Date().toISOString().split("T")[0],
     description: `عكس قيد - إلغاء حجز ${bookingNumber} - ${customerName || ""}`,
     debit_account_code: tx.credit_account_code,

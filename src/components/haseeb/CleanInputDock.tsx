@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { ArrowUp, Mic, X, Square, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import SmartCommandBar from "./SmartCommandBar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -66,10 +67,10 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
     const fetchMentionData = async () => {
       try {
         const [contactsRes, productsRes, employeesRes, accountsRes] = await Promise.all([
-          supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true).neq('is_archived', true),
-          supabase.from('products').select('id, name, unit').eq('user_id', user.id),
-          supabase.from('employees').select('id, full_name, job_title').eq('user_id', user.id),
-          supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).eq('is_active', true),
+          supabase.from('contacts').select('id, contact_name, contact_type').eq("user_id", dataOwnerId!).eq('is_active', true).neq('is_archived', true),
+          supabase.from('products').select('id, name, unit').eq("user_id", dataOwnerId!),
+          supabase.from('employees').select('id, full_name, job_title').eq("user_id", dataOwnerId!),
+          supabase.from('accounts').select('id, account_name, account_code, account_type').eq("user_id", dataOwnerId!).eq('is_active', true),
         ]);
 
         const items: MentionItem[] = [
@@ -294,7 +295,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
     try {
       if (category === 'contact') {
         const { data, error } = await supabase.from('contacts').insert({
-          contact_name: name, user_id: user.id, contact_type: type || 'عميل',
+          contact_name: name, user_id: dataOwnerId!, contact_type: type || 'عميل',
         }).select('id, contact_name, contact_type').single();
         if (!error && data) {
           const newItem: MentionItem = { id: data.id, name: data.contact_name, type: data.contact_type, category: 'contact' };
@@ -304,7 +305,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
         }
       } else if (category === 'product') {
         const { data, error } = await supabase.from('products').insert({
-          name, user_id: user.id, unit: 'قطعة', buy_price: 0, sell_price: 0, quantity: 0, min_quantity: 0,
+          name, user_id: dataOwnerId!, unit: 'قطعة', buy_price: 0, sell_price: 0, quantity: 0, min_quantity: 0,
         }).select('id, name, unit').single();
         if (!error && data) {
           const newItem: MentionItem = { id: data.id, name: data.name, type: `صنف · ${data.unit}`, category: 'product' };
@@ -327,7 +328,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
         }
         const { data, error } = await supabase.from('employees').insert({
           full_name: name,
-          user_id: user.id,
+          user_id: dataOwnerId!,
           company_id: company.id,
           job_title: 'موظف',
           base_salary: 0,

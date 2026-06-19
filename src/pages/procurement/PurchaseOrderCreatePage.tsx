@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
@@ -192,10 +193,10 @@ const PurchaseOrderCreatePage = () => {
     const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null });
     if (ok && user) {
       const { data: existing } = await supabase.from("contacts")
-        .select("id").eq("user_id", user.id).eq("contact_name", newSupplier.name.trim()).eq("contact_type", "مورد").maybeSingle();
+        .select("id").eq("user_id", dataOwnerId!).eq("contact_name", newSupplier.name.trim()).eq("contact_type", "مورد").maybeSingle();
       if (!existing) {
         await supabase.from("contacts").insert({
-          user_id: user.id, contact_name: newSupplier.name.trim(), contact_type: "مورد",
+          user_id: dataOwnerId!, contact_name: newSupplier.name.trim(), contact_type: "مورد",
           phone: newSupplier.phone || null, is_active: true, linked_account_code: "2110",
         } as any);
       }
@@ -210,7 +211,7 @@ const PurchaseOrderCreatePage = () => {
     const { error } = await supabase.from("branches").insert({
       name: newBranch.name, address: newBranch.address || null,
       latitude: newBranch.latitude, longitude: newBranch.longitude,
-      user_id: user?.id, is_active: true, radius_meters: 500,
+      user_id: dataOwnerId!, is_active: true, radius_meters: 500,
     } as any);
     setSavingDialog(false);
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
@@ -233,7 +234,7 @@ const PurchaseOrderCreatePage = () => {
     if (ok && user) {
       const catName = categories.find((c: any) => c.id === newItem.category_id)?.name || "بضاعة عامة";
       await supabase.from("products").insert({
-        user_id: user.id, name: newItem.name, unit: newItem.unit,
+        user_id: dataOwnerId!, name: newItem.name, unit: newItem.unit,
         buy_price: newItem.default_price || 0, sell_price: 0, quantity: 0, min_quantity: 0, category: catName,
         is_pos_available: false,
       } as any);

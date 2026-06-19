@@ -20,6 +20,7 @@ import ExecutiveKPICards from "@/components/ExecutiveKPICards";
 import SavedCommands from "@/components/SavedCommands";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { useTheme } from "@/hooks/useTheme";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
@@ -125,7 +126,7 @@ const Dashboard = () => {
         const { data, error } = await supabase
           .from("transactions")
           .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, is_deleted")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .order("transaction_date", { ascending: false })
           .limit(2000);
         if (error) throw error;
@@ -134,7 +135,7 @@ const Dashboard = () => {
         const { data: accts } = await supabase
           .from("accounts")
           .select("account_code, account_type")
-          .eq("user_id", user.id);
+          .eq("user_id", dataOwnerId!);
         
         const typeMap: Record<string, string> = {};
         (accts || []).forEach((a: any) => { typeMap[a.account_code] = a.account_type; });
@@ -358,7 +359,7 @@ const Dashboard = () => {
           const { data: products } = await supabase
             .from("products")
             .select("id, name, quantity")
-            .eq("user_id", user.id);
+            .eq("user_id", dataOwnerId!);
           
           if (products) {
             const matchedProduct = products.find(p => 
@@ -375,7 +376,7 @@ const Dashboard = () => {
               // Create stock movement
               await supabase.from("stock_movements").insert({
                 product_id: matchedProduct.id,
-                user_id: user.id,
+                user_id: dataOwnerId!,
                 quantity: qty,
                 movement_type: movementType,
                 reference_note: pendingInvoice.originalText?.substring(0, 100) || '',
@@ -422,7 +423,7 @@ const Dashboard = () => {
 
         // 1. Save to cheques table
         const { error: chequeErr } = await supabase.from('cheques').insert({
-          user_id: user.id,
+          user_id: dataOwnerId!,
           cheque_type: chequeType as any,
           status: chequeStatus as any,
           cheque_number: line.chequeNumber || null,

@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -227,14 +228,14 @@ const OpeningBalancesImportPage = () => {
     try {
       // Create batch
       const { data: batch, error: batchErr } = await supabase.from("opening_balance_batches").insert({
-        user_id: user.id, batch_date: batchDate, status: "posted",
+        user_id: dataOwnerId!, batch_date: batchDate, status: "posted",
         total_debit: summary.totalDebit, total_credit: summary.totalCredit, currency, notes,
       }).select().single();
       if (batchErr) throw batchErr;
 
       // Create entries
       const rows = entries.map(e => ({
-        batch_id: batch.id, user_id: user.id, account_code: e.account_code,
+        batch_id: batch.id, user_id: dataOwnerId!, account_code: e.account_code,
         account_name: e.account_name, entity_type: e.entity_type, entity_name: e.entity_name,
         debit_amount: e.debit_amount, credit_amount: e.credit_amount, currency: e.currency,
         metadata: e.metadata, notes: e.notes,

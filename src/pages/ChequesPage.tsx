@@ -12,6 +12,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, X, Send, Undo2
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -249,20 +250,20 @@ const ChequesPage = () => {
   // =================== DATA FETCHING ===================
   const fetchBankAccounts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('bank_accounts').select('id, name, bank_name, gl_account_code').eq('user_id', user.id).eq('is_active', true);
+    const { data } = await supabase.from('bank_accounts').select('id, name, bank_name, gl_account_code').eq("user_id", dataOwnerId!).eq('is_active', true);
     setBankAccounts(data || []);
   }, [user]);
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true).neq('is_archived', true);
+    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq("user_id", dataOwnerId!).eq('is_active', true).neq('is_archived', true);
     setContacts(data || []);
   }, [user]);
 
   const fetchCheques = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from('cheques').select('*').eq('user_id', user.id).order('cheque_date', { ascending: false });
+    const { data, error } = await supabase.from('cheques').select('*').eq("user_id", dataOwnerId!).order('cheque_date', { ascending: false });
     if (error) toast.error("خطأ في جلب الشيكات");
     else setCheques((data || []) as unknown as Cheque[]);
     setLoading(false);
@@ -283,7 +284,7 @@ const ChequesPage = () => {
     setQuickAddingContact(true);
     try {
       const contactType = addType === 'وارد' ? 'عميل' : 'مورد';
-      const { error } = await supabase.from('contacts').insert({ user_id: user.id, contact_name: name.trim(), contact_type: contactType });
+      const { error } = await supabase.from('contacts').insert({ user_id: dataOwnerId!, contact_name: name.trim(), contact_type: contactType });
       if (error) throw error;
       toast.success(`تم إضافة "${name.trim()}" كـ${contactType} جديد`);
       setNewCheques(prev => prev.map(r => ({ ...r, party_name: name.trim() })));
@@ -323,7 +324,7 @@ const ChequesPage = () => {
         const sourceBank = bankAccounts.find(b => b.id === row.source_bank_account_id);
 
         const { data: chequeData, error } = await supabase.from('cheques').insert({
-          user_id: user.id, cheque_type: addType, status: chequeStatus,
+          user_id: dataOwnerId!, cheque_type: addType, status: chequeStatus,
           cheque_number: row.cheque_number || null,
           bank_name: addType === 'صادر' ? (sourceBank?.bank_name || row.bank_name || null) : (row.bank_name || null),
           cheque_date: row.cheque_date, amount, currency: row.currency,
@@ -339,7 +340,7 @@ const ChequesPage = () => {
         // Journal entry
         if (addType === 'وارد') {
           await supabase.from('transactions').insert({
-            user_id: user.id, transaction_date: row.cheque_date,
+            user_id: dataOwnerId!, transaction_date: row.cheque_date,
             description: `تسجيل شيك وارد - ${row.party_name} #${row.cheque_number || ''}`,
             debit_account_code: '1150', credit_account_code: '1130',
             amount, currency: row.currency || 'شيكل',
@@ -350,7 +351,7 @@ const ChequesPage = () => {
           });
         } else {
           await supabase.from('transactions').insert({
-            user_id: user.id, transaction_date: row.cheque_date,
+            user_id: dataOwnerId!, transaction_date: row.cheque_date,
             description: `تسجيل شيك صادر - ${row.party_name} #${row.cheque_number || ''}`,
             debit_account_code: '2110', credit_account_code: '1160',
             amount, currency: row.currency || 'شيكل',
@@ -362,7 +363,7 @@ const ChequesPage = () => {
         }
 
         await supabase.from('cheque_status_history').insert({
-          cheque_id: chequeId, user_id: user.id,
+          cheque_id: chequeId, user_id: dataOwnerId!,
           from_status: null, to_status: chequeStatus, action_type: 'register',
         });
       }
@@ -478,7 +479,7 @@ const ChequesPage = () => {
         const bank = bankAccounts.find(b => b.id === data.bankAccountId);
         updatePayload.linked_account = bank?.gl_account_code || cheque.linked_account;
         const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: data.depositDate || new Date().toISOString().split('T')[0],
+          user_id: dataOwnerId!, transaction_date: data.depositDate || new Date().toISOString().split('T')[0],
           description: `إيداع شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: '1125', credit_account_code: '1150',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -493,7 +494,7 @@ const ChequesPage = () => {
         const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
         const bankCode = bank?.gl_account_code || '1120';
         const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: data.collectionDate || new Date().toISOString().split('T')[0],
+          user_id: dataOwnerId!, transaction_date: data.collectionDate || new Date().toISOString().split('T')[0],
           description: `تحصيل شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: bankCode, credit_account_code: '1125',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -509,7 +510,7 @@ const ChequesPage = () => {
         updatePayload.bank_fees = data.bankFees || 0;
         const contactId = findContactId(cheque.party_name);
         const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+          user_id: dataOwnerId!, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
           debit_account_code: '1130', credit_account_code: '1125',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -520,7 +521,7 @@ const ChequesPage = () => {
         txId = txResult?.id || null;
         if (data.bankFees && data.bankFees > 0) {
           await supabase.from('transactions').insert({
-            user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+            user_id: dataOwnerId!, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
             description: `رسوم بنكية - شيك مرتجع ${cheque.cheque_number || ''}`,
             debit_account_code: '5200', credit_account_code: '1120',
             amount: data.bankFees, currency: 'شيكل',
@@ -563,7 +564,7 @@ const ChequesPage = () => {
         const contactId = findContactId(cheque.party_name);
         const today = new Date().toISOString().split('T')[0];
         const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: today,
+          user_id: dataOwnerId!, transaction_date: today,
           description: `إرجاع شيك للزبون - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.returnReason || ''}`,
           debit_account_code: '1130', credit_account_code: '1150',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -579,7 +580,7 @@ const ChequesPage = () => {
         const today = new Date().toISOString().split('T')[0];
         if (cheque.cheque_type === 'وارد') {
           const { data: txResult } = await supabase.from('transactions').insert({
-            user_id: user.id, transaction_date: today,
+            user_id: dataOwnerId!, transaction_date: today,
             description: `إلغاء شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
             debit_account_code: '1130', credit_account_code: '1150',
             amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -590,7 +591,7 @@ const ChequesPage = () => {
           txId = txResult?.id || null;
         } else {
           const { data: txResult } = await supabase.from('transactions').insert({
-            user_id: user.id, transaction_date: today,
+            user_id: dataOwnerId!, transaction_date: today,
             description: `إلغاء شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
             debit_account_code: '1160', credit_account_code: '2110',
             amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -608,7 +609,7 @@ const ChequesPage = () => {
         const sourceBank = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
         const bankGlCode = sourceBank?.gl_account_code || '1120';
         const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
+          user_id: dataOwnerId!, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
           description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
           debit_account_code: '1160', credit_account_code: bankGlCode,
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -625,7 +626,7 @@ const ChequesPage = () => {
         updatePayload.bank_fees = data.bankFees || 0;
         const contactId = cheque.contact_id || findContactId(cheque.party_name);
         const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+          user_id: dataOwnerId!, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك صادر مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
           debit_account_code: '1160', credit_account_code: '2110',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -636,7 +637,7 @@ const ChequesPage = () => {
         txId = txResult?.id || null;
         if (data.bankFees && data.bankFees > 0) {
           await supabase.from('transactions').insert({
-            user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+            user_id: dataOwnerId!, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
             description: `رسوم بنكية - شيك صادر مرتجع ${cheque.cheque_number || ''}`,
             debit_account_code: '5200', credit_account_code: '1120',
             amount: data.bankFees, currency: 'شيكل',
@@ -650,7 +651,7 @@ const ChequesPage = () => {
         const contactId = cheque.contact_id || findContactId(cheque.party_name);
         const today = new Date().toISOString().split('T')[0];
         const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: today,
+          user_id: dataOwnerId!, transaction_date: today,
           description: `استرداد شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.recoverReason || ''}`,
           debit_account_code: '1160', credit_account_code: '2110',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
@@ -672,7 +673,7 @@ const ChequesPage = () => {
       if (data.action === 'recover') historyDetails.recover_reason = data.recoverReason;
 
       await supabase.from('cheque_status_history').insert({
-        cheque_id: cheque.id, user_id: user.id,
+        cheque_id: cheque.id, user_id: dataOwnerId!,
         from_status: cheque.status, to_status: newStatus,
         reason: data.notes || data.returnReason || data.cancelReason || data.bounceReason || null,
         action_type: data.action,

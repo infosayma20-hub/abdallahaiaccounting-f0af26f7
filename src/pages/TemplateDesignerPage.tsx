@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { toast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Save, Undo2, Redo2 } from "lucide-react";
@@ -112,7 +113,7 @@ const TemplateDesignerPage = () => {
     setSaving(true);
     try {
       const { error } = await supabase.from('print_templates_designs' as any).insert({
-        user_id: user.id,
+        user_id: dataOwnerId!,
         template_type: templateType,
         name: design.name,
         design_json: design as any,

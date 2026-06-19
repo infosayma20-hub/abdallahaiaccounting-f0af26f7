@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface Option { id: string; contact_name: string }
 
@@ -19,7 +20,7 @@ export default function ContactPicker({
     if (!user) return;
     (supabase as any).from("contacts")
       .select("id, contact_name")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("is_archived", false)
       .order("contact_name", { ascending: true })
       .limit(500)

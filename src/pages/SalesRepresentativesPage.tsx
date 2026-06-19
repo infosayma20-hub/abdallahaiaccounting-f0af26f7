@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ const SalesRepresentativesPage = () => {
     const { data } = await (supabase as any)
       .from("sales_representatives")
       .select("*, employee:employees!sales_representatives_employee_id_fkey(id, full_name, phone, email, position)")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .order("created_at", { ascending: false });
     setReps((data as any[]) || []);
     setLoading(false);
@@ -46,7 +47,7 @@ const SalesRepresentativesPage = () => {
 
   const fetchCommissions = async (repId: string) => {
     if (!user) return;
-    const { data } = await supabase.from("commissions").select("*").eq("representative_id", repId).eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("commissions").select("*").eq("representative_id", repId).eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
     setCommissions((data as any[]) || []);
   };
 
@@ -109,7 +110,7 @@ const SalesRepresentativesPage = () => {
 
   const handleAddCommission = async () => {
     if (!user || !selectedRep) return;
-    const { error } = await supabase.from("commissions").insert({ ...commForm, representative_id: selectedRep.id, user_id: user.id } as any);
+    const { error } = await supabase.from("commissions").insert({ ...commForm, representative_id: selectedRep.id, user_id: dataOwnerId! } as any);
     if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowCommForm(false); fetchCommissions(selectedRep.id); }
   };
 

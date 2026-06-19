@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface InvoiceItemInput {
   product_id?: string | null;
@@ -205,13 +206,13 @@ export function useAtomicOperations() {
       const { error } = await supabase.from('cheques')
         .update({ status: 'محصل' as any })
         .eq('id', chequeId)
-        .eq('user_id', user.id);
+        .eq("user_id", dataOwnerId!);
       if (error) throw error;
 
       // Record status history
       await supabase.from('cheque_status_history').insert({
         cheque_id: chequeId,
-        user_id: user.id,
+        user_id: dataOwnerId!,
         from_status: 'مودع' as any,
         to_status: 'محصل' as any,
       });
@@ -234,7 +235,7 @@ export function useAtomicOperations() {
       const { error } = await supabase.from('employee_payroll')
         .update({ is_paid: true, paid_date: new Date().toISOString().split('T')[0] })
         .eq('id', payrollId)
-        .eq('user_id', user.id);
+        .eq("user_id", dataOwnerId!);
       if (error) throw error;
 
       toast({ title: "تم صرف الراتب وإنشاء قيد المصروف ✅" });

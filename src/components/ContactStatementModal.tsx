@@ -7,6 +7,7 @@ import { Search, UserCheck, Users, Building, Briefcase, Loader2, FileSpreadsheet
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 
@@ -79,8 +80,8 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
 
     // Load contacts and employees
     Promise.all([
-      supabase.from("contacts").select("id, contact_name, contact_type, phone, email, linked_account_code").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
-      supabase.from("employees").select("id, full_name, department, position").eq("user_id", user.id).order("full_name"),
+      supabase.from("contacts").select("id, contact_name, contact_type, phone, email, linked_account_code").eq("user_id", dataOwnerId!).neq("is_archived", true).order("contact_name"),
+      supabase.from("employees").select("id, full_name, department, position").eq("user_id", dataOwnerId!).order("full_name"),
     ]).then(([c, e]) => {
       setContacts(c.data || []);
       setEmployees(e.data || []);
@@ -111,7 +112,7 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
           .from("employee_financial_movements")
           .select("*")
           .eq("employee_id", selectedId)
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .gte("movement_date", range.from)
           .lte("movement_date", range.to)
           .order("movement_date", { ascending: true });
@@ -143,7 +144,7 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
           const { data, error } = await supabase
             .from("transactions")
             .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
-            .eq("user_id", user.id)
+            .eq("user_id", dataOwnerId!)
             .eq("is_deleted", false)
             .gte("transaction_date", range.from)
             .lte("transaction_date", range.to)
@@ -166,7 +167,7 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
           const { data, error } = await supabase
             .from("transactions")
             .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
-            .eq("user_id", user.id)
+            .eq("user_id", dataOwnerId!)
             .eq("contact_id", selectedId)
             .eq("is_deleted", false)
             .gte("transaction_date", range.from)

@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
 import {
@@ -180,7 +181,7 @@ const InventoryPage = () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("products").select("*").eq("user_id", user.id)
+      .from("products").select("*").eq("user_id", dataOwnerId!)
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
@@ -205,7 +206,7 @@ const InventoryPage = () => {
     const { data } = await supabase
       .from("accounts")
       .select("account_code, account_name, account_type")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .in("account_type", ["إيرادات", "مصاريف", "أصول"])
       .eq("is_active", true)
       .order("account_code");

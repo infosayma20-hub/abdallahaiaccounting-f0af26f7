@@ -40,7 +40,7 @@ export default function TravelPackagesPage() {
   const handleSave = async () => {
     if (!user || !form.name) return;
     const payload = {
-      user_id: user.id,
+      user_id: dataOwnerId!,
       name: form.name,
       type: form.type || null,
       destination: form.destination || null,

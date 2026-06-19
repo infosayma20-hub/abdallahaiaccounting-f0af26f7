@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import {
   useCsTickets, useCsCalls, useCsMeetings,
   useCsSubscriptions,
@@ -52,7 +53,7 @@ export default function CrmWorkbenchPage() {
   // Load contacts directory once
   useEffect(() => {
     if (!user) return;
-    sb.from("contacts").select("id, contact_name").eq("user_id", user.id).limit(2000)
+    sb.from("contacts").select("id, contact_name").eq("user_id", dataOwnerId!).limit(2000)
       .then(({ data }: any) => {
         const m: Record<string, string> = {};
         (data || []).forEach((c: any) => { m[c.id] = c.contact_name; });
@@ -64,7 +65,7 @@ export default function CrmWorkbenchPage() {
   useEffect(() => {
     if (!user) return;
     sb.from("cs_customer_timeline_view").select("*")
-      .eq("user_id", user.id).order("event_date", { ascending: false }).limit(20)
+      .eq("user_id", dataOwnerId!).order("event_date", { ascending: false }).limit(20)
       .then(({ data }: any) => setRecentEvents((data as CsTimelineEvent[]) || []));
   }, [user, tickets, calls, meetings]);
 
@@ -73,7 +74,7 @@ export default function CrmWorkbenchPage() {
     if (!user) return;
     const cutoffMs = Date.now() - 30 * 86400000;
     sb.from("cs_customer_timeline_view").select("contact_id, event_date")
-      .eq("user_id", user.id).order("event_date", { ascending: false }).limit(3000)
+      .eq("user_id", dataOwnerId!).order("event_date", { ascending: false }).limit(3000)
       .then(({ data }: any) => {
         const lastByContact: Record<string, string> = {};
         (data || []).forEach((r: any) => {
@@ -81,7 +82,7 @@ export default function CrmWorkbenchPage() {
           if (!lastByContact[r.contact_id]) lastByContact[r.contact_id] = r.event_date;
         });
         sb.from("contacts").select("id, contact_name")
-          .eq("user_id", user.id).eq("is_archived", false).limit(2000)
+          .eq("user_id", dataOwnerId!).eq("is_archived", false).limit(2000)
           .then(({ data: cdata }: any) => {
             const rows = (cdata || [])
               .map((c: any) => {

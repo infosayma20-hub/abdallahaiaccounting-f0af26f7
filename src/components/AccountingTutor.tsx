@@ -3,6 +3,7 @@ import { GraduationCap, ChevronDown, ChevronUp, Lightbulb, BookOpen, HelpCircle,
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface GlossaryItem {
   term: string;
@@ -43,7 +44,7 @@ const AccountingTutor = () => {
     supabase
       .from("transactions")
       .select("debit_account_code, credit_account_code, transaction_type")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("is_deleted", false)
       .limit(500)
       .then(({ data }) => setTransactions(data || []));

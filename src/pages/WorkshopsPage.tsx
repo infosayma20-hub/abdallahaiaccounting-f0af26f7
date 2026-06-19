@@ -15,6 +15,7 @@ import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -128,7 +129,7 @@ async function ensureWorkshopAccounts(userId: string) {
   if (missing.length > 0) {
     await supabase.from("accounts").insert(
       missing.map(a => ({
-        user_id: userId,
+        user_id: dataOwnerId!,
         account_code: a.code,
         account_name: a.name,
         account_type: a.type,
@@ -229,7 +230,7 @@ export default function WorkshopsPage() {
     const trimmed = newWsTypeName.trim();
     if (!trimmed || !user) return;
     setSavingWsType(true);
-    const { data, error } = await supabase.from("custom_workshop_types" as any).insert({ user_id: user.id, name: trimmed, icon: "🔧" }).select("id, name, icon").single();
+    const { data, error } = await supabase.from("custom_workshop_types" as any).insert({ user_id: dataOwnerId!, name: trimmed, icon: "🔧" }).select("id, name, icon").single();
     setSavingWsType(false);
     if (error) { toast.error("فشل في الحفظ"); return; }
     const newType = data as any;
@@ -329,7 +330,7 @@ export default function WorkshopsPage() {
           cId = existing[0].id;
         } else {
           const { data: newC } = await supabase.from("contacts").insert({
-            user_id: user.id,
+            user_id: dataOwnerId!,
             contact_name: w.customer_name.trim(),
             contact_type: "عميل",
             phone: w.customer_phone || null,
@@ -448,7 +449,7 @@ export default function WorkshopsPage() {
 
     // Create new contact
     const { data: newContact, error } = await supabase.from("contacts").insert({
-      user_id: user!.id,
+      user_id: dataOwnerId!,
       contact_name: customerName.trim(),
       contact_type: "عميل",
       phone: customerPhone || null,
@@ -475,7 +476,7 @@ export default function WorkshopsPage() {
     }
 
     const { data: wsData, error } = await supabase.from("workshops").insert({
-      user_id: user!.id, name: wsForm.name,
+      user_id: dataOwnerId!, name: wsForm.name,
       customer_name: wsForm.customer_name || null,
       customer_phone: wsForm.customer_phone || null,
       address: wsForm.address || null, description: wsForm.description || null,
@@ -578,7 +579,7 @@ export default function WorkshopsPage() {
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
-      user_id: user!.id,
+      user_id: dataOwnerId!,
       transaction_date: paymentForm.payment_date,
       description: paymentForm.description || `دفعة ورشة من ${selectedWorkshop.customer_name || "زبون"} - ${selectedWorkshop.name}${isCheque ? ` (${chequeRows.length} شيك)` : ""}`,
       debit_account_code: debitCode,
@@ -620,7 +621,7 @@ export default function WorkshopsPage() {
     }
 
     const { error } = await supabase.from("workshop_payments").insert({
-      workshop_id: selectedWorkshop.id, user_id: user!.id,
+      workshop_id: selectedWorkshop.id, user_id: dataOwnerId!,
       amount: amountILS, payment_method: isCheque ? "شيك" : paymentForm.payment_method,
       payment_date: paymentForm.payment_date, description: paymentForm.description || null,
       linked_transaction_id: txData?.id || null,
@@ -680,7 +681,7 @@ export default function WorkshopsPage() {
     const txDescription = `${costTypeInfo.label} - ورشة ${selectedWorkshop.name}${costForm.supplier_name ? ` (${costForm.supplier_name})` : ""}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
-      user_id: user!.id,
+      user_id: dataOwnerId!,
       transaction_date: costForm.cost_date,
       description: txDescription,
       debit_account_code: costTypeInfo.debit,
@@ -698,7 +699,7 @@ export default function WorkshopsPage() {
 
     // 2. Create workshop cost record linked to the transaction
     const { error: costError } = await supabase.from("workshop_costs").insert({
-      workshop_id: selectedWorkshop.id, user_id: user!.id,
+      workshop_id: selectedWorkshop.id, user_id: dataOwnerId!,
       cost_type: costForm.cost_type, description: costForm.description || null,
       amount: costForm.amount, cost_date: costForm.cost_date,
       supplier_name: costForm.supplier_name || null,
@@ -1852,7 +1853,7 @@ export default function WorkshopsPage() {
 
     const loadInv = async () => {
       setInvLoading(true);
-      const { data } = await supabase.from("workshop_material_inventory" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+      const { data } = await supabase.from("workshop_material_inventory" as any).select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
       setInvItems((data as any[]) || []);
       setInvLoading(false);
     };
@@ -1865,7 +1866,7 @@ export default function WorkshopsPage() {
       const glInfo = CATEGORY_GL_MAP[item.material_category] || CATEGORY_GL_MAP.other;
 
       await supabase.from("transactions").insert({
-        user_id: user!.id, transaction_date: format(new Date(), "yyyy-MM-dd"),
+        user_id: dataOwnerId!, transaction_date: format(new Date(), "yyyy-MM-dd"),
         description: `نقل مواد (${item.material_type}) من المخزون لورشة ${targetWs?.name || ""}`,
         debit_account_code: glInfo.debit, credit_account_code: "1140",
         amount: item.total_value, currency: "شيكل", transaction_type: "workshop_cost",
@@ -1874,7 +1875,7 @@ export default function WorkshopsPage() {
       } as any);
 
       await supabase.from("workshop_costs").insert({
-        workshop_id: targetId, user_id: user!.id, cost_type: "other",
+        workshop_id: targetId, user_id: dataOwnerId!, cost_type: "other",
         category: item.material_category, description: `نقل من المخزون: ${item.material_type}`,
         amount: item.total_value, cost_date: format(new Date(), "yyyy-MM-dd"),
         quantity: item.quantity, unit: item.unit, unit_price: item.unit_cost,
@@ -2254,7 +2255,7 @@ export default function WorkshopsPage() {
                         <button onClick={async () => {
                           const name = contactSearch.trim();
                           const { data, error } = await supabase.from("contacts").upsert(
-                            { contact_name: name, contact_type: "عميل", user_id: user!.id, current_balance: 0 },
+                            { contact_name: name, contact_type: "عميل", user_id: dataOwnerId!, current_balance: 0 },
                             { onConflict: "contact_name,user_id" }
                           ).select().single();
                           if (error) { toast.error("خطأ في إضافة الزبون"); return; }

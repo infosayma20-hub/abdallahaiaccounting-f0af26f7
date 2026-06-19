@@ -819,8 +819,8 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
   useEffect(() => {
     if (!userId || !open) return;
     Promise.all([
-      supabase.from("employees").select("id, full_name, job_title").eq("user_id", userId).eq("is_active", true).order("full_name"),
-      supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", userId).eq("is_active", true),
+      supabase.from("employees").select("id, full_name, job_title").eq("user_id", dataOwnerId!).eq("is_active", true).order("full_name"),
+      supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", dataOwnerId!).eq("is_active", true),
     ]).then(([empRes, cbRes]) => {
       setEmployees(empRes.data || []);
       const boxes = cbRes.data || [];
@@ -862,7 +862,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
       const { data: existingAcc } = await supabase
         .from("accounts")
         .select("account_code")
-        .eq("user_id", userId)
+        .eq("user_id", dataOwnerId!)
         .eq("parent_code", "2180")
         .or(`account_name.eq.${empAccName},account_name.ilike.%${selectedEmp.full_name}%`)
         .limit(1)
@@ -875,7 +875,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
         const { data: siblings } = await supabase
           .from("accounts")
           .select("account_code")
-          .eq("user_id", userId)
+          .eq("user_id", dataOwnerId!)
           .eq("parent_code", "2180")
           .order("account_code", { ascending: false })
           .limit(1);
@@ -885,7 +885,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
         empAccountCode = String(nextNum);
 
         await supabase.from("accounts").insert({
-          user_id: userId,
+          user_id: dataOwnerId!,
           account_code: empAccountCode,
           account_name: empAccName,
           account_type: "التزامات",
@@ -899,7 +899,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
       const { data: loanRecord, error: loanErr } = await supabase
         .from("employee_loans")
         .insert({
-          user_id: userId,
+          user_id: dataOwnerId!,
           company_id: companyId,
           employee_id: selectedEmp.id,
           total_amount: amount,
@@ -920,7 +920,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
       // 3. Create installment schedule
       const installments = schedule.map(inst => ({
         loan_id: loanRecord.id,
-        user_id: userId,
+        user_id: dataOwnerId!,
         company_id: companyId,
         employee_id: selectedEmp.id,
         month_number: inst.month_number,
@@ -945,7 +945,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
       const { error: txErr } = await supabase
         .from("transactions")
         .insert({
-          user_id: userId,
+          user_id: dataOwnerId!,
           transaction_date: new Date().toISOString().split("T")[0],
           description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
           debit_account_code: empAccountCode,
@@ -1238,7 +1238,7 @@ function EditLoanDialog({ loan, open, onOpenChange, userId, companyId, onSuccess
 
         const newRows = schedule.map(inst => ({
           loan_id: loan.id,
-          user_id: userId,
+          user_id: dataOwnerId!,
           company_id: companyId,
           employee_id: loan.employee_id,
           month_number: inst.month_number,
@@ -1256,7 +1256,7 @@ function EditLoanDialog({ loan, open, onOpenChange, userId, companyId, onSuccess
           .from("transactions")
           .update({ amount })
           .eq("idempotency_key", idempotencyKey)
-          .eq("user_id", userId);
+          .eq("user_id", dataOwnerId!);
 
         toast.success("تم تحديث القرض وإعادة توليد الجدول");
       } else {

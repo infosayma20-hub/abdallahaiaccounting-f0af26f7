@@ -11,6 +11,7 @@ import { ArrowRight, Check, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 const sectorOptions = [
   "تجارة تجزئة", "جملة", "مطعم", "شركة خدمات",
@@ -48,7 +49,7 @@ const CustomizationRequestPage = () => {
     try {
       const finalSector = sector === "أخرى" ? customSector : sector;
       const { error } = await supabase.from("support_tickets").insert({
-        user_id: user.id,
+        user_id: dataOwnerId!,
         title: `طلب تخصيص — ${finalSector}`,
         description,
         sector: finalSector,

@@ -7,6 +7,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowRight, AlertTriangle, StickyNote, Phone, Calendar, Ticket, Lightbulb, FileSignature, Repeat } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import { useCustomer360 } from "./hooks/useCustomer360";
@@ -93,13 +94,13 @@ export default function Customer360Page() {
     sb.from("contacts")
       .select("phone, email")
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .maybeSingle()
       .then(({ data }: any) => setExtra((data as ContactExtra) ?? null));
 
     sb.from("invoices")
       .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, status, invoice_type")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("contact_id", id)
       .neq("status", "cancelled")
       .order("invoice_date", { ascending: false })
@@ -108,7 +109,7 @@ export default function Customer360Page() {
 
     sb.from("transactions")
       .select("id, voucher_date, amount, voucher_number, voucher_type")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("contact_id", id)
       .eq("voucher_type", "receipt")
       .order("voucher_date", { ascending: false })

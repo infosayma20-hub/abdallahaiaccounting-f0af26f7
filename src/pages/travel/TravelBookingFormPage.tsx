@@ -282,7 +282,7 @@ export default function TravelBookingFormPage() {
   const handleQuickAddCustomer = async () => {
     if (!user || !customerSearch.trim()) return;
     try {
-      const { data, error } = await supabase.from("contacts").upsert({ user_id: user.id, contact_name: customerSearch.trim(), contact_type: "عميل", phone: newCustPhone || null }, { onConflict: "user_id,contact_name" }).select().single();
+      const { data, error } = await supabase.from("contacts").upsert({ user_id: dataOwnerId!, contact_name: customerSearch.trim(), contact_type: "عميل", phone: newCustPhone || null }, { onConflict: "user_id,contact_name" }).select().single();
       if (error) throw error;
       await fetchContacts();
       setCustomerId(data.id); setCustomerName(data.contact_name); setCustomerPhone(data.phone || ""); setCustomerSearch(data.contact_name); setNewCustPhone(""); setShowCustomerDD(false);
@@ -293,7 +293,7 @@ export default function TravelBookingFormPage() {
   const handleQuickAddSupplier = async () => {
     if (!user || !supplierSearch.trim()) return;
     try {
-      const { data, error } = await supabase.from("contacts").upsert({ user_id: user.id, contact_name: supplierSearch.trim(), contact_type: "مورد" }, { onConflict: "user_id,contact_name" }).select().single();
+      const { data, error } = await supabase.from("contacts").upsert({ user_id: dataOwnerId!, contact_name: supplierSearch.trim(), contact_type: "مورد" }, { onConflict: "user_id,contact_name" }).select().single();
       if (error) throw error;
       await fetchContacts();
       setSupplierId(data.id); setSupplierSearch(data.contact_name); setShowSupplierDD(false);
@@ -411,7 +411,7 @@ export default function TravelBookingFormPage() {
       if (items.length > 0) {
         const itemRows = items.map((it, idx) => ({
           booking_id: booking.id,
-          user_id: user.id,
+          user_id: dataOwnerId!,
           item_type: it.item_type,
           description: it.description || "",
           supplier_contact_id: it.supplier_contact_id || null,
@@ -468,7 +468,7 @@ export default function TravelBookingFormPage() {
         // Payment record (only for new bookings)
         if (payAmt > 0) {
           await supabase.from("travel_booking_payments").insert({
-            user_id: user.id,
+            user_id: dataOwnerId!,
             booking_id: booking.id,
             amount: payAmt,
             amount_ils: payAmt,

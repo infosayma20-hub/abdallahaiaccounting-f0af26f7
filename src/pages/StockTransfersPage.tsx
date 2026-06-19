@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
 import { FinanceShell, ActionPane } from "@/components/finance/shell";
@@ -111,9 +112,9 @@ const StockTransfersPage = () => {
     setLoading(true);
     const [w, r, t, p] = await Promise.all([
       supabase.from("warehouses" as any).select("id, code, name, warehouse_type, sales_rep_id")
-        .eq("user_id", user.id).eq("is_active", true).order("warehouse_type").order("name"),
+        .eq("user_id", dataOwnerId!).eq("is_active", true).order("warehouse_type").order("name"),
       supabase.from("sales_representatives").select("id, full_name, default_warehouse_id")
-        .eq("user_id", user.id).eq("is_active", true).order("full_name"),
+        .eq("user_id", dataOwnerId!).eq("is_active", true).order("full_name"),
       supabase.from("stock_transfers" as any).select(`
         id, transfer_number, transfer_date, transfer_type, status,
         from_warehouse_id, to_warehouse_id, sales_rep_id,
@@ -121,9 +122,9 @@ const StockTransfersPage = () => {
         from_warehouse:warehouses!stock_transfers_from_warehouse_id_fkey(name, warehouse_type),
         to_warehouse:warehouses!stock_transfers_to_warehouse_id_fkey(name, warehouse_type),
         sales_rep:sales_representatives(full_name)
-      `).eq("user_id", user.id).order("created_at", { ascending: false }).limit(100),
+      `).eq("user_id", dataOwnerId!).order("created_at", { ascending: false }).limit(100),
       supabase.from("products").select("id, name, unit, buy_price, quantity")
-        .eq("user_id", user.id).order("name"),
+        .eq("user_id", dataOwnerId!).order("name"),
     ]);
     setWarehouses(((w.data as any) || []) as WarehouseRow[]);
     setReps(r.data || []);
@@ -221,7 +222,7 @@ const StockTransfersPage = () => {
       const { data: transfer, error: tErr } = await supabase
         .from("stock_transfers" as any)
         .insert({
-          user_id: user.id,
+          user_id: dataOwnerId!,
           transfer_type: form.transfer_type,
           from_warehouse_id: form.from_warehouse_id,
           to_warehouse_id: form.to_warehouse_id,
@@ -241,7 +242,7 @@ const StockTransfersPage = () => {
       const tid = (transfer as any).id;
       const itemsPayload = items.map(it => ({
         transfer_id: tid,
-        user_id: user.id,
+        user_id: dataOwnerId!,
         product_id: it.product_id,
         product_name: it.product_name,
         unit: it.unit,

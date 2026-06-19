@@ -3,6 +3,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,7 +178,7 @@ const CurrencyManagementPage = () => {
         const { error } = await supabase.from("exchange_rates").upsert({
           currency_id: currId, rate_date: quickRateDate,
           buy_rate: buy, sell_rate: sell, mid_rate: (buy + sell) / 2,
-          source: "manual", user_id: user!.id,
+          source: "manual", user_id: dataOwnerId!,
         }, { onConflict: "user_id,currency_id,rate_date" });
         if (error) throw error;
       }
@@ -193,7 +194,7 @@ const CurrencyManagementPage = () => {
   // Add currency
   const addCurrencyMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("currencies").insert({ ...newCurrency, user_id: user!.id });
+      const { error } = await supabase.from("currencies").insert({ ...newCurrency, user_id: dataOwnerId! });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -213,7 +214,7 @@ const CurrencyManagementPage = () => {
       const commission = parseFloat(convForm.commission || "0");
       const toAmt = fromAmt * rate - commission;
       const { error } = await supabase.from("currency_conversions").insert({
-        user_id: user!.id,
+        user_id: dataOwnerId!,
         from_currency_id: convForm.from_currency_id,
         to_currency_id: convForm.to_currency_id,
         from_amount: fromAmt,

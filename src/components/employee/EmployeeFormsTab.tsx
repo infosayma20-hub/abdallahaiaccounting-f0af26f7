@@ -21,6 +21,7 @@ import { validateEmployeeForm, diffDaysInclusive, diffHours } from "@/lib/employ
 import { evaluateLoanEligibility, eligibilityBadgeClass, formatCurrency } from "@/lib/employeeFinancialDisplay";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { X } from "lucide-react";
 import EmployeeAssignedTemplates from "@/components/employee/EmployeeAssignedTemplates";
 
@@ -346,7 +347,7 @@ export default function EmployeeFormsTab({
 
     const { error } = await supabase.from("employee_forms").insert({
       employee_id: employeeId,
-      user_id: userId,
+      user_id: dataOwnerId!,
       form_type: activeForm,
       form_data: submitData,
       attachment_url: submitData.attachment_url || null,

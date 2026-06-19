@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Building2, Printer, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { invalidatePrintMuteRulesCache } from "@/hooks/usePrintMuteRules";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface Branch { id: string; name: string }
 interface Category { id: string; name: string; color?: string }
@@ -97,7 +98,7 @@ export default function CategoryPrintRulesMatrix() {
         const { data, error } = await supabase
           .from("pos_category_print_rules" as any)
           .insert({
-            user_id: user.id,
+            user_id: dataOwnerId!,
             branch_id: ruleBranchId,
             category_id: categoryId,
             station_id: stationId,

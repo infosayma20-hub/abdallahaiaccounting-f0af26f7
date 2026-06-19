@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 
 interface Policy {
@@ -60,7 +61,7 @@ export default function WarrantyPoliciesPage() {
     const { data } = await supabase
       .from("warranty_policies")
       .select("*, product:products(name_ar, sku), supplier:contacts(contact_name)")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .order("created_at", { ascending: false });
     setPolicies((data as any) || []);
   };
@@ -68,9 +69,9 @@ export default function WarrantyPoliciesPage() {
   useEffect(() => {
     if (!user) return;
     load();
-    supabase.from("products").select("id, name_ar, sku").eq("user_id", user.id).order("name_ar")
+    supabase.from("products").select("id, name_ar, sku").eq("user_id", dataOwnerId!).order("name_ar")
       .then(({ data }) => setProducts(data || []));
-    supabase.from("contacts").select("id, contact_name").eq("user_id", user.id).eq("contact_type", "مورد").order("contact_name")
+    supabase.from("contacts").select("id, contact_name").eq("user_id", dataOwnerId!).eq("contact_type", "مورد").order("contact_name")
       .then(({ data }) => setSuppliers(data || []));
   }, [user]);
 

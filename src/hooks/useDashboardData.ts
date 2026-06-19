@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export type PeriodType = "today" | "week" | "month" | "year" | "custom";
 
@@ -127,27 +128,27 @@ export function useDashboardData() {
         supabase
           .from("transactions")
           .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, is_deleted, is_opening_balance, contact_id, created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .eq("is_deleted", false)
           .order("transaction_date", { ascending: false })
           .limit(5000),
         supabase
           .from("accounts")
           .select("account_code, account_name, account_type")
-          .eq("user_id", user.id),
+          .eq("user_id", dataOwnerId!),
         supabase
           .from("cheques")
           .select("id, cheque_date, amount, party_name, cheque_type, status, currency")
-          .eq("user_id", user.id),
+          .eq("user_id", dataOwnerId!),
         supabase
           .from("products")
           .select("id, name, quantity, min_quantity, buy_price, sell_price")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .order("quantity", { ascending: true }),
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, current_balance")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId!)
           .eq("is_active", true),
         supabase
           .from("profiles")

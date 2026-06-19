@@ -26,7 +26,7 @@ export async function syncContactFromOrder(order: {
     const { data } = await supabase
       .from("contacts")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId!)
       .or(`phone.eq.${customerPhone},phone.eq.0${last9},phone.ilike.%${last9}`)
       .limit(1)
       .maybeSingle();
@@ -38,7 +38,7 @@ export async function syncContactFromOrder(order: {
     const { data } = await supabase
       .from("contacts")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId!)
       .eq("contact_name", customerName)
       .limit(1)
       .maybeSingle();
@@ -51,7 +51,7 @@ export async function syncContactFromOrder(order: {
     const { data: newContact } = await supabase
       .from("contacts")
       .insert({
-        user_id: userId,
+        user_id: dataOwnerId!,
         contact_name: customerName,
         contact_type: "عميل",
         phone: customerPhone || null,
@@ -129,7 +129,7 @@ export async function syncProductsFromOrderItems(
     const { data: existing } = await supabase
       .from("products")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId!)
       .ilike("name", productName)
       .limit(1)
       .maybeSingle();
@@ -142,7 +142,7 @@ export async function syncProductsFromOrderItems(
       const { data: newProduct, error } = await supabase
         .from("products")
         .insert({
-          user_id: userId,
+          user_id: dataOwnerId!,
           name: productName,
           sell_price: unitPrice,
           category: "متجر إلكتروني",
@@ -187,7 +187,7 @@ export async function retroactiveSyncOrders(userId: string): Promise<{ contactsL
   const { data: unlinkedOrders } = await supabase
     .from("orders")
     .select("id, user_id, customer_name, customer_phone, customer_address, order_number, source")
-    .eq("user_id", userId)
+    .eq("user_id", dataOwnerId!)
     .is("contact_id" as any, null);
 
   for (const order of (unlinkedOrders || [])) {
@@ -201,7 +201,7 @@ export async function retroactiveSyncOrders(userId: string): Promise<{ contactsL
   const { data: qamarOrders } = await supabase
     .from("qamar_orders" as any)
     .select("id, user_id, customer_name, customer_phone, customer_address, reference_number, source")
-    .eq("user_id", userId);
+    .eq("user_id", dataOwnerId!);
 
   for (const q of (qamarOrders as any[] || [])) {
     const cid = await syncContactFromOrder({

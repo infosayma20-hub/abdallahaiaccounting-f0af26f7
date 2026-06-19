@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { PRIORITY_META, STAGE_META, STAGES_ORDER, type CrmOpportunity } from "./types";
 import { useCustomer360 } from "./hooks/useCustomer360";
@@ -48,7 +49,7 @@ export default function OpportunityFormDialog({ open, onClose, onSaved, opportun
     if (!open || !user) return;
     supabase.from("contacts")
       .select("id, contact_name, contact_class")
-      .eq("user_id", user.id)
+      .eq("user_id", dataOwnerId!)
       .eq("is_archived", false)
       .order("contact_name")
       .limit(500)

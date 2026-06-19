@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import { FinanceShell } from "@/components/finance/shell";
 import { FastTabs, type FastTabItem } from "@/components/finance/shell/FastTabs";
@@ -106,7 +107,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   useEffect(() => {
     if (!user) return;
     supabase.from("accounts").select("id, account_code, account_name, account_type, parent_code, description_ar, notes, is_system_protected, currency")
-      .eq("user_id", user.id).order("account_code")
+      .eq("user_id", dataOwnerId!).order("account_code")
       .then(({ data }) => setAccounts(data ?? []))
       .then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
@@ -160,7 +161,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       const { data } = await supabase
         .from("transactions")
         .select("amount, foreign_amount, exchange_rate, debit_account_code, credit_account_code, transaction_date, currency")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("reference", ref)
         .eq("is_opening_balance", true)
         .eq("is_deleted", false)
@@ -340,7 +341,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
 
       if (mode === "create") {
         const { data: ins, error } = await supabase.from("accounts").insert({
-          user_id: user.id,
+          user_id: dataOwnerId!,
           account_code: code,
           account_name: name.trim(),
           account_type: accountType,
@@ -405,7 +406,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         } else if (mode === "edit" && obExistingRef) {
           // Amount cleared → soft-delete existing OB transactions
           await supabase.from("transactions").update({ is_deleted: true } as any)
-            .eq("user_id", user.id).eq("reference", obExistingRef).eq("is_opening_balance", true);
+            .eq("user_id", dataOwnerId!).eq("reference", obExistingRef).eq("is_opening_balance", true);
         }
       }
 

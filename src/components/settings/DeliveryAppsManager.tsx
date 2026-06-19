@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,7 +138,7 @@ const DeliveryAppsManager = ({ userId }: Props) => {
     const { data } = await supabase
       .from("delivery_apps" as any)
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId!)
       .order("display_order");
     setApps((data as any) || []);
     setLoading(false);
@@ -147,7 +148,7 @@ const DeliveryAppsManager = ({ userId }: Props) => {
     const { data } = await supabase
       .from("accounts")
       .select("account_code, account_name, account_type")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId!)
       .eq("is_active", true)
       .order("account_code");
     setAccounts(data || []);
@@ -163,7 +164,7 @@ const DeliveryAppsManager = ({ userId }: Props) => {
   const addApp = async () => {
     if (!newName.trim()) return;
     await supabase.from("delivery_apps" as any).insert({
-      user_id: userId,
+      user_id: dataOwnerId!,
       name: newName.trim(),
       icon: newIcon,
       display_order: apps.length + 1,

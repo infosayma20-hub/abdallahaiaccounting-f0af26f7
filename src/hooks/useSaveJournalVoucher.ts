@@ -18,6 +18,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { formatDbError } from "@/lib/db-error-toast";
 import {
   isVouchersRpcEnabled,
@@ -214,7 +215,7 @@ async function generateRefNumber(userId: string): Promise<string> {
   const { data } = await supabase
     .from("vouchers")
     .select("ref_number")
-    .eq("user_id", userId)
+    .eq("user_id", dataOwnerId!)
     .eq("type", "journal")
     .order("created_at", { ascending: false })
     .limit(1);
@@ -283,7 +284,7 @@ async function checkFiscalPeriodLock(userId: string, date: string): Promise<stri
   const { data, error } = await supabase
     .from("fiscal_periods")
     .select("period_name, start_date, end_date, status")
-    .eq("user_id", userId)
+    .eq("user_id", dataOwnerId!)
     .eq("status", "closed")
     .lte("start_date", date)
     .gte("end_date", date)
@@ -356,7 +357,7 @@ export function useSaveJournalVoucher() {
       const { data: voucher, error: vErr } = await supabase
         .from("vouchers")
         .insert({
-          user_id: user.id,
+          user_id: dataOwnerId!,
           type: "journal",
           subtype: input.subtype,
           ref_number: refNumber,
@@ -495,7 +496,7 @@ export function useSaveJournalVoucher() {
       // ── Rollback يدوي: لو فشلنا بعد إنشاء voucher نحذفه (cascade ينظف voucher_lines) ──
       if (createdVoucherId) {
         await supabase.from("voucher_lines").delete().eq("voucher_id", createdVoucherId);
-        await supabase.from("transactions").delete().eq("reference", input.ref_number || "").eq("user_id", user.id);
+        await supabase.from("transactions").delete().eq("reference", input.ref_number || "").eq("user_id", dataOwnerId!);
         await supabase.from("vouchers").delete().eq("id", createdVoucherId);
       }
       setSaving(false);
@@ -532,7 +533,7 @@ export function useSaveJournalVoucher() {
         .from("vouchers")
         .select("id, ref_number, date, user_id, type")
         .eq("id", voucherId)
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .maybeSingle();
       if (fetchErr || !existing) throw new Error("السند غير موجود أو ليس لديك صلاحية");
 
@@ -549,7 +550,7 @@ export function useSaveJournalVoucher() {
         .from("transactions")
         .delete()
         .eq("reference", existing.ref_number)
-        .eq("user_id", user.id);
+        .eq("user_id", dataOwnerId!);
 
       // (3) إعادة بناء lines + transactions باستخدام نفس منطق save
       const validLines = input.lines.filter(
@@ -714,7 +715,7 @@ export function useSaveJournalVoucher() {
         .from("vouchers")
         .select("id, ref_number, date, user_id")
         .eq("id", voucherId)
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .maybeSingle();
       if (fetchErr || !existing) throw new Error("السند غير موجود أو ليس لديك صلاحية");
 
@@ -729,7 +730,7 @@ export function useSaveJournalVoucher() {
         .from("transactions")
         .delete()
         .eq("reference", existing.ref_number)
-        .eq("user_id", user.id);
+        .eq("user_id", dataOwnerId!);
       const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
       if (dErr) throw dErr;
 

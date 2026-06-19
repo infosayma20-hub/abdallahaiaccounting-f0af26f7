@@ -20,6 +20,7 @@ import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { toast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { multiWordMatchAny } from "@/lib/utils";
 
 import { setNextExportBranding } from "@/lib/excel-export";
@@ -100,7 +101,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         old_data: editTarget,
         edit_reason: "فتح تعديل مستند مرحّل",
         edited_by: user.id,
-        user_id: user.id,
+        user_id: dataOwnerId!,
       } as any);
     }
     setEditWarning(false);
@@ -164,7 +165,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         old_data: deleteTarget,
         edit_reason: reason,
         edited_by: user.id,
-        user_id: user.id,
+        user_id: dataOwnerId!,
         changes: { action: "delete", reason },
       } as any);
 
@@ -203,8 +204,8 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
     if (isReceipt) {
       const [rvRes, cRes, linksRes] = await Promise.all([
-        supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+        supabase.from("receipt_vouchers").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", dataOwnerId!).neq("is_archived", true),
         supabase.from("payment_invoice_links").select("payment_id, allocated_amount"),
       ]);
       // Build allocated map
@@ -226,9 +227,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       setContacts(cRes.data || []);
     } else {
       const [vRes, cRes, txRes] = await Promise.all([
-        supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }),
-        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
-        supabase.from("transactions").select("id, debit_account_code").eq("user_id", user.id).eq("is_deleted", false),
+        supabase.from("vouchers").select("*").eq("user_id", dataOwnerId!).eq("type", "payment").order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", dataOwnerId!).neq("is_archived", true),
+        supabase.from("transactions").select("id, debit_account_code").eq("user_id", dataOwnerId!).eq("is_deleted", false),
       ]);
       const txMap = new Map<string, string>();
       for (const tx of (txRes.data || [])) {

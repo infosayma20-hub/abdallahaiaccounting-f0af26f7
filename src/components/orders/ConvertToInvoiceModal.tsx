@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,7 +76,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
 
       // 3. Create invoice
       const { data: inv, error: invErr } = await supabase.from("invoices").insert({
-        user_id: userId,
+        user_id: dataOwnerId!,
         invoice_type: "sale",
         contact_name: order.customer_name,
         contact_id: contactId || null,
@@ -127,7 +128,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
 
       if (paymentMethod === "cash") {
         txEntries.push({
-          user_id: userId, transaction_date: txDate,
+          user_id: dataOwnerId!, transaction_date: txDate,
           description: `فاتورة مبيعات - ${order.customer_name} (${order.order_number || ""})`,
           debit_account_code: "1110", credit_account_code: "4100",
           amount: Number(order.total), currency: "شيكل",

@@ -9,6 +9,7 @@ import { Trash2, Plus, Pencil, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import type { TemplateConfig } from "@/pages/PrintTemplatesPage";
 import PrintTemplatePreview from "./PrintTemplatePreview";
 import { isDoulia } from "@/lib/print-themes";
@@ -126,7 +127,7 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved, initialData
       const docNumber = `${template.prefix}-${year}-${seq}`;
 
       const { error } = await supabase.from("print_documents").insert({
-        user_id: user.id,
+        user_id: dataOwnerId!,
         template_type: template.type,
         document_number: docNumber,
         contact_name: contactName || null,

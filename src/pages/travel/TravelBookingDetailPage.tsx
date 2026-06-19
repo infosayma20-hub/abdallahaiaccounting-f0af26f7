@@ -101,7 +101,7 @@ export default function TravelBookingDetailPage() {
     const newStatus = newPaid >= booking.selling_price ? "paid" : "partial";
 
     await supabase.from("travel_booking_payments").insert({
-      user_id: user.id, booking_id: booking.id, amount: amt, amount_ils: amt,
+      user_id: dataOwnerId!, booking_id: booking.id, amount: amt, amount_ils: amt,
       payment_method: payMethod, payment_direction: "received",
       reference_number: payRef || null, bank_name: payBankName || null,
     });
@@ -153,7 +153,7 @@ export default function TravelBookingDetailPage() {
     if (error) { toast({ title: "خطأ في الرفع", variant: "destructive" }); return; }
     const { data: urlData } = supabase.storage.from("travel-documents").getPublicUrl(path);
     await supabase.from("travel_booking_documents").insert({
-      booking_id: booking.id, user_id: user.id,
+      booking_id: booking.id, user_id: dataOwnerId!,
       file_name: file.name, file_url: urlData?.publicUrl || "",
       file_size: file.size,
     });

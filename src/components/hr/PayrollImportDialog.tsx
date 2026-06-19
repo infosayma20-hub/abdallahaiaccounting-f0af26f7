@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -393,7 +394,7 @@ export default function PayrollImportDialog({ open, onClose, onSuccess }: Props)
         const insertPayload = {
           ...r.payload,
           employee_id: r.employee_id,
-          user_id: userId,
+          user_id: dataOwnerId!,
           company_id: companyId,
         };
         const { error } = await supabase.from("employee_payroll").insert(insertPayload as any);
