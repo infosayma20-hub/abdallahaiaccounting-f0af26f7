@@ -316,7 +316,12 @@ const AppsLauncher = () => {
   return (
     <div style={{ minHeight: "100%", background: "#F7F8FA", margin: "-1.25rem", marginBottom: 0, fontFamily: "Cairo, sans-serif" }} className="lg:-m-8 lg:mb-0" dir="rtl">
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 24px 120px" }}>
+      <div className="amwali-apps-container" style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 24px 120px" }}>
+        <style>{`
+          @media (max-width: 767px) {
+            .amwali-apps-container { padding: 14px 12px 100px !important; }
+          }
+        `}</style>
         {/* Compact header */}
         <div className="flex items-baseline justify-between mb-4 px-1">
           <div>
@@ -327,7 +332,7 @@ const AppsLauncher = () => {
 
         {/* Apps Grid — gated on unified loading state to prevent flicker */}
         {!isReady ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
@@ -371,7 +376,7 @@ const AppsLauncher = () => {
                     }}
                   />
                 </button>
-                {!favCollapsed && <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {!favCollapsed && <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                   {groupedApps.favoritesList.map((app, idx) => {
                     const meta = getAppMeta(app.id)!;
                     const pendingActivation = isAppDisabled(app);

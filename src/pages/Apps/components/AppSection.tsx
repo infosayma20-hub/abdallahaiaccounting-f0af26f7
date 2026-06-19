@@ -97,8 +97,8 @@ export default function AppSection({ section, isPremium, children }: Props) {
       {!collapsed && <div
         style={{
           display: "grid",
-          gap: 10,
-          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: 12,
+          gridTemplateColumns: "repeat(3, 1fr)",
         }}
         className="amwali-apps-grid"
       >
@@ -106,6 +106,9 @@ export default function AppSection({ section, isPremium, children }: Props) {
       </div>}
 
       <style>{`
+        @media (max-width: 374px) {
+          .amwali-apps-grid { gap: 8px !important; }
+        }
         @media (min-width: 768px) {
           .amwali-apps-grid { grid-template-columns: repeat(3, 1fr) !important; }
         }

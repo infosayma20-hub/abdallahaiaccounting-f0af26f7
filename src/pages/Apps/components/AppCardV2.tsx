@@ -52,10 +52,31 @@ export default function AppCardV2({
 
   return (
     <>
+    <style>{`
+      @media (max-width: 767px) {
+        .amwali-app-card { border-radius: 14px !important; }
+        .amwali-app-card .amwali-app-btn { padding: 14px 8px 12px !important; gap: 8px !important; }
+        .amwali-app-card .amwali-app-icon {
+          width: 48px !important; height: 48px !important; border-radius: 14px !important;
+        }
+        .amwali-app-card .amwali-app-label { font-size: 13px !important; line-height: 1.25 !important; }
+        .amwali-app-card .amwali-app-desc { display: none !important; }
+        .amwali-app-card .amwali-app-meta-row { gap: 4px !important; flex-wrap: wrap; justify-content: center; }
+        .amwali-app-card .amwali-app-badge-ai,
+        .amwali-app-card .amwali-app-badge-crm,
+        .amwali-app-card .amwali-app-badge-new { font-size: 8px !important; padding: 1px 5px !important; }
+      }
+      @media (max-width: 374px) {
+        .amwali-app-card .amwali-app-btn { padding: 12px 6px 10px !important; }
+        .amwali-app-card .amwali-app-icon { width: 44px !important; height: 44px !important; }
+        .amwali-app-card .amwali-app-label { font-size: 12px !important; }
+      }
+    `}</style>
     <motion.div
       ref={cardRef as any}
       id={`app-${app.id}`}
       data-tour-id={`app-${app.id}`}
+      className="amwali-app-card"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03, duration: 0.35, ease: "easeOut" }}
@@ -106,7 +127,7 @@ export default function AppCardV2({
         type="button"
         onClick={handleClick}
         disabled={isInert}
-        className="w-full flex flex-col items-center gap-2 p-5 pb-4 text-center group relative z-10"
+        className="amwali-app-btn w-full flex flex-col items-center gap-2 p-5 pb-4 text-center group relative z-10"
         style={{
           background: "transparent",
           border: "none",
@@ -115,7 +136,7 @@ export default function AppCardV2({
       >
         {/* Icon container — uses original app.color/bgColor classes */}
         <div
-          className={`w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all duration-300 ${
+          className={`amwali-app-icon w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all duration-300 ${
             isInert
               ? "grayscale"
               : `${app.bgColor || "bg-primary/8"} group-hover:scale-110`
@@ -140,8 +161,9 @@ export default function AppCardV2({
 
         {/* Name + description */}
         <div className="space-y-1">
-          <div className="flex items-center justify-center gap-1.5">
+          <div className="amwali-app-meta-row flex items-center justify-center gap-1.5">
             <p
+              className="amwali-app-label"
               style={{
                 fontSize: 15,
                 fontWeight: 600,
@@ -163,7 +185,7 @@ export default function AppCardV2({
               />
             )}
             {!isInert && app.isNew && !pendingActivation && (
-              <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">
+              <span className="amwali-app-badge-new text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">
                 جديد
               </span>
             )}
@@ -184,6 +206,7 @@ export default function AppCardV2({
             )}
             {!isInert && meta.isAIFeature && !pendingActivation && (
               <span
+                className="amwali-app-badge-ai"
                 style={{
                   fontSize: 9,
                   fontWeight: 600,
@@ -199,6 +222,7 @@ export default function AppCardV2({
             )}
             {!isInert && app.id === "crm" && !pendingActivation && (
               <span
+                className="amwali-app-badge-crm"
                 style={{
                   fontSize: 9,
                   fontWeight: 700,
@@ -214,7 +238,7 @@ export default function AppCardV2({
             )}
           </div>
           <p
-            className="line-clamp-2"
+            className="amwali-app-desc line-clamp-2"
             style={{
               fontSize: 12,
               color: pendingActivation ? "#7c75c4" : isPremiumLocked ? "#94a3b8" : "#64748b",
