@@ -3061,6 +3061,11 @@ const POSPage = () => {
     // Group items by station
     const stationGroups: Record<string, { stationName: string; stationColor: string; items: any[] }> = {};
     const noStationItems: any[] = [];
+    // Track whether items existed but were dropped by mute rules — so we don't
+    // fall back to a default kitchen print for an order that was fully muted.
+    let allItemsMuted = false;
+    let mutedDroppedCount = 0;
+    let routedCount = 0;
 
     cart.forEach(item => {
       const stationId = item.product_id ? productStationMap.get(item.product_id) : null;
@@ -3068,16 +3073,31 @@ const POSPage = () => {
       if (stationId && stationNames.has(stationId)) {
         // Drop muted (category, station) pairs
         const cat = item.product_id ? productCategoryMap.get(item.product_id) : null;
-        if (isMutedSK(cat, stationId)) return;
+        if (isMutedSK(cat, stationId)) { mutedDroppedCount++; return; }
         if (!stationGroups[stationId]) {
           const info = stationNames.get(stationId)!;
           stationGroups[stationId] = { stationName: info.name, stationColor: info.color, items: [] };
         }
         stationGroups[stationId].items.push(itemData);
+        routedCount++;
       } else {
         noStationItems.push(itemData);
       }
     });
+
+    // If every cart item that had a station assignment was muted and nothing
+    // else is queued, do NOT fall back to a default print — that would defeat
+    // the mute rules the admin configured.
+    allItemsMuted =
+      mutedDroppedCount > 0 &&
+      routedCount === 0 &&
+      noStationItems.length === 0;
+
+    if (allItemsMuted) {
+      toast.info("ما في تذاكر مطبخ — كل الأصناف مكتومة على محطاتها بحسب قواعد الطباعة");
+      // Skip both the dialog and the bridge dispatch entirely.
+      return;
+    }
 
     // If no stations defined, put all in one group
     if (Object.keys(stationGroups).length === 0) {
