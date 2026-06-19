@@ -124,25 +124,25 @@ Deno.serve(async (req) => {
         (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
       }
     } else if (audience_type === "portal") {
-      // بوابة الإدارة — مستخدمو malaki_portal_users النشطون التابعون لنفس الشركة
+      // بوابة الإدارة — مستخدمو malaki_portal_users التابعون لنفس الشركة (عبر owner_id)
+      let ownerId: string | null = null;
+      if (companyId) {
+        const { data: comp } = await admin
+          .from("companies")
+          .select("owner_id")
+          .eq("id", companyId)
+          .maybeSingle();
+        ownerId = (comp as { owner_id?: string } | null)?.owner_id ?? null;
+      }
+      // fallback: المالك نفسه هو المتصل (في حال لم تربط الشركة بمالك)
+      const scopeOwnerId = ownerId ?? callerId;
       const { data: portals } = await admin
         .from("malaki_portal_users")
         .select("auth_user_id")
         .eq("is_active", true)
+        .eq("user_id", scopeOwnerId)
         .not("auth_user_id", "is", null);
-      const authIds = (portals ?? []).map((p: any) => p.auth_user_id).filter(Boolean);
-      if (authIds.length > 0) {
-        if (companyId) {
-          const { data: profs } = await admin
-            .from("profiles")
-            .select("id")
-            .in("id", authIds)
-            .eq("company_id", companyId);
-          (profs ?? []).forEach((p: any) => recipientUserIds.add(p.id));
-        } else {
-          authIds.forEach((id: string) => recipientUserIds.add(id));
-        }
-      }
+      (portals ?? []).forEach((p: any) => p.auth_user_id && recipientUserIds.add(p.auth_user_id));
     }
 
     const recipients = Array.from(recipientUserIds);
