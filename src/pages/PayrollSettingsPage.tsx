@@ -133,7 +133,7 @@ export default function PayrollSettingsPage() {
     toast.info("تم إعادة القيم للافتراضي — اضغط حفظ للتأكيد");
   };
 
-  const updateField = (field: keyof PayrollSettings, value: number | string) => {
+  const updateField = (field: keyof PayrollSettings, value: number | string | boolean | null) => {
     if (!settings) return;
     setSettings({ ...settings, [field]: value });
   };
