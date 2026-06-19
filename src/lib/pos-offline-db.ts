@@ -129,7 +129,13 @@ export async function deleteOne(storeName: string, key: string): Promise<void> {
 
 export async function countPending(): Promise<number> {
   const items = await getAll<PendingSale>('pending_sales');
+  // quarantined sales are excluded — they need manual review
   return items.filter(i => i.sync_status === 'pending' || i.sync_status === 'failed').length;
+}
+
+export async function countQuarantined(): Promise<number> {
+  const items = await getAll<PendingSale>('pending_sales');
+  return items.filter(i => i.sync_status === 'quarantined').length;
 }
 
 // ── Pre-cache helpers ──
@@ -164,12 +170,31 @@ export async function removePendingSale(id: string): Promise<void> {
   await deleteOne('pending_sales', id);
 }
 
+export const MAX_SYNC_RETRIES = 5;
+
 export async function markSaleFailed(id: string, error: string): Promise<void> {
   const sale = await getOne<PendingSale>('pending_sales', id);
   if (sale) {
-    sale.sync_status = 'failed';
-    sale.error = error;
     sale.retry_count = (sale.retry_count || 0) + 1;
+    sale.error = error;
+    // After MAX_SYNC_RETRIES failures, quarantine — stops auto-retry, needs manual review
+    sale.sync_status = sale.retry_count >= MAX_SYNC_RETRIES ? 'quarantined' : 'failed';
+    await putOne('pending_sales', sale);
+  }
+}
+
+export async function getQuarantinedSales(): Promise<PendingSale[]> {
+  const items = await getAll<PendingSale>('pending_sales');
+  return items.filter(i => i.sync_status === 'quarantined');
+}
+
+/** Manually requeue a quarantined sale (admin action). */
+export async function requeueSale(id: string): Promise<void> {
+  const sale = await getOne<PendingSale>('pending_sales', id);
+  if (sale) {
+    sale.sync_status = 'pending';
+    sale.retry_count = 0;
+    sale.error = undefined;
     await putOne('pending_sales', sale);
   }
 }
