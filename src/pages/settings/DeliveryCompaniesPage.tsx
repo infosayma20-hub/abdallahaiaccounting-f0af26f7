@@ -28,6 +28,7 @@ interface BranchRow {
   is_active: boolean;
   zones_count: number;
   mapped_zones_count: number;
+  priced_zones_count: number;
 }
 
 interface PingResult {
@@ -85,16 +86,18 @@ export default function DeliveryCompaniesPage() {
       return;
     }
     const branchIds = (cfg ?? []).map((c) => c.branch_id);
+    const safeIds = branchIds.length ? branchIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: brs }, { data: zones }] = await Promise.all([
-      supabase.from("branches").select("id, name").in("id", branchIds.length ? branchIds : ["00000000-0000-0000-0000-000000000000"]),
-      supabase.from("delivery_zones").select("branch_id, wheels_area_id").in("branch_id", branchIds.length ? branchIds : ["00000000-0000-0000-0000-000000000000"]),
+      supabase.from("branches").select("id, name").in("id", safeIds),
+      supabase.from("delivery_zones").select("branch_id, wheels_area_id, wheels_fixed_price").in("branch_id", safeIds),
     ]);
     const brName = new Map((brs ?? []).map((b) => [b.id, b.name]));
-    const zoneStats = new Map<string, { total: number; mapped: number }>();
+    const zoneStats = new Map<string, { total: number; mapped: number; priced: number }>();
     for (const z of zones ?? []) {
-      const s = zoneStats.get(z.branch_id) ?? { total: 0, mapped: 0 };
+      const s = zoneStats.get(z.branch_id) ?? { total: 0, mapped: 0, priced: 0 };
       s.total += 1;
       if (z.wheels_area_id) s.mapped += 1;
+      if (z.wheels_fixed_price != null) s.priced += 1;
       zoneStats.set(z.branch_id, s);
     }
     const rows: BranchRow[] = (cfg ?? []).map((c) => ({
@@ -105,6 +108,7 @@ export default function DeliveryCompaniesPage() {
       is_active: !!c.is_active,
       zones_count: zoneStats.get(c.branch_id)?.total ?? 0,
       mapped_zones_count: zoneStats.get(c.branch_id)?.mapped ?? 0,
+      priced_zones_count: zoneStats.get(c.branch_id)?.priced ?? 0,
     }));
     rows.sort((a, b) => a.branch_name.localeCompare(b.branch_name, "ar"));
     setBranches(rows);
@@ -228,7 +232,7 @@ export default function DeliveryCompaniesPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
                     <div>
                       <div className="text-muted-foreground">Wheels Branch ID</div>
                       <div className="font-mono break-all" title={b.wheels_branch_id}>{b.wheels_branch_id.slice(0, 8)}…</div>
@@ -245,6 +249,21 @@ export default function DeliveryCompaniesPage() {
                       <div className="text-muted-foreground">مربوطة بـ Wheels</div>
                       <div className={b.mapped_zones_count === b.zones_count ? "text-emerald-700" : "text-amber-700"}>
                         {b.mapped_zones_count} / {b.zones_count}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">أسعار ثابتة</div>
+                      <div
+                        className={
+                          b.priced_zones_count === 0
+                            ? "text-amber-700"
+                            : b.priced_zones_count === b.mapped_zones_count
+                            ? "text-emerald-700"
+                            : "text-foreground"
+                        }
+                        title={b.priced_zones_count === 0 ? "السعر سيُجلب لحظياً من Wheels API لكل طلب" : ""}
+                      >
+                        {b.priced_zones_count} / {b.mapped_zones_count}
                       </div>
                     </div>
                   </div>
