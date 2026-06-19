@@ -4408,6 +4408,27 @@ const POSPage = () => {
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
     try { await assertPermission("pos", "sell", "close_shift"); } catch { return; }
+    // ⛔ Block shift close while offline OR when there are unsynced sales.
+    // Closing on stale totals would create false cash variance — the cashier
+    // must wait until connectivity returns and the queue drains.
+    if (!offlineMode.isOnline) {
+      toast.error("⚠️ لا يمكن إغلاق الوردية بدون إنترنت — انتظر عودة الاتصال");
+      return;
+    }
+    if (offlineMode.pendingCount > 0) {
+      toast.error(
+        `⚠️ يوجد ${offlineMode.pendingCount} عملية بانتظار الترحيل — اضغط 'مزامنة الآن' أولاً قبل إغلاق الوردية`,
+        { duration: 6000 }
+      );
+      return;
+    }
+    if (offlineMode.quarantinedCount > 0) {
+      toast.error(
+        `⚠️ يوجد ${offlineMode.quarantinedCount} عملية في الحجر — راجعها من سجل المزامنة قبل الإغلاق`,
+        { duration: 6000 }
+      );
+      return;
+    }
     // 🛟 Revert any accepted-but-unpaid call-center orders back to pending so
     // they don't disappear between accepted and paid when the cashier closes.
     try {
