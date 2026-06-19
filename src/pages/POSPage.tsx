@@ -3653,6 +3653,23 @@ const POSPage = () => {
             created_by: userId,
             notes: transparencyNote,
           } as any);
+
+          // Fire push notification to employee (best-effort, non-blocking).
+          try {
+            supabase.functions.invoke("notify-employee-meal", {
+              body: {
+                employee_id: selectedEmployee.id,
+                data_owner_id: dataOwnerId,
+                order_number: res.order_number,
+                full_amount: fullAmount,
+                employee_share_pct: employeeSharePct,
+                deducted_amount: calculatedAmount,
+                items_summary: itemsSummary,
+              },
+            }).catch((e) => console.warn("[POS] notify-employee-meal failed:", e));
+          } catch (e) {
+            console.warn("[POS] notify-employee-meal invoke threw:", e);
+          }
         }
       }
 
