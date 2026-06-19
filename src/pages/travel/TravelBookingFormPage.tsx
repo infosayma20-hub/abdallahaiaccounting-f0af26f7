@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureTravelAccounts, createBookingJournalEntry } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,6 +124,7 @@ const getDefaultItems = (serviceType: string): CostItem[] => {
 
 export default function TravelBookingFormPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { id: editId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [step, setStep] = useState(editId ? 2 : 1);
@@ -185,7 +187,7 @@ export default function TravelBookingFormPage() {
     if (!editId || !user) return;
     const loadBooking = async () => {
       const [bRes, iRes, pRes] = await Promise.all([
-        supabase.from("travel_bookings").select("*").eq("id", editId).single(),
+        supabase.from("travel_bookings").select("*").eq("id", editId!).eq("user_id", dataOwnerId!).single(),
         supabase.from("travel_booking_items").select("*").eq("booking_id", editId).order("sort_order"),
         supabase.from("travel_booking_passengers").select("*").eq("booking_id", editId).order("passenger_index"),
       ]);

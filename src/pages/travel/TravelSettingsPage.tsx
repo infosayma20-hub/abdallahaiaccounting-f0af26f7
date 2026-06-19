@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,18 +37,19 @@ const TRAVEL_ACCOUNTS = [
 
 export default function TravelSettingsPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [currencies, setCurrencies] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingCurrencies, setSavingCurrencies] = useState(false);
   const [initializingAccounts, setInitializingAccounts] = useState(false);
 
-  useEffect(() => { if (user) fetchData(); }, [user]);
+  useEffect(() => { if (dataOwnerId) fetchData(); }, [dataOwnerId]);
 
   const fetchData = async () => {
     if (!user) return;
     const [curRes, accRes] = await Promise.all([
-      supabase.from("travel_currencies").select("*").order("is_default", { ascending: false }),
+      supabase.from("travel_currencies").select("*").eq("user_id", dataOwnerId!).order("is_default", { ascending: false }),
       supabase.from("accounts").select("account_code, account_name, system_role")
         .eq("user_id", user.id)
         .in("system_role", TRAVEL_ACCOUNTS.map(a => a.role)),
