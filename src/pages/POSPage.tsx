@@ -6907,6 +6907,38 @@ const POSPage = () => {
                               <span className="text-[10px] opacity-80">50%</span>
                             </button>
                           </div>
+                          {mealDiscountType && (() => {
+                            const full = Number(cartTotals.total) || 0;
+                            const pct = mealDiscountType === "family" ? 10 : 50;
+                            const ded = Math.round((full * pct / 100) * 100) / 100;
+                            const company = Math.max(0, full - ded);
+                            const used = mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual;
+                            const cap = mealDiscountType === "family" ? mealCapFamily : mealCapIndividual;
+                            const projected = used + ded;
+                            const overCap = cap > 0 && projected > cap;
+                            const nearCap = cap > 0 && projected >= cap * (mealWarnAtPct / 100);
+                            return (
+                              <div className="mt-2 p-2 rounded-lg text-[11px] space-y-0.5" style={{ background: '#ffffff', border: '1px solid #ddd6fe' }}>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>إجمالي الفاتورة</span><span className="font-semibold">₪{full.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>سيُخصم من حسابك ({pct}%)</span><span className="font-semibold" style={{ color: '#dc2626' }}>₪{ded.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>تتحمّل الشركة</span><span className="font-semibold" style={{ color: '#16a34a' }}>₪{company.toFixed(2)}</span></div>
+                                {(used > 0 || cap > 0) && (
+                                  <div className="flex justify-between pt-1 mt-1" style={{ borderTop: '1px dashed #e5e7eb' }}>
+                                    <span style={{ color: '#6b7280' }}>إجمالي وجباتك هذا الشهر</span>
+                                    <span className="font-semibold" style={{ color: overCap ? '#dc2626' : nearCap ? '#d97706' : '#374151' }}>
+                                      ₪{used.toFixed(2)}{cap > 0 ? ` / ₪${cap.toFixed(2)}` : ''}
+                                    </span>
+                                  </div>
+                                )}
+                                {overCap && (
+                                  <div className="text-[10px] font-semibold" style={{ color: '#dc2626' }}>⚠️ تجاوز السقف الشهري — لن يمكن التأكيد</div>
+                                )}
+                                {!overCap && nearCap && cap > 0 && (
+                                  <div className="text-[10px] font-semibold" style={{ color: '#d97706' }}>⚠️ اقتربت من السقف الشهري</div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                       <div className="mt-2">
