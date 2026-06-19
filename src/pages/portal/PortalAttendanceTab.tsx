@@ -122,7 +122,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
     setTimeout(() => playNotificationSound(), 200);
 
     const res = await enablePushNotifications();
-    if (res.ok) toast.success('تم تفعيل إشعارات Push والصوت ✅', { duration: 2000 });
+    if (res.ok === true) toast.success('تم تفعيل إشعارات Push والصوت ✅', { duration: 2000 });
     else toast.warning(`تم تفعيل الصوت فقط، ولم يتم تسجيل Push: ${res.reason}`, { duration: 5000 });
   }, [playNotificationSound]);
 
