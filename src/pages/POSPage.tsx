@@ -3543,13 +3543,9 @@ const POSPage = () => {
         setShowPayment(false);
         setShowReceipt(true);
 
-        // Fire-and-forget local print (Print Bridge works on LAN even offline)
-        try {
-          const { bridgePrintAll } = await import("@/lib/print-bridge-client");
-          bridgePrintAll({ receipt: receiptInfo as any, kitchenJobs: [] }).catch(() => {});
-        } catch (e) {
-          console.warn("[POS Offline] print bridge import failed:", e);
-        }
+        // Note: the receipt dialog (<Receipt>) auto-prints via the same Print Bridge
+        // on mount — so the customer copy still prints offline (LAN). Kitchen tickets
+        // are intentionally skipped offline; they re-print after sync from KDS history.
 
         // Clear the current order
         setOrders((prev) => {
