@@ -11,7 +11,13 @@ export interface PendingSale {
   order_data: any;
   items: any[];
   total: number;
+  subtotal?: number;
+  tax_amount?: number;
+  discount_amount?: number;
   payment_method: string;
+  /** Full payments array (multi-currency / split). Preferred over payment_method. */
+  payments?: any[];
+  notes?: string;
   customer_id: string | null;
   customer_name: string;
   cashier_id: string;
@@ -19,7 +25,7 @@ export interface PendingSale {
   terminal_id: string | null;
   device_id: string;
   created_at: string;
-  sync_status: 'pending' | 'failed';
+  sync_status: 'pending' | 'failed' | 'quarantined';
   retry_count: number;
   error?: string;
   order_number: string;
