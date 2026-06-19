@@ -5,7 +5,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-type AudienceType = "employees" | "department" | "role" | "company";
+type AudienceType = "employees" | "department" | "role" | "company" | "portal";
 
 interface BroadcastBody {
   title: string;
@@ -122,6 +122,26 @@ Deno.serve(async (req) => {
           .eq("company_id", companyId)
           .eq("is_active", true);
         (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
+      }
+    } else if (audience_type === "portal") {
+      // بوابة الإدارة — مستخدمو malaki_portal_users النشطون التابعون لنفس الشركة
+      const { data: portals } = await admin
+        .from("malaki_portal_users")
+        .select("auth_user_id")
+        .eq("is_active", true)
+        .not("auth_user_id", "is", null);
+      const authIds = (portals ?? []).map((p: any) => p.auth_user_id).filter(Boolean);
+      if (authIds.length > 0) {
+        if (companyId) {
+          const { data: profs } = await admin
+            .from("profiles")
+            .select("id")
+            .in("id", authIds)
+            .eq("company_id", companyId);
+          (profs ?? []).forEach((p: any) => recipientUserIds.add(p.id));
+        } else {
+          authIds.forEach((id: string) => recipientUserIds.add(id));
+        }
       }
     }
 

@@ -9,11 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Bell, Users, Building2, Shield, CheckCircle2, XCircle, AlertCircle, History, FileText } from "lucide-react";
+import { Loader2, Send, Bell, Users, Building2, Shield, CheckCircle2, XCircle, AlertCircle, History, FileText, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-type AudienceType = "employees" | "department" | "role" | "company";
+type AudienceType = "employees" | "department" | "role" | "company" | "portal";
 
 interface Template {
   id: string;
@@ -82,6 +82,7 @@ export default function NotificationsAdminPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [history, setHistory] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
+  const [portalCount, setPortalCount] = useState<number | null>(null);
 
   const CATEGORY_ORDER = ["circular", "announcement", "meeting", "reminder", "payroll", "alert", "greeting", "general"];
 
@@ -128,6 +129,13 @@ export default function NotificationsAdminPage() {
       setEmployees((empRes.data ?? []) as any);
       setDepartments((depRes.data ?? []) as any);
       setHistory((histRes.data ?? []) as any);
+      // عدد مستخدمي بوابة الإدارة النشطين (لعرض count فقط؛ التصفية بالشركة تتم في الـ Edge Function)
+      const { count: pc } = await supabase
+        .from("malaki_portal_users")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .not("auth_user_id", "is", null);
+      setPortalCount(pc ?? 0);
     } catch (e: any) {
       toast.error("تعذر تحميل البيانات: " + e.message);
     } finally {
@@ -158,14 +166,16 @@ export default function NotificationsAdminPage() {
     if (audienceType === "employees") return selectedEmployeeIds.length;
     if (audienceType === "department") return employees.filter((e) => e.department_id === selectedDepartmentId && e.auth_user_id).length;
     if (audienceType === "company") return employees.filter((e) => !!e.auth_user_id).length;
+    if (audienceType === "portal") return portalCount;
     return null; // role: unknown until sent
-  }, [audienceType, selectedEmployeeIds, selectedDepartmentId, employees]);
+  }, [audienceType, selectedEmployeeIds, selectedDepartmentId, employees, portalCount]);
 
   const canSend = !!finalTitle.trim() && !!finalBody.trim() && (
     (audienceType === "employees" && selectedEmployeeIds.length > 0) ||
     (audienceType === "department" && !!selectedDepartmentId) ||
     (audienceType === "role" && !!selectedRole) ||
-    audienceType === "company"
+    audienceType === "company" ||
+    audienceType === "portal"
   );
 
   const send = async () => {
@@ -295,6 +305,7 @@ export default function NotificationsAdminPage() {
                     { value: "department", label: "قسم", icon: Building2 },
                     { value: "role", label: "حسب الدور", icon: Shield },
                     { value: "employees", label: "موظفين محددين", icon: Users },
+                    { value: "portal", label: "بوابة الإدارة", icon: Briefcase },
                   ] as const).map((opt) => {
                     const Icon = opt.icon;
                     const active = audienceType === opt.value;
