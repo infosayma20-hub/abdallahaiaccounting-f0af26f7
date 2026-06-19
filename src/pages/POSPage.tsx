@@ -462,6 +462,9 @@ const POSPage = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
   const [employeeNote, setEmployeeNote] = useState("");
+  // Malaky-only: cashier picks family (10%) or individual (50%) meal discount.
+  // Default 'individual' to preserve previous behavior for non-Malaky tenants.
+  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual">("individual");
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
