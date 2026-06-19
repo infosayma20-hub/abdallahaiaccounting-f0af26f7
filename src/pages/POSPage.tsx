@@ -6762,9 +6762,11 @@ const POSPage = () => {
                         </div>
                         {selectedEmployee.job_title && <span className="text-xs" style={{ color: '#6b7280' }}>{selectedEmployee.job_title}</span>}
                       </div>
-                      {dataOwnerId === MALAKY_OWNER_ID && (
+                      {mealDiscountMode === "dual" && (
                         <div className="mt-2.5">
-                          <div className="text-[11px] mb-1.5 font-medium" style={{ color: '#6b21a8' }}>نوع الخصم</div>
+                          <div className="text-[11px] mb-1.5 font-medium" style={{ color: mealDiscountType ? '#6b21a8' : '#dc2626' }}>
+                            نوع الخصم {mealDiscountType ? '' : '(مطلوب)'}
+                          </div>
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               type="button"
