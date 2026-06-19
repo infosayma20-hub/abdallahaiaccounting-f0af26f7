@@ -144,6 +144,16 @@ Deno.serve(async (req) => {
     }
 
     const recipients = Array.from(recipientUserIds);
+    const recipientLabels = new Map<string, string>();
+    if (recipients.length > 0) {
+      const { data: portalRecipients } = await admin
+        .from("malaki_portal_users")
+        .select("auth_user_id,email,full_name")
+        .in("auth_user_id", recipients);
+      (portalRecipients ?? []).forEach((p: any) => {
+        if (p.auth_user_id) recipientLabels.set(p.auth_user_id, p.email || p.full_name || p.auth_user_id);
+      });
+    }
 
     // ---- Insert broadcast row ----
     const { data: broadcast, error: bErr } = await admin
@@ -177,6 +187,7 @@ Deno.serve(async (req) => {
     // ---- Fire pushes in parallel (limited) ----
     let sent = 0, failed = 0;
     const logRows: any[] = [];
+    const failureDetails: Array<{ user_id: string; recipient: string; error: string }> = [];
 
     const sendOne = async (userId: string) => {
       try {
@@ -188,6 +199,14 @@ Deno.serve(async (req) => {
         const json = await res.json().catch(() => ({}));
         const ok = res.ok && (json.sent ?? 0) > 0;
         if (ok) sent++; else failed++;
+        const deliveryError = ok ? null : (json.note ?? json.error ?? `status ${res.status}`);
+        if (!ok) {
+          failureDetails.push({
+            user_id: userId,
+            recipient: recipientLabels.get(userId) ?? userId,
+            error: String(deliveryError),
+          });
+        }
         logRows.push({
           user_id: userId,
           type: "broadcast",
@@ -196,10 +215,15 @@ Deno.serve(async (req) => {
           body: messageBody,
           broadcast_id: broadcast.id,
           delivery_status: ok ? "delivered" : "failed",
-          delivery_error: ok ? null : (json.note ?? json.error ?? `status ${res.status}`),
+          delivery_error: deliveryError,
         });
       } catch (e) {
         failed++;
+        failureDetails.push({
+          user_id: userId,
+          recipient: recipientLabels.get(userId) ?? userId,
+          error: String(e),
+        });
         logRows.push({
           user_id: userId,
           type: "broadcast",
@@ -225,18 +249,22 @@ Deno.serve(async (req) => {
     }
 
     const finalStatus = failed === 0 ? "completed" : sent === 0 ? "failed" : "partial";
+    const errorSummary = failureDetails.length
+      ? failureDetails.slice(0, 3).map((f) => `${f.recipient}: ${f.error}`).join(" | ")
+      : null;
     await admin
       .from("notification_broadcasts")
       .update({
         sent_count: sent,
         failed_count: failed,
         status: finalStatus,
+        error_summary: errorSummary,
         completed_at: new Date().toISOString(),
       })
       .eq("id", broadcast.id);
 
     return new Response(
-      JSON.stringify({ ok: true, broadcast_id: broadcast.id, recipients: recipients.length, sent, failed, status: finalStatus }),
+      JSON.stringify({ ok: true, broadcast_id: broadcast.id, recipients: recipients.length, sent, failed, status: finalStatus, failure_details: failureDetails }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
