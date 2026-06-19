@@ -121,14 +121,6 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
       </SettingsSection>
 
       <SettingsSection
-        title="واجهة برمجة التطبيقات (API)"
-        description="دمج AMWALI مع أنظمتك الخارجية عبر REST API."
-        action={<Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border/60">قيد التحضير</Badge>}
-      >
-        <div className="hidden" />
-      </SettingsSection>
-
-      <SettingsSection
         title="شركات التوصيل"
         description="ربط نقطة البيع مع شركات التوصيل (Wheels) وتشخيص الاتصال."
         action={<Badge variant="outline" className="text-[10px] font-normal border-emerald-500/40 text-emerald-700 dark:text-emerald-400">مربوط</Badge>}
