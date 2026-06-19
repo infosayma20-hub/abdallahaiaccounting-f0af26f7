@@ -3397,14 +3397,17 @@ const POSPage = () => {
           return;
         }
         const warnThreshold = cap * (mealWarnAtPct / 100);
-        if (projected >= warnThreshold && !(window as any).__mealCapWarnAck) {
-          (window as any).__mealCapWarnAck = true;
+        // Soft warn: scoped per-employee+type+month so it re-prompts for each new employee/period.
+        const now = new Date();
+        const ackKey = `mealCapAck:${selectedEmployee.id}:${mealDiscountType}:${now.getFullYear()}-${now.getMonth() + 1}`;
+        const globalAck: Record<string, boolean> = ((window as any).__mealCapAcks ||= {});
+        if (projected >= warnThreshold && !globalAck[ackKey]) {
+          globalAck[ackKey] = true;
           toast.warning(
             `تنبيه: الموظف اقترب من سقفه الشهري (${Math.round((projected / cap) * 100)}%). اضغط "تأكيد" مرة ثانية للمتابعة.`
           );
           return;
         }
-        (window as any).__mealCapWarnAck = false;
       }
     }
 
