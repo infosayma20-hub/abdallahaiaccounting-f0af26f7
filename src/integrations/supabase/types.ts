@@ -11677,6 +11677,8 @@ export type Database = {
           subtotal: number
           survey_sent: boolean | null
           survey_token: string | null
+          sync_error: string | null
+          sync_retry_count: number
           sync_status: string | null
           synced_at: string | null
           table_id: string | null
@@ -11762,6 +11764,8 @@ export type Database = {
           subtotal?: number
           survey_sent?: boolean | null
           survey_token?: string | null
+          sync_error?: string | null
+          sync_retry_count?: number
           sync_status?: string | null
           synced_at?: string | null
           table_id?: string | null
@@ -11847,6 +11851,8 @@ export type Database = {
           subtotal?: number
           survey_sent?: boolean | null
           survey_token?: string | null
+          sync_error?: string | null
+          sync_retry_count?: number
           sync_status?: string | null
           synced_at?: string | null
           table_id?: string | null
@@ -21248,6 +21254,7 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      sync_offline_pos_sale: { Args: { p_payload: Json }; Returns: Json }
       sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
       uaao_can_admin_target: {
         Args: { _admin: string; _target: string }
