@@ -10734,6 +10734,7 @@ export type Database = {
           annual_increment_per_year: number | null
           attendance_bonus_max_absent: number | null
           attendance_bonus_rate: number | null
+          auto_journal_for_meals: boolean
           base_month_days: number | null
           child_allowance: number | null
           company_id: string
@@ -10748,7 +10749,12 @@ export type Database = {
           food_transport_start_months: number | null
           full_attendance_days: number | null
           id: string
+          meal_company_share_account_code: string | null
           meal_discount_mode: string
+          meal_employee_payable_account_code: string | null
+          meal_monthly_cap_family: number
+          meal_monthly_cap_individual: number
+          meal_monthly_warn_at_pct: number
           min_deduction_threshold: number | null
           overtime_multiplier: number | null
           updated_at: string | null
@@ -10758,6 +10764,7 @@ export type Database = {
           annual_increment_per_year?: number | null
           attendance_bonus_max_absent?: number | null
           attendance_bonus_rate?: number | null
+          auto_journal_for_meals?: boolean
           base_month_days?: number | null
           child_allowance?: number | null
           company_id: string
@@ -10772,7 +10779,12 @@ export type Database = {
           food_transport_start_months?: number | null
           full_attendance_days?: number | null
           id?: string
+          meal_company_share_account_code?: string | null
           meal_discount_mode?: string
+          meal_employee_payable_account_code?: string | null
+          meal_monthly_cap_family?: number
+          meal_monthly_cap_individual?: number
+          meal_monthly_warn_at_pct?: number
           min_deduction_threshold?: number | null
           overtime_multiplier?: number | null
           updated_at?: string | null
@@ -10782,6 +10794,7 @@ export type Database = {
           annual_increment_per_year?: number | null
           attendance_bonus_max_absent?: number | null
           attendance_bonus_rate?: number | null
+          auto_journal_for_meals?: boolean
           base_month_days?: number | null
           child_allowance?: number | null
           company_id?: string
@@ -10796,7 +10809,12 @@ export type Database = {
           food_transport_start_months?: number | null
           full_attendance_days?: number | null
           id?: string
+          meal_company_share_account_code?: string | null
           meal_discount_mode?: string
+          meal_employee_payable_account_code?: string | null
+          meal_monthly_cap_family?: number
+          meal_monthly_cap_individual?: number
+          meal_monthly_warn_at_pct?: number
           min_deduction_threshold?: number | null
           overtime_multiplier?: number | null
           updated_at?: string | null
@@ -20658,6 +20676,13 @@ export type Database = {
         }[]
       }
       get_employee_id_for_user: { Args: { _user: string }; Returns: string }
+      get_employee_meal_monthly_totals: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: {
+          meal_discount_type: string
+          total: number
+        }[]
+      }
       get_employee_team_schedule: {
         Args: { _end_date: string; _start_date: string }
         Returns: {
