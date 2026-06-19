@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, MessageCircle, Table as TableIcon, Mail, Cloud, MessageSquare, Plug, Settings as SettingsIcon, PlayCircle } from "lucide-react";
+import { ExternalLink, MessageCircle, Table as TableIcon, Mail, Cloud, MessageSquare, Plug, Settings as SettingsIcon, PlayCircle, Truck } from "lucide-react";
+import { Link } from "react-router-dom";
 import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 
