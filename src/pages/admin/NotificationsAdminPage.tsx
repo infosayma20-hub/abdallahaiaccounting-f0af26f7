@@ -129,13 +129,23 @@ export default function NotificationsAdminPage() {
       setEmployees((empRes.data ?? []) as any);
       setDepartments((depRes.data ?? []) as any);
       setHistory((histRes.data ?? []) as any);
-      // عدد مستخدمي بوابة الإدارة النشطين (لعرض count فقط؛ التصفية بالشركة تتم في الـ Edge Function)
-      const { count: pc } = await supabase
-        .from("malaki_portal_users")
-        .select("id", { count: "exact", head: true })
-        .eq("is_active", true)
-        .not("auth_user_id", "is", null);
-      setPortalCount(pc ?? 0);
+      // عدد مستخدمي بوابة الإدارة النشطين التابعين لنفس المالك
+      try {
+        const { data: ownerId } = await supabase.rpc("resolve_effective_owner_id" as any);
+        if (ownerId) {
+          const { count: pc } = await supabase
+            .from("malaki_portal_users")
+            .select("id", { count: "exact", head: true })
+            .eq("is_active", true)
+            .eq("user_id", ownerId as string)
+            .not("auth_user_id", "is", null);
+          setPortalCount(pc ?? 0);
+        } else {
+          setPortalCount(0);
+        }
+      } catch {
+        setPortalCount(null);
+      }
     } catch (e: any) {
       toast.error("تعذر تحميل البيانات: " + e.message);
     } finally {
