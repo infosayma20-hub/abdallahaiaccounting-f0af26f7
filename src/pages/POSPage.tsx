@@ -3376,6 +3376,38 @@ const POSPage = () => {
       return;
     }
 
+    // Phase 2.3: enforce monthly cap (if configured) on dual-mode tenants.
+    if (
+      effectivePaymentMethod === "employee_account" &&
+      mealDiscountMode === "dual" &&
+      mealDiscountType &&
+      selectedEmployee
+    ) {
+      const fullPreview = Number(cartTotals.total) || 0;
+      const sharePct = mealDiscountType === "family" ? 10 : 50;
+      const expectedDeduction = Math.round((fullPreview * sharePct / 100) * 100) / 100;
+      const cap = mealDiscountType === "family" ? mealCapFamily : mealCapIndividual;
+      const usedSoFar = mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual;
+      if (cap > 0) {
+        const projected = usedSoFar + expectedDeduction;
+        if (projected > cap) {
+          toast.error(
+            `تجاوز السقف الشهري للموظف. المستخدم: ₪${usedSoFar.toFixed(2)} • المتاح: ₪${Math.max(0, cap - usedSoFar).toFixed(2)} • سيُضاف: ₪${expectedDeduction.toFixed(2)}`
+          );
+          return;
+        }
+        const warnThreshold = cap * (mealWarnAtPct / 100);
+        if (projected >= warnThreshold && !(window as any).__mealCapWarnAck) {
+          (window as any).__mealCapWarnAck = true;
+          toast.warning(
+            `تنبيه: الموظف اقترب من سقفه الشهري (${Math.round((projected / cap) * 100)}%). اضغط "تأكيد" مرة ثانية للمتابعة.`
+          );
+          return;
+        }
+        (window as any).__mealCapWarnAck = false;
+      }
+    }
+
     // Defense-in-depth: block sale if an order-level discount is present but
     // the user lacks pos.sell.discount.
     if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount")) {
