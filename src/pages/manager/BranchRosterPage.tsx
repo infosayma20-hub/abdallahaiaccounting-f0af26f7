@@ -35,7 +35,11 @@ function startOfWeek(d: Date): Date {
   return out;
 }
 function fmtISO(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  // Local date (avoid UTC shift that turns Saturday into Friday in +2/+3 timezones)
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 function addDays(d: Date, n: number): Date {
   const o = new Date(d);
