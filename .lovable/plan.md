@@ -1,112 +1,135 @@
-## المرحلة 0 — نتائج المراجعة (الوضع الحالي)
 
-### جدول `device_tokens`
-| الحقل | الحالة | ملاحظة |
-|---|---|---|
-| `user_id` (FK→auth.users) | ✅ | لا يوجد `company_id` ولا `employee_id` ولا `owner_id` |
-| `token` UNIQUE | ✅ | dedupe على مستوى التوكن — تمام |
-| `is_active`, `last_seen_at`, `platform`, `device_info` | ✅ | موجودة |
-| `last_validated_at` | ❌ | غير موجود |
-| RLS | policy واحد فقط: `auth.uid() = user_id` (FOR ALL) | لا يوجد فلتر tenant — Service Role يتجاوزها وهو من يكتب |
-| البيانات الحالية | صف واحد فقط active | المرحلة مبكرة، آمنة لإضافات breaking-safe |
+# خطة معالجة ميزة "خصم وجبات الموظفين" — Malaky
 
-### جداول الإشعارات الموجودة
-- `notification_log` — سجل الإشعارات الناتجة عن broadcasts فقط (بدون `owner_id`، بدون `event_type`، بدون `dedup_key`).
-- `notification_templates` + `notification_broadcasts` — للبثّ اليدوي من الأدمن (sync).
-- لا يوجد: `notification_queue`، لا `notification_preferences`، لا digest، لا quiet hours.
-
-### Edge functions الحالية
-- `push-send` — Service-role only. يعمل: `SELECT * FROM device_tokens WHERE user_id=? AND is_active`، يستدعي FCM v1، JWT signing **مع cache token** (السطور 14, 37–76 — `cachedToken` صالح ~ساعة). الإرسال **داخل loop تسلسلي**، deactivate عند `UNREGISTERED/NOT_FOUND/INVALID_ARGUMENT`. لا يوجد timeout صريح.
-- `notifications-broadcast` — يحلّ الجمهور ثم `Promise.all` batches من 25، كل batch يستدعي `push-send` واحد لكل user → 1000 موظف = 1000 invocation منفصل. **خطر timeout** ضمن invocation الـ broadcast نفسه.
-- `push-register`, `push-admin-test`, `push-test`, `notify-admin-signup` — تسجيل/اختبار.
-
-### Triggers الحالية التي تطلق إشعارات
-| Trigger | الجدول | يستدعي | tenant filter |
-|---|---|---|---|
-| `trg_notify_payslip_paid` | `employee_payroll` | `notify_employee_push` | عبر `employees.auth_user_id` → ضمني، **محتوى مالي حسّاس** في body |
-| `trg_notify_missing_fingerprint` | `attendance_days` | `notify_employee_push` | ضمني عبر employees |
-| `trg_notify_correction_answered` | `correction_requests` | `notify_employee_push` | ضمني |
-| `notify_employee_push()` | RPC داخلي | `net.http_post → push-send` **SYNCHRONOUS داخل trigger** | كل trigger = HTTP call فوري |
-
-### الـ ownership helper
-- `resolve_effective_owner_id(auth_uid)` متاح ويعطي owner من: sales_rep / employees / invited_by / نفسه. سيُستخدم في `notification_queue.owner_id`.
-
-### المخاطر المؤكّدة الآن
-1. كل trigger = HTTP call داخل المعاملة (لو فشل `net.http_post` ما بيرجع خطأ لكن بيستهلك وقت + موارد).
-2. لا يوجد dedup → POS resync أو retry يرسل إشعارات مكرّرة.
-3. body الراتب يحتوي رقم محتمل (يتسرّب lock screen).
-4. `device_tokens` بدون عمود tenant — التحقق الدفاعي يعتمد على ربط عكسي.
-5. broadcast لـ 1000 مستخدم = 1000 HTTP call داخل invocation = timeout 150s محتمل.
+النطاق: حساب `malakybroast@gmail.com` فقط (`dataOwnerId = 0b08eba6-…`). جميع التغييرات backward-compatible للمستأجرين الآخرين.
 
 ---
 
-## خطة التنفيذ — 6 مراحل، كل مرحلة قابلة للمراجعة
+## المرحلة 1 — حماية البيانات وسلامة الرواتب (عاجل)
 
-### المرحلة 1 — Queue + Worker (جوهر الحل)
-**Migration (additive):**
-- `notification_queue` (id, owner_id, recipient_user_id, event_type, sensitivity 'low'/'high', title, body, data jsonb, priority smallint, dedup_key text UNIQUE, scheduled_for timestamptz, status 'pending'/'sent'/'failed'/'skipped'/'deferred', attempts int, last_error, created_at, updated_at, sent_at).
-- indexes: `(status, scheduled_for)` partial WHERE status='pending'، `(owner_id, recipient_user_id, created_at DESC)`، unique `dedup_key`.
-- GRANT: `service_role ALL`، `authenticated SELECT` على صفوف `recipient_user_id = auth.uid()` فقط (لو احتجناها لاحقاً).
-- RLS: deny by default، policy للقراءة الذاتية للمستلم، policy admin (has_role) للقراءة على نفس الـ tenant.
-- دالة `enqueue_notification(...)` SECURITY DEFINER تستخدم `resolve_effective_owner_id` لحلّ owner_id، تُولّد `dedup_key` افتراضياً من `(event_type || recipient || source_id)` لو ما تم تمريره.
+### 1.1 Migration — تمييز نوع الخصم وحماية الحركات
+- إضافة عمود `meal_discount_type TEXT` على `employee_financial_movements` بقيم `'family' | 'individual' | NULL` (NULL = حركات قديمة أو غير-وجبة)
+- إضافة عمود `original_full_amount NUMERIC(10,2)` لحفظ مبلغ الفاتورة الكامل قبل الخصم (للتمييز عن `amount` المخصوم)
+- إضافة عمود `meal_discount_pct SMALLINT` (10 أو 50)
+- Index: `(employee_id, salary_year, salary_month, meal_discount_type)` لتسريع التقارير الشهرية
+- إضافة flag `meal_discount_mode TEXT DEFAULT 'single'` على `payroll_settings` (قيم: `'single' | 'dual'`)
+- ضبط `dual` للملكي فقط عبر insert منفصل
+- Trigger `guard_pos_meal_edit`: يمنع UPDATE/DELETE على صفوف `source_type='pos_meal'` إلا لمن لديه دور `admin` أو `hr_manager`
 
-**Edge function جديدة `notifications-worker`:**
-- تأخذ batch=200، تستخدم `SELECT ... FOR UPDATE SKIP LOCKED` لمنع التداخل بين الـ runs.
-- access token caching موجود أصلاً — يُنقل لنفس النمط.
-- إرسال مع `Promise.allSettled` و concurrency=25.
-- يستخدم FCM HTTP v1 (لا multicast endpoint رسمي لـ v1 — يبقى per-token مع concurrency).
-- update status + attempts + sent_at، وعند `UNREGISTERED/NOT_FOUND/INVALID_ARGUMENT` → `is_active=false`.
+### 1.2 إعادة قراءة Flag من DB بدل hard-code
+- حذف ثابت `MALAKY_OWNER_ID` من `POSPage.tsx`
+- تحميل `meal_discount_mode` من `payroll_settings` عند فتح POS، تخزينه بـ state
+- إظهار البطاقتين فقط عندما `meal_discount_mode === 'dual'`
 
-**Cron (pg_cron + pg_net) عبر insert tool:** كل دقيقة تستدعي `notifications-worker`.
+### 1.3 إجبار الاختيار قبل التأكيد
+- تغيير الـ state الافتراضي لـ `mealDiscountType` إلى `null`
+- منع زر "تأكيد الدفع" عندما `paymentMethod === 'employee_account'` و `mode === 'dual'` بدون اختيار
+- toast واضح: "الرجاء اختيار نوع الخصم (عائلي/فردي)"
 
-**الـ triggers الحالية:**
-- `notify_employee_push` يُعاد كتابتها لتكون `INSERT INTO notification_queue` فقط — **لا HTTP call**.
-- التواقيع نفسها → ما في breaking change على الـ triggers.
-
-### المرحلة 2 — Stale tokens + re-registration
-- `ALTER device_tokens ADD COLUMN last_validated_at timestamptz`.
-- worker يحدّث `last_validated_at = now()` عند نجاح الإرسال.
-- العميل (`push-notifications.ts`) يعمل `push-register` عند كل cold start إذا `Notification.permission==='granted'`.
-- Cron يومي: deactivate حيث `last_seen_at < now()-60d`.
-
-### المرحلة 3 — الخصوصية (sensitivity)
-- عمود `sensitivity` على `notification_queue` (`low` افتراضي، `high` للراتب/المالي).
-- worker عند `sensitivity='high'`: يرسل title عام ("قسيمة راتب جديدة") + body عام ("افتح التطبيق للعرض")، التفاصيل في `data` فقط.
-- `trg_notify_payslip_paid` يُحدّث ليرسل sensitivity='high' بدون أي رقم في body.
-
-### المرحلة 4 — Notification preferences + digest + quiet hours
-- `notification_preferences` (recipient_user_id, event_type, channel_push bool default true, digest_mode bool default false, quiet_hours_start time, quiet_hours_end time, timezone text default 'Asia/Hebron'). PK مركّب.
-- RLS: المستخدم يدير preferences الخاصة فيه فقط.
-- في `enqueue_notification`: قبل insert يفحص preference → لو مطفي = insert مع status='skipped' للأودِت. لو ضمن quiet hours: status='deferred' + `scheduled_for` = نهاية الصمت بتوقيت timezone.
-- digest للمدراء: trigger البصمة الفردي يدخل صف بـ `event_type='attendance_daily_digest'`، وworker مجدول 9:00 ص يجمّعها لكل manager ويرسل ملخّص واحد.
-
-### المرحلة 5 — Tenant safety (دفاع متعدد الطبقات)
-- `notification_queue.owner_id` يُحلّ من مصدر الحدث (`employees.user_id`) لا من جلسة المستخدم.
-- في worker قبل كل إرسال: تحقّق أن كل `device_tokens.user_id` للمستلم يحلّ إلى نفس `owner_id` (عبر `resolve_effective_owner_id`). لو لا → status='skipped' + `last_error='tenant_mismatch'` + RAISE WARNING.
-- RLS على `notification_queue`: deny by default + policy admin يرى صفوف tenant الخاص به (مطابقة owner_id مع owner المستخدم).
-
-### المرحلة 6 — Race conditions + late events
-- العمود `dedup_key` UNIQUE → conflict = noop. تمرير `ON CONFLICT DO NOTHING` في `enqueue_notification`.
-- العمود `source_created_at` على notification_queue. الـ triggers تمرره من الصف الأصلي.
-- worker: قبل الإرسال لو `event_type IN ('pos_order_synced', ...)` و `now() - source_created_at > interval '2 hours'` → status='skipped' + reason='stale_event'.
+### 1.4 تخزين البيانات الكاملة في الحركة
+- عند insert في `employee_financial_movements`:
+  - `amount` = المخصوم الفعلي (كما هو الآن — لتوافق الحسابات الحالية)
+  - `original_full_amount` = إجمالي الفاتورة
+  - `meal_discount_type` = `'family'` أو `'individual'`
+  - `meal_discount_pct` = 10 أو 50
+- تنظيف `description`/`notes` لتبقى للقراءة فقط (المنطق يعتمد على الأعمدة المنظمة)
 
 ---
 
-## معايير القبول (سأختبرها بعد كل مرحلة)
-1. ✅ trigger يكتب صف queue فقط، صفر HTTP calls.
-2. ✅ 3000 token عبر batches من 200/min، concurrency 25 → لا timeout.
-3. ✅ token محذوف → deactivate بعد أول فشل، لا retry.
-4. ✅ إشعار راتب: title/body عامّين، الأرقام في data فقط.
-5. ✅ مدير 50 موظف → digest واحد بدل 50.
-6. ✅ اختبار صريح: حدث شركة A لا يصل لـ tokens شركة B.
-7. ✅ POS متأخر 3 أيام → skipped.
-8. ✅ resync نفس الحدث → dedup_key يمنع التكرار.
+## المرحلة 2 — منع الخصم المزدوج وشفافية POS
 
-## تفاصيل تقنية
-- لا تعديل على RLS الحالية، لا تعديل على triggers بخلاف جسم `notify_employee_push` (نفس التوقيع).
-- جميع الجداول الجديدة بـ `GRANT` كاملة في نفس الـ migration.
-- Vault key الحالي `email_queue_service_role_key` يبقى للاتصال trigger→worker (لو احتجناه)، لكن الجديد: trigger يكتب SQL فقط، الـ cron يستدعي worker بـ service role من جدوله.
-- pg_cron + pg_net سيُفعّلان عبر insert tool (لأن URL + key خاصّان بالمشروع).
-- migration واحدة لكل مرحلة، تنفيذ تسلسلي مع توقّف للمراجعة بينها.
+### 2.1 تحذير صريح في صفحة إدخال الرواتب الشهرية
+- في `MonthlyPayrollInputPage` للموظفين التابعين لمستأجر `dual` فقط:
+  - شريط أصفر أعلى الجدول: "⚠️ حركات POS مسجّلة كمبالغ بعد الخصم. لا تُدخلها مرة أخرى في خانات أكل جماعي/فردي"
+  - زر "اعرض حركات POS الشهرية" يفتح modal بتفصيل family/individual للموظف الحالي
 
-هل أبدأ بـ **المرحلة 1** (queue + worker + إعادة كتابة `notify_employee_push`)؟
+### 2.2 ملخص خصم مرئي في POS قبل التأكيد
+- داخل بطاقة الموظف في شريط الدفع، تحت أزرار الخصم:
+  - "إجمالي الفاتورة: ₪X"
+  - "سيُخصم من حسابك: ₪Y (Z%)"
+  - "تتحمّل الشركة: ₪(X-Y)"
+- نفس البيانات تظهر على إيصال المطبخ كملاحظة صغيرة (لا تظهر على إيصال الزبون)
+
+### 2.3 سقف شهري وحد تنبيه
+- حقول جديدة على `payroll_settings`:
+  - `meal_monthly_cap_family NUMERIC(10,2) DEFAULT 0` (0 = بلا حد)
+  - `meal_monthly_cap_individual NUMERIC(10,2) DEFAULT 0`
+  - `meal_monthly_warn_at_pct SMALLINT DEFAULT 80`
+- قبل التأكيد: query إجمالي خصم الموظف للشهر الحالي بنفس النوع
+- لو > warn_at: toast تحذيري + تأكيد إضافي
+- لو > cap: منع كامل مع رسالة "تجاوز السقف الشهري للموظف"
+
+### 2.4 سجل تدقيق صريح للقرار
+- إضافة الكاشير في `notes` بصيغة منظمة: `cashier_decision: {pos_user_id}/{cashier_name}`
+- (لا يحتاج جدول جديد — `created_by` + `notes` كافيان للمراجعة)
+
+---
+
+## المرحلة 3 — التكامل المحاسبي والتقارير
+
+### 3.1 قيد محاسبي تلقائي اختياري
+- خانة جديدة في إعدادات الرواتب: `auto_journal_for_meals BOOLEAN DEFAULT false`
+- عند تفعيلها (للملكي): RPC `create_meal_journal_entry(movement_id)` تُستدعى مباشرة بعد insert الحركة
+- القيد:
+  - مدين: حساب "تكلفة وجبات الموظفين" (5400 أو ما يقابله — قابل للتعديل في الإعدادات)
+  - دائن: حساب فرعي للموظف تحت 1130 (ذمم موظفين) بقيمة الخصم الفعلي
+  - مدين: حساب "مصاريف رفاهية موظفين" بحصة الشركة (الفرق)
+- نخزّن `journal_entry_id` على الحركة لربط ثنائي الاتجاه
+
+### 3.2 صفحة "خصومات الوجبات" داخل ملف الموظف
+- تبويب جديد في `useEmployee360`: "وجبات POS"
+- يعرض:
+  - رسم بياني شهري للمبالغ المخصومة (مفصول family/individual بألوان)
+  - جدول كل الحركات مع: التاريخ، رقم الفاتورة، الكاشير، النوع، الإجمالي، المخصوم
+  - مجاميع شهرية وسنوية
+  - زر تصدير CSV/PDF
+
+### 3.3 إشعار push معزّز للموظف
+- تحسين `notify-employee-meal` ليعرض الرصيد الشهري المتراكم:
+  > 🍽️ خصم عائلي • ₪9.00
+  > فاتورة #POS-0001 • نسبتك: 10%
+  > إجمالي وجباتك هذا الشهر: ₪47.50
+
+### 3.4 لوحة مراقبة للإدارة (الملكي)
+- صفحة `/hr/meal-deductions` تعرض:
+  - مجموع خصومات الوجبات اليومي/الشهري لكل فرع
+  - أعلى 10 موظفين خصماً
+  - تنبيه عند تجاوز أي موظف 80% من سقفه
+
+---
+
+## ترتيب التنفيذ
+
+1. **الآن:** المرحلة 1 كاملة (Migrations + POS gating + حماية التعديل)
+2. **بعد موافقة المستخدم على المرحلة 1:** المرحلة 2 (شفافية وسقوف)
+3. **بعد ذلك:** المرحلة 3 (محاسبة وتقارير)
+
+سأنفّذ المرحلة 1 الآن وأطلب الموافقة قبل البدء بالمرحلة 2.
+
+---
+
+## ملاحظات تقنية
+
+**Migration واحدة شاملة للمرحلة 1:**
+```sql
+ALTER TABLE employee_financial_movements
+  ADD COLUMN meal_discount_type TEXT
+    CHECK (meal_discount_type IN ('family','individual') OR meal_discount_type IS NULL),
+  ADD COLUMN original_full_amount NUMERIC(10,2),
+  ADD COLUMN meal_discount_pct SMALLINT;
+
+CREATE INDEX idx_efm_meal_monthly
+  ON employee_financial_movements(employee_id, salary_year, salary_month, meal_discount_type)
+  WHERE source_type = 'pos_meal';
+
+ALTER TABLE payroll_settings
+  ADD COLUMN meal_discount_mode TEXT NOT NULL DEFAULT 'single'
+    CHECK (meal_discount_mode IN ('single','dual'));
+
+-- guard trigger يمنع تعديل/حذف pos_meal من غير المخوّلين
+CREATE OR REPLACE FUNCTION guard_pos_meal_edit() RETURNS TRIGGER ...
+```
+
+**ضبط الملكي ضمن نفس الخطوة (insert منفصل بعد الموافقة لتجنب فرضه على نسخ remix).**
+
+**Backward compat:** كل المستأجرين الحاليين `meal_discount_mode='single'` افتراضياً → السلوك الحالي يبقى كما هو 100%.

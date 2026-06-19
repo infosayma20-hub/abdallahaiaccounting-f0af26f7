@@ -462,11 +462,13 @@ const POSPage = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
   const [employeeNote, setEmployeeNote] = useState("");
-  // Malaky-only: cashier picks family (10%) or individual (50%) meal discount.
-  // Default 'individual' to preserve previous behavior for non-Malaky tenants.
-  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual">("individual");
-  // Malaky-only feature flag: tenant whose cashiers can pick family/individual meal discount.
-  const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
+  // Cashier picks family (10%) or individual (50%) meal discount.
+  // Default null forces explicit choice when mode = 'dual' (no silent default).
+  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual" | null>(null);
+  // Tenant-level meal discount mode loaded from payroll_settings.
+  // 'single' = legacy behavior (uses payroll_settings.food_individual_percentage).
+  // 'dual'   = show family/individual buttons; cashier must pick.
+  const [mealDiscountMode, setMealDiscountMode] = useState<"single" | "dual">("single");
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
@@ -1046,6 +1048,30 @@ const POSPage = () => {
       }
     })();
   }, [showTablePicker, dataOwnerId]);
+
+  // Load meal discount mode from payroll_settings (Phase 1.2)
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    (async () => {
+      try {
+        const { data: company } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("owner_id", dataOwnerId)
+          .maybeSingle();
+        if (!company?.id) return;
+        const { data: ps } = await supabase
+          .from("payroll_settings" as any)
+          .select("meal_discount_mode")
+          .eq("company_id", company.id)
+          .maybeSingle();
+        const mode = (ps as any)?.meal_discount_mode;
+        if (mode === "dual" || mode === "single") setMealDiscountMode(mode);
+      } catch (e) {
+        console.warn("[POS] failed to load meal_discount_mode", e);
+      }
+    })();
+  }, [dataOwnerId]);
 
    // ── Offline Mode ──
    const offlineMode = usePOSOffline({
@@ -3310,6 +3336,14 @@ const POSPage = () => {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
     }
+    if (
+      effectivePaymentMethod === "employee_account" &&
+      mealDiscountMode === "dual" &&
+      !mealDiscountType
+    ) {
+      toast.error("يرجى اختيار نوع الخصم (عائلي 10% أو فردي 50%)");
+      return;
+    }
 
     // Defense-in-depth: block sale if an order-level discount is present but
     // the user lacks pos.sell.discount.
@@ -3612,9 +3646,9 @@ const POSPage = () => {
         // B3.2: read employee meal share % from payroll_settings (default 50%)
         // The full ticket is paid by the company; only a portion is deducted from employee.
         let employeeSharePct = 50;
-        // Malaky-only: override % strictly based on cashier's choice (10% family / 50% individual).
-        const isMalakyTenant = dataOwnerId === MALAKY_OWNER_ID;
-        if (isMalakyTenant) {
+        // Dual-mode tenants (e.g. Malaky): override % strictly based on cashier's choice (10% family / 50% individual).
+        const isDualMode = mealDiscountMode === "dual";
+        if (isDualMode && mealDiscountType) {
           employeeSharePct = mealDiscountType === "family" ? 10 : 50;
         } else {
         try {
@@ -3644,7 +3678,7 @@ const POSPage = () => {
 
         // Only record a deduction if the employee actually owes something.
         if (calculatedAmount > 0) {
-          const discountLabel = isMalakyTenant
+          const discountLabel = isDualMode && mealDiscountType
             ? (mealDiscountType === "family" ? "خصم عائلي" : "خصم فردي")
             : null;
           const transparencyNote =
@@ -3666,6 +3700,10 @@ const POSPage = () => {
             salary_year: now.getFullYear(),
             created_by: userId,
             notes: transparencyNote,
+            // Structured fields (Phase 1.4) — preferred over free-text parsing
+            meal_discount_type: isDualMode ? mealDiscountType : null,
+            meal_discount_pct: isDualMode ? employeeSharePct : null,
+            original_full_amount: fullAmount,
           } as any);
 
           // Fire push notification to employee (best-effort, non-blocking).
@@ -4012,6 +4050,7 @@ const POSPage = () => {
       setEmployeeSearch("");
       setEmployeeBalance(0);
       setEmployeeNote("");
+      setMealDiscountType(null);
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
@@ -6756,9 +6795,11 @@ const POSPage = () => {
                         </div>
                         {selectedEmployee.job_title && <span className="text-xs" style={{ color: '#6b7280' }}>{selectedEmployee.job_title}</span>}
                       </div>
-                      {dataOwnerId === MALAKY_OWNER_ID && (
+                      {mealDiscountMode === "dual" && (
                         <div className="mt-2.5">
-                          <div className="text-[11px] mb-1.5 font-medium" style={{ color: '#6b21a8' }}>نوع الخصم</div>
+                          <div className="text-[11px] mb-1.5 font-medium" style={{ color: mealDiscountType ? '#6b21a8' : '#dc2626' }}>
+                            نوع الخصم {mealDiscountType ? '' : '(مطلوب)'}
+                          </div>
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               type="button"

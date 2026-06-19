@@ -5687,9 +5687,12 @@ export type Database = {
           employee_id: string
           id: string
           journal_entry_id: string | null
+          meal_discount_pct: number | null
+          meal_discount_type: string | null
           movement_date: string
           movement_type: string
           notes: string | null
+          original_full_amount: number | null
           reference_number: string | null
           salary_month: number | null
           salary_year: number | null
@@ -5711,9 +5714,12 @@ export type Database = {
           employee_id: string
           id?: string
           journal_entry_id?: string | null
+          meal_discount_pct?: number | null
+          meal_discount_type?: string | null
           movement_date?: string
           movement_type: string
           notes?: string | null
+          original_full_amount?: number | null
           reference_number?: string | null
           salary_month?: number | null
           salary_year?: number | null
@@ -5735,9 +5741,12 @@ export type Database = {
           employee_id?: string
           id?: string
           journal_entry_id?: string | null
+          meal_discount_pct?: number | null
+          meal_discount_type?: string | null
           movement_date?: string
           movement_type?: string
           notes?: string | null
+          original_full_amount?: number | null
           reference_number?: string | null
           salary_month?: number | null
           salary_year?: number | null
@@ -10739,6 +10748,7 @@ export type Database = {
           food_transport_start_months: number | null
           full_attendance_days: number | null
           id: string
+          meal_discount_mode: string
           min_deduction_threshold: number | null
           overtime_multiplier: number | null
           updated_at: string | null
@@ -10762,6 +10772,7 @@ export type Database = {
           food_transport_start_months?: number | null
           full_attendance_days?: number | null
           id?: string
+          meal_discount_mode?: string
           min_deduction_threshold?: number | null
           overtime_multiplier?: number | null
           updated_at?: string | null
@@ -10785,6 +10796,7 @@ export type Database = {
           food_transport_start_months?: number | null
           full_attendance_days?: number | null
           id?: string
+          meal_discount_mode?: string
           min_deduction_threshold?: number | null
           overtime_multiplier?: number | null
           updated_at?: string | null
