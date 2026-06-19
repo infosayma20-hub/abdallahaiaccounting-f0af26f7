@@ -10,6 +10,8 @@ import {
   addPendingSale,
   addSyncLog,
   countPending,
+  countQuarantined,
+  MAX_SYNC_RETRIES,
   type PendingSale,
 } from '@/lib/pos-offline-db';
 
@@ -23,6 +25,7 @@ interface UsePOSOfflineOptions {
 export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UsePOSOfflineOptions) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
+  const [quarantinedCount, setQuarantinedCount] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(
     localStorage.getItem('pos_last_sync')
   );
@@ -78,8 +81,13 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   // ── Sync pending sales ──
   const syncPendingQueue = useCallback(async () => {
     if (!userId || isSyncingRef.current) return;
-    const pending = await getPendingSales();
-    if (pending.length === 0) return;
+    const all = await getPendingSales();
+    // Skip quarantined (>= MAX_SYNC_RETRIES) — need manual review
+    const pending = all.filter(s => s.sync_status !== 'quarantined');
+    if (pending.length === 0) {
+      setQuarantinedCount(all.filter(s => s.sync_status === 'quarantined').length);
+      return;
+    }
 
     isSyncingRef.current = true;
     setIsSyncing(true);
@@ -91,30 +99,47 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
 
     for (const sale of pending) {
       try {
-        // Insert via pos_orders — cast to any since new columns may not be in generated types yet
-        const insertData: Record<string, any> = {
+        // Use the new RPC sync_offline_pos_sale — it handles:
+        //   1. Idempotency check on local_id (no duplicates on retry)
+        //   2. Insert pos_orders + pos_order_lines
+        //   3. Call complete_pos_order for accounting + stock + payments
+        const payload = {
           user_id: userId,
-          company_id: companyId || '',
+          company_id: companyId,
           session_id: sale.session_id,
+          local_id: sale.local_id,
           order_number: sale.order_number,
+          subtotal: sale.subtotal ?? sale.total,
+          tax_amount: sale.tax_amount ?? 0,
+          discount_amount: sale.discount_amount ?? 0,
           total: sale.total,
-          subtotal: sale.total,
-          tax_amount: 0,
-          discount_amount: 0,
-          state: 'paid',
-          paid_at: sale.created_at,
           customer_id: sale.customer_id,
           customer_name: sale.customer_name,
-          was_offline: true,
-          local_id: sale.local_id,
-          synced_at: new Date().toISOString(),
-          sync_status: 'synced',
-          notes: `عملية offline — ${sale.payment_method}`,
+          notes: sale.notes ?? `عملية offline — ${sale.payment_method}`,
+          offline_created_at: sale.created_at,
+          items: sale.items || [],
+          payments: sale.payments && sale.payments.length > 0
+            ? sale.payments
+            : [{
+                method: sale.payment_method,
+                amount: sale.total,
+                tendered: sale.total,
+                change: 0,
+                currency: 'ILS',
+                exchange_rate: 1,
+                foreign_amount: sale.total,
+              }],
         };
 
-        const { error } = await supabase.from('pos_orders').insert(insertData as any);
+        const { data: rpcRes, error } = await supabase.rpc('sync_offline_pos_sale' as any, {
+          p_payload: payload as any,
+        });
 
         if (error) throw error;
+        const res = rpcRes as any;
+        if (!res?.success) {
+          throw new Error(res?.error || 'sync_offline_pos_sale returned failure');
+        }
 
         await removePendingSale(sale.id);
         synced++;
@@ -159,7 +184,9 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     }
 
     const count = await countPending();
+    const quar = await countQuarantined();
     setPendingCount(count);
+    setQuarantinedCount(quar);
     isSyncingRef.current = false;
     setIsSyncing(false);
 
@@ -169,29 +196,54 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     if (failed > 0) {
       toast.error(`فشل ترحيل ${failed} عملية — راجع سجل المزامنة`, { duration: 5000 });
     }
+    if (quar > 0) {
+      toast.warning(
+        `⚠️ ${quar} عملية في الحجر (تجاوزت ${MAX_SYNC_RETRIES} محاولات) — تحتاج مراجعة يدوية`,
+        { duration: 8000 }
+      );
+    }
 
     // Re-cache after sync
     await preCacheData();
   }, [userId, companyId, preCacheData]);
 
   // ── Create offline sale ──
-  const createOfflineSale = useCallback(async (
-    orderData: any,
-    items: any[],
-    total: number,
-    paymentMethod: string,
-    customerId: string | null,
-    customerName: string,
-  ): Promise<PendingSale> => {
+  const createOfflineSale = useCallback(async (input: {
+    orderData: any;
+    items: any[];
+    total: number;
+    subtotal?: number;
+    taxAmount?: number;
+    discountAmount?: number;
+    paymentMethod: string;
+    payments?: any[];
+    customerId: string | null;
+    customerName: string;
+    notes?: string;
+  }): Promise<PendingSale> => {
+    // Build a globally-unique local id including terminal short-hash
+    // to prevent collisions across the 17 terminals at Malaky.
+    const termShort = (terminalId || 'NOTERM').slice(0, 6).toUpperCase();
+    const ts = Date.now();
+    const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const localId = `OFFLINE-${termShort}-${ts}-${rand}`;
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const orderNumber = `OFFLINE-${termShort}-${dateStr}-${String(ts).slice(-5)}`;
+
     const sale: PendingSale = {
       id: crypto.randomUUID(),
-      local_id: `OFFLINE-${Date.now()}`,
-      order_data: orderData,
-      items,
-      total,
-      payment_method: paymentMethod,
-      customer_id: customerId,
-      customer_name: customerName,
+      local_id: localId,
+      order_data: input.orderData,
+      items: input.items,
+      total: input.total,
+      subtotal: input.subtotal ?? input.total,
+      tax_amount: input.taxAmount ?? 0,
+      discount_amount: input.discountAmount ?? 0,
+      payment_method: input.paymentMethod,
+      payments: input.payments,
+      notes: input.notes,
+      customer_id: input.customerId,
+      customer_name: input.customerName,
       cashier_id: userId || '',
       session_id: sessionId || '',
       terminal_id: terminalId || null,
@@ -199,7 +251,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       created_at: new Date().toISOString(),
       sync_status: 'pending',
       retry_count: 0,
-      order_number: `OFFLINE-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(Date.now()).slice(-4)}`,
+      order_number: orderNumber,
     };
 
     await addPendingSale(sale);
@@ -241,9 +293,17 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     // Initial pre-cache
     preCacheData();
 
-    // Load pending count
+    // Load pending + quarantined counts and trigger a startup sync if needed
     countPending()
-      .then(setPendingCount)
+      .then(async (n) => {
+        setPendingCount(n);
+        setQuarantinedCount(await countQuarantined());
+        // Auto-sync on mount if we already have pending sales and we're online
+        if (n > 0) {
+          const online = await checkConnection();
+          if (online) syncPendingQueue();
+        }
+      })
       .catch((err) => {
         console.warn("[usePOSOffline] countPending failed:", err);
       });
@@ -265,6 +325,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   return {
     isOnline,
     pendingCount,
+    quarantinedCount,
     lastSyncAt,
     isSyncing,
     syncProgress,
