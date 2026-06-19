@@ -28,6 +28,7 @@ interface BranchRow {
   is_active: boolean;
   zones_count: number;
   mapped_zones_count: number;
+  priced_zones_count: number;
 }
 
 interface PingResult {
@@ -85,16 +86,18 @@ export default function DeliveryCompaniesPage() {
       return;
     }
     const branchIds = (cfg ?? []).map((c) => c.branch_id);
+    const safeIds = branchIds.length ? branchIds : ["00000000-0000-0000-0000-000000000000"];
     const [{ data: brs }, { data: zones }] = await Promise.all([
-      supabase.from("branches").select("id, name").in("id", branchIds.length ? branchIds : ["00000000-0000-0000-0000-000000000000"]),
-      supabase.from("delivery_zones").select("branch_id, wheels_area_id").in("branch_id", branchIds.length ? branchIds : ["00000000-0000-0000-0000-000000000000"]),
+      supabase.from("branches").select("id, name").in("id", safeIds),
+      supabase.from("delivery_zones").select("branch_id, wheels_area_id, wheels_fixed_price").in("branch_id", safeIds),
     ]);
     const brName = new Map((brs ?? []).map((b) => [b.id, b.name]));
-    const zoneStats = new Map<string, { total: number; mapped: number }>();
+    const zoneStats = new Map<string, { total: number; mapped: number; priced: number }>();
     for (const z of zones ?? []) {
-      const s = zoneStats.get(z.branch_id) ?? { total: 0, mapped: 0 };
+      const s = zoneStats.get(z.branch_id) ?? { total: 0, mapped: 0, priced: 0 };
       s.total += 1;
       if (z.wheels_area_id) s.mapped += 1;
+      if (z.wheels_fixed_price != null) s.priced += 1;
       zoneStats.set(z.branch_id, s);
     }
     const rows: BranchRow[] = (cfg ?? []).map((c) => ({
@@ -105,6 +108,7 @@ export default function DeliveryCompaniesPage() {
       is_active: !!c.is_active,
       zones_count: zoneStats.get(c.branch_id)?.total ?? 0,
       mapped_zones_count: zoneStats.get(c.branch_id)?.mapped ?? 0,
+      priced_zones_count: zoneStats.get(c.branch_id)?.priced ?? 0,
     }));
     rows.sort((a, b) => a.branch_name.localeCompare(b.branch_name, "ar"));
     setBranches(rows);
@@ -116,7 +120,7 @@ export default function DeliveryCompaniesPage() {
     const { data } = await supabase
       .from("pos_orders")
       .select("id, order_number, customer_name, customer_address, total, wheels_request_status, wheels_last_error, wheels_sent_at, wheels_delivery_price, delivery_status, created_at")
-      .not("wheels_request_status", "is", null)
+      .in("wheels_request_status", ["sent", "sending", "failed"])
       .order("created_at", { ascending: false })
       .limit(20);
     setRecent((data ?? []) as any);
@@ -228,7 +232,7 @@ export default function DeliveryCompaniesPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
                     <div>
                       <div className="text-muted-foreground">Wheels Branch ID</div>
                       <div className="font-mono break-all" title={b.wheels_branch_id}>{b.wheels_branch_id.slice(0, 8)}…</div>
@@ -245,6 +249,21 @@ export default function DeliveryCompaniesPage() {
                       <div className="text-muted-foreground">مربوطة بـ Wheels</div>
                       <div className={b.mapped_zones_count === b.zones_count ? "text-emerald-700" : "text-amber-700"}>
                         {b.mapped_zones_count} / {b.zones_count}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">أسعار ثابتة</div>
+                      <div
+                        className={
+                          b.priced_zones_count === 0
+                            ? "text-amber-700"
+                            : b.priced_zones_count === b.mapped_zones_count
+                            ? "text-emerald-700"
+                            : "text-foreground"
+                        }
+                        title={b.priced_zones_count === 0 ? "السعر سيُجلب لحظياً من Wheels API لكل طلب" : ""}
+                      >
+                        {b.priced_zones_count} / {b.mapped_zones_count}
                       </div>
                     </div>
                   </div>
@@ -321,7 +340,10 @@ export default function DeliveryCompaniesPage() {
                     </span>
                   </div>
                   {resolveResult.extracted_area && (
-                    <div className="text-muted-foreground">المنطقة المستخرجة من العنوان: <span className="text-foreground">{resolveResult.extracted_area}</span></div>
+                    <div className="text-muted-foreground">
+                      ما يستخرجه send-to-wheels (آخر segment):{" "}
+                      <span className="text-foreground">{resolveResult.extracted_area}</span>
+                    </div>
                   )}
                   {resolveResult.matched_zone && (
                     <div className="text-muted-foreground">
@@ -330,7 +352,30 @@ export default function DeliveryCompaniesPage() {
                       {typeof resolveResult.matched_zone.wheels_fixed_price === "number" && (
                         <> — السعر: <span className="text-foreground">{resolveResult.matched_zone.wheels_fixed_price}</span></>
                       )}
+                      {resolveResult.match_type && <> — نوع التطابق: <span className="text-foreground">{resolveResult.match_type}</span></>}
                     </div>
+                  )}
+                  {resolveResult.warning && (
+                    <div className="mt-1 rounded border border-amber-300 bg-amber-50 text-amber-800 p-2">
+                      ⚠️ {resolveResult.warning}
+                    </div>
+                  )}
+                  {Array.isArray(resolveResult.attempts) && resolveResult.attempts.length > 1 && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-muted-foreground">المحاولات ({resolveResult.attempts.length})</summary>
+                      <ul className="mt-1 space-y-0.5">
+                        {resolveResult.attempts.map((a: any, i: number) => (
+                          <li key={i} className="text-[11px]">
+                            <span className="font-mono">"{a.candidate}"</span> →{" "}
+                            {a.match_type ? (
+                              <span className="text-emerald-700">{a.match_type} → {a.zone?.area_name}</span>
+                            ) : (
+                              <span className="text-muted-foreground">لا يوجد</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   )}
                   {resolveResult.error && <div className="text-red-700">{resolveResult.error}</div>}
                 </div>
