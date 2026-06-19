@@ -504,6 +504,21 @@ const MonthlyPayrollInputPage = () => {
         <Card className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></Card>
       ) : (
         <div className="space-y-3">
+          {isDualMealMode && (
+            <Card className="p-3 border-2" style={{ background: '#fef9c3', borderColor: '#fbbf24' }}>
+              <div className="flex items-start gap-2">
+                <span className="text-lg">⚠️</span>
+                <div className="text-[13px] leading-relaxed" style={{ color: '#78350f' }}>
+                  <div className="font-bold mb-1">حركات POS مسجّلة كمبالغ بعد الخصم</div>
+                  <div>
+                    وجبات الموظفين المُسجّلة في POS (خصم عائلي 10% أو فردي 50%) تظهر تلقائياً
+                    في تبويب "وجبات POS" داخل ملف الموظف وتدخل في حسابات الراتب من خلال جلب الخصومات المالية.
+                    <strong className="text-amber-900"> لا تُدخل نفس المبالغ يدوياً في خانتي "أكل جماعي" أو "أكل فردي" أدناه</strong> — وإلا سيُخصم الموظف مرتين.
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
           {employees?.map((emp: any) => {
             const preview = getPreview(emp);
             return (
