@@ -3614,9 +3614,9 @@ const POSPage = () => {
         // B3.2: read employee meal share % from payroll_settings (default 50%)
         // The full ticket is paid by the company; only a portion is deducted from employee.
         let employeeSharePct = 50;
-        // Malaky-only: override % strictly based on cashier's choice (10% family / 50% individual).
-        const isMalakyTenant = dataOwnerId === MALAKY_OWNER_ID;
-        if (isMalakyTenant) {
+        // Dual-mode tenants (e.g. Malaky): override % strictly based on cashier's choice (10% family / 50% individual).
+        const isDualMode = mealDiscountMode === "dual";
+        if (isDualMode && mealDiscountType) {
           employeeSharePct = mealDiscountType === "family" ? 10 : 50;
         } else {
         try {
@@ -3646,7 +3646,7 @@ const POSPage = () => {
 
         // Only record a deduction if the employee actually owes something.
         if (calculatedAmount > 0) {
-          const discountLabel = isMalakyTenant
+          const discountLabel = isDualMode && mealDiscountType
             ? (mealDiscountType === "family" ? "خصم عائلي" : "خصم فردي")
             : null;
           const transparencyNote =
@@ -3668,6 +3668,10 @@ const POSPage = () => {
             salary_year: now.getFullYear(),
             created_by: userId,
             notes: transparencyNote,
+            // Structured fields (Phase 1.4) — preferred over free-text parsing
+            meal_discount_type: isDualMode ? mealDiscountType : null,
+            meal_discount_pct: isDualMode ? employeeSharePct : null,
+            original_full_amount: fullAmount,
           } as any);
 
           // Fire push notification to employee (best-effort, non-blocking).
