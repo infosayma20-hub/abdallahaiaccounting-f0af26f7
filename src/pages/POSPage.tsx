@@ -465,6 +465,8 @@ const POSPage = () => {
   // Malaky-only: cashier picks family (10%) or individual (50%) meal discount.
   // Default 'individual' to preserve previous behavior for non-Malaky tenants.
   const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual">("individual");
+  // Malaky-only feature flag: tenant whose cashiers can pick family/individual meal discount.
+  const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
