@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -143,6 +144,7 @@ async function ensureWorkshopAccounts(userId: string) {
 /* ══════════════════════════════════════════════════ */
 export default function WorkshopsPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [view, setView] = useState<"workshops" | "reports" | "new-payment" | "inventory">("workshops");
@@ -258,7 +260,7 @@ export default function WorkshopsPage() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     loadWorkshops();
     loadContacts();
     loadBankAccounts();
@@ -266,13 +268,13 @@ export default function WorkshopsPage() {
     loadCashBoxes();
     loadCustomWsTypes();
     ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const loadWorkshops = async () => {
     setLoading(true);
     const [{ data }, { data: payData }, { data: txData }] = await Promise.all([
-      supabase.from("workshops").select("*").order("created_at", { ascending: false }),
-      supabase.from("workshop_payments").select("workshop_id, amount, linked_transaction_id"),
+      supabase.from("workshops").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
+      supabase.from("workshop_payments").select("workshop_id, amount, linked_transaction_id").eq("user_id", dataOwnerId!),
       supabase.from("transactions").select("id, workshop_id, transaction_type, amount, transaction_date, description, reference, payment_method, debit_account_code, credit_account_code, contact_id").not("workshop_id", "is", null).eq("is_deleted", false),
     ]);
     const ws = (data as any) || [];
@@ -344,7 +346,7 @@ export default function WorkshopsPage() {
         }
       }
       // Reload after sync
-      const { data: refreshed } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
+      const { data: refreshed } = await supabase.from("workshops").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
       setWorkshops((refreshed as any) || []);
     }
   };
@@ -372,8 +374,8 @@ export default function WorkshopsPage() {
   const loadCosts = async (workshopId: string) => {
     setLoadingCosts(true);
     const [costRes, payRes] = await Promise.all([
-      supabase.from("workshop_costs").select("*").eq("workshop_id", workshopId).order("cost_date", { ascending: false }),
-      supabase.from("workshop_payments").select("*").eq("workshop_id", workshopId).order("payment_date", { ascending: false }),
+      supabase.from("workshop_costs").select("*").eq("user_id", dataOwnerId!).eq("workshop_id", workshopId).order("cost_date", { ascending: false }),
+      supabase.from("workshop_payments").select("*").eq("user_id", dataOwnerId!).eq("workshop_id", workshopId).order("payment_date", { ascending: false }),
     ]);
     setCosts((costRes.data as any) || []);
     setPayments((payRes.data as any) || []);
@@ -794,8 +796,8 @@ export default function WorkshopsPage() {
   /* ── Delete Workshop + related costs/payments/transactions ── */
   const handleDeleteWorkshop = async (ws: Workshop) => {
     // Soft-delete linked transactions
-    const { data: costData } = await supabase.from("workshop_costs").select("linked_transaction_id").eq("workshop_id", ws.id);
-    const { data: payData } = await supabase.from("workshop_payments").select("linked_transaction_id").eq("workshop_id", ws.id);
+    const { data: costData } = await supabase.from("workshop_costs").select("linked_transaction_id").eq("user_id", dataOwnerId!).eq("workshop_id", ws.id);
+    const { data: payData } = await supabase.from("workshop_payments").select("linked_transaction_id").eq("user_id", dataOwnerId!).eq("workshop_id", ws.id);
     const txIds = [
       ...((costData as any) || []).map((c: any) => c.linked_transaction_id).filter(Boolean),
       ...((payData as any) || []).map((p: any) => p.linked_transaction_id).filter(Boolean),
@@ -804,9 +806,9 @@ export default function WorkshopsPage() {
       await supabase.from("transactions").update({ is_deleted: true } as any).in("id", txIds);
     }
     // Delete costs, payments, then workshop
-    await supabase.from("workshop_costs").delete().eq("workshop_id", ws.id);
-    await supabase.from("workshop_payments").delete().eq("workshop_id", ws.id);
-    await supabase.from("workshops").delete().eq("id", ws.id);
+    await supabase.from("workshop_costs").delete().eq("user_id", dataOwnerId!).eq("workshop_id", ws.id);
+    await supabase.from("workshop_payments").delete().eq("user_id", dataOwnerId!).eq("workshop_id", ws.id);
+    await supabase.from("workshops").delete().eq("user_id", dataOwnerId!).eq("id", ws.id);
     toast.success("تم حذف الورشة وجميع القيود المرتبطة بها");
     setShowDeleteConfirm(false);
     setDeletingWorkshop(null);
@@ -1852,7 +1854,7 @@ export default function WorkshopsPage() {
 
     const loadInv = async () => {
       setInvLoading(true);
-      const { data } = await supabase.from("workshop_material_inventory" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+      const { data } = await supabase.from("workshop_material_inventory" as any).select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
       setInvItems((data as any[]) || []);
       setInvLoading(false);
     };
