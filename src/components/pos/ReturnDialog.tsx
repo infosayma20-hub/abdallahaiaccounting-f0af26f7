@@ -191,6 +191,13 @@ export default function ReturnDialog({
 
     setSubmitting(true);
     try {
+      // Returns require server-side processing (stock reversal, GL reverse entry).
+      // We refuse offline to avoid issuing a paper refund the server will reject.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        toast.error("⚠️ لا يمكن تنفيذ مرتجع بدون إنترنت — انتظر عودة الاتصال");
+        setSubmitting(false);
+        return;
+      }
       const items = lines
         .filter(l => selectedLines.has(l.id) && (returnedQtys[l.id] || 0) > 0)
         .map(l => {
