@@ -462,6 +462,11 @@ const POSPage = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
   const [employeeNote, setEmployeeNote] = useState("");
+  // Malaky-only: cashier picks family (10%) or individual (50%) meal discount.
+  // Default 'individual' to preserve previous behavior for non-Malaky tenants.
+  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual">("individual");
+  // Malaky-only feature flag: tenant whose cashiers can pick family/individual meal discount.
+  const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
@@ -3607,6 +3612,11 @@ const POSPage = () => {
         // B3.2: read employee meal share % from payroll_settings (default 50%)
         // The full ticket is paid by the company; only a portion is deducted from employee.
         let employeeSharePct = 50;
+        // Malaky-only: override % strictly based on cashier's choice (10% family / 50% individual).
+        const isMalakyTenant = dataOwnerId === MALAKY_OWNER_ID;
+        if (isMalakyTenant) {
+          employeeSharePct = mealDiscountType === "family" ? 10 : 50;
+        } else {
         try {
           const { data: company } = await supabase
             .from("companies")
@@ -3627,14 +3637,18 @@ const POSPage = () => {
         } catch (e) {
           console.warn("[POS B3.2] Failed to read meal share %, using default 50%", e);
         }
+        }
 
         const fullAmount = Number(cartTotals.total) || 0;
         const calculatedAmount = Math.round((fullAmount * employeeSharePct / 100) * 100) / 100;
 
         // Only record a deduction if the employee actually owes something.
         if (calculatedAmount > 0) {
+          const discountLabel = isMalakyTenant
+            ? (mealDiscountType === "family" ? "خصم عائلي" : "خصم فردي")
+            : null;
           const transparencyNote =
-            `إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}`;
+            `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}`;
           await supabase.from("employee_financial_movements").insert({
             user_id: dataOwnerId,
             employee_id: selectedEmployee.id,
@@ -3643,7 +3657,7 @@ const POSPage = () => {
             source_reference: res.order_number,
             reference_number: res.order_number,
             category: "food",
-            description: `وجبة POS - ${itemsSummary}${noteStr}`.slice(0, 250),
+            description: `${discountLabel ? `[${discountLabel}] ` : ""}وجبة POS - ${itemsSummary}${noteStr}`.slice(0, 250),
             amount: calculatedAmount,
             movement_type: "debit",
             status: "approved",
@@ -3665,6 +3679,7 @@ const POSPage = () => {
                 employee_share_pct: employeeSharePct,
                 deducted_amount: calculatedAmount,
                 items_summary: itemsSummary,
+                discount_label: discountLabel,
               },
             }).catch((e) => console.warn("[POS] notify-employee-meal failed:", e));
           } catch (e) {
@@ -6741,6 +6756,39 @@ const POSPage = () => {
                         </div>
                         {selectedEmployee.job_title && <span className="text-xs" style={{ color: '#6b7280' }}>{selectedEmployee.job_title}</span>}
                       </div>
+                      {dataOwnerId === MALAKY_OWNER_ID && (
+                        <div className="mt-2.5">
+                          <div className="text-[11px] mb-1.5 font-medium" style={{ color: '#6b21a8' }}>نوع الخصم</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setMealDiscountType('family')}
+                              className="h-10 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center"
+                              style={{
+                                background: mealDiscountType === 'family' ? '#8b5cf6' : '#ffffff',
+                                color: mealDiscountType === 'family' ? '#ffffff' : '#374151',
+                                border: `1px solid ${mealDiscountType === 'family' ? '#8b5cf6' : '#ddd6fe'}`,
+                              }}
+                            >
+                              <span>خصم عائلي</span>
+                              <span className="text-[10px] opacity-80">10%</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMealDiscountType('individual')}
+                              className="h-10 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center"
+                              style={{
+                                background: mealDiscountType === 'individual' ? '#8b5cf6' : '#ffffff',
+                                color: mealDiscountType === 'individual' ? '#ffffff' : '#374151',
+                                border: `1px solid ${mealDiscountType === 'individual' ? '#8b5cf6' : '#ddd6fe'}`,
+                              }}
+                            >
+                              <span>خصم فردي</span>
+                              <span className="text-[10px] opacity-80">50%</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="mt-2">
                         <input
                           value={employeeNote}
