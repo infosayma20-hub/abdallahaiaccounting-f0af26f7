@@ -3745,7 +3745,9 @@ const POSPage = () => {
             ? (mealDiscountType === "family" ? "خصم عائلي" : "خصم فردي")
             : null;
           const transparencyNote =
-            `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}`;
+            `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}` +
+            `إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}` +
+            ` | cashier_decision:${userId || "unknown"}`;
           await supabase.from("employee_financial_movements").insert({
             user_id: dataOwnerId,
             employee_id: selectedEmployee.id,
@@ -3770,6 +3772,12 @@ const POSPage = () => {
           } as any);
 
           // Fire push notification to employee (best-effort, non-blocking).
+          // Phase 3.3: include this-month accumulated total for the chosen type.
+          const monthlyForType =
+            isDualMode && mealDiscountType
+              ? (mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual)
+              : 0;
+          const monthlyTotalAfter = monthlyForType + calculatedAmount;
           try {
             supabase.functions.invoke("notify-employee-meal", {
               body: {
@@ -3781,11 +3789,19 @@ const POSPage = () => {
                 deducted_amount: calculatedAmount,
                 items_summary: itemsSummary,
                 discount_label: discountLabel,
+                monthly_total_after: monthlyTotalAfter,
+                monthly_cap:
+                  isDualMode && mealDiscountType
+                    ? (mealDiscountType === "family" ? mealCapFamily : mealCapIndividual)
+                    : 0,
               },
             }).catch((e) => console.warn("[POS] notify-employee-meal failed:", e));
           } catch (e) {
             console.warn("[POS] notify-employee-meal invoke threw:", e);
           }
+
+          // Refresh monthly totals so next ticket sees up-to-date usage.
+          loadEmployeeBalance(selectedEmployee.id).catch(() => {});
         }
       }
 
