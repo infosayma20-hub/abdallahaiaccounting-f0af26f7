@@ -3336,6 +3336,14 @@ const POSPage = () => {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
     }
+    if (
+      effectivePaymentMethod === "employee_account" &&
+      mealDiscountMode === "dual" &&
+      !mealDiscountType
+    ) {
+      toast.error("يرجى اختيار نوع الخصم (عائلي 10% أو فردي 50%)");
+      return;
+    }
 
     // Defense-in-depth: block sale if an order-level discount is present but
     // the user lacks pos.sell.discount.
