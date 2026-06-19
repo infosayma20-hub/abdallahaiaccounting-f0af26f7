@@ -21,7 +21,7 @@ import PortalSuppliersTab from './PortalSuppliersTab';
 import PortalOwnerSalesHome from './PortalOwnerSalesHome';
 import PortalOwnerHomeSummary from './PortalOwnerHomeSummary';
 import { supabase } from '@/integrations/supabase/client';
-import { enablePushNotifications, pushSupported, isIos, isIosStandalone } from '@/lib/push-notifications';
+import { enablePushNotifications, pushSupported, isIos, isIosStandalone, bindForegroundMessagingIfReady } from '@/lib/push-notifications';
 import { toast } from 'sonner';
 
 const PRIMARY = '#0D1B2E';
@@ -166,6 +166,12 @@ export default function PortalDashboard() {
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth', { replace: true });
   }, [authLoading, user, navigate]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      bindForegroundMessagingIfReady();
+    }
+  }, [authLoading, user?.id]);
 
   const fetchCompanyData = useCallback(async () => {
     try {
