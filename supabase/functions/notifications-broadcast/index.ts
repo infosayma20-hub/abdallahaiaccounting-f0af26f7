@@ -124,25 +124,23 @@ Deno.serve(async (req) => {
         (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
       }
     } else if (audience_type === "portal") {
-      // بوابة الإدارة — مستخدمو malaki_portal_users النشطون التابعون لنفس الشركة
+      // بوابة الإدارة — مستخدمو malaki_portal_users التابعون لنفس مالك التينانت
+      // نستخدم resolve_effective_owner_id لإيجاد صاحب الحساب الفعلي للمتصل،
+      // ثم نطابق malaki_portal_users.user_id = ownerId (هذا الحقل يحتوي على owner uid).
+      const { data: ownerData } = await admin.rpc("resolve_effective_owner_id", {
+        _auth_uid: callerId,
+      });
+      const scopeOwnerId = (ownerData as string | null) ?? callerId;
       const { data: portals } = await admin
         .from("malaki_portal_users")
         .select("auth_user_id")
         .eq("is_active", true)
+        .eq("user_id", scopeOwnerId)
         .not("auth_user_id", "is", null);
-      const authIds = (portals ?? []).map((p: any) => p.auth_user_id).filter(Boolean);
-      if (authIds.length > 0) {
-        if (companyId) {
-          const { data: profs } = await admin
-            .from("profiles")
-            .select("id")
-            .in("id", authIds)
-            .eq("company_id", companyId);
-          (profs ?? []).forEach((p: any) => recipientUserIds.add(p.id));
-        } else {
-          authIds.forEach((id: string) => recipientUserIds.add(id));
-        }
-      }
+      (portals ?? []).forEach((p: any) => p.auth_user_id && recipientUserIds.add(p.auth_user_id));
+      console.log(
+        `[notifications-broadcast] portal audience: owner=${scopeOwnerId} portals_found=${(portals ?? []).length}`,
+      );
     }
 
     const recipients = Array.from(recipientUserIds);
