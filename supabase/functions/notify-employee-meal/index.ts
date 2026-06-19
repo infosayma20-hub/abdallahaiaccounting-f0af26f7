@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
       employee_share_pct,
       deducted_amount,
       items_summary,
+      discount_label,
     } = body || {};
 
     if (!employee_id || !data_owner_id || typeof deducted_amount !== "number") {
@@ -92,10 +93,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const title = "🍽️ تم خصم وجبة من حسابك";
+    const title = discount_label
+      ? `🍽️ ${discount_label} من حسابك`
+      : "🍽️ تم خصم وجبة من حسابك";
     const fmt = (n: number) => `₪${Number(n || 0).toFixed(2)}`;
     const lines: string[] = [];
     if (order_number) lines.push(`فاتورة #${order_number}`);
+    if (discount_label) lines.push(`النوع: ${discount_label}`);
     if (typeof full_amount === "number") lines.push(`الإجمالي: ${fmt(full_amount)}`);
     if (typeof employee_share_pct === "number") lines.push(`نسبتك: ${employee_share_pct}%`);
     lines.push(`المخصوم: ${fmt(deducted_amount)}`);
