@@ -462,11 +462,13 @@ const POSPage = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
   const [employeeNote, setEmployeeNote] = useState("");
-  // Malaky-only: cashier picks family (10%) or individual (50%) meal discount.
-  // Default 'individual' to preserve previous behavior for non-Malaky tenants.
-  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual">("individual");
-  // Malaky-only feature flag: tenant whose cashiers can pick family/individual meal discount.
-  const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
+  // Cashier picks family (10%) or individual (50%) meal discount.
+  // Default null forces explicit choice when mode = 'dual' (no silent default).
+  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual" | null>(null);
+  // Tenant-level meal discount mode loaded from payroll_settings.
+  // 'single' = legacy behavior (uses payroll_settings.food_individual_percentage).
+  // 'dual'   = show family/individual buttons; cashier must pick.
+  const [mealDiscountMode, setMealDiscountMode] = useState<"single" | "dual">("single");
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
