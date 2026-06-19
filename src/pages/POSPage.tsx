@@ -6756,6 +6756,39 @@ const POSPage = () => {
                         </div>
                         {selectedEmployee.job_title && <span className="text-xs" style={{ color: '#6b7280' }}>{selectedEmployee.job_title}</span>}
                       </div>
+                      {dataOwnerId === MALAKY_OWNER_ID && (
+                        <div className="mt-2.5">
+                          <div className="text-[11px] mb-1.5 font-medium" style={{ color: '#6b21a8' }}>نوع الخصم</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setMealDiscountType('family')}
+                              className="h-10 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center"
+                              style={{
+                                background: mealDiscountType === 'family' ? '#8b5cf6' : '#ffffff',
+                                color: mealDiscountType === 'family' ? '#ffffff' : '#374151',
+                                border: `1px solid ${mealDiscountType === 'family' ? '#8b5cf6' : '#ddd6fe'}`,
+                              }}
+                            >
+                              <span>خصم عائلي</span>
+                              <span className="text-[10px] opacity-80">10%</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMealDiscountType('individual')}
+                              className="h-10 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center"
+                              style={{
+                                background: mealDiscountType === 'individual' ? '#8b5cf6' : '#ffffff',
+                                color: mealDiscountType === 'individual' ? '#ffffff' : '#374151',
+                                border: `1px solid ${mealDiscountType === 'individual' ? '#8b5cf6' : '#ddd6fe'}`,
+                              }}
+                            >
+                              <span>خصم فردي</span>
+                              <span className="text-[10px] opacity-80">50%</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="mt-2">
                         <input
                           value={employeeNote}
