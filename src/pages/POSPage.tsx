@@ -3418,6 +3418,156 @@ const POSPage = () => {
       return;
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // OFFLINE FALLBACK PATH
+    // If we're not online OR the live connection check fails, save the
+    // sale into IndexedDB and print locally via Print Bridge (LAN).
+    // Server-only operations (employee_account journal, customer visits,
+    // exchange rate updates, kitchen tickets via Realtime) are intentionally
+    // skipped — they'll happen during sync via complete_pos_order.
+    // ─────────────────────────────────────────────────────────────────
+    if (!offlineMode.isOnline) {
+      // Some sale modes require server-side validation (employee_account
+      // creates a sub-account, call-center order linking, table picking).
+      // Block these offline to avoid data corruption.
+      if (effectivePaymentMethod === "employee_account") {
+        toast.error("⚠️ لا يمكن تنفيذ دفع 'حساب موظف' بدون إنترنت");
+        return;
+      }
+      if (activeOrder.callCenterOrderId) {
+        toast.error("⚠️ لا يمكن إكمال طلب كول سنتر بدون إنترنت");
+        return;
+      }
+      if (activeOrder.tableId) {
+        toast.error("⚠️ لا يمكن إكمال طلب طاولة بدون إنترنت");
+        return;
+      }
+
+      setProcessing(true);
+      try {
+        const effectiveTotal = customerDataDiscount
+          ? cartTotals.total - customerDataDiscount.discountAmount
+          : cartTotals.total;
+        const effectiveDiscount = cartTotals.discount + (customerDataDiscount?.discountAmount || 0);
+        const rate = exchangeRates[paymentCurrency] || 1;
+        const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
+        const tendered = parseFloat(tenderedAmount) || foreignTotal;
+        const changeInForeign = Math.max(0, tendered - foreignTotal);
+        const changeILS = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
+
+        const offlineLines = cart.map((item) => ({
+          product_id: item.product_id,
+          product_name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          discount_pct: item.discount_pct,
+          discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
+          tax_rate: item.tax_rate,
+          tax_amount: item.total * item.tax_rate / 100,
+          subtotal: item.qty * item.unit_price,
+          total: item.total,
+          cost_price: item.cost_price,
+        }));
+
+        const offlinePayments = [{
+          method: effectivePaymentMethod,
+          amount: cartTotals.total,
+          tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
+          change: changeILS,
+          change_currency: paymentCurrency === "ILS" ? "ILS" : changeCurrency,
+          currency: paymentCurrency,
+          exchange_rate: rate,
+          foreign_amount: foreignTotal,
+          rate_source: rateEdited ? "cashier" : "system",
+          ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
+        }];
+
+        const savedSale = await offlineMode.createOfflineSale({
+          orderData: {
+            order_type: activeOrder.orderType,
+            delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
+          },
+          items: offlineLines,
+          total: effectiveTotal,
+          subtotal: cartTotals.subtotal,
+          taxAmount: cartTotals.tax,
+          discountAmount: effectiveDiscount,
+          paymentMethod: effectivePaymentMethod,
+          payments: offlinePayments,
+          customerId: activeOrder.customerId || null,
+          customerName: customerName || "",
+          notes: orderNote || `عملية offline — ${effectivePaymentMethod}`,
+        });
+
+        // Build local receipt (no DB display_number — print local OFFLINE number)
+        const receiptInfo = {
+          orderId: savedSale.id,
+          orderNumber: savedSale.order_number,
+          displayNumber: '',
+          queueNumber: undefined as number | undefined,
+          date: savedSale.created_at,
+          cashierName: session.cashier_name,
+          companyName: company?.name || "شركتي",
+          logoUrl: company?.logo_url || "",
+          terminalName: posDisplayName,
+          customerName: customerName,
+          customerPhone: activeOrder.customerPhone || "",
+          items: cart.map((item) => ({
+            name: item.name,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            discount_pct: item.discount_pct,
+            total: item.total,
+            note: item.note,
+            modifiers: item.modifiers || [],
+          })),
+          subtotal: cartTotals.subtotal,
+          tax: cartTotals.tax,
+          discount: effectiveDiscount,
+          total: effectiveTotal,
+          paymentMethod: effectivePaymentMethod,
+          tenderedAmount: tendered,
+          change: changeILS,
+          currency: paymentCurrency,
+          exchangeRate: rate,
+          foreignAmount: foreignTotal,
+          orderNote: (orderNote ? orderNote + ' — ' : '') + '⚠️ بانتظار المزامنة',
+          orderType: activeOrder.orderType,
+          deliveryAddress: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : "",
+          deliveryFee: cartTotals.deliveryFee || 0,
+        };
+
+        setReceiptData(receiptInfo);
+        setShowPayment(false);
+        setShowReceipt(true);
+
+        // Note: the receipt dialog (<Receipt>) auto-prints via the same Print Bridge
+        // on mount — so the customer copy still prints offline (LAN). Kitchen tickets
+        // are intentionally skipped offline; they re-print after sync from KDS history.
+
+        // Clear the current order
+        setOrders((prev) => {
+          const updated = [...prev];
+          orderCounter.current += 1;
+          updated[activeOrderIndex] = createNewOrder(orderCounter.current);
+          return updated;
+        });
+
+        toast.success(
+          `✅ تم حفظ البيع #${savedSale.order_number} محلياً — سيُرحَّل تلقائياً عند عودة الإنترنت`,
+          { duration: 5000 }
+        );
+      } catch (err: any) {
+        console.error("[POS Offline] sale save failed:", err);
+        toast.error(`فشل حفظ البيع محلياً: ${err?.message || err}`);
+      } finally {
+        setProcessing(false);
+      }
+      return;
+    }
+
     setProcessing(true);
     try {
       let orderId: string;
