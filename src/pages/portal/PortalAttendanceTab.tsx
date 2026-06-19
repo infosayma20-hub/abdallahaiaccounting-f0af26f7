@@ -4,6 +4,7 @@ import { format, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp, Bell, BellOff, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { enablePushNotifications } from '@/lib/push-notifications';
 
 interface Props {
   theme: 'light' | 'dark';
@@ -102,7 +103,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
   }, []);
 
   // Request browser notification permission — mobile-friendly
-  const enableNotifications = useCallback(() => {
+  const enableNotifications = useCallback(async () => {
     // Unlock audio on this user gesture immediately
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -120,30 +121,9 @@ export default function PortalAttendanceTab({ theme }: Props) {
     // Play test sound immediately to confirm it works
     setTimeout(() => playNotificationSound(), 200);
 
-    // Try browser notifications as a bonus (non-blocking)
-    if ('Notification' in window && Notification.permission === 'default') {
-      try {
-        Notification.requestPermission().then((perm) => {
-          if (perm === 'granted') {
-            new Notification('أموالي - إشعارات الحضور', {
-              body: 'تم تفعيل الإشعارات بنجاح ✅',
-              icon: '/favicon.ico',
-            });
-          }
-        }).catch(() => {});
-      } catch {
-        // Old callback-based API
-        try {
-          Notification.requestPermission((perm) => {
-            if (perm === 'granted') {
-              new Notification('أموالي', { body: 'تم تفعيل الإشعارات ✅' });
-            }
-          });
-        } catch {}
-      }
-    }
-
-    toast.success('تم تفعيل الإشعارات والصوت ✅', { duration: 2000 });
+    const res = await enablePushNotifications();
+    if (res.ok) toast.success('تم تفعيل إشعارات Push والصوت ✅', { duration: 2000 });
+    else toast.warning(`تم تفعيل الصوت فقط، ولم يتم تسجيل Push: ${res.reason}`, { duration: 5000 });
   }, [playNotificationSound]);
 
   // Check if notifications already granted
