@@ -30,6 +30,14 @@ interface PayrollSettings {
   full_attendance_days: number;
   currency: string;
   currency_symbol: string;
+  // Meal discount module (Phase 2/3)
+  meal_discount_mode?: "single" | "dual";
+  meal_monthly_cap_family?: number;
+  meal_monthly_cap_individual?: number;
+  meal_monthly_warn_at_pct?: number;
+  auto_journal_for_meals?: boolean;
+  meal_company_share_account_code?: string | null;
+  meal_employee_payable_account_code?: string | null;
 }
 
 const DEFAULTS: Omit<PayrollSettings, "id" | "company_id"> = {
@@ -125,7 +133,7 @@ export default function PayrollSettingsPage() {
     toast.info("تم إعادة القيم للافتراضي — اضغط حفظ للتأكيد");
   };
 
-  const updateField = (field: keyof PayrollSettings, value: number | string) => {
+  const updateField = (field: keyof PayrollSettings, value: number | string | boolean | null) => {
     if (!settings) return;
     setSettings({ ...settings, [field]: value });
   };
@@ -215,6 +223,58 @@ export default function PayrollSettingsPage() {
             <div>
               <Label className="text-xs text-muted-foreground">خصم أكل فردي (%)</Label>
               <Input type="number" value={settings.food_individual_percentage} onChange={e => updateField("food_individual_percentage", Number(e.target.value))} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Meal discount module (POS) — caps, mode, auto-journal */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">خصومات وجبات POS</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">وضع الخصم</Label>
+              <select
+                value={settings.meal_discount_mode || "single"}
+                onChange={e => updateField("meal_discount_mode" as any, e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="single">عادي (نسبة واحدة)</option>
+                <option value="dual">مزدوج (عائلي 10% / فردي 50%)</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">سقف شهري عائلي ({settings.currency_symbol}) — 0 = بلا حد</Label>
+              <Input type="number" value={settings.meal_monthly_cap_family ?? 0} onChange={e => updateField("meal_monthly_cap_family" as any, Number(e.target.value))} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">سقف شهري فردي ({settings.currency_symbol}) — 0 = بلا حد</Label>
+              <Input type="number" value={settings.meal_monthly_cap_individual ?? 0} onChange={e => updateField("meal_monthly_cap_individual" as any, Number(e.target.value))} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">نسبة التنبيه (%)</Label>
+              <Input type="number" min={1} max={100} value={settings.meal_monthly_warn_at_pct ?? 80} onChange={e => updateField("meal_monthly_warn_at_pct" as any, Number(e.target.value))} />
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!settings.auto_journal_for_meals}
+                  onChange={e => updateField("auto_journal_for_meals" as any, e.target.checked as any)}
+                  className="h-4 w-4"
+                />
+                توليد قيد محاسبي تلقائي للوجبات
+              </label>
+            </div>
+            <div className="md:col-span-1" />
+            <div>
+              <Label className="text-xs text-muted-foreground">حساب حصة الشركة (مدين)</Label>
+              <Input value={settings.meal_company_share_account_code ?? ""} onChange={e => updateField("meal_company_share_account_code" as any, e.target.value)} placeholder="مثال: 5400" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">حساب ذمة الموظف (دائن)</Label>
+              <Input value={settings.meal_employee_payable_account_code ?? ""} onChange={e => updateField("meal_employee_payable_account_code" as any, e.target.value)} placeholder="مثال: 1130" />
             </div>
           </CardContent>
         </Card>
