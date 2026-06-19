@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
@@ -35,7 +34,6 @@ const normalizeArabic = (s: string) => s.replace(/\s+/g, "").replace(/ة/g, "ه"
 const PayrollPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const queryClient = useQueryClient();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -49,18 +47,10 @@ const PayrollPage = () => {
   const [drawerEmpName, setDrawerEmpName] = useState<string>("");
   const [importOpen, setImportOpen] = useState(false);
 
-  // Tenant-safe employees fetch: explicitly filter by the effective owner.
-  // Do NOT rely on RLS alone — see audit P0-2026-06.
   const { data: employees, isLoading: loadingEmp } = useQuery({
-    queryKey: ["payroll-employees", dataOwnerId],
-    enabled: !!dataOwnerId,
+    queryKey: ["payroll-employees"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("user_id", dataOwnerId!)
-        .eq("is_active", true)
-        .order("full_name");
+      const { data, error } = await supabase.from("employees").select("*").eq("is_active", true).order("full_name");
       if (error) throw error;
       return data || [];
     },

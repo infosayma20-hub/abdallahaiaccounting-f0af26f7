@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery } from "@tanstack/react-query";
 import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -128,7 +127,6 @@ function parseNumericValue(value: unknown): number | null {
 const ImportWizardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -153,17 +151,10 @@ const ImportWizardPage = () => {
   // Step 3 state
   const [costs, setCosts] = useState<ImportCost[]>([]);
 
-  // Tenant-safe: filter by effective owner, never rely on RLS alone (P0-2026-06).
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
-    queryKey: ["suppliers-for-import", dataOwnerId],
-    enabled: !!dataOwnerId,
+    queryKey: ["suppliers-for-import"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, contact_name")
-        .eq("user_id", dataOwnerId!)
-        .eq("contact_type", "مورد")
-        .neq("is_archived", true);
+      const { data } = await supabase.from("contacts").select("id, contact_name").eq("contact_type", "مورد").neq("is_archived", true);
       return data || [];
     },
   });
@@ -199,15 +190,9 @@ const ImportWizardPage = () => {
   });
 
   const { data: warehouses = [] } = useQuery({
-    queryKey: ["warehouses-for-import", dataOwnerId],
-    enabled: !!dataOwnerId,
+    queryKey: ["warehouses-for-import"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("warehouses")
-        .select("id, name")
-        .eq("user_id", dataOwnerId!)
-        .eq("is_active", true)
-        .order("name");
+      const { data } = await supabase.from("warehouses").select("id, name").eq("is_active", true).order("name");
       return data || [];
     },
   });
