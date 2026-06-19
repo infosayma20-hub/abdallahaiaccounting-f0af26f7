@@ -33,7 +33,10 @@ Closed the 3 critical gaps identified for Malaki's 17-terminal rollout.
 - `OfflineStatusBar.tsx`: optional `quarantinedCount` badge.
 
 ## Out of scope (Phase 3 follow-ups)
-- Offline Returns and offline Shift Close (still require connection).
-- Admin UI to review/resubmit quarantined sales.
-- IndexedDB encryption.
+- IndexedDB encryption (sales contain customer names + prices).
 - `DB_VERSION` bump still pending — current schema changes are additive on the same v1 stores so existing browsers keep working.
+
+## Phase 2.1 additions
+- **Offline guard on Shift Close** (`handleCloseShift` in POSPage.tsx): refuses to close while offline, while `pendingCount > 0`, or while `quarantinedCount > 0` — prevents false cash variance from stale totals.
+- **Offline guard on Returns** (`ReturnDialog.handleSubmit`): refuses when `!navigator.onLine` — refunds require server-side stock reversal + GL reverse entry.
+- **Quarantine admin UI** in `SyncLogSheet.tsx`: shows quarantined sales (>= MAX_SYNC_RETRIES) with error detail, "إعادة المحاولة" (requeueSale → resets retry_count and status to 'pending'), and "حذف نهائي" (removePendingSale with confirm). Broadcasts on `pos-sync` channel after requeue so any open POS tab triggers a sync.
