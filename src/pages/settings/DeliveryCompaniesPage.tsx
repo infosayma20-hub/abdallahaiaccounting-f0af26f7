@@ -116,7 +116,7 @@ export default function DeliveryCompaniesPage() {
     const { data } = await supabase
       .from("pos_orders")
       .select("id, order_number, customer_name, customer_address, total, wheels_request_status, wheels_last_error, wheels_sent_at, wheels_delivery_price, delivery_status, created_at")
-      .not("wheels_request_status", "is", null)
+      .in("wheels_request_status", ["sent", "sending", "failed"])
       .order("created_at", { ascending: false })
       .limit(20);
     setRecent((data ?? []) as any);
@@ -321,7 +321,10 @@ export default function DeliveryCompaniesPage() {
                     </span>
                   </div>
                   {resolveResult.extracted_area && (
-                    <div className="text-muted-foreground">المنطقة المستخرجة من العنوان: <span className="text-foreground">{resolveResult.extracted_area}</span></div>
+                    <div className="text-muted-foreground">
+                      ما يستخرجه send-to-wheels (آخر segment):{" "}
+                      <span className="text-foreground">{resolveResult.extracted_area}</span>
+                    </div>
                   )}
                   {resolveResult.matched_zone && (
                     <div className="text-muted-foreground">
@@ -330,7 +333,30 @@ export default function DeliveryCompaniesPage() {
                       {typeof resolveResult.matched_zone.wheels_fixed_price === "number" && (
                         <> — السعر: <span className="text-foreground">{resolveResult.matched_zone.wheels_fixed_price}</span></>
                       )}
+                      {resolveResult.match_type && <> — نوع التطابق: <span className="text-foreground">{resolveResult.match_type}</span></>}
                     </div>
+                  )}
+                  {resolveResult.warning && (
+                    <div className="mt-1 rounded border border-amber-300 bg-amber-50 text-amber-800 p-2">
+                      ⚠️ {resolveResult.warning}
+                    </div>
+                  )}
+                  {Array.isArray(resolveResult.attempts) && resolveResult.attempts.length > 1 && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-muted-foreground">المحاولات ({resolveResult.attempts.length})</summary>
+                      <ul className="mt-1 space-y-0.5">
+                        {resolveResult.attempts.map((a: any, i: number) => (
+                          <li key={i} className="text-[11px]">
+                            <span className="font-mono">"{a.candidate}"</span> →{" "}
+                            {a.match_type ? (
+                              <span className="text-emerald-700">{a.match_type} → {a.zone?.area_name}</span>
+                            ) : (
+                              <span className="text-muted-foreground">لا يوجد</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   )}
                   {resolveResult.error && <div className="text-red-700">{resolveResult.error}</div>}
                 </div>
