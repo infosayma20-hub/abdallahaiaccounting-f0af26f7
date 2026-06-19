@@ -279,6 +279,14 @@ export default function NotificationsAdminPage() {
                 <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="نص الإشعار..." />
               </div>
 
+              {(title.includes("{{") || body.includes("{{")) && (
+                <div className="space-y-1 p-3 rounded-lg border border-primary/20 bg-primary/5">
+                  <Label className="text-[11px] text-primary">👁️ معاينة مباشرة (هذا ما سيُرسل فعلياً)</Label>
+                  <p className="text-sm font-semibold text-foreground">{finalTitle || "—"}</p>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">{finalBody || "—"}</p>
+                </div>
+              )}
+
               <div>
                 <Label className="mb-2 flex items-center gap-1"><Users className="w-4 h-4" /> الجمهور</Label>
                 <div className="grid grid-cols-2 gap-2">
