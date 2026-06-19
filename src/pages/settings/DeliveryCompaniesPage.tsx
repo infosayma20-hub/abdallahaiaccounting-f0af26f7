@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Loader2, RefreshCcw, Copy, CheckCircle2, XCircle, MapPin, PlugZap, Truck } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCcw, Copy, CheckCircle2, XCircle, MapPin, PlugZap, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 interface BranchRow {
@@ -185,13 +185,13 @@ export default function DeliveryCompaniesPage() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="ms-1 h-4 w-4" /> رجوع
+            <ArrowRight className="me-1 h-4 w-4" /> رجوع
           </Button>
           <Truck className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold">شركات التوصيل — تشخيص الترابط</h1>
         </div>
         <Button variant="outline" size="sm" onClick={() => { void loadBranches(); void loadRecent(); }} disabled={loading}>
-          {loading ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <RefreshCcw className="ms-1 h-4 w-4" />}
+          {loading ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <RefreshCcw className="me-1 h-4 w-4" />}
           تحديث
         </Button>
       </div>
@@ -208,7 +208,7 @@ export default function DeliveryCompaniesPage() {
         <TabsContent value="branches" className="space-y-3">
           <div className="flex justify-end">
             <Button size="sm" onClick={pingAll} disabled={!branches.length}>
-              <PlugZap className="ms-1 h-4 w-4" /> اختبر كل الفروع
+              <PlugZap className="me-1 h-4 w-4" /> اختبر كل الفروع
             </Button>
           </div>
           {branches.map((b) => {
@@ -226,7 +226,7 @@ export default function DeliveryCompaniesPage() {
                       )}
                     </CardTitle>
                     <Button size="sm" variant="outline" onClick={() => pingBranch(b.branch_id)} disabled={r === "loading"}>
-                      {r === "loading" ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <PlugZap className="ms-1 h-4 w-4" />}
+                      {r === "loading" ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <PlugZap className="me-1 h-4 w-4" />}
                       اختبر الاتصال
                     </Button>
                   </div>
@@ -328,7 +328,7 @@ export default function DeliveryCompaniesPage() {
                 </div>
               </div>
               <Button size="sm" onClick={runResolve} disabled={resolveBusy}>
-                {resolveBusy ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <MapPin className="ms-1 h-4 w-4" />}
+                {resolveBusy ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <MapPin className="me-1 h-4 w-4" />}
                 ابحث عن المنطقة
               </Button>
               {resolveResult && (
@@ -442,7 +442,7 @@ export default function DeliveryCompaniesPage() {
               <div className="flex items-center gap-2">
                 <code className="flex-1 bg-muted/40 p-2 rounded text-xs break-all">{webhookUrl || "—"}</code>
                 <Button size="sm" variant="outline" onClick={() => webhookUrl && copy(webhookUrl)} disabled={!webhookUrl}>
-                  <Copy className="ms-1 h-4 w-4" /> نسخ
+                  <Copy className="me-1 h-4 w-4" /> نسخ
                 </Button>
               </div>
               <div className="text-[11px] text-muted-foreground mt-2">
