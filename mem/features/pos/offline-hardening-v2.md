@@ -33,8 +33,14 @@ Closed the 3 critical gaps identified for Malaki's 17-terminal rollout.
 - `OfflineStatusBar.tsx`: optional `quarantinedCount` badge.
 
 ## Out of scope (Phase 3 follow-ups)
-- IndexedDB encryption (sales contain customer names + prices).
-- `DB_VERSION` bump still pending — current schema changes are additive on the same v1 stores so existing browsers keep working.
+- `DB_VERSION` bumped to 2 (added `crypto_keys` store).
+
+## Phase 2.2 — IndexedDB encryption
+- `pending_sales` sensitive fields (`order_data`, `items`, `payments`, `customer_name`, `notes`) are AES-GCM encrypted at rest.
+- 256-bit key generated via `crypto.subtle.generateKey` with `extractable=false`, persisted in dedicated `crypto_keys` store (browser cannot export the raw bytes).
+- Per-record random 12-byte IV stored alongside ciphertext under `_enc` envelope.
+- Transparent encrypt-on-write / decrypt-on-read inside `pos-offline-db.ts`; all callers unchanged.
+- Graceful fallback: if `crypto.subtle` unavailable (insecure context), data is stored plaintext rather than failing.
 
 ## Phase 2.1 additions
 - **Offline guard on Shift Close** (`handleCloseShift` in POSPage.tsx): refuses to close while offline, while `pendingCount > 0`, or while `quarantinedCount > 0` — prevents false cash variance from stale totals.
