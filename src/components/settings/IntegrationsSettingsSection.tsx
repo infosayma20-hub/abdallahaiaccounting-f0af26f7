@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, MessageCircle, Table as TableIcon, Mail, Cloud, MessageSquare, Plug, Settings as SettingsIcon, PlayCircle } from "lucide-react";
+import { ExternalLink, MessageCircle, Table as TableIcon, Mail, Cloud, MessageSquare, Plug, Settings as SettingsIcon, PlayCircle, Truck } from "lucide-react";
+import { Link } from "react-router-dom";
 import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 
@@ -120,7 +121,24 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
       </SettingsSection>
 
       <SettingsSection
-        title="واجهة برمجة التطبيقات (API)"
+        title="شركات التوصيل"
+        description="ربط نقطة البيع مع شركات التوصيل (Wheels) وتشخيص الاتصال."
+        action={<Badge variant="outline" className="text-[10px] font-normal border-emerald-500/40 text-emerald-700 dark:text-emerald-400">مربوط</Badge>}
+      >
+        <Link to="/settings/delivery-companies" className="flex items-center gap-3 rounded-md border border-border/60 p-3 hover:bg-muted/40 transition-colors">
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Truck className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-sm">Wheels — تشخيص الترابط</p>
+            <p className="text-xs text-muted-foreground mt-0.5">اختبار الاتصال لكل فرع، حل المنطقة من العنوان، ومراجعة آخر الطلبات.</p>
+          </div>
+          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+        </Link>
+      </SettingsSection>
+
+      <SettingsSection
+        title="واجهة برمجة التطبيقات (API) "
         description="دمج AMWALI مع أنظمتك الخارجية عبر REST API."
         action={<Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border/60">قيد التحضير</Badge>}
       >
