@@ -155,48 +155,63 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3) Area lookup — order.area_name first; if empty, parse customer_address
-    //    (format: "<city> - <area>"); fall back to delivery_address.
-    function extractArea(addr: string | null | undefined): string {
-      if (!addr) return "";
+    // 3) Area lookup — try order.area_name first, then a series of candidates
+    //    derived from customer_address / delivery_address, ordered from most
+    //    specific (last segment) to least specific (full address). This handles
+    //    multi-dash addresses like "رام الله - الجدول - الطيرة" where the DB
+    //    zone may be stored as "الجدول - الطيرة".
+    function buildCandidates(addr: string | null | undefined): string[] {
+      if (!addr) return [];
       const parts = addr.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean);
-      return parts.length >= 2 ? parts[parts.length - 1] : (parts[0] ?? "");
+      if (parts.length === 0) return [];
+      const out: string[] = [];
+      out.push(parts[parts.length - 1]);
+      if (parts.length >= 2) out.push(parts.slice(-2).join(" - "));
+      out.push(addr.trim());
+      return Array.from(new Set(out.filter(Boolean)));
     }
-    const areaName =
-      (order.area_name && String(order.area_name).trim()) ||
-      extractArea(order.customer_address) ||
-      extractArea(order.delivery_address);
 
-    if (!areaName) {
+    const candidates: string[] = [];
+    const seedArea = order.area_name && String(order.area_name).trim();
+    if (seedArea) candidates.push(seedArea);
+    for (const c of buildCandidates(order.customer_address)) if (!candidates.includes(c)) candidates.push(c);
+    for (const c of buildCandidates(order.delivery_address)) if (!candidates.includes(c)) candidates.push(c);
+
+    if (candidates.length === 0) {
       return new Response(JSON.stringify({ error: "المنطقة غير محددة على الطلب" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Try exact match first, then case-insensitive ILIKE
-    let { data: zone } = await admin
-      .from("delivery_zones")
-      .select("wheels_area_id, wheels_fixed_price")
-      .eq("user_id", order.user_id)
-      .eq("branch_id", branchId)
-      .eq("area_name", areaName)
-      .maybeSingle();
-
-    if (!zone?.wheels_area_id) {
-      const { data: zone2 } = await admin
+    let zone: { wheels_area_id: number | null; wheels_fixed_price: number | null } | null = null;
+    let matchedArea: string | null = null;
+    for (const cand of candidates) {
+      const { data: z1 } = await admin
         .from("delivery_zones")
         .select("wheels_area_id, wheels_fixed_price")
         .eq("user_id", order.user_id)
         .eq("branch_id", branchId)
-        .ilike("area_name", areaName)
+        .eq("area_name", cand)
+        .not("wheels_area_id", "is", null)
+        .maybeSingle();
+      if (z1?.wheels_area_id) { zone = z1 as any; matchedArea = cand; break; }
+
+      const { data: z2 } = await admin
+        .from("delivery_zones")
+        .select("wheels_area_id, wheels_fixed_price")
+        .eq("user_id", order.user_id)
+        .eq("branch_id", branchId)
+        .ilike("area_name", cand)
         .not("wheels_area_id", "is", null)
         .limit(1)
         .maybeSingle();
-      zone = zone2 as any;
+      if (z2?.wheels_area_id) { zone = z2 as any; matchedArea = cand; break; }
     }
 
     if (!zone?.wheels_area_id) {
-      return new Response(JSON.stringify({ error: `المنطقة "${areaName}" غير مربوطة بمعرف Wheels لهذا الفرع` }), {
+      return new Response(JSON.stringify({
+        error: `لم نجد منطقة مطابقة في Wheels. جرّبنا: ${candidates.map((c) => `"${c}"`).join(" / ")}`,
+      }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
