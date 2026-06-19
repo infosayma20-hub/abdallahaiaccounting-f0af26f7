@@ -3,7 +3,72 @@
  */
 
 const DB_NAME = 'finix_pos_offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+
+// ── AES-GCM encryption for sensitive pending_sales fields ──
+// Key is generated once and stored non-extractable in IndexedDB (`crypto_keys` store).
+// Sensitive fields are encrypted at rest to mitigate disk/forensic exposure on shared terminals.
+
+const ENCRYPTED_FIELDS: (keyof PendingSale)[] = [
+  'order_data', 'items', 'payments', 'customer_name', 'notes',
+];
+
+let _cachedKey: CryptoKey | null = null;
+
+async function getEncryptionKey(): Promise<CryptoKey | null> {
+  if (typeof crypto === 'undefined' || !crypto.subtle) return null;
+  if (_cachedKey) return _cachedKey;
+  try {
+    const db = await openDB();
+    const existing = await new Promise<any>((resolve, reject) => {
+      const req = db.transaction('crypto_keys', 'readonly').objectStore('crypto_keys').get('pending_sales_key');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    if (existing?.key) { _cachedKey = existing.key as CryptoKey; return _cachedKey; }
+    const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    await new Promise<void>((resolve, reject) => {
+      const req = db.transaction('crypto_keys', 'readwrite').objectStore('crypto_keys').put({ id: 'pending_sales_key', key });
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+    _cachedKey = key;
+    return key;
+  } catch {
+    return null;
+  }
+}
+
+async function encryptSale(sale: PendingSale): Promise<any> {
+  const key = await getEncryptionKey();
+  if (!key) return sale; // graceful degradation on unsupported browsers
+  const plaintext = {} as Record<string, any>;
+  const out: any = { ...sale };
+  for (const f of ENCRYPTED_FIELDS) {
+    if (out[f] !== undefined) { plaintext[f as string] = out[f]; delete out[f]; }
+  }
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new TextEncoder().encode(JSON.stringify(plaintext));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+  out._enc = { iv: Array.from(iv), ct: Array.from(new Uint8Array(ct)), v: 1 };
+  return out;
+}
+
+async function decryptSale(raw: any): Promise<PendingSale> {
+  if (!raw?._enc) return raw as PendingSale;
+  const key = await getEncryptionKey();
+  if (!key) return raw as PendingSale;
+  try {
+    const iv = new Uint8Array(raw._enc.iv);
+    const ct = new Uint8Array(raw._enc.ct);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    const fields = JSON.parse(new TextDecoder().decode(pt));
+    const { _enc, ...rest } = raw;
+    return { ...rest, ...fields } as PendingSale;
+  } catch {
+    return raw as PendingSale;
+  }
+}
 
 export interface PendingSale {
   id: string;
@@ -62,6 +127,9 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains('sync_log')) {
         db.createObjectStore('sync_log', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('crypto_keys')) {
+        db.createObjectStore('crypto_keys', { keyPath: 'id' });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -128,13 +196,13 @@ export async function deleteOne(storeName: string, key: string): Promise<void> {
 }
 
 export async function countPending(): Promise<number> {
-  const items = await getAll<PendingSale>('pending_sales');
+  const items = await getPendingSales();
   // quarantined sales are excluded — they need manual review
   return items.filter(i => i.sync_status === 'pending' || i.sync_status === 'failed').length;
 }
 
 export async function countQuarantined(): Promise<number> {
-  const items = await getAll<PendingSale>('pending_sales');
+  const items = await getPendingSales();
   return items.filter(i => i.sync_status === 'quarantined').length;
 }
 
@@ -159,11 +227,18 @@ export async function getCachedCustomers(): Promise<any[]> {
 // ── Pending sales ──
 
 export async function addPendingSale(sale: PendingSale): Promise<void> {
-  await putOne('pending_sales', sale);
+  const enc = await encryptSale(sale);
+  await putOne('pending_sales', enc);
 }
 
 export async function getPendingSales(): Promise<PendingSale[]> {
-  return getAll<PendingSale>('pending_sales');
+  const rows = await getAll<any>('pending_sales');
+  return Promise.all(rows.map(decryptSale));
+}
+
+async function getPendingSale(id: string): Promise<PendingSale | undefined> {
+  const raw = await getOne<any>('pending_sales', id);
+  return raw ? decryptSale(raw) : undefined;
 }
 
 export async function removePendingSale(id: string): Promise<void> {
@@ -173,29 +248,29 @@ export async function removePendingSale(id: string): Promise<void> {
 export const MAX_SYNC_RETRIES = 5;
 
 export async function markSaleFailed(id: string, error: string): Promise<void> {
-  const sale = await getOne<PendingSale>('pending_sales', id);
+  const sale = await getPendingSale(id);
   if (sale) {
     sale.retry_count = (sale.retry_count || 0) + 1;
     sale.error = error;
     // After MAX_SYNC_RETRIES failures, quarantine — stops auto-retry, needs manual review
     sale.sync_status = sale.retry_count >= MAX_SYNC_RETRIES ? 'quarantined' : 'failed';
-    await putOne('pending_sales', sale);
+    await putOne('pending_sales', await encryptSale(sale));
   }
 }
 
 export async function getQuarantinedSales(): Promise<PendingSale[]> {
-  const items = await getAll<PendingSale>('pending_sales');
+  const items = await getPendingSales();
   return items.filter(i => i.sync_status === 'quarantined');
 }
 
 /** Manually requeue a quarantined sale (admin action). */
 export async function requeueSale(id: string): Promise<void> {
-  const sale = await getOne<PendingSale>('pending_sales', id);
+  const sale = await getPendingSale(id);
   if (sale) {
     sale.sync_status = 'pending';
     sale.retry_count = 0;
     sale.error = undefined;
-    await putOne('pending_sales', sale);
+    await putOne('pending_sales', await encryptSale(sale));
   }
 }
 
