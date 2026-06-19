@@ -70,6 +70,29 @@ const MonthlyPayrollInputPage = () => {
   const [saving, setSaving] = useState(false);
   const [fillingAttendance, setFillingAttendance] = useState(false);
   const [fillingDeductions, setFillingDeductions] = useState(false);
+  // Phase 2.1: detect dual-mode tenants (e.g. Malaki) to show a warning
+  // because POS pos_meal movements are already discounted.
+  const [isDualMealMode, setIsDualMealMode] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user) return;
+        const { data: company } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("owner_id", user.id)
+          .maybeSingle();
+        if (!company?.id) return;
+        const { data: ps } = await supabase
+          .from("payroll_settings" as any)
+          .select("meal_discount_mode")
+          .eq("company_id", company.id)
+          .maybeSingle();
+        setIsDualMealMode((ps as any)?.meal_discount_mode === "dual");
+      } catch { /* ignore */ }
+    })();
+  }, [user]);
 
   const { data: employees, isLoading: loadingEmp } = useQuery({
     queryKey: ["payroll-input-employees"],
