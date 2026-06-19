@@ -125,7 +125,7 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
         description="دمج AMWALI مع أنظمتك الخارجية عبر REST API."
         action={<Badge variant="outline" className="text-[10px] font-normal text-muted-foreground border-border/60">قيد التحضير</Badge>}
       >
-        {/* moved below */}
+        <div className="hidden" />
       </SettingsSection>
 
       <SettingsSection
