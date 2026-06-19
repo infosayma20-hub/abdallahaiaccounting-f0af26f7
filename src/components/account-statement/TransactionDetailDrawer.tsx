@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -107,7 +106,7 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
         const { data: txs } = await supabase
           .from("transactions")
           .select("debit_account_code, credit_account_code, amount, description")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", userId)
           .eq("reference", ref)
           .eq("is_deleted", false)
           .order("created_at");
@@ -119,7 +118,7 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
           const { data: accs } = await supabase
             .from("accounts")
             .select("account_code, account_name")
-            .eq("user_id", dataOwnerId!)
+            .eq("user_id", userId)
             .in("account_code", Array.from(codes));
           const accMap: Record<string, string> = {};
           (accs || []).forEach(a => { accMap[a.account_code] = a.account_name; });
@@ -154,7 +153,7 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
         const { data: accs } = await supabase
           .from("accounts")
           .select("account_code, account_name")
-          .eq("user_id", dataOwnerId!);
+          .eq("user_id", userId);
         const accMap: Record<string, string> = {};
         (accs || []).forEach(a => { accMap[a.account_code] = a.account_name; });
 
@@ -180,7 +179,7 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
         const { data: journalVoucher } = await supabase
           .from("vouchers")
           .select("id")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", userId)
           .eq("type", "journal")
           .eq("ref_number", row.reference)
           .neq("status", "cancelled")
@@ -192,7 +191,7 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
         const { data: voucher } = await supabase
           .from("vouchers")
           .select("id")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", userId)
           .eq("linked_transaction_id", row.transaction_id)
           .maybeSingle();
         resolvedVoucherId = voucher?.id || null;

@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { Search, Users, Target, UserCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface Hit {
   id: string;
@@ -48,7 +47,7 @@ export default function CrmGlobalSearch() {
           .limit(5),
         supabase.from("contacts")
           .select("id, contact_name, phone, contact_class")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .eq("is_archived", false)
           .or(`contact_name.ilike.${term},phone.ilike.${term}`)
           .limit(5),

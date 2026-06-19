@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Upload, CheckCircle, AlertTriangle, Lock, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
@@ -111,7 +110,7 @@ export const ImportAccountsModal = ({ isOpen, onClose, onSuccess, existingAccoun
       for (const row of toUpdate) {
         const { error } = await supabase.from("accounts")
           .update({ account_name: row.name, description_ar: row.description_ar || null })
-          .eq("account_code", row.code).eq("user_id", dataOwnerId!);
+          .eq("account_code", row.code).eq("user_id", userId);
         if (error) errors.push(`خطأ ${row.code}: ${error.message}`);
         else updated++;
       }

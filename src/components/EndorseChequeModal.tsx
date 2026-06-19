@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Search, CheckCircle, Receipt, Calendar, Building2, Banknote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export interface EndorsedCheque {
   id: string;
@@ -42,7 +41,7 @@ export default function EndorseChequeModal({ open, onClose, onSelect, excludeIds
     supabase
       .from("cheques")
       .select("id, cheque_number, bank_name, party_name, amount, cheque_date, currency, status, endorsed_to_contact_id")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .eq("cheque_type", "وارد")
       .in("status", ["مسجل", "آجل", "مستحق"])
       .is("endorsed_to_contact_id", null)

@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { fmtDateDisplay } from "@/lib/utils";
 import AccountingShell from "@/components/layout/AccountingShell";
 
@@ -42,9 +41,9 @@ const CashTransferPage = () => {
     if (!user) return;
     setLoading(true);
     const [bRes, tRes, txRes] = await Promise.all([
-      supabase.from("cash_boxes").select("*").eq("user_id", dataOwnerId!).eq("is_active", true),
-      supabase.from("cash_transfers").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }).limit(50),
-      supabase.from("transactions").select("amount, debit_account_code, credit_account_code, foreign_amount, exchange_rate, currency").eq("user_id", dataOwnerId!).eq("is_deleted", false),
+      supabase.from("cash_boxes").select("*").eq("user_id", user.id).eq("is_active", true),
+      supabase.from("cash_transfers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("transactions").select("amount, debit_account_code, credit_account_code, foreign_amount, exchange_rate, currency").eq("user_id", user.id).eq("is_deleted", false),
     ]);
     const boxesData = bRes.data || [];
     setBoxes(boxesData);
@@ -182,7 +181,7 @@ const CashTransferPage = () => {
 
       // Create transfer record
       await supabase.from("cash_transfers").insert({
-        user_id: dataOwnerId!,
+        user_id: user.id,
         from_box_id: fromBoxId,
         to_box_id: toBoxId,
         amount: amountNum,
@@ -216,7 +215,7 @@ const CashTransferPage = () => {
       }
 
       await supabase.from("cash_transfers").insert({
-        user_id: dataOwnerId!,
+        user_id: user.id,
         from_box_id: fromBoxId,
         to_box_id: toBoxId,
         amount: amountNum,

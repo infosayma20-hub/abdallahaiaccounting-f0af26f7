@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -53,7 +52,7 @@ export default function WarrantySupplierClaimsPage() {
     const { data } = await supabase
       .from("warranty_supplier_claims")
       .select("*, supplier:contacts(contact_name)")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setClaims((data as any) || []);
   };
@@ -93,7 +92,7 @@ export default function WarrantySupplierClaimsPage() {
         const { data: tx } = await supabase
           .from("transactions")
           .insert({
-            user_id: dataOwnerId!,
+            user_id: user.id,
             description: `تعويض ضمان من المورد - ${c.claim_number}`,
             amount: coverage,
             currency: "شيكل",

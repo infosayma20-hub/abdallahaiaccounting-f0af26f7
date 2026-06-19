@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import ShortcutsTip from "./ShortcutsTip";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import QuickCalculator from "./QuickCalculator";
 
 interface TopBarProps {
@@ -93,9 +92,9 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
       const found: SearchResult[] = [];
       try {
         const [txRes, accRes, contactsRes] = await Promise.all([
-          supabase.from('transactions').select('id, description, transaction_date, amount, transaction_type, reference, debit_account_code, credit_account_code').eq("user_id", dataOwnerId!).or(`description.ilike.%${q}%,reference.ilike.%${q}%,transaction_type.ilike.%${q}%`).order('transaction_date', { ascending: false }).limit(8),
-          supabase.from('accounts').select('id, account_name, account_code, account_type').eq("user_id", dataOwnerId!).or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`).limit(8),
-          supabase.from('contacts').select('id, contact_name, contact_type, phone').eq("user_id", dataOwnerId!).or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`).limit(8),
+          supabase.from('transactions').select('id, description, transaction_date, amount, transaction_type, reference, debit_account_code, credit_account_code').eq('user_id', user.id).or(`description.ilike.%${q}%,reference.ilike.%${q}%,transaction_type.ilike.%${q}%`).order('transaction_date', { ascending: false }).limit(8),
+          supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`).limit(8),
+          supabase.from('contacts').select('id, contact_name, contact_type, phone').eq('user_id', user.id).or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`).limit(8),
         ]);
         (txRes.data || []).forEach(tx => { found.push({ id: tx.id, type: "transaction", title: tx.description || tx.transaction_type || "معاملة", subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`, path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`, icon: FileText }); });
         (accRes.data || []).forEach(acc => { found.push({ id: acc.id, type: "account", title: `${acc.account_code} - ${acc.account_name}`, subtitle: acc.account_type, path: `/accounts?search=${encodeURIComponent(acc.account_name)}`, icon: Wallet }); });

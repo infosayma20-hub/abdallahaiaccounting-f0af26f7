@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import AccountingShell from "@/components/layout/AccountingShell";
 
@@ -63,7 +62,7 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
     const { data, error } = await supabase
       .from("invoices")
       .select("id, invoice_number, invoice_date, contact_name, total_amount, status, correction_reason, original_invoice_id, notes")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .eq("invoice_type", dbInvoiceType)
       .order("created_at", { ascending: false });
     if (error) {

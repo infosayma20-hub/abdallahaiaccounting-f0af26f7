@@ -8,7 +8,6 @@ import { ArrowRight, MessageCircle, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 const WHATSAPP_NUMBER = "970000000000";
 
@@ -49,12 +48,12 @@ const TicketDetailPage = () => {
     try {
       const { error } = await supabase.from("ticket_comments").insert({
         ticket_id: id,
-        user_id: dataOwnerId!,
+        user_id: user.id,
         content: newComment.trim(),
         is_internal: false,
       });
       if (error) throw error;
-      setComments((prev) => [...prev, { content: newComment.trim(), user_id: dataOwnerId!, created_at: new Date().toISOString(), is_internal: false }]);
+      setComments((prev) => [...prev, { content: newComment.trim(), user_id: user.id, created_at: new Date().toISOString(), is_internal: false }]);
       setNewComment("");
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message, variant: "destructive" });

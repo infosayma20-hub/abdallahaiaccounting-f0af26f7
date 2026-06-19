@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureTravelAccounts, createBookingJournalEntry } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,7 +123,6 @@ const getDefaultItems = (serviceType: string): CostItem[] => {
 
 export default function TravelBookingFormPage() {
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const { id: editId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [step, setStep] = useState(editId ? 2 : 1);
@@ -187,7 +185,7 @@ export default function TravelBookingFormPage() {
     if (!editId || !user) return;
     const loadBooking = async () => {
       const [bRes, iRes, pRes] = await Promise.all([
-        supabase.from("travel_bookings").select("*").eq("id", editId!).eq("user_id", dataOwnerId!).single(),
+        supabase.from("travel_bookings").select("*").eq("id", editId).single(),
         supabase.from("travel_booking_items").select("*").eq("booking_id", editId).order("sort_order"),
         supabase.from("travel_booking_passengers").select("*").eq("booking_id", editId).order("passenger_index"),
       ]);
@@ -282,7 +280,7 @@ export default function TravelBookingFormPage() {
   const handleQuickAddCustomer = async () => {
     if (!user || !customerSearch.trim()) return;
     try {
-      const { data, error } = await supabase.from("contacts").upsert({ user_id: dataOwnerId!, contact_name: customerSearch.trim(), contact_type: "عميل", phone: newCustPhone || null }, { onConflict: "user_id,contact_name" }).select().single();
+      const { data, error } = await supabase.from("contacts").upsert({ user_id: user.id, contact_name: customerSearch.trim(), contact_type: "عميل", phone: newCustPhone || null }, { onConflict: "user_id,contact_name" }).select().single();
       if (error) throw error;
       await fetchContacts();
       setCustomerId(data.id); setCustomerName(data.contact_name); setCustomerPhone(data.phone || ""); setCustomerSearch(data.contact_name); setNewCustPhone(""); setShowCustomerDD(false);
@@ -293,7 +291,7 @@ export default function TravelBookingFormPage() {
   const handleQuickAddSupplier = async () => {
     if (!user || !supplierSearch.trim()) return;
     try {
-      const { data, error } = await supabase.from("contacts").upsert({ user_id: dataOwnerId!, contact_name: supplierSearch.trim(), contact_type: "مورد" }, { onConflict: "user_id,contact_name" }).select().single();
+      const { data, error } = await supabase.from("contacts").upsert({ user_id: user.id, contact_name: supplierSearch.trim(), contact_type: "مورد" }, { onConflict: "user_id,contact_name" }).select().single();
       if (error) throw error;
       await fetchContacts();
       setSupplierId(data.id); setSupplierSearch(data.contact_name); setShowSupplierDD(false);
@@ -411,7 +409,7 @@ export default function TravelBookingFormPage() {
       if (items.length > 0) {
         const itemRows = items.map((it, idx) => ({
           booking_id: booking.id,
-          user_id: dataOwnerId!,
+          user_id: user.id,
           item_type: it.item_type,
           description: it.description || "",
           supplier_contact_id: it.supplier_contact_id || null,
@@ -468,7 +466,7 @@ export default function TravelBookingFormPage() {
         // Payment record (only for new bookings)
         if (payAmt > 0) {
           await supabase.from("travel_booking_payments").insert({
-            user_id: dataOwnerId!,
+            user_id: user.id,
             booking_id: booking.id,
             amount: payAmt,
             amount_ils: payAmt,

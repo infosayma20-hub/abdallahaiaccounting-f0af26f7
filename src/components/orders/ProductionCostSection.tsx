@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,7 +37,7 @@ export default function ProductionCostSection({ order, userId, onSuccess }: Prop
     try {
       const txDate = new Date().toISOString().split("T")[0];
       await supabase.from("transactions").insert({
-        user_id: dataOwnerId!,
+        user_id: userId,
         transaction_date: txDate,
         description: `تكلفة البضاعة المباعة - ${order.customer_name} (${order.order_number || ""})`,
         debit_account_code: "5100",

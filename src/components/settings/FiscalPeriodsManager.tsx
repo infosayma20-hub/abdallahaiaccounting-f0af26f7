@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +56,7 @@ const FiscalPeriodsManager = () => {
     if (!user || !newPeriod.period_name || !newPeriod.start_date || !newPeriod.end_date) return;
     setLoading(true);
     const { error } = await supabase.from("fiscal_periods").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       period_name: newPeriod.period_name,
       start_date: newPeriod.start_date,
       end_date: newPeriod.end_date,

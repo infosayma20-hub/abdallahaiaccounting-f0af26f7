@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -49,14 +48,14 @@ export default function EmployeeHRTab({ employeeId, userId, employee }: Props) {
       .from("employee_hr_records")
       .select("*")
       .eq("employee_id", employeeId)
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", userId)
       .order("record_date", { ascending: false });
     setRecords((data as any[]) || []);
   };
 
   const handleAdd = async () => {
     const { error } = await supabase.from("employee_hr_records").insert({
-      user_id: dataOwnerId!,
+      user_id: userId,
       employee_id: employeeId,
       record_type: formType,
       record_date: form.record_date,

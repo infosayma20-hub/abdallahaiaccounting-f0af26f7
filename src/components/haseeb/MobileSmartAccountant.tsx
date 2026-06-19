@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useNavigate } from "react-router-dom";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
@@ -53,11 +52,11 @@ const MobileSmartAccountant = () => {
         const [txRes, chequeRes, prodRes] = await Promise.all([
           supabase.from('transactions')
             .select('amount, debit_account_code, credit_account_code, description, transaction_type, is_opening_balance, is_deleted, transaction_date')
-            .eq("user_id", dataOwnerId!).eq('is_deleted', false),
+            .eq('user_id', user.id).eq('is_deleted', false),
           supabase.from('cheques')
-            .select('amount, status').eq("user_id", dataOwnerId!),
+            .select('amount, status').eq('user_id', user.id),
           supabase.from('products')
-            .select('quantity, buy_price').eq("user_id", dataOwnerId!),
+            .select('quantity, buy_price').eq('user_id', user.id),
         ]);
 
         const txs = txRes.data || [];
@@ -127,7 +126,7 @@ const MobileSmartAccountant = () => {
       for (const line of lines) {
         const chequeStatus = line.chequeDate > today ? 'آجل' : 'مستحق';
         await supabase.from('cheques').insert({
-          user_id: dataOwnerId!, cheque_type: chequeType as any, status: chequeStatus as any,
+          user_id: user.id, cheque_type: chequeType as any, status: chequeStatus as any,
           cheque_number: line.chequeNumber || null, bank_name: line.bankName || null,
           cheque_date: line.chequeDate, amount: parseFloat(line.amount),
           currency: line.currency, party_name: partyName, party_type: partyType,

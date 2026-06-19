@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { Users, AtSign, Package, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +53,7 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
         const productsPromise = supabase
           .from("products")
           .select("id, name, unit")
-          .eq("user_id", dataOwnerId!);
+          .eq("user_id", userId);
 
         const [contactsData, productsResult] = await Promise.all([contactsPromise, productsPromise]);
 
@@ -204,7 +203,7 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
       if (category === "product" && userId) {
         const { data, error } = await supabase.from("products").insert({
           name,
-          user_id: dataOwnerId!,
+          user_id: userId,
           unit: "قطعة",
           buy_price: 0,
           sell_price: 0,

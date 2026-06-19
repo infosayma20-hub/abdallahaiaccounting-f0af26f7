@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +52,7 @@ export default function EmployeeOpeningBalance({ employee, userId, onSaved }: Pr
       const { data: accs } = await supabase
         .from("accounts")
         .select("account_code")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", userId)
         .ilike("account_name", `%${employee.full_name}%`)
         .limit(1);
       const empAccountCode = accs?.[0]?.account_code;

@@ -250,7 +250,7 @@ export async function wipeUnreferencedCheques(userId: string, voucherId: string)
   const { data: existing, error: fetchErr } = await supabase
     .from("cheques")
     .select("id, status, cheque_number")
-    .eq("user_id", dataOwnerId!)
+    .eq("user_id", userId)
     .or(`voucher_id.eq.${voucherId},receipt_voucher_id.eq.${voucherId}`);
   if (fetchErr) throw new Error(`فشل قراءة الشيكات الحالية: ${fetchErr.message}`);
   if (!existing || existing.length === 0) return;
@@ -266,6 +266,6 @@ export async function wipeUnreferencedCheques(userId: string, voucherId: string)
     .from("cheques")
     .delete()
     .in("id", ids)
-    .eq("user_id", dataOwnerId!);
+    .eq("user_id", userId);
   if (delErr) throw new Error(`فشل حذف الشيكات القديمة: ${delErr.message}`);
 }

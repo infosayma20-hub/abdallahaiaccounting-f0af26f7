@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { Zap, Clock, Star, StarOff, Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Badge } from "@/components/ui/badge";
 
 interface Shortcut {
@@ -45,7 +44,7 @@ const SmartShortcuts = ({ onSendToAssistant, onSendToCommand }: SmartShortcutsPr
     supabase
       .from("transactions")
       .select("description, transaction_type")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .eq("is_deleted", false)
       .order("created_at", { ascending: false })
       .limit(200)

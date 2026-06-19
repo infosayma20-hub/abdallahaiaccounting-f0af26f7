@@ -113,7 +113,7 @@ export function useManagerBranches() {
       const { data, error } = await supabase
         .from("branch_manager_assignments")
         .select("branch_id, company_id")
-        .eq("user_id", dataOwnerId!);
+        .eq("user_id", user!.id);
       if (error) throw error;
       const assignments = (data || []) as { branch_id: string; company_id: string }[];
       if (!assignments.length) {
@@ -197,7 +197,7 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         const { data: assignments, error: assignmentError } = await supabase
           .from("branch_manager_assignments")
           .select("branch_id")
-          .eq("user_id", dataOwnerId!);
+          .eq("user_id", user!.id);
         if (assignmentError) throw assignmentError;
         allowedBranchIds = ((assignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
         if (branchId) allowedBranchIds = allowedBranchIds.filter((id) => id === branchId);

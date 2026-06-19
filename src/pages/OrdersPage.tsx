@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -125,9 +124,9 @@ const OrdersPage = () => {
     if (!user) return;
     setLoading(true);
     const [ordRes, qamarRes, prodRes] = await Promise.all([
-      supabase.from("orders").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
-      supabase.from("qamar_orders" as any).select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
-      supabase.from("products").select("*").eq("user_id", dataOwnerId!),
+      supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("qamar_orders" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("products").select("*").eq("user_id", user.id),
     ]);
     if (ordRes.error) console.error("Orders fetch error:", ordRes.error);
     
@@ -241,7 +240,7 @@ const OrdersPage = () => {
         return;
       }
       if (items.length > 0) {
-        const orderItemsPayload = items.map(i => ({ ...i, order_id: data[0].id, user_id: dataOwnerId! }));
+        const orderItemsPayload = items.map(i => ({ ...i, order_id: data[0].id, user_id: user.id }));
         const { error: itemsError } = await supabase.from("order_items").insert(orderItemsPayload as any);
         if (itemsError) console.error("Items insert error:", itemsError);
       }

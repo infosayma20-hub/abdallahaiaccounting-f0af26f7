@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +80,7 @@ export default function AdvanceRequestModal({ open, onClose, employeeId, employe
       const { data: advance, error } = await supabase
         .from("employee_advances")
         .insert({
-          user_id: dataOwnerId!,
+          user_id: userId,
           employee_id: employeeId,
           advance_type: advanceType,
           amount,

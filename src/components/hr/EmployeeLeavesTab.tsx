@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -87,7 +86,7 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
 
     const { error } = await supabase.from("employee_leaves").insert({
       employee_id: employeeId,
-      user_id: dataOwnerId!,
+      user_id: userId,
       leave_type: form.leave_type,
       start_date: form.start_date,
       end_date: form.end_date,

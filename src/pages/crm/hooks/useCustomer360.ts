@@ -4,7 +4,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { fetchContactBalance } from "@/lib/contact-balance";
 import type {
   ContactSnapshot,
@@ -54,7 +53,7 @@ export function useCustomer360(contactId: string | null | undefined): Customer36
           "id, contact_name, contact_class, credit_limit, current_balance, payment_terms_days, avg_payment_days, total_sales, overdue_amount, last_transaction_date",
         )
         .eq("id", contactId)
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       if (cErr) throw cErr;
@@ -68,7 +67,7 @@ export function useCustomer360(contactId: string | null | undefined): Customer36
           .select(
             "class, label, color, credit_limit_default, payment_terms_days, discount_pct, followup_days, description",
           )
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .eq("class", contactData.contact_class)
           .maybeSingle();
         setPolicy((p as PolicySnapshot | null) ?? null);
@@ -83,7 +82,7 @@ export function useCustomer360(contactId: string | null | undefined): Customer36
       const { data: invs } = await supabase
         .from("invoices")
         .select("total_amount, status, invoice_date, due_date, paid_amount")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("contact_id", contactId)
         .neq("status", "cancelled");
 

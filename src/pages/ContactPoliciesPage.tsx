@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface Policy {
   id: string;
@@ -49,7 +48,7 @@ const ContactPoliciesPage = () => {
   const fetchPolicies = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase.from('contact_class_policies').select('*').eq("user_id", dataOwnerId!).order('class');
+    const { data } = await supabase.from('contact_class_policies').select('*').eq('user_id', user.id).order('class');
     setPolicies((data as any[]) || []);
     setLoading(false);
   };
@@ -60,7 +59,7 @@ const ContactPoliciesPage = () => {
     if (!user) return;
     setSaving(true);
     try {
-      const inserts = defaultPolicies.map(p => ({ ...p, user_id: dataOwnerId! }));
+      const inserts = defaultPolicies.map(p => ({ ...p, user_id: user.id }));
       const { error } = await supabase.from('contact_class_policies').insert(inserts);
       if (error) throw error;
       toast({ title: "تم إنشاء السياسات الافتراضية" });
@@ -89,7 +88,7 @@ const ContactPoliciesPage = () => {
         if (error) throw error;
       } else {
         const { error } = await supabase.from('contact_class_policies').insert({
-          user_id: dataOwnerId!,
+          user_id: user.id,
           class: editPolicy.class || 'C',
           label: editPolicy.label,
           color: editPolicy.color,

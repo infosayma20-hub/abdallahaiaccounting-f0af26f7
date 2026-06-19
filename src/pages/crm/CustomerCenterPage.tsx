@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, Phone, MessageCircle, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCrmOpportunities, useCrmActivities } from "./hooks/useCrmData";
 import { useCustomer360 } from "./hooks/useCustomer360";
 import { fmtDateDisplay } from "@/lib/utils";
@@ -44,7 +43,7 @@ export default function CustomerCenterPage() {
     if (!user) return;
     supabase.from("contacts")
       .select("id, contact_name, phone, contact_class, contact_type")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .eq("is_archived", false)
       .order("contact_name")
       .limit(500)

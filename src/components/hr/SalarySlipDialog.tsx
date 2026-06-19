@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +71,7 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
         .from("employee_financial_movements")
         .select("id, source_type, description, amount, movement_date, status")
         .eq("employee_id", employee.id)
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", userId)
         .eq("salary_month", month)
         .eq("salary_year", year)
         .eq("status", "approved")
@@ -86,7 +85,7 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
         .from("employee_advance_installments")
         .select("*, employee_advances(advance_type, amount)")
         .eq("employee_id", employee.id)
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", userId)
         .eq("due_month", dueMonth)
         .then(({ data }) => {
           const items = ((data as any[]) || []).map((inst: any) => {

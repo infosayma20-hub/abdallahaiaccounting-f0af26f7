@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { FinanceModal, SegmentedTypeSelect } from "@/components/finance/shell";
 import { cn } from "@/lib/utils";
 
@@ -67,11 +66,11 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     setSelectedBranchId(editBox?.branch_id || null);
 
     if (user) {
-      supabase.from("accounts").select("account_code, account_name").eq("user_id", dataOwnerId!).eq("is_active", true).order("account_code")
+      supabase.from("accounts").select("account_code, account_name").eq("user_id", user.id).eq("is_active", true).order("account_code")
         .then(({ data }) => setAccounts(data || []));
       
       // Load branches for linking
-      supabase.from("branches").select("id, name").eq("user_id", dataOwnerId!).eq("is_active", true)
+      supabase.from("branches").select("id, name").eq("user_id", user.id).eq("is_active", true)
         .then(({ data }) => setBranchesList(data || []));
     }
   }, [open, editBox, defaultType, user]);
@@ -109,7 +108,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     if (autoCreateAccount && !editBox) {
       // Fetch ALL existing 1110x codes (5-digit pattern under parent 1110)
       const { data: existing } = await supabase.from("accounts")
-        .select("account_code").eq("user_id", dataOwnerId!)
+        .select("account_code").eq("user_id", user.id)
         .like("account_code", "1110%").order("account_code", { ascending: true });
       
       const usedCodes = new Set((existing || []).map(a => a.account_code));
@@ -120,7 +119,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
       glCode = `1110${nextNum}`;
 
       const { error: accErr } = await supabase.from("accounts").insert({
-        user_id: dataOwnerId!,
+        user_id: user.id,
         account_code: glCode,
         account_name: name.trim(),
         account_type: "Asset",
@@ -136,7 +135,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     }
 
     const boxData: any = {
-      user_id: dataOwnerId!,
+      user_id: user.id,
       name: name.trim(),
       type: normalizedType === "petty" ? "petty_cash" : boxType,
       branch_location: location || null,
@@ -177,7 +176,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
         // Delete old opening balance transaction for this box, then insert new one
         const { data: oldTxs } = await supabase.from("transactions")
           .select("id")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .eq("debit_account_code", finalGlCode)
           .eq("transaction_type", "opening_balance")
           .eq("is_opening_balance", true)
@@ -205,7 +204,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
       // If opening balance removed during edit, soft-delete old transaction
       await supabase.from("transactions")
         .update({ is_deleted: true })
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("debit_account_code", finalGlCode)
         .eq("transaction_type", "opening_balance")
         .eq("is_opening_balance", true)

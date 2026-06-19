@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,7 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
     const { data } = await supabase
       .from("official_holidays")
       .select("*")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", userId)
       .order("holiday_date", { ascending: true });
     setHolidays(data || []);
   };
@@ -52,7 +51,7 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
     }
     setLoading(true);
     const { error } = await supabase.from("official_holidays").insert({
-      user_id: dataOwnerId!,
+      user_id: userId,
       holiday_date: form.holiday_date,
       name: form.name,
       multiplier: parseFloat(form.multiplier) || 2,
@@ -68,7 +67,7 @@ export default function OfficialHolidaysDialog({ open, onClose, userId }: Props)
 
   const performSeed = async (year: number) => {
     const toInsert = FIXED_HOLIDAYS.map(h => ({
-      user_id: dataOwnerId!,
+      user_id: userId,
       holiday_date: `${year}-${String(h.month).padStart(2, "0")}-${String(h.day).padStart(2, "0")}`,
       name: h.name,
       multiplier: 2,

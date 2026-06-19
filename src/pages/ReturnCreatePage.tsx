@@ -14,7 +14,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
@@ -148,7 +147,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       const { data: cts } = await supabase
         .from("contacts")
         .select("id, contact_name, contact_type")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("contact_type", partyType)
         .order("contact_name");
       setContacts((cts as Contact[]) || []);
@@ -163,7 +162,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       const { data } = await supabase
         .from("products")
         .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, quantity")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .order("name");
       setProducts((data as ProductLite[]) || []);
     })();
@@ -176,7 +175,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       const { data } = await supabase
         .from("invoices")
         .select("id, invoice_number, contact_name, contact_id, total_amount, invoice_date")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("contact_id", form.contactId)
         .eq("invoice_type", linkedInvoiceType)
         .neq("status", "cancelled")
@@ -194,7 +193,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .from("returns" as any)
         .select("*")
         .eq("id", recordId)
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .single();
       if (!ret) return;
       const r = ret as any;
@@ -351,7 +350,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
       if (editId) {
         // Update existing (always start as draft to allow item replacement, then re-confirm)
-        const { error } = await supabase.from("returns" as any).update({ ...payload, status: "draft" } as any).eq("id", editId).eq("user_id", dataOwnerId!);
+        const { error } = await supabase.from("returns" as any).update({ ...payload, status: "draft" } as any).eq("id", editId).eq("user_id", user.id);
         if (error) throw error;
         await supabase.from("return_items" as any).delete().eq("return_id", editId);
         const { data: row } = await supabase.from("returns" as any).select("return_number").eq("id", editId).single();
@@ -371,7 +370,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         .filter(it => it.description.trim())
         .map(it => ({
           return_id: returnId,
-          user_id: dataOwnerId!,
+          user_id: user.id,
           product_id: it.productId || null,
           source_invoice_item_id: it.sourceInvoiceItemId || null,
           description: it.description,
@@ -413,7 +412,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
         const txDescription = `${titleAr} ${returnNumber} - ${form.contactName}`;
         const { data: txInsert } = await supabase.from("transactions").insert({
-          user_id: dataOwnerId!,
+          user_id: user.id,
           transaction_date: form.date,
           description: txDescription,
           debit_account_code: debitCode,
@@ -436,7 +435,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
         if (summary.tax > 0) {
           const d = new Date(form.date);
           await supabase.from("tax_ledger").insert({
-            user_id: dataOwnerId!,
+            user_id: user.id,
             tax_type: isSales ? "output" : "input",
             net_amount: -summary.net,
             tax_rate: 16,

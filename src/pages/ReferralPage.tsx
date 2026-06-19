@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,7 +30,7 @@ const ReferralPage = () => {
       const { data: row } = await supabase
         .from("referral_codes")
         .select("code")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       if (!row) {

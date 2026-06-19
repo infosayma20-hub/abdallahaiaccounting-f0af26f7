@@ -15,7 +15,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
@@ -154,7 +153,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       const { data: cts } = await supabase
         .from("contacts")
         .select("id, contact_name, contact_type")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("contact_type", partyType)
         .order("contact_name");
       setContacts((cts as Contact[]) || []);
@@ -169,7 +168,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       const { data } = await supabase
         .from("invoices")
         .select("id, invoice_number, contact_name, contact_id, total_amount, invoice_date")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("contact_id", form.contactId)
         .eq("invoice_type", linkedType)
         .neq("status", "cancelled")
@@ -187,7 +186,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         .from("invoices")
         .select("*, invoice_items(*)")
         .eq("id", recordId)
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .single();
       if (!inv) return;
       const items = ((inv as any).invoice_items || []).map((it: any) => ({
@@ -334,7 +333,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       let noteNumber = "";
 
       if (editId) {
-        const { error } = await supabase.from("invoices").update(payload).eq("id", editId).eq("user_id", dataOwnerId!);
+        const { error } = await supabase.from("invoices").update(payload).eq("id", editId).eq("user_id", user.id);
         if (error) throw error;
         await supabase.from("invoice_items").delete().eq("invoice_id", editId);
         const { data: row } = await supabase.from("invoices").select("invoice_number").eq("id", editId).single();
@@ -376,7 +375,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         const txType = dbType;
 
         const { data: txInsert } = await supabase.from("transactions").insert({
-          user_id: dataOwnerId!,
+          user_id: user.id,
           transaction_date: form.date,
           description: txDescription,
           debit_account_code: debitCode,
@@ -398,7 +397,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         if (summary.tax > 0) {
           const d = new Date(form.date);
           await supabase.from("tax_ledger").insert({
-            user_id: dataOwnerId!,
+            user_id: user.id,
             tax_type: isCustomerSide ? "output" : "input",
             net_amount: -summary.net,
             tax_rate: 16,

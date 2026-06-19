@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { buildAIContext, type AIFinancialContext } from "@/lib/buildAIContext";
 import CleanTopBar from "./CleanTopBar";
 import CleanInputDock from "./CleanInputDock";
@@ -74,7 +73,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
     const today = new Date().toISOString().split("T")[0];
     supabase.from("ai_conversations")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .gte("created_at", today)
       .then(({ count }) => setTodayConvCount(count || 0));
   }, [user?.id, conversationId]);
@@ -113,7 +112,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
 
     const title = firstMessage.slice(0, 60) || "محادثة جديدة";
     const { data: conv } = await supabase.from("ai_conversations").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       title,
     }).select("id").single();
 
@@ -180,7 +179,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
           if ((tx as any).address) contactData.address = (tx as any).address;
 
           const { data: existing } = await supabase.from('contacts')
-            .select('id, contact_name').eq("user_id", dataOwnerId!).eq('contact_name', contactData.contact_name).maybeSingle();
+            .select('id, contact_name').eq('user_id', user?.id).eq('contact_name', contactData.contact_name).maybeSingle();
 
           if (existing) {
             const updateFields: any = {};
@@ -195,21 +194,21 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
             successMsg = `✅ تمت إضافة "${tx.name}" بنجاح`;
           }
         } else if (tx.entityType === 'employee') {
-          const empData: any = { full_name: tx.name || '', user_id: dataOwnerId!, status: 'active', start_date: new Date().toISOString().split('T')[0] };
+          const empData: any = { full_name: tx.name || '', user_id: user?.id, status: 'active', start_date: new Date().toISOString().split('T')[0] };
           if ((tx as any).jobTitle) empData.job_title = (tx as any).jobTitle;
           if ((tx as any).basicSalary) empData.basic_salary = (tx as any).basicSalary;
           const { error: insertError } = await supabase.from('employees').insert(empData);
           if (insertError) throw insertError;
           successMsg = `✅ تمت إضافة الموظف "${tx.name}" بنجاح`;
         } else if (tx.entityType === 'product') {
-          const prodData: any = { name: tx.name || '', user_id: dataOwnerId!, is_active: true, quantity: tx.quantity || 0 };
+          const prodData: any = { name: tx.name || '', user_id: user?.id, is_active: true, quantity: tx.quantity || 0 };
           if ((tx as any).buyPrice) prodData.buy_price = (tx as any).buyPrice;
           if ((tx as any).sellPrice) prodData.sell_price = (tx as any).sellPrice;
           const { error: insertError } = await supabase.from('products').insert(prodData);
           if (insertError) throw insertError;
           successMsg = `✅ تمت إضافة المنتج "${tx.name}" بنجاح`;
         } else if (tx.entityType === 'account') {
-          const accData: any = { account_name: tx.name || '', account_code: (tx as any).accountCode || '', account_type: (tx as any).accountType || 'أصول', user_id: dataOwnerId!, is_active: true };
+          const accData: any = { account_name: tx.name || '', account_code: (tx as any).accountCode || '', account_type: (tx as any).accountType || 'أصول', user_id: user?.id, is_active: true };
           const { error: insertError } = await supabase.from('accounts').insert(accData);
           if (insertError) throw insertError;
           successMsg = `✅ تمت إضافة الحساب "${tx.name}" بنجاح`;

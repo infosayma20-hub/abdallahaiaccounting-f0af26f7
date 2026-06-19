@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { fmtDateDisplay } from "@/lib/utils";
 
@@ -56,7 +55,7 @@ export default function CrmActivitiesPage() {
   const save = async () => {
     if (!user || !form.title.trim()) { toast.error("العنوان مطلوب"); return; }
     const { error } = await supabase.from("crm_activities").insert({
-      ...form, user_id: dataOwnerId!, due_date: form.due_date || null,
+      ...form, user_id: user.id, due_date: form.due_date || null,
     } as any);
     if (error) { toast.error("تعذر الحفظ"); return; }
     toast.success("تم إنشاء المتابعة");

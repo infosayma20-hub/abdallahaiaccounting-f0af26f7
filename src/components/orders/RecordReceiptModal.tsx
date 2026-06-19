@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +50,7 @@ export default function RecordReceiptModal({ open, onClose, order, userId, onSuc
 
       // Create receipt journal entry
       await supabase.from("transactions").insert({
-        user_id: dataOwnerId!,
+        user_id: userId,
         transaction_date: txDate,
         description: `قبض من ${order.customer_name} - ${order.order_number || ""}`,
         debit_account_code: debitAccount,

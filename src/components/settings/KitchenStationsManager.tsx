@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,7 +63,7 @@ export default function KitchenStationsManager() {
   const addStation = async () => {
     if (!newName.trim()) return toast.error("أدخل اسم المحطة");
     const { error } = await supabase.from("kitchen_stations").insert({
-      user_id: dataOwnerId!,
+      user_id: user!.id,
       name: newName.trim(),
       station_type: newType,
       color: newColor,

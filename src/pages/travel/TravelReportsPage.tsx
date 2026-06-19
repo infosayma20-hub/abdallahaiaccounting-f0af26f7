@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,18 +14,17 @@ const SERVICE_LABELS: Record<string, string> = {
 
 export default function TravelReportsPage() {
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const [bookings, setBookings] = useState<any[]>([]);
   const [contacts, setContacts] = useState<Record<string, string>>({});
   const [dateFrom, setDateFrom] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]);
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
-    if (!dataOwnerId) return;
+    if (!user) return;
     // Fetch bookings and contacts in parallel
     Promise.all([
-      supabase.from("travel_bookings").select("*").eq("user_id", dataOwnerId!).gte("booking_date", dateFrom).lte("booking_date", dateTo),
-      supabase.from("contacts").select("id, contact_name").eq("user_id", dataOwnerId!).eq("contact_type", "supplier"),
+      supabase.from("travel_bookings").select("*").gte("booking_date", dateFrom).lte("booking_date", dateTo),
+      supabase.from("contacts").select("id, contact_name").eq("contact_type", "supplier"),
     ]).then(([bRes, cRes]) => {
       if (bRes.data) setBookings(bRes.data);
       if (cRes.data) {
@@ -35,7 +33,7 @@ export default function TravelReportsPage() {
         setContacts(map);
       }
     });
-  }, [dataOwnerId, dateFrom, dateTo]);
+  }, [user, dateFrom, dateTo]);
 
   const active = bookings.filter(b => b.status !== "cancelled");
 

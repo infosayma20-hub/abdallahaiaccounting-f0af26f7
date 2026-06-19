@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -65,7 +64,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
           const { data } = await (supabase as any)
             .from("sales_representatives")
             .select("id, is_active, default_warehouse_id, cash_box_id, sales_commission_rate")
-            .eq("user_id", dataOwnerId!)
+            .eq("user_id", user.id)
             .eq("full_name", employeeName)
             .maybeSingle();
           row = (data as RepRow | null) || null;
@@ -148,7 +147,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
       } else {
         const { error } = await (supabase as any)
           .from("sales_representatives")
-          .insert({ ...payload, user_id: dataOwnerId! });
+          .insert({ ...payload, user_id: user.id });
         if (error) throw error;
       }
 

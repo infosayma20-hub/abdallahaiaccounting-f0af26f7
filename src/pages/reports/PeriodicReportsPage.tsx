@@ -3,7 +3,6 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import {
   ArrowRight, Calendar, Zap, TrendingUp, TrendingDown,
@@ -91,7 +90,7 @@ const PeriodicReportsPage = () => {
       const { data: txns } = await supabase
         .from("transactions")
         .select("*")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .gte("transaction_date", startStr)
         .lte("transaction_date", endStr)
         .neq("is_deleted", true);
@@ -100,7 +99,7 @@ const PeriodicReportsPage = () => {
       const { data: cheques } = await supabase
         .from("cheques")
         .select("*")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .gte("cheque_date", startStr)
         .lte("cheque_date", endStr);
 
@@ -108,7 +107,7 @@ const PeriodicReportsPage = () => {
       const { data: contacts } = await supabase
         .from("contacts")
         .select("*")
-        .eq("user_id", dataOwnerId!);
+        .eq("user_id", user.id);
 
       // Previous period for comparison
       let prevTxns: any[] = [];
@@ -120,7 +119,7 @@ const PeriodicReportsPage = () => {
         const { data } = await supabase
           .from("transactions")
           .select("*")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .gte("transaction_date", prevStart.toISOString().split("T")[0])
           .lte("transaction_date", prevEnd.toISOString().split("T")[0])
           .neq("is_deleted", true);
@@ -301,7 +300,7 @@ const PeriodicReportsPage = () => {
     supabase
       .from("generated_reports")
       .select("*")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => setArchivedReports(data || []));
   }, [user, activeTab]);
@@ -309,7 +308,7 @@ const PeriodicReportsPage = () => {
   const saveToArchive = async () => {
     if (!user || !reportData) return;
     const { error } = await supabase.from("generated_reports").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       report_type: periodType,
       period_type: periodType,
       period_start: periodRange.start.toISOString().split("T")[0],

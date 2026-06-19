@@ -15,7 +15,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
 import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDialog";
 import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog";
@@ -109,7 +108,7 @@ const CashBoxesPage = () => {
     setLoading(true);
     const [boxRes, bankRes] = await Promise.all([
       supabase.from("cash_boxes").select("*").order("type", { ascending: true }),
-      supabase.from("bank_accounts").select("*").eq("user_id", dataOwnerId!),
+      supabase.from("bank_accounts").select("*").eq("user_id", user.id),
     ]);
     setBoxes(boxRes.data || []);
     setBankAccounts(bankRes.data || []);

@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import type {
   CsNote, CsCall, CsMeeting, CsSupportTicket, CsTicketComment,
@@ -79,7 +78,7 @@ export function useCustomerTimeline(contactId?: string) {
 }
 
 export async function csInsert<T extends Record<string, any>>(table: string, payload: T, userId: string) {
-  const { error } = await sb.from(table).insert({ ...payload, user_id: dataOwnerId!, created_by: userId });
+  const { error } = await sb.from(table).insert({ ...payload, user_id: userId, created_by: userId });
   if (error) { toast.error(error.message); return false; }
   return true;
 }

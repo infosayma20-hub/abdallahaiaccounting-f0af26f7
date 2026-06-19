@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { X, Search, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -43,7 +42,7 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
     const { data } = await supabase
       .from("ai_conversations")
       .select("*")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(50);
     setConversations((data as Conversation[]) || []);

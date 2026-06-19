@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import TeamAccountManager from "./TeamAccountManager";
 import FiscalPeriodsManager from "./FiscalPeriodsManager";
 
@@ -56,7 +55,7 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
   useEffect(() => {
     if (!user) return;
     supabase.from("bank_accounts").select("id, name, bank_name")
-      .eq("user_id", dataOwnerId!).eq("is_active", true)
+      .eq("user_id", user.id).eq("is_active", true)
       .then(({ data }) => setBankAccounts(data || []));
   }, [user]);
 

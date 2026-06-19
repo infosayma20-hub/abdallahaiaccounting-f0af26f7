@@ -5,7 +5,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { TrendingUp, TrendingDown, Package, AlertCircle, Loader2 } from "lucide-react";
 
 interface Props {
@@ -59,22 +58,22 @@ export default function KpiWidget({ config, title }: Props) {
         const sb: any = supabase;
         let v = 0;
         if (metric.key === "sales_total") {
-          let q = sb.from("invoices").select("total_amount").eq("user_id", dataOwnerId!).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)");
+          let q = sb.from("invoices").select("total_amount").eq("user_id", user.id).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)");
           if (from) q = q.gte("invoice_date", from);
           if (to) q = q.lte("invoice_date", to);
           const { data } = await q;
           v = (data || []).reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0);
         } else if (metric.key === "purchases_total") {
-          let q = sb.from("invoices").select("total_amount").eq("user_id", dataOwnerId!).eq("invoice_type", "purchase").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)");
+          let q = sb.from("invoices").select("total_amount").eq("user_id", user.id).eq("invoice_type", "purchase").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)");
           if (from) q = q.gte("invoice_date", from);
           if (to) q = q.lte("invoice_date", to);
           const { data } = await q;
           v = (data || []).reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0);
         } else if (metric.key === "products_count") {
-          const { count } = await sb.from("products").select("id", { count: "exact", head: true }).eq("user_id", dataOwnerId!);
+          const { count } = await sb.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id);
           v = count || 0;
         } else if (metric.key === "low_stock") {
-          const { data } = await sb.from("products").select("quantity, min_quantity").eq("user_id", dataOwnerId!);
+          const { data } = await sb.from("products").select("quantity, min_quantity").eq("user_id", user.id);
           v = (data || []).filter((r: any) => Number(r.quantity || 0) <= Number(r.min_quantity || 0)).length;
         }
         if (alive) setValue(v);

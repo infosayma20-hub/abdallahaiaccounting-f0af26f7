@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, TrendingUp, Wallet, FileText } from "lucide-react";
 
@@ -78,7 +77,7 @@ const AppsHero = () => {
       const { data: invs } = await supabase
         .from("invoices")
         .select("total_amount, invoice_type, status, currency, exchange_rate, is_credit_note")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("invoice_date", todayStr);
 
       const liveInvs = (invs || []).filter((i: any) => {
@@ -103,7 +102,7 @@ const AppsHero = () => {
       const { data: receipts } = await supabase
         .from("transactions")
         .select("amount, currency, exchange_rate, transaction_type, is_deleted")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .in("transaction_type", RECEIPT_TYPES)
         .eq("transaction_date", todayStr);
 

@@ -4,7 +4,6 @@ import { Shield, FileText, AlertCircle, Building2, BarChart3, Clock } from "luci
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface Stats {
   activeCards: number;
@@ -33,14 +32,14 @@ export default function WarrantyHomePage() {
 
       const [active, expiring, claims, sup] = await Promise.all([
         supabase.from("warranty_cards").select("id", { count: "exact", head: true })
-          .eq("user_id", dataOwnerId!).eq("status", "active"),
+          .eq("user_id", user.id).eq("status", "active"),
         supabase.from("warranty_cards").select("id", { count: "exact", head: true })
-          .eq("user_id", dataOwnerId!).eq("status", "active")
+          .eq("user_id", user.id).eq("status", "active")
           .gte("end_date", today).lte("end_date", in30Str),
         supabase.from("warranty_claims").select("id", { count: "exact", head: true })
-          .eq("user_id", dataOwnerId!).in("status", ["open", "in_progress"]),
+          .eq("user_id", user.id).in("status", ["open", "in_progress"]),
         supabase.from("warranty_supplier_claims").select("id", { count: "exact", head: true })
-          .eq("user_id", dataOwnerId!).eq("status", "pending"),
+          .eq("user_id", user.id).eq("status", "pending"),
       ]);
 
       setStats({

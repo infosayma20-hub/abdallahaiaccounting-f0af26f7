@@ -4,7 +4,6 @@ import { Loader2, Send, Sparkles, AtSign, Users, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { ReportSummary, ReportTable, exportToExcel, exportToPDF } from "@/components/ReportComponents";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -69,8 +68,8 @@ const SmartReportWidget = ({ companyName = "" }: SmartReportWidgetProps) => {
     const load = async () => {
       try {
         const [accRes, contactRes] = await Promise.all([
-          supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId!).eq("is_active", true).order("account_code"),
-          supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", dataOwnerId!).eq("is_active", true).neq("is_archived", true),
+          supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+          supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).eq("is_active", true).neq("is_archived", true),
         ]);
         const accItems: MentionOption[] = (accRes.data || []).map((a: any) => ({
           id: a.account_code,

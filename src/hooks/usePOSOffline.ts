@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -58,11 +57,11 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     try {
       const productsRes: any = await (supabase.from('products') as any)
         .select('id, name_ar, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
-        .eq("user_id", dataOwnerId!)
+        .eq('user_id', userId)
         .eq('is_active', true);
       const customersRes: any = await (supabase.from('contacts') as any)
         .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
-        .eq("user_id", dataOwnerId!)
+        .eq('user_id', userId)
         .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer');
 
       if (productsRes.data) await cacheProducts(productsRes.data);
@@ -146,7 +145,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       // Also log to server
       try {
         await supabase.from('pos_sync_log' as any).insert({
-          user_id: dataOwnerId!,
+          user_id: userId,
           offline_started_at: offlineStart,
           online_restored_at: new Date().toISOString(),
           offline_duration_minutes: duration,

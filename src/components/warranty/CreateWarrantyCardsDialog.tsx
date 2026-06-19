@@ -9,7 +9,6 @@ import { Loader2, Shield, Plus, Trash2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface InvoiceItemLite {
   id: string;
@@ -74,7 +73,7 @@ export default function CreateWarrantyCardsDialog({
           const { data: pols } = await supabase
             .from("warranty_policies" as any)
             .select("id, product_id, duration_months, has_serial, warranty_type")
-            .eq("user_id", dataOwnerId!)
+            .eq("user_id", user.id)
             .in("product_id", productIds);
           policies = (pols || []) as any;
         }

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -156,7 +155,7 @@ export default function ContractorApp() {
   const saveTx = async () => {
     if (!txForm.amount || parseFloat(txForm.amount) <= 0) { toast.error("المبلغ مطلوب"); return; }
     const payload = {
-      project_id: selectedProject!.id, user_id: dataOwnerId!, type: txForm.type,
+      project_id: selectedProject!.id, user_id: user!.id, type: txForm.type,
       amount: parseFloat(txForm.amount), description: txForm.description || null,
       category: txForm.category || null, supplier: txForm.supplier || null,
       payment_method: txForm.payment_method, cheque_number: txForm.cheque_number || null,

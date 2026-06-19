@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,23 +18,22 @@ const SERVICE_LABELS: Record<string, string> = {
 
 export default function TravelDashboard() {
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [passengers, setPassengers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!dataOwnerId) return;
+    if (!user) return;
     Promise.all([
-      supabase.from("travel_bookings").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
-      supabase.from("travel_booking_passengers").select("passenger_name, passport_expiry, booking_id").eq("user_id", dataOwnerId!),
+      supabase.from("travel_bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("travel_booking_passengers").select("passenger_name, passport_expiry, booking_id"),
     ]).then(([bRes, pRes]) => {
       if (bRes.data) setBookings(bRes.data);
       if (pRes.data) setPassengers(pRes.data);
       setLoading(false);
     });
-  }, [dataOwnerId]);
+  }, [user]);
 
   const today = new Date().toISOString().split("T")[0];
   const thisMonth = new Date().toISOString().slice(0, 7);

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowRight, MessageSquare, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -51,7 +50,7 @@ export default function CsTicketDetailPage() {
   const addComment = async () => {
     if (!user || !ticket || !newComment.trim()) return;
     const { error } = await sb.from("cs_ticket_comments").insert({
-      ticket_id: ticket.id, user_id: dataOwnerId!, body: newComment, is_internal: true, created_by: user.id,
+      ticket_id: ticket.id, user_id: user.id, body: newComment, is_internal: true, created_by: user.id,
     });
     if (error) return toast.error(error.message);
     setNewComment("");

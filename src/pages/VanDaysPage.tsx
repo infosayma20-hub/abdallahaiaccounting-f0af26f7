@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 
 type DayStatus = "open" | "closed" | "cancelled";
@@ -84,12 +83,12 @@ const VanDaysPage = () => {
     setLoading(true);
     const [{ data: repsData }, { data: daysData }] = await Promise.all([
       supabase.from("sales_representatives").select("id, full_name, default_warehouse_id")
-        .eq("user_id", dataOwnerId!).eq("is_active", true).order("full_name"),
+        .eq("user_id", user.id).eq("is_active", true).order("full_name"),
       supabase.from("van_sales_days").select(`
         *,
         sales_rep:sales_representatives(full_name),
         warehouse:warehouses(name)
-      `).eq("user_id", dataOwnerId!).order("opened_at", { ascending: false }).limit(100),
+      `).eq("user_id", user.id).order("opened_at", { ascending: false }).limit(100),
     ]);
     setReps((repsData ?? []) as SalesRep[]);
     setDays((daysData ?? []) as any);

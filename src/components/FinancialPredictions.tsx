@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, AlertTriangle, DollarSign, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Badge } from "@/components/ui/badge";
 
 interface MonthlyData {
@@ -28,14 +27,14 @@ const FinancialPredictions = () => {
         supabase
           .from("transactions")
           .select("amount, debit_account_code, credit_account_code, transaction_date, transaction_type, is_opening_balance, is_deleted")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .eq("is_deleted", false)
           .order("transaction_date", { ascending: true })
           .limit(2000),
         supabase
           .from("cheques")
           .select("amount, cheque_date, cheque_type, status")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .in("status", ["آجل", "مستحق"]),
       ]);
       setTransactions(txRes.data || []);

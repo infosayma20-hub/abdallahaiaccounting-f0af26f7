@@ -14,7 +14,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/usePermission";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
@@ -220,12 +219,12 @@ const JournalEntriesPage = () => {
       const [txRes, accRes, profileRes] = await Promise.all([
         supabase.from("transactions")
           .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, cost_center_name, is_deleted")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .order("transaction_date", { ascending: false })
           .limit(1000),
         supabase.from("accounts")
           .select("id, account_name, account_code, account_type")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .order("account_code"),
         supabase.from("profiles")
           .select("display_name, company_name")
@@ -351,7 +350,7 @@ const JournalEntriesPage = () => {
         const { data: v } = await supabase
           .from("vouchers")
           .select("id, ref_number, type, status")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .eq("type", "journal")
           .eq("ref_number", ref)
           .maybeSingle();
@@ -433,7 +432,7 @@ const JournalEntriesPage = () => {
             .from("transactions")
             .update({ is_deleted: true })
             .eq("id", editingTx.id)
-            .eq("user_id", dataOwnerId!);
+            .eq("user_id", user!.id);
           if (error) throw error;
           toast({ title: "تم الإلغاء", description: "تم تعليم القيد كملغي." });
           setEditingTx(null);

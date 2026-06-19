@@ -21,7 +21,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilityMenu";
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -161,9 +160,9 @@ const FinanceJournalPage = () => {
     if (!user) return;
     setLoading(true);
     const [vRes, aRes, cRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", dataOwnerId!).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId!).eq("is_active", true).order("account_code"),
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId!).neq("is_archived", true),
+      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).neq("is_archived", true),
     ]);
     setVouchers(vRes.data || []);
     setAccounts(aRes.data || []);
@@ -184,7 +183,7 @@ const FinanceJournalPage = () => {
   // Auto-generate ref number when modal opens
   const generateRefNumber = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId!).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
     const lastRef = (data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);
     const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
@@ -276,7 +275,7 @@ const FinanceJournalPage = () => {
     if (!user || !quickName.trim()) return;
     setQuickSaving(true);
     const { data, error } = await supabase.from("contacts").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       contact_name: quickName.trim(),
       contact_type: quickType,
       phone: quickPhone || null,

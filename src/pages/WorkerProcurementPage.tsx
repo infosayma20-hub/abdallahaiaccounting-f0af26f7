@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -118,7 +117,7 @@ const WorkerProcurementPage = () => {
       const { data: assignments } = await supabase
         .from("project_workers")
         .select("project_id")
-        .eq("user_id", dataOwnerId!);
+        .eq("user_id", user.id);
 
       const projectIds = (assignments || []).map(a => a.project_id);
 

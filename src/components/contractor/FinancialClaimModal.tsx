@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,7 +123,7 @@ export default function FinancialClaimModal({ open, onOpenChange, project, userI
       .order("created_at", { ascending: false });
     
     if (sourceType === "workshop") {
-      query = query.eq("user_id", dataOwnerId!).is("project_id", null).eq("recipient_name", project.client_name || "");
+      query = query.eq("user_id", userId).is("project_id", null).eq("recipient_name", project.client_name || "");
     } else {
       query = query.eq("project_id", project.id);
     }
@@ -135,7 +134,7 @@ export default function FinancialClaimModal({ open, onOpenChange, project, userI
   const saveClaim = async () => {
     if (!form.recipient_name.trim() || amountNum <= 0) { toast.error("الاسم والمبلغ مطلوبان"); return; }
     const { data, error } = await supabase.from("financial_claims" as any).insert({
-      user_id: dataOwnerId!,
+      user_id: userId,
       project_id: sourceType === "workshop" ? null : project.id,
       recipient_name: form.recipient_name,
       recipient_address: form.recipient_address || null,

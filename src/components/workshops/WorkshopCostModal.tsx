@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -162,7 +161,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
   useEffect(() => {
     if (!open) return;
     const load = async () => {
-      const { data } = await supabase.from("custom_cost_categories" as any).select("id, name, icon").eq("user_id", dataOwnerId!).eq("is_active", true).order("created_at");
+      const { data } = await supabase.from("custom_cost_categories" as any).select("id, name, icon").eq("user_id", userId).eq("is_active", true).order("created_at");
       setCustomCategories((data as any[]) || []);
     };
     load();
@@ -191,7 +190,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     const trimmed = newCustomName.trim();
     if (!trimmed) return;
     setSavingCustom(true);
-    const { data, error } = await supabase.from("custom_cost_categories" as any).insert({ user_id: dataOwnerId!, name: trimmed, icon: "📦" }).select("id, name, icon").single();
+    const { data, error } = await supabase.from("custom_cost_categories" as any).insert({ user_id: userId, name: trimmed, icon: "📦" }).select("id, name, icon").single();
     setSavingCustom(false);
     if (error) { toast.error("فشل في الحفظ"); return; }
     const newCat = data as any;
@@ -217,7 +216,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
       const { data } = await supabase
         .from("workshop_material_inventory" as any)
         .select("*")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", userId)
         .eq("status", "available")
         .eq("material_category", category);
       setInventoryItems((data as any[]) || []);
@@ -283,7 +282,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
         // ── Use from existing inventory ──
         const txDesc = `استخدام مخزون (${catLabel}) - ورشة ${workshopName}`;
         const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-          user_id: dataOwnerId!, transaction_date: costDate, description: txDesc,
+          user_id: userId, transaction_date: costDate, description: txDesc,
           debit_account_code: glInfo.debit, credit_account_code: "1140",
           amount: inventoryCost, currency: "شيكل", transaction_type: "workshop_cost",
           reference: `WS-INV-${workshopName.substring(0, 15)}`,
@@ -299,7 +298,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
           veneer: "paint", fittings: "hardware", other: "other",
         };
         await supabase.from("workshop_costs").insert({
-          workshop_id: workshopId, user_id: dataOwnerId!,
+          workshop_id: workshopId, user_id: userId,
           cost_type: costTypeMap[category] || "other",
           category, description: description || `من المخزون المتاح`,
           amount: inventoryCost, cost_date: costDate,
@@ -336,7 +335,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
 
           // Line 1: Debit expense (current workshop used) 
           const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-            user_id: dataOwnerId!, transaction_date: costDate,
+            user_id: userId, transaction_date: costDate,
             description: `${compoundDesc} — مستخدم (${usedQty} ${unitLabel})`,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
             amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
@@ -349,7 +348,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
 
           // Line 2: Debit expense (target workshop surplus)
           await supabase.from("transactions").insert({
-            user_id: dataOwnerId!, transaction_date: costDate,
+            user_id: userId, transaction_date: costDate,
             description: `${compoundDesc} — نقل فائض لورشة ${targetWs?.name || "أخرى"} (${surplusQty} ${unitLabel})`,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
             amount: surplusCost, currency: "شيكل", transaction_type: "workshop_cost",
@@ -374,7 +373,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
 
           // Line 1: Debit expense account (used in workshop) / Credit supplier
           const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-            user_id: dataOwnerId!, transaction_date: costDate,
+            user_id: userId, transaction_date: costDate,
             description: `${compoundDesc} — مستخدم في الورشة (${usedQty} ${unitLabel})`,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
             amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
@@ -387,7 +386,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
 
           // Line 2: Debit raw materials inventory (1140) / Credit supplier
           await supabase.from("transactions").insert({
-            user_id: dataOwnerId!, transaction_date: costDate,
+            user_id: userId, transaction_date: costDate,
             description: `${compoundDesc} — فائض للمخزون (${surplusQty} ${unitLabel})`,
             debit_account_code: "1140", credit_account_code: creditCode,
             amount: surplusCost, currency: "شيكل", transaction_type: "workshop_inventory",
@@ -402,7 +401,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
 
           // Inventory record
           await supabase.from("workshop_material_inventory" as any).insert({
-            user_id: dataOwnerId!, material_type: catLabel, material_category: category,
+            user_id: userId, material_type: catLabel, material_category: category,
             quantity: surplusQty, unit, unit_cost: unitPrice,
             total_value: surplusCost, source_workshop_id: workshopId,
             supplier_contact_id: supplierContactId || null,
@@ -413,7 +412,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
         } else {
           // No surplus scenario — single entry
           const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-            user_id: dataOwnerId!, transaction_date: costDate, description: txDesc,
+            user_id: userId, transaction_date: costDate, description: txDesc,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
             amount: isMaterial ? totalPurchaseCost : usedCost, currency: "شيكل", transaction_type: "workshop_cost",
             contact_id: supplierContactId || null,
@@ -430,7 +429,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
           const invAmount = isMaterial ? totalPurchaseCost : usedCost;
           const isPaid = paymentMethod !== "آجل";
           await supabase.from("invoices").insert({
-            user_id: dataOwnerId!,
+            user_id: userId,
             invoice_type: "purchase",
             contact_id: supplierContactId || null,
             contact_name: supplierName || supplierNameManual || "مورد",
@@ -475,7 +474,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     };
     const supplierName = supplierContactId ? contacts.find(c => c.id === supplierContactId)?.contact_name || supplierNameManual : supplierNameManual;
     await supabase.from("workshop_costs").insert({
-      workshop_id: wsId, user_id: dataOwnerId!,
+      workshop_id: wsId, user_id: userId,
       cost_type: costTypeMap[category] || "other",
       category, description: description || null,
       amount, cost_date: costDate,
@@ -802,7 +801,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
                           <button onClick={async () => {
                             const name = supplierSearch.trim();
                             const { data, error } = await supabase.from("contacts").upsert(
-                              { contact_name: name, contact_type: "مورد", user_id: dataOwnerId!, current_balance: 0 },
+                              { contact_name: name, contact_type: "مورد", user_id: userId, current_balance: 0 },
                               { onConflict: "contact_name,user_id" }
                             ).select().single();
                             if (error) { toast.error("خطأ في إضافة المورد"); return; }

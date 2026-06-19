@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -49,7 +48,7 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
       .from("employee_advances")
       .select("*")
       .eq("employee_id", employeeId)
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     setAdvances((data as any[]) || []);
   }
@@ -72,7 +71,7 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
     if (form.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
     const { error } = await supabase.from("employee_deductions").insert({
       employee_id: employeeId,
-      user_id: dataOwnerId!,
+      user_id: userId,
       deduction_type: form.deduction_type,
       amount: form.amount,
       description: form.description,

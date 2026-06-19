@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import ReceivablesAnalysisTab from "@/components/contacts/ReceivablesAnalysisTab";
 import { fetchContactBalance } from "@/lib/contact-balance";
 import AllocationsPanel from "@/components/accounting/AllocationsPanel";
@@ -45,7 +44,7 @@ const ContactDetailPage = () => {
       const { data: sameNameContacts } = await supabase
         .from('contacts')
         .select('id')
-        .eq("user_id", dataOwnerId!)
+        .eq('user_id', user.id)
         .eq('contact_name', contactName);
       const allIds = (sameNameContacts || []).map((c: any) => c.id);
       if (!allIds.includes(id)) allIds.push(id);
@@ -63,7 +62,7 @@ const ContactDetailPage = () => {
       const { data: txByName } = await supabase
         .from('transactions')
         .select('*')
-        .eq("user_id", dataOwnerId!)
+        .eq('user_id', user.id)
         .eq('is_deleted', false)
         .is('contact_id', null)
         .ilike('description', `%${contactName}%`)
@@ -77,7 +76,7 @@ const ContactDetailPage = () => {
       const { data: chequeData } = await supabase
         .from('cheques')
         .select('*')
-        .eq("user_id", dataOwnerId!)
+        .eq('user_id', user.id)
         .order('cheque_date', { ascending: false });
       setCheques((chequeData as any[]) || []);
 

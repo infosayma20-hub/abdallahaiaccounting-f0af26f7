@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,7 +124,7 @@ const FixedAssetsPage = () => {
   }, [user]);
 
   const loadCategories = async () => {
-    const { data } = await supabase.from("asset_categories").select("*").eq("user_id", dataOwnerId!).order("code");
+    const { data } = await supabase.from("asset_categories").select("*").eq("user_id", user!.id).order("code");
     if (data && data.length > 0) {
       setCategories(data as AssetCategory[]);
     } else {
@@ -134,7 +133,7 @@ const FixedAssetsPage = () => {
   };
 
   const seedCategories = async () => {
-    const rows = DEFAULT_CATEGORIES.map((c) => ({ ...c, user_id: dataOwnerId! }));
+    const rows = DEFAULT_CATEGORIES.map((c) => ({ ...c, user_id: user!.id }));
     const { data, error } = await supabase.from("asset_categories").insert(rows).select();
     if (error) { toast.error("خطأ في إنشاء التصنيفات"); return; }
     setCategories((data || []) as AssetCategory[]);
@@ -142,7 +141,7 @@ const FixedAssetsPage = () => {
 
   const loadAssets = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("assets").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("assets").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (error) toast.error("خطأ في تحميل الأصول");
     setAssets((data || []) as Asset[]);
     setLoading(false);

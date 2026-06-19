@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { useCountUp } from "@/hooks/useCountUp";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 interface FinancialData {
   totalAssets: number;
@@ -39,10 +38,10 @@ const CFODashboard = () => {
     setLoading(true);
     try {
       const [{ data: accounts }, { data: txs }] = await Promise.all([
-        supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId!),
+        supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user!.id),
         supabase.from("transactions")
           .select("amount, debit_account_code, credit_account_code, transaction_date, description, is_deleted, is_opening_balance, transaction_type")
-          .eq("user_id", dataOwnerId!).eq("is_deleted", false),
+          .eq("user_id", user!.id).eq("is_deleted", false),
       ]);
 
       if (!accounts || !txs) { setLoading(false); return; }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -78,7 +77,7 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
 
       // Record in cash_transfers audit
       await supabase.from("cash_transfers").insert({
-        user_id: dataOwnerId!,
+        user_id: userId,
         from_box_id: fromId,
         to_box_id: toId,
         amount: amt,

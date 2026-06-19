@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export interface ReportFolder {
   id: string;
@@ -23,7 +22,7 @@ export function useReportFolders() {
     const { data } = await supabase
       .from("report_folders")
       .select("id, name, color, icon, parent_id, sort_order")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
     setFolders((data as any) || []);
@@ -37,7 +36,7 @@ export function useReportFolders() {
       if (!user || !name.trim()) return null;
       const { data, error } = await supabase
         .from("report_folders")
-        .insert({ user_id: dataOwnerId!, name: name.trim(), color })
+        .insert({ user_id: user.id, name: name.trim(), color })
         .select()
         .single();
       if (!error) await refresh();

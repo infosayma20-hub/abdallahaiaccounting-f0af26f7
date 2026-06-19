@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +31,6 @@ const PAGE_SIZE = 20;
 
 export default function TravelBookingsPage() {
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,11 +40,10 @@ export default function TravelBookingsPage() {
   const [payFilter, setPayFilter] = useState("all");
   const [page, setPage] = useState(1);
 
-  useEffect(() => { if (dataOwnerId) fetchBookings(); }, [dataOwnerId]);
+  useEffect(() => { if (user) fetchBookings(); }, [user]);
 
   const fetchBookings = async () => {
-    if (!dataOwnerId) return;
-    const { data } = await supabase.from("travel_bookings").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
+    const { data } = await supabase.from("travel_bookings").select("*").order("created_at", { ascending: false });
     if (data) setBookings(data);
     setLoading(false);
   };

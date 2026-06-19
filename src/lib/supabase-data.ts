@@ -34,7 +34,7 @@ export async function fetchTransactions(userId: string) {
   const { data, error } = await supabase
     .from("transactions")
     .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
-    .eq("user_id", dataOwnerId!)
+    .eq("user_id", userId)
     .is("reversed_by_id", null)
     .neq("transaction_type", "reversal")
     .order("transaction_date", { ascending: false })
@@ -48,7 +48,7 @@ export async function fetchAccounts(userId: string) {
   const { data, error } = await supabase
     .from("accounts")
     .select("id, account_name, account_code, account_type, is_active, parent_code")
-    .eq("user_id", dataOwnerId!)
+    .eq("user_id", userId)
     .order("account_code");
   if (error) throw error;
   return data || [];

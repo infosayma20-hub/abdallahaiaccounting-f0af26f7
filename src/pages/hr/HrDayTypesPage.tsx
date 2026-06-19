@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import PageHeader from "@/components/layout/PageHeader";
 import BackButton from "@/components/BackButton";
@@ -110,9 +109,9 @@ export default function HrDayTypesPage() {
     if (!user) return;
     setLoading(true);
     const [{ data: dt }, { data: hh }, { data: ww }] = await Promise.all([
-      supabase.from("hr_day_types").select("*").eq("user_id", dataOwnerId!).order("sort_order", { ascending: true }),
-      supabase.from("official_holidays").select("*").eq("user_id", dataOwnerId!).order("holiday_date", { ascending: true }),
-      supabase.from("hr_work_week_config").select("*").eq("user_id", dataOwnerId!).maybeSingle(),
+      supabase.from("hr_day_types").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }),
+      supabase.from("official_holidays").select("*").eq("user_id", user.id).order("holiday_date", { ascending: true }),
+      supabase.from("hr_work_week_config").select("*").eq("user_id", user.id).maybeSingle(),
     ]);
     setDayTypes((dt as DayType[]) || []);
     setHolidays((hh as Holiday[]) || []);
@@ -121,7 +120,7 @@ export default function HrDayTypesPage() {
     if (!ww) {
       const { data: created } = await supabase
         .from("hr_work_week_config")
-        .insert({ user_id: dataOwnerId! } as any)
+        .insert({ user_id: user.id } as any)
         .select()
         .single();
       setWorkWeek(created as WorkWeekConfig);
@@ -192,7 +191,7 @@ export default function HrDayTypesPage() {
     if (!user) return;
     if (!row.code?.trim() || !row.name?.trim()) return toast.error("الكود والاسم مطلوبان");
     const { error } = await supabase.from("hr_day_types").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       code: row.code.trim(),
       name: row.name.trim(),
       category: row.category || "other",
@@ -218,7 +217,7 @@ export default function HrDayTypesPage() {
     if (!hForm.holiday_date || !hForm.name.trim()) return toast.error("التاريخ والاسم مطلوبان");
     const d = new Date(hForm.holiday_date + "T00:00:00");
     const { error } = await supabase.from("official_holidays").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       holiday_date: hForm.holiday_date,
       name: hForm.name.trim(),
       multiplier: 2,
@@ -243,7 +242,7 @@ export default function HrDayTypesPage() {
   const seedFixedHolidays = async (year: number) => {
     if (!user) return;
     const rows = FIXED_HOLIDAYS.map(h => ({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       holiday_date: `${year}-${String(h.month).padStart(2, "0")}-${String(h.day).padStart(2, "0")}`,
       name: h.name,
       multiplier: 2,

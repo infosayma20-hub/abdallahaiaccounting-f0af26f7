@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { MessageCircle, Loader2, Check, Share2, Copy, CheckCheck } from 'lucide-react';
@@ -77,7 +76,7 @@ export default function WhatsAppComposerSheet({
       const { data: invoices } = await (supabase
         .from('invoices')
         .select('invoice_number, total_amount, status, invoice_items(description)') as any)
-        .eq("user_id", dataOwnerId!)
+        .eq('user_id', userId)
         .eq('contact_id', contact.id)
         .eq('type', 'sale')
         .neq('status', 'cancelled')
@@ -90,7 +89,7 @@ export default function WhatsAppComposerSheet({
       const { data, error } = await supabase
         .from('shared_statements')
         .insert({
-          user_id: dataOwnerId!,
+          user_id: userId,
           company_id: null,
           contact_id: contact.id,
           contact_name: contact.name,

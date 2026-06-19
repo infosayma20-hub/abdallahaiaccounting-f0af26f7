@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowRight, Plus, Search, Ticket, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const statusColors: Record<string, string> = {
@@ -34,7 +33,7 @@ const SupportTicketsPage = () => {
       const { data } = await supabase
         .from("support_tickets")
         .select("*")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       setTickets(data || []);
       setLoading(false);

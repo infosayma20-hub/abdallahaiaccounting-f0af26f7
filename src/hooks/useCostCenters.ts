@@ -76,7 +76,7 @@ export function useCostCenterMutations() {
       const dupQ = supabase
         .from("cost_centers" as any)
         .select("id")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", userId)
         .eq("code", input.code.trim())
         .eq("is_deleted", false)
         .limit(1);
@@ -87,7 +87,7 @@ export function useCostCenterMutations() {
       }
 
       const payload: any = {
-        user_id: dataOwnerId!,
+        user_id: userId,
         code: input.code.trim(),
         name: input.name.trim(),
         name_ar: input.name_ar?.trim() || null,

@@ -32,7 +32,6 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 import useFocusHighlight from "@/hooks/useFocusHighlight";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
@@ -241,7 +240,7 @@ const InvoicesPage = () => {
       const { data: dbInvoices } = await supabase
         .from("invoices")
         .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address)")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
@@ -314,13 +313,13 @@ const InvoicesPage = () => {
 
   const fetchProducts = async () => {
     if (!user) return;
-    const { data } = await supabase.from("products").select("*").eq("user_id", dataOwnerId!).order("name");
+    const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
     setProducts((data as any[]) || []);
   };
 
   const fetchContacts = async () => {
     if (!user) return;
-    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", dataOwnerId!).order("contact_name");
+    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", user.id).order("contact_name");
     const contactsList = (data as Contact[]) || [];
     
     // Fetch balances from transactions (account 1130 = customers receivable, 2100 = suppliers payable)
@@ -328,7 +327,7 @@ const InvoicesPage = () => {
     const { data: txData } = await supabase
       .from("transactions")
       .select("contact_id, debit_account_code, credit_account_code, amount")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .eq("is_deleted", false)
       .in("contact_id", contactIds);
     
@@ -484,7 +483,7 @@ const InvoicesPage = () => {
       const { data } = await supabase
         .from("transactions")
         .select("debit_account_code, credit_account_code, amount")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("is_deleted", false)
         .or(`debit_account_code.eq.1130,credit_account_code.eq.1130`)
         .ilike("description", `%${name}%`);
@@ -507,7 +506,7 @@ const InvoicesPage = () => {
 
   const handleQuickAddProduct = async () => {
     if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
-    const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: dataOwnerId! } as any);
+    const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: user.id } as any);
     if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
@@ -523,7 +522,7 @@ const InvoicesPage = () => {
     if (!user) return;
     try {
       await supabase.from("contacts").upsert({
-        user_id: dataOwnerId!,
+        user_id: user.id,
         contact_name: name,
         contact_type: form.type === "sales" ? "عميل" : "مورد",
       }, { onConflict: "user_id,contact_name" });
@@ -553,7 +552,7 @@ const InvoicesPage = () => {
   const createCheque = async (invoice: Invoice) => {
     if (!user || form.paymentMethod !== "cheque") return;
     await supabase.from("cheques").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       cheque_type: form.type === "sales" ? "وارد" : "صادر",
       party_name: form.contactName,
       party_type: form.type === "sales" ? "عميل" : "مورد",
@@ -640,7 +639,7 @@ const InvoicesPage = () => {
     // Save to database
     try {
       const { data: dbInv, error: invErr } = await supabase.from("invoices").insert({
-        user_id: dataOwnerId!,
+        user_id: user!.id,
         invoice_type: form.type === 'sales' ? 'sale' : 'purchase',
         contact_name: form.contactName,
         invoice_date: form.date,
@@ -682,7 +681,7 @@ const InvoicesPage = () => {
           if (summary.totalTax > 0) {
             const invoiceDate = new Date(form.date);
             await supabase.from("tax_ledger").insert({
-              user_id: dataOwnerId!,
+              user_id: user!.id,
               tax_type: form.type === "sales" ? "output" : "input",
               net_amount: summary.netBeforeTax,
               tax_rate: 16,

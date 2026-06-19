@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -70,7 +69,7 @@ export default function WarrantyClaimsPage() {
     const { data } = await supabase
       .from("warranty_claims")
       .select("*, card:warranty_cards(card_number, serial_number, contact_name, product:products(name_ar))")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setClaims((data as any) || []);
   };
@@ -99,7 +98,7 @@ export default function WarrantyClaimsPage() {
       return;
     }
     const { error } = await supabase.from("warranty_claims").insert({
-      user_id: dataOwnerId!,
+      user_id: user.id,
       warranty_card_id: card.id,
       issue_description: form.issue_description,
       claim_type: form.claim_type,
@@ -133,7 +132,7 @@ export default function WarrantyClaimsPage() {
         const { data: sup, error: supErr } = await supabase
           .from("warranty_supplier_claims")
           .insert({
-            user_id: dataOwnerId!,
+            user_id: user.id,
             supplier_id: policy.supplier_id,
             total_cost: resolveForm.cost,
             supplier_coverage_amount: coverage,

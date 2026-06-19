@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createPaymentJournalEntry, reverseCancellationEntries } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +42,6 @@ const PAY_STATUS: Record<string, { label: string; color: string }> = {
 export default function TravelBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
 
   const [booking, setBooking] = useState<any>(null);
@@ -67,7 +65,7 @@ export default function TravelBookingDetailPage() {
 
   const fetchAll = async () => {
     const [bRes, iRes, pRes, pmRes, dRes] = await Promise.all([
-      supabase.from("travel_bookings").select("*").eq("id", id!).eq("user_id", dataOwnerId!).single(),
+      supabase.from("travel_bookings").select("*").eq("id", id).single(),
       supabase.from("travel_booking_items").select("*").eq("booking_id", id).order("sort_order"),
       supabase.from("travel_booking_passengers").select("*").eq("booking_id", id).order("passenger_index"),
       supabase.from("travel_booking_payments").select("*").eq("booking_id", id).order("payment_date", { ascending: false }),
@@ -101,7 +99,7 @@ export default function TravelBookingDetailPage() {
     const newStatus = newPaid >= booking.selling_price ? "paid" : "partial";
 
     await supabase.from("travel_booking_payments").insert({
-      user_id: dataOwnerId!, booking_id: booking.id, amount: amt, amount_ils: amt,
+      user_id: user.id, booking_id: booking.id, amount: amt, amount_ils: amt,
       payment_method: payMethod, payment_direction: "received",
       reference_number: payRef || null, bank_name: payBankName || null,
     });
@@ -153,7 +151,7 @@ export default function TravelBookingDetailPage() {
     if (error) { toast({ title: "خطأ في الرفع", variant: "destructive" }); return; }
     const { data: urlData } = supabase.storage.from("travel-documents").getPublicUrl(path);
     await supabase.from("travel_booking_documents").insert({
-      booking_id: booking.id, user_id: dataOwnerId!,
+      booking_id: booking.id, user_id: user.id,
       file_name: file.name, file_url: urlData?.publicUrl || "",
       file_size: file.size,
     });

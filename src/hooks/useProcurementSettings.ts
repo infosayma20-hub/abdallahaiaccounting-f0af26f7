@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 // ── Suppliers CRUD ──
 export function useSuppliersCrud() {
@@ -22,7 +21,7 @@ export function useSuppliersCrud() {
 
   const create = async (supplier: any) => {
     const { error } = await supabase.from("pos_suppliers").insert({
-      ...supplier, user_id: dataOwnerId!,
+      ...supplier, user_id: user?.id,
     } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ المورد بنجاح" });
@@ -78,7 +77,7 @@ export function useCategoriesCrud() {
 
   const create = async (cat: any) => {
     const maxSort = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order || 0)) + 1 : 1;
-    const { error } = await supabase.from("item_categories").insert({ ...cat, sort_order: cat.sort_order || maxSort, user_id: dataOwnerId! } as any);
+    const { error } = await supabase.from("item_categories").insert({ ...cat, sort_order: cat.sort_order || maxSort, user_id: user?.id } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ التصنيف" });
     fetch();
@@ -136,7 +135,7 @@ export function useItemsCrud() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (item: any) => {
-    const { error } = await supabase.from("procurement_items").insert({ ...item, user_id: dataOwnerId! } as any);
+    const { error } = await supabase.from("procurement_items").insert({ ...item, user_id: user?.id } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ الصنف" });
     fetch();

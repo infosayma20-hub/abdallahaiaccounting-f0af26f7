@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -209,7 +208,7 @@ export default function MalakiImportPage() {
         const { data: existing } = await supabase
           .from("branches")
           .select("id")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .or(`name.eq.${normalizedName},name.eq.${bName}`)
           .maybeSingle();
 
@@ -220,7 +219,7 @@ export default function MalakiImportPage() {
           const { data: created } = await supabase
             .from("branches")
             .insert({
-              user_id: dataOwnerId!,
+              user_id: user.id,
               name: normalizedName,
               latitude: 32.22,
               longitude: 35.26,
@@ -244,7 +243,7 @@ export default function MalakiImportPage() {
         const { data: exists } = await supabase
           .from("employees")
           .select("id")
-          .eq("user_id", dataOwnerId!)
+          .eq("user_id", user.id)
           .eq("full_name", emp.n.trim())
           .maybeSingle();
 
@@ -270,7 +269,7 @@ export default function MalakiImportPage() {
         const { data: newEmp, error } = await supabase
           .from("employees")
           .insert({
-            user_id: dataOwnerId!,
+            user_id: user.id,
             full_name: emp.n.trim(),
             id_number: emp.no || null,
             branch_id: branchMap[emp.b] || null,
@@ -299,7 +298,7 @@ export default function MalakiImportPage() {
         if (emp.lb > 0) {
           await supabase.from("employee_advances").insert({
             employee_id: newEmp.id,
-            user_id: dataOwnerId!,
+            user_id: user.id,
             advance_type: "قرض_حسن",
             amount: emp.lb,
             status: "approved",
@@ -315,7 +314,7 @@ export default function MalakiImportPage() {
         if (emp.ab > 0) {
           await supabase.from("employee_advances").insert({
             employee_id: newEmp.id,
-            user_id: dataOwnerId!,
+            user_id: user.id,
             advance_type: "سلفة_راتب",
             amount: emp.ab,
             status: "approved",
@@ -331,7 +330,7 @@ export default function MalakiImportPage() {
         if (emp.ab < 0) {
           await supabase.from("employee_advances").insert({
             employee_id: newEmp.id,
-            user_id: dataOwnerId!,
+            user_id: user.id,
             advance_type: "فائض_راتب",
             amount: Math.abs(emp.ab),
             status: "approved",

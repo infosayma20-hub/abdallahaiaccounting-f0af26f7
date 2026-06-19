@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,7 +58,7 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
     supabase
       .from("bank_accounts")
       .select("id, name, bank_name, gl_account_code, currency")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", userId)
       .eq("is_active", true)
       .then(({ data }) => setBankAccounts(data || []));
   }, [open, userId]);
@@ -99,7 +98,7 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
 
       // Also record as cash transfer for audit trail
       await supabase.from("cash_transfers").insert({
-        user_id: dataOwnerId!,
+        user_id: userId,
         from_box_id: fromBox.id,
         amount: Number(amount),
         transfer_date: new Date().toISOString().split("T")[0],

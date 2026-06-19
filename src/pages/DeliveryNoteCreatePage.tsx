@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
@@ -75,8 +74,8 @@ const DeliveryNoteCreatePage = () => {
   const fetchLookups = useCallback(async () => {
     if (!user) return;
     const [cRes, pRes] = await Promise.all([
-      (supabase.from("contacts").select("id, contact_name").eq("user_id", dataOwnerId!) as any).eq("is_archived", false).order("contact_name"),
-      supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", dataOwnerId!).order("name"),
+      (supabase.from("contacts").select("id, contact_name").eq("user_id", user.id) as any).eq("is_archived", false).order("contact_name"),
+      supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", user.id).order("name"),
     ]);
     setContacts(cRes.data || []);
     setProducts(pRes.data || []);
@@ -122,7 +121,7 @@ const DeliveryNoteCreatePage = () => {
       const { data } = await supabase
         .from("delivery_notes")
         .select("delivery_number")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .like("delivery_number", `DN-${currentYear}-%`)
         .order("delivery_number", { ascending: false })
         .limit(1);
@@ -233,7 +232,7 @@ const DeliveryNoteCreatePage = () => {
                 quantity: Math.max(0, (product.quantity || 0) - item.quantity),
               }).eq("id", item.product_id);
               movementRows.push({
-                user_id: dataOwnerId!,
+                user_id: user.id,
                 product_id: item.product_id,
                 movement_type: "صادر",
                 quantity: -Math.abs(item.quantity),
@@ -265,7 +264,7 @@ const DeliveryNoteCreatePage = () => {
       setSaving(true);
       try {
         const saveData = {
-          user_id: dataOwnerId!,
+          user_id: user.id,
           contact_id: contactId || null,
           contact_name: contactName,
           delivery_date: date,

@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { Shield, AlertTriangle, Copy, TrendingUp, Clock, ChevronDown, ChevronUp, Zap, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { fmtDateDisplay } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -70,7 +69,7 @@ const FinancialRadar = () => {
       const { data: txs, error } = await supabase
         .from("transactions")
         .select("id, amount, description, transaction_date, debit_account_code, credit_account_code, transaction_type, currency, contact_id, is_deleted, created_at")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user!.id)
         .eq("is_deleted", false)
         .order("transaction_date", { ascending: false })
         .limit(2000);

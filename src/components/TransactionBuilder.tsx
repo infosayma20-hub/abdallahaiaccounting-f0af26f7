@@ -3,7 +3,6 @@ import { X, Users, Package, Banknote, CreditCard, BookOpen, ChevronLeft, Chevron
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface TransactionBuilderProps {
@@ -78,7 +77,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
   useEffect(() => {
     if (!user?.id) return;
     supabase.from("contacts").select("id, contact_name, contact_type")
-      .eq("user_id", dataOwnerId!).eq("is_active", true).neq("is_archived", true)
+      .eq("user_id", user.id).eq("is_active", true).neq("is_archived", true)
       .eq("contact_type", contactType)
       .then(({ data }) => {
         setParties((data || []).map(c => ({ id: c.id, name: c.contact_name, type: c.contact_type })));
@@ -89,7 +88,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
   useEffect(() => {
     if (!user?.id) return;
     supabase.from("products").select("id, name, unit, sell_price, buy_price")
-      .eq("user_id", dataOwnerId!)
+      .eq("user_id", user.id)
       .then(({ data }) => {
         setProducts((data || []).map(p => ({
           id: p.id, name: p.name, unit: p.unit || "قطعة",
@@ -309,7 +308,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
                       if (!newContactName.trim() || !user?.id) return;
                       setAddingContact(true);
                       const { data, error } = await supabase.from("contacts").insert({
-                        user_id: dataOwnerId!,
+                        user_id: user.id,
                         contact_name: newContactName.trim(),
                         contact_type: contactType,
                         phone: newContactPhone.trim() || null,
@@ -448,7 +447,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
                       if (!newProductName.trim() || !user?.id) return;
                       setAddingProduct(true);
                       const { data, error } = await supabase.from("products").insert({
-                        user_id: dataOwnerId!,
+                        user_id: user.id,
                         name: newProductName.trim(),
                         unit: newProductUnit,
                         sell_price: parseFloat(newProductPrice) || 0,

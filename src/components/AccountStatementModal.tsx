@@ -7,7 +7,6 @@ import { Search, BarChart3, Loader2, FileSpreadsheet, FileText, Calendar, ArrowL
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
@@ -74,7 +73,7 @@ const AccountStatementModal = ({ open, onClose }: Props) => {
   useEffect(() => {
     if (!open || !user) return;
     supabase.from("accounts").select("account_code, account_name, account_type")
-      .eq("user_id", dataOwnerId!).eq("is_active", true).order("account_code")
+      .eq("user_id", user.id).eq("is_active", true).order("account_code")
       .then(({ data }) => setAccounts(data || []));
     setSelectedAccount(null);
     setShowStatement(false);
@@ -105,7 +104,7 @@ const AccountStatementModal = ({ open, onClose }: Props) => {
       const { data, error } = await supabase
         .from("transactions")
         .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code, reference")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", user.id)
         .eq("is_deleted", false)
         .gte("transaction_date", range.from)
         .lte("transaction_date", range.to)

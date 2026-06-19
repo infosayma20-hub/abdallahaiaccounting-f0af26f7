@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -107,7 +106,7 @@ export default function CurrencyExchangeDialog({ open, onOpenChange, boxes, onSu
       // Journal entry: Debit target currency (foreign box), Credit source currency (source box)
       // Both in the same box GL code but with foreign_amount tracking
       const { error } = await supabase.from("transactions").insert({
-        user_id: dataOwnerId!,
+        user_id: userId,
         transaction_date: new Date().toISOString().split("T")[0],
         description: notes ? `${desc} - ${notes}` : desc,
         debit_account_code: box.gl_account_code,

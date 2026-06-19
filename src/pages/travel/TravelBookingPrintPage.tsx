@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer } from "lucide-react";
 
@@ -20,7 +19,6 @@ const ITEM_LABELS: Record<string, string> = {
 export default function TravelBookingPrintPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [booking, setBooking] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
@@ -32,7 +30,7 @@ export default function TravelBookingPrintPage() {
     if (!id || !user) return;
     const fetch = async () => {
       const [bRes, iRes, pRes, prRes] = await Promise.all([
-        supabase.from("travel_bookings").select("*").eq("id", id!).eq("user_id", dataOwnerId!).single(),
+        supabase.from("travel_bookings").select("*").eq("id", id).single(),
         supabase.from("travel_booking_items").select("*").eq("booking_id", id).order("sort_order"),
         supabase.from("travel_booking_passengers").select("*").eq("booking_id", id).order("passenger_index"),
         supabase.from("profiles").select("*").eq("user_id", user.id).single(),
