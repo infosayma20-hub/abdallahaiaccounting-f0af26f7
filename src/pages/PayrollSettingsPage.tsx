@@ -30,6 +30,14 @@ interface PayrollSettings {
   full_attendance_days: number;
   currency: string;
   currency_symbol: string;
+  // Meal discount module (Phase 2/3)
+  meal_discount_mode?: "single" | "dual";
+  meal_monthly_cap_family?: number;
+  meal_monthly_cap_individual?: number;
+  meal_monthly_warn_at_pct?: number;
+  auto_journal_for_meals?: boolean;
+  meal_company_share_account_code?: string | null;
+  meal_employee_payable_account_code?: string | null;
 }
 
 const DEFAULTS: Omit<PayrollSettings, "id" | "company_id"> = {
