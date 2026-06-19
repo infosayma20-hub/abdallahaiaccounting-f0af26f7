@@ -59,31 +59,64 @@ Deno.serve(async (req) => {
         });
       }
       const parts = address.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean);
-      const areaName = parts.length >= 2 ? parts[parts.length - 1] : (parts[0] ?? "");
+      // Candidates ordered from most-specific to least-specific:
+      //   1) the exact last segment ("الطيرة")               ← what send-to-wheels does today
+      //   2) the last two segments joined ("الجدول - الطيرة") ← catches multi-dash zone names
+      //   3) the full string                                   ← single-segment addresses
+      const candidates: string[] = [];
+      if (parts.length >= 1) candidates.push(parts[parts.length - 1]);
+      if (parts.length >= 2) candidates.push(parts.slice(-2).join(" - "));
+      candidates.push(address);
+      const unique = Array.from(new Set(candidates));
 
-      let { data: zone } = await admin
-        .from("delivery_zones")
-        .select("area_name, wheels_area_id, wheels_fixed_price")
-        .eq("user_id", userId)
-        .eq("branch_id", branchId)
-        .eq("area_name", areaName)
-        .maybeSingle();
-      if (!zone?.wheels_area_id) {
-        const { data: zone2 } = await admin
+      const attempts: Array<{ candidate: string; match_type: "exact" | "ilike" | null; zone: any }> = [];
+      let matched: any = null;
+      let matchedCandidate: string | null = null;
+      let matchType: "exact" | "ilike" | null = null;
+
+      for (const c of unique) {
+        const { data: exact } = await admin
           .from("delivery_zones")
           .select("area_name, wheels_area_id, wheels_fixed_price")
           .eq("user_id", userId)
           .eq("branch_id", branchId)
-          .ilike("area_name", areaName)
+          .eq("area_name", c)
+          .maybeSingle();
+        if (exact?.wheels_area_id) {
+          attempts.push({ candidate: c, match_type: "exact", zone: exact });
+          matched = exact; matchedCandidate = c; matchType = "exact"; break;
+        }
+        const { data: like } = await admin
+          .from("delivery_zones")
+          .select("area_name, wheels_area_id, wheels_fixed_price")
+          .eq("user_id", userId)
+          .eq("branch_id", branchId)
+          .ilike("area_name", c)
           .not("wheels_area_id", "is", null)
           .limit(1)
           .maybeSingle();
-        zone = zone2 as any;
+        if (like?.wheels_area_id) {
+          attempts.push({ candidate: c, match_type: "ilike", zone: like });
+          matched = like; matchedCandidate = c; matchType = "ilike"; break;
+        }
+        attempts.push({ candidate: c, match_type: null, zone: null });
       }
+
+      // What send-to-wheels would actually pick today (last segment only).
+      const productionCandidate = parts.length >= 2 ? parts[parts.length - 1] : (parts[0] ?? "");
+      const productionWouldMatch = matched && matchedCandidate === productionCandidate;
+
       return new Response(JSON.stringify({
-        success: !!zone?.wheels_area_id,
-        extracted_area: areaName,
-        matched_zone: zone ?? null,
+        success: !!matched?.wheels_area_id,
+        extracted_area: productionCandidate,
+        matched_candidate: matchedCandidate,
+        match_type: matchType,
+        matched_zone: matched ?? null,
+        attempts,
+        production_would_match: productionWouldMatch,
+        warning: matched && !productionWouldMatch
+          ? "تطابق فقط عبر دمج أكثر من segment. send-to-wheels الحالي بياخد آخر segment فقط، فالطلب الفعلي رح يفشل بهذا العنوان."
+          : null,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
