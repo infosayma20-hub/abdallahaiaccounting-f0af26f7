@@ -2101,6 +2101,24 @@ const POSPage = () => {
       .eq("salary_month", now.getMonth() + 1)
       .eq("salary_year", now.getFullYear());
     setEmployeeBalance((data || []).reduce((s, m) => s + Number(m.amount), 0));
+    // Phase 2: per-type monthly meal totals (for cap warning + transparency card)
+    try {
+      const { data: totals } = await supabase.rpc("get_employee_meal_monthly_totals" as any, {
+        p_employee_id: empId,
+        p_year: now.getFullYear(),
+        p_month: now.getMonth() + 1,
+      });
+      const rows = (totals || []) as Array<{ meal_discount_type: string; total: number }>;
+      const fam = rows.find(r => r.meal_discount_type === "family");
+      const ind = rows.find(r => r.meal_discount_type === "individual");
+      setEmployeeMealMonthly({
+        family: Number(fam?.total || 0),
+        individual: Number(ind?.total || 0),
+      });
+    } catch (e) {
+      console.warn("[POS] failed to load monthly meal totals", e);
+      setEmployeeMealMonthly({ family: 0, individual: 0 });
+    }
   };
 
   const filteredContacts = useMemo(() => {
