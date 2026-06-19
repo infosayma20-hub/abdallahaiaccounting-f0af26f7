@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { format, startOfDay, startOfWeek, startOfMonth, subMonths } from "date-fns";
 import {
   Hammer, TrendingUp, DollarSign, BarChart3,
@@ -39,6 +40,7 @@ const PIE_COLORS = Object.values(COST_TYPES).map(c => c.color);
 
 export default function WorkshopReportsPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const companyInfo = useCompanyInfo();
   const [workshops, setWorkshops] = useState<any[]>([]);
   const [costs, setCosts] = useState<any[]>([]);
@@ -56,7 +58,7 @@ export default function WorkshopReportsPage() {
 
   // Set default dateFrom to user creation date
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const createdAt = (user as any).created_at;
     if (createdAt) {
       setDateFrom(format(new Date(createdAt), "yyyy-MM-dd"));
@@ -64,7 +66,7 @@ export default function WorkshopReportsPage() {
       setDateFrom("2024-01-01");
     }
     loadData();
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   // Handle date presets
   const applyPreset = (preset: DatePreset) => {
@@ -104,9 +106,9 @@ export default function WorkshopReportsPage() {
     setLoading(true);
     const uid = user!.id;
     const [wRes, cRes, pRes] = await Promise.all([
-      supabase.from("workshops").select("*").order("created_at", { ascending: false }),
-      supabase.from("workshop_costs").select("*").order("cost_date", { ascending: false }),
-      supabase.from("workshop_payments").select("*").order("payment_date", { ascending: false }),
+      supabase.from("workshops").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
+      supabase.from("workshop_costs").select("*").eq("user_id", dataOwnerId!).order("cost_date", { ascending: false }),
+      supabase.from("workshop_payments").select("*").eq("user_id", dataOwnerId!).order("payment_date", { ascending: false }),
     ]);
     const ws = wRes.data || [];
     setWorkshops(ws);
