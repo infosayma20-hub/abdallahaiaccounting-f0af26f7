@@ -144,6 +144,7 @@ async function ensureWorkshopAccounts(userId: string) {
 /* ══════════════════════════════════════════════════ */
 export default function WorkshopsPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [view, setView] = useState<"workshops" | "reports" | "new-payment" | "inventory">("workshops");
@@ -259,7 +260,7 @@ export default function WorkshopsPage() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     loadWorkshops();
     loadContacts();
     loadBankAccounts();
@@ -267,13 +268,13 @@ export default function WorkshopsPage() {
     loadCashBoxes();
     loadCustomWsTypes();
     ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const loadWorkshops = async () => {
     setLoading(true);
     const [{ data }, { data: payData }, { data: txData }] = await Promise.all([
-      supabase.from("workshops").select("*").order("created_at", { ascending: false }),
-      supabase.from("workshop_payments").select("workshop_id, amount, linked_transaction_id"),
+      supabase.from("workshops").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false }),
+      supabase.from("workshop_payments").select("workshop_id, amount, linked_transaction_id").eq("user_id", dataOwnerId!),
       supabase.from("transactions").select("id, workshop_id, transaction_type, amount, transaction_date, description, reference, payment_method, debit_account_code, credit_account_code, contact_id").not("workshop_id", "is", null).eq("is_deleted", false),
     ]);
     const ws = (data as any) || [];
@@ -345,7 +346,7 @@ export default function WorkshopsPage() {
         }
       }
       // Reload after sync
-      const { data: refreshed } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
+      const { data: refreshed } = await supabase.from("workshops").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
       setWorkshops((refreshed as any) || []);
     }
   };
@@ -373,8 +374,8 @@ export default function WorkshopsPage() {
   const loadCosts = async (workshopId: string) => {
     setLoadingCosts(true);
     const [costRes, payRes] = await Promise.all([
-      supabase.from("workshop_costs").select("*").eq("workshop_id", workshopId).order("cost_date", { ascending: false }),
-      supabase.from("workshop_payments").select("*").eq("workshop_id", workshopId).order("payment_date", { ascending: false }),
+      supabase.from("workshop_costs").select("*").eq("user_id", dataOwnerId!).eq("workshop_id", workshopId).order("cost_date", { ascending: false }),
+      supabase.from("workshop_payments").select("*").eq("user_id", dataOwnerId!).eq("workshop_id", workshopId).order("payment_date", { ascending: false }),
     ]);
     setCosts((costRes.data as any) || []);
     setPayments((payRes.data as any) || []);
