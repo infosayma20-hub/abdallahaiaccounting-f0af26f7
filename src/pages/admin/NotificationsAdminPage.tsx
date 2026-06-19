@@ -211,9 +211,14 @@ export default function NotificationsAdminPage() {
       const sent = data?.sent ?? 0;
       const failed = data?.failed ?? 0;
       const total = data?.recipients ?? 0;
+      const failureDetails = Array.isArray(data?.failure_details) ? data.failure_details : [];
+      const failureText = failureDetails
+        .slice(0, 2)
+        .map((f: any) => `${f.recipient ?? "مستلم"}: ${f.error ?? "فشل"}`)
+        .join(" | ");
       if (total === 0) toast.warning("ما في مستقبلين مطابقين للمعايير");
       else if (failed === 0) toast.success(`تم الإرسال لـ ${sent} موظف ✅`);
-      else toast.warning(`تم الإرسال لـ ${sent} من أصل ${total} (فشل ${failed})`);
+      else toast.warning(`تم الإرسال لـ ${sent} من أصل ${total} (فشل ${failed})${failureText ? ` — ${failureText}` : ""}`);
       // reset partial
       setSelectedEmployeeIds([]);
       loadAll();
