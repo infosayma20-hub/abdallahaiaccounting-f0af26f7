@@ -8,6 +8,7 @@ import { ar } from 'date-fns/locale';
 interface OfflineStatusBarProps {
   isOnline: boolean;
   pendingCount: number;
+  quarantinedCount?: number;
   lastSyncAt: string | null;
   isSyncing: boolean;
   syncProgress: { current: number; total: number };
@@ -17,6 +18,7 @@ interface OfflineStatusBarProps {
 export default function OfflineStatusBar({
   isOnline,
   pendingCount,
+  quarantinedCount = 0,
   lastSyncAt,
   isSyncing,
   syncProgress,
@@ -77,6 +79,11 @@ export default function OfflineStatusBar({
               <RefreshCw className="w-3 h-3 ml-1" /> مزامنة الآن
             </Button>
           </>
+        )}
+        {quarantinedCount > 0 && (
+          <Badge variant="destructive" className="text-[10px] h-5 px-1.5">
+            ⚠️ {quarantinedCount} في الحجر
+          </Badge>
         )}
       </div>
     </div>
