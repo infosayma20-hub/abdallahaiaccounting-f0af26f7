@@ -6,7 +6,12 @@ import { ChevronRight, ChevronLeft, Users, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-function fmtISO(d: Date) { return d.toISOString().slice(0, 10); }
+function fmtISO(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 function addDays(d: Date, n: number) { const o = new Date(d); o.setDate(o.getDate() + n); return o; }
 function startOfWeek(d: Date) {
   const day = d.getDay();
