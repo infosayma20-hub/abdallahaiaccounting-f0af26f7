@@ -1049,6 +1049,30 @@ const POSPage = () => {
     })();
   }, [showTablePicker, dataOwnerId]);
 
+  // Load meal discount mode from payroll_settings (Phase 1.2)
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    (async () => {
+      try {
+        const { data: company } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("owner_id", dataOwnerId)
+          .maybeSingle();
+        if (!company?.id) return;
+        const { data: ps } = await supabase
+          .from("payroll_settings" as any)
+          .select("meal_discount_mode")
+          .eq("company_id", company.id)
+          .maybeSingle();
+        const mode = (ps as any)?.meal_discount_mode;
+        if (mode === "dual" || mode === "single") setMealDiscountMode(mode);
+      } catch (e) {
+        console.warn("[POS] failed to load meal_discount_mode", e);
+      }
+    })();
+  }, [dataOwnerId]);
+
    // ── Offline Mode ──
    const offlineMode = usePOSOffline({
      userId: dataOwnerId || userId || null,
