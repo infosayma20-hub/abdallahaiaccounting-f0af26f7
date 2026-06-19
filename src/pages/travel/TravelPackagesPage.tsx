@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 
 export default function TravelPackagesPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [packages, setPackages] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -25,12 +27,13 @@ export default function TravelPackagesPage() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!dataOwnerId) return;
     fetchPackages();
-  }, [user]);
+  }, [dataOwnerId]);
 
   const fetchPackages = async () => {
-    const { data } = await supabase.from("travel_packages").select("*").order("created_at", { ascending: false });
+    if (!dataOwnerId) return;
+    const { data } = await supabase.from("travel_packages").select("*").eq("user_id", dataOwnerId!).order("created_at", { ascending: false });
     if (data) setPackages(data);
   };
 
