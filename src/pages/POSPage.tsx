@@ -1068,11 +1068,18 @@ const POSPage = () => {
         if (!company?.id) return;
         const { data: ps } = await supabase
           .from("payroll_settings" as any)
-          .select("meal_discount_mode")
+          .select("meal_discount_mode, meal_monthly_cap_family, meal_monthly_cap_individual, meal_monthly_warn_at_pct")
           .eq("company_id", company.id)
           .maybeSingle();
         const mode = (ps as any)?.meal_discount_mode;
         if (mode === "dual" || mode === "single") setMealDiscountMode(mode);
+        const psAny = ps as any;
+        if (psAny) {
+          setMealCapFamily(Number(psAny.meal_monthly_cap_family) || 0);
+          setMealCapIndividual(Number(psAny.meal_monthly_cap_individual) || 0);
+          const warnPct = Number(psAny.meal_monthly_warn_at_pct);
+          if (warnPct > 0 && warnPct <= 100) setMealWarnAtPct(warnPct);
+        }
       } catch (e) {
         console.warn("[POS] failed to load meal_discount_mode", e);
       }
