@@ -469,6 +469,12 @@ const POSPage = () => {
   // 'single' = legacy behavior (uses payroll_settings.food_individual_percentage).
   // 'dual'   = show family/individual buttons; cashier must pick.
   const [mealDiscountMode, setMealDiscountMode] = useState<"single" | "dual">("single");
+  // Phase 2/3 settings for meal discounts (read from payroll_settings)
+  const [mealCapFamily, setMealCapFamily] = useState<number>(0);
+  const [mealCapIndividual, setMealCapIndividual] = useState<number>(0);
+  const [mealWarnAtPct, setMealWarnAtPct] = useState<number>(80);
+  // Monthly meal totals for currently selected employee
+  const [employeeMealMonthly, setEmployeeMealMonthly] = useState<{ family: number; individual: number }>({ family: 0, individual: 0 });
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
