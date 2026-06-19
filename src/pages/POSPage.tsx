@@ -3612,6 +3612,11 @@ const POSPage = () => {
         // B3.2: read employee meal share % from payroll_settings (default 50%)
         // The full ticket is paid by the company; only a portion is deducted from employee.
         let employeeSharePct = 50;
+        // Malaky-only: override % strictly based on cashier's choice (10% family / 50% individual).
+        const isMalakyTenant = dataOwnerId === MALAKY_OWNER_ID;
+        if (isMalakyTenant) {
+          employeeSharePct = mealDiscountType === "family" ? 10 : 50;
+        } else {
         try {
           const { data: company } = await supabase
             .from("companies")
@@ -3632,14 +3637,18 @@ const POSPage = () => {
         } catch (e) {
           console.warn("[POS B3.2] Failed to read meal share %, using default 50%", e);
         }
+        }
 
         const fullAmount = Number(cartTotals.total) || 0;
         const calculatedAmount = Math.round((fullAmount * employeeSharePct / 100) * 100) / 100;
 
         // Only record a deduction if the employee actually owes something.
         if (calculatedAmount > 0) {
+          const discountLabel = isMalakyTenant
+            ? (mealDiscountType === "family" ? "خصم عائلي" : "خصم فردي")
+            : null;
           const transparencyNote =
-            `إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}`;
+            `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}`;
           await supabase.from("employee_financial_movements").insert({
             user_id: dataOwnerId,
             employee_id: selectedEmployee.id,
@@ -3648,7 +3657,7 @@ const POSPage = () => {
             source_reference: res.order_number,
             reference_number: res.order_number,
             category: "food",
-            description: `وجبة POS - ${itemsSummary}${noteStr}`.slice(0, 250),
+            description: `${discountLabel ? `[${discountLabel}] ` : ""}وجبة POS - ${itemsSummary}${noteStr}`.slice(0, 250),
             amount: calculatedAmount,
             movement_type: "debit",
             status: "approved",
@@ -3670,6 +3679,7 @@ const POSPage = () => {
                 employee_share_pct: employeeSharePct,
                 deducted_amount: calculatedAmount,
                 items_summary: itemsSummary,
+                discount_label: discountLabel,
               },
             }).catch((e) => console.warn("[POS] notify-employee-meal failed:", e));
           } catch (e) {
