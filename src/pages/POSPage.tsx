@@ -4050,6 +4050,7 @@ const POSPage = () => {
       setEmployeeSearch("");
       setEmployeeBalance(0);
       setEmployeeNote("");
+      setMealDiscountType(null);
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
