@@ -47,6 +47,8 @@ Deno.serve(async (req) => {
       deducted_amount,
       items_summary,
       discount_label,
+      monthly_total_after,
+      monthly_cap,
     } = body || {};
 
     if (!employee_id || !data_owner_id || typeof deducted_amount !== "number") {
@@ -103,6 +105,10 @@ Deno.serve(async (req) => {
     if (typeof full_amount === "number") lines.push(`الإجمالي: ${fmt(full_amount)}`);
     if (typeof employee_share_pct === "number") lines.push(`نسبتك: ${employee_share_pct}%`);
     lines.push(`المخصوم: ${fmt(deducted_amount)}`);
+    if (typeof monthly_total_after === "number" && monthly_total_after > 0) {
+      const capStr = typeof monthly_cap === "number" && monthly_cap > 0 ? ` / ${fmt(monthly_cap)}` : "";
+      lines.push(`إجمالي وجباتك هذا الشهر: ${fmt(monthly_total_after)}${capStr}`);
+    }
     if (items_summary) lines.push(String(items_summary).slice(0, 120));
     const messageBody = lines.join(" • ");
 

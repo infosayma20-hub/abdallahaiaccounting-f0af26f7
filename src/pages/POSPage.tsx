@@ -469,6 +469,12 @@ const POSPage = () => {
   // 'single' = legacy behavior (uses payroll_settings.food_individual_percentage).
   // 'dual'   = show family/individual buttons; cashier must pick.
   const [mealDiscountMode, setMealDiscountMode] = useState<"single" | "dual">("single");
+  // Phase 2/3 settings for meal discounts (read from payroll_settings)
+  const [mealCapFamily, setMealCapFamily] = useState<number>(0);
+  const [mealCapIndividual, setMealCapIndividual] = useState<number>(0);
+  const [mealWarnAtPct, setMealWarnAtPct] = useState<number>(80);
+  // Monthly meal totals for currently selected employee
+  const [employeeMealMonthly, setEmployeeMealMonthly] = useState<{ family: number; individual: number }>({ family: 0, individual: 0 });
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
@@ -1062,11 +1068,18 @@ const POSPage = () => {
         if (!company?.id) return;
         const { data: ps } = await supabase
           .from("payroll_settings" as any)
-          .select("meal_discount_mode")
+          .select("meal_discount_mode, meal_monthly_cap_family, meal_monthly_cap_individual, meal_monthly_warn_at_pct")
           .eq("company_id", company.id)
           .maybeSingle();
         const mode = (ps as any)?.meal_discount_mode;
         if (mode === "dual" || mode === "single") setMealDiscountMode(mode);
+        const psAny = ps as any;
+        if (psAny) {
+          setMealCapFamily(Number(psAny.meal_monthly_cap_family) || 0);
+          setMealCapIndividual(Number(psAny.meal_monthly_cap_individual) || 0);
+          const warnPct = Number(psAny.meal_monthly_warn_at_pct);
+          if (warnPct > 0 && warnPct <= 100) setMealWarnAtPct(warnPct);
+        }
       } catch (e) {
         console.warn("[POS] failed to load meal_discount_mode", e);
       }
@@ -2088,6 +2101,24 @@ const POSPage = () => {
       .eq("salary_month", now.getMonth() + 1)
       .eq("salary_year", now.getFullYear());
     setEmployeeBalance((data || []).reduce((s, m) => s + Number(m.amount), 0));
+    // Phase 2: per-type monthly meal totals (for cap warning + transparency card)
+    try {
+      const { data: totals } = await supabase.rpc("get_employee_meal_monthly_totals" as any, {
+        p_employee_id: empId,
+        p_year: now.getFullYear(),
+        p_month: now.getMonth() + 1,
+      });
+      const rows = (totals || []) as Array<{ meal_discount_type: string; total: number }>;
+      const fam = rows.find(r => r.meal_discount_type === "family");
+      const ind = rows.find(r => r.meal_discount_type === "individual");
+      setEmployeeMealMonthly({
+        family: Number(fam?.total || 0),
+        individual: Number(ind?.total || 0),
+      });
+    } catch (e) {
+      console.warn("[POS] failed to load monthly meal totals", e);
+      setEmployeeMealMonthly({ family: 0, individual: 0 });
+    }
   };
 
   const filteredContacts = useMemo(() => {
@@ -3345,6 +3376,38 @@ const POSPage = () => {
       return;
     }
 
+    // Phase 2.3: enforce monthly cap (if configured) on dual-mode tenants.
+    if (
+      effectivePaymentMethod === "employee_account" &&
+      mealDiscountMode === "dual" &&
+      mealDiscountType &&
+      selectedEmployee
+    ) {
+      const fullPreview = Number(cartTotals.total) || 0;
+      const sharePct = mealDiscountType === "family" ? 10 : 50;
+      const expectedDeduction = Math.round((fullPreview * sharePct / 100) * 100) / 100;
+      const cap = mealDiscountType === "family" ? mealCapFamily : mealCapIndividual;
+      const usedSoFar = mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual;
+      if (cap > 0) {
+        const projected = usedSoFar + expectedDeduction;
+        if (projected > cap) {
+          toast.error(
+            `تجاوز السقف الشهري للموظف. المستخدم: ₪${usedSoFar.toFixed(2)} • المتاح: ₪${Math.max(0, cap - usedSoFar).toFixed(2)} • سيُضاف: ₪${expectedDeduction.toFixed(2)}`
+          );
+          return;
+        }
+        const warnThreshold = cap * (mealWarnAtPct / 100);
+        if (projected >= warnThreshold && !(window as any).__mealCapWarnAck) {
+          (window as any).__mealCapWarnAck = true;
+          toast.warning(
+            `تنبيه: الموظف اقترب من سقفه الشهري (${Math.round((projected / cap) * 100)}%). اضغط "تأكيد" مرة ثانية للمتابعة.`
+          );
+          return;
+        }
+        (window as any).__mealCapWarnAck = false;
+      }
+    }
+
     // Defense-in-depth: block sale if an order-level discount is present but
     // the user lacks pos.sell.discount.
     if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount")) {
@@ -3682,7 +3745,9 @@ const POSPage = () => {
             ? (mealDiscountType === "family" ? "خصم عائلي" : "خصم فردي")
             : null;
           const transparencyNote =
-            `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}`;
+            `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}` +
+            `إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}` +
+            ` | cashier_decision:${userId || "unknown"}`;
           await supabase.from("employee_financial_movements").insert({
             user_id: dataOwnerId,
             employee_id: selectedEmployee.id,
@@ -3707,6 +3772,12 @@ const POSPage = () => {
           } as any);
 
           // Fire push notification to employee (best-effort, non-blocking).
+          // Phase 3.3: include this-month accumulated total for the chosen type.
+          const monthlyForType =
+            isDualMode && mealDiscountType
+              ? (mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual)
+              : 0;
+          const monthlyTotalAfter = monthlyForType + calculatedAmount;
           try {
             supabase.functions.invoke("notify-employee-meal", {
               body: {
@@ -3718,11 +3789,19 @@ const POSPage = () => {
                 deducted_amount: calculatedAmount,
                 items_summary: itemsSummary,
                 discount_label: discountLabel,
+                monthly_total_after: monthlyTotalAfter,
+                monthly_cap:
+                  isDualMode && mealDiscountType
+                    ? (mealDiscountType === "family" ? mealCapFamily : mealCapIndividual)
+                    : 0,
               },
             }).catch((e) => console.warn("[POS] notify-employee-meal failed:", e));
           } catch (e) {
             console.warn("[POS] notify-employee-meal invoke threw:", e);
           }
+
+          // Refresh monthly totals so next ticket sees up-to-date usage.
+          loadEmployeeBalance(selectedEmployee.id).catch(() => {});
         }
       }
 
@@ -6828,6 +6907,38 @@ const POSPage = () => {
                               <span className="text-[10px] opacity-80">50%</span>
                             </button>
                           </div>
+                          {mealDiscountType && (() => {
+                            const full = Number(cartTotals.total) || 0;
+                            const pct = mealDiscountType === "family" ? 10 : 50;
+                            const ded = Math.round((full * pct / 100) * 100) / 100;
+                            const company = Math.max(0, full - ded);
+                            const used = mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual;
+                            const cap = mealDiscountType === "family" ? mealCapFamily : mealCapIndividual;
+                            const projected = used + ded;
+                            const overCap = cap > 0 && projected > cap;
+                            const nearCap = cap > 0 && projected >= cap * (mealWarnAtPct / 100);
+                            return (
+                              <div className="mt-2 p-2 rounded-lg text-[11px] space-y-0.5" style={{ background: '#ffffff', border: '1px solid #ddd6fe' }}>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>إجمالي الفاتورة</span><span className="font-semibold">₪{full.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>سيُخصم من حسابك ({pct}%)</span><span className="font-semibold" style={{ color: '#dc2626' }}>₪{ded.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>تتحمّل الشركة</span><span className="font-semibold" style={{ color: '#16a34a' }}>₪{company.toFixed(2)}</span></div>
+                                {(used > 0 || cap > 0) && (
+                                  <div className="flex justify-between pt-1 mt-1" style={{ borderTop: '1px dashed #e5e7eb' }}>
+                                    <span style={{ color: '#6b7280' }}>إجمالي وجباتك هذا الشهر</span>
+                                    <span className="font-semibold" style={{ color: overCap ? '#dc2626' : nearCap ? '#d97706' : '#374151' }}>
+                                      ₪{used.toFixed(2)}{cap > 0 ? ` / ₪${cap.toFixed(2)}` : ''}
+                                    </span>
+                                  </div>
+                                )}
+                                {overCap && (
+                                  <div className="text-[10px] font-semibold" style={{ color: '#dc2626' }}>⚠️ تجاوز السقف الشهري — لن يمكن التأكيد</div>
+                                )}
+                                {!overCap && nearCap && cap > 0 && (
+                                  <div className="text-[10px] font-semibold" style={{ color: '#d97706' }}>⚠️ اقتربت من السقف الشهري</div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                       <div className="mt-2">

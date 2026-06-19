@@ -70,6 +70,29 @@ const MonthlyPayrollInputPage = () => {
   const [saving, setSaving] = useState(false);
   const [fillingAttendance, setFillingAttendance] = useState(false);
   const [fillingDeductions, setFillingDeductions] = useState(false);
+  // Phase 2.1: detect dual-mode tenants (e.g. Malaki) to show a warning
+  // because POS pos_meal movements are already discounted.
+  const [isDualMealMode, setIsDualMealMode] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user) return;
+        const { data: company } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("owner_id", user.id)
+          .maybeSingle();
+        if (!company?.id) return;
+        const { data: ps } = await supabase
+          .from("payroll_settings" as any)
+          .select("meal_discount_mode")
+          .eq("company_id", company.id)
+          .maybeSingle();
+        setIsDualMealMode((ps as any)?.meal_discount_mode === "dual");
+      } catch { /* ignore */ }
+    })();
+  }, [user]);
 
   const { data: employees, isLoading: loadingEmp } = useQuery({
     queryKey: ["payroll-input-employees"],
@@ -481,6 +504,21 @@ const MonthlyPayrollInputPage = () => {
         <Card className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></Card>
       ) : (
         <div className="space-y-3">
+          {isDualMealMode && (
+            <Card className="p-3 border-2" style={{ background: '#fef9c3', borderColor: '#fbbf24' }}>
+              <div className="flex items-start gap-2">
+                <span className="text-lg">⚠️</span>
+                <div className="text-[13px] leading-relaxed" style={{ color: '#78350f' }}>
+                  <div className="font-bold mb-1">حركات POS مسجّلة كمبالغ بعد الخصم</div>
+                  <div>
+                    وجبات الموظفين المُسجّلة في POS (خصم عائلي 10% أو فردي 50%) تظهر تلقائياً
+                    في تبويب "وجبات POS" داخل ملف الموظف وتدخل في حسابات الراتب من خلال جلب الخصومات المالية.
+                    <strong className="text-amber-900"> لا تُدخل نفس المبالغ يدوياً في خانتي "أكل جماعي" أو "أكل فردي" أدناه</strong> — وإلا سيُخصم الموظف مرتين.
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
           {employees?.map((emp: any) => {
             const preview = getPreview(emp);
             return (
