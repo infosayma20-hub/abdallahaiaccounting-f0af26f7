@@ -137,9 +137,12 @@ export async function bindForegroundMessagingIfReady(): Promise<void> {
   if (Notification.permission !== "granted") return;
   try {
     await ensureMessaging();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     // Phase 2: weekly silent re-registration so last_validated_at stays fresh
-    // and tokens rotated by FCM don't go stale.
-    const KEY = "__amwali_push_last_register";
+    // and tokens rotated by FCM don't go stale. Keep it per auth user so a
+    // granted device can bind correctly after logging into another portal user.
+    const KEY = `__amwali_push_last_register:${user.id}`;
     const last = Number(localStorage.getItem(KEY) || 0);
     const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
     if (!last || Date.now() - last > ONE_WEEK) {
