@@ -454,9 +454,34 @@ export default function NetworkPrintersManager() {
                     {branches.find(b => b.id === p.branch_id)?.name || "فرع"}
                   </Badge>
                 )}
+                {(p.terminal_ids || []).length > 0 ? (
+                  (p.terminal_ids || []).map(tid => {
+                    const t = terminals.find(x => x.id === tid);
+                    return (
+                      <Badge key={tid} variant="outline" className="text-[9px] px-1 py-0 border-sky-500/40 text-sky-600 gap-0.5">
+                        <Monitor className="h-2.5 w-2.5" />
+                        {t ? t.name : tid.slice(0, 6)}
+                      </Badge>
+                    );
+                  })
+                ) : (p.print_categories || []).includes("receipt") ? (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-dashed text-muted-foreground">
+                    غير مرتبطة بمحطة كاش
+                  </Badge>
+                ) : null}
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs px-2"
+                onClick={() => openLinkTerminals(p)}
+                title="ربط الطابعة بمحطات الكاش"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                محطات الكاش
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
