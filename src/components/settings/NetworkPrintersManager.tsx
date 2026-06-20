@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, Printer, Wifi, WifiOff, TestTube, Settings2, Building2, RefreshCw } from "lucide-react";
+import { Monitor, Link2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { checkBridgeStatus, getPrintBridgeBlockedMessage, getPrintBridgeUrl, sendToBridge, PrintBridgeConnectionError } from "@/lib/print-bridge-client";
 import { getDeviceBranchId, syncBranchPrintersToBridge } from "@/lib/device-config";
@@ -32,6 +33,7 @@ interface PrinterConfig {
   print_categories: string[];
   branch_id: string | null;
   settings?: Record<string, any> | null;
+  terminal_ids?: string[] | null;
 }
 
 interface Station {
@@ -39,6 +41,12 @@ interface Station {
   name: string;
   station_type: string;
   color: string;
+  branch_id: string | null;
+}
+
+interface Terminal {
+  id: string;
+  name: string;
   branch_id: string | null;
 }
 
@@ -65,6 +73,7 @@ export default function NetworkPrintersManager() {
   const { user } = useAuth();
   const [printers, setPrinters] = useState<PrinterConfig[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -72,6 +81,11 @@ export default function NetworkPrintersManager() {
   const [testing, setTesting] = useState<string | null>(null);
   const [filterBranch, setFilterBranch] = useState<string>("all");
   const [bridgeOnline, setBridgeOnline] = useState<boolean | null>(null);
+
+  // Terminal linking dialog state
+  const [linkingPrinter, setLinkingPrinter] = useState<PrinterConfig | null>(null);
+  const [linkSelectedTerminalIds, setLinkSelectedTerminalIds] = useState<string[]>([]);
+  const [savingLink, setSavingLink] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formIp, setFormIp] = useState("");
@@ -99,14 +113,16 @@ export default function NetworkPrintersManager() {
   };
 
   const loadData = async () => {
-    const [printersRes, stationsRes, branchesRes] = await Promise.all([
+    const [printersRes, stationsRes, branchesRes, terminalsRes] = await Promise.all([
       supabase.from("pos_printers").select("*").order("created_at"),
       supabase.from("kitchen_stations" as any).select("id, name, station_type, color, branch_id").order("display_order"),
       supabase.from("branches").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("pos_terminals" as any).select("id, name, branch_id").eq("is_active", true).order("name"),
     ]);
     setPrinters((printersRes.data as any[]) || []);
     setStations((stationsRes.data as any[]) || []);
     setBranches((branchesRes.data as Branch[]) || []);
+    setTerminals((terminalsRes.data as Terminal[]) || []);
     setLoading(false);
   };
 
