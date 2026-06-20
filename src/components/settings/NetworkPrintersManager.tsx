@@ -117,12 +117,12 @@ export default function NetworkPrintersManager() {
       supabase.from("pos_printers").select("*").order("created_at"),
       supabase.from("kitchen_stations" as any).select("id, name, station_type, color, branch_id").order("display_order"),
       supabase.from("branches").select("id, name").eq("is_active", true).order("name"),
-      supabase.from("pos_terminals" as any).select("id, name, branch_id").eq("is_active", true).order("name"),
+      (supabase.from as any)("pos_terminals").select("id, name, branch_id").eq("is_active", true).order("name"),
     ]);
     setPrinters((printersRes.data as any[]) || []);
     setStations((stationsRes.data as any[]) || []);
     setBranches((branchesRes.data as Branch[]) || []);
-    setTerminals((terminalsRes.data as Terminal[]) || []);
+    setTerminals(((terminalsRes as any).data as Terminal[]) || []);
     setLoading(false);
   };
 
