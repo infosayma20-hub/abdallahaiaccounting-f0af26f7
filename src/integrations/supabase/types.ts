@@ -12022,6 +12022,7 @@ export type Database = {
           printer_type: string
           settings: Json
           station_ids: string[] | null
+          terminal_ids: string[]
           updated_at: string | null
           user_id: string
         }
@@ -12039,6 +12040,7 @@ export type Database = {
           printer_type?: string
           settings?: Json
           station_ids?: string[] | null
+          terminal_ids?: string[]
           updated_at?: string | null
           user_id: string
         }
@@ -12056,6 +12058,7 @@ export type Database = {
           printer_type?: string
           settings?: Json
           station_ids?: string[] | null
+          terminal_ids?: string[]
           updated_at?: string | null
           user_id?: string
         }

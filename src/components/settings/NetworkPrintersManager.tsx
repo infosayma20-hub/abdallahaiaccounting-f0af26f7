@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, Printer, Wifi, WifiOff, TestTube, Settings2, Building2, RefreshCw } from "lucide-react";
+import { Monitor, Link2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { checkBridgeStatus, getPrintBridgeBlockedMessage, getPrintBridgeUrl, sendToBridge, PrintBridgeConnectionError } from "@/lib/print-bridge-client";
 import { getDeviceBranchId, syncBranchPrintersToBridge } from "@/lib/device-config";
@@ -32,6 +33,7 @@ interface PrinterConfig {
   print_categories: string[];
   branch_id: string | null;
   settings?: Record<string, any> | null;
+  terminal_ids?: string[] | null;
 }
 
 interface Station {
@@ -39,6 +41,12 @@ interface Station {
   name: string;
   station_type: string;
   color: string;
+  branch_id: string | null;
+}
+
+interface Terminal {
+  id: string;
+  name: string;
   branch_id: string | null;
 }
 
@@ -65,6 +73,7 @@ export default function NetworkPrintersManager() {
   const { user } = useAuth();
   const [printers, setPrinters] = useState<PrinterConfig[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -72,6 +81,11 @@ export default function NetworkPrintersManager() {
   const [testing, setTesting] = useState<string | null>(null);
   const [filterBranch, setFilterBranch] = useState<string>("all");
   const [bridgeOnline, setBridgeOnline] = useState<boolean | null>(null);
+
+  // Terminal linking dialog state
+  const [linkingPrinter, setLinkingPrinter] = useState<PrinterConfig | null>(null);
+  const [linkSelectedTerminalIds, setLinkSelectedTerminalIds] = useState<string[]>([]);
+  const [savingLink, setSavingLink] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formIp, setFormIp] = useState("");
@@ -99,14 +113,16 @@ export default function NetworkPrintersManager() {
   };
 
   const loadData = async () => {
-    const [printersRes, stationsRes, branchesRes] = await Promise.all([
+    const [printersRes, stationsRes, branchesRes, terminalsRes] = await Promise.all([
       supabase.from("pos_printers").select("*").order("created_at"),
       supabase.from("kitchen_stations" as any).select("id, name, station_type, color, branch_id").order("display_order"),
       supabase.from("branches").select("id, name").eq("is_active", true).order("name"),
+      (supabase.from as any)("pos_terminals").select("id, name, branch_id").eq("is_active", true).order("name"),
     ]);
     setPrinters((printersRes.data as any[]) || []);
     setStations((stationsRes.data as any[]) || []);
     setBranches((branchesRes.data as Branch[]) || []);
+    setTerminals(((terminalsRes as any).data as Terminal[]) || []);
     setLoading(false);
   };
 
@@ -302,6 +318,33 @@ export default function NetworkPrintersManager() {
     setFormStationIds(prev => (prev.includes(stationId) ? prev.filter(s => s !== stationId) : [...prev, stationId]));
   };
 
+  const openLinkTerminals = (p: PrinterConfig) => {
+    setLinkingPrinter(p);
+    setLinkSelectedTerminalIds(p.terminal_ids || []);
+  };
+
+  const toggleLinkTerminal = (id: string) => {
+    setLinkSelectedTerminalIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const saveTerminalLinks = async () => {
+    if (!linkingPrinter) return;
+    setSavingLink(true);
+    const { error } = await supabase
+      .from("pos_printers")
+      .update({ terminal_ids: linkSelectedTerminalIds } as any)
+      .eq("id", linkingPrinter.id);
+    setSavingLink(false);
+    if (error) {
+      toast.error("تعذر حفظ الربط");
+      return;
+    }
+    toast.success("تم تحديث ربط الطابعة بمحطات الكاش");
+    await syncPrinterSettingsToBridge(linkingPrinter.branch_id).catch(() => false);
+    setLinkingPrinter(null);
+    void loadData();
+  };
+
   const toggleCategory = (cat: string) => {
     setFormCategories(prev => (prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]));
   };
@@ -411,9 +454,34 @@ export default function NetworkPrintersManager() {
                     {branches.find(b => b.id === p.branch_id)?.name || "فرع"}
                   </Badge>
                 )}
+                {(p.terminal_ids || []).length > 0 ? (
+                  (p.terminal_ids || []).map(tid => {
+                    const t = terminals.find(x => x.id === tid);
+                    return (
+                      <Badge key={tid} variant="outline" className="text-[9px] px-1 py-0 border-sky-500/40 text-sky-600 gap-0.5">
+                        <Monitor className="h-2.5 w-2.5" />
+                        {t ? t.name : tid.slice(0, 6)}
+                      </Badge>
+                    );
+                  })
+                ) : (p.print_categories || []).includes("receipt") ? (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-dashed text-muted-foreground">
+                    غير مرتبطة بمحطة كاش
+                  </Badge>
+                ) : null}
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs px-2"
+                onClick={() => openLinkTerminals(p)}
+                title="ربط الطابعة بمحطات الكاش"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                محطات الكاش
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -633,6 +701,96 @@ export default function NetworkPrintersManager() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!linkingPrinter} onOpenChange={(o) => !o && setLinkingPrinter(null)}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              ربط بمحطات الكاش
+            </DialogTitle>
+          </DialogHeader>
+          {linkingPrinter && (() => {
+            const branchName = branches.find(b => b.id === linkingPrinter.branch_id)?.name;
+            const branchTerminals = terminals.filter(t =>
+              linkingPrinter.branch_id ? t.branch_id === linkingPrinter.branch_id : true
+            );
+            return (
+              <div className="space-y-4 pt-2">
+                <div className="rounded-lg border border-border/50 bg-muted/30 p-2.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Printer className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{linkingPrinter.name}</span>
+                  </div>
+                  {branchName && (
+                    <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <Building2 className="h-3 w-3" /> {branchName}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+                    اختر محطات الكاش التي تستخدم هذه الطابعة لطباعة وصل الزبون. لو ما تم اختيار أي محطة، تبقى الطابعة عامة على مستوى الفرع.
+                  </p>
+                </div>
+
+                {branchTerminals.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-muted-foreground">
+                    لا توجد محطات كاش لهذا الفرع
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                    {branchTerminals.map(t => {
+                      const selected = linkSelectedTerminalIds.includes(t.id);
+                      // Other printers already linked to this terminal
+                      const others = printers.filter(p =>
+                        p.id !== linkingPrinter.id &&
+                        (p.terminal_ids || []).includes(t.id) &&
+                        (p.print_categories || []).some(c => (linkingPrinter.print_categories || []).includes(c))
+                      );
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => toggleLinkTerminal(t.id)}
+                          className={`w-full text-right p-2.5 rounded-lg border transition-colors ${
+                            selected
+                              ? "bg-primary/10 border-primary"
+                              : "bg-background border-border hover:bg-muted/40"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Monitor className={`h-4 w-4 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                              <span className="text-sm font-medium truncate">{t.name}</span>
+                            </div>
+                            <Switch checked={selected} onCheckedChange={() => toggleLinkTerminal(t.id)} />
+                          </div>
+                          {others.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {others.map(o => (
+                                <Badge key={o.id} variant="outline" className="text-[9px] px-1 py-0 border-amber-500/40 text-amber-600">
+                                  مرتبطة أيضاً بـ: {o.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <Button onClick={saveTerminalLinks} disabled={savingLink} className="flex-1 gap-1.5">
+                    <Link2 className="h-3.5 w-3.5" />
+                    {savingLink ? "جاري الحفظ..." : "حفظ الربط"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setLinkingPrinter(null)}>إلغاء</Button>
+                </div>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
