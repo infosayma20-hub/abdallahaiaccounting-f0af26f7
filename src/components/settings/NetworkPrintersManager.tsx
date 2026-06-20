@@ -703,6 +703,96 @@ export default function NetworkPrintersManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!linkingPrinter} onOpenChange={(o) => !o && setLinkingPrinter(null)}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              ربط بمحطات الكاش
+            </DialogTitle>
+          </DialogHeader>
+          {linkingPrinter && (() => {
+            const branchName = branches.find(b => b.id === linkingPrinter.branch_id)?.name;
+            const branchTerminals = terminals.filter(t =>
+              linkingPrinter.branch_id ? t.branch_id === linkingPrinter.branch_id : true
+            );
+            return (
+              <div className="space-y-4 pt-2">
+                <div className="rounded-lg border border-border/50 bg-muted/30 p-2.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Printer className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{linkingPrinter.name}</span>
+                  </div>
+                  {branchName && (
+                    <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <Building2 className="h-3 w-3" /> {branchName}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+                    اختر محطات الكاش التي تستخدم هذه الطابعة لطباعة وصل الزبون. لو ما تم اختيار أي محطة، تبقى الطابعة عامة على مستوى الفرع.
+                  </p>
+                </div>
+
+                {branchTerminals.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-muted-foreground">
+                    لا توجد محطات كاش لهذا الفرع
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                    {branchTerminals.map(t => {
+                      const selected = linkSelectedTerminalIds.includes(t.id);
+                      // Other printers already linked to this terminal
+                      const others = printers.filter(p =>
+                        p.id !== linkingPrinter.id &&
+                        (p.terminal_ids || []).includes(t.id) &&
+                        (p.print_categories || []).some(c => (linkingPrinter.print_categories || []).includes(c))
+                      );
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => toggleLinkTerminal(t.id)}
+                          className={`w-full text-right p-2.5 rounded-lg border transition-colors ${
+                            selected
+                              ? "bg-primary/10 border-primary"
+                              : "bg-background border-border hover:bg-muted/40"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Monitor className={`h-4 w-4 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                              <span className="text-sm font-medium truncate">{t.name}</span>
+                            </div>
+                            <Switch checked={selected} onCheckedChange={() => toggleLinkTerminal(t.id)} />
+                          </div>
+                          {others.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {others.map(o => (
+                                <Badge key={o.id} variant="outline" className="text-[9px] px-1 py-0 border-amber-500/40 text-amber-600">
+                                  مرتبطة أيضاً بـ: {o.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <Button onClick={saveTerminalLinks} disabled={savingLink} className="flex-1 gap-1.5">
+                    <Link2 className="h-3.5 w-3.5" />
+                    {savingLink ? "جاري الحفظ..." : "حفظ الربط"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setLinkingPrinter(null)}>إلغاء</Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
