@@ -318,6 +318,33 @@ export default function NetworkPrintersManager() {
     setFormStationIds(prev => (prev.includes(stationId) ? prev.filter(s => s !== stationId) : [...prev, stationId]));
   };
 
+  const openLinkTerminals = (p: PrinterConfig) => {
+    setLinkingPrinter(p);
+    setLinkSelectedTerminalIds(p.terminal_ids || []);
+  };
+
+  const toggleLinkTerminal = (id: string) => {
+    setLinkSelectedTerminalIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const saveTerminalLinks = async () => {
+    if (!linkingPrinter) return;
+    setSavingLink(true);
+    const { error } = await supabase
+      .from("pos_printers")
+      .update({ terminal_ids: linkSelectedTerminalIds } as any)
+      .eq("id", linkingPrinter.id);
+    setSavingLink(false);
+    if (error) {
+      toast.error("تعذر حفظ الربط");
+      return;
+    }
+    toast.success("تم تحديث ربط الطابعة بمحطات الكاش");
+    await syncPrinterSettingsToBridge(linkingPrinter.branch_id).catch(() => false);
+    setLinkingPrinter(null);
+    void loadData();
+  };
+
   const toggleCategory = (cat: string) => {
     setFormCategories(prev => (prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]));
   };
