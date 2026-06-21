@@ -944,7 +944,7 @@ const POSPage = () => {
       return false;
     }
     return true;
-  }, [terminalBranchChecked, cashBoxBranchChecked, terminalBranchId, cashBoxBranchId]);
+  }, [terminalBranchChecked, cashBoxBranchChecked, terminalBranchId, cashBoxBranchId, sessionClaimState.status]);
 
   const openPaymentModal = useCallback(() => {
     if (!enforceDeviceGuard()) return;
