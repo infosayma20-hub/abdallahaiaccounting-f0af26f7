@@ -867,6 +867,27 @@ const POSPage = () => {
   );
   const { closedFromElsewhere: shiftClosedElsewhere, closedAt: shiftClosedAt } =
     usePOSShiftWatcher(session?.id ?? null, isSelfClosed);
+  // 🔒 Single-device claim: prevents two devices sharing the same open session.
+  // - On a fresh open session we soft-claim; if another device is live, the
+  //   SessionTakeoverDialog asks the cashier to take over (or cancel).
+  // - Heartbeat runs every 15s; if a different device claims it, our state
+  //   flips to "revoked" and we re-use the existing closed-elsewhere flow
+  //   (cart auto-saved, view-only, sign out / open new shift).
+  const { state: sessionClaimState, forceClaim: forceClaimSession, retryClaim: retrySessionClaim } =
+    usePOSSessionClaim(session?.id ?? null);
+  const sessionRevokedFromElsewhere = sessionClaimState.status === "revoked";
+  const sessionConflict = sessionClaimState.status === "conflict";
+  // Treat a "revoked" heartbeat as the same blocking condition as a closed
+  // shift — same UI, same cart preservation, same recovery path.
+  useEffect(() => {
+    if (sessionRevokedFromElsewhere && session) {
+      saveBlockedCart(company?.id ?? null, userId ?? null, session.id, orders);
+      toast.error("⛔ تم نقل العهدة لجهاز آخر — توقف البيع على هذا الجهاز");
+    }
+    // We deliberately omit `orders` from deps: we want to snapshot at the
+    // moment of revoke, not re-save on every cart mutation afterward.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionRevokedFromElsewhere]);
   const shiftClosedElsewhereRef = useRef(false);
   useEffect(() => {
     shiftClosedElsewhereRef.current = shiftClosedElsewhere;
