@@ -44,8 +44,20 @@ account to mutate the same open `pos_sessions` row at the same time.
     `UPDATE pos_sessions SET total_sales=...` — single Lost-Update site
     rewritten; full recalc inside Close-Shift still recomputes from orders.
 
-## Out of scope (next phases)
-- `pos_user_device_access` DB trigger enforcement (Phase 1.4).
-- `cash_boxes` device lock + `current_session_id` (Phase 1.5).
-- `sync_offline_pos_sale` guard against syncing into a closed session (Phase 2.5).
-- Super Admin "conflicting sessions" report (Phase 3).
+## Phase 1.4 / 1.5 / 2.5 / 3 (June 21, 2026)
+- **1.4** `trg_enforce_pos_user_device_access` BEFORE INSERT on `pos_sessions`
+  rejects with `42501 / pos_user_not_allowed_on_this_device` when the cashier
+  has a whitelist in `pos_user_device_access` that doesn't include `terminal_id`.
+- **1.5** `cash_boxes` gains `active_session_id` + `locked_by_device_id`,
+  auto-synced by `trg_sync_cash_box_lock` on pos_sessions INSERT/UPDATE.
+  Release happens automatically when the session closes (`state<>'open'` or
+  `is_deleted=true`). Uses `active_device_id` from claim hook when available.
+- **2.5** `sync_offline_pos_sale` now pre-checks `pos_sessions.state` and
+  returns `{success:false, quarantine:true, error:'session_not_open'}` so
+  the client immediately quarantines the sale (`markSaleFailed(..., {quarantine:true})`)
+  instead of burning 5 retries.
+- **3** View `public.pos_session_conflicts` (security_invoker) — surfaces
+  every session with `device_claim_count > 1` OR a recorded
+  `pos_session_force_claim` audit entry. Backs Super Admin "conflicting
+  sessions" report. Audit insert in `claim_pos_session` uses the real
+  columns: `action`, `session_id`, `company_id`, `metadata`.
