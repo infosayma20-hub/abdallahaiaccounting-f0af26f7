@@ -138,6 +138,16 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
         if (error) throw error;
         const res = rpcRes as any;
         if (!res?.success) {
+          // 🔒 Phase 2.5 — if the server reports the bound session is closed,
+          // immediately quarantine the sale instead of bumping retry_count
+          // until the cap. This prevents 5 noisy retries and surfaces the
+          // sale in SyncLogSheet right away for "reassign to a new session".
+          if (res?.quarantine) {
+            await markSaleFailed(sale.id, res?.detail || res?.error || 'session_not_open', { quarantine: true });
+            failed++;
+            setSyncProgress({ current: synced + failed, total: pending.length });
+            continue;
+          }
           throw new Error(res?.error || 'sync_offline_pos_sale returned failure');
         }
 
