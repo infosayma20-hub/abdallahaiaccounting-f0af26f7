@@ -64,6 +64,9 @@ import { loadMuteChecker } from "@/hooks/usePrintMuteRules";
 import { getCanSell } from "@/lib/pos-device-auth";
 import { usePOSShiftWatcher } from "@/hooks/usePOSShiftWatcher";
 import { ShiftClosedElsewhereDialog } from "@/components/pos/ShiftClosedElsewhereDialog";
+import { SessionTakeoverDialog } from "@/components/pos/SessionTakeoverDialog";
+import { usePOSSessionClaim } from "@/hooks/usePOSSessionClaim";
+import { incrementSessionTotals } from "@/lib/pos-session-claim";
 import { saveBlockedCart, loadBlockedCart, clearBlockedCart } from "@/lib/pos-blocked-cart-draft";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
