@@ -247,13 +247,23 @@ export async function removePendingSale(id: string): Promise<void> {
 
 export const MAX_SYNC_RETRIES = 5;
 
-export async function markSaleFailed(id: string, error: string): Promise<void> {
+export async function markSaleFailed(
+  id: string,
+  error: string,
+  opts?: { quarantine?: boolean },
+): Promise<void> {
   const sale = await getPendingSale(id);
   if (sale) {
     sale.retry_count = (sale.retry_count || 0) + 1;
     sale.error = error;
-    // After MAX_SYNC_RETRIES failures, quarantine — stops auto-retry, needs manual review
-    sale.sync_status = sale.retry_count >= MAX_SYNC_RETRIES ? 'quarantined' : 'failed';
+    // Caller may force immediate quarantine (e.g. server says the bound
+    // session is closed — retrying 5x won't help, surface it now).
+    if (opts?.quarantine) {
+      sale.sync_status = 'quarantined';
+    } else {
+      // After MAX_SYNC_RETRIES failures, quarantine — stops auto-retry, needs manual review
+      sale.sync_status = sale.retry_count >= MAX_SYNC_RETRIES ? 'quarantined' : 'failed';
+    }
     await putOne('pending_sales', await encryptSale(sale));
   }
 }
