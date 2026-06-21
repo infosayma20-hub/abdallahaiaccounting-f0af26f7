@@ -49,16 +49,7 @@ export default function ChooseWorkspacePage() {
         setHasRep(roles.includes("sales_rep"));
         setHasCashier(roles.includes("cashier") || !!posUser);
         setIsCallCenter(!!linkedPosUser && !!linkedPosUser.is_call_center);
-        // Call-center accounts are shared company users (not a real employee
-        // identity), so we hide the "employee" workspace card for them even
-        // if someone accidentally linked an employees row to that auth user.
-        const isCC = !!linkedPosUser && !!linkedPosUser.is_call_center;
-        setHasEmployee(
-          !isCC &&
-          !!linkedEmployee &&
-          !!linkedEmployee.is_active &&
-          !linkedEmployee.is_terminated,
-        );
+        setHasEmployee(!!linkedEmployee && !!linkedEmployee.is_active && !linkedEmployee.is_terminated);
       } catch (err) {
         // Never leave the chooser blank — render the page so the user can
         // at least sign out or pick a workspace manually.
