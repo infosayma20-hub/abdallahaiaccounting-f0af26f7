@@ -12187,6 +12187,8 @@ export type Database = {
       }
       pos_sessions: {
         Row: {
+          active_device_fingerprint: string | null
+          active_device_id: string | null
           approved_by_pos_user_id: string | null
           cash_box_id: string | null
           cash_variance: number | null
@@ -12197,10 +12199,12 @@ export type Database = {
           closing_cash: number | null
           company_id: string
           created_at: string
+          device_claim_count: number
           device_id: string | null
           expected_cash: number | null
           id: string
           is_deleted: boolean
+          last_heartbeat_at: string | null
           notes: string | null
           opened_at: string
           opening_cash: number
@@ -12215,6 +12219,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_device_fingerprint?: string | null
+          active_device_id?: string | null
           approved_by_pos_user_id?: string | null
           cash_box_id?: string | null
           cash_variance?: number | null
@@ -12225,10 +12231,12 @@ export type Database = {
           closing_cash?: number | null
           company_id: string
           created_at?: string
+          device_claim_count?: number
           device_id?: string | null
           expected_cash?: number | null
           id?: string
           is_deleted?: boolean
+          last_heartbeat_at?: string | null
           notes?: string | null
           opened_at?: string
           opening_cash?: number
@@ -12243,6 +12251,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_device_fingerprint?: string | null
+          active_device_id?: string | null
           approved_by_pos_user_id?: string | null
           cash_box_id?: string | null
           cash_variance?: number | null
@@ -12253,10 +12263,12 @@ export type Database = {
           closing_cash?: number | null
           company_id?: string
           created_at?: string
+          device_claim_count?: number
           device_id?: string | null
           expected_cash?: number | null
           id?: string
           is_deleted?: boolean
+          last_heartbeat_at?: string | null
           notes?: string | null
           opened_at?: string
           opening_cash?: number
@@ -19915,6 +19927,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_pos_session: {
+        Args: {
+          p_device_id: string
+          p_fingerprint: string
+          p_force?: boolean
+          p_session_id: string
+        }
+        Returns: Json
+      }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       cleanup_stale_device_tokens: { Args: never; Returns: Json }
       clear_must_change_password: { Args: never; Returns: boolean }
@@ -20774,6 +20795,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      heartbeat_pos_session: {
+        Args: { p_fingerprint: string; p_session_id: string }
+        Returns: Json
+      }
       holding_company_emails: {
         Args: { p_holding_id: string }
         Returns: {
@@ -20809,6 +20834,17 @@ export type Database = {
       increment_device_token_failures: {
         Args: { _id: string }
         Returns: undefined
+      }
+      increment_pos_session_totals: {
+        Args: {
+          p_orders_delta: number
+          p_sales_delta: number
+          p_session_id: string
+        }
+        Returns: {
+          total_orders: number
+          total_sales: number
+        }[]
       }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
@@ -21174,6 +21210,10 @@ export type Database = {
       }
       recalc_invoice_payment_status: {
         Args: { p_invoice_id: string }
+        Returns: Json
+      }
+      reconcile_pos_session_totals: {
+        Args: { p_session_id: string }
         Returns: Json
       }
       recreate_invoice_transaction: {
