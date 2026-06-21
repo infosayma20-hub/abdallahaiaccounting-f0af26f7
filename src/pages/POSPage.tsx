@@ -3864,9 +3864,12 @@ const POSPage = () => {
           .eq("id", activeOrder.tableId);
       }
 
-      const newTotalSales = (session?.total_sales || 0) + effectiveTotal;
-      const newTotalOrders = (session?.total_orders || 0) + 1;
-
+      // 🔒 Atomic delta — replaces the previous read-modify-write that caused
+      // Lost Updates when the same cashier was open on two devices. The RPC
+      // returns the authoritative totals post-increment.
+      const updated = await incrementSessionTotals(session.id, effectiveTotal, 1);
+      const newTotalSales = updated?.total_sales ?? ((session?.total_sales || 0) + effectiveTotal);
+      const newTotalOrders = updated?.total_orders ?? ((session?.total_orders || 0) + 1);
       setSession((prev) =>
         prev
           ? {
@@ -3876,15 +3879,6 @@ const POSPage = () => {
             }
           : null
       );
-
-      // Persist totals to DB
-      await supabase
-        .from("pos_sessions")
-        .update({
-          total_sales: newTotalSales,
-          total_orders: newTotalOrders,
-        })
-        .eq("id", session.id);
 
       // Record employee account movement
       if (effectivePaymentMethod === "employee_account" && selectedEmployee) {
