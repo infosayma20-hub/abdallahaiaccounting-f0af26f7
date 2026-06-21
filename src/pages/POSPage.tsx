@@ -923,6 +923,15 @@ const POSPage = () => {
       if (!opts?.silent) toast.error("⛔ تم إغلاق العهدة من جهاز آخر — لا يمكن إتمام البيع");
       return false;
     }
+    // 🔒 Single-device lock: a second device may have taken over this session.
+    if (sessionClaimState.status === "revoked") {
+      if (!opts?.silent) toast.error("⛔ تم نقل العهدة لجهاز آخر — لا يمكن إتمام البيع من هنا");
+      return false;
+    }
+    if (sessionClaimState.status === "conflict") {
+      if (!opts?.silent) toast.error("⛔ هذه العهدة مفتوحة على جهاز آخر — قرّر النقل أولاً");
+      return false;
+    }
     // Emergency POS access: allow selling while device setup is corrected later.
     return true;
     if (!terminalBranchChecked || !cashBoxBranchChecked) {
