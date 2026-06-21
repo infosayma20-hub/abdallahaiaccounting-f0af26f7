@@ -21,7 +21,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { installAudioUnlock, isAudioUnlocked, playLateOrderAlert } from "@/lib/audio-unlock";
+import { installAudioUnlock, isAudioUnlocked, playLateOrderAlert, stopLateOrderAlert } from "@/lib/audio-unlock";
 import { isBranchAcceptanceDelayed } from "@/lib/dispatch-lock";
 
 interface Options {
@@ -128,6 +128,12 @@ export function useDelayedDispatchAlerts({ enabled, dataOwnerId }: Options) {
       if (shouldBeep) {
         const ok = playLateOrderAlert();
         setAudioReady(ok || isAudioUnlocked());
+      }
+      // If no late orders remain (cancelled / accepted / removed), hard-stop
+      // any in-flight siren so the operator isn't punished with the tail of
+      // a 6-second alarm after the cause is gone.
+      if (lateNow === 0) {
+        stopLateOrderAlert();
       }
     };
     tick();

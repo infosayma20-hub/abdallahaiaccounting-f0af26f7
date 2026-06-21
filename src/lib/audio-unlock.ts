@@ -19,6 +19,11 @@ let ctx: AudioContext | null = null;
 let unlocked = false;
 let unlockListenersInstalled = false;
 let lateAlertPlayingUntil = 0;
+// Track currently-scheduled late-alert audio nodes so we can hard-stop the
+// 6s siren when the underlying late-order condition clears (e.g. the
+// dispatched order was cancelled or accepted before the siren finished).
+let lateAlertNodes: { osc: OscillatorNode; gain: GainNode }[] = [];
+let lateAlertMaster: GainNode | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -152,6 +157,8 @@ export function playLateOrderAlert(): boolean {
     const master = c.createGain();
     master.gain.value = 1.0;
     master.connect(c.destination);
+    lateAlertMaster = master;
+    lateAlertNodes = [];
 
     for (let i = 0; i < blips; i++) {
       const t0 = start + i * blipDuration;
@@ -168,6 +175,7 @@ export function playLateOrderAlert(): boolean {
       osc.connect(gain).connect(master);
       osc.start(t0);
       osc.stop(t0 + blipDuration);
+      lateAlertNodes.push({ osc, gain });
 
       // Add a second oscillator slightly detuned for a harsher beat effect.
       const osc2 = c.createOscillator();
@@ -181,6 +189,7 @@ export function playLateOrderAlert(): boolean {
       osc2.connect(gain2).connect(master);
       osc2.start(t0);
       osc2.stop(t0 + blipDuration);
+      lateAlertNodes.push({ osc: osc2, gain: gain2 });
     }
 
     const totalMs = Math.ceil(blips * blipDuration * 1000);
@@ -189,4 +198,42 @@ export function playLateOrderAlert(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Hard-stop any in-flight late-order siren. Safe to call when nothing is
+ * playing — it just resets internal state. Used by the POS late-dispatch
+ * watcher when the late-orders set drops back to zero (cancel / accept)
+ * so the operator isn't punished with 6s of siren after the cause is gone.
+ */
+export function stopLateOrderAlert(): void {
+  const c = ctx;
+  if (!c) {
+    lateAlertNodes = [];
+    lateAlertMaster = null;
+    lateAlertPlayingUntil = 0;
+    return;
+  }
+  const now = c.currentTime;
+  // Ramp the master down quickly to avoid a click, then disconnect.
+  if (lateAlertMaster) {
+    try {
+      lateAlertMaster.gain.cancelScheduledValues(now);
+      lateAlertMaster.gain.setValueAtTime(lateAlertMaster.gain.value, now);
+      lateAlertMaster.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+    } catch { /* noop */ }
+  }
+  for (const { osc, gain } of lateAlertNodes) {
+    try { gain.gain.cancelScheduledValues(now); } catch { /* noop */ }
+    try { gain.gain.setValueAtTime(0.0001, now); } catch { /* noop */ }
+    try { osc.stop(now + 0.06); } catch { /* noop */ }
+  }
+  // Disconnect the master a beat after the ramp so the fade-out is audible.
+  const masterRef = lateAlertMaster;
+  if (masterRef) {
+    setTimeout(() => { try { masterRef.disconnect(); } catch { /* noop */ } }, 120);
+  }
+  lateAlertNodes = [];
+  lateAlertMaster = null;
+  lateAlertPlayingUntil = 0;
 }
