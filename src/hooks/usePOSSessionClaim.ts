@@ -38,19 +38,19 @@ export function usePOSSessionClaim(sessionId: string | null | undefined) {
 
   const doClaim = useCallback(async (id: string, force: boolean) => {
     setState({ status: "claiming" });
-    const r: ClaimResult = await claimPOSSession(id, { force });
-    if (r.ok) {
+    const r = await claimPOSSession(id, { force }) as any;
+    if (r?.ok) {
       transientFailRef.current = 0;
       setState({ status: "owned" });
       return true;
     }
-    if (r.error === "session_held_by_other_device") {
-      setState({ status: "conflict", otherLastSeen: (r as any).last_seen ?? null });
+    if (r?.error === "session_held_by_other_device") {
+      setState({ status: "conflict", otherLastSeen: r.last_seen ?? null });
       return false;
     }
     // Unrelated error (e.g. session_not_open) — treat as revoked so the page
     // falls back to its existing closed-session UI.
-    setState({ status: "revoked", reason: r.error as any });
+    setState({ status: "revoked", reason: (r?.error ?? "unknown") as any });
     return false;
   }, []);
 
