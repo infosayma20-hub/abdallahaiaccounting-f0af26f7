@@ -12703,6 +12703,7 @@ export type Database = {
           email: string | null
           employee_id: string | null
           has_account: boolean | null
+          hide_employee_workspace: boolean
           id: string
           is_active: boolean
           is_call_center: boolean | null
@@ -12728,6 +12729,7 @@ export type Database = {
           email?: string | null
           employee_id?: string | null
           has_account?: boolean | null
+          hide_employee_workspace?: boolean
           id?: string
           is_active?: boolean
           is_call_center?: boolean | null
@@ -12753,6 +12755,7 @@ export type Database = {
           email?: string | null
           employee_id?: string | null
           has_account?: boolean | null
+          hide_employee_workspace?: boolean
           id?: string
           is_active?: boolean
           is_call_center?: boolean | null

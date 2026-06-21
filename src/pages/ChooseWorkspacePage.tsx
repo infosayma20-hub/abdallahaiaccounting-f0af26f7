@@ -36,7 +36,7 @@ export default function ChooseWorkspacePage() {
       try {
         const [{ data: rolesData }, { data: posUser }, { data: empRow }] = await Promise.all([
           supabase.from("user_roles").select("role").eq("user_id", user.id),
-          supabase.from("pos_users").select("is_call_center").eq("auth_user_id", user.id).maybeSingle(),
+          supabase.from("pos_users").select("is_call_center, hide_employee_workspace").eq("auth_user_id", user.id).maybeSingle(),
           supabase
             .from("employees")
             .select("id, is_active, is_terminated")
@@ -44,12 +44,22 @@ export default function ChooseWorkspacePage() {
             .maybeSingle(),
         ]);
         const roles = (rolesData || []).map((r) => String(r.role));
-        const linkedPosUser = posUser as { is_call_center?: boolean | null } | null;
+        const linkedPosUser = posUser as { is_call_center?: boolean | null; hide_employee_workspace?: boolean | null } | null;
         const linkedEmployee = empRow as { is_active?: boolean | null; is_terminated?: boolean | null } | null;
         setHasRep(roles.includes("sales_rep"));
         setHasCashier(roles.includes("cashier") || !!posUser);
         setIsCallCenter(!!linkedPosUser && !!linkedPosUser.is_call_center);
-        setHasEmployee(!!linkedEmployee && !!linkedEmployee.is_active && !linkedEmployee.is_terminated);
+        // Shared call-center company accounts (e.g. dial1@malaky.com) opt out
+        // of the Employee workspace via `pos_users.hide_employee_workspace`.
+        // Individual employees who happen to also have call-center permission
+        // are unaffected — this flag is set per pos_users row, not per role.
+        const hideEmployee = !!linkedPosUser && !!linkedPosUser.hide_employee_workspace;
+        setHasEmployee(
+          !hideEmployee &&
+          !!linkedEmployee &&
+          !!linkedEmployee.is_active &&
+          !linkedEmployee.is_terminated,
+        );
       } catch (err) {
         // Never leave the chooser blank — render the page so the user can
         // at least sign out or pick a workspace manually.
