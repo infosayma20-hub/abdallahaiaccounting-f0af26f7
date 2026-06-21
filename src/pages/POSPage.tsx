@@ -8008,6 +8008,26 @@ const POSPage = () => {
           }
         }}
       />
+
+      {/* ── Single-device claim conflict ── */}
+      {/* Pops when this device tries to use a session another device is */}
+      {/* still heart-beating. Take-over flips the other device to revoked. */}
+      <SessionTakeoverDialog
+        open={sessionConflict && !!session}
+        otherLastSeen={sessionClaimState.status === "conflict" ? sessionClaimState.otherLastSeen : null}
+        onTakeover={async () => {
+          const ok = await forceClaimSession();
+          if (!ok) {
+            toast.error("تعذّر نقل العهدة — حاول مرة أخرى");
+          } else {
+            toast.success("تم نقل العهدة لهذا الجهاز");
+          }
+        }}
+        onCancel={() => {
+          if (isAdmin) navigate("/apps", { replace: true });
+          else navigate("/employee", { replace: true });
+        }}
+      />
     </div>
   );
 };
