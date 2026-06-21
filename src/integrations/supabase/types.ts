@@ -1749,6 +1749,7 @@ export type Database = {
       }
       cash_boxes: {
         Row: {
+          active_session_id: string | null
           auto_transfer_threshold: number | null
           auto_transfer_to_main: boolean | null
           auto_transfer_trigger: string | null
@@ -1759,6 +1760,7 @@ export type Database = {
           gl_account_code: string | null
           id: string
           is_active: boolean | null
+          locked_by_device_id: string | null
           max_balance_action: string | null
           max_balance_alert: number | null
           min_balance_alert: number | null
@@ -1775,6 +1777,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_session_id?: string | null
           auto_transfer_threshold?: number | null
           auto_transfer_to_main?: boolean | null
           auto_transfer_trigger?: string | null
@@ -1785,6 +1788,7 @@ export type Database = {
           gl_account_code?: string | null
           id?: string
           is_active?: boolean | null
+          locked_by_device_id?: string | null
           max_balance_action?: string | null
           max_balance_alert?: number | null
           min_balance_alert?: number | null
@@ -1801,6 +1805,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_session_id?: string | null
           auto_transfer_threshold?: number | null
           auto_transfer_to_main?: boolean | null
           auto_transfer_trigger?: string | null
@@ -1811,6 +1816,7 @@ export type Database = {
           gl_account_code?: string | null
           id?: string
           is_active?: boolean | null
+          locked_by_device_id?: string | null
           max_balance_action?: string | null
           max_balance_alert?: number | null
           min_balance_alert?: number | null
@@ -11912,6 +11918,13 @@ export type Database = {
             foreignKeyName: "pos_orders_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "pos_orders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
             referencedRelation: "pos_sessions"
             referencedColumns: ["id"]
           },
@@ -11921,6 +11934,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "restaurant_tables"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_transferred_from_session_id_fkey"
+            columns: ["transferred_from_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "pos_orders_transferred_from_session_id_fkey"
@@ -19431,6 +19451,38 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_session_conflicts: {
+        Row: {
+          cashier_auth_user_id: string | null
+          cashier_name: string | null
+          closed_at: string | null
+          company_id: string | null
+          device_claim_count: number | null
+          force_claim_count: number | null
+          last_force_at: string | null
+          opened_at: string | null
+          session_id: string | null
+          state: string | null
+          terminal_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
             referencedColumns: ["id"]
           },
         ]
