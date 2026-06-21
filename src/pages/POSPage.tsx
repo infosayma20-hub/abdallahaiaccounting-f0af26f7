@@ -64,6 +64,9 @@ import { loadMuteChecker } from "@/hooks/usePrintMuteRules";
 import { getCanSell } from "@/lib/pos-device-auth";
 import { usePOSShiftWatcher } from "@/hooks/usePOSShiftWatcher";
 import { ShiftClosedElsewhereDialog } from "@/components/pos/ShiftClosedElsewhereDialog";
+import { SessionTakeoverDialog } from "@/components/pos/SessionTakeoverDialog";
+import { usePOSSessionClaim } from "@/hooks/usePOSSessionClaim";
+import { incrementSessionTotals } from "@/lib/pos-session-claim";
 import { saveBlockedCart, loadBlockedCart, clearBlockedCart } from "@/lib/pos-blocked-cart-draft";
 import { checkBridgeStatus } from "@/lib/print-bridge-client";
 import {
@@ -864,6 +867,27 @@ const POSPage = () => {
   );
   const { closedFromElsewhere: shiftClosedElsewhere, closedAt: shiftClosedAt } =
     usePOSShiftWatcher(session?.id ?? null, isSelfClosed);
+  // 🔒 Single-device claim: prevents two devices sharing the same open session.
+  // - On a fresh open session we soft-claim; if another device is live, the
+  //   SessionTakeoverDialog asks the cashier to take over (or cancel).
+  // - Heartbeat runs every 15s; if a different device claims it, our state
+  //   flips to "revoked" and we re-use the existing closed-elsewhere flow
+  //   (cart auto-saved, view-only, sign out / open new shift).
+  const { state: sessionClaimState, forceClaim: forceClaimSession, retryClaim: retrySessionClaim } =
+    usePOSSessionClaim(session?.id ?? null);
+  const sessionRevokedFromElsewhere = sessionClaimState.status === "revoked";
+  const sessionConflict = sessionClaimState.status === "conflict";
+  // Treat a "revoked" heartbeat as the same blocking condition as a closed
+  // shift — same UI, same cart preservation, same recovery path.
+  useEffect(() => {
+    if (sessionRevokedFromElsewhere && session) {
+      saveBlockedCart(company?.id ?? null, userId ?? null, session.id, orders);
+      toast.error("⛔ تم نقل العهدة لجهاز آخر — توقف البيع على هذا الجهاز");
+    }
+    // We deliberately omit `orders` from deps: we want to snapshot at the
+    // moment of revoke, not re-save on every cart mutation afterward.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionRevokedFromElsewhere]);
   const shiftClosedElsewhereRef = useRef(false);
   useEffect(() => {
     shiftClosedElsewhereRef.current = shiftClosedElsewhere;
@@ -899,6 +923,15 @@ const POSPage = () => {
       if (!opts?.silent) toast.error("⛔ تم إغلاق العهدة من جهاز آخر — لا يمكن إتمام البيع");
       return false;
     }
+    // 🔒 Single-device lock: a second device may have taken over this session.
+    if (sessionClaimState.status === "revoked") {
+      if (!opts?.silent) toast.error("⛔ تم نقل العهدة لجهاز آخر — لا يمكن إتمام البيع من هنا");
+      return false;
+    }
+    if (sessionClaimState.status === "conflict") {
+      if (!opts?.silent) toast.error("⛔ هذه العهدة مفتوحة على جهاز آخر — قرّر النقل أولاً");
+      return false;
+    }
     // Emergency POS access: allow selling while device setup is corrected later.
     return true;
     if (!terminalBranchChecked || !cashBoxBranchChecked) {
@@ -911,7 +944,7 @@ const POSPage = () => {
       return false;
     }
     return true;
-  }, [terminalBranchChecked, cashBoxBranchChecked, terminalBranchId, cashBoxBranchId]);
+  }, [terminalBranchChecked, cashBoxBranchChecked, terminalBranchId, cashBoxBranchId, sessionClaimState.status]);
 
   const openPaymentModal = useCallback(() => {
     if (!enforceDeviceGuard()) return;
@@ -3831,9 +3864,12 @@ const POSPage = () => {
           .eq("id", activeOrder.tableId);
       }
 
-      const newTotalSales = (session?.total_sales || 0) + effectiveTotal;
-      const newTotalOrders = (session?.total_orders || 0) + 1;
-
+      // 🔒 Atomic delta — replaces the previous read-modify-write that caused
+      // Lost Updates when the same cashier was open on two devices. The RPC
+      // returns the authoritative totals post-increment.
+      const updated = await incrementSessionTotals(session.id, effectiveTotal, 1);
+      const newTotalSales = updated?.total_sales ?? ((session?.total_sales || 0) + effectiveTotal);
+      const newTotalOrders = updated?.total_orders ?? ((session?.total_orders || 0) + 1);
       setSession((prev) =>
         prev
           ? {
@@ -3843,15 +3879,6 @@ const POSPage = () => {
             }
           : null
       );
-
-      // Persist totals to DB
-      await supabase
-        .from("pos_sessions")
-        .update({
-          total_sales: newTotalSales,
-          total_orders: newTotalOrders,
-        })
-        .eq("id", session.id);
 
       // Record employee account movement
       if (effectivePaymentMethod === "employee_account" && selectedEmployee) {
@@ -7961,7 +7988,7 @@ const POSPage = () => {
       {/* Pops the moment Realtime reports the session was closed from another */}
       {/* device. Cart stays untouched; cashier can open a new shift or sign out. */}
       <ShiftClosedElsewhereDialog
-        open={shiftClosedElsewhere && !!session}
+        open={(shiftClosedElsewhere || sessionRevokedFromElsewhere) && !!session}
         closedAt={shiftClosedAt}
         signOutLabel={isAdmin ? "العودة لشاشة التطبيقات" : "العودة لشاشة الموظف"}
         onOpenNewShift={() => {
@@ -7979,6 +8006,26 @@ const POSPage = () => {
             // الكاشير يرجع لشاشة الموظف بدون تسجيل خروج.
             navigate("/employee", { replace: true });
           }
+        }}
+      />
+
+      {/* ── Single-device claim conflict ── */}
+      {/* Pops when this device tries to use a session another device is */}
+      {/* still heart-beating. Take-over flips the other device to revoked. */}
+      <SessionTakeoverDialog
+        open={sessionConflict && !!session}
+        otherLastSeen={sessionClaimState.status === "conflict" ? sessionClaimState.otherLastSeen : null}
+        onTakeover={async () => {
+          const ok = await forceClaimSession();
+          if (!ok) {
+            toast.error("تعذّر نقل العهدة — حاول مرة أخرى");
+          } else {
+            toast.success("تم نقل العهدة لهذا الجهاز");
+          }
+        }}
+        onCancel={() => {
+          if (isAdmin) navigate("/apps", { replace: true });
+          else navigate("/employee", { replace: true });
         }}
       />
     </div>
