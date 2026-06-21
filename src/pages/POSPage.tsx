@@ -7988,7 +7988,7 @@ const POSPage = () => {
       {/* Pops the moment Realtime reports the session was closed from another */}
       {/* device. Cart stays untouched; cashier can open a new shift or sign out. */}
       <ShiftClosedElsewhereDialog
-        open={shiftClosedElsewhere && !!session}
+        open={(shiftClosedElsewhere || sessionRevokedFromElsewhere) && !!session}
         closedAt={shiftClosedAt}
         signOutLabel={isAdmin ? "العودة لشاشة التطبيقات" : "العودة لشاشة الموظف"}
         onOpenNewShift={() => {
