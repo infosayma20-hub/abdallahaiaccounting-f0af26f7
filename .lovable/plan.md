@@ -1,133 +1,117 @@
+## خطة شاملة: منع ومعالجة جلسات الكاشير المتزامنة على نفس الحساب
 
-# خطة معالجة ميزة "خصم وجبات الموظفين" — Malaky
-
-النطاق: حساب `malakybroast@gmail.com` فقط (`dataOwnerId = 0b08eba6-…`). جميع التغييرات backward-compatible للمستأجرين الآخرين.
-
----
-
-## المرحلة 1 — حماية البيانات وسلامة الرواتب (عاجل)
-
-### 1.1 Migration — تمييز نوع الخصم وحماية الحركات
-- إضافة عمود `meal_discount_type TEXT` على `employee_financial_movements` بقيم `'family' | 'individual' | NULL` (NULL = حركات قديمة أو غير-وجبة)
-- إضافة عمود `original_full_amount NUMERIC(10,2)` لحفظ مبلغ الفاتورة الكامل قبل الخصم (للتمييز عن `amount` المخصوم)
-- إضافة عمود `meal_discount_pct SMALLINT` (10 أو 50)
-- Index: `(employee_id, salary_year, salary_month, meal_discount_type)` لتسريع التقارير الشهرية
-- إضافة flag `meal_discount_mode TEXT DEFAULT 'single'` على `payroll_settings` (قيم: `'single' | 'dual'`)
-- ضبط `dual` للملكي فقط عبر insert منفصل
-- Trigger `guard_pos_meal_edit`: يمنع UPDATE/DELETE على صفوف `source_type='pos_meal'` إلا لمن لديه دور `admin` أو `hr_manager`
-
-### 1.2 إعادة قراءة Flag من DB بدل hard-code
-- حذف ثابت `MALAKY_OWNER_ID` من `POSPage.tsx`
-- تحميل `meal_discount_mode` من `payroll_settings` عند فتح POS، تخزينه بـ state
-- إظهار البطاقتين فقط عندما `meal_discount_mode === 'dual'`
-
-### 1.3 إجبار الاختيار قبل التأكيد
-- تغيير الـ state الافتراضي لـ `mealDiscountType` إلى `null`
-- منع زر "تأكيد الدفع" عندما `paymentMethod === 'employee_account'` و `mode === 'dual'` بدون اختيار
-- toast واضح: "الرجاء اختيار نوع الخصم (عائلي/فردي)"
-
-### 1.4 تخزين البيانات الكاملة في الحركة
-- عند insert في `employee_financial_movements`:
-  - `amount` = المخصوم الفعلي (كما هو الآن — لتوافق الحسابات الحالية)
-  - `original_full_amount` = إجمالي الفاتورة
-  - `meal_discount_type` = `'family'` أو `'individual'`
-  - `meal_discount_pct` = 10 أو 50
-- تنظيف `description`/`notes` لتبقى للقراءة فقط (المنطق يعتمد على الأعمدة المنظمة)
+### المشكلة
+نفس حساب الكاشير (pos_users) إذا فُتح على جهازين بنفس الوقت → الإثنين بيشتغلوا على نفس `pos_session` المفتوحة، وبيصير:
+- **Lost Update** على `total_sales`/`total_orders` → فرق صندوق وهمي عند الإغلاق
+- إذا أغلق جهاز العهدة، جهاز ثاني عنده طلبات Offline في الـ IndexedDB → بتروح Quarantine
+- صندوق النقدية (`cash_boxes`) بدون أي قفل → حركات نقدية متزامنة بدون رقابة
+- `pos_user_device_access` موجود بالـ DB بس مش مفعّل بالكود
+- الـ Heartbeat معطّل بالكامل في `POSDeviceAuthGuard`
 
 ---
 
-## المرحلة 2 — منع الخصم المزدوج وشفافية POS
+### المبدأ الحاكم
+**جلسة كاشير واحدة نشطة على جهاز واحد فقط لكل `pos_user`.** أي محاولة فتح ثانية لازم:
+1. تُمنع تلقائياً، أو
+2. تطلب من المستخدم "نقل الجلسة لهذا الجهاز" (مع إخراج الجهاز الأول بشكل آمن).
 
-### 2.1 تحذير صريح في صفحة إدخال الرواتب الشهرية
-- في `MonthlyPayrollInputPage` للموظفين التابعين لمستأجر `dual` فقط:
-  - شريط أصفر أعلى الجدول: "⚠️ حركات POS مسجّلة كمبالغ بعد الخصم. لا تُدخلها مرة أخرى في خانات أكل جماعي/فردي"
-  - زر "اعرض حركات POS الشهرية" يفتح modal بتفصيل family/individual للموظف الحالي
-
-### 2.2 ملخص خصم مرئي في POS قبل التأكيد
-- داخل بطاقة الموظف في شريط الدفع، تحت أزرار الخصم:
-  - "إجمالي الفاتورة: ₪X"
-  - "سيُخصم من حسابك: ₪Y (Z%)"
-  - "تتحمّل الشركة: ₪(X-Y)"
-- نفس البيانات تظهر على إيصال المطبخ كملاحظة صغيرة (لا تظهر على إيصال الزبون)
-
-### 2.3 سقف شهري وحد تنبيه
-- حقول جديدة على `payroll_settings`:
-  - `meal_monthly_cap_family NUMERIC(10,2) DEFAULT 0` (0 = بلا حد)
-  - `meal_monthly_cap_individual NUMERIC(10,2) DEFAULT 0`
-  - `meal_monthly_warn_at_pct SMALLINT DEFAULT 80`
-- قبل التأكيد: query إجمالي خصم الموظف للشهر الحالي بنفس النوع
-- لو > warn_at: toast تحذيري + تأكيد إضافي
-- لو > cap: منع كامل مع رسالة "تجاوز السقف الشهري للموظف"
-
-### 2.4 سجل تدقيق صريح للقرار
-- إضافة الكاشير في `notes` بصيغة منظمة: `cashier_decision: {pos_user_id}/{cashier_name}`
-- (لا يحتاج جدول جديد — `created_by` + `notes` كافيان للمراجعة)
+نفس المبدأ بنطبّقه على مستويين: **قاعدة البيانات** (الحقيقة المطلقة) + **الواجهة** (تجربة سلسة).
 
 ---
 
-## المرحلة 3 — التكامل المحاسبي والتقارير
+### المراحل
 
-### 3.1 قيد محاسبي تلقائي اختياري
-- خانة جديدة في إعدادات الرواتب: `auto_journal_for_meals BOOLEAN DEFAULT false`
-- عند تفعيلها (للملكي): RPC `create_meal_journal_entry(movement_id)` تُستدعى مباشرة بعد insert الحركة
-- القيد:
-  - مدين: حساب "تكلفة وجبات الموظفين" (5400 أو ما يقابله — قابل للتعديل في الإعدادات)
-  - دائن: حساب فرعي للموظف تحت 1130 (ذمم موظفين) بقيمة الخصم الفعلي
-  - مدين: حساب "مصاريف رفاهية موظفين" بحصة الشركة (الفرق)
-- نخزّن `journal_entry_id` على الحركة لربط ثنائي الاتجاه
+#### المرحلة 1 — تحصين قاعدة البيانات (الأساس)
+**1.1 ربط الجلسة بجهاز واحد (DB-level lock)**
+- التأكيد على `pos_sessions_one_open_per_cashier` (موجود) — يمنع جلستين مفتوحتين لنفس `cashier_auth_user_id`.
+- إضافة عمود `active_device_id` و`active_device_fingerprint` و`last_heartbeat_at` على `pos_sessions`.
+- منع تعديل `total_sales/total_orders` مباشرة من العميل: تحويلها لـ RPC `increment_pos_session_totals(session_id, sales_delta, orders_delta)` (atomic UPDATE) → يحل مشكلة Lost Update جذرياً.
 
-### 3.2 صفحة "خصومات الوجبات" داخل ملف الموظف
-- تبويب جديد في `useEmployee360`: "وجبات POS"
-- يعرض:
-  - رسم بياني شهري للمبالغ المخصومة (مفصول family/individual بألوان)
-  - جدول كل الحركات مع: التاريخ، رقم الفاتورة، الكاشير، النوع، الإجمالي، المخصوم
-  - مجاميع شهرية وسنوية
-  - زر تصدير CSV/PDF
+**1.2 RPC جديدة `claim_pos_session(session_id, device_id, fingerprint)`**
+- تتحقق إذا الجلسة مفتوحة على جهاز ثاني نشط خلال آخر 60 ثانية.
+- إذا نعم → ترجع `{conflict: true, other_device, last_seen}`.
+- إذا لا → تحجز الجلسة لهذا الجهاز (UPDATE atomic مع `WHERE active_device_id IS NULL OR last_heartbeat_at < now() - interval '60s'`).
 
-### 3.3 إشعار push معزّز للموظف
-- تحسين `notify-employee-meal` ليعرض الرصيد الشهري المتراكم:
-  > 🍽️ خصم عائلي • ₪9.00
-  > فاتورة #POS-0001 • نسبتك: 10%
-  > إجمالي وجباتك هذا الشهر: ₪47.50
+**1.3 RPC `heartbeat_pos_session(session_id, device_id)`**
+- تحدّث `last_heartbeat_at` كل 15 ثانية فقط للجهاز المالك.
+- إذا الجهاز مش المالك → ترجع `revoked: true` → الواجهة تحوّل لـ View-Only فوراً.
 
-### 3.4 لوحة مراقبة للإدارة (الملكي)
-- صفحة `/hr/meal-deductions` تعرض:
-  - مجموع خصومات الوجبات اليومي/الشهري لكل فرع
-  - أعلى 10 موظفين خصماً
-  - تنبيه عند تجاوز أي موظف 80% من سقفه
+**1.4 تفعيل `pos_user_device_access` على مستوى DB**
+- Trigger على `pos_sessions INSERT`: يرفض إذا الـ pos_user مقيّد بأجهزة معينة والجهاز الحالي مش منهم.
+
+**1.5 حماية الصندوق `cash_boxes`**
+- إضافة `current_session_id` + `locked_by_device_id` + trigger يمنع حركات نقدية من جهاز غير المالك للجلسة الحالية.
+
+#### المرحلة 2 — تحصين الواجهة
+**2.1 Fingerprint للجهاز**
+- توليد `device_fingerprint` ثابت لكل متصفح/جهاز (مخزّن في localStorage + مرتبط بـ Print Bridge MAC إذا متاح).
+
+**2.2 إعادة تفعيل Heartbeat بشكل آمن في `POSDeviceAuthGuard`**
+- استدعاء `heartbeat_pos_session` كل 15s.
+- لو رجع `revoked` → عرض Dialog "تم نقل الجلسة لجهاز آخر" + تحويل View-Only + حفظ السلة في `pos-blocked-cart-draft` (موجودة).
+
+**2.3 سلوك تسجيل الدخول الذكي**
+- عند فتح الـ POS وإيجاد جلسة مفتوحة على جهاز آخر نشط:
+  - عرض Dialog: **"الجلسة مفتوحة على جهاز [اسم الجهاز] منذ [الوقت]. هل تريد نقلها لهذا الجهاز؟"**
+  - زر "نقل الجلسة" → يستدعي `claim_pos_session` بـ `force=true` → الجهاز القديم يستلم Revoked فوراً عبر heartbeat.
+  - زر "إلغاء" → يرجع لشاشة اختيار الموظف.
+
+**2.4 إصلاح تحديث `total_sales`/`total_orders`**
+- استبدال كل `UPDATE pos_sessions SET total_sales = X` بنداء `increment_pos_session_totals` (لمنع Lost Update حتى لو نجح أحد بفتح جلستين بشكل ما).
+
+**2.5 حماية الـ Offline Queue**
+- في `sync_offline_pos_sale`: التحقق من أن الجلسة المرجعية ما زالت `open`. إذا مغلقة → الطلب يدخل Quarantine مع رسالة واضحة + خيار "إعادة الإسناد لجلسة جديدة".
+
+#### المرحلة 3 — الكشف عن الانتهاكات التاريخية
+**3.1 تقرير Super Admin: "الجلسات المتعارضة"**
+- صفحة جديدة تعرض الجلسات اللي صار عليها نشاط من أكثر من Device fingerprint (تحليل `pos_audit_log`).
+- إنذار للشركات اللي عندها هاد النمط بكثرة.
+
+**3.2 Audit جديد**
+- كل `claim_pos_session` مع `force=true` يُسجّل في `pos_sensitive_actions_log`.
+
+#### المرحلة 4 — توعية المستخدم (UX)
+- في Dialog نقل الجلسة، رسالة واضحة بالعربية:
+  > "تم اكتشاف أن نفس حساب الكاشير مفتوح على جهاز آخر. لحماية أرصدة الصندوق، يُسمح بجهاز واحد فقط في كل وقت. الموصى به: إنشاء حساب منفصل لكل كاشير من إعدادات نقاط البيع."
+- زر مباشر "إنشاء حساب كاشير جديد" (للأدمن فقط).
 
 ---
 
-## ترتيب التنفيذ
-
-1. ✅ المرحلة 1 — Migrations + POS gating + حماية التعديل (مكتملة)
-2. ✅ المرحلة 2 — شفافية البيانات + السقوف + شريط تحذير صفحة الرواتب (مكتملة)
-3. ✅ المرحلة 3 — تبويب "وجبات POS" داخل ملف الموظف + إشعار push معزّز بالإجمالي الشهري + تفعيل قيد محاسبي اختياري (إعدادات DB جاهزة، توليد القيد التلقائي قابل للتفعيل عند ربط أرقام الحسابات)
+### الجدول الزمني المقترح (تنفيذ متدرّج)
+| Phase | الزمن | الأثر | المخاطرة |
+|---|---|---|---|
+| 1.1 + 2.4 (Lost Update fix) | فوري | يحل أخطر مشكلة (فرق الصندوق) | منخفضة جداً |
+| 1.2 + 1.3 + 2.1 + 2.2 + 2.3 (Device claim + Heartbeat) | المرحلة الثانية | يمنع التشغيل المتزامن نهائياً | متوسطة — يتطلب اختبار جيد للـ Bridge dropouts |
+| 1.4 + 1.5 (DB Triggers) | المرحلة الثالثة | حماية شاملة حتى من العملاء القدامى | منخفضة |
+| 2.5 + المرحلة 3 (Offline + Audit) | المرحلة الرابعة | تنظيف وكشف | منخفضة |
 
 ---
 
-## ملاحظات تقنية
+### معايير القبول
+- ✅ مستحيل تقنياً وجود جلستين نشطتين لنفس `cashier_auth_user_id`.
+- ✅ `total_sales` و`total_orders` دقيقة 100% حتى تحت ضغط متزامن (اختبار بـ pgbench).
+- ✅ Bridge Dropout لا يطرد الكاشير (الـ heartbeat يميّز بين "جهاز ثاني سرق الجلسة" و"شبكة سيئة").
+- ✅ الطلبات Offline ما تروح Quarantine بسبب إغلاق جلسة من جهاز ثاني (يتم إعادة إسنادها).
+- ✅ كل محاولة نقل جلسة مسجّلة في Audit Log.
 
-**Migration واحدة شاملة للمرحلة 1:**
-```sql
-ALTER TABLE employee_financial_movements
-  ADD COLUMN meal_discount_type TEXT
-    CHECK (meal_discount_type IN ('family','individual') OR meal_discount_type IS NULL),
-  ADD COLUMN original_full_amount NUMERIC(10,2),
-  ADD COLUMN meal_discount_pct SMALLINT;
+---
 
-CREATE INDEX idx_efm_meal_monthly
-  ON employee_financial_movements(employee_id, salary_year, salary_month, meal_discount_type)
-  WHERE source_type = 'pos_meal';
+### المخاطر والتخفيف
+| المخاطرة | التخفيف |
+|---|---|
+| Bridge بطيء يسبب revoke خاطئ | tolerance: 3 heartbeats متتالية فاشلة قبل revoke (45s) |
+| العميل بدّل الكمبيوتر فعلاً ومحتاج ينقل بسرعة | زر "نقل الجلسة" واضح ومباشر بـ click واحد |
+| Lost Updates تاريخية | سكريبت تصحيح once-off يعيد حساب `total_sales` من `pos_orders` لكل جلسة مغلقة |
+| كسر الـ Offline Mode | الـ RPC الجديدة `sync_offline_pos_sale` تتعامل مع الحالة |
 
-ALTER TABLE payroll_settings
-  ADD COLUMN meal_discount_mode TEXT NOT NULL DEFAULT 'single'
-    CHECK (meal_discount_mode IN ('single','dual'));
+---
 
--- guard trigger يمنع تعديل/حذف pos_meal من غير المخوّلين
-CREATE OR REPLACE FUNCTION guard_pos_meal_edit() RETURNS TRIGGER ...
-```
+### ما لن يتغيّر (Out of scope)
+- Call Center (مش متأثر — لا عهدة ولا طباعة محلية)
+- منطق الدفع/المحاسبة/الـ GL
+- الـ POS UI الرئيسي (بس Dialogs جديدة)
+- صلاحيات الأدوار (RBAC)
 
-**ضبط الملكي ضمن نفس الخطوة (insert منفصل بعد الموافقة لتجنب فرضه على نسخ remix).**
+---
 
-**Backward compat:** كل المستأجرين الحاليين `meal_discount_mode='single'` افتراضياً → السلوك الحالي يبقى كما هو 100%.
+هل تعتمد الخطة بكامل مراحلها، أو تحب نبدأ بالمرحلة 1.1 + 2.4 فقط (إصلاح Lost Update فوراً) كأول دفعة آمنة؟
