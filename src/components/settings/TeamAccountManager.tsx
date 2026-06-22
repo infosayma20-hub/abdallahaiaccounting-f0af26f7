@@ -24,12 +24,19 @@ const ACCOUNTANT_PERMS = [
     { key: "can_create_journal", label: "إنشاء قيود يومية" },
     { key: "can_edit_vouchers", label: "تعديل السندات" },
     { key: "can_delete_vouchers", label: "حذف/إلغاء السندات" },
+    { key: "can_create_credit_note", label: "إنشاء إشعار دائن" },
+    { key: "can_create_debit_note", label: "إنشاء إشعار مدين" },
+    { key: "can_create_reverse_entry", label: "إنشاء قيد عكسي (IFRS)" },
   ]},
   { group: "الفواتير", items: [
     { key: "can_create_sale_invoice", label: "إنشاء فواتير مبيعات" },
     { key: "can_create_purchase_invoice", label: "إنشاء فواتير مشتريات" },
     { key: "can_edit_invoices", label: "تعديل الفواتير" },
     { key: "can_delete_invoices", label: "حذف/إلغاء الفواتير" },
+    { key: "can_manage_quotations", label: "إدارة عروض الأسعار" },
+    { key: "can_manage_recurring_invoices", label: "إدارة الفواتير المتكررة" },
+    { key: "can_manage_delivery_notes", label: "إدارة إرساليات المبيعات" },
+    { key: "can_process_returns", label: "معالجة المرتجعات" },
   ]},
   { group: "جهات الاتصال", items: [
     { key: "can_manage_customers", label: "إدارة الزبائن" },
@@ -41,24 +48,43 @@ const ACCOUNTANT_PERMS = [
     { key: "can_view_ledger", label: "عرض دفتر الأستاذ" },
     { key: "can_view_trial_balance", label: "عرض ميزان المراجعة" },
     { key: "can_view_account_statement", label: "عرض كشف حساب" },
+    { key: "can_manage_opening_balances", label: "إدارة الأرصدة الافتتاحية" },
+    { key: "can_close_fiscal_period", label: "إغلاق/فتح الفترات المالية" },
+    { key: "can_manage_cost_centers", label: "إدارة مراكز التكلفة" },
+    { key: "can_manage_fixed_assets", label: "إدارة الأصول الثابتة" },
   ]},
   { group: "المنتجات والمخزون", items: [
     { key: "can_manage_products", label: "إدارة المنتجات" },
     { key: "can_manage_inventory", label: "إدارة المخزون" },
+    { key: "can_transfer_stock", label: "نقل المخزون بين المستودعات" },
+    { key: "can_manage_warehouses", label: "إدارة المستودعات" },
+    { key: "can_manage_import_shipments", label: "إدارة الشحنات الواردة (استيراد)" },
   ]},
   { group: "الشيكات والبنوك", items: [
     { key: "can_manage_cheques", label: "إدارة الشيكات" },
     { key: "can_manage_banks", label: "إدارة الحسابات البنكية" },
     { key: "can_manage_cash_boxes", label: "إدارة الصناديق" },
+    { key: "can_transfer_cash", label: "التحويلات النقدية بين الصناديق/البنوك" },
+    { key: "can_endorse_cheques", label: "تظهير الشيكات" },
   ]},
   { group: "التقارير", items: [
     { key: "can_view_profit_loss", label: "قائمة الدخل" },
     { key: "can_view_balance_sheet", label: "الميزانية العمومية" },
+    { key: "can_view_cash_flow", label: "قائمة التدفقات النقدية" },
     { key: "can_view_reports", label: "التقارير العامة" },
     { key: "can_export_data", label: "تصدير البيانات" },
   ]},
   { group: "الطلبيات", items: [
     { key: "can_manage_orders", label: "إدارة طلبيات الشراء" },
+  ]},
+  { group: "الضريبة (VAT)", items: [
+    { key: "can_manage_vat", label: "إدارة ضريبة القيمة المضافة" },
+    { key: "can_submit_vat", label: "تقديم إقرار VAT للسلطات" },
+  ]},
+  { group: "العملات والذكاء الاصطناعي", items: [
+    { key: "can_manage_currencies", label: "إدارة العملات" },
+    { key: "can_manage_exchange_rates", label: "إدارة أسعار الصرف" },
+    { key: "can_approve_ai_drafts", label: "اعتماد مسودات حسيب AI" },
   ]},
 ];
 
