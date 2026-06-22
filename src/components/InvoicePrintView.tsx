@@ -44,6 +44,18 @@ interface InvoicePrintViewProps {
   invoice: InvoiceData;
   settings: CompanySettings;
   copyLabel?: string;
+  /** نمط الطباعة: فاتورة (افتراضي) أو إرسالية مبيعات/نقل داخلي */
+  printMode?: "invoice" | "delivery";
+  /** بيانات إضافية تُعرض عند printMode="delivery" */
+  deliveryMeta?: {
+    deliveryType?: "external" | "internal";
+    fromWarehouseName?: string;
+    toWarehouseName?: string;
+    toBranchName?: string;
+    driverName?: string;
+    vehicleNumber?: string;
+    deliveryAddress?: string;
+  };
 }
 
 const fmtDate = (d: string) => {
@@ -73,7 +85,15 @@ const statusLabels: Record<string, string> = {
 
 const LARGE_WIDE_LOGO_OWNER_ID = "6e3d46e2-4b58-4e80-a71e-05661aa8adaf";
 
-const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: InvoicePrintViewProps) => {
+const InvoicePrintView = ({
+  invoice,
+  settings,
+  copyLabel = "أصلية",
+  printMode = "invoice",
+  deliveryMeta,
+}: InvoicePrintViewProps) => {
+  const isDelivery = printMode === "delivery";
+  const isInternalDelivery = isDelivery && deliveryMeta?.deliveryType === "internal";
   const isSales = invoice.type === "sales";
   const today = new Date();
   const fmtToday = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
@@ -96,7 +116,9 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
     return Math.max(base - 4, 9);
   };
 
-  const taxEnabled = settings.vat_enabled ?? true;
+  // للإرساليات: إخفاء كل ما يخص الضريبة والأسعار
+  const taxEnabled = isDelivery ? false : (settings.vat_enabled ?? true);
+  const showPrices = !isDelivery;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
   const displayContactName = (invoice.contactName || "").trim()
     || (invoice.paymentMethod === "cash" ? "عميل نقدي" : "—");
