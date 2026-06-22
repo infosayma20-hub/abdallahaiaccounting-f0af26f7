@@ -7976,7 +7976,13 @@ const POSPage = () => {
         canCreateCategory={isAdmin || posPerms.can_create_expense_category}
         sessionBalance={isAdmin && session ? session.opening_cash + session.total_sales : 0}
       />
-      <SyncLogSheet open={showSyncLog} onOpenChange={setShowSyncLog} />
+      <SyncLogSheet
+        open={showSyncLog}
+        onOpenChange={setShowSyncLog}
+        onSyncNow={offlineMode.syncPendingQueue}
+        isSyncing={offlineMode.isSyncing}
+        isOnline={offlineMode.isOnline}
+      />
       
       {/* Call Center Dispatch Dialog */}
       <CallCenterDispatchDialog
