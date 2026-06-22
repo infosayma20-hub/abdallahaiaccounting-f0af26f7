@@ -533,14 +533,26 @@ export default function InvoiceHistoryDrawer({
   const loadDetail = async (order: InvoiceOrder) => {
     setSelectedOrder(order);
     setLoadingDetail(true);
+    // Clear previous order's data immediately to prevent stale lines from
+    // bleeding into the next invoice (this caused invoice 27 to reprint as 26).
+    setOrderLines([]);
+    setOrderPayments([]);
+    setOrderCurrency("ILS");
     try {
       const [linesRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
         supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency").eq("order_id", order.id),
       ]);
-      setOrderLines((linesRes.data || []) as InvoiceLine[]);
-      setOrderPayments((paymentsRes.data || []) as InvoicePayment[]);
-      setOrderCurrency((paymentsRes.data?.[0] as any)?.currency || "ILS");
+      // Defensive: ensure the lines we got actually belong to this order.
+      const safeLines = ((linesRes.data || []) as InvoiceLine[]).filter(
+        (l: any) => !l.order_id || l.order_id === order.id
+      );
+      const safePayments = ((paymentsRes.data || []) as InvoicePayment[]).filter(
+        (p: any) => !p.order_id || p.order_id === order.id
+      );
+      setOrderLines(safeLines);
+      setOrderPayments(safePayments);
+      setOrderCurrency((safePayments[0] as any)?.currency || "ILS");
     } catch (err) {
       console.error(err);
     } finally {
@@ -1087,13 +1099,23 @@ export default function InvoiceHistoryDrawer({
                         </span>
                       )}
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={e => { e.stopPropagation(); loadDetail(order); }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
-                          style={{ background: "#F1F5F9", color: "#64748B" }}
-                        >
-                          <Eye className="h-3 w-3" /> عرض
-                        </button>
+                        {(!cashierMode || canSeeDetails(order)) ? (
+                          <button
+                            onClick={e => { e.stopPropagation(); loadDetail(order); }}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
+                            style={{ background: "#F1F5F9", color: "#64748B" }}
+                          >
+                            <Eye className="h-3 w-3" /> عرض
+                          </button>
+                        ) : (
+                          <span
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium"
+                            style={{ background: "#F1F5F9", color: "#CBD5E1" }}
+                            title={`انتهت مهلة العرض (${amountVisibleMinutes} دقيقة)`}
+                          >
+                            <Eye className="h-3 w-3" /> مغلق
+                          </span>
+                        )}
                         {!cashierMode && canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
@@ -1350,12 +1372,27 @@ export default function InvoiceHistoryDrawer({
                     <Trash2 className="h-3.5 w-3.5" /> حذف الطلب المعلق
                   </Button>
                 )}
-                {printInvoices && (
+                {printInvoices && (!cashierMode || canSeeDetails(selectedOrder)) && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="gap-1.5 text-xs"
                   onClick={() => {
+                    // Safety: refuse to print if lines don't belong to the
+                    // currently selected order, or if they are still loading.
+                    if (loadingDetail) {
+                      toast.error("جاري تحميل تفاصيل الفاتورة…");
+                      return;
+                    }
+                    if (!orderLines.length) {
+                      toast.error("لا توجد بنود متاحة لهذه الفاتورة");
+                      return;
+                    }
+                    const mismatch = orderLines.some((l: any) => l.order_id && l.order_id !== selectedOrder.id);
+                    if (mismatch) {
+                      toast.error("تعذرت الطباعة: بيانات غير متطابقة. أعد فتح الفاتورة.");
+                      return;
+                    }
                     // Use bridge for silent printing
                     const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---";
                     const bridgeOrder = {
