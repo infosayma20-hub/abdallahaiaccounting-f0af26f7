@@ -8019,6 +8019,7 @@ const POSPage = () => {
         onSyncNow={offlineMode.syncPendingQueue}
         isSyncing={offlineMode.isSyncing}
         isOnline={offlineMode.isOnline}
+        runNetworkTest={offlineMode.runNetworkTest}
       />
       
       {/* Call Center Dispatch Dialog */}
