@@ -200,7 +200,11 @@ const DeliveryNoteCreatePage = () => {
   };
 
   const addItem = () => setItems(prev => [...prev, { product_name: "", quantity: 1, unit: "قطعة", unit_price: 0, total: 0 }]);
-  const removeItem = (index: number) => setItems(prev => prev.length > 1 ? prev.filter((_, i) => i !== index) : prev);
+  const removeItem = (index: number) => setItems(prev => {
+    if (prev.length > 1) return prev.filter((_, i) => i !== index);
+    // إذا كان البند الوحيد: أعِد ضبطه ليكون فارغاً بدلاً من الإبقاء عليه
+    return [{ product_name: "", quantity: 1, unit: "قطعة", unit_price: 0, total: 0 }];
+  });
   const formTotal = useMemo(() => items.reduce((s, i) => s + i.total, 0), [items]);
 
   const validate = (issuing: boolean): string | null => {
