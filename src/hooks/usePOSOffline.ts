@@ -24,6 +24,9 @@ interface UsePOSOfflineOptions {
 
 export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UsePOSOfflineOptions) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [networkQuality, setNetworkQuality] = useState<'stable' | 'verifying' | 'offline'>(
+    navigator.onLine ? 'stable' : 'offline'
+  );
   const [pendingCount, setPendingCount] = useState(0);
   const [quarantinedCount, setQuarantinedCount] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(
@@ -34,25 +37,69 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   const offlineStartRef = useRef<string | null>(null);
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSyncingRef = useRef(false);
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fastRecheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const consecutiveFailsRef = useRef(0);
+  const lastVerifyAtRef = useRef<number>(0);
 
-  // ── Real connectivity check ──
-  const checkConnection = useCallback(async (): Promise<boolean> => {
+  // ── Network log (in-memory + localStorage ring buffer, last 50 events) ──
+  const logNetworkEvent = useCallback((event: {
+    type: 'online' | 'offline' | 'verify_fail' | 'verify_pass' | 'browser_offline' | 'browser_online';
+    detail?: string;
+    sources?: Record<string, boolean>;
+  }) => {
+    try {
+      const key = 'pos_network_log';
+      const raw = localStorage.getItem(key);
+      const arr: any[] = raw ? JSON.parse(raw) : [];
+      arr.push({ ts: new Date().toISOString(), ...event });
+      while (arr.length > 50) arr.shift();
+      localStorage.setItem(key, JSON.stringify(arr));
+    } catch { /* ignore */ }
+  }, []);
+
+  // ── Probe one endpoint with timeout ──
+  const probe = useCallback(async (url: string, timeoutMs = 4000, init?: RequestInit): Promise<boolean> => {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
-        method: 'HEAD',
-        signal: controller.signal,
-        headers: {
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-      });
-      clearTimeout(timeout);
-      return res.ok;
+      const t = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store', ...init });
+      clearTimeout(t);
+      // For no-cors opaque responses (status=0, type='opaque') we still consider it reachable.
+      return res.ok || res.type === 'opaque';
     } catch {
       return false;
     }
   }, []);
+
+  // ── Real multi-source connectivity check (any one passes = online) ──
+  const checkConnection = useCallback(async (): Promise<{ ok: boolean; sources: Record<string, boolean> }> => {
+    lastVerifyAtRef.current = Date.now();
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const apiKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    // Run probes in parallel — first that succeeds is enough but we keep all for logging
+    const [supabaseOk, cloudflareOk, googleOk] = await Promise.all([
+      probe(`${supabaseUrl}/rest/v1/`, 4000, {
+        method: 'HEAD',
+        headers: { apikey: apiKey },
+      }),
+      // Cloudflare trace endpoint — supports CORS, very fast, global anycast
+      probe('https://1.1.1.1/cdn-cgi/trace', 3500, { method: 'GET', mode: 'cors' }),
+      // Google's 204 endpoint — used by Chrome itself for connectivity, no-cors fallback
+      probe('https://www.gstatic.com/generate_204', 3500, { method: 'GET', mode: 'no-cors' }),
+    ]);
+
+    const sources = { supabase: supabaseOk, cloudflare: cloudflareOk, google: googleOk };
+    const ok = supabaseOk || cloudflareOk || googleOk;
+    return { ok, sources };
+  }, [probe]);
+
+  // Wrapper that returns just a boolean (kept for backwards-compatible callers)
+  const checkConnectionBool = useCallback(async (): Promise<boolean> => {
+    const { ok } = await checkConnection();
+    return ok;
+  }, [checkConnection]);
 
   // ── Pre-cache data ──
   const preCacheData = useCallback(async () => {
@@ -270,21 +317,65 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     return sale;
   }, [userId, sessionId, terminalId]);
 
-  // ── Online/Offline listeners ──
-  useEffect(() => {
-    const handleOnline = async () => {
-      const reallyOnline = await checkConnection();
-      if (reallyOnline) {
+  // ── Confirm-then-flip state machine ──
+  // browser fires 'offline' → we do NOT trust it immediately. Instead we
+  // enter 'verifying' state and probe 3 times over ~10s. Only if all 3 fail
+  // do we actually flip to offline. This protects from Wi-Fi flicker / DNS
+  // blips / captive-portal probes that other apps don't even notice.
+  const verifyAndFlip = useCallback(async (reason: string) => {
+    if (verifyTimerRef.current) return; // already verifying
+    setNetworkQuality('verifying');
+    consecutiveFailsRef.current = 0;
+
+    const runProbe = async (attempt: number) => {
+      const { ok, sources } = await checkConnection();
+      if (ok) {
+        consecutiveFailsRef.current = 0;
+        logNetworkEvent({ type: 'verify_pass', detail: `${reason}/attempt-${attempt}`, sources });
+        setNetworkQuality('stable');
         setIsOnline(true);
-        toast.success('تم استعادة الاتصال — جاري المزامنة...', { duration: 3000 });
-        syncPendingQueue();
+        verifyTimerRef.current = null;
+        // If we were previously offline, trigger sync now
+        if (offlineStartRef.current) {
+          toast.success('تم استعادة الاتصال — جاري المزامنة...', { duration: 3000 });
+          syncPendingQueue();
+        }
+        return;
       }
+      consecutiveFailsRef.current++;
+      logNetworkEvent({ type: 'verify_fail', detail: `${reason}/attempt-${attempt}`, sources });
+
+      if (consecutiveFailsRef.current >= 3) {
+        // Confirmed offline
+        verifyTimerRef.current = null;
+        if (isOnline) {
+          offlineStartRef.current = new Date().toISOString();
+          logNetworkEvent({ type: 'offline', detail: reason });
+          toast.warning('⚠️ انقطع الإنترنت فعلياً — النظام يعمل محلياً وسيُزامن تلقائياً', { duration: 5000 });
+        }
+        setIsOnline(false);
+        setNetworkQuality('offline');
+        return;
+      }
+      // schedule next attempt
+      verifyTimerRef.current = setTimeout(() => runProbe(attempt + 1), 3500);
+    };
+
+    runProbe(1);
+  }, [checkConnection, isOnline, logNetworkEvent, syncPendingQueue]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      logNetworkEvent({ type: 'browser_online' });
+      // Browser thinks we're back — verify before celebrating
+      verifyAndFlip('browser_online');
     };
 
     const handleOffline = () => {
-      setIsOnline(false);
-      offlineStartRef.current = new Date().toISOString();
-      toast.warning('⚠️ انقطع الإنترنت — النظام يعمل محلياً وسيُزامن تلقائياً', { duration: 5000 });
+      logNetworkEvent({ type: 'browser_offline' });
+      // DO NOT trust this event blindly. Start verification — other apps
+      // keep working through micro-disconnects, we should too.
+      verifyAndFlip('browser_offline');
     };
 
     window.addEventListener('online', handleOnline);
@@ -293,8 +384,36 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (verifyTimerRef.current) {
+        clearTimeout(verifyTimerRef.current);
+        verifyTimerRef.current = null;
+      }
     };
-  }, [checkConnection, syncPendingQueue]);
+  }, [logNetworkEvent, verifyAndFlip]);
+
+  // ── Fast re-check while offline (every 10s instead of 15min) ──
+  useEffect(() => {
+    if (isOnline) {
+      if (fastRecheckRef.current) {
+        clearInterval(fastRecheckRef.current);
+        fastRecheckRef.current = null;
+      }
+      return;
+    }
+    fastRecheckRef.current = setInterval(async () => {
+      const { ok, sources } = await checkConnection();
+      if (ok) {
+        logNetworkEvent({ type: 'online', detail: 'fast_recheck', sources });
+        setIsOnline(true);
+        setNetworkQuality('stable');
+        toast.success('تم استعادة الاتصال — جاري المزامنة...', { duration: 3000 });
+        syncPendingQueue();
+      }
+    }, 10_000);
+    return () => {
+      if (fastRecheckRef.current) clearInterval(fastRecheckRef.current);
+    };
+  }, [isOnline, checkConnection, logNetworkEvent, syncPendingQueue]);
 
   // ── Periodic sync & pre-cache (every 15 min) ──
   useEffect(() => {
@@ -319,9 +438,10 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       });
 
     syncIntervalRef.current = setInterval(async () => {
-      const online = await checkConnection();
-      setIsOnline(online);
-      if (online) {
+      const { ok } = await checkConnection();
+      setIsOnline(ok);
+      setNetworkQuality(ok ? 'stable' : 'offline');
+      if (ok) {
         await preCacheData();
         await syncPendingQueue();
       }
@@ -334,6 +454,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
 
   return {
     isOnline,
+    networkQuality,
     pendingCount,
     quarantinedCount,
     lastSyncAt,
@@ -342,6 +463,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     createOfflineSale,
     syncPendingQueue,
     preCacheData,
-    checkConnection,
+    checkConnection: checkConnectionBool,
+    checkConnectionDetailed: checkConnection,
   };
 }
