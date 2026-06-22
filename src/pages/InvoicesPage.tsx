@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
+import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
@@ -908,6 +909,7 @@ const InvoicesPage = () => {
       const app = inv?.type === "purchase" ? "purchases" : "sales";
       const feature = inv?.type === "purchase" ? "purchase_invoices" : "invoices";
       try { await assertPermission(app, feature, "delete"); } catch { return; }
+      try { await assertAccountantPermission("can_delete_invoices"); } catch { return; }
 
       // Soft-delete: set status to cancelled — DB trigger will cascade to linked transaction
       const { error } = await supabase.from("invoices").update({ status: "cancelled" } as any).eq("id", id);
