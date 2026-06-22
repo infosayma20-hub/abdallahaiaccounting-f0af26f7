@@ -687,7 +687,7 @@ const DeliveryNoteCreatePage = () => {
                         <TableCell className="text-muted-foreground text-sm">{idx + 1}</TableCell>
                         <TableCell>
                           <Select value={item.product_id || ""} onValueChange={v => selectProduct(idx, v)} disabled={formDisabled}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="اختر المنتج" /></SelectTrigger>
+                            <SelectTrigger className="h-9 text-right" dir="rtl"><SelectValue placeholder="اختر المنتج" /></SelectTrigger>
                             <SelectContent>
                               {products.map(p => (
                                 <SelectItem key={p.id} value={p.id}>
