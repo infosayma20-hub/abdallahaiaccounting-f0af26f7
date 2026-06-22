@@ -483,7 +483,7 @@ const DeliveryNoteCreatePage = () => {
 
     const newGroup = {
       key: "new", label: "جديد", items: [
-        { key: "new", label: "إرسالية جديدة", icon: Plus, variant: "primary" as const,
+        { key: "new", label: "إرسالية مبيعات خارجية جديدة", icon: Plus, variant: "primary" as const,
           onClick: () => navigate("/delivery-notes/new?type=external") },
         { key: "new_int", label: "إرسالية مبيعات داخلية جديدة", icon: Factory,
           onClick: () => navigate("/delivery-notes/new?type=internal") },
