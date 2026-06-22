@@ -673,6 +673,11 @@ function ExpandableMethodRow({
                   </td>
                   <td className="py-1 text-left font-mono tabular-nums">
                     ₪{r.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {r.currency && r.currency !== "ILS" && (
+                      <span className="block text-[10px] text-muted-foreground">
+                        ({r.origAmount} {r.currency} × {r.rate})
+                      </span>
+                    )}
                   </td>
                   <td className="py-1 text-center">
                     <button
