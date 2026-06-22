@@ -3,26 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { clearOnboardingStatusCache } from "@/components/auth/OnboardingGate";
 import { fetchOnboardingStatus } from "@/lib/authRedirect";
 
-const TOTAL_STEPS = 6;
+// ─── 5 خطوات (سابقاً 6؛ تم حذف خطوة "ما هو قطاعك" لأنها كانت مكررة
+// مع "ما طبيعة عملك") ───
+const TOTAL_STEPS = 5;
 
 const businessTypes = [
-  { key: "products", emoji: "🛍️", label: "بيع منتجات", desc: "سلع، بضائع، مواد" },
-  { key: "services", emoji: "🔧", label: "تقديم خدمات", desc: "استشارات، صيانة، خدمات" },
-  { key: "restaurant", emoji: "🍽️", label: "مطعم / كافيه", desc: "طعام ومشروبات" },
-  { key: "construction", emoji: "🏗️", label: "مقاولات وإنشاء", desc: "بناء، ديكور، هندسة" },
-];
-
-const industries = [
-  "تجزئة عامة", "مواد بناء", "ملابس وأزياء", "أغذية ومشروبات",
-  "إلكترونيات", "أثاث ومفروشات", "صيدليات", "طب وصحة",
-  "تعليم وتدريب", "سفر وسياحة", "عقارات", "محاماة ومحاسبة",
-  "تصميم وإبداع", "نقل وشحن", "زراعة", "طاقة ومياه",
-  "تقنية معلومات", "أخرى",
+  { key: "products", label: "بيع منتجات", desc: "سلع، بضائع، مواد" },
+  { key: "services", label: "تقديم خدمات", desc: "استشارات، صيانة، خدمات" },
+  { key: "restaurant", label: "مطعم / كافيه", desc: "طعام ومشروبات" },
+  { key: "construction", label: "مقاولات وإنشاء", desc: "بناء، ديكور، هندسة" },
 ];
 
 const employeeCounts = ["1-5", "6-20", "21-50", "+50"];
@@ -34,10 +28,10 @@ const currencies = [
 ];
 
 const accountingLevels = [
-  { key: "none", emoji: "📚", label: "مبتدئ", desc: "لا خبرة محاسبية" },
-  { key: "basic", emoji: "📊", label: "متوسط", desc: "أعرف الأساسيات" },
-  { key: "intermediate", emoji: "🎓", label: "متقدم", desc: "خبرة جيدة" },
-  { key: "expert", emoji: "👔", label: "محترف", desc: "محاسب أو مدير مالي" },
+  { key: "none", label: "مبتدئ", desc: "لا خبرة محاسبية" },
+  { key: "basic", label: "متوسط", desc: "أعرف الأساسيات" },
+  { key: "intermediate", label: "متقدم", desc: "خبرة جيدة" },
+  { key: "expert", label: "محترف", desc: "محاسب أو مدير مالي" },
 ];
 
 const referralSources = ["جوجل", "وسائل التواصل", "صديق", "إعلان", "أخرى"];
@@ -75,8 +69,6 @@ const OnboardingPage = () => {
   // Form state
   const [companyName, setCompanyName] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [industry, setIndustry] = useState("");
-  const [industrySearch, setIndustrySearch] = useState("");
   const [city, setCity] = useState("");
   const [hasEmployees, setHasEmployees] = useState<boolean | null>(null);
   const [employeeCount, setEmployeeCount] = useState("");
@@ -128,7 +120,6 @@ const OnboardingPage = () => {
 
         if (company.name) setCompanyName(company.name);
         if (profile?.business_type) setSelectedTypes(String(profile.business_type).split(",").filter(Boolean));
-        setIndustry(String(profile?.industry_ar || profile?.industry || ""));
         setCity(String(profile?.city || ""));
         setHasEmployees(typeof profile?.has_employees === "boolean" ? profile.has_employees : null);
         setEmployeeCount(String(profile?.employees_count || ""));
@@ -234,20 +225,17 @@ const OnboardingPage = () => {
     }
     if (step === 2) {
       if (selectedTypes.length === 0) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-      try { await saveProgress({ business_type: selectedTypes.join(",") }, 2); }
+      // نحفظ business_type + city (إن وُجدت) في خطوة واحدة بعد دمج خطوتي
+      // "طبيعة العمل" و"القطاع/المدينة".
+      try { await saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 2); }
       catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
     if (step === 3) {
-      if (!industry.trim()) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-      try { await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3); }
+      try { await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 3); }
       catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
     if (step === 4) {
-      try { await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4); }
-      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
-    }
-    if (step === 5) {
-      try { await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5); }
+      try { await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 4); }
       catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
 
@@ -263,7 +251,7 @@ const OnboardingPage = () => {
     if (finishing) return;
     setFinishing(true);
     try {
-      await saveProgress({ onboarding_completed: true }, 6);
+      await saveProgress({ onboarding_completed: true }, 5);
     } catch (err) {
       console.error("[finishOnboarding] failed:", err);
       toast.error("تعذّر إكمال الإعداد، حاول مرة أخرى");
@@ -359,12 +347,11 @@ const OnboardingPage = () => {
             {/* Step 1: Welcome */}
             {step === 1 && (
               <div className="text-center">
-                <div className="text-5xl mb-4">👋</div>
-                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في AMWALI!</h2>
+                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً بك في AMWALI</h2>
                 <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
-                  لنبدأ بالتعرف على عملك لكي يقدم لك المحاسب الذكي تحليلات مخصصة لك تماماً
+                  لنبدأ بالتعرف على منشأتك حتى نُهيّئ لك بيئة عمل محاسبية مخصّصة
                 </p>
-                <label className="block text-xs text-gray-500 mb-2">اسم الشركة <span className="text-red-500">*</span></label>
+                <label className="block text-xs text-gray-500 mb-2">اسم المنشأة <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={companyName}
@@ -390,69 +377,36 @@ const OnboardingPage = () => {
                         onClick={() => setSelectedTypes(
                           selected ? selectedTypes.filter(t => t !== bt.key) : [...selectedTypes, bt.key]
                         )}
-                        className={`relative p-5 rounded-2xl border-2 text-center transition-all ${
-                          selected ? "border-[#0A2342] bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                        className={`relative p-5 rounded-2xl border-2 text-right transition-all ${
+                          selected ? "border-[#0A2342] bg-[#F5F8FB]" : "border-gray-200 hover:border-gray-300"
                         }`}
                       >
                         {selected && <Check className="absolute top-3 left-3 h-5 w-5 text-[#0A2342]" />}
-                        <div className="text-3xl mb-2">{bt.emoji}</div>
-                        <p className="font-bold text-[#0A2342] text-sm">{bt.label}</p>
-                        <p className="text-xs text-gray-400 mt-1">{bt.desc}</p>
+                        <p className="font-bold text-[#0A2342] text-sm mb-1">{bt.label}</p>
+                        <p className="text-xs text-gray-500 leading-relaxed">{bt.desc}</p>
                       </button>
                     );
                   })}
                 </div>
                 <p className="text-[11px] text-gray-400 text-center mt-4">اختيار واحد على الأقل مطلوب للمتابعة</p>
-              </div>
-            )}
 
-            {/* Step 3: Industry */}
-            {step === 3 && (
-              <div>
-                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">ما هو قطاعك بالتحديد؟ <span className="text-red-500">*</span></h2>
-                <div className="relative mb-4">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <label className="block text-sm font-bold text-[#0A2342] mb-2">
+                    موقع عملك <span className="text-gray-400 text-xs font-normal">(اختياري)</span>
+                  </label>
                   <input
                     type="text"
-                    value={industrySearch}
-                    onChange={(e) => setIndustrySearch(e.target.value)}
-                    placeholder="ابحث عن قطاعك..."
-                    className="w-full h-12 pr-10 pl-4 rounded-xl border border-gray-200 outline-none focus:border-[#0A2342]"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="المدينة"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-200 outline-none focus:border-[#0A2342]"
                   />
                 </div>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {industries
-                    .filter(ind => !industrySearch || ind.includes(industrySearch))
-                    .map((ind) => (
-                    <button
-                      key={ind}
-                      onClick={() => setIndustry(ind)}
-                      className={`px-4 py-2 rounded-full text-sm transition-all ${
-                        industry === ind
-                          ? "bg-[#0A2342] text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      {ind}
-                    </button>
-                  ))}
-                </div>
-                {!industry && (
-                  <p className="text-[11px] text-gray-400 mb-4">اختيار قطاع واحد مطلوب للمتابعة</p>
-                )}
-                <h3 className="text-sm font-bold text-[#0A2342] mb-2">ما هو موقع عملك؟ <span className="text-gray-400 text-xs font-normal">(اختياري)</span></h3>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="المدينة"
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 outline-none focus:border-[#0A2342]"
-                />
               </div>
             )}
 
-            {/* Step 4: Team & Scale */}
-            {step === 4 && (
+            {/* Step 3: Team & Scale */}
+            {step === 3 && (
               <div>
                 <h2 className="text-xl font-bold text-[#0A2342] text-center mb-1">فريقك وحجم أعمالك</h2>
                 <p className="text-xs text-gray-400 text-center mb-6">كل الحقول في هذه الخطوة اختيارية</p>
@@ -523,8 +477,8 @@ const OnboardingPage = () => {
               </div>
             )}
 
-            {/* Step 5: Accounting Background */}
-            {step === 5 && (
+            {/* Step 4: Accounting Background */}
+            {step === 4 && (
               <div>
                 <h2 className="text-xl font-bold text-[#0A2342] text-center mb-1">ما مستواك في المحاسبة؟</h2>
                 <p className="text-xs text-gray-400 text-center mb-6">كل الحقول في هذه الخطوة اختيارية</p>
@@ -533,13 +487,12 @@ const OnboardingPage = () => {
                     <button
                       key={al.key}
                       onClick={() => setAccountingLevel(al.key)}
-                      className={`p-4 rounded-2xl border-2 text-center transition-all ${
-                        accountingLevel === al.key ? "border-[#0A2342] bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                      className={`p-4 rounded-2xl border-2 text-right transition-all ${
+                        accountingLevel === al.key ? "border-[#0A2342] bg-[#F5F8FB]" : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <div className="text-2xl mb-1">{al.emoji}</div>
-                      <p className="font-bold text-[#0A2342] text-sm">{al.label}</p>
-                      <p className="text-xs text-gray-400">{al.desc}</p>
+                      <p className="font-bold text-[#0A2342] text-sm mb-1">{al.label}</p>
+                      <p className="text-xs text-gray-500">{al.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -567,11 +520,12 @@ const OnboardingPage = () => {
                       <button
                         key={g}
                         onClick={() => setGoals(selected ? goals.filter(x => x !== g) : [...goals, g])}
-                        className={`px-4 py-2 rounded-full text-sm transition-all ${
-                          selected ? "bg-[#E8A020] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        className={`px-4 py-2 rounded-full text-sm transition-all inline-flex items-center gap-1.5 ${
+                          selected ? "bg-[#0A2342] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
-                        {selected && "✓ "}{g}
+                        {selected && <Check className="h-3.5 w-3.5" />}
+                        {g}
                       </button>
                     );
                   })}
@@ -579,27 +533,29 @@ const OnboardingPage = () => {
               </div>
             )}
 
-            {/* Step 6: App Tour */}
-            {step === 6 && (
+            {/* Step 5: Confirmation */}
+            {step === 5 && (
               <div className="text-center">
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
-                  className="bg-gradient-to-br from-[#E8A020] to-[#C9870A] p-10 rounded-2xl text-white min-h-[280px] flex flex-col items-center justify-center mb-4"
+                  className="bg-white border border-gray-200 p-10 rounded-2xl min-h-[280px] flex flex-col items-center justify-center mb-4"
                 >
-                  <div className="text-6xl mb-4">🎉</div>
-                  <h3 className="text-2xl font-extrabold mb-2">أنت جاهز الآن!</h3>
-                  <p className="text-sm text-white/90 mb-2 max-w-md leading-relaxed">
-                    جهّزنا حسابك. عند الدخول، رح تبلّش جولة تفاعلية قصيرة على كل التطبيقات داخل المنصة.
+                  <div className="w-14 h-14 rounded-full bg-[#0A2342] flex items-center justify-center mb-5">
+                    <Check className="h-7 w-7 text-white" strokeWidth={2.5} />
+                  </div>
+                  <h3 className="text-2xl font-extrabold mb-3 text-[#0A2342]">تم تجهيز حسابك</h3>
+                  <p className="text-sm text-gray-600 mb-2 max-w-md leading-relaxed">
+                    سيتم نقلك إلى لوحة التطبيقات لبدء استخدام المنصة. ستظهر لك جولة تعريفية قصيرة عند الدخول.
                   </p>
-                  <p className="text-xs text-white/80 mb-6">تجربتك المجانية سارية لـ 14 يوماً</p>
+                  <p className="text-xs text-gray-400 mb-6">تجربتك المجانية سارية لمدة 14 يوماً</p>
                   <button
                     onClick={finishOnboarding}
                     disabled={finishing}
-                    className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    className="bg-gradient-to-r from-[#E8A020] to-[#F45E0C] text-white px-8 py-3 rounded-xl font-bold text-sm hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    {finishing ? "جاري التأكيد..." : "ادخل واستكشف ←"}
+                    {finishing ? "جاري التأكيد..." : "الدخول إلى المنصة"}
                   </button>
                 </motion.div>
               </div>
@@ -608,7 +564,7 @@ const OnboardingPage = () => {
         </AnimatePresence>
 
         {/* Navigation */}
-        {step < 6 && (
+        {step < 5 && (
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
             {step > 1 ? (
               <button onClick={prevStep} disabled={saving || finishing} className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
