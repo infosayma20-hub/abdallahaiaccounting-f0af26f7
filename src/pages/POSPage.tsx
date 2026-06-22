@@ -4324,6 +4324,8 @@ const POSPage = () => {
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
+      setSplitMode(false);
+      setSplitTenders([]);
       // Always clear replacement marker after a successful sale, so the next
       // sale starts clean (checkbox will only reappear after a fresh cancel).
       setMarkAsReplacement(false);
