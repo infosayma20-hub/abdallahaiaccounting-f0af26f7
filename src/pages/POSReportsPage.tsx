@@ -22,6 +22,10 @@ import {
   Timer,
   ArrowRight,
   UserCheck,
+  ClipboardList,
+  RefreshCw,
+  Store,
+  ChevronRight,
 } from "lucide-react";
 import POSSalesReport from "@/components/pos-reports/POSSalesReport";
 import POSProductsReport from "@/components/pos-reports/POSProductsReport";
@@ -33,6 +37,7 @@ import POSReturnsReport from "@/components/pos-reports/POSReturnsReport";
 import POSProfitReport from "@/components/pos-reports/POSProfitReport";
 import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
+import POSShiftAuditReport from "@/components/pos-reports/POSShiftAuditReport";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
@@ -57,10 +62,12 @@ const TABS = [
   { id: "profit", label: "الربحية", icon: TrendingUp },
   { id: "shifts", label: "الورديات", icon: Timer },
   { id: "customers", label: "الزبائن", icon: UserCheck },
+  { id: "shift-audit", label: "دراسة وردية", icon: ClipboardList },
 ];
 
 const POSReportsPage = () => {
-  const data = usePOSReportsData();
+  const [branchId, setBranchId] = useState<string | null>(null);
+  const data = usePOSReportsData(branchId);
   const [activeTab, setActiveTab] = useState("sales");
   const navigate = useNavigate();
 
@@ -118,52 +125,52 @@ const POSReportsPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* ── Header ── */}
-      <div className="bg-card border-b border-border px-6 py-4 print:py-2">
+      {/* ── Breadcrumb + Title (Dynamics-style) ── */}
+      <div className="bg-card border-b border-border px-5 pt-2.5 pb-1.5 print:hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate(-1)} className="p-1.5 rounded-md hover:bg-secondary transition-colors print:hidden">
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
-              </button>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground tracking-tight">
-                  تقارير نقطة البيع
-                </h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {format(data.dateFrom, "dd MMMM yyyy", { locale: ar })} — {format(data.dateTo, "dd MMMM yyyy", { locale: ar })}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 print:hidden">
-              <button
-                onClick={handleExportExcel}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-md hover:bg-secondary transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                تصدير Excel
-              </button>
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-md hover:bg-secondary transition-colors"
-              >
-                <Printer className="w-4 h-4" />
-                طباعة
-              </button>
-            </div>
+          <nav className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <button onClick={() => navigate("/")} className="hover:text-foreground">التطبيقات</button>
+            <ChevronRight className="w-3 h-3 -scale-x-100" />
+            <span>نقطة البيع</span>
+            <ChevronRight className="w-3 h-3 -scale-x-100" />
+            <span className="text-foreground">التقارير</span>
+          </nav>
+          <div className="flex items-center gap-2 mt-1">
+            <button onClick={() => navigate(-1)} className="p-0.5 -mr-0.5 text-muted-foreground hover:text-foreground">
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <h1 className="text-[14px] font-semibold text-foreground">تقارير نقطة البيع</h1>
+            <span className="text-[11px] text-muted-foreground">
+              · {format(data.dateFrom, "dd MMM", { locale: ar })} — {format(data.dateTo, "dd MMM yyyy", { locale: ar })}
+            </span>
           </div>
+        </div>
+      </div>
 
-          {/* Date presets */}
-          <div className="flex flex-wrap gap-1.5 mt-3 print:hidden">
+      {/* ── Command Bar ── */}
+      <div className="bg-card border-b border-border px-5 print:hidden">
+        <div className="max-w-7xl mx-auto flex items-center h-9 gap-1 text-[11px]">
+          <CmdButton onClick={data.refetch} icon={RefreshCw} label="تحديث" />
+          <Divider />
+          <CmdButton onClick={handleExportExcel} icon={Download} label="تصدير Excel" />
+          <CmdButton onClick={handlePrint} icon={Printer} label="طباعة" />
+        </div>
+      </div>
+
+      {/* ── Filter Bar ── */}
+      <div className="bg-muted/30 border-b border-border px-5 print:hidden">
+        <div className="max-w-7xl mx-auto flex items-center flex-wrap gap-2 py-2 text-[11px]">
+          <span className="text-muted-foreground">الفترة:</span>
+          <div className="flex items-center gap-1">
             {PRESETS.map(p => (
               <button
                 key={p.key}
                 onClick={() => data.setPreset(p.key)}
                 className={cn(
-                  "px-3 py-1.5 text-xs rounded-md border transition-colors font-medium",
+                  "px-2.5 py-1 rounded border transition-colors",
                   data.preset === p.key
-                    ? "bg-accent text-accent-foreground border-accent"
-                    : "text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+                    ? "bg-foreground text-background border-foreground"
+                    : "text-muted-foreground border-border hover:text-foreground",
                 )}
               >
                 {p.key === "custom" && <CalendarIcon className="w-3 h-3 inline-block ml-1" />}
@@ -171,61 +178,63 @@ const POSReportsPage = () => {
               </button>
             ))}
             {data.preset === "custom" && (
-              <div className="flex gap-2 items-center mr-2">
+              <div className="flex gap-1 items-center mr-1">
                 <DatePicker date={data.customFrom} onSelect={data.setCustomFrom} label="من" />
                 <DatePicker date={data.customTo} onSelect={data.setCustomTo} label="إلى" />
               </div>
             )}
           </div>
+
+          <span className="w-px h-4 bg-border mx-1" />
+
+          <span className="text-muted-foreground flex items-center gap-1">
+            <Store className="w-3 h-3" /> الفرع:
+          </span>
+          <select
+            value={branchId ?? ""}
+            onChange={(e) => setBranchId(e.target.value || null)}
+            className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
+          >
+            <option value="">كل الفروع</option>
+            {data.branches.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-5 space-y-5 print:px-2 print:py-2">
+      <div className="max-w-7xl mx-auto px-5 py-4 space-y-4 print:px-2 print:py-2">
         {/* ── KPI Cards ── */}
         {data.loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-lg" />)}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+            {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-[68px] rounded" />)}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPICard title="مبيعات المطعم (بدون التوصيل)" value={data.totalSales} prefix="₪" />
-              <KPICard title="عدد الطلبات" value={data.totalOrders} />
-              <KPICard title="متوسط قيمة الفاتورة" value={Math.round(data.avgOrderValue)} prefix="₪" />
-              <KPICard title="هامش الربح الإجمالي" value={data.grossMargin} suffix="%" decimals={1} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <KPICard
-                title="رسوم التوصيل المحصلة"
-                value={data.deliveryCollected}
-                prefix="₪"
-                hint="تُحصّل لصالح شركة التوصيل — غير محسوبة ضمن مبيعات المطعم"
-              />
-              <KPICard
-                title="إجمالي التحصيل من الزبائن"
-                value={data.customerCollected}
-                prefix="₪"
-                hint="مبيعات المطعم + رسوم التوصيل"
-              />
-            </div>
-          </>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+            <KPITile title="مبيعات المطعم" value={data.totalSales} prefix="₪" hint="بدون التوصيل" />
+            <KPITile title="عدد الطلبات" value={data.totalOrders} />
+            <KPITile title="متوسط الفاتورة" value={Math.round(data.avgOrderValue)} prefix="₪" />
+            <KPITile title="هامش الربح" value={data.grossMargin} suffix="%" decimals={1} />
+            <KPITile title="رسوم التوصيل" value={data.deliveryCollected} prefix="₪" hint="لشركة التوصيل" />
+            <KPITile title="إجمالي التحصيل" value={data.customerCollected} prefix="₪" hint="مبيعات + توصيل" />
+          </div>
         )}
 
-        {/* ── Navigation Tabs ── */}
-        <div className="border-b border-border bg-card rounded-t-lg print:hidden">
-          <nav className="flex -mb-px overflow-x-auto">
+        {/* ── Navigation Tabs (Dynamics-style) ── */}
+        <div className="border-b border-border sticky top-0 z-10 bg-background print:hidden">
+          <nav className="flex -mb-px overflow-x-auto gap-1">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors",
+                  "flex items-center gap-1.5 px-3 py-2 text-[12px] whitespace-nowrap border-b-2 transition-colors",
                   activeTab === tab.id
-                    ? "border-accent text-accent font-medium"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "border-primary text-foreground font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
-                <tab.icon className="w-4 h-4" />
+                <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
               </button>
             ))}
@@ -261,6 +270,7 @@ const POSReportsPage = () => {
             )}
             {activeTab === "shifts" && <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />}
             {activeTab === "customers" && data.dataOwnerId && <POSCustomersReport dataOwnerId={data.dataOwnerId} />}
+            {activeTab === "shift-audit" && <POSShiftAuditReport sessions={data.sessions} />}
           </div>
         )}
       </div>
@@ -268,26 +278,38 @@ const POSReportsPage = () => {
   );
 };
 
-// ── KPI Card ──
-const KPICard = ({ title, value, prefix, suffix, decimals = 0, hint }: {
+// ── KPI Tile (Dynamics-style, dense) ──
+const KPITile = ({ title, value, prefix, suffix, decimals = 0, hint }: {
   title: string; value: number; prefix?: string; suffix?: string; decimals?: number; hint?: string;
 }) => (
-  <div className="bg-card border border-border rounded-lg p-4">
-    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
-    <p className="text-2xl font-bold text-foreground mt-2 font-mono tabular-nums">
-      {prefix && <span className="text-base ml-0.5">{prefix}</span>}
+  <div className="bg-card border border-border rounded px-3 py-2">
+    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">{title}</p>
+    <p className="text-[18px] font-semibold text-foreground mt-0.5 font-mono tabular-nums leading-tight">
+      {prefix && <span className="text-[12px] ml-0.5 text-muted-foreground">{prefix}</span>}
       {decimals > 0 ? value.toFixed(decimals) : value.toLocaleString()}
-      {suffix && <span className="text-base mr-0.5">{suffix}</span>}
+      {suffix && <span className="text-[12px] mr-0.5 text-muted-foreground">{suffix}</span>}
     </p>
-    {hint && <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{hint}</p>}
+    {hint && <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug truncate">{hint}</p>}
   </div>
 );
+
+const CmdButton = ({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-1.5 px-2 h-7 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+  >
+    <Icon className="w-3.5 h-3.5" />
+    <span>{label}</span>
+  </button>
+);
+
+const Divider = () => <span className="w-px h-4 bg-border mx-0.5" />;
 
 // ── Date Picker ──
 const DatePicker = ({ date, onSelect, label }: { date: Date; onSelect: (d: Date) => void; label: string }) => (
   <Popover>
     <PopoverTrigger asChild>
-      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground border border-border rounded-md hover:bg-secondary">
+      <button className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-muted-foreground border border-border rounded hover:bg-secondary">
         <CalendarIcon className="h-3 w-3" />
         {label}: {format(date, "dd/MM/yyyy")}
       </button>
