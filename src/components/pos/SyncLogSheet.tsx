@@ -221,6 +221,15 @@ export default function SyncLogSheet({ open, onOpenChange, onSyncNow, isSyncing,
                           <RotateCw className={`w-3 h-3 ml-1 ${isSyncing ? 'animate-spin' : ''}`} />
                           ترحيل الآن
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-7 text-[10px]"
+                          title="حذف نهائي (للفواتير المكررة فقط)"
+                          onClick={() => handleDiscard(sale.id, sale.order_number)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
                     )}
                   </div>
