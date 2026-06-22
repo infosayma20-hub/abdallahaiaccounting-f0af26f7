@@ -396,7 +396,6 @@ const DeliveryNotesPage = () => {
                           )}
                         </div>
                       </TooltipProvider>
-                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );
