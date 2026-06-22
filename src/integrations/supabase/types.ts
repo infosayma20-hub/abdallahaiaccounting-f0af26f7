@@ -11670,6 +11670,54 @@ export type Database = {
           },
         ]
       }
+      pos_network_diagnostics: {
+        Row: {
+          company_id: string | null
+          connection_info: Json | null
+          created_at: string
+          detail: string | null
+          device_label: string | null
+          event_type: string
+          id: string
+          occurred_at: string
+          session_id: string | null
+          sources: Json | null
+          terminal_id: string | null
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          connection_info?: Json | null
+          created_at?: string
+          detail?: string | null
+          device_label?: string | null
+          event_type: string
+          id?: string
+          occurred_at: string
+          session_id?: string | null
+          sources?: Json | null
+          terminal_id?: string | null
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          connection_info?: Json | null
+          created_at?: string
+          detail?: string | null
+          device_label?: string | null
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          session_id?: string | null
+          sources?: Json | null
+          terminal_id?: string | null
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_order_lines: {
         Row: {
           cost_price: number

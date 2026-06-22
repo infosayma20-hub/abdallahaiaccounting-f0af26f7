@@ -14,6 +14,8 @@ import {
 } from '@/lib/pos-offline-db';
 import { Wifi, WifiOff, CheckCircle, AlertTriangle, Clock, RefreshCw, ShieldAlert, RotateCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import NetworkTestDialog from './NetworkTestDialog';
+import { Activity } from 'lucide-react';
 
 interface SyncLogSheetProps {
   open: boolean;
@@ -21,9 +23,14 @@ interface SyncLogSheetProps {
   onSyncNow?: () => void | Promise<void>;
   isSyncing?: boolean;
   isOnline?: boolean;
+  runNetworkTest?: () => Promise<{
+    overall: boolean;
+    results: Array<{ name: string; ok: boolean; latencyMs: number }>;
+    connection: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean };
+  }>;
 }
 
-export default function SyncLogSheet({ open, onOpenChange, onSyncNow, isSyncing, isOnline = true }: SyncLogSheetProps) {
+export default function SyncLogSheet({ open, onOpenChange, onSyncNow, isSyncing, isOnline = true, runNetworkTest }: SyncLogSheetProps) {
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [pending, setPending] = useState<PendingSale[]>([]);
   const [quarantined, setQuarantined] = useState<PendingSale[]>([]);
@@ -87,6 +94,19 @@ export default function SyncLogSheet({ open, onOpenChange, onSyncNow, isSyncing,
             سجل المزامنة
           </SheetTitle>
         </SheetHeader>
+
+        {runNetworkTest && (
+          <div className="mt-3">
+            <NetworkTestDialog
+              runNetworkTest={runNetworkTest}
+              trigger={
+                <Button variant="outline" size="sm" className="w-full gap-2">
+                  <Activity className="w-4 h-4" /> اختبار الشبكة الآن
+                </Button>
+              }
+            />
+          </div>
+        )}
 
         {(pending.length > 0 || quarantined.length > 0) && onSyncNow && (
           <div className="mt-3 flex items-center gap-2">

@@ -41,10 +41,30 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   const fastRecheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const consecutiveFailsRef = useRef(0);
   const lastVerifyAtRef = useRef<number>(0);
+  const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingUploadRef = useRef<any[]>([]);
+  const [connectionInfo, setConnectionInfo] = useState<{
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+    saveData?: boolean;
+  }>({});
+
+  // ── Capture navigator.connection info (Network Information API) ──
+  const readConnectionInfo = useCallback(() => {
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (!conn) return {};
+    return {
+      effectiveType: conn.effectiveType,
+      downlink: conn.downlink,
+      rtt: conn.rtt,
+      saveData: conn.saveData,
+    };
+  }, []);
 
   // ── Network log (in-memory + localStorage ring buffer, last 50 events) ──
   const logNetworkEvent = useCallback((event: {
-    type: 'online' | 'offline' | 'verify_fail' | 'verify_pass' | 'browser_offline' | 'browser_online';
+    type: 'online' | 'offline' | 'verify_fail' | 'verify_pass' | 'browser_offline' | 'browser_online' | 'visibility_recheck' | 'connection_change' | 'manual_test';
     detail?: string;
     sources?: Record<string, boolean>;
   }) => {
@@ -52,9 +72,15 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       const key = 'pos_network_log';
       const raw = localStorage.getItem(key);
       const arr: any[] = raw ? JSON.parse(raw) : [];
-      arr.push({ ts: new Date().toISOString(), ...event });
+      const entry = { ts: new Date().toISOString(), ...event };
+      arr.push(entry);
       while (arr.length > 50) arr.shift();
       localStorage.setItem(key, JSON.stringify(arr));
+      // Queue for server upload (only meaningful events, skip pure verify passes
+      // to avoid spamming the table with the happy path)
+      if (event.type !== 'verify_pass') {
+        pendingUploadRef.current.push(entry);
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -429,7 +455,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
         setQuarantinedCount(await countQuarantined());
         // Auto-sync on mount if we already have pending sales and we're online
         if (n > 0) {
-          const online = await checkConnection();
+          const { ok: online } = await checkConnection();
           if (online) syncPendingQueue();
         }
       })
@@ -452,9 +478,110 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     };
   }, [userId, preCacheData, checkConnection, syncPendingQueue]);
 
+  // ── Page Visibility — re-check when cashier returns to the tab ──
+  useEffect(() => {
+    const onVisibility = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const { ok, sources } = await checkConnection();
+      logNetworkEvent({ type: 'visibility_recheck', sources });
+      if (ok && !isOnline) {
+        setIsOnline(true);
+        setNetworkQuality('stable');
+        toast.success('عاد الاتصال — جاري المزامنة...', { duration: 3000 });
+        syncPendingQueue();
+      } else if (!ok && isOnline) {
+        verifyAndFlip('visibility');
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [isOnline, checkConnection, logNetworkEvent, syncPendingQueue, verifyAndFlip]);
+
+  // ── navigator.connection — early-warning for weak network ──
+  useEffect(() => {
+    const conn = (navigator as any).connection;
+    if (!conn) return;
+    setConnectionInfo(readConnectionInfo());
+    const onChange = () => {
+      const info = readConnectionInfo();
+      setConnectionInfo(info);
+      logNetworkEvent({ type: 'connection_change', detail: JSON.stringify(info) });
+      // If the OS reports a very weak connection, pre-emptively verify
+      if (info.effectiveType === 'slow-2g' || info.effectiveType === '2g') {
+        verifyAndFlip('weak_connection');
+      }
+    };
+    conn.addEventListener?.('change', onChange);
+    return () => conn.removeEventListener?.('change', onChange);
+  }, [readConnectionInfo, logNetworkEvent, verifyAndFlip]);
+
+  // ── Server-side log upload every 5 minutes ──
+  useEffect(() => {
+    if (!userId) return;
+    const flush = async () => {
+      if (pendingUploadRef.current.length === 0) return;
+      const batch = pendingUploadRef.current.splice(0, pendingUploadRef.current.length);
+      try {
+        const conn = readConnectionInfo();
+        const rows = batch.map((e) => ({
+          user_id: userId,
+          company_id: companyId,
+          session_id: sessionId,
+          terminal_id: terminalId,
+          device_label: navigator.userAgent.slice(0, 80),
+          event_type: e.type,
+          detail: e.detail || null,
+          sources: e.sources || null,
+          connection_info: conn,
+          occurred_at: e.ts,
+        }));
+        const { error } = await (supabase.from('pos_network_diagnostics' as any) as any).insert(rows);
+        if (error) {
+          // Re-queue on failure so we try again next tick
+          pendingUploadRef.current.unshift(...batch);
+        }
+      } catch {
+        pendingUploadRef.current.unshift(...batch);
+      }
+    };
+    uploadTimerRef.current = setInterval(flush, 5 * 60 * 1000);
+    // Also flush before tab unload
+    const onUnload = () => { void flush(); };
+    window.addEventListener('beforeunload', onUnload);
+    return () => {
+      if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
+      window.removeEventListener('beforeunload', onUnload);
+    };
+  }, [userId, companyId, sessionId, terminalId, readConnectionInfo]);
+
+  // ── Manual network test (button in UI) ──
+  const runNetworkTest = useCallback(async (): Promise<{
+    overall: boolean;
+    results: Array<{ name: string; ok: boolean; latencyMs: number }>;
+    connection: ReturnType<typeof readConnectionInfo>;
+  }> => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const apiKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const tests = [
+      { name: 'Supabase', url: `${supabaseUrl}/rest/v1/`, init: { method: 'HEAD' as const, headers: { apikey: apiKey } } },
+      { name: 'Cloudflare 1.1.1.1', url: 'https://1.1.1.1/cdn-cgi/trace', init: { method: 'GET' as const, mode: 'cors' as const } },
+      { name: 'Google', url: 'https://www.gstatic.com/generate_204', init: { method: 'GET' as const, mode: 'no-cors' as const } },
+    ];
+    const results = await Promise.all(tests.map(async (t) => {
+      const started = performance.now();
+      const ok = await probe(t.url, 5000, t.init);
+      return { name: t.name, ok, latencyMs: Math.round(performance.now() - started) };
+    }));
+    const overall = results.some((r) => r.ok);
+    const sources = Object.fromEntries(results.map((r) => [r.name, r.ok]));
+    logNetworkEvent({ type: 'manual_test', detail: results.map(r => `${r.name}=${r.ok ? 'ok' : 'fail'}/${r.latencyMs}ms`).join(', '), sources });
+    return { overall, results, connection: readConnectionInfo() };
+  }, [probe, logNetworkEvent, readConnectionInfo]);
+
   return {
     isOnline,
     networkQuality,
+    connectionInfo,
     pendingCount,
     quarantinedCount,
     lastSyncAt,
@@ -465,5 +592,6 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     preCacheData,
     checkConnection: checkConnectionBool,
     checkConnectionDetailed: checkConnection,
+    runNetworkTest,
   };
 }
