@@ -89,28 +89,50 @@ export type Database = {
       accountant_permissions: {
         Row: {
           accountant_auth_id: string
+          can_approve_ai_drafts: boolean | null
+          can_close_fiscal_period: boolean | null
+          can_create_credit_note: boolean | null
+          can_create_debit_note: boolean | null
           can_create_journal: boolean | null
           can_create_payment: boolean | null
           can_create_purchase_invoice: boolean | null
           can_create_receipt: boolean | null
+          can_create_reverse_entry: boolean | null
           can_create_sale_invoice: boolean | null
           can_delete_invoices: boolean | null
           can_delete_vouchers: boolean | null
           can_edit_invoices: boolean | null
           can_edit_vouchers: boolean | null
+          can_endorse_cheques: boolean | null
           can_export_data: boolean | null
           can_manage_accounts: boolean | null
           can_manage_banks: boolean | null
           can_manage_cash_boxes: boolean | null
           can_manage_cheques: boolean | null
+          can_manage_cost_centers: boolean | null
+          can_manage_currencies: boolean | null
           can_manage_customers: boolean | null
+          can_manage_delivery_notes: boolean | null
+          can_manage_exchange_rates: boolean | null
+          can_manage_fixed_assets: boolean | null
+          can_manage_import_shipments: boolean | null
           can_manage_inventory: boolean | null
+          can_manage_opening_balances: boolean | null
           can_manage_orders: boolean | null
           can_manage_products: boolean | null
+          can_manage_quotations: boolean | null
+          can_manage_recurring_invoices: boolean | null
           can_manage_suppliers: boolean | null
+          can_manage_vat: boolean | null
+          can_manage_warehouses: boolean | null
+          can_process_returns: boolean | null
+          can_submit_vat: boolean | null
+          can_transfer_cash: boolean | null
+          can_transfer_stock: boolean | null
           can_view_account_statement: boolean | null
           can_view_balance_sheet: boolean | null
           can_view_balances: boolean | null
+          can_view_cash_flow: boolean | null
           can_view_ledger: boolean | null
           can_view_profit_loss: boolean | null
           can_view_reports: boolean | null
@@ -125,28 +147,50 @@ export type Database = {
         }
         Insert: {
           accountant_auth_id: string
+          can_approve_ai_drafts?: boolean | null
+          can_close_fiscal_period?: boolean | null
+          can_create_credit_note?: boolean | null
+          can_create_debit_note?: boolean | null
           can_create_journal?: boolean | null
           can_create_payment?: boolean | null
           can_create_purchase_invoice?: boolean | null
           can_create_receipt?: boolean | null
+          can_create_reverse_entry?: boolean | null
           can_create_sale_invoice?: boolean | null
           can_delete_invoices?: boolean | null
           can_delete_vouchers?: boolean | null
           can_edit_invoices?: boolean | null
           can_edit_vouchers?: boolean | null
+          can_endorse_cheques?: boolean | null
           can_export_data?: boolean | null
           can_manage_accounts?: boolean | null
           can_manage_banks?: boolean | null
           can_manage_cash_boxes?: boolean | null
           can_manage_cheques?: boolean | null
+          can_manage_cost_centers?: boolean | null
+          can_manage_currencies?: boolean | null
           can_manage_customers?: boolean | null
+          can_manage_delivery_notes?: boolean | null
+          can_manage_exchange_rates?: boolean | null
+          can_manage_fixed_assets?: boolean | null
+          can_manage_import_shipments?: boolean | null
           can_manage_inventory?: boolean | null
+          can_manage_opening_balances?: boolean | null
           can_manage_orders?: boolean | null
           can_manage_products?: boolean | null
+          can_manage_quotations?: boolean | null
+          can_manage_recurring_invoices?: boolean | null
           can_manage_suppliers?: boolean | null
+          can_manage_vat?: boolean | null
+          can_manage_warehouses?: boolean | null
+          can_process_returns?: boolean | null
+          can_submit_vat?: boolean | null
+          can_transfer_cash?: boolean | null
+          can_transfer_stock?: boolean | null
           can_view_account_statement?: boolean | null
           can_view_balance_sheet?: boolean | null
           can_view_balances?: boolean | null
+          can_view_cash_flow?: boolean | null
           can_view_ledger?: boolean | null
           can_view_profit_loss?: boolean | null
           can_view_reports?: boolean | null
@@ -161,28 +205,50 @@ export type Database = {
         }
         Update: {
           accountant_auth_id?: string
+          can_approve_ai_drafts?: boolean | null
+          can_close_fiscal_period?: boolean | null
+          can_create_credit_note?: boolean | null
+          can_create_debit_note?: boolean | null
           can_create_journal?: boolean | null
           can_create_payment?: boolean | null
           can_create_purchase_invoice?: boolean | null
           can_create_receipt?: boolean | null
+          can_create_reverse_entry?: boolean | null
           can_create_sale_invoice?: boolean | null
           can_delete_invoices?: boolean | null
           can_delete_vouchers?: boolean | null
           can_edit_invoices?: boolean | null
           can_edit_vouchers?: boolean | null
+          can_endorse_cheques?: boolean | null
           can_export_data?: boolean | null
           can_manage_accounts?: boolean | null
           can_manage_banks?: boolean | null
           can_manage_cash_boxes?: boolean | null
           can_manage_cheques?: boolean | null
+          can_manage_cost_centers?: boolean | null
+          can_manage_currencies?: boolean | null
           can_manage_customers?: boolean | null
+          can_manage_delivery_notes?: boolean | null
+          can_manage_exchange_rates?: boolean | null
+          can_manage_fixed_assets?: boolean | null
+          can_manage_import_shipments?: boolean | null
           can_manage_inventory?: boolean | null
+          can_manage_opening_balances?: boolean | null
           can_manage_orders?: boolean | null
           can_manage_products?: boolean | null
+          can_manage_quotations?: boolean | null
+          can_manage_recurring_invoices?: boolean | null
           can_manage_suppliers?: boolean | null
+          can_manage_vat?: boolean | null
+          can_manage_warehouses?: boolean | null
+          can_process_returns?: boolean | null
+          can_submit_vat?: boolean | null
+          can_transfer_cash?: boolean | null
+          can_transfer_stock?: boolean | null
           can_view_account_statement?: boolean | null
           can_view_balance_sheet?: boolean | null
           can_view_balances?: boolean | null
+          can_view_cash_flow?: boolean | null
           can_view_ledger?: boolean | null
           can_view_profit_loss?: boolean | null
           can_view_reports?: boolean | null
