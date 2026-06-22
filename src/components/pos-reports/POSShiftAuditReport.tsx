@@ -78,6 +78,9 @@ interface SessionPayment {
   payment_method: string;
   amount: number;
   order_id?: string;
+  currency?: string;
+  exchange_rate?: number;
+  amount_ils?: number;
 }
 
 interface Props {
@@ -267,16 +270,38 @@ function ShiftDetail({ session }: { session: POSSession }) {
       if (orderIds.length) {
         const { data: payRes } = await supabase
           .from("pos_payments")
-          .select("id, payment_method, amount, order_id")
+          .select("id, payment_method, amount, order_id, currency, exchange_rate")
           .in("order_id", orderIds);
         const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
         const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
+        const toILS = (p: any) => {
+          const amt = Number(p.amount) || 0;
+          const rate = Number(p.exchange_rate) || 1;
+          const cur = (p.currency || "ILS").toUpperCase();
+          return cur === "ILS" ? amt : amt * rate;
+        };
         pays = (payRes || [])
           .filter((p: any) => validOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
+          .map((p: any) => ({
+            id: p.id,
+            payment_method: p.payment_method,
+            amount: Number(p.amount) || 0,
+            order_id: p.order_id,
+            currency: p.currency || "ILS",
+            exchange_rate: Number(p.exchange_rate) || 1,
+            amount_ils: toILS(p),
+          }));
         voidPays = (payRes || [])
           .filter((p: any) => voidedOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
+          .map((p: any) => ({
+            id: p.id,
+            payment_method: p.payment_method,
+            amount: Number(p.amount) || 0,
+            order_id: p.order_id,
+            currency: p.currency || "ILS",
+            exchange_rate: Number(p.exchange_rate) || 1,
+            amount_ils: toILS(p),
+          }));
       }
       if (!cancelled) {
         setOrders(enriched);
@@ -296,25 +321,28 @@ function ShiftDetail({ session }: { session: POSSession }) {
     const offlineSynced = orders.filter(o => o.was_offline && o.sync_status === "synced");
     const pending = orders.filter(o => o.sync_status && !["synced", null].includes(o.sync_status));
     const netSales = paid.reduce((s, o) => s + Number(o.total || 0), 0);
-    const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[] }> = {};
+    const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null; currency?: string; origAmount?: number; rate?: number }[] }> = {};
     const orderById = new Map(orders.map(o => [o.id, o]));
     payments.forEach(p => {
       const k = p.payment_method || "نقدي";
       if (!byMethod[k]) byMethod[k] = { count: 0, amount: 0, rows: [] };
       byMethod[k].count++;
-      byMethod[k].amount += p.amount;
+      byMethod[k].amount += (p.amount_ils ?? p.amount);
       const ord = p.order_id ? orderById.get(p.order_id) : undefined;
       byMethod[k].rows.push({
         orderId: p.order_id || "",
         orderNumber: ord?.order_number || null,
-        amount: p.amount,
+        amount: (p.amount_ils ?? p.amount),
         note: ord?.order_note || ord?.customer_name || null,
+        currency: p.currency || "ILS",
+        origAmount: p.amount,
+        rate: p.exchange_rate || 1,
       });
     });
     // Re-derive expected cash from real (non-voided) cash payments only.
     const cashKey = (m: string) => ["cash", "نقدي"].includes((m || "").toLowerCase());
-    const realCash = payments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
-    const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
+    const realCash = payments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + (p.amount_ils ?? p.amount), 0);
+    const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + (p.amount_ils ?? p.amount), 0);
     const recalcExpected = (session.opening_cash ?? 0) + realCash;
     const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
     return {
@@ -606,7 +634,7 @@ function ExpandableMethodRow({
   method: string;
   count: number;
   amount: number;
-  rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[];
+  rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null; currency?: string; origAmount?: number; rate?: number }[];
   onOpenOrder: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -645,6 +673,11 @@ function ExpandableMethodRow({
                   </td>
                   <td className="py-1 text-left font-mono tabular-nums">
                     ₪{r.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {r.currency && r.currency !== "ILS" && (
+                      <span className="block text-[10px] text-muted-foreground">
+                        ({r.origAmount} {r.currency} × {r.rate})
+                      </span>
+                    )}
                   </td>
                   <td className="py-1 text-center">
                     <button
