@@ -321,7 +321,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
     const offlineSynced = orders.filter(o => o.was_offline && o.sync_status === "synced");
     const pending = orders.filter(o => o.sync_status && !["synced", null].includes(o.sync_status));
     const netSales = paid.reduce((s, o) => s + Number(o.total || 0), 0);
-    const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[] }> = {};
+    const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null; currency?: string; origAmount?: number; rate?: number }[] }> = {};
     const orderById = new Map(orders.map(o => [o.id, o]));
     payments.forEach(p => {
       const k = p.payment_method || "نقدي";
