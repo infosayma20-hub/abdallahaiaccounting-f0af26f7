@@ -2003,9 +2003,20 @@ const POSPage = () => {
       }
     }
 
-    // Fallback: if no rates found for foreign currencies, fetch from free API
+    // Refresh from free API if: (a) rate is missing/=1, OR (b) rate is stale (>20h old)
+    // This fixes the bug where rates frozen for weeks because the "missing" check passed.
     const foreignCodes = ['USD', 'EUR', 'JOD', 'GBP', 'EGP', 'TRY'];
-    const missingCodes = foreignCodes.filter(c => !rates[c] || rates[c] === 1);
+    const STALE_HOURS = 20;
+    const now = Date.now();
+    const isStale = (code: string) => {
+      const d = details[code]?.date;
+      if (!d) return true;
+      const ageMs = now - new Date(d).getTime();
+      return ageMs > STALE_HOURS * 3600 * 1000;
+    };
+    // Never auto-overwrite a manual POS override — it's the cashier's intentional rate
+    const hasOverride = (code: string) => details[code]?.posOverride != null;
+    const missingCodes = foreignCodes.filter(c => !hasOverride(c) && (!rates[c] || rates[c] === 1 || isStale(c)));
     if (missingCodes.length > 0) {
       try {
         // Try fawazahmed0 first (supports JOD and EGP accurately)
@@ -2018,11 +2029,37 @@ const POSPage = () => {
               const lc = code.toLowerCase();
               if (ilsRates[lc] && ilsRates[lc] > 0) {
                 const rateVal = parseFloat((1 / ilsRates[lc]).toFixed(6));
-                if (!rates[code] || rates[code] === 1) {
-                  rates[code] = rateVal;
-                  details[code] = { rate: rateVal, date: new Date().toISOString().split('T')[0], source: 'api_fallback', posOverride: null };
-                }
+                rates[code] = rateVal;
+                details[code] = { rate: rateVal, date: new Date().toISOString().split('T')[0], source: 'api_auto', posOverride: null };
               }
+            }
+            // Persist refreshed rates back to DB so all terminals + reports see them
+            try {
+              const { data: currRows } = await supabase
+                .from('currencies')
+                .select('id, code')
+                .eq('user_id', dataOwnerId)
+                .in('code', missingCodes);
+              const today = new Date().toISOString().split('T')[0];
+              const upserts = (currRows || [])
+                .filter((c: any) => rates[c.code] && rates[c.code] !== 1)
+                .map((c: any) => ({
+                  user_id: dataOwnerId,
+                  currency_id: c.id,
+                  rate_date: today,
+                  mid_rate: rates[c.code],
+                  sell_rate: rates[c.code],
+                  buy_rate: rates[c.code],
+                  source: 'pos_auto_refresh',
+                }));
+              if (upserts.length > 0) {
+                await (supabase.from('exchange_rates') as any).upsert(upserts, {
+                  onConflict: 'user_id,currency_id,rate_date',
+                  ignoreDuplicates: false,
+                });
+              }
+            } catch (persistErr) {
+              console.warn('Failed to persist refreshed exchange rates:', persistErr);
             }
           }
         }
