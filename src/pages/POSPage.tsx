@@ -7102,7 +7102,7 @@ const POSPage = () => {
               )}
 
               {/* Credit customer selection */}
-              {paymentMethod === "credit" && (
+              {!splitMode && paymentMethod === "credit" && (
                 <div className="mx-4 mt-3 space-y-2">
                   <label className="text-sm font-bold block" style={{ color: '#111827' }}>اسم الزبون</label>
                   <div className="relative">
