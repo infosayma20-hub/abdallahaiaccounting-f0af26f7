@@ -7402,6 +7402,7 @@ const POSPage = () => {
                 type="number"
                 value={closingCash}
                 onChange={(e) => setClosingCash(e.target.value)}
+                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                 placeholder="0.00"
                 className="text-2xl h-14 text-center font-bold"
                 autoFocus
@@ -7415,6 +7416,7 @@ const POSPage = () => {
                   type="number"
                   value={closingCashUSD}
                   onChange={(e) => setClosingCashUSD(e.target.value)}
+                  onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                   placeholder="0.00"
                   className="text-lg h-12 text-center font-bold"
                 />
@@ -7425,6 +7427,7 @@ const POSPage = () => {
                   type="number"
                   value={closingCashJOD}
                   onChange={(e) => setClosingCashJOD(e.target.value)}
+                  onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                   placeholder="0.00"
                   className="text-lg h-12 text-center font-bold"
                 />
