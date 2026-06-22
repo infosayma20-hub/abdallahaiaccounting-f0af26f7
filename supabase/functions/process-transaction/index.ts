@@ -54,6 +54,46 @@ serve(async (req) => {
     const { text, mentionedContactName, mentionedContactId, editIntent, lastTransactionId } = await req.json();
     if (!text) throw new Error('Transaction text is required');
 
+    // ═══ DELIVERY NOTE INTENT (إرساليات مبيعات داخلية/خارجية) ═══
+    // نمنع تمرير هذه الجمل لمحرّك القيود حتى لا يُنشئ حساباً باسم "ارسالية ..."
+    // وبدلاً من ذلك نوجّه المستخدم لشاشة إنشاء الإرسالية الصحيحة.
+    {
+      const t = String(text).trim();
+      const hasDeliveryWord = /(إرسالي[ةه]|ارسالي[ةه]|سند\s*(تسليم|إرسال|ارسال)|بوليصة\s*شحن|delivery\s*note)/i.test(t);
+      if (hasDeliveryWord) {
+        const isInternal = /(داخلي|تحويل\s*مخزني|نقل\s*(داخلي|بين\s*المخازن|بين\s*الفروع)|بين\s*(المخازن|الفروع))/i.test(t);
+        const isExternal = /(خارجي|للعميل|الى\s*العميل|إلى\s*العميل|للزبون)/i.test(t);
+        const isList = /(اعرض|عرض|اعرضل|قائمة|كم\s*(عدد|ارسالي|إرسالي))/i.test(t);
+
+        if (isList) {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: 'هاي شاشة الإرساليات — فيها كل الإرساليات الداخلية والخارجية:\n\n[action:فتح الإرساليات:/delivery-notes]',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        // إنشاء إرسالية
+        if (isInternal && !isExternal) {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: 'تمام، رح أفتحلك شاشة إرسالية مبيعات داخلية. اختار المخزن المُرسِل والمستلِم والأصناف والكميات.\n\n[action:إنشاء إرسالية داخلية:/delivery-notes/new?type=internal]',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        if (isExternal && !isInternal) {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: 'تمام، رح أفتحلك شاشة إرسالية مبيعات خارجية. اختار العميل والمخزن والأصناف، وبتقدر تحوّلها لفاتورة لاحقاً.\n\n[action:إنشاء إرسالية خارجية:/delivery-notes/new?type=external]',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        // عام بدون تحديد النوع — اعرض الخيارين
+        return new Response(JSON.stringify({
+          type: 'chat_response',
+          message: 'الإرساليات نوعين:\n• داخلية: نقل بضاعة بين مخازن/فروع الشركة (بدون سعر بيع).\n• خارجية: تسليم بضاعة لعميل، وممكن تحويلها لفاتورة لاحقاً.\n\nاختار النوع:\n\n[action:إرسالية داخلية:/delivery-notes/new?type=internal]  [action:إرسالية خارجية:/delivery-notes/new?type=external]  [action:كل الإرساليات:/delivery-notes]',
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
     // ═══ EDIT/DELETE INTENT HANDLING ═══
     if (editIntent && editIntent.type === 'edit_transaction') {
       const action = editIntent.action || 'edit';

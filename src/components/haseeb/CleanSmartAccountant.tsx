@@ -250,6 +250,34 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       const convId = await ensureConversation(text.trim());
       if (convId) saveMessage(convId, "user", text.trim());
 
+      // ═══ DELIVERY NOTE INTENT (إرساليات مبيعات داخلية/خارجية) ═══
+      // نمنع المحاسب الذكي من تحويلها لقيد/حساب ونوجّه لشاشة الإرسالية الصحيحة.
+      {
+        const t = text.trim();
+        const hasDeliveryWord = /(إرسالي[ةه]|ارسالي[ةه]|سند\s*(تسليم|إرسال|ارسال)|بوليصة\s*شحن)/i.test(t);
+        if (hasDeliveryWord) {
+          const isInternal = /(داخلي|تحويل\s*مخزني|نقل\s*(داخلي|بين\s*المخازن|بين\s*الفروع)|بين\s*(المخازن|الفروع))/i.test(t);
+          const isExternal = /(خارجي|للعميل|إلى\s*العميل|الى\s*العميل|للزبون)/i.test(t);
+          const isList = /(اعرض|عرض|اعرضل|قائمة|كم\s*(عدد|ارسالي|إرسالي))/i.test(t);
+
+          let msg = "";
+          if (isList) {
+            msg = "هاي شاشة الإرساليات — فيها كل الإرساليات الداخلية والخارجية:\n\n[action:فتح الإرساليات:/delivery-notes]";
+          } else if (isInternal && !isExternal) {
+            msg = "تمام، رح أفتحلك شاشة إرسالية مبيعات داخلية. اختار المخزن المُرسِل والمستلِم والأصناف والكميات.\n\n[action:إنشاء إرسالية داخلية:/delivery-notes/new?type=internal]  [action:كل الإرساليات:/delivery-notes]";
+          } else if (isExternal && !isInternal) {
+            msg = "تمام، رح أفتحلك شاشة إرسالية مبيعات خارجية. اختار العميل والمخزن والأصناف، وبتقدر تحوّلها لفاتورة لاحقاً.\n\n[action:إنشاء إرسالية خارجية:/delivery-notes/new?type=external]  [action:كل الإرساليات:/delivery-notes]";
+          } else {
+            msg = "الإرساليات نوعين:\n• داخلية: نقل بضاعة بين مخازن/فروع الشركة (بدون سعر بيع).\n• خارجية: تسليم بضاعة لعميل، وممكن تحويلها لفاتورة لاحقاً.\n\nاختار النوع:\n\n[action:إرسالية داخلية:/delivery-notes/new?type=internal]  [action:إرسالية خارجية:/delivery-notes/new?type=external]  [action:كل الإرساليات:/delivery-notes]";
+          }
+
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: msg, timestamp: new Date() }]);
+          if (convId) saveMessage(convId, "assistant", msg);
+          setSending(false);
+          return;
+        }
+      }
+
       // ═══ Call parse-voice-transaction (returns array now) ═══
       const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: text.trim() } });
       const parseData = parseRes.data;
