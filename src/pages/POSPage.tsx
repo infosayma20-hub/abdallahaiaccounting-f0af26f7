@@ -4040,7 +4040,7 @@ const POSPage = () => {
             `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}` +
             `إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}` +
             ` | cashier_decision:${userId || "unknown"}`;
-          await supabase.from("employee_financial_movements").insert({
+          const { error: efmError } = await supabase.from("employee_financial_movements").insert({
             user_id: dataOwnerId,
             employee_id: selectedEmployee.id,
             source_type: "pos_meal",
@@ -4062,6 +4062,17 @@ const POSPage = () => {
             meal_discount_pct: isDualMode ? employeeSharePct : null,
             original_full_amount: fullAmount,
           } as any);
+          if (efmError) {
+            console.error("[POS] فشل تسجيل خصم وجبة الموظف:", efmError, {
+              order_number: res.order_number,
+              employee_id: selectedEmployee.id,
+              amount: calculatedAmount,
+            });
+            toast.error(
+              `⚠️ تم حفظ الطلبية لكن فشل تسجيل خصم وجبة الموظف (${calculatedAmount.toFixed(2)}₪). يرجى إبلاغ المحاسبة فوراً. سبب: ${efmError.message || "غير معروف"}`,
+              { duration: 15000 }
+            );
+          }
 
           // Fire push notification to employee (best-effort, non-blocking).
           // Phase 3.3: include this-month accumulated total for the chosen type.
