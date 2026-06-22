@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
+import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { toast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -109,6 +110,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   const handleDelete = async (v: any) => {
     try { await assertPermission("finance", isReceipt ? "receipts" : "payments", "delete"); } catch { return; }
+    try { await assertAccountantPermission("can_delete_vouchers"); } catch { return; }
     setDeleteTarget(v);
     setDeleteDialog(true);
   };
@@ -116,6 +118,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const confirmDelete = async (reason: string) => {
     if (!deleteTarget || !user) return;
     try { await assertPermission("finance", isReceipt ? "receipts" : "payments", "delete"); } catch { return; }
+    try { await assertAccountantPermission("can_delete_vouchers"); } catch { return; }
     try {
       const table = isReceipt ? "receipt_vouchers" : "vouchers";
       
