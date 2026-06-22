@@ -294,7 +294,7 @@ const ProfilePage = () => {
           key: "logout",
           label: "تسجيل الخروج",
           icon: LogOut,
-          variant: "destructive",
+          variant: "danger",
           onClick: signOut,
         },
       ],
