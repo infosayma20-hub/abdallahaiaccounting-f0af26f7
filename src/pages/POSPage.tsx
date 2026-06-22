@@ -723,6 +723,8 @@ const POSPage = () => {
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
   // Cashier policy windows (loaded from company_settings, see fetch below).
   const [cashierCancelWindowMin, setCashierCancelWindowMin] = useState(30);
+  // After this many minutes the cashier can no longer view details OR reprint.
+  // Default = 60 (one hour) per business rule.
   const [cashierAmountVisibleMin, setCashierAmountVisibleMin] = useState(60);
   // Measure clock skew between this device and the backend once at mount so
   // grace-window logic (cancel/edit/detail visibility) is correct even when
