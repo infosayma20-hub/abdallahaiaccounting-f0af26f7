@@ -350,15 +350,15 @@ const DeliveryNoteCreatePage = () => {
   };
 
   const handlePrint = async (preview = false) => {
-    if (!editingId && !noteNumber) {
-      toast.info("احفظ المسودة أولاً قبل الطباعة");
+    if (items.filter(i => i.product_name.trim()).length === 0) {
+      toast.info("أضف بنداً واحداً على الأقل");
       return;
     }
     const fromWh = warehouses.find(w => w.id === fromWarehouseId)?.name;
     const toWh = warehouses.find(w => w.id === toWarehouseId)?.name;
     const toBranch = branches.find(b => b.id === toBranchId)?.name;
     const noteData = {
-      deliveryNumber: noteNumber || "إرسالية جديدة",
+      deliveryNumber: noteNumber || previewNumber || "إرسالية جديدة",
       date,
       contactName,
       items: items.filter(i => i.product_name.trim()).map(i => ({
