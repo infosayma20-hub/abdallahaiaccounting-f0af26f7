@@ -3,10 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Banknote, AlertTriangle } from "lucide-react";
+import { Banknote, AlertTriangle, Wrench, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FinanceModal } from "@/components/finance/shell";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   open: boolean;
@@ -21,53 +22,77 @@ const CURRENCY_CONFIG: Record<CurrencyKey, {
   label: string;
   symbol: string;
   arabic: string; // value stored in transactions.currency / accounts.currency
-  boxCode: string;
+  parentCode: string;
   boxNameAr: string;
   defaultRate: string;
+  branchField: "gl_cash_usd_account_code" | "gl_cash_jod_account_code" | "gl_cash_eur_account_code";
 }> = {
-  USD: { label: "دولار أمريكي (USD)", symbol: "$",  arabic: "دولار", boxCode: "1111", boxNameAr: "صندوق الدولار", defaultRate: "3.65" },
-  JOD: { label: "دينار أردني (JOD)",  symbol: "د.أ", arabic: "دينار", boxCode: "1112", boxNameAr: "صندوق الدينار",  defaultRate: "5.15" },
-  EUR: { label: "يورو (EUR)",          symbol: "€",   arabic: "يورو",  boxCode: "1113", boxNameAr: "صندوق اليورو",   defaultRate: "3.95" },
+  USD: { label: "دولار أمريكي (USD)", symbol: "$",   arabic: "دولار", parentCode: "1111", boxNameAr: "صندوق الدولار", defaultRate: "3.65", branchField: "gl_cash_usd_account_code" },
+  JOD: { label: "دينار أردني (JOD)",  symbol: "د.أ", arabic: "دينار", parentCode: "1112", boxNameAr: "صندوق الدينار", defaultRate: "5.15", branchField: "gl_cash_jod_account_code" },
+  EUR: { label: "يورو (EUR)",          symbol: "€",   arabic: "يورو",  parentCode: "1113", boxNameAr: "صندوق اليورو",  defaultRate: "3.95", branchField: "gl_cash_eur_account_code" },
 };
 
 const OPENING_BALANCE_CODE = "3400";
 
+interface BranchRow {
+  id: string;
+  name: string;
+  gl_cash_usd_account_code: string | null;
+  gl_cash_jod_account_code: string | null;
+  gl_cash_eur_account_code: string | null;
+}
+
 export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, onSuccess, userId }: Props) {
   const [currency, setCurrency] = useState<CurrencyKey>("USD");
+  const [branches, setBranches] = useState<BranchRow[]>([]);
+  const [branchId, setBranchId] = useState<string>("");
+  const [provisioning, setProvisioning] = useState(false);
   const [foreignAmount, setForeignAmount] = useState("");
   const [rate, setRate] = useState(CURRENCY_CONFIG.USD.defaultRate);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [existingOpening, setExistingOpening] = useState<number | null>(null);
-  const [boxAccountExists, setBoxAccountExists] = useState(true);
 
   const cfg = CURRENCY_CONFIG[currency];
+  const selectedBranch = branches.find((b) => b.id === branchId) || null;
+  const targetAccountCode = selectedBranch ? (selectedBranch[cfg.branchField] || null) : null;
+  const needsProvisioning = !!selectedBranch && !targetAccountCode;
 
   // When currency changes, update default rate
   useEffect(() => {
     setRate(cfg.defaultRate);
   }, [currency, cfg.defaultRate]);
 
-  // Check if account exists + existing opening balance for selected box
+  // Load branches once on open
+  const loadBranches = async () => {
+    const { data, error } = await supabase
+      .from("branches")
+      .select("id,name,gl_cash_usd_account_code,gl_cash_jod_account_code,gl_cash_eur_account_code")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("name");
+    if (error) { console.error(error); return; }
+    setBranches((data as BranchRow[]) || []);
+    if (!branchId && data && data.length > 0) setBranchId(data[0].id);
+  };
+
   useEffect(() => {
     if (!open || !userId) return;
+    loadBranches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, userId]);
+
+  // Existing opening balance for selected branch+currency box
+  useEffect(() => {
+    if (!open || !userId || !targetAccountCode) { setExistingOpening(null); return; }
     let cancelled = false;
     (async () => {
-      const { data: acc } = await supabase
-        .from("accounts")
-        .select("id, account_code")
-        .eq("user_id", userId)
-        .eq("account_code", cfg.boxCode)
-        .maybeSingle();
-      if (cancelled) return;
-      setBoxAccountExists(!!acc);
-
       const { data: existing } = await supabase
         .from("transactions")
         .select("foreign_amount, amount")
         .eq("user_id", userId)
-        .eq("debit_account_code", cfg.boxCode)
+        .eq("debit_account_code", targetAccountCode)
         .eq("is_opening_balance", true)
         .eq("is_deleted", false);
       if (cancelled) return;
@@ -75,7 +100,22 @@ export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, on
       setExistingOpening(sum > 0 ? sum : null);
     })();
     return () => { cancelled = true; };
-  }, [open, userId, cfg.boxCode]);
+  }, [open, userId, targetAccountCode]);
+
+  const handleProvision = async () => {
+    setProvisioning(true);
+    try {
+      const { error } = await supabase.rpc("provision_branch_fx_boxes", { p_user_id: userId } as any);
+      if (error) throw error;
+      toast.success("تم تجهيز حسابات صناديق العملات لكل فرع");
+      await loadBranches();
+    } catch (err: any) {
+      console.error(err);
+      toast.error("فشل التجهيز: " + (err?.message || ""));
+    } finally {
+      setProvisioning(false);
+    }
+  };
 
   const ilsEquivalent = useMemo(() => {
     const a = Number(foreignAmount) || 0;
@@ -92,20 +132,21 @@ export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, on
   const handleSubmit = async () => {
     const amtFx = Number(foreignAmount);
     const r = Number(rate);
+    if (!selectedBranch) { toast.error("اختر الفرع"); return; }
+    if (!targetAccountCode) { toast.error("لا يوجد حساب فرعي للفرع — اضغط «تجهيز صناديق الفروع»"); return; }
     if (!amtFx || amtFx <= 0) { toast.error("أدخل مبلغ بالعملة الأجنبية"); return; }
     if (!r || r <= 0) { toast.error("أدخل سعر صرف صحيح"); return; }
-    if (!boxAccountExists) { toast.error(`لا يوجد حساب ${cfg.boxCode} (${cfg.boxNameAr}) — راجع شجرة الحسابات`); return; }
 
     setSaving(true);
     try {
-      const desc = `رصيد افتتاحي - ${cfg.boxNameAr}${notes ? ` - ${notes}` : ""}`;
-      const idempotencyKey = `OPENBAL-${cfg.boxCode}-${userId}-${date}-${amtFx}-${r}`;
+      const desc = `رصيد افتتاحي - ${cfg.boxNameAr} - فرع ${selectedBranch.name}${notes ? ` - ${notes}` : ""}`;
+      const idempotencyKey = `OPENBAL-${targetAccountCode}-${userId}-${date}-${amtFx}-${r}`;
 
       const { error } = await supabase.from("transactions").insert({
         user_id: userId,
         transaction_date: date,
         description: desc,
-        debit_account_code: cfg.boxCode,
+        debit_account_code: targetAccountCode,
         credit_account_code: OPENING_BALANCE_CODE,
         amount: ilsEquivalent,
         foreign_amount: amtFx,
@@ -114,7 +155,7 @@ export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, on
         transaction_type: "opening_balance",
         is_opening_balance: true,
         notes: notes || null,
-        reference: `OPEN-FX-${cfg.boxCode}`,
+        reference: `OPEN-FX-${targetAccountCode}`,
         idempotency_key: idempotencyKey,
       });
       if (error) throw error;
@@ -140,13 +181,33 @@ export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, on
       open={open}
       onOpenChange={onOpenChange}
       icon={Banknote}
-      title="رصيد افتتاحي - صندوق عملة أجنبية"
-      description="إدخال رصيد افتتاحي للدولار / الدينار / اليورو مع سعر الصرف"
+      title="رصيد افتتاحي - صندوق عملة أجنبية (لكل فرع)"
+      description="إدخال رصيد افتتاحي لصندوق الدولار/الدينار/اليورو الخاص بفرع محدّد"
       primaryLabel="حفظ القيد الافتتاحي"
       primaryLoading={saving}
-      primaryDisabled={!foreignAmount || Number(foreignAmount) <= 0 || !rate || Number(rate) <= 0 || !boxAccountExists}
+      primaryDisabled={!foreignAmount || Number(foreignAmount) <= 0 || !rate || Number(rate) <= 0 || !targetAccountCode}
       onPrimary={handleSubmit}
     >
+      {/* Branch */}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold">الفرع</Label>
+        {branches.length === 0 ? (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-amber-700 dark:text-amber-400 flex gap-2 items-start">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>لا توجد فروع نشطة. أضف فرعاً على الأقل من إعدادات الفروع.</span>
+          </div>
+        ) : (
+          <Select value={branchId} onValueChange={setBranchId}>
+            <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+            <SelectContent>
+              {branches.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
       {/* Currency */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold">العملة / الصندوق</Label>
@@ -157,7 +218,7 @@ export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, on
               <SelectItem key={k} value={k}>
                 <span className="flex items-center gap-2">
                   {CURRENCY_CONFIG[k].label}
-                  <span className="text-muted-foreground text-[10px]">({CURRENCY_CONFIG[k].boxCode})</span>
+                  <span className="text-muted-foreground text-[10px]">(تحت {CURRENCY_CONFIG[k].parentCode})</span>
                 </span>
               </SelectItem>
             ))}
@@ -165,10 +226,22 @@ export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, on
         </Select>
       </div>
 
-      {!boxAccountExists && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-xs text-destructive flex gap-2 items-start">
-          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-          <span>الحساب <b>{cfg.boxCode}</b> غير موجود لدى الشركة. أضِفه من شجرة الحسابات أولاً.</span>
+      {/* Target sub-account status */}
+      {selectedBranch && targetAccountCode && (
+        <div className="rounded-md border border-border bg-muted/30 p-2.5 text-[11px] text-muted-foreground">
+          الحساب المستهدف: <b className="font-mono text-foreground">{targetAccountCode}</b> — {cfg.boxNameAr} / فرع {selectedBranch.name}
+        </div>
+      )}
+      {needsProvisioning && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-amber-700 dark:text-amber-400 space-y-2">
+          <div className="flex gap-2 items-start">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>لا يوجد حساب فرعي لـ {cfg.boxNameAr} لفرع <b>{selectedBranch?.name}</b> بعد.</span>
+          </div>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={handleProvision} disabled={provisioning}>
+            {provisioning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
+            تجهيز صناديق الفروع
+          </Button>
         </div>
       )}
 
@@ -223,7 +296,7 @@ export default function ForeignCashOpeningBalanceDialog({ open, onOpenChange, on
           <p className="font-semibold text-foreground">ملخص القيد المحاسبي:</p>
           <div className="flex justify-between">
             <span className="text-muted-foreground">
-              مدين: {cfg.boxNameAr} ({cfg.boxCode}) — {cfg.symbol}{Number(foreignAmount).toLocaleString()}
+              مدين: {cfg.boxNameAr} ({targetAccountCode || cfg.parentCode}){selectedBranch ? ` - ${selectedBranch.name}` : ""} — {cfg.symbol}{Number(foreignAmount).toLocaleString()}
             </span>
             <span className="font-mono font-bold text-emerald-600">₪{ilsEquivalent.toLocaleString()}</span>
           </div>
