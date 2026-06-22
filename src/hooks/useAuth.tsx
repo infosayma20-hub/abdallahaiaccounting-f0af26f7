@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // every time forces every `useEffect([user])` consumer to refetch.
       setUser((prev) => {
         const next = session?.user ?? null;
+        if (event === "USER_UPDATED") return next;
         if (prev?.id === next?.id) return prev;
         return next;
       });
