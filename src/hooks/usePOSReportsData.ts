@@ -66,6 +66,8 @@ export interface POSSession {
   total_returns: number;
   terminal_id: string;
   state: string;
+  branch_id?: string | null;
+  branch_name?: string | null;
 }
 
 export interface ProductInfo {
@@ -79,7 +81,12 @@ export interface ProductInfo {
   pos_category_id: string | null;
 }
 
-export function usePOSReportsData() {
+export interface BranchOption {
+  id: string;
+  name: string;
+}
+
+export function usePOSReportsData(branchId: string | null = null) {
   const { user } = useAuth();
   const [preset, setPreset] = useState<DatePreset>("month");
   const [customFrom, setCustomFrom] = useState<Date>(startOfMonth(new Date()));
@@ -93,6 +100,7 @@ export function usePOSReportsData() {
   const [payments, setPayments] = useState<POSPayment[]>([]);
   const [sessions, setSessions] = useState<POSSession[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
 
   // Resolve team owner for multi-tenant access
   useEffect(() => {
@@ -159,6 +167,48 @@ export function usePOSReportsData() {
           .eq("user_id", dataOwnerId),
       ]);
 
+      // Resolve terminal -> branch mapping so sessions/orders can be filtered by branch.
+      const rawSessions = (sessionsRes.data || []) as POSSession[];
+      const terminalIds = Array.from(new Set(rawSessions.map(s => s.terminal_id).filter(Boolean)));
+      let terminalBranchMap = new Map<string, string>();
+      let branchNameMap = new Map<string, string>();
+      if (terminalIds.length > 0) {
+        const { data: terms } = await supabase
+          .from("pos_terminals")
+          .select("id, branch_id")
+          .in("id", terminalIds);
+        (terms || []).forEach((t: any) => {
+          if (t.branch_id) terminalBranchMap.set(t.id, t.branch_id);
+        });
+        const branchIds = Array.from(new Set(Array.from(terminalBranchMap.values())));
+        if (branchIds.length > 0) {
+          const { data: brs } = await supabase
+            .from("branches")
+            .select("id, name")
+            .in("id", branchIds);
+          (brs || []).forEach((b: any) => branchNameMap.set(b.id, b.name));
+          setBranches((brs || []).map((b: any) => ({ id: b.id, name: b.name })));
+        } else {
+          setBranches([]);
+        }
+      } else {
+        setBranches([]);
+      }
+
+      // Enrich sessions with branch info
+      const enrichedSessions = rawSessions.map(s => {
+        const bid = terminalBranchMap.get(s.terminal_id) || null;
+        return { ...s, branch_id: bid, branch_name: bid ? branchNameMap.get(bid) || null : null };
+      });
+
+      // Apply branch filter to sessions, then derive a session_id whitelist to filter orders too.
+      const filteredSessions = branchId
+        ? enrichedSessions.filter(s => s.branch_id === branchId)
+        : enrichedSessions;
+      const allowedSessionIds = branchId
+        ? new Set(filteredSessions.map(s => s.id))
+        : null;
+
       // Exclude orders whose linked accounting transaction was soft-deleted (voided duplicates)
       const rawOrders = (ordersRes.data || []) as POSOrder[];
       const txIds = rawOrders.map(o => o.transaction_id).filter(Boolean) as string[];
@@ -171,16 +221,18 @@ export function usePOSReportsData() {
           .eq("is_deleted", true);
         voidedTxIds = new Set((voided || []).map((t: any) => t.id));
       }
-      const cleanOrders = rawOrders.filter(o => !o.transaction_id || !voidedTxIds.has(o.transaction_id));
+      const cleanOrders = rawOrders
+        .filter(o => !o.transaction_id || !voidedTxIds.has(o.transaction_id))
+        .filter(o => !allowedSessionIds || allowedSessionIds.has(o.session_id));
       setOrders(cleanOrders);
       setOrderLines((linesRes.data || []) as POSOrderLine[]);
       setPayments((paymentsRes.data || []) as POSPayment[]);
-      setSessions((sessionsRes.data || []) as POSSession[]);
+      setSessions(filteredSessions);
       setProducts((productsRes.data || []) as ProductInfo[]);
       setLoading(false);
     };
     fetchAll();
-  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey, branchId]);
 
   const refetch = () => setRefreshKey(k => k + 1);
 
@@ -334,6 +386,7 @@ export function usePOSReportsData() {
     loading,
     dataOwnerId,
     orders, paidOrders, returnOrders, orderLines, paidLines, payments, sessions, products,
+    branches,
     totalSales, totalReturns, netSales, totalOrders, avgOrderValue,
     deliveryCollected, customerCollected,
     totalCOGS, grossProfit, grossMargin,
