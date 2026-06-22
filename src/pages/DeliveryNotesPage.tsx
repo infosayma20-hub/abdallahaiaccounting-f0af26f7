@@ -191,7 +191,14 @@ const DeliveryNotesPage = () => {
     win.document.write(`<html dir="rtl"><head>
       <title>إرسالية ${note.delivery_number}</title>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-      <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }</style>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+        body { background: white; }
+        @media print {
+          body { padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          @page { margin: 8mm; size: A4; }
+        }
+      </style>
     </head><body><div id="print-root"></div></body></html>`);
     win.document.close();
     setTimeout(() => {
