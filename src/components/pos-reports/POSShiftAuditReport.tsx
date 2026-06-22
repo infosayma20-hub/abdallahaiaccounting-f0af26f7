@@ -5,7 +5,7 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList } from "lucide-react";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, Store, Info } from "lucide-react";
 import { toast } from "sonner";
 import type { POSSession } from "@/hooks/usePOSReportsData";
 
@@ -27,6 +27,35 @@ function shortId(id: string) {
   return id.slice(0, 8);
 }
 
+// Map raw payment method codes/labels to Arabic display.
+const PAYMENT_METHOD_AR: Record<string, string> = {
+  cash: "نقدي",
+  card: "بطاقة",
+  credit_card: "بطاقة ائتمان",
+  debit_card: "بطاقة سحب",
+  employee_account: "حساب موظف",
+  employee: "حساب موظف",
+  account: "ذمم العميل",
+  customer_account: "ذمم العميل",
+  transfer: "حوالة بنكية",
+  cheque: "شيك",
+};
+function trMethod(m: string) {
+  return PAYMENT_METHOD_AR[m?.toLowerCase?.() ?? m] || m;
+}
+
+const SYNC_STATUS_AR: Record<string, string> = {
+  synced: "مرحّلة",
+  pending: "معلّقة",
+  quarantined: "في الحجر",
+  syncing: "قيد الترحيل",
+  failed: "فشل الترحيل",
+};
+function trSyncStatus(s: string | null | undefined) {
+  if (!s) return "—";
+  return SYNC_STATUS_AR[s] || s;
+}
+
 interface SessionOrder {
   id: string;
   order_number: string | null;
@@ -42,6 +71,7 @@ interface SessionPayment {
   id: string;
   payment_method: string;
   amount: number;
+  order_id?: string;
 }
 
 interface Props {
@@ -52,11 +82,23 @@ interface Props {
 export default function POSShiftAuditReport({ sessions }: Props) {
   const [shiftKind, setShiftKind] = useState<ShiftKind>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [branchFilter, setBranchFilter] = useState<string>("");
+
+  // Build unique branch list from sessions
+  const branchesInData = useMemo(() => {
+    const map = new Map<string, string>();
+    sessions.forEach(s => {
+      if (s.branch_id) map.set(s.branch_id, s.branch_name || s.branch_id);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [sessions]);
 
   const filtered = useMemo(() => {
-    if (shiftKind === "all") return sessions;
-    return sessions.filter(s => classifyShift(s.opened_at) === shiftKind);
-  }, [sessions, shiftKind]);
+    let out = sessions;
+    if (branchFilter) out = out.filter(s => s.branch_id === branchFilter);
+    if (shiftKind !== "all") out = out.filter(s => classifyShift(s.opened_at) === shiftKind);
+    return out;
+  }, [sessions, shiftKind, branchFilter]);
 
   useEffect(() => {
     if (filtered.length > 0 && !filtered.find(s => s.id === selectedId)) {
@@ -69,14 +111,30 @@ export default function POSShiftAuditReport({ sessions }: Props) {
 
   return (
     <section className="border-t border-border pt-4">
-      <header className="flex items-center justify-between mb-3">
+      <header className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <ClipboardList className="w-3.5 h-3.5 text-muted-foreground" />
           <h2 className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
             دراسة وردية — تدقيق محاسبي
           </h2>
         </div>
-        <div className="flex items-center gap-1 text-[11px]">
+        <div className="flex items-center gap-2 text-[11px] flex-wrap">
+          {branchesInData.length > 0 && (
+            <div className="flex items-center gap-1">
+              <Store className="w-3 h-3 text-muted-foreground" />
+              <select
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">كل الفروع</option>
+                {branchesInData.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex items-center gap-1">
           {(
             [
               { k: "all", label: "الكل" },
@@ -98,6 +156,7 @@ export default function POSShiftAuditReport({ sessions }: Props) {
               {b.label}
             </button>
           ))}
+          </div>
         </div>
       </header>
 
@@ -168,6 +227,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<SessionOrder[]>([]);
   const [payments, setPayments] = useState<SessionPayment[]>([]);
+  const [voidedPayments, setVoidedPayments] = useState<SessionPayment[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,20 +256,25 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
       const orderIds = enriched.map(o => o.id);
       let pays: SessionPayment[] = [];
+      let voidPays: SessionPayment[] = [];
       if (orderIds.length) {
         const { data: payRes } = await supabase
           .from("pos_payments")
           .select("id, payment_method, amount, order_id")
           .in("order_id", orderIds);
-        // Only include payments for non-voided orders
         const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
+        const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
         pays = (payRes || [])
           .filter((p: any) => validOrderIds.has(p.order_id))
+          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0 }));
+        voidPays = (payRes || [])
+          .filter((p: any) => voidedOrderIds.has(p.order_id))
           .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0 }));
       }
       if (!cancelled) {
         setOrders(enriched);
         setPayments(pays);
+        setVoidedPayments(voidPays);
         setLoading(false);
       }
     };
@@ -231,8 +296,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
       byMethod[k].count++;
       byMethod[k].amount += p.amount;
     });
-    return { paid, cancelled, voided, offlineSynced, pending, netSales, byMethod };
-  }, [orders, payments]);
+    // Re-derive expected cash from real (non-voided) cash payments only.
+    const cashKey = (m: string) => ["cash", "نقدي"].includes((m || "").toLowerCase());
+    const realCash = payments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
+    const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
+    const recalcExpected = (session.opening_cash ?? 0) + realCash;
+    const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
+    return {
+      paid, cancelled, voided, offlineSynced, pending, netSales, byMethod,
+      recalcExpected, recalcVariance, voidedCash,
+    };
+  }, [orders, payments, voidedPayments, session.opening_cash, session.closing_cash]);
 
   const kind = classifyShift(session.opened_at);
   const durationMin = session.closed_at
@@ -263,7 +337,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
           ملخص الوردية
         </div>
         <div className="divide-y divide-border text-[13px]">
-          <Row label="Session ID">
+          <Row label="رقم الوردية">
             <div className="flex items-center gap-1.5">
               <code className="font-mono text-[12px]">{shortId(session.id)}…</code>
               <button onClick={copyId} className="text-muted-foreground hover:text-foreground">
@@ -333,7 +407,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
                     <th className="text-right px-3 py-2 font-medium">رقم</th>
                     <th className="text-right px-3 py-2 font-medium">الوقت</th>
                     <th className="text-left px-3 py-2 font-medium">المبلغ</th>
-                    <th className="text-center px-3 py-2 font-medium">offline</th>
+                    <th className="text-center px-3 py-2 font-medium">أوفلاين</th>
                     <th className="text-center px-3 py-2 font-medium">الحالة</th>
                   </tr>
                 </thead>
@@ -364,7 +438,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
                             ملغية
                           </Badge>
                         ) : (
-                          <span className="text-[10px] text-emerald-600">{o.sync_status || "paid"}</span>
+                          <span className="text-[10px] text-emerald-600">{trSyncStatus(o.sync_status) || "مدفوعة"}</span>
                         )}
                       </td>
                     </tr>
@@ -388,7 +462,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             </span>
           </Row>
           {Object.entries(totals.byMethod).map(([m, v]) => (
-            <Row key={m} label={`${m} (${v.count} دفعة)`}>
+            <Row key={m} label={`${trMethod(m)} (${v.count} دفعة)`}>
               <span className="font-mono">₪{v.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </Row>
           ))}
@@ -397,9 +471,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
               ₪{totals.cancelled.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
             </span>
           </Row>
-          <Row label="كاش متوقع">
-            <span className="font-mono">
+          <Row label="كاش متوقع (مجمّد عند الإغلاق)">
+            <span className="font-mono text-muted-foreground line-through">
               {session.expected_cash != null ? `₪${session.expected_cash.toLocaleString()}` : "—"}
+            </span>
+          </Row>
+          <Row label="كاش متوقع (محسوب الآن)">
+            <span className="font-mono font-semibold text-foreground">
+              ₪{totals.recalcExpected.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           </Row>
           <Row label="كاش فعلي عند الإغلاق">
@@ -407,11 +486,34 @@ function ShiftDetail({ session }: { session: POSSession }) {
               {session.closing_cash != null ? `₪${session.closing_cash.toLocaleString()}` : "لم تُغلق"}
             </span>
           </Row>
-          <Row label="فرق الكاش">
-            <span className={cn("font-mono font-semibold", varianceColor)}>
+          <Row label="فرق الكاش (مجمّد)">
+            <span className={cn("font-mono", varianceColor)}>
               {varianceLabel != null ? `${varianceLabel >= 0 ? "+" : ""}₪${varianceLabel.toLocaleString()}` : "—"}
             </span>
           </Row>
+          <Row label="فرق الكاش الفعلي (بعد الاستبعاد)">
+            <span className={cn(
+              "font-mono font-semibold",
+              totals.recalcVariance == null ? "text-muted-foreground"
+                : Math.abs(totals.recalcVariance) < 0.5 ? "text-emerald-600"
+                : totals.recalcVariance < 0 ? "text-destructive" : "text-amber-600",
+            )}>
+              {totals.recalcVariance != null
+                ? `${totals.recalcVariance >= 0 ? "+" : ""}₪${totals.recalcVariance.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                : "—"}
+            </span>
+          </Row>
+          {totals.voidedCash > 0 && (
+            <div className="px-3 py-2 bg-amber-500/5 border-t border-amber-500/20 text-[11px] flex gap-2 items-start">
+              <Info className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-muted-foreground leading-relaxed">
+                الـ"كاش المتوقع المجمّد" تم تخزينه لحظة إغلاق الوردية وكان شامل
+                <span className="text-foreground font-medium"> ₪{totals.voidedCash.toLocaleString()} </span>
+                من فواتير offline مكررة تم حذفها محاسبياً لاحقاً. الرقم الصحيح هو
+                "كاش متوقع (محسوب الآن)" ولا يوجد عجز فعلي.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
