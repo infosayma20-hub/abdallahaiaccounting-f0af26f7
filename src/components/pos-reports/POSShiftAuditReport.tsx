@@ -634,8 +634,7 @@ function ExpandableMethodRow({
   method: string;
   count: number;
   amount: number;
-  rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[];
-  /* currency fields are optional on rows */
+  rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null; currency?: string; origAmount?: number; rate?: number }[];
   onOpenOrder: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
