@@ -273,10 +273,10 @@ function ShiftDetail({ session }: { session: POSSession }) {
         const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
         pays = (payRes || [])
           .filter((p: any) => validOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0 }));
+          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
         voidPays = (payRes || [])
           .filter((p: any) => voidedOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0 }));
+          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
       }
       if (!cancelled) {
         setOrders(enriched);
