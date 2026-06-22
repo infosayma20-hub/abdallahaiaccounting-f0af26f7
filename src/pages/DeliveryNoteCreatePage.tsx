@@ -149,6 +149,32 @@ const DeliveryNoteCreatePage = () => {
   useEffect(() => { fetchLookups(); }, [fetchLookups]);
   useEffect(() => { if (isEdit) loadNote(); }, [isEdit, loadNote]);
 
+  // Restore snapshot from "إنشاء مشابه"
+  useEffect(() => {
+    if (isEdit) return;
+    if (searchParams.get("duplicate") !== "1") return;
+    try {
+      const raw = sessionStorage.getItem("delivery-note:duplicate");
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      sessionStorage.removeItem("delivery-note:duplicate");
+      if (s.deliveryType) setDeliveryType(s.deliveryType);
+      if (s.contactId) setContactId(s.contactId);
+      if (s.contactName) setContactName(s.contactName);
+      if (s.driverName) setDriverName(s.driverName);
+      if (s.vehicleNumber) setVehicleNumber(s.vehicleNumber);
+      if (s.deliveryAddress) setDeliveryAddress(s.deliveryAddress);
+      if (s.notes) setNotes(s.notes);
+      if (s.currency) setCurrency(s.currency);
+      if (s.fromWarehouseId) setFromWarehouseId(s.fromWarehouseId);
+      if (s.toWarehouseId) setToWarehouseId(s.toWarehouseId);
+      if (s.toBranchId) setToBranchId(s.toBranchId);
+      if (Array.isArray(s.items) && s.items.length) setItems(s.items);
+      toast.success("تم نسخ تفاصيل الإرسالية");
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Generate preview number
   useEffect(() => {
     if (isEdit || noteNumber || !user) return;
@@ -459,7 +485,7 @@ const DeliveryNoteCreatePage = () => {
       key: "new", label: "جديد", items: [
         { key: "new", label: "إرسالية جديدة", icon: Plus, variant: "primary" as const,
           onClick: () => navigate("/delivery-notes/new?type=external") },
-        { key: "new_int", label: "نقل داخلي جديد", icon: Factory,
+        { key: "new_int", label: "إرسالية مبيعات داخلية جديدة", icon: Factory,
           onClick: () => navigate("/delivery-notes/new?type=internal") },
         ...(inEdit ? [{ key: "duplicate", label: "إنشاء مشابه", icon: Copy, onClick: startNewSimilar }] : []),
       ],
@@ -534,7 +560,7 @@ const DeliveryNoteCreatePage = () => {
   return (
     <AccountingShell>
     <FinanceShell
-      title={isEdit ? `تعديل الإرسالية ${noteNumber}` : (deliveryType === "internal" ? "نقل داخلي جديد" : "إرسالية مبيعات جديدة")}
+      title={isEdit ? `تعديل الإرسالية ${noteNumber}` : (deliveryType === "internal" ? "إرسالية مبيعات داخلية جديدة" : "إرسالية مبيعات خارجية جديدة")}
       subtitle={deliveryType === "internal"
         ? "نقل بين المخازن — يؤثر على المخزون فقط ولا يُحوّل لفاتورة"
         : "وثيقة تسليم بضاعة — تُحوّل لفاتورة لاحقاً حسب القانون"}
