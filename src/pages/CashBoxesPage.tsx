@@ -662,6 +662,7 @@ const CashBoxesPage = () => {
       <CurrencyExchangeDialog open={exchangeOpen} onOpenChange={setExchangeOpen} boxes={boxes} userId={user?.id || ""} onSuccess={fetchData} />
       <BankDepositDialog open={depositOpen} onOpenChange={setDepositOpen} boxes={boxes} userId={user?.id || ""} onSuccess={fetchData} />
       <CashBoxTransferDialog open={transferOpen} onOpenChange={setTransferOpen} boxes={boxes} balances={balances} userId={user?.id || ""} onSuccess={fetchData} />
+      <ForeignCashOpeningBalanceDialog open={openingBalanceOpen} onOpenChange={setOpeningBalanceOpen} userId={user?.id || ""} onSuccess={fetchData} />
     </FinanceShell>
   );
 };
