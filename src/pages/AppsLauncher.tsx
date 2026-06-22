@@ -69,6 +69,15 @@ const AppsLauncher = () => {
   const [employeeOnlyRedirect, setEmployeeOnlyRedirect] = useState(cachedRoles?.employeeOnly ?? false);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
+  // 🛡️ Watchdog: even if a future hook regression leaves a loading flag stuck
+  // (e.g. someone re-adds settingsLoading to the gate), force-render the grid
+  // after a hard timeout so a new user NEVER sees endless skeletons.
+  const [watchdogReady, setWatchdogReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWatchdogReady(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+
   // Global Ctrl+K / ⌘K to open command palette
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -175,14 +184,16 @@ const AppsLauncher = () => {
     if (employeeOnlyRedirect) navigate("/employee", { replace: true });
   }, [employeeOnlyRedirect, navigate]);
 
-  // ⚡ Fast-path: عرض البطاقات فور توفر الحد الأدنى (auth + roles + settings للـ hidden_apps).
-  // باقي الـ hooks (subscription/guard/onboarding) تُحمَّل في الخلفية دون حجب الشبكة.
-  // ⚡ الـ gate الفعلي: auth + roles فقط. settings تُحمَّل بالخلفية ولا
-  // يجب أن تحجب البطاقات (كانت تعلّق الـ skeletons لمستخدم جديد ما عنده
-  // صف في company_settings بعد).
+  // ⚠️ DO NOT REGRESS — قاعدة ثابتة:
+  // الـ gate الفعلي لعرض البطاقات = auth + roles فقط.
+  // ممنوع إضافة settingsLoading / subLoading / guardLoading / onboardingLoading
+  // إلى هذا الشرط. المستخدم الجديد ما عنده صف في company_settings ولا
+  // subscription، فإضافة أي منها بتعلّق الـ Skeletons للأبد وبتعطي انطباع
+  // سيء عن البرنامج. باقي البيانات تُحمَّل بالخلفية بدون حجب الـ UI.
+  // (Watchdog أعلاه يكسر أي تعليق محتمل بعد 4 ثوانٍ كحماية إضافية.)
   const isReady =
-    !authLoading &&
-    !rolesLoading;
+    watchdogReady ||
+    (!authLoading && !rolesLoading);
 
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
