@@ -6865,6 +6865,10 @@ const POSPage = () => {
                       whileTap={{ scale: 0.96 }}
                       onClick={() => {
                         setPaymentMethod(m.key);
+                        // غير النقد لا يدخل صندوق العملات الأجنبية — يجب أن يكون شيكل دائماً
+                        if (m.key !== "cash") {
+                          setPaymentCurrency("ILS");
+                        }
                         if (m.key === "card") {
                           (async () => {
                             const uid = dataOwnerId || user?.id;
