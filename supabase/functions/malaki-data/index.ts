@@ -515,7 +515,7 @@ Deno.serve(async (req) => {
         // ── SOURCE A: POS Orders ──
         const { data: orders } = await supabase
           .from("pos_orders")
-          .select("id, total, created_at, session_id, order_number")
+          .select("id, total, created_at, session_id, order_number, transaction_id")
           .eq("user_id", linkedUserId)
           .eq("state", "paid")
           .gte("created_at", shiftStart)
@@ -523,7 +523,7 @@ Deno.serve(async (req) => {
           .order("created_at", { ascending: false })
           .limit(5000);
 
-        const orderList: any[] = orders || [];
+        const orderList: any[] = await excludeVoidedOrders(supabase, orders || []);
         const orderIds = orderList.map((o) => o.id);
 
         // ── SOURCE B: Regular Sale Invoices ──
