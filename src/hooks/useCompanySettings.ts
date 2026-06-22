@@ -346,6 +346,14 @@ export function useCompanySettings() {
     } else {
       void loadSettings({ background: false });
     }
+    // 🛡️ Hard safety: never let `loading` stay true longer than 5s.
+    // For brand-new users (no company_settings row, RLS edge cases, slow RPC)
+    // we must fall back to defaults so consumers (AppsLauncher, gates, …)
+    // don't hang forever and ship endless skeletons.
+    const safety = setTimeout(() => {
+      if (mountedRef.current) setLoading(false);
+    }, 5000);
+    return () => clearTimeout(safety);
     // Depend on user id only — Supabase fires onAuthStateChange (INITIAL_SESSION,
     // TOKEN_REFRESHED, …) which produces a new User object identity for the same
     // user, causing duplicate fetches on page entry and on tab focus return.
