@@ -1125,6 +1125,30 @@ const POSPage = () => {
     })();
   }, [dataOwnerId]);
 
+  // Load default card bank account GL for split-payment defaults
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    (async () => {
+      try {
+        const { data: cs } = await supabase
+          .from("company_settings" as any)
+          .select("card_bank_account_id")
+          .eq("user_id", dataOwnerId)
+          .maybeSingle();
+        const cardId = (cs as any)?.card_bank_account_id;
+        if (!cardId) { setDefaultCardGl(null); return; }
+        const { data: ba } = await supabase
+          .from("bank_accounts" as any)
+          .select("gl_account_code")
+          .eq("id", cardId)
+          .maybeSingle();
+        setDefaultCardGl((ba as any)?.gl_account_code || null);
+      } catch (e) {
+        console.warn("[POS] failed to load default card GL", e);
+      }
+    })();
+  }, [dataOwnerId]);
+
    // ── Offline Mode ──
    const offlineMode = usePOSOffline({
      userId: dataOwnerId || userId || null,
