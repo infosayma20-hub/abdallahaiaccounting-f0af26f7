@@ -7156,7 +7156,7 @@ const POSPage = () => {
               )}
 
               {/* Employee account */}
-              {paymentMethod === "employee_account" && (
+              {!splitMode && paymentMethod === "employee_account" && (
                 <div className="mx-4 mt-3 space-y-2">
                   <label className="text-sm font-medium mb-1.5 block" style={{ color: '#111827' }}>اختر الموظف</label>
                   <div className="relative">
