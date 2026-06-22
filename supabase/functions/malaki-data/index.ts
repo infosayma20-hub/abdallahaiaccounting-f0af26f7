@@ -11,6 +11,33 @@ const respond = (data: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+/**
+ * Filters out POS orders whose linked accounting transaction was soft-deleted
+ * (voided). Used to keep "duplicate offline sync" or admin-voided sales out of
+ * every owner / portal report. Mirrors the same logic as the admin reports hook.
+ */
+async function excludeVoidedOrders<T extends { id: string; transaction_id?: string | null }>(
+  supabase: any,
+  orders: T[],
+): Promise<T[]> {
+  if (!orders || orders.length === 0) return orders;
+  const txIds = orders.map(o => o.transaction_id).filter(Boolean) as string[];
+  if (txIds.length === 0) return orders;
+  const voided = new Set<string>();
+  // chunk to be safe with IN-list size
+  for (let i = 0; i < txIds.length; i += 500) {
+    const chunk = txIds.slice(i, i + 500);
+    const { data } = await supabase
+      .from("transactions")
+      .select("id")
+      .in("id", chunk)
+      .eq("is_deleted", true);
+    (data || []).forEach((t: any) => voided.add(t.id));
+  }
+  if (voided.size === 0) return orders;
+  return orders.filter(o => !o.transaction_id || !voided.has(o.transaction_id));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -167,13 +194,13 @@ Deno.serve(async (req) => {
         // POS orders
         const { data: orders } = await supabase
           .from("pos_orders")
-          .select("id, total, created_at, session_id, user_id")
+          .select("id, total, created_at, session_id, user_id, transaction_id")
           .eq("user_id", linkedUserId)
           .eq("state", "paid")
           .gte("created_at", sISO)
           .lte("created_at", eISO)
           .limit(20000);
-        const orderList = orders || [];
+        const orderList = await excludeVoidedOrders(supabase, orders || []);
 
         // Invoice sales
         let invQ = supabase
@@ -488,7 +515,7 @@ Deno.serve(async (req) => {
         // ── SOURCE A: POS Orders ──
         const { data: orders } = await supabase
           .from("pos_orders")
-          .select("id, total, created_at, session_id, order_number")
+          .select("id, total, created_at, session_id, order_number, transaction_id")
           .eq("user_id", linkedUserId)
           .eq("state", "paid")
           .gte("created_at", shiftStart)
@@ -496,7 +523,7 @@ Deno.serve(async (req) => {
           .order("created_at", { ascending: false })
           .limit(5000);
 
-        const orderList: any[] = orders || [];
+        const orderList: any[] = await excludeVoidedOrders(supabase, orders || []);
         const orderIds = orderList.map((o) => o.id);
 
         // ── SOURCE B: Regular Sale Invoices ──
@@ -782,7 +809,7 @@ Deno.serve(async (req) => {
 
       let query = supabase
         .from("pos_orders")
-        .select("id, total, created_at, session_id, order_number")
+        .select("id, total, created_at, session_id, order_number, transaction_id")
         .eq("user_id", linkedUserId)
         .eq("state", "paid")
         .gte("created_at", startISO)
@@ -791,7 +818,7 @@ Deno.serve(async (req) => {
         .limit(5000);
 
       const { data: orders } = await query;
-      const orderList: any[] = orders || [];
+      const orderList: any[] = await excludeVoidedOrders(supabase, orders || []);
 
       const sessionIds = [...new Set(orderList.map(o => o.session_id).filter(Boolean))];
       const sessionMap: Record<string, string> = {};
