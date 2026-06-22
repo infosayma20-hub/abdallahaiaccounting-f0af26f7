@@ -467,6 +467,8 @@ const InvoiceCreatePage = () => {
         contactId: data.contactId || null,
         paymentTerms: data.paymentTerms || "net_30",
         paymentMethod: "credit",
+        invoiceKind: data.invoiceKind || "credit",
+        cashAccountCode: data.cashAccountCode ?? null,
         currency: data.currency || "شيكل",
         exchangeRate: data.exchangeRate || 1,
         notes: data.notes || "",
@@ -474,12 +476,16 @@ const InvoiceCreatePage = () => {
         salespersonId: data.salespersonId || null,
         billingAddress: data.billingAddress || "",
         taxInclusive: data.taxInclusive || false,
+        warehouseId: data.warehouseId ?? prev.warehouseId,
+        workshopId: data.workshopId ?? null,
         items: data.items?.length ? data.items.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : [createEmptyItem()],
         // Invoices are credit-only — payment metadata is reset
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
       }));
       if (data.contactSearch) setContactSearch(data.contactSearch);
+      if (data.customerOverrides) setCustomerOverrides(data.customerOverrides);
+      if (typeof data.invoiceTerms === "string") setInvoiceTerms(data.invoiceTerms);
     } catch (e) { /* ignore parse errors */ }
   }, [fromDuplicate]);
 
@@ -1759,13 +1765,15 @@ const InvoiceCreatePage = () => {
   const handleNewSimilar = () => {
     // Save full form data to localStorage for the new page to pick up
     const duplicateData = {
-      _sourceRef: form.type === "sales" ? `INV-${searchParams.get("edit") || ""}` : `PO-${searchParams.get("edit") || ""}`,
+      _sourceRef: nextInvoiceNumber || originalInvoiceRef.current?.invoiceNumber || "",
       type: form.type,
       contactName: form.contactName,
       contactId: form.contactId,
       contactSearch: form.contactName,
       paymentTerms: form.paymentTerms,
       paymentMethod: form.paymentMethod,
+      invoiceKind: form.invoiceKind,
+      cashAccountCode: form.cashAccountCode,
       currency: form.currency,
       exchangeRate: form.exchangeRate,
       notes: form.notes,
@@ -1773,6 +1781,10 @@ const InvoiceCreatePage = () => {
       salespersonId: form.salespersonId,
       billingAddress: form.billingAddress,
       taxInclusive: form.taxInclusive,
+      warehouseId: form.warehouseId,
+      workshopId: form.workshopId,
+      customerOverrides,
+      invoiceTerms,
       items: form.items.map(item => ({
         ...item,
         id: crypto.randomUUID(), // new IDs for the copy
