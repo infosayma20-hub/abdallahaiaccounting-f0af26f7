@@ -4,6 +4,7 @@ import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { bridgeOpenDrawer } from "@/lib/print-bridge-client";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
+import SplitPaymentPanel, { type SplitTender } from "@/components/pos/SplitPaymentPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
@@ -700,6 +701,11 @@ const POSPage = () => {
   const [editedRate, setEditedRate] = useState<number | null>(null);
   const [rateEdited, setRateEdited] = useState(false);
 
+  // Split (mixed) payment — cash + card only, ILS only
+  const [splitMode, setSplitMode] = useState(false);
+  const [splitTenders, setSplitTenders] = useState<SplitTender[]>([]);
+  const [defaultCardGl, setDefaultCardGl] = useState<string | null>(null);
+
   const currencies = [
     { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
     { code: "USD", symbol: "$", name: "دولار", flag: "US" },
@@ -1115,6 +1121,30 @@ const POSPage = () => {
         }
       } catch (e) {
         console.warn("[POS] failed to load meal_discount_mode", e);
+      }
+    })();
+  }, [dataOwnerId]);
+
+  // Load default card bank account GL for split-payment defaults
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    (async () => {
+      try {
+        const { data: cs } = await supabase
+          .from("company_settings" as any)
+          .select("card_bank_account_id")
+          .eq("user_id", dataOwnerId)
+          .maybeSingle();
+        const cardId = (cs as any)?.card_bank_account_id;
+        if (!cardId) { setDefaultCardGl(null); return; }
+        const { data: ba } = await supabase
+          .from("bank_accounts" as any)
+          .select("gl_account_code")
+          .eq("id", cardId)
+          .maybeSingle();
+        setDefaultCardGl((ba as any)?.gl_account_code || null);
+      } catch (e) {
+        console.warn("[POS] failed to load default card GL", e);
       }
     })();
   }, [dataOwnerId]);
@@ -3396,6 +3426,31 @@ const POSPage = () => {
       visaGlAccountCode = effectivePaymentMethod.split(":")[1];
       effectivePaymentMethod = "card";
     }
+    // Split-payment validation (mixed cash + card, ILS only, online only)
+    if (splitMode && splitTenders.length > 1) {
+      if (!offlineMode.isOnline) {
+        toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
+        return;
+      }
+      if (paymentCurrency !== "ILS") {
+        toast.error("الدفع المختلط متاح بعملة الشيكل فقط");
+        return;
+      }
+      const paid = splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const diff = Math.abs(paid - cartTotals.total);
+      if (diff > 0.01) {
+        toast.error(`مجموع الدفعات (₪${paid.toFixed(2)}) لا يساوي إجمالي الفاتورة (₪${cartTotals.total.toFixed(2)})`);
+        return;
+      }
+      if (splitTenders.some((t) => !(t.amount > 0))) {
+        toast.error("كل دفعة يجب أن تكون أكبر من صفر");
+        return;
+      }
+      if (splitTenders.some((t) => t.method !== "cash" && t.method !== "card")) {
+        toast.error("الدفع المختلط يدعم النقدي والفيزا فقط");
+        return;
+      }
+    }
     if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
@@ -3822,26 +3877,46 @@ const POSPage = () => {
         }
       }
 
+      // Build payments array. If split mode is active, send one entry per tender.
+      const useSplit = splitMode && splitTenders.length > 1;
+      const paymentsPayload = useSplit
+        ? splitTenders.map((t) => ({
+            method: t.method,
+            amount: Math.round(t.amount * 100) / 100,
+            tendered: t.amount, // no over-tender concept in split mode
+            change: 0,
+            change_currency: "ILS",
+            currency: "ILS",
+            exchange_rate: 1,
+            foreign_amount: t.amount,
+            rate_source: "system",
+            ...(t.method === "card" && (t.visa_gl_account_code || defaultCardGl)
+              ? { visa_gl_account_code: t.visa_gl_account_code || defaultCardGl }
+              : {}),
+            ...(t.reference ? { card_reference: t.reference } : {}),
+          }))
+        : [{
+            method: effectivePaymentMethod,
+            amount: cartTotals.total,
+            tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
+            // Store change in the unit of change_currency (ILS amount when ILS, foreign amount when USD/JOD)
+            change: actualChangeCurrency === "ILS" ? actualChangeILS : actualChangeForeign,
+            change_currency: actualChangeCurrency,
+            change_foreign_amount: actualChangeForeign,
+            currency: paymentCurrency,
+            exchange_rate: rate,
+            foreign_amount: foreignTotal,
+            rate_source: rateEdited ? "cashier" : "system",
+            ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
+              ? { employee_account_code: employeeAccountCode }
+              : {}),
+            ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
+          }];
+
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
-        p_payments: [{
-          method: effectivePaymentMethod,
-          amount: cartTotals.total,
-          tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
-          // Store change in the unit of change_currency (ILS amount when ILS, foreign amount when USD/JOD)
-          change: actualChangeCurrency === "ILS" ? actualChangeILS : actualChangeForeign,
-          change_currency: actualChangeCurrency,
-          change_foreign_amount: actualChangeForeign,
-          currency: paymentCurrency,
-          exchange_rate: rate,
-          foreign_amount: foreignTotal,
-          rate_source: rateEdited ? "cashier" : "system",
-          ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
-            ? { employee_account_code: employeeAccountCode }
-            : {}),
-          ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
-        }],
+        p_payments: paymentsPayload,
       });
 
       if (completeError) throw completeError;
@@ -4318,6 +4393,8 @@ const POSPage = () => {
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
+      setSplitMode(false);
+      setSplitTenders([]);
       // Always clear replacement marker after a successful sale, so the next
       // sale starts clean (checkbox will only reappear after a fresh cancel).
       setMarkAsReplacement(false);
@@ -6774,8 +6851,51 @@ const POSPage = () => {
                 })}
               </div>
 
+              {/* Split (mixed) payment toggle */}
+              <div className="mx-4 mt-2 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (splitMode) {
+                      setSplitMode(false);
+                      setSplitTenders([]);
+                    } else {
+                      if (!offlineMode.isOnline) {
+                        toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
+                        return;
+                      }
+                      setSplitMode(true);
+                      setPaymentMethod("cash");
+                      setPaymentCurrency("ILS");
+                      // Pre-seed an empty cash tender for fast entry
+                      setSplitTenders([]);
+                    }
+                  }}
+                  className="text-[12px] font-semibold flex items-center gap-1.5 transition-all"
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: splitMode ? "#7c3aed" : "#f3e8ff",
+                    color: splitMode ? "#ffffff" : "#7c3aed",
+                    border: `1.5px solid ${splitMode ? "#7c3aed" : "#ddd6fe"}`,
+                  }}
+                >
+                  ✂️ {splitMode ? "إلغاء الدفع المختلط" : "دفع مختلط (نقد + فيزا)"}
+                </button>
+              </div>
+
+              {splitMode && (
+                <SplitPaymentPanel
+                  total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
+                  tenders={splitTenders}
+                  setTenders={setSplitTenders}
+                  userId={dataOwnerId}
+                  defaultCardGlAccountCode={defaultCardGl}
+                />
+              )}
+
               {/* Cash-specific controls */}
-              {paymentMethod === "cash" && (
+              {!splitMode && paymentMethod === "cash" && (
                 <div className="mx-4 mt-3 space-y-3">
                   {/* Currency selector */}
                   <div>
@@ -6982,7 +7102,7 @@ const POSPage = () => {
               )}
 
               {/* Credit customer selection */}
-              {paymentMethod === "credit" && (
+              {!splitMode && paymentMethod === "credit" && (
                 <div className="mx-4 mt-3 space-y-2">
                   <label className="text-sm font-bold block" style={{ color: '#111827' }}>اسم الزبون</label>
                   <div className="relative">
@@ -7036,7 +7156,7 @@ const POSPage = () => {
               )}
 
               {/* Employee account */}
-              {paymentMethod === "employee_account" && (
+              {!splitMode && paymentMethod === "employee_account" && (
                 <div className="mx-4 mt-3 space-y-2">
                   <label className="text-sm font-medium mb-1.5 block" style={{ color: '#111827' }}>اختر الموظف</label>
                   <div className="relative">
@@ -7193,7 +7313,19 @@ const POSPage = () => {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCompleteOrder()}
-                disabled={processing || (paymentMethod === "credit" && !customerName) || (paymentMethod === "employee_account" && !selectedEmployee)}
+                disabled={
+                  processing ||
+                  (paymentMethod === "credit" && !customerName) ||
+                  (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (splitMode && (
+                    splitTenders.length < 2 ||
+                    Math.abs(
+                      splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
+                      (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
+                    ) > 0.01 ||
+                    splitTenders.some((t) => !(t.amount > 0))
+                  ))
+                }
                 className="w-full flex items-center justify-center gap-2 text-[15px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ height: 50, borderRadius: 10, background: '#16a34a', color: 'white', border: 'none' }}
                 onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#15803d'; }}
