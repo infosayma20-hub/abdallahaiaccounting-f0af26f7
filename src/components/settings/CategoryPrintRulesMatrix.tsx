@@ -76,6 +76,14 @@ export default function CategoryPrintRulesMatrix() {
     const key = `${categoryId}|${stationId}`;
     setSaving(key);
     try {
+      // Always store rules under the TEAM OWNER's user_id so they are visible
+      // to every cashier in the team via RLS (which scopes by team owner).
+      const { data: ownerIdData, error: ownerErr } = await supabase.rpc(
+        "get_team_owner_id" as any,
+        { _user_id: user.id } as any,
+      );
+      if (ownerErr) throw ownerErr;
+      const ownerId = (ownerIdData as string) || user.id;
       // Look for a matching row at the CURRENT scope (specific branch or all-branches)
       const existing = rules.find(
         (r) =>
@@ -97,7 +105,7 @@ export default function CategoryPrintRulesMatrix() {
         const { data, error } = await supabase
           .from("pos_category_print_rules" as any)
           .insert({
-            user_id: user.id,
+            user_id: ownerId,
             branch_id: ruleBranchId,
             category_id: categoryId,
             station_id: stationId,
