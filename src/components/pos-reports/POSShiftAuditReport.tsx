@@ -78,6 +78,9 @@ interface SessionPayment {
   payment_method: string;
   amount: number;
   order_id?: string;
+  currency?: string;
+  exchange_rate?: number;
+  amount_ils?: number;
 }
 
 interface Props {
