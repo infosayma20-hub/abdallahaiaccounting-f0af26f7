@@ -11968,6 +11968,7 @@ export type Database = {
       pos_payments: {
         Row: {
           amount: number
+          card_reference: string | null
           change_amount: number
           change_currency: string | null
           cheque_date: string | null
@@ -11985,6 +11986,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          card_reference?: string | null
           change_amount?: number
           change_currency?: string | null
           cheque_date?: string | null
@@ -12002,6 +12004,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          card_reference?: string | null
           change_amount?: number
           change_currency?: string | null
           cheque_date?: string | null
