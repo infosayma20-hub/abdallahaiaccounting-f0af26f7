@@ -7,6 +7,7 @@ import { ar } from 'date-fns/locale';
 
 interface OfflineStatusBarProps {
   isOnline: boolean;
+  networkQuality?: 'stable' | 'verifying' | 'offline';
   pendingCount: number;
   quarantinedCount?: number;
   lastSyncAt: string | null;
@@ -17,6 +18,7 @@ interface OfflineStatusBarProps {
 
 export default function OfflineStatusBar({
   isOnline,
+  networkQuality,
   pendingCount,
   quarantinedCount = 0,
   lastSyncAt,
@@ -32,6 +34,19 @@ export default function OfflineStatusBar({
           جاري المزامنة... {syncProgress.current}/{syncProgress.total}
         </span>
         <Progress value={(syncProgress.current / Math.max(syncProgress.total, 1)) * 100} className="h-1.5 w-24" />
+      </div>
+    );
+  }
+
+  // 🟡 Verifying — browser hinted offline but we're double-checking. Do NOT
+  // panic the cashier; show a soft amber bar instead of full red.
+  if (networkQuality === 'verifying' && isOnline) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-xs" dir="rtl">
+        <RefreshCw className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+        <span className="text-amber-700 dark:text-amber-300 font-medium">
+          فحص جودة الاتصال... (لا تقلق، النظام لسا متصل)
+        </span>
       </div>
     );
   }
