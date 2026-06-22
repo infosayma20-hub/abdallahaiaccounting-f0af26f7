@@ -194,13 +194,13 @@ Deno.serve(async (req) => {
         // POS orders
         const { data: orders } = await supabase
           .from("pos_orders")
-          .select("id, total, created_at, session_id, user_id")
+          .select("id, total, created_at, session_id, user_id, transaction_id")
           .eq("user_id", linkedUserId)
           .eq("state", "paid")
           .gte("created_at", sISO)
           .lte("created_at", eISO)
           .limit(20000);
-        const orderList = orders || [];
+        const orderList = await excludeVoidedOrders(supabase, orders || []);
 
         // Invoice sales
         let invQ = supabase
