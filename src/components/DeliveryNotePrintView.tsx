@@ -16,6 +16,10 @@ export interface DeliveryNoteData {
   vehicleNumber?: string;
   deliveryAddress?: string;
   status?: string;
+  deliveryType?: "external" | "internal";
+  fromWarehouseName?: string;
+  toWarehouseName?: string;
+  toBranchName?: string;
 }
 
 interface Props {
@@ -32,10 +36,12 @@ const fmtDate = (d: string) => {
 
 const LARGE_WIDE_LOGO_OWNER_ID = "6e3d46e2-4b58-4e80-a71e-05661aa8adaf";
 
-const DeliveryNotePrintView = ({ note, settings, copyLabel = "إرسالية مبيعات" }: Props) => {
+const DeliveryNotePrintView = ({ note, settings, copyLabel }: Props) => {
   const today = new Date();
   const fmtToday = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
+  const isInternal = note.deliveryType === "internal";
+  const docLabel = copyLabel ?? (isInternal ? "إذن نقل داخلي" : "إرسالية مبيعات");
 
   const centeredLogoWrapperStyle = hasExtraWideLogo
     ? { display: "inline-block", background: "white", borderRadius: "10px", padding: "6px 12px", boxShadow: "none", lineHeight: 0 }
