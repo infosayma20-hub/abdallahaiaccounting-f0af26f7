@@ -241,6 +241,7 @@ const ProfilePage = () => {
       }
 
       await refreshCompany();
+      window.dispatchEvent(new CustomEvent("profile:updated"));
       toast({ title: "✅ تم حفظ البيانات بنجاح" });
     } catch (err: any) {
       toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
