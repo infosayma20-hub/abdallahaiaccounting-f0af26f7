@@ -721,8 +721,8 @@ function OrderDetailsDialog({
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between px-3 py-2">
-      <span className="text-muted-foreground text-[12px]">{label}</span>
-      <span className="text-foreground">{children}</span>
+      <span className="text-foreground text-[12.5px] font-medium">{label}</span>
+      <span className="text-foreground font-semibold">{children}</span>
     </div>
   );
 }
