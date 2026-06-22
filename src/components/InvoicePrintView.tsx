@@ -589,6 +589,7 @@ const InvoicePrintView = ({
       </div>
 
       {/* ━━━ TOTALS SECTION (Ledger Style) ━━━ */}
+      {showPrices ? (
       <div style={{ padding: "6px 28px 10px", display: "flex", justifyContent: "flex-end" }}>
         <div style={{ width: "360px", fontFeatureSettings: "'tnum'" }}>
           {/* Subtotal */}
@@ -672,6 +673,22 @@ const InvoicePrintView = ({
           )}
         </div>
       </div>
+      ) : (
+        <div style={{ padding: "10px 28px 14px", display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ minWidth: "320px", border: "1px solid #1B3A5C", borderRadius: "8px", overflow: "hidden" }}>
+            <div style={{ background: "#1B3A5C", color: "white", padding: "8px 14px", display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 700 }}>
+              <span>إجمالي الأصناف</span>
+              <span>{invoice.items.length} صنف</span>
+            </div>
+            <div style={{ padding: "10px 14px", display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#1B3A5C", fontWeight: 700 }}>
+              <span>إجمالي الكميات</span>
+              <span style={{ fontFeatureSettings: "'tnum'", direction: "ltr" }}>
+                {fmtNum(invoice.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0))}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ━━━ CHEQUE DETAILS ━━━ */}
       {invoice.paymentMethod === "cheque" && invoice.chequeDetails && (
