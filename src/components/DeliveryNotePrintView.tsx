@@ -139,14 +139,22 @@ const DeliveryNotePrintView = ({ note, settings, copyLabel }: Props) => {
           {settings.licensed_dealer_number && <span><strong style={{ color: "#1B3A5C" }}>مشتغل مرخص:</strong> {settings.licensed_dealer_number}</span>}
           {settings.commercial_register && <span><strong style={{ color: "#1B3A5C" }}>سجل تجاري:</strong> {settings.commercial_register}</span>}
         </div>
-        <div style={{ fontWeight: 600, color: "#1B3A5C" }}>وثيقة تسليم بضاعة</div>
+        <div style={{ fontWeight: 600, color: "#1B3A5C" }}>{isInternal ? "إذن نقل داخلي" : "وثيقة تسليم بضاعة"}</div>
       </div>
 
       {/* ━━━ META & CUSTOMER ━━━ */}
       <div style={{ padding: "12px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
         <div>
-          <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>العميل</div>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{note.contactName}</div>
+          <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>{isInternal ? "من مخزن" : "العميل"}</div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{isInternal ? (note.fromWarehouseName || "—") : note.contactName}</div>
+          {isInternal && (
+            <div style={{ marginTop: "6px" }}>
+              <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, marginBottom: "2px" }}>إلى</div>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#1B3A5C" }}>
+                {note.toWarehouseName || note.toBranchName || "—"}
+              </div>
+            </div>
+          )}
           {note.contactPhone && <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>📞 {note.contactPhone}</div>}
           {note.contactAddress && <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>📍 {note.contactAddress}</div>}
         </div>
@@ -227,7 +235,9 @@ const DeliveryNotePrintView = ({ note, settings, copyLabel }: Props) => {
 
       {/* ━━━ LEGAL NOTE ━━━ */}
       <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
-        هذه الإرسالية وثيقة تسليم بضاعة وليست فاتورة ضريبية — لا تُعتبر مستنداً مالياً للأغراض الضريبية
+        {isInternal
+          ? "إذن نقل داخلي بين مخازن الشركة — لا يُستخدم كفاتورة ضريبية ولا يُعتبر مستنداً مالياً"
+          : "هذه الإرسالية وثيقة تسليم بضاعة وليست فاتورة ضريبية — لا تُعتبر مستنداً مالياً للأغراض الضريبية"}
       </div>
 
       {/* ━━━ SIGNATURES ━━━ */}
