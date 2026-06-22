@@ -16,6 +16,10 @@ export interface DeliveryNoteData {
   vehicleNumber?: string;
   deliveryAddress?: string;
   status?: string;
+  deliveryType?: "external" | "internal";
+  fromWarehouseName?: string;
+  toWarehouseName?: string;
+  toBranchName?: string;
 }
 
 interface Props {
@@ -32,10 +36,12 @@ const fmtDate = (d: string) => {
 
 const LARGE_WIDE_LOGO_OWNER_ID = "6e3d46e2-4b58-4e80-a71e-05661aa8adaf";
 
-const DeliveryNotePrintView = ({ note, settings, copyLabel = "إرسالية مبيعات" }: Props) => {
+const DeliveryNotePrintView = ({ note, settings, copyLabel }: Props) => {
   const today = new Date();
   const fmtToday = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
+  const isInternal = note.deliveryType === "internal";
+  const docLabel = copyLabel ?? (isInternal ? "إذن نقل داخلي" : "إرسالية مبيعات");
 
   const centeredLogoWrapperStyle = hasExtraWideLogo
     ? { display: "inline-block", background: "white", borderRadius: "10px", padding: "6px 12px", boxShadow: "none", lineHeight: 0 }
@@ -133,14 +139,22 @@ const DeliveryNotePrintView = ({ note, settings, copyLabel = "إرسالية م�
           {settings.licensed_dealer_number && <span><strong style={{ color: "#1B3A5C" }}>مشتغل مرخص:</strong> {settings.licensed_dealer_number}</span>}
           {settings.commercial_register && <span><strong style={{ color: "#1B3A5C" }}>سجل تجاري:</strong> {settings.commercial_register}</span>}
         </div>
-        <div style={{ fontWeight: 600, color: "#1B3A5C" }}>وثيقة تسليم بضاعة</div>
+        <div style={{ fontWeight: 600, color: "#1B3A5C" }}>{isInternal ? "إذن نقل داخلي" : "وثيقة تسليم بضاعة"}</div>
       </div>
 
       {/* ━━━ META & CUSTOMER ━━━ */}
       <div style={{ padding: "12px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
         <div>
-          <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>العميل</div>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{note.contactName}</div>
+          <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>{isInternal ? "من مخزن" : "العميل"}</div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{isInternal ? (note.fromWarehouseName || "—") : note.contactName}</div>
+          {isInternal && (
+            <div style={{ marginTop: "6px" }}>
+              <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, marginBottom: "2px" }}>إلى</div>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#1B3A5C" }}>
+                {note.toWarehouseName || note.toBranchName || "—"}
+              </div>
+            </div>
+          )}
           {note.contactPhone && <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>📞 {note.contactPhone}</div>}
           {note.contactAddress && <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>📍 {note.contactAddress}</div>}
         </div>
@@ -221,7 +235,9 @@ const DeliveryNotePrintView = ({ note, settings, copyLabel = "إرسالية م�
 
       {/* ━━━ LEGAL NOTE ━━━ */}
       <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
-        هذه الإرسالية وثيقة تسليم بضاعة وليست فاتورة ضريبية — لا تُعتبر مستنداً مالياً للأغراض الضريبية
+        {isInternal
+          ? "إذن نقل داخلي بين مخازن الشركة — لا يُستخدم كفاتورة ضريبية ولا يُعتبر مستنداً مالياً"
+          : "هذه الإرسالية وثيقة تسليم بضاعة وليست فاتورة ضريبية — لا تُعتبر مستنداً مالياً للأغراض الضريبية"}
       </div>
 
       {/* ━━━ SIGNATURES ━━━ */}

@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
-import { Plus, Search, Download, Truck, Package, MoreHorizontal, Pencil, ArrowRight, Trash2, Printer } from "lucide-react";
+import {
+  Plus, Download, Truck, Package, MoreHorizontal, Pencil, ArrowRight,
+  Trash2, Printer, RefreshCw, Calculator, Factory,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -15,17 +16,23 @@ import { fmtDateDisplay } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
 import { createRoot } from "react-dom/client";
-
 import { setNextExportBranding } from "@/lib/excel-export";
-const F = "Tajawal, sans-serif";
+import {
+  FinanceShell,
+  applyFilters,
+  type ActionTab,
+  type FilterField,
+  type FilterCondition,
+} from "@/components/finance/shell";
 
 interface DeliveryNote {
   id: string;
   delivery_number: string;
+  delivery_type: "external" | "internal";
   contact_id: string | null;
   contact_name: string | null;
   delivery_date: string;
-  status: "draft" | "issued" | "converted";
+  status: "draft" | "issued" | "converted" | "received" | "cancelled";
   linked_invoice_id: string | null;
   invoice_number: string | null;
   currency: string;
@@ -34,35 +41,32 @@ interface DeliveryNote {
   driver_name: string | null;
   vehicle_number: string | null;
   delivery_address: string | null;
+  from_warehouse_id: string | null;
+  to_warehouse_id: string | null;
+  to_branch_id: string | null;
   created_at: string;
 }
 
-interface Product {
-  id: string;
-  name: string;
-  sell_price: number;
-  unit?: string;
-  quantity?: number;
-  product_type?: string;
-}
-
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  draft: { label: "مسودة", color: "#6B7280", bg: "#F3F4F6" },
-  issued: { label: "صادرة", color: "#2563EB", bg: "#DBEAFE" },
+  draft:     { label: "مسودة",         color: "#6B7280", bg: "#F3F4F6" },
+  issued:    { label: "صادرة",         color: "#2563EB", bg: "#DBEAFE" },
+  received:  { label: "مستلمة",        color: "#7C3AED", bg: "#EDE9FE" },
   converted: { label: "محولة لفاتورة", color: "#059669", bg: "#D1FAE5" },
+  cancelled: { label: "ملغاة",         color: "#DC2626", bg: "#FEE2E2" },
 };
+
+const typeLabel = (t: string) => t === "internal" ? "داخلية" : "خارجية";
 
 const DeliveryNotesPage = () => {
   const { user } = useAuth();
   const { settings: companySettings } = useCompanySettings();
   const navigate = useNavigate();
   const [notes, setNotes] = useState<DeliveryNote[]>([]);
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [products, setProducts] = useState<Product[]>([]);
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
 
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data } = await supabase
@@ -72,128 +76,101 @@ const DeliveryNotesPage = () => {
       .order("created_at", { ascending: false });
     setNotes((data as any[]) || []);
     setLoading(false);
-  };
+  }, [user]);
 
-  const fetchProducts = async () => {
+  const fetchWarehouses = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", user.id);
-    setProducts(data || []);
-  };
+    const { data } = await supabase.from("warehouses").select("id, name").eq("user_id", user.id).order("name");
+    setWarehouses(data || []);
+  }, [user]);
 
-  useEffect(() => { fetchNotes(); fetchProducts(); }, [user]);
+  useEffect(() => { fetchNotes(); fetchWarehouses(); }, [fetchNotes, fetchWarehouses]);
 
-  const filtered = useMemo(() => {
-    let result = notes;
-    if (statusFilter !== "all") result = result.filter(n => n.status === statusFilter);
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter(n =>
-        n.delivery_number?.toLowerCase().includes(q) ||
-        n.contact_name?.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [notes, statusFilter, search]);
+  // ─── Filter fields ───
+  const filterFields: FilterField[] = useMemo(() => [
+    { key: "delivery_number", label: "رقم الإرسالية", type: "text" },
+    { key: "contact_name",    label: "العميل / الطرف", type: "text" },
+    { key: "delivery_date",   label: "التاريخ",         type: "date" },
+    { key: "total_amount",    label: "المبلغ",          type: "number" },
+    { key: "delivery_type",   label: "النوع",           type: "option",
+      options: [
+        { value: "external", label: "خارجية" },
+        { value: "internal", label: "داخلية" },
+      ]},
+    { key: "status", label: "الحالة", type: "option",
+      options: Object.entries(statusConfig).map(([v, c]) => ({ value: v, label: c.label })) },
+  ], []);
 
-  const handleIssue = async (id: string) => {
-    const note = notes.find(n => n.id === id);
-    if (!note || note.status !== "draft") return;
+  const filtered = useMemo(() => applyFilters(notes, filters, (note, key) => (note as any)[key]), [notes, filters]);
 
-    const { data: items } = await supabase.from("delivery_note_items").select("*").eq("delivery_note_id", id);
-    const movementRows: any[] = [];
-
-    for (const item of (items as any[]) || []) {
-      if (item.product_id && item.quantity > 0) {
-        const product = products.find(p => p.id === item.product_id);
-        if (product && product.product_type !== "service") {
-          await supabase.from("products").update({
-            quantity: Math.max(0, (product.quantity || 0) - item.quantity),
-          }).eq("id", item.product_id);
-          movementRows.push({
-            user_id: user!.id,
-            product_id: item.product_id,
-            movement_type: "صادر",
-            quantity: -Math.abs(item.quantity),
-            reference_note: `إرسالية ${note.delivery_number || id.slice(0, 8)}`,
-          });
-        }
-      }
-    }
-
-    if (movementRows.length > 0) {
-      await supabase.from("stock_movements").insert(movementRows);
-    }
-
-    await supabase.from("delivery_notes").update({ status: "issued" } as any).eq("id", id);
-    toast.success("تم إصدار الإرسالية وخصم المخزون");
-    fetchNotes();
-    fetchProducts();
-  };
-
+  // ─── Actions ───
   const handleConvertToInvoice = async (note: DeliveryNote) => {
+    if (note.delivery_type === "internal") { toast.error("لا يمكن تحويل إرسالية داخلية لفاتورة"); return; }
     if (note.status === "converted") { toast.error("الإرسالية محولة مسبقاً"); return; }
     try {
-      const { data: items } = await supabase.from("delivery_note_items").select("*").eq("delivery_note_id", note.id);
-      const invoiceData = {
-        user_id: user!.id,
-        invoice_type: "sale",
-        contact_id: note.contact_id,
-        contact_name: note.contact_name,
-        invoice_date: new Date().toISOString().split("T")[0],
-        currency: note.currency,
-        payment_method: "credit",
-        status: "draft",
-        total_amount: note.total_amount,
-        notes: `محولة من إرسالية ${note.delivery_number}`,
-      };
-      const { data: inv, error: invErr } = await supabase.from("invoices").insert(invoiceData).select("id, invoice_number").single();
-      if (invErr) throw invErr;
-
-      if (items?.length) {
-        const invoiceItems = (items as any[]).map(item => ({
-          invoice_id: inv.id,
-          product_id: item.product_id || null,
-          product_name: item.product_name,
-          description: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount: 0,
-          tax_rate: 0,
-          total_amount: item.total,
-        }));
-        await supabase.from("invoice_items").insert(invoiceItems as any);
-      }
-
-      await supabase.from("delivery_notes").update({
-        status: "converted",
-        linked_invoice_id: inv.id,
-        invoice_number: inv.invoice_number,
-        converted_at: new Date().toISOString(),
-      } as any).eq("id", note.id);
-
-      toast.success(`تم تحويل الإرسالية إلى فاتورة ${inv.invoice_number}`);
+      const { data, error } = await (supabase.rpc as any)("convert_delivery_note_to_invoice", {
+        p_delivery_note_id: note.id,
+      });
+      if (error) throw error;
+      toast.success("تم تحويل الإرسالية إلى فاتورة");
+      navigate(`/invoices/new?edit=${data}`);
       fetchNotes();
     } catch (err: any) {
       toast.error(err.message || "خطأ في التحويل");
     }
   };
 
+  const handleIssue = async (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (!note || note.status !== "draft") return;
+    const { error } = await supabase.from("delivery_notes")
+      .update({ status: "issued" } as any).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم إصدار الإرسالية وخصم المخزون");
+    fetchNotes();
+  };
+
+  const handleReceive = async (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (!note || note.delivery_type !== "internal" || note.status !== "issued") return;
+    const { error } = await supabase.from("delivery_notes")
+      .update({ status: "received", received_at: new Date().toISOString() } as any).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم تأكيد الاستلام في المخزن المستلم");
+    fetchNotes();
+  };
+
+  const handleCancel = async (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    if (note.status === "converted") { toast.error("لا يمكن إلغاء إرسالية محولة"); return; }
+    if (!confirm("هل تريد إلغاء هذه الإرسالية وإعادة المخزون؟")) return;
+    const { error } = await supabase.from("delivery_notes")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() } as any).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم إلغاء الإرسالية وإعادة المخزون");
+    fetchNotes();
+  };
+
   const handleDelete = async (id: string) => {
     const note = notes.find(n => n.id === id);
     if (!note || note.status === "converted") { toast.error("لا يمكن حذف إرسالية محولة"); return; }
-    if (!confirm("هل أنت متأكد من حذف هذه الإرسالية؟")) return;
-    await supabase.from("delivery_notes").delete().eq("id", id);
+    if (!confirm("هل أنت متأكد من حذف هذه الإرسالية نهائياً؟")) return;
+    const { error } = await supabase.from("delivery_notes").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
     toast.success("تم حذف الإرسالية");
     fetchNotes();
   };
 
   const handlePrint = async (note: DeliveryNote) => {
-    const { data: items } = await supabase.from("delivery_note_items").select("*").eq("delivery_note_id", note.id).order("sort_order");
+    const { data: items } = await supabase.from("delivery_note_items")
+      .select("*").eq("delivery_note_id", note.id).order("sort_order");
+    const fromWh = warehouses.find(w => w.id === note.from_warehouse_id)?.name;
+    const toWh = warehouses.find(w => w.id === note.to_warehouse_id)?.name;
     const noteData = {
       deliveryNumber: note.delivery_number,
       date: note.delivery_date,
       contactName: note.contact_name || "",
-      contactPhone: (note as any).contact_phone,
       contactAddress: note.delivery_address,
       items: ((items as any[]) || []).map(i => ({
         description: i.product_name,
@@ -205,6 +182,9 @@ const DeliveryNotesPage = () => {
       vehicleNumber: note.vehicle_number,
       deliveryAddress: note.delivery_address,
       status: note.status,
+      deliveryType: note.delivery_type,
+      fromWarehouseName: fromWh,
+      toWarehouseName: toWh,
     };
     const win = window.open("", "_blank");
     if (!win) return;
@@ -227,7 +207,8 @@ const DeliveryNotesPage = () => {
   const exportToExcel = () => {
     const rows = filtered.map(n => ({
       "رقم الإرسالية": n.delivery_number,
-      "العميل": n.contact_name,
+      "النوع": typeLabel(n.delivery_type),
+      "العميل / الطرف": n.contact_name || (warehouses.find(w => w.id === n.to_warehouse_id)?.name || "—"),
       "التاريخ": n.delivery_date,
       "الحالة": statusConfig[n.status]?.label || n.status,
       "المبلغ": n.total_amount,
@@ -241,56 +222,61 @@ const DeliveryNotesPage = () => {
     XLSX.writeFile(wb, "delivery-notes.xlsx");
   };
 
+  // ─── Action Pane ───
+  const actionTabs: ActionTab[] = useMemo(() => [{
+    key: "general", label: "عام", groups: [
+      {
+        key: "new", label: "جديد", items: [
+          { key: "new_ext", label: "إرسالية خارجية", icon: Plus, variant: "primary",
+            onClick: () => navigate("/delivery-notes/new?type=external") },
+          { key: "new_int", label: "إرسالية داخلية", icon: Factory,
+            onClick: () => navigate("/delivery-notes/new?type=internal") },
+        ],
+      },
+      {
+        key: "view", label: "عرض", items: [
+          { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchNotes() },
+          { key: "export", label: "تصدير", icon: Download, onClick: exportToExcel, disabled: filtered.length === 0 },
+        ],
+      },
+      {
+        key: "nav", label: "تنقل", items: [
+          { key: "center", label: "فتح مركز المالية", icon: Calculator, onClick: () => navigate("/accounting-center") },
+        ],
+      },
+    ],
+  }], [filtered.length, fetchNotes, navigate]);
+
   return (
-    <div style={{ direction: "rtl", fontFamily: F, padding: "16px 24px 96px", maxWidth: "1400px", margin: "0 auto" }}>
-      <PageHeader title="إرساليات المبيعات" breadcrumb={["المبيعات", "إرساليات المبيعات"]} />
-
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-5 mt-3">
-        <p className="text-xs text-muted-foreground" style={{ fontFamily: F }}>وثائق تسليم البضاعة — تُحوّل لفواتير لاحقاً</p>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => navigate("/delivery-notes/new")} className="gap-2" size="sm">
-            <Plus className="h-4 w-4" /> إرسالية جديدة
-          </Button>
-          {filtered.length > 0 && (
-            <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-2">
-              <Download className="h-4 w-4" /> تصدير
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="ابحث بالاسم أو الرقم..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
-        </div>
-        <div className="flex gap-2">
-          {["all", "draft", "issued", "converted"].map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className="px-3 py-1.5 text-xs rounded-full border transition-all"
-              style={{
-                fontFamily: F,
-                background: statusFilter === s ? "hsl(var(--primary))" : "hsl(var(--background))",
-                color: statusFilter === s ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))",
-                borderColor: statusFilter === s ? "hsl(var(--primary))" : "hsl(var(--border))",
-              }}
-            >
-              {s === "all" ? `● الكل ${notes.length}` : `${statusConfig[s]?.label} ${notes.filter(n => n.status === s).length}`}
-            </button>
-          ))}
-        </div>
-      </div>
-
+    <FinanceShell
+      title="إرساليات المبيعات"
+      subtitle="وثائق تسليم البضاعة — خارجية للعملاء أو داخلية بين المخازن"
+      breadcrumb={[
+        { label: "النظام", href: "/" },
+        { label: "المبيعات" },
+        { label: "إرساليات المبيعات" },
+      ]}
+      actionTabs={actionTabs}
+      filterFields={filterFields}
+      storageKey="delivery-notes"
+      filters={filters}
+      onFiltersChange={setFilters}
+    >
       {loading ? (
         <div className="flex justify-center py-20 text-muted-foreground">جاري التحميل...</div>
       ) : filtered.length === 0 ? (
-        <Card className="py-16 text-center">
+        <Card className="py-16 text-center border-dashed">
           <Truck className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
           <p className="text-lg font-semibold text-muted-foreground">لا توجد إرساليات</p>
-          <p className="text-sm text-muted-foreground/70 mb-4">أنشئ أول إرسالية مبيعات</p>
-          <Button onClick={() => navigate("/delivery-notes/new")} className="gap-2"><Plus className="h-4 w-4" /> إرسالية جديدة</Button>
+          <p className="text-sm text-muted-foreground/70 mb-4">أنشئ أول إرسالية مبيعات أو نقل داخلي</p>
+          <div className="flex items-center justify-center gap-2">
+            <Button onClick={() => navigate("/delivery-notes/new?type=external")} className="gap-2" size="sm">
+              <Plus className="h-4 w-4" /> خارجية
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/delivery-notes/new?type=internal")} className="gap-2" size="sm">
+              <Factory className="h-4 w-4" /> داخلية
+            </Button>
+          </div>
         </Card>
       ) : (
         <Card>
@@ -298,7 +284,8 @@ const DeliveryNotesPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right">رقم الإرسالية</TableHead>
-                <TableHead className="text-right">العميل</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
+                <TableHead className="text-right">العميل / الطرف</TableHead>
                 <TableHead className="text-right">التاريخ</TableHead>
                 <TableHead className="text-right">المبلغ</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
@@ -309,12 +296,23 @@ const DeliveryNotesPage = () => {
             <TableBody>
               {filtered.map(note => {
                 const sc = statusConfig[note.status] || statusConfig.draft;
+                const isInternal = note.delivery_type === "internal";
+                const otherParty = isInternal
+                  ? (warehouses.find(w => w.id === note.to_warehouse_id)?.name || "—")
+                  : (note.contact_name || "—");
                 return (
                   <TableRow key={note.id} className="cursor-pointer hover:bg-muted/40" onClick={() => navigate(`/delivery-notes/${note.id}`)}>
                     <TableCell className="font-mono text-sm font-semibold">{note.delivery_number}</TableCell>
-                    <TableCell>{note.contact_name || "—"}</TableCell>
+                    <TableCell>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${isInternal ? "bg-purple-100 text-purple-700" : "bg-blue-50 text-blue-700"}`}>
+                        {isInternal ? "🏭 داخلية" : "🚚 خارجية"}
+                      </span>
+                    </TableCell>
+                    <TableCell>{otherParty}</TableCell>
                     <TableCell className="text-sm">{fmtDateDisplay(note.delivery_date)}</TableCell>
-                    <TableCell className="font-semibold">{note.total_amount?.toLocaleString()} {note.currency === "شيكل" ? "₪" : note.currency}</TableCell>
+                    <TableCell className="font-semibold">
+                      {isInternal ? "—" : `${note.total_amount?.toLocaleString()} ${note.currency === "شيكل" ? "₪" : note.currency}`}
+                    </TableCell>
                     <TableCell>
                       <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ background: sc.bg, color: sc.color }}>
                         {sc.label}
@@ -346,12 +344,22 @@ const DeliveryNotesPage = () => {
                               <Package className="h-4 w-4 ml-2" /> إصدار وخصم المخزون
                             </DropdownMenuItem>
                           )}
-                          {note.status !== "converted" && (
+                          {isInternal && note.status === "issued" && (
+                            <DropdownMenuItem onClick={() => handleReceive(note.id)}>
+                              <Factory className="h-4 w-4 ml-2" /> تأكيد الاستلام
+                            </DropdownMenuItem>
+                          )}
+                          {!isInternal && note.status === "issued" && (
                             <DropdownMenuItem onClick={() => handleConvertToInvoice(note)}>
                               <ArrowRight className="h-4 w-4 ml-2" /> تحويل لفاتورة
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
+                          {["issued","received"].includes(note.status) && (
+                            <DropdownMenuItem onClick={() => handleCancel(note.id)} className="text-orange-600">
+                              <Trash2 className="h-4 w-4 ml-2" /> إلغاء وإعادة المخزون
+                            </DropdownMenuItem>
+                          )}
                           {note.status !== "converted" && (
                             <DropdownMenuItem onClick={() => handleDelete(note.id)} className="text-destructive">
                               <Trash2 className="h-4 w-4 ml-2" /> حذف
@@ -367,7 +375,7 @@ const DeliveryNotesPage = () => {
           </Table>
         </Card>
       )}
-    </div>
+    </FinanceShell>
   );
 };
 
