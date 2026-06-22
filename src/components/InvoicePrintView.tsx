@@ -691,7 +691,7 @@ const InvoicePrintView = ({
       )}
 
       {/* ━━━ CHEQUE DETAILS ━━━ */}
-      {invoice.paymentMethod === "cheque" && invoice.chequeDetails && (
+      {!isDelivery && invoice.paymentMethod === "cheque" && invoice.chequeDetails && (
         <div style={{ margin: "0 28px 8px", padding: "8px 14px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", fontSize: "10px" }}>
           <div style={{ fontWeight: 700, color: "#92400E", marginBottom: "4px" }}>تفاصيل الشيك:</div>
           <div style={{ display: "flex", gap: "20px", color: "#78350F" }}>
@@ -718,10 +718,17 @@ const InvoicePrintView = ({
         </div>
       )}
 
-      {taxEnabled && (
+      {!isDelivery && taxEnabled && (
       <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
         هذه الفاتورة صادرة وفقاً لأحكام قانون ضريبة الدخل الفلسطيني وقانون ضريبة القيمة المضافة — رقم القرار بقانون: (26) لسنة 2024م • يرجى الاحتفاظ بها لأغراض المراجعة والتدقيق
       </div>
+      )}
+      {isDelivery && (
+        <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: "6px", fontSize: "9px", color: "#0C4A6E", textAlign: "center" }}>
+          {isInternalDelivery
+            ? "هذا المستند إذن نقل داخلي بين المخازن — لا يُعتبر مستنداً تجارياً أو ضريبياً."
+            : "هذه الإرسالية وثيقة تسليم بضاعة وليست فاتورة ضريبية — لا تُعتبر مستنداً مالياً للأغراض الضريبية."}
+        </div>
       )}
 
       {/* ━━━ FOOTER - SIGNATURES ━━━ */}
@@ -736,14 +743,18 @@ const InvoicePrintView = ({
       >
         {/* Seller Signature */}
         <div style={{ textAlign: "center", minWidth: "160px" }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>توقيع البائع / المسؤول</div>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>
+            {isDelivery ? "توقيع المُرسِل" : "توقيع البائع / المسؤول"}
+          </div>
           <div style={{ width: "130px", height: "40px", border: "1px dashed #D1D5DB", borderRadius: "6px", margin: "0 auto 4px" }} />
           <div style={{ fontSize: "8px", color: "#9CA3AF" }}>الاسم والتوقيع</div>
         </div>
 
         {/* Buyer Signature */}
         <div style={{ textAlign: "center", minWidth: "160px" }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>توقيع {isSales ? "المشتري" : "المستلم"}</div>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>
+            {isDelivery ? "توقيع المستلم" : `توقيع ${isSales ? "المشتري" : "المستلم"}`}
+          </div>
           <div style={{ width: "130px", height: "40px", border: "1px dashed #D1D5DB", borderRadius: "6px", margin: "0 auto 4px" }} />
           <div style={{ fontSize: "8px", color: "#9CA3AF" }}>الاسم والتوقيع</div>
         </div>
