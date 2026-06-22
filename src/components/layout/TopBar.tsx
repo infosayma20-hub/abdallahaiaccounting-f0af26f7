@@ -384,13 +384,23 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   useEffect(() => {
     if (!user?.id) return;
     const loadProfile = () => {
-      supabase.from("profiles").select("display_name, company_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }: any) => {
-        setProfileName(data?.display_name || data?.company_name || null);
-        setUserAvatarUrl(data?.avatar_url || null);
-      });
+      supabase
+        .from("profiles")
+        .select("display_name, full_name, company_name, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }: any) => {
+          setProfileName(data?.display_name || data?.full_name || data?.company_name || null);
+          setUserAvatarUrl(data?.avatar_url || null);
+        });
     };
     loadProfile();
-    const handler = () => loadProfile();
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ displayName?: string | null; avatarUrl?: string | null }>).detail;
+      if (detail?.displayName !== undefined) setProfileName(detail.displayName || null);
+      if (detail?.avatarUrl !== undefined) setUserAvatarUrl(detail.avatarUrl || null);
+      loadProfile();
+    };
     window.addEventListener("profile:updated", handler);
     return () => window.removeEventListener("profile:updated", handler);
   }, [user?.id]);
