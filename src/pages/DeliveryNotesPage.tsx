@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -326,47 +326,76 @@ const DeliveryNotesPage = () => {
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-center" onClick={e => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => navigate(`/delivery-notes/${note.id}`)}>
-                            <Pencil className="h-4 w-4 ml-2" /> عرض / تعديل
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handlePrint(note)}>
-                            <Printer className="h-4 w-4 ml-2" /> طباعة
-                          </DropdownMenuItem>
+                      <TooltipProvider delayDuration={150}>
+                        <div className="flex items-center justify-center gap-0.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/delivery-notes/${note.id}`)}>
+                                <Pencil className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>عرض / تعديل</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(note)}>
+                                <Printer className="h-4 w-4 text-slate-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>طباعة</TooltipContent>
+                          </Tooltip>
                           {note.status === "draft" && (
-                            <DropdownMenuItem onClick={() => handleIssue(note.id)}>
-                              <Package className="h-4 w-4 ml-2" /> إصدار وخصم المخزون
-                            </DropdownMenuItem>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleIssue(note.id)}>
+                                  <Package className="h-4 w-4 text-emerald-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>إصدار وخصم المخزون</TooltipContent>
+                            </Tooltip>
                           )}
                           {isInternal && note.status === "issued" && (
-                            <DropdownMenuItem onClick={() => handleReceive(note.id)}>
-                              <Factory className="h-4 w-4 ml-2" /> تأكيد الاستلام
-                            </DropdownMenuItem>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleReceive(note.id)}>
+                                  <Factory className="h-4 w-4 text-purple-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>تأكيد الاستلام</TooltipContent>
+                            </Tooltip>
                           )}
                           {!isInternal && note.status === "issued" && (
-                            <DropdownMenuItem onClick={() => handleConvertToInvoice(note)}>
-                              <ArrowRight className="h-4 w-4 ml-2" /> تحويل لفاتورة
-                            </DropdownMenuItem>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleConvertToInvoice(note)}>
+                                  <ArrowRight className="h-4 w-4 text-emerald-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>تحويل لفاتورة</TooltipContent>
+                            </Tooltip>
                           )}
-                          <DropdownMenuSeparator />
                           {["issued","received"].includes(note.status) && (
-                            <DropdownMenuItem onClick={() => handleCancel(note.id)} className="text-orange-600">
-                              <Trash2 className="h-4 w-4 ml-2" /> إلغاء وإعادة المخزون
-                            </DropdownMenuItem>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCancel(note.id)}>
+                                  <RefreshCw className="h-4 w-4 text-orange-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>إلغاء وإعادة المخزون</TooltipContent>
+                            </Tooltip>
                           )}
                           {note.status !== "converted" && (
-                            <DropdownMenuItem onClick={() => handleDelete(note.id)} className="text-destructive">
-                              <Trash2 className="h-4 w-4 ml-2" /> حذف
-                            </DropdownMenuItem>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(note.id)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>حذف</TooltipContent>
+                            </Tooltip>
                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 );
