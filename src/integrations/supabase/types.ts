@@ -21333,6 +21333,10 @@ export type Database = {
         Args: { p_invoice_id: string }
         Returns: Json
       }
+      recompute_attendance_day: {
+        Args: { p_date: string; p_employee_id: string }
+        Returns: undefined
+      }
       reconcile_pos_session_totals: {
         Args: { p_session_id: string }
         Returns: Json
