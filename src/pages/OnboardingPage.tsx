@@ -8,21 +8,15 @@ import { toast } from "sonner";
 import { clearOnboardingStatusCache } from "@/components/auth/OnboardingGate";
 import { fetchOnboardingStatus } from "@/lib/authRedirect";
 
-const TOTAL_STEPS = 6;
+// ─── 5 خطوات (سابقاً 6؛ تم حذف خطوة "ما هو قطاعك" لأنها كانت مكررة
+// مع "ما طبيعة عملك") ───
+const TOTAL_STEPS = 5;
 
 const businessTypes = [
-  { key: "products", emoji: "🛍️", label: "بيع منتجات", desc: "سلع، بضائع، مواد" },
-  { key: "services", emoji: "🔧", label: "تقديم خدمات", desc: "استشارات، صيانة، خدمات" },
-  { key: "restaurant", emoji: "🍽️", label: "مطعم / كافيه", desc: "طعام ومشروبات" },
-  { key: "construction", emoji: "🏗️", label: "مقاولات وإنشاء", desc: "بناء، ديكور، هندسة" },
-];
-
-const industries = [
-  "تجزئة عامة", "مواد بناء", "ملابس وأزياء", "أغذية ومشروبات",
-  "إلكترونيات", "أثاث ومفروشات", "صيدليات", "طب وصحة",
-  "تعليم وتدريب", "سفر وسياحة", "عقارات", "محاماة ومحاسبة",
-  "تصميم وإبداع", "نقل وشحن", "زراعة", "طاقة ومياه",
-  "تقنية معلومات", "أخرى",
+  { key: "products", label: "بيع منتجات", desc: "سلع، بضائع، مواد" },
+  { key: "services", label: "تقديم خدمات", desc: "استشارات، صيانة، خدمات" },
+  { key: "restaurant", label: "مطعم / كافيه", desc: "طعام ومشروبات" },
+  { key: "construction", label: "مقاولات وإنشاء", desc: "بناء، ديكور، هندسة" },
 ];
 
 const employeeCounts = ["1-5", "6-20", "21-50", "+50"];
@@ -34,10 +28,10 @@ const currencies = [
 ];
 
 const accountingLevels = [
-  { key: "none", emoji: "📚", label: "مبتدئ", desc: "لا خبرة محاسبية" },
-  { key: "basic", emoji: "📊", label: "متوسط", desc: "أعرف الأساسيات" },
-  { key: "intermediate", emoji: "🎓", label: "متقدم", desc: "خبرة جيدة" },
-  { key: "expert", emoji: "👔", label: "محترف", desc: "محاسب أو مدير مالي" },
+  { key: "none", label: "مبتدئ", desc: "لا خبرة محاسبية" },
+  { key: "basic", label: "متوسط", desc: "أعرف الأساسيات" },
+  { key: "intermediate", label: "متقدم", desc: "خبرة جيدة" },
+  { key: "expert", label: "محترف", desc: "محاسب أو مدير مالي" },
 ];
 
 const referralSources = ["جوجل", "وسائل التواصل", "صديق", "إعلان", "أخرى"];
