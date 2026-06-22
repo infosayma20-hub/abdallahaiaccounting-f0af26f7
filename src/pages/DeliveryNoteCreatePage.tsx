@@ -701,8 +701,15 @@ const DeliveryNoteCreatePage = () => {
                               ))}
                             </SelectContent>
                           </Select>
-                          <Input className="mt-1 h-8 text-xs" placeholder="أو اكتب اسم الصنف"
-                            value={item.product_name} onChange={e => updateItem(idx, "product_name", e.target.value)} disabled={formDisabled} />
+                          {!item.product_id && (
+                            <Input
+                              className="mt-1 h-8 text-xs"
+                              placeholder="أو اكتب اسم صنف غير مسجّل (لن يؤثر على المخزون)"
+                              value={item.product_name}
+                              onChange={e => updateItem(idx, "product_name", e.target.value)}
+                              disabled={formDisabled}
+                            />
+                          )}
                         </TableCell>
                         <TableCell>
                           <Input type="number" min={0} value={item.quantity}
