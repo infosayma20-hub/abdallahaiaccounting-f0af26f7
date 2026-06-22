@@ -270,16 +270,38 @@ function ShiftDetail({ session }: { session: POSSession }) {
       if (orderIds.length) {
         const { data: payRes } = await supabase
           .from("pos_payments")
-          .select("id, payment_method, amount, order_id")
+          .select("id, payment_method, amount, order_id, currency, exchange_rate")
           .in("order_id", orderIds);
         const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
         const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
+        const toILS = (p: any) => {
+          const amt = Number(p.amount) || 0;
+          const rate = Number(p.exchange_rate) || 1;
+          const cur = (p.currency || "ILS").toUpperCase();
+          return cur === "ILS" ? amt : amt * rate;
+        };
         pays = (payRes || [])
           .filter((p: any) => validOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
+          .map((p: any) => ({
+            id: p.id,
+            payment_method: p.payment_method,
+            amount: Number(p.amount) || 0,
+            order_id: p.order_id,
+            currency: p.currency || "ILS",
+            exchange_rate: Number(p.exchange_rate) || 1,
+            amount_ils: toILS(p),
+          }));
         voidPays = (payRes || [])
           .filter((p: any) => voidedOrderIds.has(p.order_id))
-          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
+          .map((p: any) => ({
+            id: p.id,
+            payment_method: p.payment_method,
+            amount: Number(p.amount) || 0,
+            order_id: p.order_id,
+            currency: p.currency || "ILS",
+            exchange_rate: Number(p.exchange_rate) || 1,
+            amount_ils: toILS(p),
+          }));
       }
       if (!cancelled) {
         setOrders(enriched);
