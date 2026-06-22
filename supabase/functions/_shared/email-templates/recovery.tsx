@@ -7,6 +7,7 @@ import {
   Container,
   Head,
   Heading,
+  Img,
   Html,
   Preview,
   Section,
@@ -29,7 +30,7 @@ export const RecoveryEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
-          <Heading style={brand}>أموالي</Heading>
+          <Img src="https://amwali.app/logos/amwali-full-white.png" alt="أموالي" width="150" style={logoImg} />
           <Text style={tagline}>AMWALI — نظام المحاسبة الذكي</Text>
         </Section>
 
@@ -148,3 +149,4 @@ const footerText = {
   margin: 0,
   fontSize: '12px',
 }
+const logoImg = { display: 'block', margin: '0 auto', height: 'auto' }
