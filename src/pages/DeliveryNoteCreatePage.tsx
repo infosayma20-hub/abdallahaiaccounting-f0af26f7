@@ -109,7 +109,12 @@ const DeliveryNoteCreatePage = () => {
     if (!editingId || !user) return;
     setLoadingNote(true);
     const { data: note } = await supabase.from("delivery_notes").select("*").eq("id", editingId).maybeSingle();
-    if (!note) { toast.error("الإرسالية غير موجودة"); navigate("/delivery-notes"); return; }
+    if (!note) {
+      toast.error("الإرسالية غير موجودة");
+      setLoadingNote(false);
+      navigate("/delivery-notes");
+      return;
+    }
     const n = note as any;
     setNoteNumber(n.delivery_number || "");
     setNoteStatus((n.status || "draft") as DeliveryStatus);
@@ -412,8 +417,7 @@ const DeliveryNoteCreatePage = () => {
   };
 
   const startNewSimilar = () => {
-    navigate(`/delivery-notes/new?type=${deliveryType}`);
-    // Note: الصفحة ستُعاد تحميلها لكن نحتاج reset state
+    // full reload to reset all local state cleanly
     window.location.href = `/delivery-notes/new?type=${deliveryType}`;
   };
 

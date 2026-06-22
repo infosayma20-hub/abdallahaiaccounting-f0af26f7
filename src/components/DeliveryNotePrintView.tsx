@@ -53,7 +53,13 @@ const DeliveryNotePrintView = ({ note, settings, copyLabel }: Props) => {
     ? { width: "320px", height: "auto", objectFit: "contain" as const, display: "block" }
     : { width: "56px", height: "56px", borderRadius: "8px", objectFit: "contain" as const, background: "white", padding: "3px" };
 
-  const statusLabels: Record<string, string> = { draft: "مسودة", confirmed: "مؤكدة", delivered: "تم التسليم", converted: "محولة لفاتورة" };
+  const statusLabels: Record<string, string> = {
+    draft: "مسودة",
+    issued: "صادرة",
+    received: "مستلمة",
+    converted: "محولة لفاتورة",
+    cancelled: "ملغاة",
+  };
 
   return (
     <div
