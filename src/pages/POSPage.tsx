@@ -3426,6 +3426,31 @@ const POSPage = () => {
       visaGlAccountCode = effectivePaymentMethod.split(":")[1];
       effectivePaymentMethod = "card";
     }
+    // Split-payment validation (mixed cash + card, ILS only, online only)
+    if (splitMode && splitTenders.length > 1) {
+      if (!offlineMode.isOnline) {
+        toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
+        return;
+      }
+      if (paymentCurrency !== "ILS") {
+        toast.error("الدفع المختلط متاح بعملة الشيكل فقط");
+        return;
+      }
+      const paid = splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const diff = Math.abs(paid - cartTotals.total);
+      if (diff > 0.01) {
+        toast.error(`مجموع الدفعات (₪${paid.toFixed(2)}) لا يساوي إجمالي الفاتورة (₪${cartTotals.total.toFixed(2)})`);
+        return;
+      }
+      if (splitTenders.some((t) => !(t.amount > 0))) {
+        toast.error("كل دفعة يجب أن تكون أكبر من صفر");
+        return;
+      }
+      if (splitTenders.some((t) => t.method !== "cash" && t.method !== "card")) {
+        toast.error("الدفع المختلط يدعم النقدي والفيزا فقط");
+        return;
+      }
+    }
     if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
