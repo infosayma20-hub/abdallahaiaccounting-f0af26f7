@@ -1,125 +1,100 @@
-# خطة إعادة بناء إرساليات المبيعات
 
-## الهدف
-1. إصلاح كل المخاطر الموجودة (5 ثغرات حرجة).
-2. توحيد التصميم على Microsoft Dynamics FinanceShell في صفحة القائمة وصفحة الإنشاء/التعديل.
-3. إضافة نوعين للإرسالية: **خارجية** (للعميل، تتحول لفاتورة) و **داخلية** (بين المخازن، لا تتحول لفاتورة أبداً، تؤثر على المخزون فقط).
-4. شريط إجراءات (Action Pane) مطابق لفاتورة المبيعات (جديد / حفظ / معاينة / طباعة / السابق / التالي / استعلام).
+# الخطة
 
----
+## 1) تبويب جديد: "دراسة وردية" (Shift Audit)
 
-## 1. تعديلات قاعدة البيانات
+موقعه في `src/pages/POSReportsPage.tsx` بجانب "الزبائن"، آيقونة `ClipboardList`.
 
-### `delivery_notes` — إضافة أعمدة
-- `delivery_type text NOT NULL DEFAULT 'external'` مع CHECK في (`external`, `internal`)
-- `from_warehouse_id uuid` → `warehouses(id)` (مطلوب للداخلية، اختياري للخارجية)
-- `to_warehouse_id uuid` → `warehouses(id)` (مطلوب للداخلية فقط)
-- `to_branch_id uuid` → `branches(id)` (اختياري للداخلية، للتسليم لمقر/فرع)
-- توسيع CHECK على `status` ليشمل `('draft','issued','converted','received','cancelled')` (`received` للداخلية بعد الاستلام)
+ملف جديد: `src/components/pos-reports/POSShiftAuditReport.tsx` يعرض **نفس بطاقة التشخيص اللي شفتها** للمحاسب (بدون الـAI/ChatBot)، لكل وردية يختارها.
 
-### Trigger موحّد لخصم المخزون (DB-side)
-استبدال خصم المخزون من الـ Frontend بـ trigger في قاعدة البيانات:
-- `trg_delivery_notes_stock_sync` — يُفعَّل عند:
-  - INSERT/UPDATE لحالة `issued` → ينشئ حركات `صادر` من `from_warehouse_id`
-  - INSERT لحالة `received` (داخلية) → ينشئ حركات `وارد` لـ `to_warehouse_id`
-  - UPDATE من `issued`/`received` لـ `cancelled` → يعكس الحركات السابقة (reverse)
-  - DELETE لإرسالية مُصدَرة → يعكس الحركات قبل الحذف
-- كل حركات `stock_movements` تحمل `reference_type='delivery_note'` و `reference_id=delivery_notes.id` (مثل مسار الفواتير) لمنع التكرار وتمكين التتبع.
+### فلاتر علوية
+- **التاريخ** (من بريسِت الصفحة الرئيسي).
+- **الفرع**: dropdown يقرأ من `cash_boxes.branch_id` → `branches.name`. عند الاختيار يفلتر الـsessions اللي cash_box.branch_id بطابقه.
+- **نوع الوردية**: أزرار segment:
+  - الكل
+  - صباحي (9:00 → 17:00) — opened_at بهذا النطاق
+  - مسائي (17:00 → 03:00 اليوم التالي)
+  - تصنيف auto مبنيّ على وقت `opened_at` (ساعة محلية Asia/Hebron).
 
-### حماية التحويل المزدوج
-- عند `convert_delivery_to_invoice`: إنشاء RPC `convert_delivery_note_to_invoice(p_id)` يعمل atomically:
-  - يرفض التحويل إذا `delivery_type='internal'`
-  - يرفض إذا `status != 'issued'` (يجب أن يكون المخزون مخصوماً مسبقاً)
-  - الفاتورة الناتجة تحمل علم `stock_already_deducted=true` بحيث `trg_invoice_item_stock_sync` لا يعيد الخصم.
+### بطاقة الوردية (نسخة محاسبية احترافية من الصورة)
+ثلاث أقسام داخل Card موحدة:
 
-### حماية التعديل/الحذف بعد الإصدار
-- تعديل البنود/الكميات بعد `issued` ممنوع من DB trigger (إلا للمسودات).
-- حذف إرسالية `converted` ممنوع (موجود بالفعل في الـ frontend، نضمنه DB-side).
+**أ) ملخص الوردية** (table-style key/value):
+Session ID قصير + نسخ، الكاشير، الترمنال، فُتحت/أُغلقت، كاش افتتاحي/إغلاقي، أول وآخر عملية، الفرع، نوع الوردية، المدة.
 
-### Route fix
-- إضافة guard على `can_manage_delivery_notes` في `App.tsx`.
+**ب) الفواتير على السيرفر** (الحقيقة الكاملة):
+- إجمالي الفواتير، عدد المدفوعة/الملغية، عدد offline-synced، عدد المعلقة/في الحجر (من pos_orders.sync_status).
+- جدول مصغّر: رقم الفاتورة، الوقت، المبلغ، was_offline ✓، sync_status، تنبيه إذا transaction_id بتاعها is_deleted (مكررة محذوفة محاسبياً) — يظهر badge "محذوفة محاسبياً".
 
----
+**ج) الأرقام الفعلية** (post-filter):
+صافي المبيعات، كاش (N دفعة)، بطاقة (N دفعة)، حساب موظف (N)، ملغي (N فاتورة)، **تطابق الكاش** (closing_cash - opening_cash - expected_cash) بألوان: أخضر مطابق / أحمر عجز.
 
-## 2. صفحة القائمة `/delivery-notes` — FinanceShell
+أزرار تحت البطاقة: طباعة الملخص — تصدير Excel — فتح تفاصيل الفواتير (يفتح POSSalesReport مفلتر بنفس session_id).
 
-نفس بنية `InvoicesPage`:
-- `FinanceShell` بـ breadcrumb `النظام > المبيعات > إرساليات المبيعات`
-- **Action Pane** بمجموعات:
-  - **جديد**: إرسالية خارجية، إرسالية داخلية
-  - **عرض**: تحديث، تصدير CSV
-  - **تنقل**: مركز المالية
-- **فلاتر FinanceShell** (filterFields): الحالة، النوع (داخلية/خارجية)، التاريخ من-إلى، العميل/المخزن، رقم الإرسالية
-- جدول بنفس تصميم الفواتير (نفس density / colors)
-- عمود جديد: **النوع** (badge: داخلية / خارجية)
-- إجراءات الصف: عرض/تعديل، طباعة، تحويل لفاتورة (للخارجية المُصدَرة فقط)، حذف
+### مصدر البيانات
+Hook خفيف داخل الملف يقرأ:
+- `pos_sessions` (للوردية الواحدة المختارة) — مع cash_box → branch.
+- `pos_orders` للجلسة (مع `transaction_id`, `was_offline`, `sync_status`, `state`, `total`).
+- `pos_payments` (تجميع per method).
+- `transactions` IDs المحذوفة لتمييز المكررات.
+- يعيد استخدام `excludeVoidedOrders` المنطق نفسه في صفحة الأدمن.
 
 ---
 
-## 3. صفحة الإنشاء/التعديل `/delivery-notes/new` و `/:id` — FinanceShell
+## 2) إضافة فلتر الفرع (Branch filter) عام للصفحة
 
-نفس بنية `InvoiceCreatePage`:
-
-### Header + ActionPane (مثل الفاتورة بالضبط)
-- **جديد**: إرسالية جديدة، إنشاء مشابه (في وضع التعديل)
-- **حفظ**:
-  - وضع جديد: حفظ كمسودة / إصدار وخصم المخزون
-  - وضع تعديل: تعديل / إلغاء التعديل / حفظ التعديلات / حذف
-- **عرض**: معاينة طباعة (modal) / طباعة (window)
-- **تنقل**: السابق / التالي / استعلام / فتح مركز المالية
-
-### حقل نوع الإرسالية (Segmented)
-أعلى النموذج — `SegmentedTypeSelect` بنفس نمط نوع السند:
-- 🚚 **خارجية** (Default): تسليم للعميل، قابلة للتحويل لفاتورة
-- 🏭 **داخلية**: نقل بين المخازن، غير قابلة للتحويل لفاتورة
-
-### الحقول الديناميكية حسب النوع
-
-**خارجية:**
-- العميل (contact) + اسم نصي
-- المخزن المُصدِر (`from_warehouse_id`) — اختياري
-- عنوان التسليم، السائق، رقم المركبة
-- البنود + الأسعار (تظهر للمحاسب فقط في الطباعة الداخلية)
-
-**داخلية:**
-- المخزن المُصدِر (`from_warehouse_id`) — **مطلوب**
-- المخزن المستلم (`to_warehouse_id`) — **مطلوب**، أو فرع (`to_branch_id`)
-- السائق، رقم المركبة
-- البنود (بدون أسعار في طباعة الداخلية، فقط كميات)
-- زر إضافي: **تأكيد الاستلام** (يغيّر `status` إلى `received` ويُنشئ حركات `وارد`)
-
-### قواعد التحقق
-- داخلية: لا يُسمح بنفس المخزن `from = to`
-- لا يُسمح بالإصدار بدون بنود
-- لا يُسمح بتعديل النوع بعد الإصدار
+في رأس `POSReportsPage`:
+- Dropdown "الفرع" بجانب أزرار التاريخ الموجودة.
+- مخزَّن في state ويُمرَّر للـ`usePOSReportsData` (نضيف parameter `branchId`).
+- في الـhook: نجيب map session_id → branch_id (من pos_sessions + cash_boxes)، ونفلتر الـorders.
+- "الكل" = بدون فلتر (السلوك الحالي).
 
 ---
 
-## 4. قالب الطباعة `DeliveryNotePrintView`
+## 3) إعادة تصميم الصفحة بأسلوب Microsoft Dynamics 365 Finance (FinanceShell)
 
-- إضافة معلمة `deliveryType`:
-  - **خارجية**: نفس القالب الحالي (مع/بدون أسعار حسب الإعداد)
-  - **داخلية**: عنوان "إذن نقل داخلي / Internal Transfer Note"، يعرض المخزن المُصدِر والمستلم، 3 توقيعات (المُسلّم، المستلم، السائق)، بدون أسعار، نص "وثيقة نقل داخلي، لا تُستخدم كفاتورة"
-- إصلاح bug الـ URL: `/delivery-notes/${id}` بدل `/delivery-notes/edit/${id}`
+التغييرات في `POSReportsPage.tsx` + بطاقات KPI + الـTabs، **بدون لمس** منطق الـhook ولا منطق التبويبات الداخلية.
+
+### عناصر التصميم الجديدة (Dynamics-like)
+- **شريط أوامر علوي (Command Bar)**: شريط رفيع 36px أبيض/مظلم فيه فقط الإجراءات (تحديث، طباعة، Excel) كأيقونات + ليبل صغير 11px، فاصل عمودي بينها — لا أزرار ملوّنة كبيرة.
+- **شريط فلاتر ثاني (Filter Bar)**: 40px، فيه: التاريخ (preset chips صغيرة)، الفرع، البحث. خلفية `bg-muted/30` وحد سفلي رفيع.
+- **عنوان الصفحة**: سطر واحد فقط، خط 14px bold + breadcrumb 11px أعلاه (تطبيقات › نقطة البيع › التقارير). إزالة العنوان الكبير الحالي.
+- **KPI Tiles** (بدل البطاقات الكبيرة الحالية):
+  - شبكة 6 أعمدة، tiles مسطحة بحدود 1px فقط، بدون ظلال، بدون خلفية ملونة.
+  - كل tile: ليبل uppercase 10px muted + قيمة 20px semibold + delta vs prev period 11px (سهم ↑/↓ + نسبة).
+  - مقاس صغير (height ~76px) — كثافة معلومات أعلى.
+- **التبويبات**: شريط أفقي مع scroll، underline فقط للنشط (2px primary)، نص 12px، آيقونة 14px، spacing 16px. إزالة الخلفية الذهبية الحالية. سلوك FinanceShell: تحت الفلاتر مباشرة، sticky عند الـscroll.
+- **محتوى التبويب**: بدل `Card` كبير بخلفية وعنوان، نستخدم `section` بحد علوي رفيع وعنوان 12px uppercase muted + actions صغيرة يمين العنوان.
+- **الجداول**: rows أرفع (40px)، header 11px uppercase muted، zebra خفيف من `bg-muted/20`، حدود `border-border/60` فقط، hover row خفيف.
+- **الألوان**: استخدام design tokens فقط (`bg-background`, `bg-card`, `border-border`, `text-foreground/muted-foreground`, `text-primary`). الأرقام المالية: positive = `text-emerald-600`, negative = `text-destructive` (نفس استخدام Dynamics).
+- **Typography**: System font stack الموجود (sans). إزالة أي تدرّجات. هوية: حادة، رمادية-بيضاء، رصينة.
+
+### ما يبقى كما هو
+- منطق `usePOSReportsData` والـhooks.
+- محتوى التبويبات الداخلية (يستفيدون تلقائياً من tokens الجديدة).
+- منطق الإلغاء والإجراءات الموجودة.
 
 ---
 
-## 5. ترتيب التنفيذ
+## الملفات المتأثرة
 
-1. Migration للجداول/Triggers/RPC
-2. Edge Function `convert-delivery-to-invoice` (RPC wrapper مع validation)
-3. تحديث `DeliveryNotesPage.tsx` — FinanceShell + فلاتر + عمود النوع
-4. تحديث `DeliveryNoteCreatePage.tsx` — FinanceShell + ActionPane + SegmentedTypeSelect + حقول داخلي/خارجي
-5. تحديث `DeliveryNotePrintView.tsx` — قالب داخلي + إصلاح URL
-6. إضافة guard `can_manage_delivery_notes` في `App.tsx`
-7. حفظ memory file: `mem/features/sales/delivery-notes-internal-external.md`
+**جديد**
+- `src/components/pos-reports/POSShiftAuditReport.tsx` — التبويب الجديد.
+
+**معدّل**
+- `src/pages/POSReportsPage.tsx` — Command Bar + Filter Bar + KPI Tiles المحدّثة + التبويب الجديد + Branch filter.
+- `src/hooks/usePOSReportsData.ts` — قبول `branchId` اختياري + جلب map الفروع.
+
+**بدون تغيير**
+- باقي مكونات التبويبات (تستفيد من الـtokens تلقائياً).
+- المنطق المحاسبي وفلتر `is_deleted` المضاف مسبقاً.
 
 ---
 
-## ملاحظات تقنية
+## نقاط للتأكيد قبل البدء
 
-- لا تغيير على جدول `delivery_note_items` (نفس البنية تخدم النوعين).
-- التحويل لفاتورة يبقى من القائمة فقط (مثل الحالي) لكن عبر RPC atomic.
-- حركات المخزون كلها عبر DB triggers — لا خصم/إعادة من الـ Frontend بعد الآن.
-- نحافظ على نفس `document_sequences` للترقيم (`DN-YYYY-NNNN`) — يمكن لاحقاً فصل ترقيم الداخلية بـ `IDN-YYYY-NNNN` إذا أردت.
-- صلاحية واحدة `can_manage_delivery_notes` تغطي النوعين (يمكن تقسيمها لاحقاً عند الحاجة).
+1. تصنيف الورديات (صباحي/مسائي) auto بناءً على `opened_at` المحلي — هل المعايير: صباحي 09:00–16:59، مسائي 17:00–03:59؟ (نفس اللي ذكرته).
+2. التبويب الجديد يعرض **وردية واحدة في كل مرة** (قائمة ورديات يسار + بطاقة تفاصيل يمين)، أم **شبكة بطاقات** لكل وردية في النطاق؟ سأذهب لـ **قائمة + تفاصيل** افتراضياً (هذا الأنسب لمحاسب يدقّق).
+3. ما رح ألمس أبعاد الـPDF/الطباعة ولا أحذف KPI موجودة — فقط إعادة تصميم بصري + تبويب إضافي + فلتر فرع.
+
+موافق نبدأ التنفيذ بهذي الخطة؟
