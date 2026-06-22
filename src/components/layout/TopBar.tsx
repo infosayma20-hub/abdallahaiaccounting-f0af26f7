@@ -383,10 +383,16 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("profiles").select("display_name, company_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }: any) => {
-      setProfileName(data?.display_name || data?.company_name || null);
-      setUserAvatarUrl(data?.avatar_url || null);
-    });
+    const loadProfile = () => {
+      supabase.from("profiles").select("display_name, company_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }: any) => {
+        setProfileName(data?.display_name || data?.company_name || null);
+        setUserAvatarUrl(data?.avatar_url || null);
+      });
+    };
+    loadProfile();
+    const handler = () => loadProfile();
+    window.addEventListener("profile:updated", handler);
+    return () => window.removeEventListener("profile:updated", handler);
   }, [user?.id]);
 
   const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
