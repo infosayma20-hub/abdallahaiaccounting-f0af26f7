@@ -392,9 +392,21 @@ const InvoicePrintView = ({
         {/* Customer Info */}
         <div>
           <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
-            {isSales ? "العميل" : "المورد"}
+            {isInternalDelivery ? "من المخزن" : (isDelivery ? "العميل / المستلم" : (isSales ? "العميل" : "المورد"))}
           </div>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{displayContactName}</div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>
+            {isInternalDelivery
+              ? (deliveryMeta?.fromWarehouseName || "—")
+              : displayContactName}
+          </div>
+          {isInternalDelivery && (deliveryMeta?.toWarehouseName || deliveryMeta?.toBranchName) && (
+            <div style={{ marginTop: 6, fontSize: "10px", color: "#4B5563" }}>
+              <span style={{ color: "#6B7280", fontWeight: 600 }}>إلى: </span>
+              <span style={{ color: "#1B3A5C", fontWeight: 700 }}>
+                {deliveryMeta?.toWarehouseName || deliveryMeta?.toBranchName}
+              </span>
+            </div>
+          )}
           {invoice.contactTaxNumber && (
             <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "2px" }}>
               <strong style={{ color: "#1B3A5C" }}>الرقم الضريبي:</strong> {invoice.contactTaxNumber}
@@ -415,15 +427,22 @@ const InvoicePrintView = ({
               📍 {invoice.contactAddress}
             </div>
           )}
+          {isDelivery && deliveryMeta?.deliveryAddress && !isInternalDelivery && (
+            <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>
+              📍 عنوان التسليم: {deliveryMeta.deliveryAddress}
+            </div>
+          )}
         </div>
 
         <div style={{ textAlign: "left", fontSize: "10px" }}>
           {[
-            { label: "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
+            { label: isDelivery ? "رقم الإرسالية" : "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
             { label: "تاريخ الإصدار", value: fmtDate(invoice.date) },
-            ...(invoice.dueDate && settings.invoice_show_due_date !== false ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
-            { label: "طريقة الدفع", value: paymentLabels[invoice.paymentMethod] || invoice.paymentMethod },
+            ...(!isDelivery && invoice.dueDate && settings.invoice_show_due_date !== false ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
+            ...(!isDelivery ? [{ label: "طريقة الدفع", value: paymentLabels[invoice.paymentMethod] || invoice.paymentMethod }] : []),
             { label: "الحالة", value: statusLabels[invoice.status] || invoice.status },
+            ...(isDelivery && deliveryMeta?.driverName ? [{ label: "السائق / المُسلِّم", value: deliveryMeta.driverName }] : []),
+            ...(isDelivery && deliveryMeta?.vehicleNumber ? [{ label: "رقم المركبة", value: deliveryMeta.vehicleNumber, mono: true }] : []),
           ].map((row, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
               <span style={{ color: "#6B7280" }}>{row.label}:</span>
