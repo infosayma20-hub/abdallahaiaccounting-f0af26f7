@@ -327,19 +327,22 @@ function ShiftDetail({ session }: { session: POSSession }) {
       const k = p.payment_method || "نقدي";
       if (!byMethod[k]) byMethod[k] = { count: 0, amount: 0, rows: [] };
       byMethod[k].count++;
-      byMethod[k].amount += p.amount;
+      byMethod[k].amount += (p.amount_ils ?? p.amount);
       const ord = p.order_id ? orderById.get(p.order_id) : undefined;
       byMethod[k].rows.push({
         orderId: p.order_id || "",
         orderNumber: ord?.order_number || null,
-        amount: p.amount,
+        amount: (p.amount_ils ?? p.amount),
         note: ord?.order_note || ord?.customer_name || null,
+        currency: p.currency || "ILS",
+        origAmount: p.amount,
+        rate: p.exchange_rate || 1,
       });
     });
     // Re-derive expected cash from real (non-voided) cash payments only.
     const cashKey = (m: string) => ["cash", "نقدي"].includes((m || "").toLowerCase());
-    const realCash = payments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
-    const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
+    const realCash = payments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + (p.amount_ils ?? p.amount), 0);
+    const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + (p.amount_ils ?? p.amount), 0);
     const recalcExpected = (session.opening_cash ?? 0) + realCash;
     const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
     return {
