@@ -6831,58 +6831,103 @@ const POSPage = () => {
         >
           <div
             className="w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
-            style={{ background: '#ffffff', borderRadius: 14, border: '1px solid #e5e7eb', maxWidth: 520 }}
+            style={{ background: '#ffffff', borderRadius: 4, border: '1px solid #d1d5db', maxWidth: 560 }}
             dir="rtl"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between shrink-0" style={{ padding: '14px 18px', borderBottom: '1px solid #e5e7eb' }}>
-              <span className="text-[16px] font-semibold" style={{ color: '#111827' }}>طريقة الدفع</span>
+            {/* Header — Dynamics 365 Finance style: flat, dense, accent bar */}
+            <div
+              className="flex items-center justify-between shrink-0"
+              style={{
+                padding: '10px 16px',
+                borderBottom: '1px solid #d1d5db',
+                background: '#ffffff',
+                borderTop: '3px solid #0078D4',
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>POS · Payment</span>
+                <span className="text-[15px] font-semibold" style={{ color: '#201F1E' }}>طريقة الدفع</span>
+              </div>
               <button
                 onClick={() => setShowPayment(false)}
-                className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: '#f3f4f6', color: '#6b7280' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#e5e7eb'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#f3f4f6'; }}
+                className="w-7 h-7 flex items-center justify-center transition-colors"
+                style={{ background: 'transparent', color: '#605E5C', borderRadius: 2 }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#F3F2F1'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                aria-label="إغلاق"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto" style={{ background: '#f9fafb' }}>
-              {/* Amount display */}
-              <div className="text-center mx-4 mt-4" style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-                <p className="text-[13px] mb-1" style={{ color: '#6b7280' }}>المبلغ المطلوب</p>
-                {customerDataDiscount && (
-                  <p className="text-xs mb-1" style={{ color: '#16a34a' }}>🎁 خصم {customerDataDiscount.discountPct}% = -₪{customerDataDiscount.discountAmount.toFixed(2)}</p>
-                )}
-                <motion.p key={cartTotals.total} initial={{ scale: 1.05 }} animate={{ scale: 1 }} className="text-[32px] font-bold tabular-nums" style={{ color: '#111827' }}>
+            <div className="flex-1 overflow-y-auto" style={{ background: '#FAF9F8' }}>
+              {/* Amount display — Dynamics fact box style */}
+              <div
+                className="mx-4 mt-4 flex items-baseline justify-between"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 2,
+                  padding: '12px 16px',
+                  borderInlineStart: '3px solid #0078D4',
+                }}
+              >
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.08em' }}>Amount due</span>
+                  <span className="text-[12px]" style={{ color: '#605E5C' }}>المبلغ المطلوب</span>
+                  {customerDataDiscount && (
+                    <span className="text-[11px] mt-0.5" style={{ color: '#107C10' }}>خصم {customerDataDiscount.discountPct}% = −₪{customerDataDiscount.discountAmount.toFixed(2)}</span>
+                  )}
+                </div>
+                <motion.span key={cartTotals.total} initial={{ scale: 1.04 }} animate={{ scale: 1 }} className="text-[28px] font-semibold tabular-nums" style={{ color: '#201F1E', fontVariantNumeric: 'tabular-nums' }}>
                   ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
-                </motion.p>
+                </motion.span>
               </div>
 
-              {/* Payment methods */}
-              <div className="grid grid-cols-4 gap-2 mx-4 mt-3">
-                {[
-                  { key: "cash", label: "نقد", icon: Banknote, selColor: "#16a34a", selBg: "#f0fdf4" },
-                  { key: "card", label: "بطاقة", icon: CreditCard, selColor: "#3b82f6", selBg: "#eff6ff" },
-                  { key: "credit", label: "آجل", icon: Receipt, selColor: "#f59e0b", selBg: "#fffbeb", requiresPerm: true },
-                  { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#8b5cf6", selBg: "#f5f3ff" },
-                ].filter(m => {
-                  if (m.requiresPerm && !isAdmin && !posPerms.allow_credit_sale) return false;
+              {/* Section header */}
+              <div className="mx-4 mt-4 mb-2 flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.06em' }}>Tender type · نوع الدفع</span>
+              </div>
+
+              {/* Payment methods — uniform Dynamics tile grid (mixed payment is a peer tile) */}
+              <div className="grid grid-cols-5 gap-1.5 mx-4">
+                {([
+                  { key: "cash", label: "نقد", icon: Banknote, selColor: "#107C10", selBg: "#DFF6DD" },
+                  { key: "card", label: "بطاقة", icon: CreditCard, selColor: "#0078D4", selBg: "#DEECF9" },
+                  { key: "credit", label: "آجل", icon: Receipt, selColor: "#CA5010", selBg: "#FED9CC", requiresPerm: true },
+                  { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#5C2D91", selBg: "#E9D8FD" },
+                  { key: "__split", label: "دفع مختلط", icon: Split, selColor: "#5C2D91", selBg: "#EFE5FB" },
+                ] as const).filter(m => {
+                  if ((m as any).requiresPerm && !isAdmin && !posPerms.allow_credit_sale) return false;
                   return true;
                 }).map((m) => {
-                  const isActive = paymentMethod === m.key;
+                  const isSplitTile = m.key === "__split";
+                  const isActive = isSplitTile ? splitMode : (!splitMode && paymentMethod === m.key);
                   return (
                     <motion.button
                       key={m.key}
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => {
-                        setPaymentMethod(m.key);
-                        // غير النقد لا يدخل صندوق العملات الأجنبية — يجب أن يكون شيكل دائماً
-                        if (m.key !== "cash") {
-                          setPaymentCurrency("ILS");
+                        if (isSplitTile) {
+                          if (splitMode) {
+                            setSplitMode(false);
+                            setSplitTenders([]);
+                          } else {
+                            if (!offlineMode.isOnline) {
+                              toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
+                              return;
+                            }
+                            setSplitMode(true);
+                            setPaymentMethod("cash");
+                            setPaymentCurrency("ILS");
+                            setSplitTenders([]);
+                          }
+                          return;
                         }
+                        if (splitMode) { setSplitMode(false); setSplitTenders([]); }
+                        setPaymentMethod(m.key);
+                        if (m.key !== "cash") setPaymentCurrency("ILS");
                         if (m.key === "card") {
                           (async () => {
                             const uid = dataOwnerId || user?.id;
@@ -6892,51 +6937,21 @@ const POSPage = () => {
                           })();
                         }
                       }}
-                      className="flex flex-col items-center gap-2 rounded-[10px] transition-all"
+                      className="flex flex-col items-center gap-1.5 transition-all"
                       style={{
-                        padding: '12px 8px',
+                        padding: '12px 6px',
                         background: isActive ? m.selBg : '#ffffff',
-                        border: isActive ? `1.5px solid ${m.selColor}` : '1.5px solid #e5e7eb',
+                        border: isActive ? `1px solid ${m.selColor}` : '1px solid #d1d5db',
+                        borderRadius: 2,
+                        boxShadow: isActive ? `inset 0 -2px 0 ${m.selColor}` : 'none',
+                        minHeight: 72,
                       }}
                     >
-                      <m.icon className="h-6 w-6" style={{ color: isActive ? m.selColor : '#9ca3af' }} />
-                      <span className="text-[12px] font-medium text-center" style={{ color: isActive ? m.selColor : '#6b7280' }}>{m.label}</span>
+                      <m.icon className="h-5 w-5" style={{ color: isActive ? m.selColor : '#605E5C' }} />
+                      <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: isActive ? m.selColor : '#323130' }}>{m.label}</span>
                     </motion.button>
                   );
                 })}
-              </div>
-
-              {/* Split (mixed) payment toggle */}
-              <div className="mx-4 mt-2 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (splitMode) {
-                      setSplitMode(false);
-                      setSplitTenders([]);
-                    } else {
-                      if (!offlineMode.isOnline) {
-                        toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
-                        return;
-                      }
-                      setSplitMode(true);
-                      setPaymentMethod("cash");
-                      setPaymentCurrency("ILS");
-                      // Pre-seed an empty cash tender for fast entry
-                      setSplitTenders([]);
-                    }
-                  }}
-                  className="text-[12px] font-semibold flex items-center gap-1.5 transition-all"
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    background: splitMode ? "#7c3aed" : "#f3e8ff",
-                    color: splitMode ? "#ffffff" : "#7c3aed",
-                    border: `1.5px solid ${splitMode ? "#7c3aed" : "#ddd6fe"}`,
-                  }}
-                >
-                  ✂️ {splitMode ? "إلغاء الدفع المختلط" : "دفع مختلط (نقد + فيزا)"}
-                </button>
               </div>
 
               {splitMode && (
