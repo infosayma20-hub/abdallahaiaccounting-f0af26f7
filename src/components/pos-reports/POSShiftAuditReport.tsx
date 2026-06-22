@@ -227,6 +227,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<SessionOrder[]>([]);
   const [payments, setPayments] = useState<SessionPayment[]>([]);
+  const [voidedPayments, setVoidedPayments] = useState<SessionPayment[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,20 +256,25 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
       const orderIds = enriched.map(o => o.id);
       let pays: SessionPayment[] = [];
+      let voidPays: SessionPayment[] = [];
       if (orderIds.length) {
         const { data: payRes } = await supabase
           .from("pos_payments")
           .select("id, payment_method, amount, order_id")
           .in("order_id", orderIds);
-        // Only include payments for non-voided orders
         const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
+        const voidedOrderIds = new Set(enriched.filter(o => o.voided).map(o => o.id));
         pays = (payRes || [])
           .filter((p: any) => validOrderIds.has(p.order_id))
+          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0 }));
+        voidPays = (payRes || [])
+          .filter((p: any) => voidedOrderIds.has(p.order_id))
           .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0 }));
       }
       if (!cancelled) {
         setOrders(enriched);
         setPayments(pays);
+        setVoidedPayments(voidPays);
         setLoading(false);
       }
     };
@@ -290,8 +296,17 @@ function ShiftDetail({ session }: { session: POSSession }) {
       byMethod[k].count++;
       byMethod[k].amount += p.amount;
     });
-    return { paid, cancelled, voided, offlineSynced, pending, netSales, byMethod };
-  }, [orders, payments]);
+    // Re-derive expected cash from real (non-voided) cash payments only.
+    const cashKey = (m: string) => ["cash", "نقدي"].includes((m || "").toLowerCase());
+    const realCash = payments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
+    const voidedCash = voidedPayments.filter(p => cashKey(p.payment_method)).reduce((s, p) => s + p.amount, 0);
+    const recalcExpected = (session.opening_cash ?? 0) + realCash;
+    const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
+    return {
+      paid, cancelled, voided, offlineSynced, pending, netSales, byMethod,
+      recalcExpected, recalcVariance, voidedCash,
+    };
+  }, [orders, payments, voidedPayments, session.opening_cash, session.closing_cash]);
 
   const kind = classifyShift(session.opened_at);
   const durationMin = session.closed_at
