@@ -4,6 +4,7 @@ import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { bridgeOpenDrawer } from "@/lib/print-bridge-client";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
+import SplitPaymentPanel, { type SplitTender } from "@/components/pos/SplitPaymentPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
@@ -699,6 +700,11 @@ const POSPage = () => {
   const [exchangeRateDetails, setExchangeRateDetails] = useState<Record<string, { rate: number; date: string; source: string; posOverride: number | null }>>({});
   const [editedRate, setEditedRate] = useState<number | null>(null);
   const [rateEdited, setRateEdited] = useState(false);
+
+  // Split (mixed) payment — cash + card only, ILS only
+  const [splitMode, setSplitMode] = useState(false);
+  const [splitTenders, setSplitTenders] = useState<SplitTender[]>([]);
+  const [defaultCardGl, setDefaultCardGl] = useState<string | null>(null);
 
   const currencies = [
     { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
