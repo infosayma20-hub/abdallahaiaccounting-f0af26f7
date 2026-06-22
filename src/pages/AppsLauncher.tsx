@@ -177,10 +177,12 @@ const AppsLauncher = () => {
 
   // ⚡ Fast-path: عرض البطاقات فور توفر الحد الأدنى (auth + roles + settings للـ hidden_apps).
   // باقي الـ hooks (subscription/guard/onboarding) تُحمَّل في الخلفية دون حجب الشبكة.
+  // ⚡ الـ gate الفعلي: auth + roles فقط. settings تُحمَّل بالخلفية ولا
+  // يجب أن تحجب البطاقات (كانت تعلّق الـ skeletons لمستخدم جديد ما عنده
+  // صف في company_settings بعد).
   const isReady =
     !authLoading &&
-    !rolesLoading &&
-    !settingsLoading;
+    !rolesLoading;
 
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
