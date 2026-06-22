@@ -1759,13 +1759,15 @@ const InvoiceCreatePage = () => {
   const handleNewSimilar = () => {
     // Save full form data to localStorage for the new page to pick up
     const duplicateData = {
-      _sourceRef: form.type === "sales" ? `INV-${searchParams.get("edit") || ""}` : `PO-${searchParams.get("edit") || ""}`,
+      _sourceRef: nextInvoiceNumber || originalInvoiceRef.current?.invoiceNumber || "",
       type: form.type,
       contactName: form.contactName,
       contactId: form.contactId,
       contactSearch: form.contactName,
       paymentTerms: form.paymentTerms,
       paymentMethod: form.paymentMethod,
+      invoiceKind: form.invoiceKind,
+      cashAccountCode: form.cashAccountCode,
       currency: form.currency,
       exchangeRate: form.exchangeRate,
       notes: form.notes,
@@ -1773,6 +1775,10 @@ const InvoiceCreatePage = () => {
       salespersonId: form.salespersonId,
       billingAddress: form.billingAddress,
       taxInclusive: form.taxInclusive,
+      warehouseId: form.warehouseId,
+      workshopId: form.workshopId,
+      customerOverrides,
+      invoiceTerms,
       items: form.items.map(item => ({
         ...item,
         id: crypto.randomUUID(), // new IDs for the copy
