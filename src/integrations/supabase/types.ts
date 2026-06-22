@@ -1570,6 +1570,9 @@ export type Database = {
           address: string | null
           attendance_selfie_retention_days: number
           created_at: string
+          gl_cash_eur_account_code: string | null
+          gl_cash_jod_account_code: string | null
+          gl_cash_usd_account_code: string | null
           id: string
           is_active: boolean
           latitude: number
@@ -1588,6 +1591,9 @@ export type Database = {
           address?: string | null
           attendance_selfie_retention_days?: number
           created_at?: string
+          gl_cash_eur_account_code?: string | null
+          gl_cash_jod_account_code?: string | null
+          gl_cash_usd_account_code?: string | null
           id?: string
           is_active?: boolean
           latitude: number
@@ -1606,6 +1612,9 @@ export type Database = {
           address?: string | null
           attendance_selfie_retention_days?: number
           created_at?: string
+          gl_cash_eur_account_code?: string | null
+          gl_cash_jod_account_code?: string | null
+          gl_cash_usd_account_code?: string | null
           id?: string
           is_active?: boolean
           latitude?: number
@@ -21445,6 +21454,15 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      provision_branch_fx_boxes: {
+        Args: { p_user_id: string }
+        Returns: {
+          out_account_code: string
+          out_branch_id: string
+          out_created: boolean
+          out_currency: string
+        }[]
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
