@@ -308,7 +308,7 @@ const ProfilePage = () => {
       breadcrumb={[{ label: "النظام" }, { label: "الملف الشخصي" }]}
       actionGroups={actionGroups}
     >
-      <div className="h-full overflow-auto p-5 space-y-5 max-w-4xl mx-auto" dir="rtl">
+      <div className="h-full overflow-auto p-5 space-y-5 w-full" dir="rtl">
         {/* Identity card */}
         <SettingsSection title="الهوية" description="شعار الشركة واسم الحساب">
           <div className="flex items-start gap-8">
