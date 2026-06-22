@@ -66,6 +66,7 @@ export const RecoveryEmail = ({
 export default RecoveryEmail
 
 const main = {
+  direction: 'rtl' as const,
   backgroundColor: '#f4f6fa',
   fontFamily: 'Tahoma, Arial, sans-serif',
   margin: 0,
