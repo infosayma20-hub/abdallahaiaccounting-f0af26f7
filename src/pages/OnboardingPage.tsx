@@ -69,8 +69,6 @@ const OnboardingPage = () => {
   // Form state
   const [companyName, setCompanyName] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [industry, setIndustry] = useState("");
-  const [industrySearch, setIndustrySearch] = useState("");
   const [city, setCity] = useState("");
   const [hasEmployees, setHasEmployees] = useState<boolean | null>(null);
   const [employeeCount, setEmployeeCount] = useState("");
@@ -122,7 +120,6 @@ const OnboardingPage = () => {
 
         if (company.name) setCompanyName(company.name);
         if (profile?.business_type) setSelectedTypes(String(profile.business_type).split(",").filter(Boolean));
-        setIndustry(String(profile?.industry_ar || profile?.industry || ""));
         setCity(String(profile?.city || ""));
         setHasEmployees(typeof profile?.has_employees === "boolean" ? profile.has_employees : null);
         setEmployeeCount(String(profile?.employees_count || ""));
@@ -228,20 +225,17 @@ const OnboardingPage = () => {
     }
     if (step === 2) {
       if (selectedTypes.length === 0) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-      try { await saveProgress({ business_type: selectedTypes.join(",") }, 2); }
+      // نحفظ business_type + city (إن وُجدت) في خطوة واحدة بعد دمج خطوتي
+      // "طبيعة العمل" و"القطاع/المدينة".
+      try { await saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 2); }
       catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
     if (step === 3) {
-      if (!industry.trim()) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-      try { await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3); }
+      try { await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 3); }
       catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
     if (step === 4) {
-      try { await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4); }
-      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
-    }
-    if (step === 5) {
-      try { await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5); }
+      try { await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 4); }
       catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
     }
 
@@ -257,7 +251,7 @@ const OnboardingPage = () => {
     if (finishing) return;
     setFinishing(true);
     try {
-      await saveProgress({ onboarding_completed: true }, 6);
+      await saveProgress({ onboarding_completed: true }, 5);
     } catch (err) {
       console.error("[finishOnboarding] failed:", err);
       toast.error("تعذّر إكمال الإعداد، حاول مرة أخرى");
