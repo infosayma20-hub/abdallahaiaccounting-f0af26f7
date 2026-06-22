@@ -85,6 +85,27 @@ export default function SyncLogSheet({ open, onOpenChange, onSyncNow, isSyncing,
     reload();
   };
 
+  const handleDiscardAll = async () => {
+    const total = pending.length + quarantined.length;
+    if (total === 0) return;
+    const msg =
+      `⚠️ حذف نهائي لجميع البيعات المعلقة (${total}) بدون ترحيل؟\n\n` +
+      `استعمل هذا فقط إذا كانت هذه البيعات مكررة وتم تسجيلها يدوياً على السيرفر.\n` +
+      `لا يمكن التراجع.`;
+    if (!confirm(msg)) return;
+    const confirmText = prompt('للتأكيد، اكتب: حذف');
+    if (confirmText?.trim() !== 'حذف') {
+      toast.info('تم الإلغاء');
+      return;
+    }
+    let ok = 0;
+    for (const s of [...pending, ...quarantined]) {
+      try { await removePendingSale(s.id); ok++; } catch { /* ignore */ }
+    }
+    toast.warning(`تم حذف ${ok} بيعة معلقة نهائياً`);
+    reload();
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-[400px] sm:w-[450px]" dir="rtl">
@@ -118,6 +139,17 @@ export default function SyncLogSheet({ open, onOpenChange, onSyncNow, isSyncing,
             >
               <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'جاري الترحيل...' : `ترحيل الكل الآن (${pending.length + quarantined.length})`}
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleDiscardAll}
+              disabled={isSyncing}
+              className="gap-1"
+              title="حذف جميع البيعات المعلقة بدون ترحيل (للمكرر فقط)"
+            >
+              <Trash2 className="w-4 h-4" />
+              حذف الكل
             </Button>
           </div>
         )}
