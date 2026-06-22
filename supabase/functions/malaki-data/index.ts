@@ -809,7 +809,7 @@ Deno.serve(async (req) => {
 
       let query = supabase
         .from("pos_orders")
-        .select("id, total, created_at, session_id, order_number")
+        .select("id, total, created_at, session_id, order_number, transaction_id")
         .eq("user_id", linkedUserId)
         .eq("state", "paid")
         .gte("created_at", startISO)
@@ -818,7 +818,7 @@ Deno.serve(async (req) => {
         .limit(5000);
 
       const { data: orders } = await query;
-      const orderList: any[] = orders || [];
+      const orderList: any[] = await excludeVoidedOrders(supabase, orders || []);
 
       const sessionIds = [...new Set(orderList.map(o => o.session_id).filter(Boolean))];
       const sessionMap: Record<string, string> = {};
