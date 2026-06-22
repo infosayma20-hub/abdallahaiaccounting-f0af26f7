@@ -7313,7 +7313,19 @@ const POSPage = () => {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCompleteOrder()}
-                disabled={processing || (paymentMethod === "credit" && !customerName) || (paymentMethod === "employee_account" && !selectedEmployee)}
+                disabled={
+                  processing ||
+                  (paymentMethod === "credit" && !customerName) ||
+                  (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (splitMode && (
+                    splitTenders.length < 2 ||
+                    Math.abs(
+                      splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
+                      (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
+                    ) > 0.01 ||
+                    splitTenders.some((t) => !(t.amount > 0))
+                  ))
+                }
                 className="w-full flex items-center justify-center gap-2 text-[15px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ height: 50, borderRadius: 10, background: '#16a34a', color: 'white', border: 'none' }}
                 onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#15803d'; }}
