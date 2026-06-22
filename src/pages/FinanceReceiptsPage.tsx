@@ -12,6 +12,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { assertPermission } from "@/lib/permissions/assertPermission";
+import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
 import { Can } from "@/components/permissions/Can";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -310,6 +311,7 @@ export default function FinanceReceiptsPage() {
 
   const handleDelete = async (r: Row) => {
     try { await assertPermission("finance", "receipts", "delete"); } catch { return; }
+    try { await assertAccountantPermission("can_delete_vouchers"); } catch { return; }
     setDelTarget(r); setDelOpen(true);
   };
   const confirmDelete = async (reason: string) => {
