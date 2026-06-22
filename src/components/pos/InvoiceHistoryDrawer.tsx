@@ -533,14 +533,26 @@ export default function InvoiceHistoryDrawer({
   const loadDetail = async (order: InvoiceOrder) => {
     setSelectedOrder(order);
     setLoadingDetail(true);
+    // Clear previous order's data immediately to prevent stale lines from
+    // bleeding into the next invoice (this caused invoice 27 to reprint as 26).
+    setOrderLines([]);
+    setOrderPayments([]);
+    setOrderCurrency("ILS");
     try {
       const [linesRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
         supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency").eq("order_id", order.id),
       ]);
-      setOrderLines((linesRes.data || []) as InvoiceLine[]);
-      setOrderPayments((paymentsRes.data || []) as InvoicePayment[]);
-      setOrderCurrency((paymentsRes.data?.[0] as any)?.currency || "ILS");
+      // Defensive: ensure the lines we got actually belong to this order.
+      const safeLines = ((linesRes.data || []) as InvoiceLine[]).filter(
+        (l: any) => !l.order_id || l.order_id === order.id
+      );
+      const safePayments = ((paymentsRes.data || []) as InvoicePayment[]).filter(
+        (p: any) => !p.order_id || p.order_id === order.id
+      );
+      setOrderLines(safeLines);
+      setOrderPayments(safePayments);
+      setOrderCurrency((safePayments[0] as any)?.currency || "ILS");
     } catch (err) {
       console.error(err);
     } finally {
