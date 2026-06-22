@@ -41,10 +41,30 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   const fastRecheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const consecutiveFailsRef = useRef(0);
   const lastVerifyAtRef = useRef<number>(0);
+  const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingUploadRef = useRef<any[]>([]);
+  const [connectionInfo, setConnectionInfo] = useState<{
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+    saveData?: boolean;
+  }>({});
+
+  // ── Capture navigator.connection info (Network Information API) ──
+  const readConnectionInfo = useCallback(() => {
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (!conn) return {};
+    return {
+      effectiveType: conn.effectiveType,
+      downlink: conn.downlink,
+      rtt: conn.rtt,
+      saveData: conn.saveData,
+    };
+  }, []);
 
   // ── Network log (in-memory + localStorage ring buffer, last 50 events) ──
   const logNetworkEvent = useCallback((event: {
-    type: 'online' | 'offline' | 'verify_fail' | 'verify_pass' | 'browser_offline' | 'browser_online';
+    type: 'online' | 'offline' | 'verify_fail' | 'verify_pass' | 'browser_offline' | 'browser_online' | 'visibility_recheck' | 'connection_change' | 'manual_test';
     detail?: string;
     sources?: Record<string, boolean>;
   }) => {
@@ -52,9 +72,15 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
       const key = 'pos_network_log';
       const raw = localStorage.getItem(key);
       const arr: any[] = raw ? JSON.parse(raw) : [];
-      arr.push({ ts: new Date().toISOString(), ...event });
+      const entry = { ts: new Date().toISOString(), ...event };
+      arr.push(entry);
       while (arr.length > 50) arr.shift();
       localStorage.setItem(key, JSON.stringify(arr));
+      // Queue for server upload (only meaningful events, skip pure verify passes
+      // to avoid spamming the table with the happy path)
+      if (event.type !== 'verify_pass') {
+        pendingUploadRef.current.push(entry);
+      }
     } catch { /* ignore */ }
   }, []);
 
