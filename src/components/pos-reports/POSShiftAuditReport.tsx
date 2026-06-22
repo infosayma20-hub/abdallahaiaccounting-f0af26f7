@@ -1,0 +1,428 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList } from "lucide-react";
+import { toast } from "sonner";
+import type { POSSession } from "@/hooks/usePOSReportsData";
+
+type ShiftKind = "all" | "morning" | "evening";
+
+function classifyShift(openedAt: string): "morning" | "evening" {
+  const h = new Date(openedAt).getHours();
+  // Morning 09:00–16:59, Evening 17:00–03:59
+  if (h >= 9 && h < 17) return "morning";
+  return "evening";
+}
+
+function fmtTime(iso: string | null) {
+  if (!iso) return "—";
+  return format(new Date(iso), "dd/MM HH:mm", { locale: ar });
+}
+
+function shortId(id: string) {
+  return id.slice(0, 8);
+}
+
+interface SessionOrder {
+  id: string;
+  order_number: string | null;
+  created_at: string;
+  total: number;
+  state: string;
+  was_offline: boolean | null;
+  sync_status: string | null;
+  transaction_id: string | null;
+  voided?: boolean;
+}
+interface SessionPayment {
+  id: string;
+  payment_method: string;
+  amount: number;
+}
+
+interface Props {
+  sessions: POSSession[];
+  branchName?: string | null;
+}
+
+export default function POSShiftAuditReport({ sessions }: Props) {
+  const [shiftKind, setShiftKind] = useState<ShiftKind>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    if (shiftKind === "all") return sessions;
+    return sessions.filter(s => classifyShift(s.opened_at) === shiftKind);
+  }, [sessions, shiftKind]);
+
+  useEffect(() => {
+    if (filtered.length > 0 && !filtered.find(s => s.id === selectedId)) {
+      setSelectedId(filtered[0].id);
+    }
+    if (filtered.length === 0) setSelectedId(null);
+  }, [filtered, selectedId]);
+
+  const selected = filtered.find(s => s.id === selectedId) || null;
+
+  return (
+    <section className="border-t border-border pt-4">
+      <header className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <ClipboardList className="w-3.5 h-3.5 text-muted-foreground" />
+          <h2 className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+            دراسة وردية — تدقيق محاسبي
+          </h2>
+        </div>
+        <div className="flex items-center gap-1 text-[11px]">
+          {(
+            [
+              { k: "all", label: "الكل" },
+              { k: "morning", label: "صباحي 9–17", icon: Sun },
+              { k: "evening", label: "مسائي 17–3", icon: Moon },
+            ] as { k: ShiftKind; label: string; icon?: any }[]
+          ).map(b => (
+            <button
+              key={b.k}
+              onClick={() => setShiftKind(b.k)}
+              className={cn(
+                "px-2.5 py-1 rounded border transition-colors flex items-center gap-1",
+                shiftKind === b.k
+                  ? "bg-foreground text-background border-foreground"
+                  : "text-muted-foreground border-border hover:text-foreground",
+              )}
+            >
+              {b.icon && <b.icon className="w-3 h-3" />}
+              {b.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-sm text-muted-foreground border border-dashed border-border rounded">
+          لا توجد ورديات ضمن هذا الفلتر.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+          {/* Sessions list */}
+          <div className="border border-border rounded">
+            <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border">
+              {filtered.length} وردية
+            </div>
+            <div className="max-h-[640px] overflow-y-auto divide-y divide-border">
+              {filtered.map(s => {
+                const kind = classifyShift(s.opened_at);
+                const active = s.id === selectedId;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setSelectedId(s.id)}
+                    className={cn(
+                      "w-full text-right px-3 py-2 hover:bg-muted/30 transition-colors",
+                      active && "bg-muted/50 border-r-2 border-primary",
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] font-medium text-foreground truncate">
+                        {s.cashier_name || "غير محدد"}
+                      </span>
+                      {kind === "morning" ? (
+                        <Sun className="w-3 h-3 text-amber-500" />
+                      ) : (
+                        <Moon className="w-3 h-3 text-indigo-400" />
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-between">
+                      <span>{fmtTime(s.opened_at)}</span>
+                      <span
+                        className={cn(
+                          "px-1.5 py-px rounded text-[10px]",
+                          s.state === "open"
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {s.state === "open" ? "مفتوحة" : "مغلقة"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Detail panel */}
+          <div>
+            {selected ? <ShiftDetail session={selected} /> : <Skeleton className="h-64" />}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ShiftDetail({ session }: { session: POSSession }) {
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<SessionOrder[]>([]);
+  const [payments, setPayments] = useState<SessionPayment[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      const { data: ords } = await supabase
+        .from("pos_orders")
+        .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id")
+        .eq("session_id", session.id)
+        .order("created_at", { ascending: true });
+      const rawOrders = (ords || []) as any[];
+      const txIds = rawOrders.map(o => o.transaction_id).filter(Boolean) as string[];
+      let voidedIds = new Set<string>();
+      if (txIds.length) {
+        const { data: voided } = await supabase
+          .from("transactions")
+          .select("id")
+          .in("id", txIds)
+          .eq("is_deleted", true);
+        voidedIds = new Set((voided || []).map((t: any) => t.id));
+      }
+      const enriched: SessionOrder[] = rawOrders.map(o => ({
+        ...o,
+        voided: o.transaction_id ? voidedIds.has(o.transaction_id) : false,
+      }));
+
+      const orderIds = enriched.map(o => o.id);
+      let pays: SessionPayment[] = [];
+      if (orderIds.length) {
+        const { data: payRes } = await supabase
+          .from("pos_payments")
+          .select("id, payment_method, amount, order_id")
+          .in("order_id", orderIds);
+        // Only include payments for non-voided orders
+        const validOrderIds = new Set(enriched.filter(o => !o.voided && o.state === "paid").map(o => o.id));
+        pays = (payRes || [])
+          .filter((p: any) => validOrderIds.has(p.order_id))
+          .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0 }));
+      }
+      if (!cancelled) {
+        setOrders(enriched);
+        setPayments(pays);
+        setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [session.id]);
+
+  const totals = useMemo(() => {
+    const paid = orders.filter(o => o.state === "paid" && !o.voided);
+    const cancelled = orders.filter(o => o.state === "cancelled");
+    const voided = orders.filter(o => o.voided);
+    const offlineSynced = orders.filter(o => o.was_offline && o.sync_status === "synced");
+    const pending = orders.filter(o => o.sync_status && !["synced", null].includes(o.sync_status));
+    const netSales = paid.reduce((s, o) => s + Number(o.total || 0), 0);
+    const byMethod: Record<string, { count: number; amount: number }> = {};
+    payments.forEach(p => {
+      const k = p.payment_method || "نقدي";
+      if (!byMethod[k]) byMethod[k] = { count: 0, amount: 0 };
+      byMethod[k].count++;
+      byMethod[k].amount += p.amount;
+    });
+    return { paid, cancelled, voided, offlineSynced, pending, netSales, byMethod };
+  }, [orders, payments]);
+
+  const kind = classifyShift(session.opened_at);
+  const durationMin = session.closed_at
+    ? Math.round((new Date(session.closed_at).getTime() - new Date(session.opened_at).getTime()) / 60000)
+    : Math.round((Date.now() - new Date(session.opened_at).getTime()) / 60000);
+  const durationLabel = `${Math.floor(durationMin / 60)}س ${durationMin % 60}د`;
+
+  const copyId = () => {
+    navigator.clipboard.writeText(session.id);
+    toast.success("تم نسخ Session ID");
+  };
+
+  const varianceLabel = session.cash_variance ?? null;
+  const varianceColor =
+    varianceLabel == null
+      ? "text-muted-foreground"
+      : Math.abs(varianceLabel) < 0.5
+        ? "text-emerald-600"
+        : varianceLabel < 0
+          ? "text-destructive"
+          : "text-amber-600";
+
+  return (
+    <div className="space-y-4">
+      {/* Section A: Summary */}
+      <div className="border border-border rounded">
+        <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border">
+          ملخص الوردية
+        </div>
+        <div className="divide-y divide-border text-[13px]">
+          <Row label="Session ID">
+            <div className="flex items-center gap-1.5">
+              <code className="font-mono text-[12px]">{shortId(session.id)}…</code>
+              <button onClick={copyId} className="text-muted-foreground hover:text-foreground">
+                <Copy className="w-3 h-3" />
+              </button>
+            </div>
+          </Row>
+          <Row label="الكاشير">{session.cashier_name || "—"}</Row>
+          <Row label="الفرع">{session.branch_name || "—"}</Row>
+          <Row label="نوع الوردية">
+            <Badge variant="outline" className="font-normal">
+              {kind === "morning" ? "صباحي" : "مسائي"}
+            </Badge>
+          </Row>
+          <Row label="فُتحت">{fmtTime(session.opened_at)}</Row>
+          <Row label="أُغلقت">{session.closed_at ? fmtTime(session.closed_at) : "لسا مفتوحة"}</Row>
+          <Row label="المدة">{durationLabel}</Row>
+          <Row label="كاش افتتاحي">
+            <span className="font-mono">₪{(session.opening_cash ?? 0).toLocaleString()}</span>
+          </Row>
+        </div>
+      </div>
+
+      {/* Section B: Server truth */}
+      <div className="border border-border rounded">
+        <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border flex items-center justify-between">
+          <span>الفواتير على السيرفر (الحقيقة الكاملة)</span>
+          <span className="font-mono text-foreground/70">{orders.length} سجل</span>
+        </div>
+        {loading ? (
+          <div className="p-3"><Skeleton className="h-32" /></div>
+        ) : (
+          <>
+            <div className="px-3 py-3 text-[12px] space-y-1 border-b border-border">
+              <div className="flex items-center gap-2">
+                <span className="text-foreground font-medium">{totals.paid.length}</span>
+                <span className="text-muted-foreground">فاتورة مدفوعة</span>
+                <span className="text-muted-foreground">+</span>
+                <span className="text-foreground font-medium">{totals.cancelled.length}</span>
+                <span className="text-muted-foreground">ملغية</span>
+                {totals.voided.length > 0 && (
+                  <>
+                    <span className="text-muted-foreground">+</span>
+                    <span className="text-destructive font-medium">{totals.voided.length}</span>
+                    <span className="text-muted-foreground">محذوفة محاسبياً</span>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{totals.offlineSynced.length}</span>
+                <span>فاتورة offline ترحّلت بنجاح</span>
+                {totals.pending.length > 0 && (
+                  <>
+                    <span>·</span>
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{totals.pending.length} معلقة</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="max-h-[280px] overflow-y-auto">
+              <table className="w-full text-[12px]">
+                <thead className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/20">
+                  <tr>
+                    <th className="text-right px-3 py-2 font-medium">رقم</th>
+                    <th className="text-right px-3 py-2 font-medium">الوقت</th>
+                    <th className="text-left px-3 py-2 font-medium">المبلغ</th>
+                    <th className="text-center px-3 py-2 font-medium">offline</th>
+                    <th className="text-center px-3 py-2 font-medium">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {orders.map(o => (
+                    <tr key={o.id} className="hover:bg-muted/30">
+                      <td className="px-3 py-1.5 font-mono">{o.order_number || shortId(o.id)}</td>
+                      <td className="px-3 py-1.5 text-muted-foreground">
+                        {format(new Date(o.created_at), "HH:mm")}
+                      </td>
+                      <td className="px-3 py-1.5 text-left font-mono tabular-nums">
+                        ₪{Number(o.total).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-1.5 text-center">
+                        {o.was_offline ? (
+                          <span className="text-[10px] text-amber-600">✓</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5 text-center">
+                        {o.voided ? (
+                          <Badge variant="destructive" className="text-[10px] font-normal">
+                            محذوفة
+                          </Badge>
+                        ) : o.state === "cancelled" ? (
+                          <Badge variant="outline" className="text-[10px] font-normal">
+                            ملغية
+                          </Badge>
+                        ) : (
+                          <span className="text-[10px] text-emerald-600">{o.sync_status || "paid"}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Section C: Actual numbers */}
+      <div className="border border-border rounded">
+        <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border">
+          الأرقام الفعلية (بعد استبعاد المحذوفات)
+        </div>
+        <div className="divide-y divide-border text-[13px]">
+          <Row label="صافي المبيعات">
+            <span className="font-mono font-semibold text-foreground">
+              ₪{totals.netSales.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+          </Row>
+          {Object.entries(totals.byMethod).map(([m, v]) => (
+            <Row key={m} label={`${m} (${v.count} دفعة)`}>
+              <span className="font-mono">₪{v.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </Row>
+          ))}
+          <Row label={`ملغي (${totals.cancelled.length} فاتورة)`}>
+            <span className="font-mono text-muted-foreground">
+              ₪{totals.cancelled.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
+            </span>
+          </Row>
+          <Row label="كاش متوقع">
+            <span className="font-mono">
+              {session.expected_cash != null ? `₪${session.expected_cash.toLocaleString()}` : "—"}
+            </span>
+          </Row>
+          <Row label="كاش فعلي عند الإغلاق">
+            <span className="font-mono">
+              {session.closing_cash != null ? `₪${session.closing_cash.toLocaleString()}` : "لم تُغلق"}
+            </span>
+          </Row>
+          <Row label="فرق الكاش">
+            <span className={cn("font-mono font-semibold", varianceColor)}>
+              {varianceLabel != null ? `${varianceLabel >= 0 ? "+" : ""}₪${varianceLabel.toLocaleString()}` : "—"}
+            </span>
+          </Row>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-3 py-2">
+      <span className="text-muted-foreground text-[12px]">{label}</span>
+      <span className="text-foreground">{children}</span>
+    </div>
+  );
+}
