@@ -18,9 +18,12 @@ import { toast } from 'sonner';
 interface SyncLogSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSyncNow?: () => void | Promise<void>;
+  isSyncing?: boolean;
+  isOnline?: boolean;
 }
 
-export default function SyncLogSheet({ open, onOpenChange }: SyncLogSheetProps) {
+export default function SyncLogSheet({ open, onOpenChange, onSyncNow, isSyncing, isOnline = true }: SyncLogSheetProps) {
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [pending, setPending] = useState<PendingSale[]>([]);
   const [quarantined, setQuarantined] = useState<PendingSale[]>([]);
@@ -45,6 +48,27 @@ export default function SyncLogSheet({ open, onOpenChange }: SyncLogSheetProps) 
       ch.postMessage({ type: 'requeue_sync', id });
       ch.close();
     } catch { /* ignore */ }
+    if (onSyncNow) {
+      try { await onSyncNow(); } catch { /* ignore */ }
+      reload();
+    }
+  };
+
+  const handleSyncAll = async () => {
+    if (!onSyncNow) return;
+    // Reset any 'failed' pending so they re-enter the queue
+    for (const sale of pending) {
+      if (sale.sync_status === 'failed') {
+        try { await requeueSale(sale.id); } catch { /* ignore */ }
+      }
+    }
+    try {
+      await onSyncNow();
+      toast.success('تم تشغيل الترحيل');
+    } catch (e: any) {
+      toast.error(`فشل الترحيل: ${e?.message || 'خطأ'}`);
+    }
+    reload();
   };
 
   const handleDiscard = async (id: string, orderNumber: string) => {
@@ -63,6 +87,26 @@ export default function SyncLogSheet({ open, onOpenChange }: SyncLogSheetProps) 
             سجل المزامنة
           </SheetTitle>
         </SheetHeader>
+
+        {(pending.length > 0 || quarantined.length > 0) && onSyncNow && (
+          <div className="mt-3 flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handleSyncAll}
+              disabled={isSyncing || !isOnline}
+              className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'جاري الترحيل...' : `ترحيل الكل الآن (${pending.length + quarantined.length})`}
+            </Button>
+          </div>
+        )}
+        {!isOnline && (pending.length > 0 || quarantined.length > 0) && (
+          <p className="text-[11px] text-red-600 mt-2 flex items-center gap-1">
+            <WifiOff className="w-3 h-3" />
+            لا يوجد اتصال — انتظر عودة النت ثم اضغط ترحيل الآن
+          </p>
+        )}
 
         <ScrollArea className="h-[calc(100vh-100px)] mt-4">
           {/* Quarantined sales — needs admin attention */}
@@ -145,6 +189,20 @@ export default function SyncLogSheet({ open, onOpenChange }: SyncLogSheetProps) 
                     <div className="text-muted-foreground text-[10px]">
                       {new Date(sale.created_at).toLocaleString('ar-PS')}
                     </div>
+                    {onSyncNow && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] flex-1"
+                          disabled={isSyncing || !isOnline}
+                          onClick={() => handleRequeue(sale.id, sale.order_number)}
+                        >
+                          <RotateCw className={`w-3 h-3 ml-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                          ترحيل الآن
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
