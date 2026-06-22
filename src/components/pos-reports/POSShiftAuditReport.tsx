@@ -533,59 +533,6 @@ function ShiftDetail({ session }: { session: POSSession }) {
                 : "—"}
             </span>
           </Row>
-          {totals.voidedCash > 0 && (
-            <div className="px-3 py-2 bg-amber-500/5 border-t border-amber-500/20 text-[11px] flex gap-2 items-start">
-              <Info className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-muted-foreground leading-relaxed">
-                الـ"كاش المتوقع المجمّد" تم تخزينه لحظة إغلاق الوردية وكان شامل
-                <span className="text-foreground font-medium"> ₪{totals.voidedCash.toLocaleString()} </span>
-                من فواتير offline مكررة تم حذفها محاسبياً لاحقاً. الرقم الصحيح هو
-                "كاش متوقع (محسوب الآن)" ولا يوجد عجز فعلي.
-              </p>
-            </div>
-          )}
-
-          {/* Transparent cash calculation breakdown */}
-          <div className="px-3 py-2.5 bg-muted/20 border-t border-border text-[11px] space-y-1">
-            <div className="font-semibold text-foreground text-[12px] mb-1">تفصيل حساب الكاش المتوقع:</div>
-            <div className="flex items-center justify-between font-mono">
-              <span className="text-muted-foreground">+ كاش افتتاحي</span>
-              <span>₪{(session.opening_cash ?? 0).toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between font-mono">
-              <span className="text-muted-foreground">+ نقدي من فواتير مدفوعة فعلية (بعد استبعاد المحذوفات والملغية)</span>
-              <span>₪{totals.realCash.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="flex items-center justify-between font-mono text-foreground font-semibold border-t border-border/60 pt-1">
-              <span>= إجمالي الكاش المتوقع بالدرج</span>
-              <span>₪{totals.recalcExpected.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="flex items-center justify-between font-mono">
-              <span className="text-muted-foreground">− كاش فعلي عند الإغلاق</span>
-              <span>₪{(session.closing_cash ?? 0).toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between font-mono font-semibold border-t border-border/60 pt-1">
-              <span className="text-foreground">= الفرق الفعلي</span>
-              <span className={cn(
-                totals.recalcVariance == null ? "text-muted-foreground"
-                  : Math.abs(totals.recalcVariance) < 0.5 ? "text-emerald-600"
-                  : totals.recalcVariance < 0 ? "text-destructive" : "text-amber-600",
-              )}>
-                {totals.recalcVariance != null
-                  ? `${totals.recalcVariance >= 0 ? "+" : ""}₪${totals.recalcVariance.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                  : "—"}
-              </span>
-            </div>
-            <p className="text-muted-foreground text-[10.5px] leading-relaxed pt-1">
-              ℹ︎ <strong>البطاقة</strong> و<strong>حساب الموظف</strong> غير محسوبين هنا لأنهم لا يدخلون درج الكاش — مدفوعات
-              البطاقة تذهب لحساب البنك، وحساب الموظف يُسجَّل كذمم على الموظف.
-              {totals.recalcVariance != null && Math.abs(totals.recalcVariance) >= 0.5 && (
-                <> الفرق هنا ({Math.abs(totals.recalcVariance).toFixed(2)}₪) هو
-                {totals.recalcVariance < 0 ? " عجز " : " زيادة "}
-                حقيقي عند الكاشير، ولا علاقة له بالفواتير المحذوفة.</>
-              )}
-            </p>
-          </div>
         </div>
       </div>
 
