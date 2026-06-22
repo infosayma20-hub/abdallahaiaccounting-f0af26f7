@@ -6851,8 +6851,51 @@ const POSPage = () => {
                 })}
               </div>
 
+              {/* Split (mixed) payment toggle */}
+              <div className="mx-4 mt-2 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (splitMode) {
+                      setSplitMode(false);
+                      setSplitTenders([]);
+                    } else {
+                      if (!offlineMode.isOnline) {
+                        toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
+                        return;
+                      }
+                      setSplitMode(true);
+                      setPaymentMethod("cash");
+                      setPaymentCurrency("ILS");
+                      // Pre-seed an empty cash tender for fast entry
+                      setSplitTenders([]);
+                    }
+                  }}
+                  className="text-[12px] font-semibold flex items-center gap-1.5 transition-all"
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: splitMode ? "#7c3aed" : "#f3e8ff",
+                    color: splitMode ? "#ffffff" : "#7c3aed",
+                    border: `1.5px solid ${splitMode ? "#7c3aed" : "#ddd6fe"}`,
+                  }}
+                >
+                  ✂️ {splitMode ? "إلغاء الدفع المختلط" : "دفع مختلط (نقد + فيزا)"}
+                </button>
+              </div>
+
+              {splitMode && (
+                <SplitPaymentPanel
+                  total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
+                  tenders={splitTenders}
+                  setTenders={setSplitTenders}
+                  userId={dataOwnerId}
+                  defaultCardGlAccountCode={defaultCardGl}
+                />
+              )}
+
               {/* Cash-specific controls */}
-              {paymentMethod === "cash" && (
+              {!splitMode && paymentMethod === "cash" && (
                 <div className="mx-4 mt-3 space-y-3">
                   {/* Currency selector */}
                   <div>
