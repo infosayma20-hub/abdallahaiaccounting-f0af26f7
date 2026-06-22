@@ -20,6 +20,7 @@ import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDia
 import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog";
 import BankDepositDialog from "@/components/finance/BankDepositDialog";
 import CashBoxTransferDialog from "@/components/finance/CashBoxTransferDialog";
+import ForeignCashOpeningBalanceDialog from "@/components/finance/ForeignCashOpeningBalanceDialog";
 import {
   FinanceShell, applyFilters,
   type ActionTab, type FilterCondition, type FilterField,
@@ -74,6 +75,7 @@ const CashBoxesPage = () => {
   const [exchangeOpen, setExchangeOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [openingBalanceOpen, setOpeningBalanceOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
   const SECTIONS_STORAGE_KEY = "malaky:finance:cash-boxes:sections";
@@ -367,6 +369,7 @@ const CashBoxesPage = () => {
         { key: "deposit", label: "إيداع بنكي", icon: ArrowUpFromLine, onClick: () => setDepositOpen(true) },
         { key: "exchange", label: "صرف عملة", icon: ArrowLeftRight, onClick: () => setExchangeOpen(true) },
         { key: "replenish", label: "تغذية النثرية", icon: ArrowDownToLine, onClick: () => setReplenishOpen(true) },
+        { key: "fx-opening", label: "رصيد افتتاحي عملة", icon: Banknote, onClick: () => setOpeningBalanceOpen(true) },
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
@@ -659,6 +662,7 @@ const CashBoxesPage = () => {
       <CurrencyExchangeDialog open={exchangeOpen} onOpenChange={setExchangeOpen} boxes={boxes} userId={user?.id || ""} onSuccess={fetchData} />
       <BankDepositDialog open={depositOpen} onOpenChange={setDepositOpen} boxes={boxes} userId={user?.id || ""} onSuccess={fetchData} />
       <CashBoxTransferDialog open={transferOpen} onOpenChange={setTransferOpen} boxes={boxes} balances={balances} userId={user?.id || ""} onSuccess={fetchData} />
+      <ForeignCashOpeningBalanceDialog open={openingBalanceOpen} onOpenChange={setOpeningBalanceOpen} userId={user?.id || ""} onSuccess={fetchData} />
     </FinanceShell>
   );
 };
