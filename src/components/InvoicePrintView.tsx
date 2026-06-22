@@ -263,12 +263,12 @@ const InvoicePrintView = ({
             <div style={{ textAlign: "right", flex: "0 0 auto" }}>
               <div style={{ fontSize: "20px", fontWeight: 800, color: "#1B3A5C" }}>
                 {isDelivery
-                  ? (isInternalDelivery ? "إذن نقل داخلي" : "إرسالية مبيعات")
+                  ? (isInternalDelivery ? "إرسالية مبيعات داخلية" : "إرسالية مبيعات")
                   : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
               </div>
               <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif", letterSpacing: "1px" }}>
                 {isDelivery
-                  ? (isInternalDelivery ? "INTERNAL TRANSFER NOTE" : "DELIVERY NOTE")
+                  ? (isInternalDelivery ? "INTERNAL DELIVERY NOTE" : "DELIVERY NOTE")
                   : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
               </div>
             </div>
@@ -329,12 +329,12 @@ const InvoicePrintView = ({
           <div style={{ textAlign: "left", flex: "0 0 auto" }}>
             <div style={{ fontSize: "16px", fontWeight: 700, color: "#1B3A5C" }}>
               {isDelivery
-                ? (isInternalDelivery ? "إذن نقل داخلي" : "إرسالية مبيعات")
+                ? (isInternalDelivery ? "إرسالية مبيعات داخلية" : "إرسالية مبيعات")
                 : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
             </div>
             <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif" }}>
               {isDelivery
-                ? (isInternalDelivery ? "INTERNAL TRANSFER NOTE" : "DELIVERY NOTE")
+                ? (isInternalDelivery ? "INTERNAL DELIVERY NOTE" : "DELIVERY NOTE")
                 : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
             </div>
           </div>
@@ -730,7 +730,7 @@ const InvoicePrintView = ({
       {isDelivery && (
         <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: "6px", fontSize: "9px", color: "#0C4A6E", textAlign: "center" }}>
           {isInternalDelivery
-            ? "هذا المستند إذن نقل داخلي بين المخازن — لا يُعتبر مستنداً تجارياً أو ضريبياً."
+            ? "هذه الإرسالية الداخلية بين المخازن — لا يُعتبر مستنداً تجارياً أو ضريبياً."
             : "هذه الإرسالية وثيقة تسليم بضاعة وليست فاتورة ضريبية — لا تُعتبر مستنداً مالياً للأغراض الضريبية."}
         </div>
       )}
