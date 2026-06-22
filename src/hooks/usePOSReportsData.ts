@@ -19,6 +19,7 @@ export interface POSOrder {
   customer_id: string | null;
   customer_name: string | null;
   order_number: string | null;
+  transaction_id?: string | null;
   /**
    * Delivery fee collected on behalf of a 3rd-party delivery company.
    * It IS included in `total` (so customer-facing totals stay accurate),
@@ -127,7 +128,7 @@ export function usePOSReportsData() {
       const [ordersRes, linesRes, paymentsRes, sessionsRes, productsRes] = await Promise.all([
         supabase
           .from("pos_orders")
-          .select("id, created_at, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee")
+          .select("id, created_at, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, transaction_id")
           .eq("user_id", dataOwnerId)
           .gte("created_at", from)
           .lte("created_at", to)
@@ -158,7 +159,20 @@ export function usePOSReportsData() {
           .eq("user_id", dataOwnerId),
       ]);
 
-      setOrders((ordersRes.data || []) as POSOrder[]);
+      // Exclude orders whose linked accounting transaction was soft-deleted (voided duplicates)
+      const rawOrders = (ordersRes.data || []) as POSOrder[];
+      const txIds = rawOrders.map(o => o.transaction_id).filter(Boolean) as string[];
+      let voidedTxIds = new Set<string>();
+      if (txIds.length > 0) {
+        const { data: voided } = await supabase
+          .from("transactions")
+          .select("id")
+          .in("id", txIds)
+          .eq("is_deleted", true);
+        voidedTxIds = new Set((voided || []).map((t: any) => t.id));
+      }
+      const cleanOrders = rawOrders.filter(o => !o.transaction_id || !voidedTxIds.has(o.transaction_id));
+      setOrders(cleanOrders);
       setOrderLines((linesRes.data || []) as POSOrderLine[]);
       setPayments((paymentsRes.data || []) as POSPayment[]);
       setSessions((sessionsRes.data || []) as POSSession[]);
