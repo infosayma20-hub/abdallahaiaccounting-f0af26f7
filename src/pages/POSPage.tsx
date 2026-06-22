@@ -3852,26 +3852,46 @@ const POSPage = () => {
         }
       }
 
+      // Build payments array. If split mode is active, send one entry per tender.
+      const useSplit = splitMode && splitTenders.length > 1;
+      const paymentsPayload = useSplit
+        ? splitTenders.map((t) => ({
+            method: t.method,
+            amount: Math.round(t.amount * 100) / 100,
+            tendered: t.amount, // no over-tender concept in split mode
+            change: 0,
+            change_currency: "ILS",
+            currency: "ILS",
+            exchange_rate: 1,
+            foreign_amount: t.amount,
+            rate_source: "system",
+            ...(t.method === "card" && (t.visa_gl_account_code || defaultCardGl)
+              ? { visa_gl_account_code: t.visa_gl_account_code || defaultCardGl }
+              : {}),
+            ...(t.reference ? { card_reference: t.reference } : {}),
+          }))
+        : [{
+            method: effectivePaymentMethod,
+            amount: cartTotals.total,
+            tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
+            // Store change in the unit of change_currency (ILS amount when ILS, foreign amount when USD/JOD)
+            change: actualChangeCurrency === "ILS" ? actualChangeILS : actualChangeForeign,
+            change_currency: actualChangeCurrency,
+            change_foreign_amount: actualChangeForeign,
+            currency: paymentCurrency,
+            exchange_rate: rate,
+            foreign_amount: foreignTotal,
+            rate_source: rateEdited ? "cashier" : "system",
+            ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
+              ? { employee_account_code: employeeAccountCode }
+              : {}),
+            ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
+          }];
+
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
-        p_payments: [{
-          method: effectivePaymentMethod,
-          amount: cartTotals.total,
-          tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
-          // Store change in the unit of change_currency (ILS amount when ILS, foreign amount when USD/JOD)
-          change: actualChangeCurrency === "ILS" ? actualChangeILS : actualChangeForeign,
-          change_currency: actualChangeCurrency,
-          change_foreign_amount: actualChangeForeign,
-          currency: paymentCurrency,
-          exchange_rate: rate,
-          foreign_amount: foreignTotal,
-          rate_source: rateEdited ? "cashier" : "system",
-          ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
-            ? { employee_account_code: employeeAccountCode }
-            : {}),
-          ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
-        }],
+        p_payments: paymentsPayload,
       });
 
       if (completeError) throw completeError;
