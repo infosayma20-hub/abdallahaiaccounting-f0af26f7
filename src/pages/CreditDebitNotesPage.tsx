@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import AccountingShell from "@/components/layout/AccountingShell";
+import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
 
 interface NoteRow {
   id: string;
@@ -91,6 +92,7 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
   );
 
   const handleDelete = async (row: NoteRow) => {
+    try { await assertAccountantPermission("can_delete_invoices"); } catch { return; }
     if (row.status !== "draft") {
       toast({ title: "لا يمكن حذف إشعار مرحَّل", description: "الإشعار المرحّل ثابت محاسبياً", variant: "destructive" });
       return;
