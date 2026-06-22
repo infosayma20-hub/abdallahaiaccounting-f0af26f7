@@ -39,7 +39,11 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 const SITE_NAME = "أموالي"
 const SENDER_DOMAIN = "notify.amwali.app"
 const ROOT_DOMAIN = "amwali.app"
-const FROM_DOMAIN = "amwali.app" // Domain shown in From address (may be root or sender subdomain)
+// 🔧 يجب أن يطابق SENDER_DOMAIN بالضبط لمنع Outlook من إظهار
+// "noreply=amwali.app@notify.amwali.app on behalf of …".
+// عندما يختلف نطاق الـ From عن نطاق الـ Return-Path/SPF تقوم خوادم البريد
+// بإعادة كتابة العنوان (SRS) وإظهار "on behalf of". مطابقة الاثنين تحلّ المشكلة.
+const FROM_DOMAIN = SENDER_DOMAIN
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.

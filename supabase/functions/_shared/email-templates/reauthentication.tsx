@@ -7,6 +7,7 @@ import {
   Container,
   Head,
   Heading,
+  Img,
   Html,
   Preview,
   Section,
@@ -24,7 +25,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
-          <Heading style={brand}>أموالي</Heading>
+          <Img src="https://amwali.app/logos/amwali-full-white.png" alt="أموالي" width="150" style={logoImg} />
           <Text style={tagline}>AMWALI — نظام المحاسبة الذكي</Text>
         </Section>
 
@@ -53,7 +54,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
 
 export default ReauthenticationEmail
 
-const main = { backgroundColor: '#f4f6fa', fontFamily: 'Tahoma, Arial, sans-serif', margin: 0, padding: '20px 0' }
+const main = { direction: 'rtl' as const, backgroundColor: '#f4f6fa', fontFamily: 'Tahoma, Arial, sans-serif', margin: 0, padding: '20px 0' }
 const container = { maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff', borderRadius: '12px', overflow: 'hidden' as const, border: '1px solid #e5e7eb' }
 const header = { backgroundColor: '#0D1B2E', padding: '28px 24px', textAlign: 'center' as const }
 const brand = { color: '#ffffff', margin: 0, fontSize: '26px', fontWeight: 'bold' as const, letterSpacing: '1px' }
@@ -65,3 +66,4 @@ const codeStyle = { fontFamily: 'Courier, monospace', fontSize: '32px', fontWeig
 const footerNote = { color: '#6b7280', fontSize: '13px', lineHeight: '1.8', margin: '24px 0 0' }
 const footer = { backgroundColor: '#0D1B2E', padding: '16px 24px', textAlign: 'center' as const }
 const footerText = { color: '#a0b0d0', margin: 0, fontSize: '12px' }
+const logoImg = { display: 'block', margin: '0 auto', height: 'auto' }
