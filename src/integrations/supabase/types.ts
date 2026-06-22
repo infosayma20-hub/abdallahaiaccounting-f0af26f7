@@ -4939,6 +4939,7 @@ export type Database = {
       }
       delivery_notes: {
         Row: {
+          cancelled_at: string | null
           contact_id: string | null
           contact_name: string | null
           converted_at: string | null
@@ -4947,15 +4948,21 @@ export type Database = {
           delivery_address: string | null
           delivery_date: string
           delivery_number: string | null
+          delivery_type: string
           discount: number | null
           driver_name: string | null
           exchange_rate: number | null
+          from_warehouse_id: string | null
           id: string
           invoice_number: string | null
           linked_invoice_id: string | null
           notes: string | null
+          received_at: string | null
           status: string
+          stock_movements_created: boolean
           subtotal: number | null
+          to_branch_id: string | null
+          to_warehouse_id: string | null
           total_amount: number | null
           updated_at: string
           user_id: string
@@ -4963,6 +4970,7 @@ export type Database = {
           vehicle_number: string | null
         }
         Insert: {
+          cancelled_at?: string | null
           contact_id?: string | null
           contact_name?: string | null
           converted_at?: string | null
@@ -4971,15 +4979,21 @@ export type Database = {
           delivery_address?: string | null
           delivery_date?: string
           delivery_number?: string | null
+          delivery_type?: string
           discount?: number | null
           driver_name?: string | null
           exchange_rate?: number | null
+          from_warehouse_id?: string | null
           id?: string
           invoice_number?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
+          received_at?: string | null
           status?: string
+          stock_movements_created?: boolean
           subtotal?: number | null
+          to_branch_id?: string | null
+          to_warehouse_id?: string | null
           total_amount?: number | null
           updated_at?: string
           user_id: string
@@ -4987,6 +5001,7 @@ export type Database = {
           vehicle_number?: string | null
         }
         Update: {
+          cancelled_at?: string | null
           contact_id?: string | null
           contact_name?: string | null
           converted_at?: string | null
@@ -4995,15 +5010,21 @@ export type Database = {
           delivery_address?: string | null
           delivery_date?: string
           delivery_number?: string | null
+          delivery_type?: string
           discount?: number | null
           driver_name?: string | null
           exchange_rate?: number | null
+          from_warehouse_id?: string | null
           id?: string
           invoice_number?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
+          received_at?: string | null
           status?: string
+          stock_movements_created?: boolean
           subtotal?: number | null
+          to_branch_id?: string | null
+          to_warehouse_id?: string | null
           total_amount?: number | null
           updated_at?: string
           user_id?: string
@@ -5019,6 +5040,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "delivery_notes_from_warehouse_id_fkey"
+            columns: ["from_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_from_warehouse_id_fkey"
+            columns: ["from_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "delivery_notes_linked_invoice_id_fkey"
             columns: ["linked_invoice_id"]
             isOneToOne: false
@@ -5030,6 +5065,34 @@ export type Database = {
             columns: ["linked_invoice_id"]
             isOneToOne: false
             referencedRelation: "v_drift_invoice_no_link"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_to_branch_id_fkey"
+            columns: ["to_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_to_branch_id_fkey"
+            columns: ["to_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_to_warehouse_id_fkey"
+            columns: ["to_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_to_warehouse_id_fkey"
+            columns: ["to_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -8818,6 +8881,7 @@ export type Database = {
           salesperson_id: string | null
           sent_via: string[] | null
           source: string | null
+          source_delivery_note_id: string | null
           status: string | null
           subtotal: number
           tax_amount: number | null
@@ -8865,6 +8929,7 @@ export type Database = {
           salesperson_id?: string | null
           sent_via?: string[] | null
           source?: string | null
+          source_delivery_note_id?: string | null
           status?: string | null
           subtotal?: number
           tax_amount?: number | null
@@ -8912,6 +8977,7 @@ export type Database = {
           salesperson_id?: string | null
           sent_via?: string[] | null
           source?: string | null
+          source_delivery_note_id?: string | null
           status?: string | null
           subtotal?: number
           tax_amount?: number | null
@@ -8959,6 +9025,13 @@ export type Database = {
             columns: ["salesperson_id"]
             isOneToOne: false
             referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_source_delivery_note_id_fkey"
+            columns: ["source_delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
             referencedColumns: ["id"]
           },
           {
@@ -20095,6 +20168,10 @@ export type Database = {
         Returns: string
       }
       confirm_stock_transfer: { Args: { p_transfer_id: string }; Returns: Json }
+      convert_delivery_note_to_invoice: {
+        Args: { p_delivery_note_id: string }
+        Returns: string
+      }
       create_bank_deposit_atomic: {
         Args: {
           p_amount: number
