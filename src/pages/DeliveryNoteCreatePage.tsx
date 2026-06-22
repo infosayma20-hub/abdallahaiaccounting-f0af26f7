@@ -428,8 +428,25 @@ const DeliveryNoteCreatePage = () => {
   };
 
   const startNewSimilar = () => {
-    // full reload to reset all local state cleanly
-    window.location.href = `/delivery-notes/new?type=${deliveryType}`;
+    // snapshot current form into sessionStorage, then open a fresh new page that will restore it
+    const snapshot = {
+      deliveryType,
+      contactId,
+      contactName,
+      driverName,
+      vehicleNumber,
+      deliveryAddress,
+      notes,
+      currency,
+      fromWarehouseId,
+      toWarehouseId,
+      toBranchId,
+      items: items.map(({ id, ...rest }) => rest),
+    };
+    try {
+      sessionStorage.setItem("delivery-note:duplicate", JSON.stringify(snapshot));
+    } catch {}
+    window.location.href = `/delivery-notes/new?type=${deliveryType}&duplicate=1`;
   };
 
   // ─── Action Pane (D365-style) ───
