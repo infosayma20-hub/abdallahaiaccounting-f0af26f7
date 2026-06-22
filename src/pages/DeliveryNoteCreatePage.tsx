@@ -558,7 +558,7 @@ const DeliveryNoteCreatePage = () => {
   const formDisabled = isEdit && isReadOnly;
 
   return (
-    <AccountingShell>
+    <AccountingShell minWidth="auto">
     <FinanceShell
       title={isEdit ? `تعديل الإرسالية ${noteNumber}` : (deliveryType === "internal" ? "إرسالية مبيعات داخلية جديدة" : "إرسالية مبيعات خارجية جديدة")}
       subtitle={deliveryType === "internal"
