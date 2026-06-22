@@ -1087,13 +1087,23 @@ export default function InvoiceHistoryDrawer({
                         </span>
                       )}
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={e => { e.stopPropagation(); loadDetail(order); }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
-                          style={{ background: "#F1F5F9", color: "#64748B" }}
-                        >
-                          <Eye className="h-3 w-3" /> عرض
-                        </button>
+                        {(!cashierMode || canSeeDetails(order)) ? (
+                          <button
+                            onClick={e => { e.stopPropagation(); loadDetail(order); }}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
+                            style={{ background: "#F1F5F9", color: "#64748B" }}
+                          >
+                            <Eye className="h-3 w-3" /> عرض
+                          </button>
+                        ) : (
+                          <span
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium"
+                            style={{ background: "#F1F5F9", color: "#CBD5E1" }}
+                            title={`انتهت مهلة العرض (${amountVisibleMinutes} دقيقة)`}
+                          >
+                            <Eye className="h-3 w-3" /> مغلق
+                          </span>
+                        )}
                         {!cashierMode && canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
