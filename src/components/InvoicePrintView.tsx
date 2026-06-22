@@ -44,6 +44,18 @@ interface InvoicePrintViewProps {
   invoice: InvoiceData;
   settings: CompanySettings;
   copyLabel?: string;
+  /** نمط الطباعة: فاتورة (افتراضي) أو إرسالية مبيعات/نقل داخلي */
+  printMode?: "invoice" | "delivery";
+  /** بيانات إضافية تُعرض عند printMode="delivery" */
+  deliveryMeta?: {
+    deliveryType?: "external" | "internal";
+    fromWarehouseName?: string;
+    toWarehouseName?: string;
+    toBranchName?: string;
+    driverName?: string;
+    vehicleNumber?: string;
+    deliveryAddress?: string;
+  };
 }
 
 const fmtDate = (d: string) => {
@@ -69,11 +81,23 @@ const statusLabels: Record<string, string> = {
   draft: "مسودة",
   sent: "مُرسلة",
   paid: "مدفوعة",
+  issued: "صادرة",
+  received: "مستلمة",
+  converted: "محولة لفاتورة",
+  cancelled: "ملغاة",
 };
 
 const LARGE_WIDE_LOGO_OWNER_ID = "6e3d46e2-4b58-4e80-a71e-05661aa8adaf";
 
-const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: InvoicePrintViewProps) => {
+const InvoicePrintView = ({
+  invoice,
+  settings,
+  copyLabel = "أصلية",
+  printMode = "invoice",
+  deliveryMeta,
+}: InvoicePrintViewProps) => {
+  const isDelivery = printMode === "delivery";
+  const isInternalDelivery = isDelivery && deliveryMeta?.deliveryType === "internal";
   const isSales = invoice.type === "sales";
   const today = new Date();
   const fmtToday = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
@@ -96,7 +120,9 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
     return Math.max(base - 4, 9);
   };
 
-  const taxEnabled = settings.vat_enabled ?? true;
+  // للإرساليات: إخفاء كل ما يخص الضريبة والأسعار
+  const taxEnabled = isDelivery ? false : (settings.vat_enabled ?? true);
+  const showPrices = !isDelivery;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
   const displayContactName = (invoice.contactName || "").trim()
     || (invoice.paymentMethod === "cash" ? "عميل نقدي" : "—");
@@ -236,10 +262,14 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div style={{ textAlign: "right", flex: "0 0 auto" }}>
               <div style={{ fontSize: "20px", fontWeight: 800, color: "#1B3A5C" }}>
-                {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+                {isDelivery
+                  ? (isInternalDelivery ? "إذن نقل داخلي" : "إرسالية مبيعات")
+                  : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
               </div>
               <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif", letterSpacing: "1px" }}>
-                {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+                {isDelivery
+                  ? (isInternalDelivery ? "INTERNAL TRANSFER NOTE" : "DELIVERY NOTE")
+                  : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
               </div>
             </div>
             <div style={{ textAlign: "left", fontSize: "9px", color: "#4B5563", flex: "0 0 auto", maxWidth: "260px" }}>
@@ -298,10 +328,14 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Left: invoice title */}
           <div style={{ textAlign: "left", flex: "0 0 auto" }}>
             <div style={{ fontSize: "16px", fontWeight: 700, color: "#1B3A5C" }}>
-              {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+              {isDelivery
+                ? (isInternalDelivery ? "إذن نقل داخلي" : "إرسالية مبيعات")
+                : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
             </div>
             <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif" }}>
-              {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+              {isDelivery
+                ? (isInternalDelivery ? "INTERNAL TRANSFER NOTE" : "DELIVERY NOTE")
+                : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
             </div>
           </div>
         </div>
@@ -362,9 +396,21 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         {/* Customer Info */}
         <div>
           <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
-            {isSales ? "العميل" : "المورد"}
+            {isInternalDelivery ? "من المخزن" : (isDelivery ? "العميل / المستلم" : (isSales ? "العميل" : "المورد"))}
           </div>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{displayContactName}</div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>
+            {isInternalDelivery
+              ? (deliveryMeta?.fromWarehouseName || "—")
+              : displayContactName}
+          </div>
+          {isInternalDelivery && (deliveryMeta?.toWarehouseName || deliveryMeta?.toBranchName) && (
+            <div style={{ marginTop: 6, fontSize: "10px", color: "#4B5563" }}>
+              <span style={{ color: "#6B7280", fontWeight: 600 }}>إلى: </span>
+              <span style={{ color: "#1B3A5C", fontWeight: 700 }}>
+                {deliveryMeta?.toWarehouseName || deliveryMeta?.toBranchName}
+              </span>
+            </div>
+          )}
           {invoice.contactTaxNumber && (
             <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "2px" }}>
               <strong style={{ color: "#1B3A5C" }}>الرقم الضريبي:</strong> {invoice.contactTaxNumber}
@@ -385,15 +431,22 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
               📍 {invoice.contactAddress}
             </div>
           )}
+          {isDelivery && deliveryMeta?.deliveryAddress && !isInternalDelivery && (
+            <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>
+              📍 عنوان التسليم: {deliveryMeta.deliveryAddress}
+            </div>
+          )}
         </div>
 
         <div style={{ textAlign: "left", fontSize: "10px" }}>
           {[
-            { label: "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
+            { label: isDelivery ? "رقم الإرسالية" : "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
             { label: "تاريخ الإصدار", value: fmtDate(invoice.date) },
-            ...(invoice.dueDate && settings.invoice_show_due_date !== false ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
-            { label: "طريقة الدفع", value: paymentLabels[invoice.paymentMethod] || invoice.paymentMethod },
+            ...(!isDelivery && invoice.dueDate && settings.invoice_show_due_date !== false ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
+            ...(!isDelivery ? [{ label: "طريقة الدفع", value: paymentLabels[invoice.paymentMethod] || invoice.paymentMethod }] : []),
             { label: "الحالة", value: statusLabels[invoice.status] || invoice.status },
+            ...(isDelivery && deliveryMeta?.driverName ? [{ label: "السائق / المُسلِّم", value: deliveryMeta.driverName }] : []),
+            ...(isDelivery && deliveryMeta?.vehicleNumber ? [{ label: "رقم المركبة", value: deliveryMeta.vehicleNumber, mono: true }] : []),
           ].map((row, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
               <span style={{ color: "#6B7280" }}>{row.label}:</span>
@@ -406,6 +459,14 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       {/* ━━━ ITEMS TABLE ━━━ */}
       <div style={{ padding: "10px 28px" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed", border: "1px solid #E5E7EB" }}>
+          {!showPrices ? (
+            <colgroup>
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "auto" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+            </colgroup>
+          ) : (
           <colgroup>
             <col style={{ width: "4%" }} />
             {/* Description column flexes; remaining columns get fixed comfortable widths so big numbers never overlap. */}
@@ -418,9 +479,13 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             {taxEnabled && <col style={{ width: hasAnyBonus ? "11%" : "12%" }} />}
             <col style={{ width: hasAnyBonus ? (taxEnabled ? "16%" : "18%") : (taxEnabled ? "16%" : "20%") }} />
           </colgroup>
+          )}
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
               {(() => {
+                if (!showPrices) {
+                  return ["#", "الصنف / الوصف", "الكمية", "الوحدة"];
+                }
                 const headers: string[] = ["#", "الصنف / الوصف", "الكمية"];
                 if (hasAnyBonus) { headers.push("بونص"); headers.push("المسلم"); }
                 headers.push("سعر الوحدة", "الخصم");
@@ -454,6 +519,29 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
               const bonusQty = Number(item.bonusQuantity || 0);
               const deliveredQty = Number(item.quantity || 0) + bonusQty;
               const rowMinHeight = invoice.items.length === 1 ? 56 : 40;
+              if (!showPrices) {
+                return (
+                  <tr key={idx} style={{
+                    background: idx % 2 === 0 ? "white" : "#F7F9FC",
+                    borderBottom: "1px solid #E5E7EB",
+                    height: `${rowMinHeight}px`,
+                  }}>
+                    <td style={{ padding: "12px 6px", textAlign: "center", color: "#6B7280", fontWeight: 700, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>{idx + 1}</td>
+                    <td style={{ padding: "12px 8px", fontWeight: 700, color: "#111827", fontSize: "14px", lineHeight: 1.4, wordWrap: "break-word", whiteSpace: "normal", borderRight: "1px solid #F1F5F9" }}>
+                      <div>{item.description}</div>
+                      {item.productCode && (
+                        <div style={{ marginTop: 2, fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: 0.2 }}>
+                          كود الصنف: <span style={{ fontFamily: "monospace" }}>{item.productCode}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 800, fontSize: numFontSize(item.quantity, 15), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9", background: "#EEF4FB", color: "#1B3A5C" }}>{fmtNum(item.quantity)}</td>
+                    <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 600, color: "#4B5563", fontSize: "12px" }}>
+                      {(item as any).unit || "—"}
+                    </td>
+                  </tr>
+                );
+              }
               return (
                 <tr
                   key={idx}
@@ -505,6 +593,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       </div>
 
       {/* ━━━ TOTALS SECTION (Ledger Style) ━━━ */}
+      {showPrices ? (
       <div style={{ padding: "6px 28px 10px", display: "flex", justifyContent: "flex-end" }}>
         <div style={{ width: "360px", fontFeatureSettings: "'tnum'" }}>
           {/* Subtotal */}
@@ -588,9 +677,25 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           )}
         </div>
       </div>
+      ) : (
+        <div style={{ padding: "10px 28px 14px", display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ minWidth: "320px", border: "1px solid #1B3A5C", borderRadius: "8px", overflow: "hidden" }}>
+            <div style={{ background: "#1B3A5C", color: "white", padding: "8px 14px", display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 700 }}>
+              <span>إجمالي الأصناف</span>
+              <span>{invoice.items.length} صنف</span>
+            </div>
+            <div style={{ padding: "10px 14px", display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#1B3A5C", fontWeight: 700 }}>
+              <span>إجمالي الكميات</span>
+              <span style={{ fontFeatureSettings: "'tnum'", direction: "ltr" }}>
+                {fmtNum(invoice.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0))}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ━━━ CHEQUE DETAILS ━━━ */}
-      {invoice.paymentMethod === "cheque" && invoice.chequeDetails && (
+      {!isDelivery && invoice.paymentMethod === "cheque" && invoice.chequeDetails && (
         <div style={{ margin: "0 28px 8px", padding: "8px 14px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", fontSize: "10px" }}>
           <div style={{ fontWeight: 700, color: "#92400E", marginBottom: "4px" }}>تفاصيل الشيك:</div>
           <div style={{ display: "flex", gap: "20px", color: "#78350F" }}>
@@ -617,10 +722,17 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         </div>
       )}
 
-      {taxEnabled && (
+      {!isDelivery && taxEnabled && (
       <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
         هذه الفاتورة صادرة وفقاً لأحكام قانون ضريبة الدخل الفلسطيني وقانون ضريبة القيمة المضافة — رقم القرار بقانون: (26) لسنة 2024م • يرجى الاحتفاظ بها لأغراض المراجعة والتدقيق
       </div>
+      )}
+      {isDelivery && (
+        <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: "6px", fontSize: "9px", color: "#0C4A6E", textAlign: "center" }}>
+          {isInternalDelivery
+            ? "هذا المستند إذن نقل داخلي بين المخازن — لا يُعتبر مستنداً تجارياً أو ضريبياً."
+            : "هذه الإرسالية وثيقة تسليم بضاعة وليست فاتورة ضريبية — لا تُعتبر مستنداً مالياً للأغراض الضريبية."}
+        </div>
       )}
 
       {/* ━━━ FOOTER - SIGNATURES ━━━ */}
@@ -635,14 +747,18 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       >
         {/* Seller Signature */}
         <div style={{ textAlign: "center", minWidth: "160px" }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>توقيع البائع / المسؤول</div>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>
+            {isDelivery ? "توقيع المُرسِل" : "توقيع البائع / المسؤول"}
+          </div>
           <div style={{ width: "130px", height: "40px", border: "1px dashed #D1D5DB", borderRadius: "6px", margin: "0 auto 4px" }} />
           <div style={{ fontSize: "8px", color: "#9CA3AF" }}>الاسم والتوقيع</div>
         </div>
 
         {/* Buyer Signature */}
         <div style={{ textAlign: "center", minWidth: "160px" }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>توقيع {isSales ? "المشتري" : "المستلم"}</div>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>
+            {isDelivery ? "توقيع المستلم" : `توقيع ${isSales ? "المشتري" : "المستلم"}`}
+          </div>
           <div style={{ width: "130px", height: "40px", border: "1px dashed #D1D5DB", borderRadius: "6px", margin: "0 auto 4px" }} />
           <div style={{ fontSize: "8px", color: "#9CA3AF" }}>الاسم والتوقيع</div>
         </div>
