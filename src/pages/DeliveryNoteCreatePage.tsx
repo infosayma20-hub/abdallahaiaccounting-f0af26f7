@@ -200,7 +200,11 @@ const DeliveryNoteCreatePage = () => {
   };
 
   const addItem = () => setItems(prev => [...prev, { product_name: "", quantity: 1, unit: "قطعة", unit_price: 0, total: 0 }]);
-  const removeItem = (index: number) => setItems(prev => prev.length > 1 ? prev.filter((_, i) => i !== index) : prev);
+  const removeItem = (index: number) => setItems(prev => {
+    if (prev.length > 1) return prev.filter((_, i) => i !== index);
+    // إذا كان البند الوحيد: أعِد ضبطه ليكون فارغاً بدلاً من الإبقاء عليه
+    return [{ product_name: "", quantity: 1, unit: "قطعة", unit_price: 0, total: 0 }];
+  });
   const formTotal = useMemo(() => items.reduce((s, i) => s + i.total, 0), [items]);
 
   const validate = (issuing: boolean): string | null => {
@@ -687,7 +691,7 @@ const DeliveryNoteCreatePage = () => {
                         <TableCell className="text-muted-foreground text-sm">{idx + 1}</TableCell>
                         <TableCell>
                           <Select value={item.product_id || ""} onValueChange={v => selectProduct(idx, v)} disabled={formDisabled}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="اختر المنتج" /></SelectTrigger>
+                            <SelectTrigger className="h-9 text-right" dir="rtl"><SelectValue placeholder="اختر المنتج" /></SelectTrigger>
                             <SelectContent>
                               {products.map(p => (
                                 <SelectItem key={p.id} value={p.id}>
