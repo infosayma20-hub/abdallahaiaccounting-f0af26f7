@@ -234,6 +234,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
   const [orders, setOrders] = useState<SessionOrder[]>([]);
   const [payments, setPayments] = useState<SessionPayment[]>([]);
   const [voidedPayments, setVoidedPayments] = useState<SessionPayment[]>([]);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
