@@ -455,6 +455,14 @@ const InvoicePrintView = ({
       {/* ━━━ ITEMS TABLE ━━━ */}
       <div style={{ padding: "10px 28px" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed", border: "1px solid #E5E7EB" }}>
+          {!showPrices ? (
+            <colgroup>
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "auto" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+            </colgroup>
+          ) : (
           <colgroup>
             <col style={{ width: "4%" }} />
             {/* Description column flexes; remaining columns get fixed comfortable widths so big numbers never overlap. */}
@@ -467,9 +475,13 @@ const InvoicePrintView = ({
             {taxEnabled && <col style={{ width: hasAnyBonus ? "11%" : "12%" }} />}
             <col style={{ width: hasAnyBonus ? (taxEnabled ? "16%" : "18%") : (taxEnabled ? "16%" : "20%") }} />
           </colgroup>
+          )}
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
               {(() => {
+                if (!showPrices) {
+                  return ["#", "الصنف / الوصف", "الكمية", "الوحدة"];
+                }
                 const headers: string[] = ["#", "الصنف / الوصف", "الكمية"];
                 if (hasAnyBonus) { headers.push("بونص"); headers.push("المسلم"); }
                 headers.push("سعر الوحدة", "الخصم");
@@ -503,6 +515,29 @@ const InvoicePrintView = ({
               const bonusQty = Number(item.bonusQuantity || 0);
               const deliveredQty = Number(item.quantity || 0) + bonusQty;
               const rowMinHeight = invoice.items.length === 1 ? 56 : 40;
+              if (!showPrices) {
+                return (
+                  <tr key={idx} style={{
+                    background: idx % 2 === 0 ? "white" : "#F7F9FC",
+                    borderBottom: "1px solid #E5E7EB",
+                    height: `${rowMinHeight}px`,
+                  }}>
+                    <td style={{ padding: "12px 6px", textAlign: "center", color: "#6B7280", fontWeight: 700, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>{idx + 1}</td>
+                    <td style={{ padding: "12px 8px", fontWeight: 700, color: "#111827", fontSize: "14px", lineHeight: 1.4, wordWrap: "break-word", whiteSpace: "normal", borderRight: "1px solid #F1F5F9" }}>
+                      <div>{item.description}</div>
+                      {item.productCode && (
+                        <div style={{ marginTop: 2, fontSize: "10px", fontWeight: 500, color: "#6B7280", letterSpacing: 0.2 }}>
+                          كود الصنف: <span style={{ fontFamily: "monospace" }}>{item.productCode}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 800, fontSize: numFontSize(item.quantity, 15), whiteSpace: "nowrap", direction: "ltr", borderRight: "1px solid #F1F5F9", background: "#EEF4FB", color: "#1B3A5C" }}>{fmtNum(item.quantity)}</td>
+                    <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 600, color: "#4B5563", fontSize: "12px" }}>
+                      {(item as any).unit || "—"}
+                    </td>
+                  </tr>
+                );
+              }
               return (
                 <tr
                   key={idx}
