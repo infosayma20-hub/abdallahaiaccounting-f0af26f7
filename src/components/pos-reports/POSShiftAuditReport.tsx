@@ -5,7 +5,10 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, Store, Info } from "lucide-react";
+import { Copy, Sun, Moon, AlertTriangle, CheckCircle2, ClipboardList, Store, Info, ChevronDown, ChevronLeft, Eye } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { POSSession } from "@/hooks/usePOSReportsData";
 
@@ -66,6 +69,9 @@ interface SessionOrder {
   sync_status: string | null;
   transaction_id: string | null;
   voided?: boolean;
+  order_note?: string | null;
+  customer_name?: string | null;
+  notes?: string | null;
 }
 interface SessionPayment {
   id: string;
@@ -235,7 +241,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
       setLoading(true);
       const { data: ords } = await supabase
         .from("pos_orders")
-        .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id")
+        .select("id, order_number, created_at, total, state, was_offline, sync_status, transaction_id, order_note, customer_name, notes")
         .eq("session_id", session.id)
         .order("created_at", { ascending: true });
       const rawOrders = (ords || []) as any[];
@@ -289,12 +295,20 @@ function ShiftDetail({ session }: { session: POSSession }) {
     const offlineSynced = orders.filter(o => o.was_offline && o.sync_status === "synced");
     const pending = orders.filter(o => o.sync_status && !["synced", null].includes(o.sync_status));
     const netSales = paid.reduce((s, o) => s + Number(o.total || 0), 0);
-    const byMethod: Record<string, { count: number; amount: number }> = {};
+    const byMethod: Record<string, { count: number; amount: number; rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[] }> = {};
+    const orderById = new Map(orders.map(o => [o.id, o]));
     payments.forEach(p => {
       const k = p.payment_method || "نقدي";
-      if (!byMethod[k]) byMethod[k] = { count: 0, amount: 0 };
+      if (!byMethod[k]) byMethod[k] = { count: 0, amount: 0, rows: [] };
       byMethod[k].count++;
       byMethod[k].amount += p.amount;
+      const ord = p.order_id ? orderById.get(p.order_id) : undefined;
+      byMethod[k].rows.push({
+        orderId: p.order_id || "",
+        orderNumber: ord?.order_number || null,
+        amount: p.amount,
+        note: ord?.order_note || ord?.customer_name || null,
+      });
     });
     // Re-derive expected cash from real (non-voided) cash payments only.
     const cashKey = (m: string) => ["cash", "نقدي"].includes((m || "").toLowerCase());
@@ -304,7 +318,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
     const recalcVariance = session.closing_cash != null ? session.closing_cash - recalcExpected : null;
     return {
       paid, cancelled, voided, offlineSynced, pending, netSales, byMethod,
-      recalcExpected, recalcVariance, voidedCash,
+      recalcExpected, recalcVariance, voidedCash, realCash,
     };
   }, [orders, payments, voidedPayments, session.opening_cash, session.closing_cash]);
 
@@ -409,6 +423,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
                     <th className="text-left px-3 py-2 font-medium">المبلغ</th>
                     <th className="text-center px-3 py-2 font-medium">أوفلاين</th>
                     <th className="text-center px-3 py-2 font-medium">الحالة</th>
+                    <th className="text-center px-3 py-2 font-medium w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -441,6 +456,15 @@ function ShiftDetail({ session }: { session: POSSession }) {
                           <span className="text-[10px] text-emerald-600">{trSyncStatus(o.sync_status) || "مدفوعة"}</span>
                         )}
                       </td>
+                      <td className="px-2 py-1.5 text-center">
+                        <button
+                          onClick={() => setOpenOrderId(o.id)}
+                          title="عرض تفاصيل الفاتورة"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -462,9 +486,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
             </span>
           </Row>
           {Object.entries(totals.byMethod).map(([m, v]) => (
-            <Row key={m} label={`${trMethod(m)} (${v.count} دفعة)`}>
-              <span className="font-mono">₪{v.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            </Row>
+            <ExpandableMethodRow
+              key={m}
+              method={m}
+              count={v.count}
+              amount={v.amount}
+              rows={v.rows}
+              onOpenOrder={(id) => setOpenOrderId(id)}
+            />
           ))}
           <Row label={`ملغي (${totals.cancelled.length} فاتورة)`}>
             <span className="font-mono text-muted-foreground">
@@ -514,9 +543,230 @@ function ShiftDetail({ session }: { session: POSSession }) {
               </p>
             </div>
           )}
+
+          {/* Transparent cash calculation breakdown */}
+          <div className="px-3 py-2.5 bg-muted/20 border-t border-border text-[11px] space-y-1">
+            <div className="font-semibold text-foreground text-[12px] mb-1">تفصيل حساب الكاش المتوقع:</div>
+            <div className="flex items-center justify-between font-mono">
+              <span className="text-muted-foreground">+ كاش افتتاحي</span>
+              <span>₪{(session.opening_cash ?? 0).toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between font-mono">
+              <span className="text-muted-foreground">+ نقدي من فواتير مدفوعة فعلية (بعد استبعاد المحذوفات والملغية)</span>
+              <span>₪{totals.realCash.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex items-center justify-between font-mono text-foreground font-semibold border-t border-border/60 pt-1">
+              <span>= إجمالي الكاش المتوقع بالدرج</span>
+              <span>₪{totals.recalcExpected.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex items-center justify-between font-mono">
+              <span className="text-muted-foreground">− كاش فعلي عند الإغلاق</span>
+              <span>₪{(session.closing_cash ?? 0).toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between font-mono font-semibold border-t border-border/60 pt-1">
+              <span className="text-foreground">= الفرق الفعلي</span>
+              <span className={cn(
+                totals.recalcVariance == null ? "text-muted-foreground"
+                  : Math.abs(totals.recalcVariance) < 0.5 ? "text-emerald-600"
+                  : totals.recalcVariance < 0 ? "text-destructive" : "text-amber-600",
+              )}>
+                {totals.recalcVariance != null
+                  ? `${totals.recalcVariance >= 0 ? "+" : ""}₪${totals.recalcVariance.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                  : "—"}
+              </span>
+            </div>
+            <p className="text-muted-foreground text-[10.5px] leading-relaxed pt-1">
+              ℹ︎ <strong>البطاقة</strong> و<strong>حساب الموظف</strong> غير محسوبين هنا لأنهم لا يدخلون درج الكاش — مدفوعات
+              البطاقة تذهب لحساب البنك، وحساب الموظف يُسجَّل كذمم على الموظف.
+              {totals.recalcVariance != null && Math.abs(totals.recalcVariance) >= 0.5 && (
+                <> الفرق هنا ({Math.abs(totals.recalcVariance).toFixed(2)}₪) هو
+                {totals.recalcVariance < 0 ? " عجز " : " زيادة "}
+                حقيقي عند الكاشير، ولا علاقة له بالفواتير المحذوفة.</>
+              )}
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Order details dialog */}
+      <OrderDetailsDialog
+        orderId={openOrderId}
+        onClose={() => setOpenOrderId(null)}
+        order={openOrderId ? orders.find(o => o.id === openOrderId) || null : null}
+      />
     </div>
+  );
+}
+
+// ── Expandable row for payment methods (shows employees / invoices) ──
+function ExpandableMethodRow({
+  method, count, amount, rows, onOpenOrder,
+}: {
+  method: string;
+  count: number;
+  amount: number;
+  rows: { orderId: string; orderNumber: string | null; amount: number; note: string | null }[];
+  onOpenOrder: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isEmployee = method === "employee_account" || method === "employee";
+  return (
+    <div className="divide-y divide-border">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/30 transition-colors text-right"
+      >
+        <span className="text-muted-foreground text-[12px] flex items-center gap-1.5">
+          {open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+          {trMethod(method)} ({count} دفعة)
+        </span>
+        <span className="font-mono text-foreground">
+          ₪{amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </span>
+      </button>
+      {open && (
+        <div className="bg-muted/10 px-3 py-2">
+          <table className="w-full text-[11.5px]">
+            <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-right py-1 font-medium w-32">رقم الفاتورة</th>
+                <th className="text-right py-1 font-medium">{isEmployee ? "اسم الموظف" : "ملاحظة"}</th>
+                <th className="text-left py-1 font-medium w-24">المبلغ</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {rows.map((r, i) => (
+                <tr key={i} className="hover:bg-muted/20">
+                  <td className="py-1 font-mono">{r.orderNumber || shortId(r.orderId)}</td>
+                  <td className="py-1 text-foreground">
+                    {r.note || <span className="text-muted-foreground/60">—</span>}
+                  </td>
+                  <td className="py-1 text-left font-mono tabular-nums">
+                    ₪{r.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="py-1 text-center">
+                    <button
+                      onClick={() => onOpenOrder(r.orderId)}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="فتح الفاتورة"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Order details dialog (items + notes) ──
+function OrderDetailsDialog({
+  orderId, order, onClose,
+}: {
+  orderId: string | null;
+  order: SessionOrder | null;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [lines, setLines] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    setLoading(true);
+    supabase
+      .from("pos_order_lines")
+      .select("id, product_name, qty, unit, unit_price, discount_amount, tax_amount, total, notes")
+      .eq("order_id", orderId)
+      .then(({ data }) => {
+        setLines(data || []);
+        setLoading(false);
+      });
+  }, [orderId]);
+
+  if (!orderId) return null;
+  const linesTotal = lines.reduce((s, l) => s + Number(l.total || 0), 0);
+
+  return (
+    <Dialog open={!!orderId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent dir="rtl" className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-right">
+            تفاصيل الفاتورة {order?.order_number || ""}
+          </DialogTitle>
+          <DialogDescription className="text-right">
+            {order && (
+              <span className="flex flex-wrap gap-3 text-[11px]">
+                <span>الوقت: {format(new Date(order.created_at), "dd/MM HH:mm")}</span>
+                <span>الإجمالي: ₪{Number(order.total).toLocaleString()}</span>
+                <span>الحالة: {order.voided ? "محذوفة" : order.state === "cancelled" ? "ملغية" : "مدفوعة"}</span>
+                {order.was_offline && <span className="text-amber-600">أوفلاين</span>}
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        {order?.order_note && (
+          <div className="bg-muted/30 border border-border rounded p-2.5 text-[12px]">
+            <span className="text-muted-foreground text-[10px] uppercase tracking-wider">ملاحظة الفاتورة</span>
+            <p className="text-foreground mt-0.5">{order.order_note}</p>
+          </div>
+        )}
+        {order?.customer_name && (
+          <div className="text-[12px]">
+            <span className="text-muted-foreground">الزبون: </span>
+            <span className="text-foreground">{order.customer_name}</span>
+          </div>
+        )}
+
+        <div className="border border-border rounded overflow-hidden">
+          <div className="px-3 py-1.5 bg-muted/30 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+            الأصناف ({lines.length})
+          </div>
+          {loading ? (
+            <div className="p-3"><Skeleton className="h-24" /></div>
+          ) : lines.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground text-[12px]">لا توجد أصناف</div>
+          ) : (
+            <table className="w-full text-[12px]">
+              <thead className="bg-muted/20 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-right px-2.5 py-1.5 font-medium">الصنف</th>
+                  <th className="text-center px-2 py-1.5 font-medium w-16">الكمية</th>
+                  <th className="text-left px-2 py-1.5 font-medium w-20">السعر</th>
+                  <th className="text-left px-2 py-1.5 font-medium w-20">المجموع</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {lines.map((l: any) => (
+                  <tr key={l.id}>
+                    <td className="px-2.5 py-1.5">
+                      <div>{l.product_name}</div>
+                      {l.notes && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5">📝 {l.notes}</div>
+                      )}
+                    </td>
+                    <td className="px-2 py-1.5 text-center font-mono">{l.qty}</td>
+                    <td className="px-2 py-1.5 text-left font-mono">₪{Number(l.unit_price).toLocaleString()}</td>
+                    <td className="px-2 py-1.5 text-left font-mono font-medium">
+                      ₪{Number(l.total).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="bg-muted/20 font-semibold">
+                  <td colSpan={3} className="px-2.5 py-1.5 text-right">المجموع</td>
+                  <td className="px-2 py-1.5 text-left font-mono">₪{linesTotal.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
