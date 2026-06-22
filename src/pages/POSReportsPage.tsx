@@ -127,7 +127,7 @@ const POSReportsPage = () => {
     <div className="min-h-screen bg-background" dir="rtl">
       {/* ── Breadcrumb + Title (Dynamics-style) ── */}
       <div className="bg-card border-b border-border px-5 pt-2.5 pb-1.5 print:hidden">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-full mx-auto">
           <nav className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <button onClick={() => navigate("/")} className="hover:text-foreground">التطبيقات</button>
             <ChevronRight className="w-3 h-3 -scale-x-100" />
@@ -149,7 +149,7 @@ const POSReportsPage = () => {
 
       {/* ── Command Bar ── */}
       <div className="bg-card border-b border-border px-5 print:hidden">
-        <div className="max-w-7xl mx-auto flex items-center h-9 gap-1 text-[11px]">
+        <div className="max-w-full mx-auto flex items-center h-9 gap-1 text-[11px]">
           <CmdButton onClick={data.refetch} icon={RefreshCw} label="تحديث" />
           <Divider />
           <CmdButton onClick={handleExportExcel} icon={Download} label="تصدير Excel" />
@@ -159,7 +159,7 @@ const POSReportsPage = () => {
 
       {/* ── Filter Bar ── */}
       <div className="bg-muted/30 border-b border-border px-5 print:hidden">
-        <div className="max-w-7xl mx-auto flex items-center flex-wrap gap-2 py-2 text-[11px]">
+        <div className="max-w-full mx-auto flex items-center flex-wrap gap-2 py-2 text-[11px]">
           <span className="text-muted-foreground">الفترة:</span>
           <div className="flex items-center gap-1">
             {PRESETS.map(p => (
@@ -203,7 +203,7 @@ const POSReportsPage = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-5 py-4 space-y-4 print:px-2 print:py-2">
+      <div className="max-w-full mx-auto px-5 py-4 space-y-4 print:px-2 print:py-2">
         {/* ── KPI Cards ── */}
         {data.loading ? (
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
