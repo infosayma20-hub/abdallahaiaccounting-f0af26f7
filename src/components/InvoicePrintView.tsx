@@ -81,6 +81,10 @@ const statusLabels: Record<string, string> = {
   draft: "مسودة",
   sent: "مُرسلة",
   paid: "مدفوعة",
+  issued: "صادرة",
+  received: "مستلمة",
+  converted: "محولة لفاتورة",
+  cancelled: "ملغاة",
 };
 
 const LARGE_WIDE_LOGO_OWNER_ID = "6e3d46e2-4b58-4e80-a71e-05661aa8adaf";
