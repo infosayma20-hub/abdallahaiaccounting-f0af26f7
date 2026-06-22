@@ -84,7 +84,7 @@ const ProfilePage = () => {
         .maybeSingle();
       if (data) {
         setProfile({
-          display_name: data.display_name || "",
+          display_name: data.display_name || (data as any).full_name || "",
           company_name: data.company_name || "",
           country: data.country || "",
           address: data.address || "",
@@ -131,6 +131,9 @@ const ProfilePage = () => {
         .eq("user_id", user.id);
       
       setAvatarUrl(publicUrl);
+      window.dispatchEvent(new CustomEvent("profile:updated", {
+        detail: { displayName: profile.display_name.trim() || null, avatarUrl: publicUrl },
+      }));
       toast({ title: "✅ تم تحديث الصورة الشخصية" });
     } catch (err: any) {
       toast({ title: "خطأ في رفع الصورة", description: err.message, variant: "destructive" });
@@ -218,10 +221,12 @@ const ProfilePage = () => {
     if (!user) return;
     setSaving(true);
     try {
+      const trimmedDisplayName = profile.display_name.trim();
       const { error } = await supabase.from("profiles").upsert(
         {
           user_id: user.id,
-          display_name: profile.display_name || null,
+          display_name: trimmedDisplayName || null,
+          full_name: trimmedDisplayName || null,
           company_name: profile.company_name || null,
           country: profile.country || null,
           address: profile.address || null,
@@ -232,6 +237,13 @@ const ProfilePage = () => {
       );
       if (error) throw error;
 
+      await supabase.auth.updateUser({
+        data: {
+          full_name: trimmedDisplayName || undefined,
+          name: trimmedDisplayName || undefined,
+        },
+      });
+
       // Also sync company name to companies table
       if (profile.company_name) {
         await supabase
@@ -241,7 +253,9 @@ const ProfilePage = () => {
       }
 
       await refreshCompany();
-      window.dispatchEvent(new CustomEvent("profile:updated"));
+      window.dispatchEvent(new CustomEvent("profile:updated", {
+        detail: { displayName: trimmedDisplayName || null, avatarUrl },
+      }));
       toast({ title: "✅ تم حفظ البيانات بنجاح" });
     } catch (err: any) {
       toast({ title: "خطأ في الحفظ", description: err.message, variant: "destructive" });
