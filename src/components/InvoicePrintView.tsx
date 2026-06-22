@@ -258,10 +258,14 @@ const InvoicePrintView = ({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div style={{ textAlign: "right", flex: "0 0 auto" }}>
               <div style={{ fontSize: "20px", fontWeight: 800, color: "#1B3A5C" }}>
-                {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+                {isDelivery
+                  ? (isInternalDelivery ? "إذن نقل داخلي" : "إرسالية مبيعات")
+                  : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
               </div>
               <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif", letterSpacing: "1px" }}>
-                {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+                {isDelivery
+                  ? (isInternalDelivery ? "INTERNAL TRANSFER NOTE" : "DELIVERY NOTE")
+                  : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
               </div>
             </div>
             <div style={{ textAlign: "left", fontSize: "9px", color: "#4B5563", flex: "0 0 auto", maxWidth: "260px" }}>
@@ -320,10 +324,14 @@ const InvoicePrintView = ({
           {/* Left: invoice title */}
           <div style={{ textAlign: "left", flex: "0 0 auto" }}>
             <div style={{ fontSize: "16px", fontWeight: 700, color: "#1B3A5C" }}>
-              {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+              {isDelivery
+                ? (isInternalDelivery ? "إذن نقل داخلي" : "إرسالية مبيعات")
+                : (isSales ? "فاتورة مبيعات" : "فاتورة مشتريات")}
             </div>
             <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif" }}>
-              {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+              {isDelivery
+                ? (isInternalDelivery ? "INTERNAL TRANSFER NOTE" : "DELIVERY NOTE")
+                : (isSales ? "SALES INVOICE" : "PURCHASE INVOICE")}
             </div>
           </div>
         </div>
