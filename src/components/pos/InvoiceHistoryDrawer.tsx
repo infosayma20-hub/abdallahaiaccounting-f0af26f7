@@ -1378,6 +1378,21 @@ export default function InvoiceHistoryDrawer({
                   size="sm"
                   className="gap-1.5 text-xs"
                   onClick={() => {
+                    // Safety: refuse to print if lines don't belong to the
+                    // currently selected order, or if they are still loading.
+                    if (loadingDetail) {
+                      toast.error("جاري تحميل تفاصيل الفاتورة…");
+                      return;
+                    }
+                    if (!orderLines.length) {
+                      toast.error("لا توجد بنود متاحة لهذه الفاتورة");
+                      return;
+                    }
+                    const mismatch = orderLines.some((l: any) => l.order_id && l.order_id !== selectedOrder.id);
+                    if (mismatch) {
+                      toast.error("تعذرت الطباعة: بيانات غير متطابقة. أعد فتح الفاتورة.");
+                      return;
+                    }
                     // Use bridge for silent printing
                     const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---";
                     const bridgeOrder = {
