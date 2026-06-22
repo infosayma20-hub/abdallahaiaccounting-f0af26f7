@@ -1360,7 +1360,7 @@ export default function InvoiceHistoryDrawer({
                     <Trash2 className="h-3.5 w-3.5" /> حذف الطلب المعلق
                   </Button>
                 )}
-                {printInvoices && (
+                {printInvoices && (!cashierMode || canSeeDetails(selectedOrder)) && (
                 <Button
                   variant="outline"
                   size="sm"
