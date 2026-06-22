@@ -386,12 +386,11 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
     const loadProfile = () => {
       supabase
         .from("profiles")
-        .select("display_name, company_name, avatar_url")
+        .select("display_name, company_name")
         .eq("user_id", user.id)
         .maybeSingle()
         .then(({ data }: any) => {
           setProfileName(data?.display_name || data?.company_name || null);
-          setUserAvatarUrl(data?.avatar_url || null);
         });
     };
     loadProfile();
