@@ -4240,37 +4240,37 @@ const POSPage = () => {
           // kitchen ticket targets.
           const branchForMute = (() => { try { return getDeviceBranchId() || null; } catch { return null; } })();
           const isMuted = await loadMuteChecker(branchForMute).catch(() => () => false);
-          // Detect if ANY product in the cart has an explicit station assignment.
-          // If none do, we BROADCAST the full order to all stations (handled
-          // downstream when kitchenJobs is empty) instead of funneling everything
-          // to an arbitrary default station — which previously caused only one
-          // printer (e.g. pizza) to fire while kitchen/grill stayed silent.
-          const hasAnyAssignment = cart.some(i => stationMap.get(i.product_id));
-
-          // Group items by station only when assignments exist; items without
-          // an explicit assignment are sent to ALL stations so the kitchen
-          // crew never misses an item.
+          // Routing model (category-rules-first):
+          //   1) If a product has an explicit kitchen_station_id, that wins (single target).
+          //   2) Otherwise the item targets ALL active stations.
+          //   3) pos_category_print_rules then MUTES (category, station) pairs
+          //      configured by the user. This means a category toggled OFF for
+          //      "البيتزا" will not print on the pizza station even though the
+          //      product has no explicit assignment.
+          // The previous `hasAnyAssignment` guard skipped this entire block when
+          // no product had a kitchen_station_id (≈ 1132/1133 products in DB),
+          // causing the downstream fallback to broadcast every order to ALL
+          // stations, making the category print rules dead code.
           const stationItems: Record<string, any[]> = {};
-          if (hasAnyAssignment) {
-            cart.forEach(item => {
-              const assigned = stationMap.get(item.product_id);
-              let targets: string[] = assigned
-                ? [assigned as string]
-                : (stationsData as any[]).map((s: any) => s.id); // broadcast unassigned
-              // Apply mute filter: drop stations where this product's category is muted.
-              const cat = categoryMap.get(item.product_id);
-              targets = targets.filter((sid) => !isMuted(cat, sid));
-              for (const stationId of targets) {
-                if (!stationItems[stationId]) stationItems[stationId] = [];
-                stationItems[stationId].push({
-                  name: item.name,
-                  qty: item.qty,
-                  note: item.note,
-                  modifiers: item.modifiers || [],
-                });
-              }
-            });
-          }
+          const allStationIds = (stationsData as any[]).map((s: any) => s.id);
+          cart.forEach(item => {
+            const assigned = stationMap.get(item.product_id);
+            let targets: string[] = assigned
+              ? [assigned as string]
+              : allStationIds; // broadcast unassigned across all active stations
+            // Apply mute filter: drop stations where this product's category is muted.
+            const cat = categoryMap.get(item.product_id);
+            targets = targets.filter((sid) => !isMuted(cat, sid));
+            for (const stationId of targets) {
+              if (!stationItems[stationId]) stationItems[stationId] = [];
+              stationItems[stationId].push({
+                name: item.name,
+                qty: item.qty,
+                note: item.note,
+                modifiers: item.modifiers || [],
+              });
+            }
+          });
 
           // NOTE: kitchen_tickets are created exclusively by the DB trigger
           // (trg_pos_order_lines_kds_sync + kds_create_tickets_for_order) to
@@ -4294,6 +4294,14 @@ const POSPage = () => {
               };
             })
             .filter(j => j.items.length > 0);
+          // Safety guard: if filtering produced zero jobs (e.g. every category in
+          // the cart was muted on every station), inject a sentinel empty job so
+          // image-print-service does NOT fall back to the legacy "broadcast to all
+          // stations" path. Empty-items jobs are dropped inside the bridge layer,
+          // so no physical print occurs.
+          if (kitchenJobs.length === 0) {
+            kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
+          }
         }
       } catch (err) {
         console.error("Kitchen ticket creation error:", err);
