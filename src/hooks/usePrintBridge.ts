@@ -87,6 +87,8 @@ export interface PrintOrder {
    * the printed receipt: gross stays intact, employee AR drops by this amount.
    */
   mealSubsidy?: number;
+  /** Employee name (when paid via حساب موظف) — shown on receipt + kitchen ticket */
+  employeeName?: string;
 }
 
 export function usePrintBridge() {
