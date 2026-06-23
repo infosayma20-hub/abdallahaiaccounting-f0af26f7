@@ -4053,7 +4053,13 @@ const POSPage = () => {
         }
 
         const fullAmount = Number(cartTotals.total) || 0;
-        const calculatedAmount = Math.round((fullAmount * employeeSharePct / 100) * 100) / 100;
+        // Employee's actual debt = full ticket − company subsidy.
+        // In dual mode the subsidy is already computed (10% family / 50% individual);
+        // in legacy single mode we fall back to `fullAmount * employeeSharePct / 100`
+        // so historical tenants keep working exactly as before.
+        const calculatedAmount = isDualMode && mealDiscountType
+          ? Math.round((fullAmount - mealSubsidy) * 100) / 100
+          : Math.round((fullAmount * employeeSharePct / 100) * 100) / 100;
 
         // Only record a deduction if the employee actually owes something.
         if (calculatedAmount > 0) {
