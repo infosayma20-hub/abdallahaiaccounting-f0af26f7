@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Search, AlertTriangle, Loader2, Zap, Database, Link2Off, ExternalLink, RefreshCw } from "lucide-react";
+import { MapPin, Search, AlertTriangle, Loader2, Zap, Database, Link2Off, ExternalLink, RefreshCw, Pencil, Check, X } from "lucide-react";
 
 export interface DeliveryInfo {
   city: string;
@@ -51,6 +51,11 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
   }>({ status: "idle", price: null });
   // Bumped to force a manual refetch of the live Wheels price (B3).
   const [refetchTick, setRefetchTick] = useState(0);
+  // Manual override state — when the agent overrides the price (because
+  // Wheels returned 0, the area isn't mapped, or special case), we flip
+  // `manually_adjusted` to true on the value and skip auto-fetches.
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [draftPrice, setDraftPrice] = useState<string>("");
   // Set of branch_ids that are mapped to Wheels (loaded from wheels_branch_config).
   // Used to distinguish "branch not on Wheels" vs "area on a Wheels branch lacks mapping".
   const [wheelsBranchIds, setWheelsBranchIds] = useState<Set<string>>(new Set());
@@ -150,6 +155,12 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
   // and finally to the internal price if the branch isn't mapped to Wheels.
   useEffect(() => {
     if (!value) { setLivePrice({ status: "idle", price: null }); return; }
+    // If the agent explicitly overrode the price, don't clobber it with a
+    // live fetch. The refresh button clears the override (see below).
+    if (value.manually_adjusted) {
+      setLivePrice({ status: "idle", price: Number(value.final_fee) });
+      return;
+    }
     const z = zones.find(
       x => x.branch_id === value.branch_id && x.area_name === value.area && x.city === value.city,
     );
@@ -200,7 +211,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value?.branch_id, value?.area, value?.city, zones, wheelsBranchIds, refetchTick]);
+  }, [value?.branch_id, value?.area, value?.city, zones, wheelsBranchIds, refetchTick, value?.manually_adjusted]);
 
   return (
     <div className="space-y-2 rounded-xl border-2 border-orange-300/40 bg-orange-50/40 dark:bg-orange-950/10 p-3">
@@ -325,15 +336,20 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
 
           {/* Live price badge (read-only) */}
           <div className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 ${
-            livePrice.status === "area_unmapped"
-              ? "bg-red-50 dark:bg-red-950/20 border border-red-300"
-              : "bg-muted/40"
+            value.manually_adjusted
+              ? "bg-amber-50 dark:bg-amber-950/20 border border-amber-300"
+              : livePrice.status === "area_unmapped"
+                ? "bg-red-50 dark:bg-red-950/20 border border-red-300"
+                : "bg-muted/40"
           }`}>
             <div className="flex items-center gap-1.5 text-[10px] font-bold flex-wrap">
-              {livePrice.status === "loading" && (
+              {value.manually_adjusted && (
+                <><Pencil className="h-3 w-3 text-amber-600" /><span className="text-amber-700">سعر معدّل يدوياً</span></>
+              )}
+              {!value.manually_adjusted && livePrice.status === "loading" && (
                 <><Loader2 className="h-3 w-3 animate-spin text-orange-500" /><span className="text-muted-foreground">جاري جلب السعر من Wheels...</span></>
               )}
-              {livePrice.status === "live" && (
+              {!value.manually_adjusted && livePrice.status === "live" && (
                 <>
                   <Zap className="h-3 w-3 text-emerald-600" />
                   <span
@@ -344,13 +360,13 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
                   </span>
                 </>
               )}
-              {livePrice.status === "cached" && (
+              {!value.manually_adjusted && livePrice.status === "cached" && (
                 <><Database className="h-3 w-3 text-amber-600" /><span className="text-amber-700" title={livePrice.error || ""}>السعر المخزّن (تعذّر الاتصال بـ Wheels)</span></>
               )}
-              {livePrice.status === "manual" && (
+              {!value.manually_adjusted && livePrice.status === "manual" && (
                 <><Database className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">سعر داخلي (الفرع غير مربوط بـ Wheels)</span></>
               )}
-              {livePrice.status === "area_unmapped" && (
+              {!value.manually_adjusted && livePrice.status === "area_unmapped" && (
                 <>
                   <Link2Off className="h-3 w-3 text-red-600" />
                   <span className="text-red-700">هذه المنطقة غير مربوطة بـ Wheels — اربطها من الإعدادات</span>
@@ -366,22 +382,98 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
               )}
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* Manual refresh (B3): only meaningful when we actually hit Wheels. */}
-              {(livePrice.status === "live" || livePrice.status === "cached" || livePrice.status === "loading") && (
-                <button
-                  type="button"
-                  onClick={() => setRefetchTick(t => t + 1)}
-                  disabled={livePrice.status === "loading"}
-                  title="إعادة جلب السعر من Wheels"
-                  aria-label="إعادة جلب السعر من Wheels"
-                  className="p-1 rounded hover:bg-orange-100 dark:hover:bg-orange-950/30 text-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                >
-                  <RefreshCw className={`h-3 w-3 ${livePrice.status === "loading" ? "animate-spin" : ""}`} />
-                </button>
+              {/* Inline manual price editor. */}
+              {editingPrice ? (
+                <>
+                  <span className="text-[10px] font-bold text-muted-foreground">₪</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.5"
+                    min="0"
+                    autoFocus
+                    value={draftPrice}
+                    onChange={e => setDraftPrice(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        const n = Number(draftPrice);
+                        if (!isNaN(n) && n >= 0) {
+                          onChange({ ...value, final_fee: n, manually_adjusted: true });
+                          setEditingPrice(false);
+                        }
+                      } else if (e.key === "Escape") {
+                        setEditingPrice(false);
+                      }
+                    }}
+                    className="w-20 h-7 rounded border border-amber-400 bg-background px-1.5 text-sm font-mono font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-amber-400 text-right"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const n = Number(draftPrice);
+                      if (!isNaN(n) && n >= 0) {
+                        onChange({ ...value, final_fee: n, manually_adjusted: true });
+                        setEditingPrice(false);
+                      }
+                    }}
+                    title="حفظ"
+                    className="p-1 rounded hover:bg-emerald-100 text-emerald-600 transition"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPrice(false)}
+                    title="إلغاء"
+                    className="p-1 rounded hover:bg-red-100 text-red-500 transition"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Refresh from Wheels — also clears any manual override. */}
+                  {(value.manually_adjusted ||
+                    livePrice.status === "live" ||
+                    livePrice.status === "cached" ||
+                    livePrice.status === "loading") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Clearing manual flag triggers the live-fetch effect.
+                        if (value.manually_adjusted) {
+                          onChange({ ...value, manually_adjusted: false });
+                        }
+                        setRefetchTick(t => t + 1);
+                      }}
+                      disabled={livePrice.status === "loading"}
+                      title={value.manually_adjusted ? "إلغاء التعديل وإعادة الجلب من Wheels" : "إعادة جلب السعر من Wheels"}
+                      aria-label="إعادة جلب السعر من Wheels"
+                      className="p-1 rounded hover:bg-orange-100 dark:hover:bg-orange-950/30 text-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${livePrice.status === "loading" ? "animate-spin" : ""}`} />
+                    </button>
+                  )}
+                  {/* Manual override pencil — always available so the agent can
+                      fix bad Wheels responses (e.g. price = 0) or override
+                      when the area isn't mapped. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraftPrice(String(Number(value.final_fee || 0)));
+                      setEditingPrice(true);
+                    }}
+                    title="تعديل السعر يدوياً"
+                    aria-label="تعديل السعر يدوياً"
+                    className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-950/30 text-amber-600 transition"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <div className={`font-mono font-bold text-sm tabular-nums ${value.manually_adjusted ? "text-amber-700" : ""}`}>
+                    ₪{Number(value.manually_adjusted ? value.final_fee : (livePrice.price ?? value.final_fee)).toFixed(2)}
+                  </div>
+                </>
               )}
-              <div className="font-mono font-bold text-sm tabular-nums">
-                ₪{Number(livePrice.price ?? value.final_fee).toFixed(2)}
-              </div>
             </div>
           </div>
         </div>
