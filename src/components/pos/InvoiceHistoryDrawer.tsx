@@ -990,12 +990,14 @@ export default function InvoiceHistoryDrawer({
           </div>
         </div>
 
-        {/* Summary bar */}
-        <div className="flex items-center justify-between px-5 py-2.5 text-xs" style={{ background: "#F8FAFC", fontFamily: "Tajawal, sans-serif" }}>
-          <span style={{ color: "#64748B" }}>إجمالي: <strong style={{ color: "#0A2342", fontFamily: "JetBrains Mono, monospace" }}>₪{summary.totalToday.toFixed(2)}</strong></span>
-          <span style={{ color: "#64748B" }}>الفواتير: <strong style={{ color: "#0A2342" }}>{summary.count}</strong></span>
-          {!cashierMode && <span style={{ color: "#DC2626" }}>ملغية: <strong>{summary.cancelled}</strong></span>}
-        </div>
+        {/* Summary bar — hidden for cashiers */}
+        {!cashierMode && (
+          <div className="flex items-center justify-between px-5 py-2.5 text-xs" style={{ background: "#F8FAFC", fontFamily: "Tajawal, sans-serif" }}>
+            <span style={{ color: "#64748B" }}>إجمالي: <strong style={{ color: "#0A2342", fontFamily: "JetBrains Mono, monospace" }}>₪{summary.totalToday.toFixed(2)}</strong></span>
+            <span style={{ color: "#64748B" }}>الفواتير: <strong style={{ color: "#0A2342" }}>{summary.count}</strong></span>
+            <span style={{ color: "#DC2626" }}>ملغية: <strong>{summary.cancelled}</strong></span>
+          </div>
+        )}
 
         {/* Invoice list */}
         <ScrollArea className="flex-1">
