@@ -412,6 +412,7 @@ function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
     tableNumber: order.tableNumber,
     customerName: order.customerName || undefined,
     customerPhone: order.customerPhone || undefined,
+    employeeName: order.employeeName || undefined,
     pickupBy: order.pickupBy || undefined,
     totalQty,
     items: items.map(item => ({
