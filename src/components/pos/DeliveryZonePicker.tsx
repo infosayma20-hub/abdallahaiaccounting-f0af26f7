@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Search, AlertTriangle } from "lucide-react";
+import { MapPin, Search, AlertTriangle, Loader2, Zap, Database } from "lucide-react";
 
 export interface DeliveryInfo {
   city: string;
@@ -20,6 +20,8 @@ interface Zone {
   branch_name: string;
   price: number;
   is_active: boolean;
+  wheels_area_id?: number | null;
+  wheels_fixed_price?: number | null;
 }
 
 interface Props {
@@ -39,16 +41,20 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState<string>(value?.city || "");
   const [search, setSearch] = useState<string>(value?.area || "");
-  const [feeInput, setFeeInput] = useState<string>(value?.final_fee?.toString() || "");
   const [showOptions, setShowOptions] = useState(false);
   const [tiePending, setTiePending] = useState<{ city: string; area: string; options: Zone[] } | null>(null);
+  const [livePrice, setLivePrice] = useState<{
+    status: "idle" | "loading" | "live" | "cached" | "manual" | "error";
+    price: number | null;
+    error?: string | null;
+  }>({ status: "idle", price: null });
 
   useEffect(() => {
     if (!dataOwnerId) return;
     setLoading(true);
     supabase
       .from("delivery_zones" as any)
-      .select("id, city, area_name, branch_id, branch_name, price, is_active")
+      .select("id, city, area_name, branch_id, branch_name, price, is_active, wheels_area_id, wheels_fixed_price")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("city")
@@ -81,7 +87,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       .slice(0, 50);
   }, [zones, city, search]);
 
-  const selectZone = (zone: Zone, manuallyAdjusted = false) => {
+  const selectZone = (zone: Zone) => {
     const info: DeliveryInfo = {
       city: zone.city,
       area: zone.area_name,
@@ -89,12 +95,11 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       branch_name: zone.branch_name,
       original_fee: Number(zone.price),
       final_fee: Number(zone.price),
-      manually_adjusted: manuallyAdjusted,
+      manually_adjusted: false,
     };
     onChange(info);
     setSearch(zone.area_name);
     setCity(zone.city);
-    setFeeInput(String(zone.price));
     setShowOptions(false);
     setTiePending(null);
   };
@@ -116,15 +121,6 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     selectZone(group.cheapest);
   };
 
-  const handleFeeChange = (v: string) => {
-    setFeeInput(v);
-    if (!value) return;
-    const n = parseFloat(v);
-    if (!isNaN(n)) {
-      onChange({ ...value, final_fee: n, manually_adjusted: n !== value.original_fee });
-    }
-  };
-
   // Branch options for current selected area (for tie / change)
   const branchOptionsForArea = useMemo(() => {
     if (!value) return [];
@@ -132,6 +128,50 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       .filter(z => z.city === value.city && z.area_name === value.area)
       .sort((a, b) => a.price - b.price);
   }, [zones, value]);
+
+  // Fetch the LIVE delivery price from Wheels API whenever the selected
+  // zone (city+area+branch) changes. Falls back to the cached wheels_fixed_price
+  // and finally to the internal price if the branch isn't mapped to Wheels.
+  useEffect(() => {
+    if (!value) { setLivePrice({ status: "idle", price: null }); return; }
+    const z = zones.find(
+      x => x.branch_id === value.branch_id && x.area_name === value.area && x.city === value.city,
+    );
+    // Branch not mapped to Wheels → show internal price as "manual"
+    if (!z?.wheels_area_id) {
+      setLivePrice({ status: "manual", price: Number(z?.price ?? value.original_fee) });
+      if (value.final_fee !== Number(z?.price ?? value.original_fee)) {
+        onChange({ ...value, final_fee: Number(z?.price ?? value.original_fee), manually_adjusted: false });
+      }
+      return;
+    }
+    let cancelled = false;
+    setLivePrice({ status: "loading", price: Number(z.wheels_fixed_price ?? z.price) });
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("wheels-test", {
+          body: { mode: "price", branch_id: value.branch_id, wheels_area_id: z.wheels_area_id },
+        });
+        if (cancelled) return;
+        if (error || !(data as any)?.success || (data as any)?.price == null) {
+          const cached = Number(z.wheels_fixed_price ?? z.price);
+          setLivePrice({ status: "cached", price: cached, error: (data as any)?.error || error?.message || null });
+          if (value.final_fee !== cached) onChange({ ...value, final_fee: cached, manually_adjusted: false });
+          return;
+        }
+        const p = Number((data as any).price);
+        setLivePrice({ status: "live", price: p });
+        if (value.final_fee !== p) onChange({ ...value, final_fee: p, manually_adjusted: false });
+      } catch (e: any) {
+        if (cancelled) return;
+        const cached = Number(z.wheels_fixed_price ?? z.price);
+        setLivePrice({ status: "cached", price: cached, error: e?.message || "تعذّر الاتصال بـ Wheels" });
+        if (value.final_fee !== cached) onChange({ ...value, final_fee: cached, manually_adjusted: false });
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.branch_id, value?.area, value?.city, zones]);
 
   return (
     <div className="space-y-2 rounded-xl border-2 border-orange-300/40 bg-orange-50/40 dark:bg-orange-950/10 p-3">
@@ -248,26 +288,31 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
                       : "bg-muted/40 border-border hover:border-orange-400"
                   } ${!!lockedBranchId && lockedBranchId !== b.branch_id ? "opacity-40 cursor-not-allowed" : ""}`}
                 >
-                  {b.branch_name} — ₪{b.price}
+                  {b.branch_name}
                 </button>
               ))}
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] text-muted-foreground shrink-0">سعر التوصيل النهائي:</label>
-            <input
-              type="number"
-              step="0.5"
-              value={feeInput}
-              onChange={e => handleFeeChange(e.target.value)}
-              className="flex-1 h-7 rounded border border-border bg-background px-2 text-xs font-mono text-left"
-              dir="ltr"
-            />
-            <span className="text-[10px]">₪</span>
-            {value.manually_adjusted && (
-              <span className="text-[9px] text-amber-700 font-bold">معدّل يدوياً</span>
-            )}
+          {/* Live price badge (read-only) */}
+          <div className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold">
+              {livePrice.status === "loading" && (
+                <><Loader2 className="h-3 w-3 animate-spin text-orange-500" /><span className="text-muted-foreground">جاري جلب السعر من Wheels...</span></>
+              )}
+              {livePrice.status === "live" && (
+                <><Zap className="h-3 w-3 text-emerald-600" /><span className="text-emerald-700">السعر الحي من Wheels</span></>
+              )}
+              {livePrice.status === "cached" && (
+                <><Database className="h-3 w-3 text-amber-600" /><span className="text-amber-700" title={livePrice.error || ""}>السعر المخزّن (تعذّر الاتصال بـ Wheels)</span></>
+              )}
+              {livePrice.status === "manual" && (
+                <><Database className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">سعر داخلي (الفرع غير مربوط بـ Wheels)</span></>
+              )}
+            </div>
+            <div className="font-mono font-bold text-sm tabular-nums">
+              ₪{Number(livePrice.price ?? value.final_fee).toFixed(2)}
+            </div>
           </div>
         </div>
       )}

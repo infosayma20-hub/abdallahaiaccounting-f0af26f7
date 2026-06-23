@@ -49,9 +49,10 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json().catch(() => ({})) as {
-      mode?: "ping" | "resolve" | "test_order";
+      mode?: "ping" | "resolve" | "test_order" | "price";
       branch_id?: string;
       address?: string;
+      wheels_area_id?: number;
     };
     const mode = body.mode ?? "ping";
 
@@ -155,6 +156,50 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: `المفتاح ${cfg.secret_name} غير موجود في الأسرار` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── mode: price ──────────────────────────────────────────────────
+    // Live price lookup for a specific (branch, area) pair. Used by the
+    // call-center dispatch dialog to show the real Wheels price the
+    // moment the agent picks an area, before sending the order.
+    if (mode === "price") {
+      const areaId = body.wheels_area_id;
+      if (!areaId) {
+        return new Response(JSON.stringify({ success: false, error: "wheels_area_id مطلوب" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const startedP = Date.now();
+      let httpStatusP = 0;
+      let respJsonP: any = null;
+      let netErrP: string | null = null;
+      try {
+        const r = await fetch(`${WHEELS_BASE}/orders/getDeliveryPrice`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "api-key": apiKey },
+          body: JSON.stringify({ branch: cfg.wheels_branch_id, area: areaId }),
+        });
+        httpStatusP = r.status;
+        try { respJsonP = await r.json(); } catch { respJsonP = null; }
+      } catch (e) {
+        netErrP = e instanceof Error ? e.message : String(e);
+      }
+      const latencyMsP = Date.now() - startedP;
+      const okP = !netErrP && httpStatusP >= 200 && httpStatusP < 300 && !respJsonP?.error;
+      // Wheels returns the price under various keys depending on env — try them in order.
+      const priceVal =
+        Number(respJsonP?.price ?? respJsonP?.deliveryPrice ?? respJsonP?.delivery_price ?? respJsonP?.data?.price ?? NaN);
+      return new Response(JSON.stringify({
+        success: okP && Number.isFinite(priceVal),
+        price: Number.isFinite(priceVal) ? priceVal : null,
+        latency_ms: latencyMsP,
+        http_status: httpStatusP,
+        wheels_response: respJsonP,
+        network_error: netErrP,
+        error: okP && Number.isFinite(priceVal)
+          ? null
+          : (respJsonP?.error || respJsonP?.message || netErrP || `HTTP ${httpStatusP}`),
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Pick any mapped area for this branch as a probe
