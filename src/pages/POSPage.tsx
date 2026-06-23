@@ -8220,6 +8220,7 @@ const POSPage = () => {
         editingSourceApp={activeOrder.isEditingDispatch ? (activeOrder.callCenterSourceApp || null) : null}
         editingDeliveryInfo={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryInfo || null) : null}
         editingDeliveryFee={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryFee || null) : null}
+        editingVisaGlAccountCode={activeOrder.isEditingDispatch ? (activeOrder.callCenterVisaGlAccountCode || null) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
@@ -8236,6 +8237,7 @@ const POSPage = () => {
             callCenterBranchName: null,
             callCenterPaymentMethod: null,
             callCenterSourceApp: null,
+            callCenterVisaGlAccountCode: null,
           }));
         }}
       />
