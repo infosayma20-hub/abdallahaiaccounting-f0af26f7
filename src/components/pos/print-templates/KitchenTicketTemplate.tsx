@@ -56,6 +56,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
   ];
   if (order.customerName) infoRows.push({ label: 'الزبون', value: order.customerName });
   if (order.customerPhone) infoRows.push({ label: 'الجوال', value: order.customerPhone, ltr: true });
+  if (order.employeeName) infoRows.push({ label: 'الموظف', value: order.employeeName });
   if (order.pickupBy) infoRows.push({ label: 'ملاحظة', value: `استلام من ${order.pickupBy}` });
   infoRows.push({ label: 'مجموع الكميات', value: String(totalQty) });
 
