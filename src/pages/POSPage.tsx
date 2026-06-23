@@ -4211,6 +4211,7 @@ const POSPage = () => {
         terminalName: posDisplayName,
         customerName: customerName,
         customerPhone: activeOrder.customerPhone || "",
+        employeeName: effectivePaymentMethod === "employee_account" ? selectedEmployee?.full_name || undefined : undefined,
         tableName: tableName || undefined,
         guestCount: activeOrder.tableId ? activeOrder.guestCount : undefined,
         items: cart.map(item => ({
@@ -4347,6 +4348,7 @@ const POSPage = () => {
           orderType: activeOrder.orderType,
           customerName: activeOrder.customerName || undefined,
           customerPhone: activeOrder.customerPhone || undefined,
+          employeeName: effectivePaymentMethod === "employee_account" ? selectedEmployee?.full_name || undefined : undefined,
           items: cart.map(item => ({
             id: item.product_id || item.id,
             name: item.name,
