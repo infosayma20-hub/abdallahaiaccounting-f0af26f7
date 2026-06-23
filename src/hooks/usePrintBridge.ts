@@ -79,6 +79,14 @@ export interface PrintOrder {
    * and prints it only as a note line.
    */
   deliveryFee?: number;
+  /**
+   * Company's share of an employee meal (dual-mode discount).
+   * - Family discount: 10% of total (employee owes 90%).
+   * - Individual discount: 50% of total (employee owes 50%).
+   * Posted to 5316 in `complete_pos_order` and shown as a separate line on
+   * the printed receipt: gross stays intact, employee AR drops by this amount.
+   */
+  mealSubsidy?: number;
 }
 
 export function usePrintBridge() {
