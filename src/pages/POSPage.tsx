@@ -4424,6 +4424,51 @@ const POSPage = () => {
         console.warn("Print bridge error:", printErr);
       }
 
+      // 🚚 Auto-dispatch to Wheels — fires for ANY delivery order
+      // (cashier-direct OR call-center-accepted) right after save+print.
+      // The edge function is idempotent and silently rejects branches/areas
+      // that aren't onboarded to Wheels, so it's safe to call universally.
+      if (activeOrder.orderType === "delivery" && orderId) {
+        (async () => {
+          try {
+            const { data: wheelsRes, error: wheelsErr } = await supabase.functions.invoke(
+              "send-to-wheels",
+              { body: { order_id: orderId } },
+            );
+            if (wheelsErr) {
+              console.warn("[Wheels auto-send] invoke error:", wheelsErr);
+              return;
+            }
+            if ((wheelsRes as any)?.success) {
+              const price = (wheelsRes as any)?.wheels_delivery_price;
+              toast.success(
+                `🚚 تم إرسال الطلب إلى Wheels${price != null ? ` — التوصيل: ${price} ₪` : ""}`
+              );
+            } else {
+              const errMsg = String((wheelsRes as any)?.error || "");
+              // Silently ignore "branch not connected / area not mapped" —
+              // these are configuration states, not failures the cashier
+              // can act on. Surface every other failure so the kitchen knows
+              // the courier wasn't dispatched.
+              const silentPatterns = [
+                "غير مربوط بـ Wheels",
+                "لم نجد منطقة مطابقة",
+                "تعذر تحديد فرع الطلب",
+                "ليس للتوصيل",
+                "تم إرسال هذا الطلب مسبقاً",
+              ];
+              if (errMsg && !silentPatterns.some((p) => errMsg.includes(p))) {
+                toast.error(`❌ Wheels: ${errMsg}`);
+              } else {
+                console.log("[Wheels auto-send] skipped:", errMsg);
+              }
+            }
+          } catch (e) {
+            console.warn("[Wheels auto-send] exception:", e);
+          }
+        })();
+      }
+
       // Auto-open cash drawer after successful payment (legacy + feature override)
       if ((isAdmin || posPerms.open_cash_drawer) && posFeatPerm.can("sell", "open_drawer")) {
         bridgeOpenDrawer();
