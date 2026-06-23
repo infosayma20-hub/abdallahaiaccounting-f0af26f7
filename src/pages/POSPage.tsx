@@ -4294,6 +4294,14 @@ const POSPage = () => {
               };
             })
             .filter(j => j.items.length > 0);
+          // Safety guard: if filtering produced zero jobs (e.g. every category in
+          // the cart was muted on every station), inject a sentinel empty job so
+          // image-print-service does NOT fall back to the legacy "broadcast to all
+          // stations" path. Empty-items jobs are dropped inside the bridge layer,
+          // so no physical print occurs.
+          if (kitchenJobs.length === 0) {
+            kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
+          }
         }
       } catch (err) {
         console.error("Kitchen ticket creation error:", err);
