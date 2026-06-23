@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, Loader2, RefreshCcw, Copy, CheckCircle2, XCircle, MapPin, PlugZap, Truck } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCcw, Copy, CheckCircle2, XCircle, MapPin, PlugZap, Truck, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface BranchRow {
@@ -38,6 +38,18 @@ interface PingResult {
   probe_area?: { area_name: string; wheels_area_id: string; wheels_fixed_price: number | null };
   wheels_response?: any;
   error?: string | null;
+}
+
+interface TestOrderResult {
+  success: boolean;
+  latency_ms?: number;
+  http_status?: number;
+  test_order_id?: string;
+  probe_area?: { area_name: string; wheels_area_id: string; wheels_fixed_price: number | null };
+  payload?: any;
+  wheels_response?: any;
+  error?: string | null;
+  note?: string | null;
 }
 
 interface RecentOrder {
@@ -65,6 +77,7 @@ export default function DeliveryCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState<BranchRow[]>([]);
   const [pingResults, setPingResults] = useState<Record<string, PingResult | "loading">>({});
+  const [testOrderResults, setTestOrderResults] = useState<Record<string, TestOrderResult | "loading">>({});
 
   // resolve tester
   const [resolveBranch, setResolveBranch] = useState<string>("");
@@ -151,6 +164,29 @@ export default function DeliveryCompaniesPage() {
     await Promise.all(branches.map((b) => pingBranch(b.branch_id)));
   }, [branches, pingBranch]);
 
+  const testOrder = useCallback(async (branchId: string) => {
+    if (!confirm("سيتم إنشاء طلب اختبار حقيقي على Wheels (يجب إلغاؤه/تجاهله من لوحة Wheels). متابعة؟")) return;
+    setTestOrderResults((prev) => ({ ...prev, [branchId]: "loading" }));
+    try {
+      const { data, error } = await supabase.functions.invoke("wheels-test", {
+        body: { mode: "test_order", branch_id: branchId },
+      });
+      if (error) throw error;
+      setTestOrderResults((prev) => ({ ...prev, [branchId]: data as TestOrderResult }));
+      if ((data as TestOrderResult)?.success) {
+        toast.success(`نجح إرسال الطلب التجريبي (${(data as TestOrderResult).test_order_id})`);
+      } else {
+        toast.error((data as TestOrderResult)?.error || "فشل إرسال الطلب التجريبي");
+      }
+    } catch (e) {
+      setTestOrderResults((prev) => ({
+        ...prev,
+        [branchId]: { success: false, error: e instanceof Error ? e.message : String(e) },
+      }));
+      toast.error("فشل إرسال الطلب التجريبي");
+    }
+  }, []);
+
   const runResolve = useCallback(async () => {
     if (!resolveBranch || !resolveAddr.trim()) {
       toast.error("اختر فرع وأدخل عنوان");
@@ -225,10 +261,23 @@ export default function DeliveryCompaniesPage() {
                         <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">معطّل</Badge>
                       )}
                     </CardTitle>
-                    <Button size="sm" variant="outline" onClick={() => pingBranch(b.branch_id)} disabled={r === "loading"}>
-                      {r === "loading" ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <PlugZap className="me-1 h-4 w-4" />}
-                      اختبر الاتصال
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => pingBranch(b.branch_id)} disabled={r === "loading"}>
+                        {r === "loading" ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <PlugZap className="me-1 h-4 w-4" />}
+                        اختبر السعر
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => testOrder(b.branch_id)}
+                        disabled={testOrderResults[b.branch_id] === "loading" || !b.is_active || b.mapped_zones_count === 0}
+                        title="ينشئ طلب حقيقي تجريبي على Wheels — يجب إلغاؤه يدوياً"
+                      >
+                        {testOrderResults[b.branch_id] === "loading"
+                          ? <Loader2 className="me-1 h-4 w-4 animate-spin" />
+                          : <Send className="me-1 h-4 w-4" />}
+                        اختبر إرسال طلب
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -294,6 +343,35 @@ export default function DeliveryCompaniesPage() {
                       )}
                     </div>
                   )}
+                  {(() => {
+                    const t = testOrderResults[b.branch_id];
+                    if (!t || t === "loading") return null;
+                    return (
+                      <div className="mt-2 rounded-md border p-3 text-xs space-y-1" style={{ borderColor: t.success ? "#a7f3d0" : "#fecaca", background: t.success ? "#ecfdf5" : "#fef2f2" }}>
+                        <div className="flex items-center gap-2">
+                          {t.success ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
+                          <span className={t.success ? "text-emerald-700 font-medium" : "text-red-700 font-medium"}>
+                            {t.success ? "تم إنشاء طلب تجريبي على Wheels ✓" : "فشل إنشاء الطلب التجريبي"}
+                          </span>
+                          {typeof t.latency_ms === "number" && <span className="text-muted-foreground">— {t.latency_ms}ms</span>}
+                          {typeof t.http_status === "number" && <span className="text-muted-foreground">— HTTP {t.http_status}</span>}
+                        </div>
+                        {t.test_order_id && (
+                          <div className="text-muted-foreground">
+                            رقم الطلب التجريبي: <span className="font-mono text-foreground">{t.test_order_id}</span>
+                          </div>
+                        )}
+                        {t.note && <div className="text-amber-800">⚠️ {t.note}</div>}
+                        {t.error && <div className="text-red-700">{t.error}</div>}
+                        {(t.payload || t.wheels_response) && (
+                          <details className="mt-1">
+                            <summary className="cursor-pointer text-muted-foreground">تفاصيل (JSON)</summary>
+                            <pre className="mt-1 bg-white/60 p-2 rounded text-[10px] overflow-x-auto">{JSON.stringify({ payload: t.payload, wheels_response: t.wheels_response }, null, 2)}</pre>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             );

@@ -14,6 +14,11 @@ const WHEELS_BASE = Deno.env.get("WHEELS_BASE_URL") || "https://apis.wheels.deli
 //                 branch's first mapped area. Does NOT create a Wheels order.
 //   - "resolve":  parses an arbitrary address string and returns the matched
 //                 delivery zone + wheels_area_id + price.
+//   - "test_order": ACTUALLY calls /orders/add with a clearly-marked TEST payload
+//                   (orderId = TEST-<ts>, fake customer). This DOES create a real
+//                   record on Wheels side — used once before going live to prove
+//                   the integration accepts orders end-to-end. Caller should
+//                   cancel/ignore the test order on the Wheels dashboard.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -44,7 +49,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json().catch(() => ({})) as {
-      mode?: "ping" | "resolve";
+      mode?: "ping" | "resolve" | "test_order";
       branch_id?: string;
       address?: string;
     };
@@ -169,6 +174,61 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── mode: test_order ─────────────────────────────────────────────
+    // Calls /orders/add with a clearly-marked TEST payload. Creates a real
+    // record on Wheels — caller cancels/ignores it from Wheels dashboard.
+    if (mode === "test_order") {
+      const startedT = Date.now();
+      const headersT = { "Content-Type": "application/json", "api-key": apiKey };
+      const testOrderId = `TEST-${Date.now()}`;
+      const payload = {
+        orderId: testOrderId,
+        cname: "اختبار ربط (تجاهل)",
+        cphone: "0599000000",
+        caddress: `اختبار اتصال - ${probeZone.area_name}`,
+        branch: cfg.wheels_branch_id,
+        area: probeZone.wheels_area_id,
+      };
+
+      let httpStatusT = 0;
+      let respJsonT: any = null;
+      let netErrT: string | null = null;
+      try {
+        const r = await fetch(`${WHEELS_BASE}/orders/add`, {
+          method: "POST",
+          headers: headersT,
+          body: JSON.stringify(payload),
+        });
+        httpStatusT = r.status;
+        try { respJsonT = await r.json(); } catch { respJsonT = null; }
+      } catch (e) {
+        netErrT = e instanceof Error ? e.message : String(e);
+      }
+      const latencyMsT = Date.now() - startedT;
+      const okT =
+        !netErrT && httpStatusT >= 200 && httpStatusT < 300 &&
+        (respJsonT?.success === true ||
+          (respJsonT?.success === undefined && !respJsonT?.error));
+
+      return new Response(JSON.stringify({
+        success: okT,
+        mode: "test_order",
+        latency_ms: latencyMsT,
+        http_status: httpStatusT,
+        test_order_id: testOrderId,
+        wheels_branch_id: cfg.wheels_branch_id,
+        probe_area: probeZone,
+        payload,
+        wheels_response: respJsonT,
+        network_error: netErrT,
+        error: okT ? null : (respJsonT?.error || respJsonT?.message || netErrT || `HTTP ${httpStatusT}`),
+        note: okT
+          ? `تم إنشاء طلب اختبار حقيقي على Wheels برقم ${testOrderId}. ألغِه/تجاهله من لوحة Wheels.`
+          : null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // mode === "ping"
     const started = Date.now();
     let httpStatus = 0;
     let respJson: any = null;
