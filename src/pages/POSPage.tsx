@@ -5546,6 +5546,7 @@ const POSPage = () => {
               newOrder.callCenterOrderId = order.id;
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
               newOrder.callCenterSourceApp = order.source_app || null;
+              newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
               // Build a clean delivery info block from structured data so
               // cashier + kitchen prints get the same info without injecting
               // a synthetic cart line.
