@@ -3455,7 +3455,7 @@ const POSPage = () => {
   };
 
   // Complete order
-  const handleCompleteOrder = async (overridePaymentMethod?: string) => {
+  const handleCompleteOrder = async (overridePaymentMethod?: string, opts?: { skipPrint?: boolean }) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
