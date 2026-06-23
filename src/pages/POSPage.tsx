@@ -142,6 +142,10 @@ interface OrderTab {
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
+  /** Specific visa GL account code the call-center agent picked at dispatch
+   *  time (e.g. Yummy / FoodOnTime / Wheels visa). Source of truth — overrides
+   *  source_app name matching when present. */
+  callCenterVisaGlAccountCode?: string | null;
   callCenterDeliveryInfo?: any | null;
   callCenterDeliveryFee?: number | null;
   /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
@@ -3418,12 +3422,19 @@ const POSPage = () => {
     if (!enforceDeviceGuard()) return;
     const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
     const sourceApp = activeOrder.callCenterSourceApp || "";
-    
+    const ccVisaGl = activeOrder.callCenterVisaGlAccountCode || null;
+
     // Map call center payment to POS payment method
     let posPayMethod = ccPayment === "cash" ? "cash" : "card";
-    
-    // If visa payment, check if source_app matches a delivery app with a visa GL account
-    if (ccPayment !== "cash" && sourceApp && dataOwnerId) {
+
+    // PRIMARY: the agent's explicit visa-variant choice is stored on the
+    // order itself — use it directly, no name matching needed.
+    if (ccPayment !== "cash" && ccVisaGl) {
+      posPayMethod = `card:${ccVisaGl}`;
+    }
+    // FALLBACK: legacy orders saved before visa_gl_account_code existed —
+    // try to infer from source_app name matching the delivery_apps catalog.
+    else if (ccPayment !== "cash" && sourceApp && dataOwnerId) {
       const { data: appMatch } = await supabase
         .from("delivery_apps" as any)
         .select("visa_gl_account_code, name")
@@ -4617,6 +4628,7 @@ const POSPage = () => {
     newOrder.callCenterOrderId = order.id;
     newOrder.callCenterPaymentMethod = order.payment_method || "cash";
     newOrder.callCenterSourceApp = order.source_app || null;
+    newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
     const _info: any = (order as any).delivery_info || null;
     const _fee = Number((order as any).delivery_fee || 0);
     const deliveryBlock = _info ? [
@@ -5534,6 +5546,7 @@ const POSPage = () => {
               newOrder.callCenterOrderId = order.id;
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
               newOrder.callCenterSourceApp = order.source_app || null;
+              newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
               // Build a clean delivery info block from structured data so
               // cashier + kitchen prints get the same info without injecting
               // a synthetic cart line.
@@ -8207,6 +8220,7 @@ const POSPage = () => {
         editingSourceApp={activeOrder.isEditingDispatch ? (activeOrder.callCenterSourceApp || null) : null}
         editingDeliveryInfo={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryInfo || null) : null}
         editingDeliveryFee={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryFee || null) : null}
+        editingVisaGlAccountCode={activeOrder.isEditingDispatch ? (activeOrder.callCenterVisaGlAccountCode || null) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
@@ -8223,6 +8237,7 @@ const POSPage = () => {
             callCenterBranchName: null,
             callCenterPaymentMethod: null,
             callCenterSourceApp: null,
+            callCenterVisaGlAccountCode: null,
           }));
         }}
       />
@@ -8251,6 +8266,7 @@ const POSPage = () => {
           newOrder.callCenterOrderId = order.id;
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
           newOrder.callCenterSourceApp = order.source_app || null;
+          newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
           newOrder.callCenterBranchId = order.target_branch_id || null;
           newOrder.callCenterBranchName = order.target_branch_name || null;
           newOrder.callCenterDeliveryInfo = (order as any).delivery_info || null;

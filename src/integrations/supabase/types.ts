@@ -1730,6 +1730,7 @@ export type Database = {
           total: number | null
           updated_at: string | null
           user_id: string
+          visa_gl_account_code: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -1767,6 +1768,7 @@ export type Database = {
           total?: number | null
           updated_at?: string | null
           user_id: string
+          visa_gl_account_code?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -1804,6 +1806,7 @@ export type Database = {
           total?: number | null
           updated_at?: string | null
           user_id?: string
+          visa_gl_account_code?: string | null
         }
         Relationships: [
           {

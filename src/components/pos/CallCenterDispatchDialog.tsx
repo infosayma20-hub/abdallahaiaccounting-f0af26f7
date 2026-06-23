@@ -40,6 +40,8 @@ interface Props {
   editingSourceApp?: string | null;
   editingDeliveryInfo?: any | null;
   editingDeliveryFee?: number | null;
+  /** Pre-selected visa GL account (from a previously dispatched order being edited). */
+  editingVisaGlAccountCode?: string | null;
 }
 
 interface Branch {
@@ -88,7 +90,7 @@ const CallCenterDispatchDialog = ({
   open, onOpenChange, dataOwnerId, cart, total,
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
-  editingDeliveryInfo, editingDeliveryFee,
+  editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -217,7 +219,17 @@ const CallCenterDispatchDialog = ({
     // 🔒 Edit mode: also restore source app + payment method from original.
     if (editingOrderId) {
       if (editingSourceApp) setSourceApp(editingSourceApp);
-      if (editingPaymentMethod) setPaymentMethod(editingPaymentMethod);
+      // If the original order carried a specific visa GL account, re-select
+      // the matching variant button (e.g. "فيزا Yummy") instead of the
+      // generic "visa" so the GL account stays bound across edits.
+      if (editingPaymentMethod) {
+        if (editingVisaGlAccountCode) {
+          // Defer the precise match to after deliveryApps load (see effect below).
+          setPaymentMethod(editingPaymentMethod);
+        } else {
+          setPaymentMethod(editingPaymentMethod);
+        }
+      }
       const rawType = (editingDeliveryInfo as any)?.delivery_type;
       if (rawType === "dine_in" || rawType === "table") {
         setDeliveryType("dine_in");
@@ -233,6 +245,17 @@ const CallCenterDispatchDialog = ({
       if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
     };
   }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote, editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp]);
+
+  // After delivery apps load in edit mode, snap paymentMethod to the variant
+  // whose gl_note matches the saved visa_gl_account_code on the order.
+  useEffect(() => {
+    if (!editingOrderId || !editingVisaGlAccountCode || deliveryApps.length === 0) return;
+    const match = deliveryApps.find(a => a.visa_gl_account_code === editingVisaGlAccountCode);
+    if (match) {
+      const code = `visa_${match.name.toLowerCase().replace(/\s+/g, "_")}`;
+      setPaymentMethod(code);
+    }
+  }, [editingOrderId, editingVisaGlAccountCode, deliveryApps]);
 
   const checkBranchSessions = async (branchList: Branch[]) => {
     // Check which branches have active POS sessions (cashiers online)
@@ -432,6 +455,11 @@ const CallCenterDispatchDialog = ({
               ? `طاولة: ${tableLabel.trim()}`
               : null,
         payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
+        // Persist the explicit GL account chosen by the agent (e.g. Yummy /
+        // FoodOnTime / Wheels visa). This becomes the single source of truth
+        // for downstream POS posting — independent of source_app name match.
+        visa_gl_account_code:
+          paymentOptions.find(o => o.code === paymentMethod)?.gl_note || null,
         items: cart.map(item => ({
           name: item.name,
           qty: item.qty,
@@ -504,6 +532,15 @@ const CallCenterDispatchDialog = ({
           return;
         }
         orderId = editingOrderId;
+        // The RPC doesn't take visa_gl_account_code — write it separately so
+        // edits that change the visa variant are persisted correctly.
+        const newGl = paymentOptions.find(o => o.code === paymentMethod)?.gl_note || null;
+        if (newGl !== (editingVisaGlAccountCode ?? null)) {
+          await supabase
+            .from("call_center_orders" as any)
+            .update({ visa_gl_account_code: newGl })
+            .eq("id", editingOrderId);
+        }
         toast.success(`تم تحديث الطلبية في فرع ${selectedBranch!.name}`, { duration: 4000 });
       } else {
         const { data: insertedOrder, error } = await supabase
