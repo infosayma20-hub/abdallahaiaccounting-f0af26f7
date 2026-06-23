@@ -8264,6 +8264,7 @@ const POSPage = () => {
           newOrder.callCenterOrderId = order.id;
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
           newOrder.callCenterSourceApp = order.source_app || null;
+          newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
           newOrder.callCenterBranchId = order.target_branch_id || null;
           newOrder.callCenterBranchName = order.target_branch_name || null;
           newOrder.callCenterDeliveryInfo = (order as any).delivery_info || null;
