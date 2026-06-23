@@ -261,10 +261,23 @@ export default function DeliveryCompaniesPage() {
                         <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">معطّل</Badge>
                       )}
                     </CardTitle>
-                    <Button size="sm" variant="outline" onClick={() => pingBranch(b.branch_id)} disabled={r === "loading"}>
-                      {r === "loading" ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <PlugZap className="me-1 h-4 w-4" />}
-                      اختبر الاتصال
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => pingBranch(b.branch_id)} disabled={r === "loading"}>
+                        {r === "loading" ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <PlugZap className="me-1 h-4 w-4" />}
+                        اختبر السعر
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => testOrder(b.branch_id)}
+                        disabled={testOrderResults[b.branch_id] === "loading" || !b.is_active || b.mapped_zones_count === 0}
+                        title="ينشئ طلب حقيقي تجريبي على Wheels — يجب إلغاؤه يدوياً"
+                      >
+                        {testOrderResults[b.branch_id] === "loading"
+                          ? <Loader2 className="me-1 h-4 w-4 animate-spin" />
+                          : <Send className="me-1 h-4 w-4" />}
+                        اختبر إرسال طلب
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
