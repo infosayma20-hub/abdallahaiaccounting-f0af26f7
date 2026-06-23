@@ -6070,7 +6070,7 @@ const POSPage = () => {
               const isActive = type === "dine_in"
                 ? !!activeOrder.tableId
                 : (activeOrder.orderType === type && !activeOrder.tableId && !!activeOrder.orderTypeChosen);
-              const labels: Record<string, string> = { takeaway: "استلام", delivery: "توصيل", dine_in: "طاولة" };
+              const labels: Record<string, string> = { takeaway: "سفري", delivery: "توصيل", dine_in: "طاولة" };
               return (
                 <button
                   key={type}

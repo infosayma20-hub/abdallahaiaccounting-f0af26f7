@@ -3,7 +3,8 @@
  *
  * Rules:
  *  - delivery   → "توصيل"
- *  - takeaway   → "استلام"
+ *  - takeaway   → "سفري"  (renamed from "استلام" — DB enum value stays
+ *                 `takeaway`; this is a display/print label only)
  *  - dine_in    → if table number/name exists → "طاولة رقم {X}"
  *                 (avoid duplicating the word "طاولة" if the name already
  *                  starts with it).
@@ -17,7 +18,7 @@ export function formatOrderTypeLabel(
   tableLabel?: string | null,
 ): string {
   if (normalizedType === "delivery") return "توصيل";
-  if (normalizedType === "takeaway") return "استلام";
+  if (normalizedType === "takeaway") return "سفري";
   // dine_in (or fallback when a table exists)
   const raw = (tableLabel ?? "").toString().trim();
   if (!raw) return "طاولة";
