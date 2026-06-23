@@ -7425,6 +7425,29 @@ const POSPage = () => {
                 )}
                 {processing ? "جاري المعالجة..." : "F2 — إتمام البيع ✅"}
               </motion.button>
+              {/* Secondary action — save WITHOUT printing (e.g. water/cola lines that don't need a receipt). */}
+              <button
+                type="button"
+                onClick={() => handleCompleteOrder(undefined, { skipPrint: true })}
+                disabled={
+                  processing ||
+                  (paymentMethod === "credit" && !customerName) ||
+                  (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (splitMode && (
+                    splitTenders.length < 2 ||
+                    Math.abs(
+                      splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
+                      (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
+                    ) > 0.01 ||
+                    splitTenders.some((t) => !(t.amount > 0))
+                  ))
+                }
+                className="w-full mt-2 text-[13px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ height: 40, borderRadius: 10, background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' }}
+                title="حفظ وترحيل الفاتورة بدون طباعة وصل ولا تذكرة مطبخ"
+              >
+                💾 حفظ بدون طباعة
+              </button>
             </div>
           </div>
         </div>
