@@ -142,6 +142,10 @@ interface OrderTab {
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
+  /** Specific visa GL account code the call-center agent picked at dispatch
+   *  time (e.g. Yummy / FoodOnTime / Wheels visa). Source of truth — overrides
+   *  source_app name matching when present. */
+  callCenterVisaGlAccountCode?: string | null;
   callCenterDeliveryInfo?: any | null;
   callCenterDeliveryFee?: number | null;
   /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
