@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, Loader2, RefreshCcw, Copy, CheckCircle2, XCircle, MapPin, PlugZap, Truck } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCcw, Copy, CheckCircle2, XCircle, MapPin, PlugZap, Truck, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface BranchRow {
@@ -38,6 +38,18 @@ interface PingResult {
   probe_area?: { area_name: string; wheels_area_id: string; wheels_fixed_price: number | null };
   wheels_response?: any;
   error?: string | null;
+}
+
+interface TestOrderResult {
+  success: boolean;
+  latency_ms?: number;
+  http_status?: number;
+  test_order_id?: string;
+  probe_area?: { area_name: string; wheels_area_id: string; wheels_fixed_price: number | null };
+  payload?: any;
+  wheels_response?: any;
+  error?: string | null;
+  note?: string | null;
 }
 
 interface RecentOrder {
@@ -65,6 +77,7 @@ export default function DeliveryCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState<BranchRow[]>([]);
   const [pingResults, setPingResults] = useState<Record<string, PingResult | "loading">>({});
+  const [testOrderResults, setTestOrderResults] = useState<Record<string, TestOrderResult | "loading">>({});
 
   // resolve tester
   const [resolveBranch, setResolveBranch] = useState<string>("");
@@ -150,6 +163,29 @@ export default function DeliveryCompaniesPage() {
   const pingAll = useCallback(async () => {
     await Promise.all(branches.map((b) => pingBranch(b.branch_id)));
   }, [branches, pingBranch]);
+
+  const testOrder = useCallback(async (branchId: string) => {
+    if (!confirm("سيتم إنشاء طلب اختبار حقيقي على Wheels (يجب إلغاؤه/تجاهله من لوحة Wheels). متابعة؟")) return;
+    setTestOrderResults((prev) => ({ ...prev, [branchId]: "loading" }));
+    try {
+      const { data, error } = await supabase.functions.invoke("wheels-test", {
+        body: { mode: "test_order", branch_id: branchId },
+      });
+      if (error) throw error;
+      setTestOrderResults((prev) => ({ ...prev, [branchId]: data as TestOrderResult }));
+      if ((data as TestOrderResult)?.success) {
+        toast.success(`نجح إرسال الطلب التجريبي (${(data as TestOrderResult).test_order_id})`);
+      } else {
+        toast.error((data as TestOrderResult)?.error || "فشل إرسال الطلب التجريبي");
+      }
+    } catch (e) {
+      setTestOrderResults((prev) => ({
+        ...prev,
+        [branchId]: { success: false, error: e instanceof Error ? e.message : String(e) },
+      }));
+      toast.error("فشل إرسال الطلب التجريبي");
+    }
+  }, []);
 
   const runResolve = useCallback(async () => {
     if (!resolveBranch || !resolveAddr.trim()) {
