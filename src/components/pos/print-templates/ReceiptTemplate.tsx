@@ -111,7 +111,11 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   // printed total/subtotal and append it as a note line. DB total and
   // accounting are untouched.
   const deliveryFee = Math.max(0, Number((order as any).deliveryFee || 0));
-  const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee);
+  // Meal subsidy (company-paid share, dual mode). Subtracted from the printed
+  // total so the employee sees the exact amount they owe. Gross revenue stays
+  // intact server-side — the subsidy posts to 5316 in complete_pos_order.
+  const mealSubsidy = Math.max(0, Number((order as any).mealSubsidy || 0));
+  const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee - mealSubsidy);
   // order.subtotal already excludes delivery fee in POSPage — keep as-is.
   const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;
   const deliveryNoteLine = deliveryFee > 0
