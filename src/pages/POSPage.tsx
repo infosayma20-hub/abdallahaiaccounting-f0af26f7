@@ -4371,13 +4371,20 @@ const POSPage = () => {
 
         // Print receipt + filtered kitchen tickets — all in parallel
         // For DELIVERY orders: skip the cashier receipt and print kitchen tickets only.
-        printAllImage(
-          bridgeOrder,
-          companyPrintInfo,
-          kitchenJobs.length > 0 ? kitchenJobs : undefined,
-          { skipReceipt: activeOrder.orderType === "delivery" },
-        )
-          .catch(() => console.warn("Image print failed"));
+        // "حفظ بدون طباعة" (opts.skipPrint) bypasses BOTH the customer receipt
+        // AND kitchen tickets — used for items like water/cola that don't need
+        // any paper trail. Save + post accounting still run normally.
+        if (!opts?.skipPrint) {
+          printAllImage(
+            bridgeOrder,
+            companyPrintInfo,
+            kitchenJobs.length > 0 ? kitchenJobs : undefined,
+            { skipReceipt: activeOrder.orderType === "delivery" },
+          )
+            .catch(() => console.warn("Image print failed"));
+        } else {
+          console.log('[POS] skipPrint=true — receipt and kitchen tickets suppressed by user request');
+        }
       } catch (printErr) {
         console.warn("Print bridge error:", printErr);
       }
