@@ -611,45 +611,72 @@ const CallCenterDispatchDialog = ({
           {/* Target Branch */}
           <div className="space-y-2">
             <label className="text-sm font-medium">الفرع المستهدف *</label>
-            <div className={`grid grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
-              {branches.map((branch) => {
-                const activeCount = branchSessions[branch.id] || 0;
-                const isOnline = activeCount > 0;
-                return (
-                  <button
-                    key={branch.id}
-                    onClick={() => { setSelectedBranch(branch); setErrors(p => ({ ...p, branch: false })); }}
-                    className={`relative p-3 rounded-xl text-sm font-bold border-2 transition-all ${
-                      selectedBranch?.id === branch.id
-                        ? "bg-primary text-primary-foreground border-primary shadow-md"
-                        : "bg-muted/30 text-foreground border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      {branch.name}
+            {deliveryType === "delivery" ? (
+              // B1: In delivery mode the branch is dictated by the chosen zone
+              // (cheapest mapped to that area). Showing the manual grid here
+              // creates a W2 conflict where the agent could pick a different
+              // branch than the one the zone resolved to. We render a read-only
+              // summary instead and keep the online/offline indicator visible.
+              selectedBranch ? (
+                (() => {
+                  const activeCount = branchSessions[selectedBranch.id] || 0;
+                  const isOnline = activeCount > 0;
+                  return (
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-primary/5 border-2 border-primary/30">
+                      <div className="flex items-center gap-2 text-sm font-bold">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        <span>{selectedBranch.name}</span>
+                        <span className="text-[10px] font-normal text-muted-foreground">(من المنطقة المختارة)</span>
+                      </div>
+                      <div className={`flex items-center gap-1 text-[10px] font-medium ${isOnline ? "text-green-600" : "text-red-500"}`}>
+                        {isOnline ? (
+                          <><Wifi className="h-3 w-3" /><span>{activeCount} كاشير متصل</span></>
+                        ) : (
+                          <><WifiOff className="h-3 w-3" /><span>لا يوجد كاشير</span></>
+                        )}
+                      </div>
                     </div>
-                    {/* Online/Offline indicator */}
-                    <div className={`flex items-center justify-center gap-1 mt-1.5 text-[10px] font-medium ${
-                      selectedBranch?.id === branch.id
-                        ? isOnline ? "text-green-200" : "text-red-200"
-                        : isOnline ? "text-green-600" : "text-red-500"
-                    }`}>
-                      {isOnline ? (
-                        <>
-                          <Wifi className="h-3 w-3" />
-                          <span>{activeCount} كاشير متصل</span>
-                        </>
-                      ) : (
-                        <>
-                          <WifiOff className="h-3 w-3" />
-                          <span>لا يوجد كاشير</span>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                  );
+                })()
+              ) : (
+                <div className={`p-3 rounded-xl border-2 border-dashed text-xs text-muted-foreground text-center ${errors.branch || errors.zone ? "border-destructive/60" : "border-border"}`}>
+                  اختر المنطقة من الأسفل لتحديد الفرع تلقائياً
+                </div>
+              )
+            ) : (
+              <div className={`grid grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
+                {branches.map((branch) => {
+                  const activeCount = branchSessions[branch.id] || 0;
+                  const isOnline = activeCount > 0;
+                  return (
+                    <button
+                      key={branch.id}
+                      onClick={() => { setSelectedBranch(branch); setErrors(p => ({ ...p, branch: false })); }}
+                      className={`relative p-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                        selectedBranch?.id === branch.id
+                          ? "bg-primary text-primary-foreground border-primary shadow-md"
+                          : "bg-muted/30 text-foreground border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {branch.name}
+                      </div>
+                      <div className={`flex items-center justify-center gap-1 mt-1.5 text-[10px] font-medium ${
+                        selectedBranch?.id === branch.id
+                          ? isOnline ? "text-green-200" : "text-red-200"
+                          : isOnline ? "text-green-600" : "text-red-500"
+                      }`}>
+                        {isOnline ? (
+                          <><Wifi className="h-3 w-3" /><span>{activeCount} كاشير متصل</span></>
+                        ) : (
+                          <><WifiOff className="h-3 w-3" /><span>لا يوجد كاشير</span></>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {/* Warning if selected branch has no cashier */}
             {selectedBranch && (branchSessions[selectedBranch.id] || 0) === 0 && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-medium">
