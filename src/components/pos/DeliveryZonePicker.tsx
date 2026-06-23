@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Search, AlertTriangle, Loader2, Zap, Database, Link2Off, ExternalLink } from "lucide-react";
+import { MapPin, Search, AlertTriangle, Loader2, Zap, Database, Link2Off, ExternalLink, RefreshCw } from "lucide-react";
 
 export interface DeliveryInfo {
   city: string;
@@ -47,7 +47,10 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     status: "idle" | "loading" | "live" | "cached" | "manual" | "area_unmapped" | "error";
     price: number | null;
     error?: string | null;
+    latency_ms?: number | null;
   }>({ status: "idle", price: null });
+  // Bumped to force a manual refetch of the live Wheels price (B3).
+  const [refetchTick, setRefetchTick] = useState(0);
   // Set of branch_ids that are mapped to Wheels (loaded from wheels_branch_config).
   // Used to distinguish "branch not on Wheels" vs "area on a Wheels branch lacks mapping".
   const [wheelsBranchIds, setWheelsBranchIds] = useState<Set<string>>(new Set());
@@ -186,7 +189,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
           return;
         }
         const p = Number((data as any).price);
-        setLivePrice({ status: "live", price: p });
+        setLivePrice({ status: "live", price: p, latency_ms: (data as any)?.latency_ms ?? null });
         if (value.final_fee !== p) onChange({ ...value, final_fee: p, manually_adjusted: false });
       } catch (e: any) {
         if (cancelled) return;
@@ -197,7 +200,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value?.branch_id, value?.area, value?.city, zones, wheelsBranchIds]);
+  }, [value?.branch_id, value?.area, value?.city, zones, wheelsBranchIds, refetchTick]);
 
   return (
     <div className="space-y-2 rounded-xl border-2 border-orange-300/40 bg-orange-50/40 dark:bg-orange-950/10 p-3">
@@ -331,7 +334,15 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
                 <><Loader2 className="h-3 w-3 animate-spin text-orange-500" /><span className="text-muted-foreground">جاري جلب السعر من Wheels...</span></>
               )}
               {livePrice.status === "live" && (
-                <><Zap className="h-3 w-3 text-emerald-600" /><span className="text-emerald-700">السعر الحي من Wheels</span></>
+                <>
+                  <Zap className="h-3 w-3 text-emerald-600" />
+                  <span
+                    className="text-emerald-700"
+                    title={livePrice.latency_ms != null ? `زمن استجابة Wheels: ${livePrice.latency_ms} مللي ثانية` : "السعر الحي من Wheels"}
+                  >
+                    السعر الحي من Wheels{livePrice.latency_ms != null ? ` · ${livePrice.latency_ms}ms` : ""}
+                  </span>
+                </>
               )}
               {livePrice.status === "cached" && (
                 <><Database className="h-3 w-3 text-amber-600" /><span className="text-amber-700" title={livePrice.error || ""}>السعر المخزّن (تعذّر الاتصال بـ Wheels)</span></>
@@ -354,8 +365,23 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
                 </>
               )}
             </div>
-            <div className="font-mono font-bold text-sm tabular-nums">
-              ₪{Number(livePrice.price ?? value.final_fee).toFixed(2)}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Manual refresh (B3): only meaningful when we actually hit Wheels. */}
+              {(livePrice.status === "live" || livePrice.status === "cached" || livePrice.status === "loading") && (
+                <button
+                  type="button"
+                  onClick={() => setRefetchTick(t => t + 1)}
+                  disabled={livePrice.status === "loading"}
+                  title="إعادة جلب السعر من Wheels"
+                  aria-label="إعادة جلب السعر من Wheels"
+                  className="p-1 rounded hover:bg-orange-100 dark:hover:bg-orange-950/30 text-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <RefreshCw className={`h-3 w-3 ${livePrice.status === "loading" ? "animate-spin" : ""}`} />
+                </button>
+              )}
+              <div className="font-mono font-bold text-sm tabular-nums">
+                ₪{Number(livePrice.price ?? value.final_fee).toFixed(2)}
+              </div>
             </div>
           </div>
         </div>
