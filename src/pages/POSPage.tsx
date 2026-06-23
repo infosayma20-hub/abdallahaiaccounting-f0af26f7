@@ -3455,7 +3455,7 @@ const POSPage = () => {
   };
 
   // Complete order
-  const handleCompleteOrder = async (overridePaymentMethod?: string) => {
+  const handleCompleteOrder = async (overridePaymentMethod?: string, opts?: { skipPrint?: boolean }) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
@@ -4371,13 +4371,20 @@ const POSPage = () => {
 
         // Print receipt + filtered kitchen tickets — all in parallel
         // For DELIVERY orders: skip the cashier receipt and print kitchen tickets only.
-        printAllImage(
-          bridgeOrder,
-          companyPrintInfo,
-          kitchenJobs.length > 0 ? kitchenJobs : undefined,
-          { skipReceipt: activeOrder.orderType === "delivery" },
-        )
-          .catch(() => console.warn("Image print failed"));
+        // "حفظ بدون طباعة" (opts.skipPrint) bypasses BOTH the customer receipt
+        // AND kitchen tickets — used for items like water/cola that don't need
+        // any paper trail. Save + post accounting still run normally.
+        if (!opts?.skipPrint) {
+          printAllImage(
+            bridgeOrder,
+            companyPrintInfo,
+            kitchenJobs.length > 0 ? kitchenJobs : undefined,
+            { skipReceipt: activeOrder.orderType === "delivery" },
+          )
+            .catch(() => console.warn("Image print failed"));
+        } else {
+          console.log('[POS] skipPrint=true — receipt and kitchen tickets suppressed by user request');
+        }
       } catch (printErr) {
         console.warn("Print bridge error:", printErr);
       }
@@ -7418,6 +7425,29 @@ const POSPage = () => {
                 )}
                 {processing ? "جاري المعالجة..." : "F2 — إتمام البيع ✅"}
               </motion.button>
+              {/* Secondary action — save WITHOUT printing (e.g. water/cola lines that don't need a receipt). */}
+              <button
+                type="button"
+                onClick={() => handleCompleteOrder(undefined, { skipPrint: true })}
+                disabled={
+                  processing ||
+                  (paymentMethod === "credit" && !customerName) ||
+                  (paymentMethod === "employee_account" && !selectedEmployee) ||
+                  (splitMode && (
+                    splitTenders.length < 2 ||
+                    Math.abs(
+                      splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
+                      (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
+                    ) > 0.01 ||
+                    splitTenders.some((t) => !(t.amount > 0))
+                  ))
+                }
+                className="w-full mt-2 text-[13px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ height: 40, borderRadius: 10, background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' }}
+                title="حفظ وترحيل الفاتورة بدون طباعة وصل ولا تذكرة مطبخ"
+              >
+                💾 حفظ بدون طباعة
+              </button>
             </div>
           </div>
         </div>

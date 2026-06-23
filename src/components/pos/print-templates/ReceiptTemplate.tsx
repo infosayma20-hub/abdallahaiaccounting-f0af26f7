@@ -56,7 +56,18 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   logoUrl,
   footerMode = 'compact',
 }, ref) => {
-  const now = new Date();
+  // Use the ORIGINAL invoice date/time if the caller passed them (reprints from
+  // InvoiceHistoryDrawer set these from pos_orders.created_at). Fall back to
+  // "now" only when no date/time was provided (legacy first-print path).
+  const rawDate = (order as any).date as string | undefined;
+  const rawTime = (order as any).time as string | undefined;
+  let displayDate: Date | null = null;
+  if (rawDate) {
+    const iso = `${rawDate}T${rawTime || '00:00'}`;
+    const parsed = new Date(iso);
+    if (!isNaN(parsed.getTime())) displayDate = parsed;
+  }
+  const now = displayDate ?? new Date();
   const dateStr = now.toLocaleDateString('en-GB');
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 

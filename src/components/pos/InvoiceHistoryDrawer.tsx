@@ -1395,10 +1395,26 @@ export default function InvoiceHistoryDrawer({
                     }
                     // Use bridge for silent printing
                     const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---";
+                    // Preserve ORIGINAL invoice date/time on reprint (was: Print Bridge fell back to "now").
+                    // selectedOrder.created_at is an ISO timestamp from the DB; split into YYYY-MM-DD and HH:MM
+                    // because bridge expects (order.date, order.time) and rebuilds createdAt = `${date}T${time}`.
+                    const createdAtIso: string | undefined = (selectedOrder as any).created_at;
+                    let origDate: string | undefined;
+                    let origTime: string | undefined;
+                    if (createdAtIso) {
+                      const d = new Date(createdAtIso);
+                      if (!isNaN(d.getTime())) {
+                        const pad = (n: number) => String(n).padStart(2, '0');
+                        origDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                        origTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      }
+                    }
                     const bridgeOrder = {
                       orderNumber: selectedOrder.order_number || "---",
                       branchName: terminalName || "نقطة البيع",
                       cashier: cashierName,
+                      date: origDate,
+                      time: origTime,
                       items: orderLines.map(line => ({
                         id: line.product_id || line.product_name,
                         name: line.product_name,
