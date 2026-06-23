@@ -3707,6 +3707,24 @@ const POSPage = () => {
         : cartTotals.total;
       const effectiveDiscount = cartTotals.discount + (customerDataDiscount?.discountAmount || 0);
 
+      // ─────────────────────────────────────────────────────────────
+      // MEAL SUBSIDY (dual-mode employee meal discount)
+      // - family    → company pays 10%, employee owes 90%
+      // - individual→ company pays 50%, employee owes 50%
+      // Gross sales (4100) stay intact; the subsidy posts as a separate
+      // accounting line in `complete_pos_order` (Dr 5316 / Cr employee AR).
+      // ─────────────────────────────────────────────────────────────
+      const isDualMealOrder =
+        effectivePaymentMethod === "employee_account" &&
+        mealDiscountMode === "dual" &&
+        !!mealDiscountType;
+      const companySharePct = isDualMealOrder
+        ? (mealDiscountType === "family" ? 10 : 50)
+        : 0;
+      const mealSubsidy = isDualMealOrder
+        ? Math.round((effectiveTotal * companySharePct / 100) * 100) / 100
+        : 0;
+
       // Check if there's an existing draft/open order for this table (saved earlier)
       if (activeOrder.tableId) {
         const { data: existingOrder } = await supabase
@@ -3957,6 +3975,9 @@ const POSPage = () => {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
         p_payments: paymentsPayload,
+        // Optional: company-paid portion of an employee meal (dual mode).
+        // Stays 0 for every other tender / mode, keeping all other call paths unchanged.
+        p_meal_subsidy: mealSubsidy,
       });
 
       if (completeError) throw completeError;
@@ -4032,7 +4053,13 @@ const POSPage = () => {
         }
 
         const fullAmount = Number(cartTotals.total) || 0;
-        const calculatedAmount = Math.round((fullAmount * employeeSharePct / 100) * 100) / 100;
+        // Employee's actual debt = full ticket − company subsidy.
+        // In dual mode the subsidy is already computed (10% family / 50% individual);
+        // in legacy single mode we fall back to `fullAmount * employeeSharePct / 100`
+        // so historical tenants keep working exactly as before.
+        const calculatedAmount = isDualMode && mealDiscountType
+          ? Math.round((fullAmount - mealSubsidy) * 100) / 100
+          : Math.round((fullAmount * employeeSharePct / 100) * 100) / 100;
 
         // Only record a deduction if the employee actually owes something.
         if (calculatedAmount > 0) {
@@ -4210,6 +4237,7 @@ const POSPage = () => {
         deliveryAddress: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : "",
         deliveryFee: cartTotals.deliveryFee || 0,
         deliveryInfo: activeOrder.callCenterDeliveryInfo || null,
+        mealSubsidy,
       };
 
       setReceiptData(receiptInfo);
@@ -4335,6 +4363,11 @@ const POSPage = () => {
           // total / accounting are unchanged (still posted on effectiveTotal
           // elsewhere via pos_orders.delivery_fee).
           deliveryFee: cartTotals.deliveryFee || 0,
+          // Company-paid portion of an employee meal (dual mode). The bridge
+          // template prints it as a separate "خصم وجبات الشركة" line and
+          // subtracts it from the printed total so the employee sees the
+          // exact amount they owe.
+          mealSubsidy,
           paymentMethod: (() => {
             // For card payments from call center, include the source app name (e.g. "فيزا - Wheel App")
             if (effectivePaymentMethod === "cash") return "نقد";
