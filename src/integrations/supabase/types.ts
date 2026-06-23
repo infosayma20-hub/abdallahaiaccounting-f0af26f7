@@ -20217,20 +20217,15 @@ export type Database = {
         }
         Returns: Json
       }
-      complete_pos_order:
-        | {
-            Args: { p_order_id: string; p_payments: Json; p_user_id: string }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_meal_subsidy?: number
-              p_order_id: string
-              p_payments: Json
-              p_user_id: string
-            }
-            Returns: Json
-          }
+      complete_pos_order: {
+        Args: {
+          p_meal_subsidy?: number
+          p_order_id: string
+          p_payments: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
       compute_scheduled_for: {
         Args: {
           _event_type: string
