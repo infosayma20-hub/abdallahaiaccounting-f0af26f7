@@ -730,17 +730,7 @@ const CallCenterDispatchDialog = ({
             </div>
           )}
 
-          {/* Delivery Address */}
-          {deliveryType === "delivery" && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> عنوان التوصيل *
-              </label>
-              <Input value={address} onChange={e => { setAddress(e.target.value); setErrors(p => ({ ...p, address: false })); }} placeholder="المدينة، الشارع، رقم البناية..." className={`h-10 ${fieldError("address")}`} />
-            </div>
-          )}
-
-          {/* Delivery Zone Picker */}
+          {/* Delivery Zone Picker — area → branch → live Wheels price */}
           {deliveryType === "delivery" && (
             <div className={errors.zone ? "ring-2 ring-destructive/50 rounded-xl" : ""}>
               <DeliveryZonePicker
@@ -754,6 +744,17 @@ const CallCenterDispatchDialog = ({
                   يرجى اختيار الفرع لأن سعر التوصيل قد يكون متساوٍ بين أكثر من فرع.
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Delivery Address — auto-filled from zone, editable for extra details */}
+          {deliveryType === "delivery" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> عنوان التوصيل *
+                <span className="text-[9px] text-muted-foreground font-normal mr-1">(يُعبّأ تلقائياً — أضف الشارع/البناية إن لزم)</span>
+              </label>
+              <Input value={address} onChange={e => { setAddress(e.target.value); setErrors(p => ({ ...p, address: false })); }} placeholder="سيُعبّأ تلقائياً بعد اختيار المنطقة..." className={`h-10 ${fieldError("address")}`} />
             </div>
           )}
 
