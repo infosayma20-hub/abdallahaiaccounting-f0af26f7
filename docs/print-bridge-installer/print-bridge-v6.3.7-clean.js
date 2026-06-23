@@ -744,7 +744,7 @@ function renderKitchenSVG(order, stationLabel) {
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const dateStr = now.toLocaleDateString('en-GB');
   const typeLabel = order.orderTypeLabel
-    || (order.orderType === 'delivery' ? 'توصيل' : order.orderType === 'dine_in' ? 'محلي' : 'استلام');
+    || (order.orderType === 'delivery' ? 'توصيل' : order.orderType === 'dine_in' ? 'محلي' : 'سفري');
   const normalizedKitchenType = order.orderType === 'delivery'
     ? 'delivery'
     : order.orderType === 'dine_in' ? 'dine_in' : 'takeaway';
@@ -768,6 +768,7 @@ function renderKitchenSVG(order, stationLabel) {
   const infoRows = [
     { label: 'الوقت', value: `${timeStr} - ${dateStr}`, ltrValue: true },
     showCustomerLine ? { label: 'الزبون', value: String(order.customerName) } : null,
+    order.cashierName ? { label: 'الكاشير', value: String(order.cashierName) } : null,
     order.pickupBy ? { label: 'استلام', value: String(order.pickupBy) } : null,
     { label: 'الكميات', value: String(totalQty) },
   ].filter(Boolean);
