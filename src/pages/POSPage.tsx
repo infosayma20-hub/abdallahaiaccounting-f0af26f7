@@ -4363,6 +4363,11 @@ const POSPage = () => {
           // total / accounting are unchanged (still posted on effectiveTotal
           // elsewhere via pos_orders.delivery_fee).
           deliveryFee: cartTotals.deliveryFee || 0,
+          // Company-paid portion of an employee meal (dual mode). The bridge
+          // template prints it as a separate "خصم وجبات الشركة" line and
+          // subtracts it from the printed total so the employee sees the
+          // exact amount they owe.
+          mealSubsidy,
           paymentMethod: (() => {
             // For card payments from call center, include the source app name (e.g. "فيزا - Wheel App")
             if (effectivePaymentMethod === "cash") return "نقد";
