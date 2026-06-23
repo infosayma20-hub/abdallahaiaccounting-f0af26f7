@@ -14,6 +14,11 @@ const WHEELS_BASE = Deno.env.get("WHEELS_BASE_URL") || "https://apis.wheels.deli
 //                 branch's first mapped area. Does NOT create a Wheels order.
 //   - "resolve":  parses an arbitrary address string and returns the matched
 //                 delivery zone + wheels_area_id + price.
+//   - "test_order": ACTUALLY calls /orders/add with a clearly-marked TEST payload
+//                   (orderId = TEST-<ts>, fake customer). This DOES create a real
+//                   record on Wheels side — used once before going live to prove
+//                   the integration accepts orders end-to-end. Caller should
+//                   cancel/ignore the test order on the Wheels dashboard.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -44,7 +49,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json().catch(() => ({})) as {
-      mode?: "ping" | "resolve";
+      mode?: "ping" | "resolve" | "test_order";
       branch_id?: string;
       address?: string;
     };
