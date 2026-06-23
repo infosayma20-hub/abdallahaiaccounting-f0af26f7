@@ -805,7 +805,15 @@ Deno.serve(async (req) => {
       }
 
       const firstCheckIn = cleaned.find(e => e.event_type === "check_in")?.event_time || null;
-      const lastCheckOut = [...cleaned].reverse().find(e => e.event_type === "check_out")?.event_time || null;
+      // CRITICAL: lastCheckOut must come AFTER firstCheckIn within the same local day.
+      // Otherwise an orphan check_out at the START of the window (e.g. 00:09 local =
+      // previous-day's session closure that happened after midnight) gets attributed
+      // to today's attendance row — showing a "checkout" before the workday is done.
+      const lastCheckOut = firstCheckIn
+        ? ([...cleaned].reverse().find(
+            e => e.event_type === "check_out" && e.event_time > firstCheckIn,
+          )?.event_time || null)
+        : null;
 
       // Pair check_in → check_out, ignore sessions shorter than MIN_SESSION_MS
       let totalHours = 0;
