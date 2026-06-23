@@ -11850,6 +11850,8 @@ export type Database = {
           kds_auto_called_at: string | null
           linked_transaction_id: string | null
           local_id: string | null
+          meal_discount_type: string | null
+          meal_subsidy_amount: number
           notes: string | null
           order_note: string | null
           order_number: string | null
@@ -11937,6 +11939,8 @@ export type Database = {
           kds_auto_called_at?: string | null
           linked_transaction_id?: string | null
           local_id?: string | null
+          meal_discount_type?: string | null
+          meal_subsidy_amount?: number
           notes?: string | null
           order_note?: string | null
           order_number?: string | null
@@ -12024,6 +12028,8 @@ export type Database = {
           kds_auto_called_at?: string | null
           linked_transaction_id?: string | null
           local_id?: string | null
+          meal_discount_type?: string | null
+          meal_subsidy_amount?: number
           notes?: string | null
           order_note?: string | null
           order_number?: string | null
@@ -20211,10 +20217,20 @@ export type Database = {
         }
         Returns: Json
       }
-      complete_pos_order: {
-        Args: { p_order_id: string; p_payments: Json; p_user_id: string }
-        Returns: Json
-      }
+      complete_pos_order:
+        | {
+            Args: { p_order_id: string; p_payments: Json; p_user_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_meal_subsidy?: number
+              p_order_id: string
+              p_payments: Json
+              p_user_id: string
+            }
+            Returns: Json
+          }
       compute_scheduled_for: {
         Args: {
           _event_type: string
