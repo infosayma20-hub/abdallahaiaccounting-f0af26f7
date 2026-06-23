@@ -3975,6 +3975,9 @@ const POSPage = () => {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
         p_payments: paymentsPayload,
+        // Optional: company-paid portion of an employee meal (dual mode).
+        // Stays 0 for every other tender / mode, keeping all other call paths unchanged.
+        p_meal_subsidy: mealSubsidy,
       });
 
       if (completeError) throw completeError;
