@@ -263,6 +263,12 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
               <td style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 800, textAlign: 'left' }}>-₪{Number(order.discount).toFixed(2)}</td>
             </tr>
           )}
+          {mealSubsidy > 0 && (
+            <tr>
+              <td colSpan={3} style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 700, textAlign: 'right', color: '#1d4ed8' }}>خصم وجبات الشركة</td>
+              <td style={{ padding: '4px 3px', fontSize: '20px', fontWeight: 800, textAlign: 'left', color: '#1d4ed8' }}>-₪{mealSubsidy.toFixed(2)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
