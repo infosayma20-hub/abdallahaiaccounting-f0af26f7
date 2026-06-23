@@ -3422,12 +3422,19 @@ const POSPage = () => {
     if (!enforceDeviceGuard()) return;
     const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
     const sourceApp = activeOrder.callCenterSourceApp || "";
-    
+    const ccVisaGl = activeOrder.callCenterVisaGlAccountCode || null;
+
     // Map call center payment to POS payment method
     let posPayMethod = ccPayment === "cash" ? "cash" : "card";
-    
-    // If visa payment, check if source_app matches a delivery app with a visa GL account
-    if (ccPayment !== "cash" && sourceApp && dataOwnerId) {
+
+    // PRIMARY: the agent's explicit visa-variant choice is stored on the
+    // order itself — use it directly, no name matching needed.
+    if (ccPayment !== "cash" && ccVisaGl) {
+      posPayMethod = `card:${ccVisaGl}`;
+    }
+    // FALLBACK: legacy orders saved before visa_gl_account_code existed —
+    // try to infer from source_app name matching the delivery_apps catalog.
+    else if (ccPayment !== "cash" && sourceApp && dataOwnerId) {
       const { data: appMatch } = await supabase
         .from("delivery_apps" as any)
         .select("visa_gl_account_code, name")
