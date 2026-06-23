@@ -3707,6 +3707,24 @@ const POSPage = () => {
         : cartTotals.total;
       const effectiveDiscount = cartTotals.discount + (customerDataDiscount?.discountAmount || 0);
 
+      // ─────────────────────────────────────────────────────────────
+      // MEAL SUBSIDY (dual-mode employee meal discount)
+      // - family    → company pays 10%, employee owes 90%
+      // - individual→ company pays 50%, employee owes 50%
+      // Gross sales (4100) stay intact; the subsidy posts as a separate
+      // accounting line in `complete_pos_order` (Dr 5316 / Cr employee AR).
+      // ─────────────────────────────────────────────────────────────
+      const isDualMealOrder =
+        effectivePaymentMethod === "employee_account" &&
+        mealDiscountMode === "dual" &&
+        !!mealDiscountType;
+      const companySharePct = isDualMealOrder
+        ? (mealDiscountType === "family" ? 10 : 50)
+        : 0;
+      const mealSubsidy = isDualMealOrder
+        ? Math.round((effectiveTotal * companySharePct / 100) * 100) / 100
+        : 0;
+
       // Check if there's an existing draft/open order for this table (saved earlier)
       if (activeOrder.tableId) {
         const { data: existingOrder } = await supabase
