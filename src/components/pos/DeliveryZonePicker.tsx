@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Search, AlertTriangle, Loader2, Zap, Database } from "lucide-react";
+import { MapPin, Search, AlertTriangle, Loader2, Zap, Database, Link2Off, ExternalLink } from "lucide-react";
 
 export interface DeliveryInfo {
   city: string;
@@ -44,10 +44,13 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
   const [showOptions, setShowOptions] = useState(false);
   const [tiePending, setTiePending] = useState<{ city: string; area: string; options: Zone[] } | null>(null);
   const [livePrice, setLivePrice] = useState<{
-    status: "idle" | "loading" | "live" | "cached" | "manual" | "error";
+    status: "idle" | "loading" | "live" | "cached" | "manual" | "area_unmapped" | "error";
     price: number | null;
     error?: string | null;
   }>({ status: "idle", price: null });
+  // Set of branch_ids that are mapped to Wheels (loaded from wheels_branch_config).
+  // Used to distinguish "branch not on Wheels" vs "area on a Wheels branch lacks mapping".
+  const [wheelsBranchIds, setWheelsBranchIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!dataOwnerId) return;
@@ -62,6 +65,16 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       .then(({ data }) => {
         setZones(((data as any) || []) as Zone[]);
         setLoading(false);
+      });
+    // Load which branches are mapped to Wheels so we can distinguish missing area
+    // mappings (warning) from branches that aren't on Wheels at all (info).
+    supabase
+      .from("wheels_branch_config" as any)
+      .select("branch_id, is_active")
+      .eq("user_id", dataOwnerId)
+      .eq("is_active", true)
+      .then(({ data }) => {
+        setWheelsBranchIds(new Set(((data as any) || []).map((r: any) => r.branch_id)));
       });
   }, [dataOwnerId]);
 
@@ -137,14 +150,27 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     const z = zones.find(
       x => x.branch_id === value.branch_id && x.area_name === value.area && x.city === value.city,
     );
-    // Branch not mapped to Wheels → show internal price as "manual"
-    if (!z?.wheels_area_id) {
-      setLivePrice({ status: "manual", price: Number(z?.price ?? value.original_fee) });
-      if (value.final_fee !== Number(z?.price ?? value.original_fee)) {
-        onChange({ ...value, final_fee: Number(z?.price ?? value.original_fee), manually_adjusted: false });
+    const branchHasWheels = wheelsBranchIds.has(value.branch_id);
+    // CASE A: Branch itself is not on Wheels (e.g. "فرع افتراضي") → internal price.
+    if (!branchHasWheels) {
+      const fallback = Number(z?.price ?? value.original_fee);
+      setLivePrice({ status: "manual", price: fallback });
+      if (value.final_fee !== fallback) {
+        onChange({ ...value, final_fee: fallback, manually_adjusted: false });
       }
       return;
     }
+    // CASE B: Branch IS on Wheels but this specific area lacks a wheels_area_id.
+    // The internal price is used temporarily; agent must map the area in settings.
+    if (!z?.wheels_area_id) {
+      const fallback = Number(z?.price ?? value.original_fee);
+      setLivePrice({ status: "area_unmapped", price: fallback });
+      if (value.final_fee !== fallback) {
+        onChange({ ...value, final_fee: fallback, manually_adjusted: false });
+      }
+      return;
+    }
+    // CASE C: Both branch and area are mapped → fetch live price from Wheels.
     let cancelled = false;
     setLivePrice({ status: "loading", price: Number(z.wheels_fixed_price ?? z.price) });
     (async () => {
@@ -171,7 +197,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value?.branch_id, value?.area, value?.city, zones]);
+  }, [value?.branch_id, value?.area, value?.city, zones, wheelsBranchIds]);
 
   return (
     <div className="space-y-2 rounded-xl border-2 border-orange-300/40 bg-orange-50/40 dark:bg-orange-950/10 p-3">
@@ -295,8 +321,12 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
           )}
 
           {/* Live price badge (read-only) */}
-          <div className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1.5">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold">
+          <div className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 ${
+            livePrice.status === "area_unmapped"
+              ? "bg-red-50 dark:bg-red-950/20 border border-red-300"
+              : "bg-muted/40"
+          }`}>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold flex-wrap">
               {livePrice.status === "loading" && (
                 <><Loader2 className="h-3 w-3 animate-spin text-orange-500" /><span className="text-muted-foreground">جاري جلب السعر من Wheels...</span></>
               )}
@@ -308,6 +338,20 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
               )}
               {livePrice.status === "manual" && (
                 <><Database className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">سعر داخلي (الفرع غير مربوط بـ Wheels)</span></>
+              )}
+              {livePrice.status === "area_unmapped" && (
+                <>
+                  <Link2Off className="h-3 w-3 text-red-600" />
+                  <span className="text-red-700">هذه المنطقة غير مربوطة بـ Wheels — اربطها من الإعدادات</span>
+                  <a
+                    href="/pos/delivery-zones"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-red-700 underline flex items-center gap-0.5 hover:text-red-900"
+                  >
+                    فتح <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                </>
               )}
             </div>
             <div className="font-mono font-bold text-sm tabular-nums">
