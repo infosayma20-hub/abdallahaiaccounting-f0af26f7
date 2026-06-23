@@ -4237,6 +4237,7 @@ const POSPage = () => {
         deliveryAddress: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : "",
         deliveryFee: cartTotals.deliveryFee || 0,
         deliveryInfo: activeOrder.callCenterDeliveryInfo || null,
+        mealSubsidy,
       };
 
       setReceiptData(receiptInfo);
