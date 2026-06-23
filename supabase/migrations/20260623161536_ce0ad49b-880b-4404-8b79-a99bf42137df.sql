@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.complete_pos_order(uuid, uuid, jsonb);
