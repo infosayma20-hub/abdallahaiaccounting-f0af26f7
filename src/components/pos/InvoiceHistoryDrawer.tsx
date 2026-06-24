@@ -25,6 +25,7 @@ import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/
 interface InvoiceOrder {
   id: string;
   order_number: string | null;
+  session_seq: number | null;
   created_at: string;
   total: number;
   subtotal: number;
@@ -445,7 +446,7 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      const selectFields = "id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, order_note, notes, pos_payments(payment_method), contacts:customer_id(phone)";
+      const selectFields = "id, order_number, session_seq, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, order_note, notes, pos_payments(payment_method), contacts:customer_id(phone)";
 
       // Main query: orders belonging to this session
       let query = supabase
@@ -513,7 +514,12 @@ export default function InvoiceHistoryDrawer({
       list = list.filter(o => o.state !== "cancelled");
     }
     if (!searchQuery.trim()) return list;
-    return list.filter(o => multiWordMatchAny(searchQuery, o.order_number, o.customer_name));
+    return list.filter(o => multiWordMatchAny(
+      searchQuery,
+      o.order_number,
+      o.session_seq != null ? String(o.session_seq) : null,
+      o.customer_name,
+    ));
   }, [orders, searchQuery, cashierMode]);
 
   const isTransferredOut = (order: InvoiceOrder) => 
@@ -1024,7 +1030,14 @@ export default function InvoiceHistoryDrawer({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, fontWeight: 600, color: "#0A2342" }}>
-                          #{order.order_number || "---"}
+                          فاتورة وردية #{order.session_seq ?? "—"}
+                        </span>
+                        <span
+                          className="font-mono text-[10px] px-1.5 py-0.5 rounded"
+                          style={{ background: "#F1F5F9", color: "#64748B" }}
+                          title="الرقم العالمي للفاتورة (للمحاسبة)"
+                        >
+                          {order.order_number || "---"}
                         </span>
                         <span
                           className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
@@ -1182,7 +1195,10 @@ export default function InvoiceHistoryDrawer({
                     <DialogHeader className="pb-3 border-b" style={{ borderColor: "#E5E7EB" }}>
                       <DialogTitle className="flex items-center gap-2 text-right">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", color: "#0F172A", fontSize: 14, fontWeight: 600 }}>
-                          #{selectedOrder.order_number || "---"}
+                          فاتورة وردية #{selectedOrder.session_seq ?? "—"}
+                        </span>
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#F1F5F9", color: "#64748B" }} title="الرقم العالمي للفاتورة">
+                          {selectedOrder.order_number || "---"}
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-medium border" style={{ borderColor: "#E5E7EB", background: "#F8FAFC", color: "#475569" }}>
                           {st.label}

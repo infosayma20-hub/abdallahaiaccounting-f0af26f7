@@ -11880,6 +11880,7 @@ export type Database = {
           return_of_order_id: string | null
           return_reason: string | null
           session_id: string
+          session_seq: number | null
           state: string
           subtotal: number
           survey_sent: boolean | null
@@ -11969,6 +11970,7 @@ export type Database = {
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id: string
+          session_seq?: number | null
           state?: string
           subtotal?: number
           survey_sent?: boolean | null
@@ -12058,6 +12060,7 @@ export type Database = {
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id?: string
+          session_seq?: number | null
           state?: string
           subtotal?: number
           survey_sent?: boolean | null
