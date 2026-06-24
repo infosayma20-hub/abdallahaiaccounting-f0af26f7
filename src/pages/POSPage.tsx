@@ -3258,22 +3258,26 @@ const POSPage = () => {
       } else {
         noStationItems.push(itemData);
       }
-      // Forced extra stations (bypass mute rules): print this product on additional
-      // stations regardless of category mute. Skip the item's already-handled
-      // primary station to avoid duplicates.
-      const forcedTargets = forceCheckerSK.forcedStationsFor(item.product_id);
-      for (const fsid of forcedTargets) {
-        if (fsid === stationId) continue;
-        if (!stationNames.has(fsid)) continue;
-        if (!stationGroups[fsid]) {
-          const info = stationNames.get(fsid)!;
-          stationGroups[fsid] = { stationName: info.name, stationColor: info.color, items: [] };
-        }
-        // Avoid duplicate entries if same item already in this station group
-        const exists = stationGroups[fsid].items.some((it: any) => it.name === itemData.name && it.qty === itemData.qty);
-        if (!exists) {
-          stationGroups[fsid].items.push(itemData);
-          routedCount++;
+      // Forced extra stations (bypass mute rules): only applies when the item
+      // has a PRIMARY station. Items without a primary station already land in
+      // noStationItems → printed on the "_default" kitchen ticket, so adding a
+      // forced kitchen station here would print them twice. The payment flow
+      // (which broadcasts unassigned items across all stations + mute filter)
+      // is the path that benefits from force rules.
+      if (stationId && stationNames.has(stationId)) {
+        const forcedTargets = forceCheckerSK.forcedStationsFor(item.product_id);
+        for (const fsid of forcedTargets) {
+          if (fsid === stationId) continue;
+          if (!stationNames.has(fsid)) continue;
+          if (!stationGroups[fsid]) {
+            const info = stationNames.get(fsid)!;
+            stationGroups[fsid] = { stationName: info.name, stationColor: info.color, items: [] };
+          }
+          const exists = stationGroups[fsid].items.some((it: any) => it.name === itemData.name && it.qty === itemData.qty);
+          if (!exists) {
+            stationGroups[fsid].items.push(itemData);
+            routedCount++;
+          }
         }
       }
     });
