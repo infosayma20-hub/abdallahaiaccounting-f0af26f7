@@ -280,6 +280,20 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   const deliveryNote = deliveryFee > 0
     ? `سعر التوصيل: ₪${deliveryFee.toFixed(2)} يخص شركة التوصيل وليس ضمن إجمالي الفاتورة`
     : '';
+  // ── Payment method label override ───────────────────────────────────
+  // When a sale is on an employee account, the printed receipt should
+  // show the employee's name as the payment label (instead of the
+  // bridge's generic fallback "تحويل" for unknown values). We override
+  // the string sent in the `paymentMethod` field only — DB values and
+  // accounting are untouched.
+  const rawPaymentMethod = (order.paymentMethod || '').toString();
+  const isEmployeeAccount = rawPaymentMethod === 'employee_account';
+  const printedPaymentMethod = isEmployeeAccount
+    ? (order.employeeName
+        ? `حساب موظف: ${order.employeeName}`
+        : 'حساب موظف')
+    : rawPaymentMethod;
+
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
@@ -305,7 +319,7 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     total: printedTotal,
     discount: order.discount,
     tax: 0,
-    paymentMethod: order.paymentMethod,
+    paymentMethod: printedPaymentMethod,
     cashReceived: order.tenderedAmount,
     change: order.change,
     createdAt: order.date ? `${order.date}T${order.time || '00:00'}` : new Date().toISOString(),
