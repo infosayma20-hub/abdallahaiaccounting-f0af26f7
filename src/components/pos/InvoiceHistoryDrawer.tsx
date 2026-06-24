@@ -232,6 +232,7 @@ export default function InvoiceHistoryDrawer({
   const [orderLines, setOrderLines] = useState<InvoiceLine[]>([]);
   const [orderPayments, setOrderPayments] = useState<InvoicePayment[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [reprintCopies, setReprintCopies] = useState<number>(1);
 
   // Recall flow
   const [showReasonDialog, setShowReasonDialog] = useState(false);
