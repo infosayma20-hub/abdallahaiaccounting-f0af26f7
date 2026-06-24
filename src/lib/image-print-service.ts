@@ -578,34 +578,18 @@ export async function printAllImage(
             .map(j => ({ key: j.printerKey, label: j.stationLabel, items: j.items }))
         : ALL_STATIONS.map(s => ({ key: s.key, label: s.label, items: order.items }));
 
-    const unifiedKitchenItemsRaw = kitchenJobs && kitchenJobs.length > 0
-      ? stationsToPrintRaw.flatMap(s => s.items)
-      : order.items;
     const isUnifiedKitchen = await shouldUseUnifiedKitchenPrinter(order);
-    // Plaza-only path: dedupe merged items so the unified kitchen ticket
-    // doesn't show the same line twice when items were broadcast to
-    // multiple stations. Other branches keep the legacy stationsToPrintRaw
-    // path untouched.
-    const dedupeUnifiedItems = (items: PrintItem[]): PrintItem[] => {
-      const map = new Map<string, PrintItem>();
-      for (const it of items || []) {
-        const modsSig = (it.modifiers || [])
-          .map(m => `${m.option_name}:${m.extra_price ?? ''}`)
-          .sort()
-          .join('|');
-        const key = `${it.id || it.name}|${it.note || ''}|${modsSig}`;
-        const existing = map.get(key);
-        if (existing) {
-          existing.quantity = (Number(existing.quantity) || 0) + (Number(it.quantity) || 0);
-        } else {
-          map.set(key, { ...it });
-        }
-      }
-      return Array.from(map.values());
-    };
+    // Plaza-only path: the unified kitchen ticket must reflect the REAL
+    // order quantities (same as the receipt). We use `order.items` directly
+    // as the source of truth instead of flattening stationsToPrintRaw —
+    // which would duplicate lines whenever an item was broadcast to
+    // multiple stations, and a naive dedupe would then SUM 1+1=2 instead
+    // of keeping the original qty=1. Other branches keep the legacy path.
     const unifiedKitchenItems = isUnifiedKitchen
-      ? dedupeUnifiedItems(unifiedKitchenItemsRaw)
-      : unifiedKitchenItemsRaw;
+      ? order.items
+      : (kitchenJobs && kitchenJobs.length > 0
+          ? stationsToPrintRaw.flatMap(s => s.items)
+          : order.items);
     // Plaza-only: print the SAME unified kitchen ticket on BOTH the
     // kitchen printer (10.10.211.8) AND the receipt printer (10.10.211.7),
     // so the heater also gets a copy without adding a second device.
