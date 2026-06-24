@@ -3777,7 +3777,7 @@ const POSPage = () => {
             zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
             area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
-            order_note: orderNote || (effectivePaymentMethod === "employee_account" && selectedEmployee ? `حساب موظف: ${selectedEmployee.full_name}${employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""}` : null),
+            order_note: composedOrderNote,
             delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
@@ -3814,7 +3814,7 @@ const POSPage = () => {
                 zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
                 area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
                 pos_customer_id: activeOrder.posCustomerId || null,
-                order_note: orderNote || (effectivePaymentMethod === "employee_account" && selectedEmployee ? `حساب موظف: ${selectedEmployee.full_name}${employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""}` : null),
+                order_note: composedOrderNote,
                 delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
                 ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
                 ...(markAsReplacement && lastCancelledOrder ? {
@@ -3850,7 +3850,7 @@ const POSPage = () => {
               zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
               area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
               pos_customer_id: activeOrder.posCustomerId || null,
-              order_note: orderNote || (effectivePaymentMethod === "employee_account" && selectedEmployee ? `حساب موظف: ${selectedEmployee.full_name}${employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""}` : null),
+              order_note: composedOrderNote,
               delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
               ...(markAsReplacement && lastCancelledOrder ? {
