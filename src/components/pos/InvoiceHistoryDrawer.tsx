@@ -1190,7 +1190,10 @@ export default function InvoiceHistoryDrawer({
                     <DialogHeader className="pb-3 border-b" style={{ borderColor: "#E5E7EB" }}>
                       <DialogTitle className="flex items-center gap-2 text-right">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", color: "#0F172A", fontSize: 14, fontWeight: 600 }}>
-                          #{selectedOrder.order_number || "---"}
+                          فاتورة وردية #{selectedOrder.session_seq ?? "—"}
+                        </span>
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#F1F5F9", color: "#64748B" }} title="الرقم العالمي للفاتورة">
+                          {selectedOrder.order_number || "---"}
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-medium border" style={{ borderColor: "#E5E7EB", background: "#F8FAFC", color: "#475569" }}>
                           {st.label}
