@@ -5114,6 +5114,7 @@ export type Database = {
       }
       delivery_zones: {
         Row: {
+          area_aliases: string[]
           area_name: string
           branch_id: string
           branch_name: string
@@ -5128,6 +5129,7 @@ export type Database = {
           wheels_fixed_price: number | null
         }
         Insert: {
+          area_aliases?: string[]
           area_name: string
           branch_id: string
           branch_name: string
@@ -5142,6 +5144,7 @@ export type Database = {
           wheels_fixed_price?: number | null
         }
         Update: {
+          area_aliases?: string[]
           area_name?: string
           branch_id?: string
           branch_name?: string

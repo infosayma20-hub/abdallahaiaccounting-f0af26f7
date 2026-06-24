@@ -1,0 +1,2 @@
+ALTER TABLE public.delivery_zones ADD COLUMN IF NOT EXISTS area_aliases text[] NOT NULL DEFAULT '{}'::text[];
+CREATE INDEX IF NOT EXISTS delivery_zones_area_aliases_gin ON public.delivery_zones USING gin (area_aliases);
