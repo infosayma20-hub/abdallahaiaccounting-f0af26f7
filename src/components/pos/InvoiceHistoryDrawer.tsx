@@ -1025,7 +1025,14 @@ export default function InvoiceHistoryDrawer({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, fontWeight: 600, color: "#0A2342" }}>
-                          #{order.order_number || "---"}
+                          فاتورة وردية #{order.session_seq ?? "—"}
+                        </span>
+                        <span
+                          className="font-mono text-[10px] px-1.5 py-0.5 rounded"
+                          style={{ background: "#F1F5F9", color: "#64748B" }}
+                          title="الرقم العالمي للفاتورة (للمحاسبة)"
+                        >
+                          {order.order_number || "---"}
                         </span>
                         <span
                           className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
