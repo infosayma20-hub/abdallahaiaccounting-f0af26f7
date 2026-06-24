@@ -1723,6 +1723,7 @@ export type Database = {
           payment_method: string | null
           pos_order_id: string | null
           session_id: string | null
+          skip_wheels_dispatch: boolean
           source_app: string | null
           status: string | null
           target_branch_id: string | null
@@ -1761,6 +1762,7 @@ export type Database = {
           payment_method?: string | null
           pos_order_id?: string | null
           session_id?: string | null
+          skip_wheels_dispatch?: boolean
           source_app?: string | null
           status?: string | null
           target_branch_id?: string | null
@@ -1799,6 +1801,7 @@ export type Database = {
           payment_method?: string | null
           pos_order_id?: string | null
           session_id?: string | null
+          skip_wheels_dispatch?: boolean
           source_app?: string | null
           status?: string | null
           target_branch_id?: string | null

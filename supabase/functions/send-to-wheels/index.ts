@@ -132,16 +132,49 @@ Deno.serve(async (req) => {
     // lives on the linked call_center_orders row; fall back to that, then to
     // any "جوال: <number>" tag embedded in order_note as a last resort.
     let customerPhone: string | null = (order as any).customer_phone ?? null;
+    // Skip-flag: when the agent marked the call-center order as "already on
+    // Wheels" (typical for orders that originally came from the Wheels app),
+    // we must NOT re-dispatch — that would create a duplicate trip. The
+    // lookup is unconditional so even orders that already had a phone on
+    // pos_orders are still gated by the linked call-center row.
+    let skipWheelsDispatch = false;
     if (!customerPhone) {
       const { data: cco } = await admin
         .from("call_center_orders")
-        .select("customer_phone, delivery_info")
+        .select("customer_phone, delivery_info, skip_wheels_dispatch")
         .eq("pos_order_id", order_id)
         .maybeSingle();
       customerPhone = (cco as any)?.customer_phone
         || (cco as any)?.delivery_info?.caller_phone
         || null;
+      skipWheelsDispatch = !!(cco as any)?.skip_wheels_dispatch;
+    } else {
+      const { data: cco2 } = await admin
+        .from("call_center_orders")
+        .select("skip_wheels_dispatch")
+        .eq("pos_order_id", order_id)
+        .maybeSingle();
+      skipWheelsDispatch = !!(cco2 as any)?.skip_wheels_dispatch;
     }
+
+    if (skipWheelsDispatch) {
+      // Mark on pos_orders so reports / UI know this was intentionally
+      // skipped, then return a silent skip. Frontend toast handler treats
+      // this message as non-actionable.
+      await admin.from("pos_orders").update({
+        wheels_request_status: "skipped",
+        wheels_last_error: null,
+      } as any).eq("id", order_id);
+      return new Response(JSON.stringify({
+        success: false,
+        skipped: true,
+        error: "تم تجاهل الإرسال — الطلبية مسجّلة أصلاً على Wheels",
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!customerPhone && typeof order.order_note === "string") {
       const m = order.order_note.match(/جوال[:：]\s*([0-9+\-\s]{6,})/);
       if (m) customerPhone = m[1].trim();

@@ -148,6 +148,10 @@ interface OrderTab {
   callCenterVisaGlAccountCode?: string | null;
   callCenterDeliveryInfo?: any | null;
   callCenterDeliveryFee?: number | null;
+  /** When true, the cashier accepted a call-center order whose agent flagged
+   *  it as "already on Wheels" — the post-payment auto-dispatch must be
+   *  skipped to avoid a duplicate trip on the courier screen. */
+  callCenterSkipWheelsDispatch?: boolean | null;
   /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
   isEditingDispatch?: boolean;
   /** Locked branch for the order being edited (cannot be changed during edit). */
@@ -4457,7 +4461,11 @@ const POSPage = () => {
       // 🚚 Auto-dispatch to Wheels — must be awaited after payment so the
       // request cannot be lost by tab reset/re-render. Also write a visible
       // failed status if the browser could not reach the function at all.
-      if (activeOrder.orderType === "delivery" && orderId) {
+      if (
+        activeOrder.orderType === "delivery" &&
+        orderId &&
+        !activeOrder.callCenterSkipWheelsDispatch
+      ) {
         try {
           const { data: { session: authSession } } = await supabase.auth.getSession();
           if (!authSession?.access_token) {
@@ -4481,6 +4489,8 @@ const POSPage = () => {
             toast.success(
               `🚚 تم إرسال الطلب إلى Wheels${price != null ? ` — التوصيل: ${price} ₪` : ""}`
             );
+          } else if ((wheelsRes as any)?.skipped) {
+            toast.info("ℹ️ تم تخطّي إرسال Wheels — الطلبية موجودة أصلاً على Wheels", { duration: 4000 });
           } else {
             const errMsg = String((wheelsRes as any)?.error || "");
             // Surface every failure so the cashier knows the courier wasn't
@@ -4489,6 +4499,7 @@ const POSPage = () => {
             const silentPatterns = [
               "ليس للتوصيل",
               "تم إرسال هذا الطلب مسبقاً",
+              "تم تجاهل الإرسال",
             ];
             const configPatterns = [
               "غير مربوط بـ Wheels",
@@ -4665,6 +4676,7 @@ const POSPage = () => {
     newOrder.callCenterPaymentMethod = order.payment_method || "cash";
     newOrder.callCenterSourceApp = order.source_app || null;
     newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
+    newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
     const _info: any = (order as any).delivery_info || null;
     const _fee = Number((order as any).delivery_fee || 0);
     const deliveryBlock = _info ? [
@@ -5583,6 +5595,7 @@ const POSPage = () => {
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
               newOrder.callCenterSourceApp = order.source_app || null;
               newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
+              newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
               // Build a clean delivery info block from structured data so
               // cashier + kitchen prints get the same info without injecting
               // a synthetic cart line.
@@ -8334,6 +8347,7 @@ const POSPage = () => {
         editingDeliveryInfo={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryInfo || null) : null}
         editingDeliveryFee={activeOrder.isEditingDispatch ? (activeOrder.callCenterDeliveryFee || null) : null}
         editingVisaGlAccountCode={activeOrder.isEditingDispatch ? (activeOrder.callCenterVisaGlAccountCode || null) : null}
+        editingSkipWheelsDispatch={activeOrder.isEditingDispatch ? (activeOrder.callCenterSkipWheelsDispatch || false) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
           setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
@@ -8351,6 +8365,7 @@ const POSPage = () => {
             callCenterPaymentMethod: null,
             callCenterSourceApp: null,
             callCenterVisaGlAccountCode: null,
+            callCenterSkipWheelsDispatch: false,
           }));
         }}
       />
@@ -8380,6 +8395,7 @@ const POSPage = () => {
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
           newOrder.callCenterSourceApp = order.source_app || null;
           newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
+          newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
           newOrder.callCenterBranchId = order.target_branch_id || null;
           newOrder.callCenterBranchName = order.target_branch_name || null;
           newOrder.callCenterDeliveryInfo = (order as any).delivery_info || null;

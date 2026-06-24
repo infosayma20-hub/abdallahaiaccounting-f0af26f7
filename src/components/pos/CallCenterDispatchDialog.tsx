@@ -42,6 +42,8 @@ interface Props {
   editingDeliveryFee?: number | null;
   /** Pre-selected visa GL account (from a previously dispatched order being edited). */
   editingVisaGlAccountCode?: string | null;
+  /** Pre-selected "skip wheels dispatch" flag from the original order (edit mode). */
+  editingSkipWheelsDispatch?: boolean | null;
 }
 
 interface Branch {
@@ -90,7 +92,7 @@ const CallCenterDispatchDialog = ({
   open, onOpenChange, dataOwnerId, cart, total,
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
-  editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode,
+  editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode, editingSkipWheelsDispatch,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -110,6 +112,22 @@ const CallCenterDispatchDialog = ({
   // zone changes without wiping any manual details (street, building, landmark)
   // the agent typed afterwards.
   const [autoFilledPrefix, setAutoFilledPrefix] = useState<string>("");
+
+  // Some orders (e.g. from Wheels app itself) already exist on the Wheels
+  // courier screen, so we must NOT re-dispatch them to Wheels after payment
+  // or it creates a duplicate trip. Defaults to true whenever the source is
+  // a Wheels-family app; agent can toggle off if needed.
+  const [skipWheelsDispatch, setSkipWheelsDispatch] = useState<boolean>(false);
+  // Tracks whether the agent manually toggled the checkbox so we don't
+  // override their choice when they switch source apps afterwards.
+  const [skipWheelsTouched, setSkipWheelsTouched] = useState<boolean>(false);
+
+  // Auto-recompute the default whenever the source app changes — only when
+  // the agent hasn't explicitly toggled the checkbox themselves.
+  useEffect(() => {
+    if (skipWheelsTouched) return;
+    setSkipWheelsDispatch(/wheels/i.test(sourceApp || ""));
+  }, [sourceApp, skipWheelsTouched]);
 
   // When the zone picker chooses a branch, auto-bind the dispatch target branch
   // (but only when not in edit mode — branch is locked there).
@@ -169,6 +187,13 @@ const CallCenterDispatchDialog = ({
     setDispatchedOrderId(null);
     setDispatchStatus(null);
     setTableLabel("");
+    setSkipWheelsTouched(false);
+    // In edit mode honor the saved flag; in new-order mode the auto-effect
+    // above will set the default once sourceApp is initialized.
+    if (editingOrderId) {
+      setSkipWheelsDispatch(!!editingSkipWheelsDispatch);
+      setSkipWheelsTouched(true); // preserve original choice unless agent toggles
+    }
     setDeliveryInfo(
       editingDeliveryInfo && editingDeliveryInfo.area
         ? {
@@ -489,6 +514,11 @@ const CallCenterDispatchDialog = ({
             : deliveryType === "dine_in"
               ? { delivery_type: "dine_in", table_label: tableLabel.trim(), caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
               : null,
+        // Server-side gate for the post-payment Wheels auto-dispatch. The
+        // edge function and DB trigger both consult this flag — leave it
+        // false (default) for any non-Wheels-sourced order so existing
+        // behaviour is unchanged.
+        skip_wheels_dispatch: !!skipWheelsDispatch,
       };
 
       let orderId: string | null = null;
@@ -535,10 +565,14 @@ const CallCenterDispatchDialog = ({
         // The RPC doesn't take visa_gl_account_code — write it separately so
         // edits that change the visa variant are persisted correctly.
         const newGl = paymentOptions.find(o => o.code === paymentMethod)?.gl_note || null;
-        if (newGl !== (editingVisaGlAccountCode ?? null)) {
+        const newSkip = !!skipWheelsDispatch;
+        const patch: Record<string, unknown> = {};
+        if (newGl !== (editingVisaGlAccountCode ?? null)) patch.visa_gl_account_code = newGl;
+        if (newSkip !== !!editingSkipWheelsDispatch) patch.skip_wheels_dispatch = newSkip;
+        if (Object.keys(patch).length > 0) {
           await supabase
             .from("call_center_orders" as any)
-            .update({ visa_gl_account_code: newGl })
+            .update(patch as any)
             .eq("id", editingOrderId);
         }
         toast.success(`تم تحديث الطلبية في فرع ${selectedBranch!.name}`, { duration: 4000 });
@@ -643,6 +677,27 @@ const CallCenterDispatchDialog = ({
                 طلب مباشر
               </button>
             </div>
+            {/* Skip Wheels auto-dispatch — only meaningful for Wheels-family
+                sources. The checkbox is also visible (unchecked) for non-Wheels
+                sources only when the agent manually toggles, to keep the UI
+                deterministic and uncluttered. */}
+            {/wheels/i.test(sourceApp || "") && (
+              <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/10 px-3 py-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-amber-600"
+                  checked={skipWheelsDispatch}
+                  onChange={(e) => {
+                    setSkipWheelsDispatch(e.target.checked);
+                    setSkipWheelsTouched(true);
+                  }}
+                />
+                <span className="text-[12px] leading-tight text-amber-900 dark:text-amber-200">
+                  <b>لا تُرسل إلى Wheels تلقائياً</b> — هاي الطلبية موجودة أصلاً
+                  على شاشة Wheels (لتجنّب التكرار).
+                </span>
+              </label>
+            )}
           </div>
 
           {/* Target Branch */}
