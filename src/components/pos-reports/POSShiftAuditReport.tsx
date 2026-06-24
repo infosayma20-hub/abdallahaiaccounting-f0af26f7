@@ -386,11 +386,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
       byMethod[k].count++;
       byMethod[k].amount += p.amount;
       const ord = p.order_id ? orderById.get(p.order_id) : undefined;
+      const isEmpMethod = p.payment_method === "employee_account" || p.payment_method === "employee";
       byMethod[k].rows.push({
         orderId: p.order_id || "",
         orderNumber: ord?.order_number || null,
         amount: p.amount,
-        note: ord?.order_note || ord?.customer_name || null,
+        note: isEmpMethod
+          ? (ord?.employee_name || ord?.order_note || ord?.customer_name || null)
+          : (ord?.order_note || ord?.customer_name || null),
       });
     });
     // Re-derive expected cash from real (non-voided) cash payments only.
