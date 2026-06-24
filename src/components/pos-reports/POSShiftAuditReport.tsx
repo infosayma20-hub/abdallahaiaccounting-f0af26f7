@@ -135,6 +135,29 @@ export default function POSShiftAuditReport({ sessions }: Props) {
           </h2>
         </div>
         <div className="flex items-center gap-2 text-[11px] flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">من</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <span className="text-muted-foreground">إلى</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <button
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
+              className="px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground"
+              title="مسح فلتر التاريخ"
+            >
+              مسح
+            </button>
+          </div>
           {branchesInData.length > 0 && (
             <div className="flex items-center gap-1">
               <Store className="w-3 h-3 text-muted-foreground" />
