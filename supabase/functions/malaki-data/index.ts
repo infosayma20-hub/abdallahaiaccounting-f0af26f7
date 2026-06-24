@@ -226,15 +226,15 @@ Deno.serve(async (req) => {
 
         // ── Sessions + cash boxes (for branch & cashier) ──
         const sessionIds = [...new Set(orderList.map(o => o.session_id).filter(Boolean))];
-        const sessionMap: Record<string, { cashBoxId?: string; cashierName?: string }> = {};
+        const sessionMap: Record<string, { cashBoxId?: string; cashierName?: string; terminalId?: string }> = {};
         for (let i = 0; i < sessionIds.length; i += 200) {
           const chunk = sessionIds.slice(i, i + 200);
           const { data: sessions } = await supabase
             .from("pos_sessions")
-            .select("id, cash_box_id, cashier_name")
+            .select("id, cash_box_id, cashier_name, terminal_id")
             .in("id", chunk);
           (sessions || []).forEach((s: any) => {
-            sessionMap[s.id] = { cashBoxId: s.cash_box_id, cashierName: s.cashier_name };
+            sessionMap[s.id] = { cashBoxId: s.cash_box_id, cashierName: s.cashier_name, terminalId: s.terminal_id };
           });
         }
         const cashBoxIds = [...new Set(Object.values(sessionMap).map(s => s.cashBoxId).filter(Boolean) as string[])];
@@ -248,8 +248,23 @@ Deno.serve(async (req) => {
             cashBoxMap[b.id] = { name: b.name, location: b.branch_location, branchId: b.branch_id || null };
           });
         }
+        // ── Terminal → branch fallback (when session has no cash_box or cash_box has no branch) ──
+        const terminalIds = [...new Set(Object.values(sessionMap).map(s => s.terminalId).filter(Boolean) as string[])];
+        const terminalBranchMap: Record<string, string> = {};
+        if (terminalIds.length > 0) {
+          const { data: terms } = await supabase
+            .from("pos_terminals")
+            .select("id, branch_id")
+            .in("id", terminalIds);
+          (terms || []).forEach((t: any) => {
+            if (t.branch_id) terminalBranchMap[t.id] = t.branch_id;
+          });
+        }
         // ── Branch names ──
-        const branchIds = [...new Set(Object.values(cashBoxMap).map(b => b.branchId).filter(Boolean) as string[])];
+        const branchIds = [...new Set([
+          ...Object.values(cashBoxMap).map(b => b.branchId).filter(Boolean) as string[],
+          ...Object.values(terminalBranchMap),
+        ])];
         const branchNameMap: Record<string, string> = {};
         if (branchIds.length > 0) {
           const { data: brs } = await supabase
@@ -289,9 +304,12 @@ Deno.serve(async (req) => {
           const sess = sessionMap[o.session_id];
           const cbId = sess?.cashBoxId || "unknown";
           const box = cashBoxMap[cbId];
-          const brId = box?.branchId || "__no_branch__";
-          const brName = box?.branchId
-            ? (branchNameMap[box.branchId] || "فرع غير مسمى")
+          // Fallback chain: cash_box.branch_id → terminal.branch_id → "بدون فرع"
+          const fallbackBranchId = sess?.terminalId ? terminalBranchMap[sess.terminalId] : null;
+          const resolvedBranchId = box?.branchId || fallbackBranchId || null;
+          const brId = resolvedBranchId || "__no_branch__";
+          const brName = resolvedBranchId
+            ? (branchNameMap[resolvedBranchId] || "فرع غير مسمى")
             : "بدون فرع";
           if (!branchAgg[brId]) branchAgg[brId] = {
             id: brId,
