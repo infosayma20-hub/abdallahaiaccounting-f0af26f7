@@ -514,7 +514,12 @@ export default function InvoiceHistoryDrawer({
       list = list.filter(o => o.state !== "cancelled");
     }
     if (!searchQuery.trim()) return list;
-    return list.filter(o => multiWordMatchAny(searchQuery, o.order_number, o.customer_name));
+    return list.filter(o => multiWordMatchAny(
+      searchQuery,
+      o.order_number,
+      o.session_seq != null ? String(o.session_seq) : null,
+      o.customer_name,
+    ));
   }, [orders, searchQuery, cashierMode]);
 
   const isTransferredOut = (order: InvoiceOrder) => 
