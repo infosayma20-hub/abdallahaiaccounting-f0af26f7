@@ -42,6 +42,8 @@ interface Props {
   editingDeliveryFee?: number | null;
   /** Pre-selected visa GL account (from a previously dispatched order being edited). */
   editingVisaGlAccountCode?: string | null;
+  /** Pre-selected "skip wheels dispatch" flag from the original order (edit mode). */
+  editingSkipWheelsDispatch?: boolean | null;
 }
 
 interface Branch {
@@ -90,7 +92,7 @@ const CallCenterDispatchDialog = ({
   open, onOpenChange, dataOwnerId, cart, total,
   customerName, customerPhone, deliveryAddress, orderNote, onSuccess,
   editingOrderId, editingBranchId, editingBranchName, editingPaymentMethod, editingSourceApp,
-  editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode,
+  editingDeliveryInfo, editingDeliveryFee, editingVisaGlAccountCode, editingSkipWheelsDispatch,
 }: Props) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryApps, setDeliveryApps] = useState<DeliveryApp[]>([]);
@@ -110,6 +112,22 @@ const CallCenterDispatchDialog = ({
   // zone changes without wiping any manual details (street, building, landmark)
   // the agent typed afterwards.
   const [autoFilledPrefix, setAutoFilledPrefix] = useState<string>("");
+
+  // Some orders (e.g. from Wheels app itself) already exist on the Wheels
+  // courier screen, so we must NOT re-dispatch them to Wheels after payment
+  // or it creates a duplicate trip. Defaults to true whenever the source is
+  // a Wheels-family app; agent can toggle off if needed.
+  const [skipWheelsDispatch, setSkipWheelsDispatch] = useState<boolean>(false);
+  // Tracks whether the agent manually toggled the checkbox so we don't
+  // override their choice when they switch source apps afterwards.
+  const [skipWheelsTouched, setSkipWheelsTouched] = useState<boolean>(false);
+
+  // Auto-recompute the default whenever the source app changes — only when
+  // the agent hasn't explicitly toggled the checkbox themselves.
+  useEffect(() => {
+    if (skipWheelsTouched) return;
+    setSkipWheelsDispatch(/wheels/i.test(sourceApp || ""));
+  }, [sourceApp, skipWheelsTouched]);
 
   // When the zone picker chooses a branch, auto-bind the dispatch target branch
   // (but only when not in edit mode — branch is locked there).
