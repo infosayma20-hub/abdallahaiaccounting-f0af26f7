@@ -291,6 +291,8 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     orderType: normalizedType,
     orderTypeLabel: orderTypeLabel(normalizedType, order.tableNumber),
     tableNumber: order.tableNumber,
+    customerName: order.customerName || undefined,
+    customerPhone: order.customerPhone || undefined,
     items: order.items.map(item => ({
       name: item.name,
       quantity: item.quantity,
