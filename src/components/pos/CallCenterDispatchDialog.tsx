@@ -187,6 +187,13 @@ const CallCenterDispatchDialog = ({
     setDispatchedOrderId(null);
     setDispatchStatus(null);
     setTableLabel("");
+    setSkipWheelsTouched(false);
+    // In edit mode honor the saved flag; in new-order mode the auto-effect
+    // above will set the default once sourceApp is initialized.
+    if (editingOrderId) {
+      setSkipWheelsDispatch(!!editingSkipWheelsDispatch);
+      setSkipWheelsTouched(true); // preserve original choice unless agent toggles
+    }
     setDeliveryInfo(
       editingDeliveryInfo && editingDeliveryInfo.area
         ? {
