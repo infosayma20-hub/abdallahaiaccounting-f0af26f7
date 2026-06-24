@@ -1261,8 +1261,8 @@ export default function InvoiceHistoryDrawer({
                       <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
                         <Field label="اسم الزبون">{selectedOrder.customer_name || "زبون نقدي"}</Field>
                         <Field label="رقم الجوال">
-                          {selectedOrder.contacts?.phone ? (
-                            <span className="font-mono" dir="ltr">{selectedOrder.contacts.phone}</span>
+                          {(selectedOrder.contacts?.phone || ccoPhone) ? (
+                            <span className="font-mono" dir="ltr">{selectedOrder.contacts?.phone || ccoPhone}</span>
                           ) : "—"}
                         </Field>
                         {selectedOrder.recall_status && (
