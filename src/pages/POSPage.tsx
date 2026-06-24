@@ -4454,54 +4454,66 @@ const POSPage = () => {
         console.warn("Print bridge error:", printErr);
       }
 
-      // 🚚 Auto-dispatch to Wheels — fires for ANY delivery order
-      // (cashier-direct OR call-center-accepted) right after save+print.
-      // The edge function is idempotent and silently rejects branches/areas
-      // that aren't onboarded to Wheels, so it's safe to call universally.
+      // 🚚 Auto-dispatch to Wheels — must be awaited after payment so the
+      // request cannot be lost by tab reset/re-render. Also write a visible
+      // failed status if the browser could not reach the function at all.
       if (activeOrder.orderType === "delivery" && orderId) {
-        (async () => {
-          try {
-            const { data: wheelsRes, error: wheelsErr } = await supabase.functions.invoke(
-              "send-to-wheels",
-              { body: { order_id: orderId } },
-            );
-            if (wheelsErr) {
-              console.warn("[Wheels auto-send] invoke error:", wheelsErr);
-              return;
-            }
-            if ((wheelsRes as any)?.success) {
-              const price = (wheelsRes as any)?.wheels_delivery_price;
-              toast.success(
-                `🚚 تم إرسال الطلب إلى Wheels${price != null ? ` — التوصيل: ${price} ₪` : ""}`
-              );
-            } else {
-              const errMsg = String((wheelsRes as any)?.error || "");
-              // Surface every failure so the cashier knows the courier wasn't
-              // dispatched. Only truly idempotent/non-actionable states are
-              // silent (already-sent or non-delivery order).
-              const silentPatterns = [
-                "ليس للتوصيل",
-                "تم إرسال هذا الطلب مسبقاً",
-              ];
-              const configPatterns = [
-                "غير مربوط بـ Wheels",
-                "لم نجد منطقة مطابقة",
-                "تعذر تحديد فرع الطلب",
-              ];
-              if (!errMsg) {
-                console.log("[Wheels auto-send] no error message");
-              } else if (silentPatterns.some((p) => errMsg.includes(p))) {
-                console.log("[Wheels auto-send] silent skip:", errMsg);
-              } else if (configPatterns.some((p) => errMsg.includes(p))) {
-                toast.warning(`⚠️ Wheels لم يُرسل: ${errMsg}`, { duration: 6000 });
-              } else {
-                toast.error(`❌ Wheels: ${errMsg}`, { duration: 6000 });
-              }
-            }
-          } catch (e) {
-            console.warn("[Wheels auto-send] exception:", e);
+        try {
+          const { data: { session: authSession } } = await supabase.auth.getSession();
+          if (!authSession?.access_token) {
+            throw new Error("جلسة المستخدم غير صالحة لإرسال Wheels");
           }
-        })();
+
+          const { data: wheelsRes, error: wheelsErr } = await supabase.functions.invoke(
+            "send-to-wheels",
+            {
+              body: { order_id: orderId },
+              headers: { Authorization: `Bearer ${authSession.access_token}` },
+            },
+          );
+
+          if (wheelsErr) {
+            throw new Error(wheelsErr.message || "تعذر الاتصال بتكامل Wheels");
+          }
+
+          if ((wheelsRes as any)?.success) {
+            const price = (wheelsRes as any)?.wheels_delivery_price;
+            toast.success(
+              `🚚 تم إرسال الطلب إلى Wheels${price != null ? ` — التوصيل: ${price} ₪` : ""}`
+            );
+          } else {
+            const errMsg = String((wheelsRes as any)?.error || "");
+            // Surface every failure so the cashier knows the courier wasn't
+            // dispatched. Only truly idempotent/non-actionable states are
+            // silent (already-sent or non-delivery order).
+            const silentPatterns = [
+              "ليس للتوصيل",
+              "تم إرسال هذا الطلب مسبقاً",
+            ];
+            const configPatterns = [
+              "غير مربوط بـ Wheels",
+              "لم نجد منطقة مطابقة",
+              "تعذر تحديد فرع الطلب",
+            ];
+            if (!errMsg) {
+              console.log("[Wheels auto-send] no error message");
+            } else if (silentPatterns.some((p) => errMsg.includes(p))) {
+              console.log("[Wheels auto-send] silent skip:", errMsg);
+            } else if (configPatterns.some((p) => errMsg.includes(p))) {
+              toast.warning(`⚠️ Wheels لم يُرسل: ${errMsg}`, { duration: 6000 });
+            } else {
+              toast.error(`❌ Wheels: ${errMsg}`, { duration: 6000 });
+            }
+          }
+        } catch (e: any) {
+          const msg = e?.message || "فشل إرسال الطلب إلى Wheels";
+          console.warn("[Wheels auto-send] exception:", e);
+          await supabase.from("pos_orders").update({
+            wheels_request_status: "failed",
+            wheels_last_error: msg,
+          } as any).eq("id", orderId);
+          toast.error(`❌ Wheels: ${msg}`, { duration: 7000 });
+        }
       }
 
       // Auto-open cash drawer after successful payment (legacy + feature override)
