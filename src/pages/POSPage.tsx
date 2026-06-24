@@ -4461,7 +4461,11 @@ const POSPage = () => {
       // 🚚 Auto-dispatch to Wheels — must be awaited after payment so the
       // request cannot be lost by tab reset/re-render. Also write a visible
       // failed status if the browser could not reach the function at all.
-      if (activeOrder.orderType === "delivery" && orderId) {
+      if (
+        activeOrder.orderType === "delivery" &&
+        orderId &&
+        !activeOrder.callCenterSkipWheelsDispatch
+      ) {
         try {
           const { data: { session: authSession } } = await supabase.auth.getSession();
           if (!authSession?.access_token) {
