@@ -6256,7 +6256,9 @@ const POSPage = () => {
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
             ).map(type => {
               const isActive = type === "dine_in"
-                ? !!activeOrder.tableId
+                ? (tablesEnabled
+                    ? !!activeOrder.tableId
+                    : (activeOrder.orderType === "dine_in" && !!activeOrder.orderTypeChosen))
                 : (activeOrder.orderType === type && !activeOrder.tableId && !!activeOrder.orderTypeChosen);
               const labels: Record<string, string> = { takeaway: "سفري", delivery: "توصيل", dine_in: "طاولة" };
               return (
