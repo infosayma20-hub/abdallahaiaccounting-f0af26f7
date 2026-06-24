@@ -246,6 +246,29 @@ Deno.serve(async (req) => {
 
     let zone: { wheels_area_id: number | null; wheels_fixed_price: number | null } | null = null;
     let matchedArea: string | null = null;
+    let matchedVia: string | null = null;
+
+    // Normalize for fuzzy comparison:
+    //  - strip leading definite article "ال"
+    //  - drop digits / phone-like tokens
+    //  - collapse whitespace and punctuation
+    function normalize(s: string): string {
+      return String(s || "")
+        .replace(/[\u064B-\u0652\u0670]/g, "")   // strip Arabic diacritics
+        .replace(/\d+/g, " ")                     // drop digits
+        .replace(/[()،,./|\\]/g, " ")            // common punctuation
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    function stripAl(s: string): string {
+      const n = normalize(s);
+      return n.startsWith("ال") ? n.slice(2).trim() : n;
+    }
+    function escapeLike(s: string): string {
+      return s.replace(/[%_\\]/g, (m) => `\\${m}`);
+    }
+
+    // Pass 1 — original exact + ILIKE per candidate (unchanged behavior).
     for (const cand of candidates) {
       const { data: z1 } = await admin
         .from("delivery_zones")
@@ -255,7 +278,7 @@ Deno.serve(async (req) => {
         .eq("area_name", cand)
         .not("wheels_area_id", "is", null)
         .maybeSingle();
-      if (z1?.wheels_area_id) { zone = z1 as any; matchedArea = cand; break; }
+      if (z1?.wheels_area_id) { zone = z1 as any; matchedArea = cand; matchedVia = "exact"; break; }
 
       const { data: z2 } = await admin
         .from("delivery_zones")
@@ -266,7 +289,51 @@ Deno.serve(async (req) => {
         .not("wheels_area_id", "is", null)
         .limit(1)
         .maybeSingle();
-      if (z2?.wheels_area_id) { zone = z2 as any; matchedArea = cand; break; }
+      if (z2?.wheels_area_id) { zone = z2 as any; matchedArea = cand; matchedVia = "ilike_exact"; break; }
+    }
+
+    // Pass 2 — alias exact match against the new area_aliases column.
+    if (!zone?.wheels_area_id) {
+      for (const cand of candidates) {
+        const norm = normalize(cand);
+        const variants = Array.from(new Set([cand, norm, stripAl(cand)].filter((v) => v && v.length > 1)));
+        if (variants.length === 0) continue;
+        const { data: z } = await admin
+          .from("delivery_zones")
+          .select("wheels_area_id, wheels_fixed_price, area_name")
+          .eq("user_id", order.user_id)
+          .eq("branch_id", branchId)
+          .overlaps("area_aliases", variants)
+          .not("wheels_area_id", "is", null)
+          .limit(1)
+          .maybeSingle();
+        if (z?.wheels_area_id) { zone = z as any; matchedArea = cand; matchedVia = "alias"; break; }
+      }
+    }
+
+    // Pass 3 — normalized ILIKE: try matching with "ال" stripped + substring
+    // search in both directions. Only kicks in if nothing matched above; the
+    // length guard (>= 3 chars) prevents tiny tokens from matching too broadly.
+    if (!zone?.wheels_area_id) {
+      for (const cand of candidates) {
+        const norm = normalize(cand);
+        const noAl = stripAl(cand);
+        const probes = Array.from(new Set([norm, noAl].filter((v) => v && v.length >= 3)));
+        for (const p of probes) {
+          const pattern = `%${escapeLike(p)}%`;
+          const { data: z } = await admin
+            .from("delivery_zones")
+            .select("wheels_area_id, wheels_fixed_price, area_name")
+            .eq("user_id", order.user_id)
+            .eq("branch_id", branchId)
+            .ilike("area_name", pattern)
+            .not("wheels_area_id", "is", null)
+            .limit(1)
+            .maybeSingle();
+          if (z?.wheels_area_id) { zone = z as any; matchedArea = (z as any).area_name || cand; matchedVia = "substring"; break; }
+        }
+        if (zone?.wheels_area_id) break;
+      }
     }
 
     if (!zone?.wheels_area_id) {
@@ -331,7 +398,7 @@ Deno.serve(async (req) => {
       await admin.from("pos_orders").update({
         wheels_request_status: "sent",
         wheels_sent_at: new Date().toISOString(),
-        wheels_response: { add: addJson, price: priceResp },
+        wheels_response: { add: addJson, price: priceResp, matched_area: matchedArea, matched_via: matchedVia },
         wheels_delivery_price: priceVal,
         wheels_last_error: null,
         delivery_status: order.delivery_status && order.delivery_status !== "none" ? order.delivery_status : "dispatching",
