@@ -2851,6 +2851,13 @@ const POSPage = () => {
     if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
     if (!guardCashBoxBranchId()) return;
     const isCallCenter = selectedCashBoxId === "__call_center__";
+    // Block "بدون صندوق مؤقتاً" (empty cash box) for non-admins — it bypasses
+    // branch attribution and causes orders to land under "بدون فرع" in
+    // owner reports. Admins keep it for one-off / debugging flows.
+    if (!isAdmin && !isCallCenter && !selectedCashBoxId) {
+      toast.error("⛔ يجب اختيار صندوق نقدي لفتح الوردية");
+      return;
+    }
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
@@ -6926,7 +6933,9 @@ const POSPage = () => {
                 }}
                 className="w-full h-12 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
               >
-                <option value="">بدون صندوق مؤقتاً</option>
+                {/* "بدون صندوق مؤقتاً" متاح فقط للمالك/الأدمن — إخفاؤه عن الكاشير
+                    يمنع المبيعات من الظهور تحت "بدون فرع" في تقارير المالك. */}
+                {isAdmin && <option value="">بدون صندوق مؤقتاً</option>}
                 {[...cashBoxes].sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar", { numeric: true, sensitivity: "base" })).map(box => (
                   <option key={box.id} value={box.id}>{box.name}</option>
                 ))}
