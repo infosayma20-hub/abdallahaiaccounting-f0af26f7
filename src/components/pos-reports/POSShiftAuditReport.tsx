@@ -89,6 +89,8 @@ export default function POSShiftAuditReport({ sessions }: Props) {
   const [shiftKind, setShiftKind] = useState<ShiftKind>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [branchFilter, setBranchFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
 
   // Build unique branch list from sessions
   const branchesInData = useMemo(() => {
@@ -103,8 +105,16 @@ export default function POSShiftAuditReport({ sessions }: Props) {
     let out = sessions;
     if (branchFilter) out = out.filter(s => s.branch_id === branchFilter);
     if (shiftKind !== "all") out = out.filter(s => classifyShift(s.opened_at) === shiftKind);
+    if (dateFrom) {
+      const fromTs = new Date(dateFrom + "T00:00:00").getTime();
+      out = out.filter(s => new Date(s.opened_at).getTime() >= fromTs);
+    }
+    if (dateTo) {
+      const toTs = new Date(dateTo + "T23:59:59").getTime();
+      out = out.filter(s => new Date(s.opened_at).getTime() <= toTs);
+    }
     return out;
-  }, [sessions, shiftKind, branchFilter]);
+  }, [sessions, shiftKind, branchFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     if (filtered.length > 0 && !filtered.find(s => s.id === selectedId)) {
