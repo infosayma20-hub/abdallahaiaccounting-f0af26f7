@@ -4489,6 +4489,7 @@ const POSPage = () => {
             const silentPatterns = [
               "ليس للتوصيل",
               "تم إرسال هذا الطلب مسبقاً",
+              "تم تجاهل الإرسال",
             ];
             const configPatterns = [
               "غير مربوط بـ Wheels",
