@@ -5591,7 +5591,7 @@ const POSPage = () => {
               newOrder.callCenterPaymentMethod = order.payment_method || "cash";
               newOrder.callCenterSourceApp = order.source_app || null;
               newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
-    newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
+              newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
               // Build a clean delivery info block from structured data so
               // cashier + kitchen prints get the same info without injecting
               // a synthetic cart line.
@@ -8389,7 +8389,7 @@ const POSPage = () => {
           newOrder.callCenterPaymentMethod = order.payment_method || "cash";
           newOrder.callCenterSourceApp = order.source_app || null;
           newOrder.callCenterVisaGlAccountCode = (order as any).visa_gl_account_code || null;
-    newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
+          newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
           newOrder.callCenterBranchId = order.target_branch_id || null;
           newOrder.callCenterBranchName = order.target_branch_name || null;
           newOrder.callCenterDeliveryInfo = (order as any).delivery_info || null;
