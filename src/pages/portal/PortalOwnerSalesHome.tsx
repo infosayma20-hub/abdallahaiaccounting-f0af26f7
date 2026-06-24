@@ -20,7 +20,7 @@ interface RangeData {
   orderCount: number;
   byBranch: { id: string; name: string; location: string; total: number; orderCount: number }[];
   byItem: { name: string; quantity: number; revenue: number }[];
-  byCashier: { name: string; total: number; orderCount: number }[];
+  byCashier: { name: string; total: number; orderCount: number; branchId?: string; branchName?: string }[];
 }
 
 interface OwnerSales {
@@ -379,14 +379,46 @@ function BranchesView({ branches, t }: { branches: RangeData['byBranch']; t: Ret
 }
 
 function CashiersView({ cashiers, t }: { cashiers: RangeData['byCashier']; t: ReturnType<typeof getTokens> }) {
-  const max = cashiers[0]?.total || 1;
+  if (cashiers.length === 0) {
+    return (
+      <div style={{ background: t.cardBg, borderRadius: 14, padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted, border: `1px solid ${t.cardBorder}` }}>
+        لا توجد بيانات كاشير
+      </div>
+    );
+  }
+  // Group by branch
+  const groups: Record<string, { branchName: string; total: number; rows: typeof cashiers }> = {};
+  for (const cs of cashiers) {
+    const key = cs.branchId || '__no_branch__';
+    const name = cs.branchName || 'بدون فرع';
+    if (!groups[key]) groups[key] = { branchName: name, total: 0, rows: [] };
+    groups[key].total += cs.total;
+    groups[key].rows.push(cs);
+  }
+  const ordered = Object.entries(groups).sort((a, b) => b[1].total - a[1].total);
   return (
-    <div style={{ background: t.cardBg, borderRadius: 14, padding: '4px 14px', border: `1px solid ${t.cardBorder}` }}>
-      {cashiers.length === 0 ? (
-        <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted }}>لا توجد بيانات كاشير</div>
-      ) : cashiers.map((cs, i) => (
-        <BarRow key={i} name={cs.name} value={cs.total} label={`${fmt(cs.total)} • ${cs.orderCount}`} max={max} t={t} accent="#16a34a" />
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {ordered.map(([key, g]) => {
+        const sortedRows = [...g.rows].sort((a, b) => b.total - a.total);
+        const max = sortedRows[0]?.total || 1;
+        return (
+          <div key={key} style={{ background: t.cardBg, borderRadius: 14, border: `1px solid ${t.cardBorder}`, overflow: 'hidden' }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '10px 14px', background: 'rgba(14,165,233,0.08)',
+              borderBottom: `1px solid ${t.cardBorder}`,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{g.branchName}</div>
+              <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 600 }}>{fmt(g.total)} • {sortedRows.length} كاشير</div>
+            </div>
+            <div style={{ padding: '4px 14px' }}>
+              {sortedRows.map((cs, i) => (
+                <BarRow key={i} name={cs.name} value={cs.total} label={`${fmt(cs.total)} • ${cs.orderCount}`} max={max} t={t} accent="#16a34a" />
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
