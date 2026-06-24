@@ -71,6 +71,7 @@ interface InvoiceLine {
   total: number;
   discount_amount: number;
   notes?: string | null;
+  modifiers?: { option_name: string; extra_price?: number }[];
 }
 
 interface InvoicePayment {
