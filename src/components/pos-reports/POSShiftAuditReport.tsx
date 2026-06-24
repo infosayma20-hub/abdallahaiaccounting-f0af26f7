@@ -72,6 +72,8 @@ interface SessionOrder {
   order_note?: string | null;
   customer_name?: string | null;
   notes?: string | null;
+  /** Resolved employee name for employee_account payments (from GL account or order_note). */
+  employee_name?: string | null;
 }
 interface SessionPayment {
   id: string;
