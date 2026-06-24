@@ -1350,10 +1350,10 @@ export default function InvoiceHistoryDrawer({
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-3 pt-3 border-t flex items-center justify-between text-[12px]" style={{ borderColor: "#E5E7EB", color: "#0F172A" }}>
-                        <span className="font-semibold">الإجمالي للتحصيل</span>
-                        <span className="text-[15px] font-bold" style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{selectedOrder.total.toFixed(2)}</span>
-                      </div>
+                      // Expiry mode: hide the amount entirely from the cashier
+                      // after `amountVisibleMinutes`. Identity message above
+                      // already explains why the body is empty.
+                      null
                     )}
                   </>
                 );
