@@ -615,6 +615,13 @@ function renderReceiptSVG(order, logoTopMargin) {
   if (order.tableNumber) push(30, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الطاولة</text>
     <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="800" font-family="Tahoma">${esc(order.tableNumber)}</text>`);
+  // ── Customer info — always shown when present (dine-in / takeaway / delivery)
+  if (order.customerName) push(30, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">الزبون</text>
+    <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="800" font-family="Tahoma">${esc(order.customerName)}</text>`);
+  if (order.customerPhone) push(30, (cy) => `
+    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الهاتف</text>
+    <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="700" font-family="Tahoma" direction="ltr">${esc(order.customerPhone)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
   // ── ITEMS GRID (v6.3.7-clean items-table) ────────────────────────────
