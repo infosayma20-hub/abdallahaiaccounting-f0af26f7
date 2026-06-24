@@ -57,24 +57,28 @@ function bridgeCandidates(): string[] {
 }
 
 async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
-  const baseUrl = getBridgeUrl();
-  if (!baseUrl) {
-    throw new PrintBridgeConnectionError(
-      "network_failed",
-      "لم يتم إعداد عنوان Print Bridge لهذا الجهاز. افتح إعدادات الجهاز وأدخل العنوان.",
-    );
+  const candidates = bridgeCandidates();
+  if (candidates.length === 0) {
+    candidates.push("http://127.0.0.1:3001", "http://localhost:3001");
   }
-  try {
-    return await fetch(`${baseUrl}${path}`, withLocalNetworkAccess({
-      ...init,
-    }));
-  } catch {
-    const message = getBridgeBlockedMessage();
-    throw new PrintBridgeConnectionError(
-      isEmbeddedPreview() ? "iframe_blocked" : window.isSecureContext ? "browser_blocked" : "network_failed",
-      message,
-    );
+
+  for (const baseUrl of candidates) {
+    try {
+      const response = await fetch(`${baseUrl}${path}`, withLocalNetworkAccess({
+        ...init,
+      }));
+      if (!getBridgeUrl()) setBridgeUrl(baseUrl);
+      return response;
+    } catch {
+      /* try next bridge candidate */
+    }
   }
+
+  const message = getBridgeBlockedMessage();
+  throw new PrintBridgeConnectionError(
+    isEmbeddedPreview() ? "iframe_blocked" : window.isSecureContext ? "browser_blocked" : "network_failed",
+    message,
+  );
 }
 
 /** Send a print job — type can be receipt, kitchen, or both */
@@ -242,7 +246,7 @@ export async function checkBridgeStatus(): Promise<boolean> {
 }
 
 export function getPrintBridgeUrl() {
-  return getBridgeUrl();
+  return getBridgeUrl() || "http://127.0.0.1:3001";
 }
 
 export function getPrintBridgeBlockedMessage() {
