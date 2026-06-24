@@ -4481,6 +4481,8 @@ const POSPage = () => {
             toast.success(
               `🚚 تم إرسال الطلب إلى Wheels${price != null ? ` — التوصيل: ${price} ₪` : ""}`
             );
+          } else if ((wheelsRes as any)?.skipped) {
+            toast.info("ℹ️ تم تخطّي إرسال Wheels — الطلبية موجودة أصلاً على Wheels", { duration: 4000 });
           } else {
             const errMsg = String((wheelsRes as any)?.error || "");
             // Surface every failure so the cashier knows the courier wasn't
