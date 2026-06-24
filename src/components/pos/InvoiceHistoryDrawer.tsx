@@ -25,6 +25,7 @@ import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/
 interface InvoiceOrder {
   id: string;
   order_number: string | null;
+  session_seq: number | null;
   created_at: string;
   total: number;
   subtotal: number;
