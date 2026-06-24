@@ -565,10 +565,14 @@ const CallCenterDispatchDialog = ({
         // The RPC doesn't take visa_gl_account_code — write it separately so
         // edits that change the visa variant are persisted correctly.
         const newGl = paymentOptions.find(o => o.code === paymentMethod)?.gl_note || null;
-        if (newGl !== (editingVisaGlAccountCode ?? null)) {
+        const newSkip = !!skipWheelsDispatch;
+        const patch: Record<string, unknown> = {};
+        if (newGl !== (editingVisaGlAccountCode ?? null)) patch.visa_gl_account_code = newGl;
+        if (newSkip !== !!editingSkipWheelsDispatch) patch.skip_wheels_dispatch = newSkip;
+        if (Object.keys(patch).length > 0) {
           await supabase
             .from("call_center_orders" as any)
-            .update({ visa_gl_account_code: newGl })
+            .update(patch as any)
             .eq("id", editingOrderId);
         }
         toast.success(`تم تحديث الطلبية في فرع ${selectedBranch!.name}`, { duration: 4000 });
