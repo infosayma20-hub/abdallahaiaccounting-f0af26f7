@@ -578,11 +578,42 @@ export async function printAllImage(
             .map(j => ({ key: j.printerKey, label: j.stationLabel, items: j.items }))
         : ALL_STATIONS.map(s => ({ key: s.key, label: s.label, items: order.items }));
 
-    const unifiedKitchenItems = kitchenJobs && kitchenJobs.length > 0
+    const unifiedKitchenItemsRaw = kitchenJobs && kitchenJobs.length > 0
       ? stationsToPrintRaw.flatMap(s => s.items)
       : order.items;
-    const stationsToPrint = (await shouldUseUnifiedKitchenPrinter(order))
-      ? [{ key: 'kitchen', label: 'المطبخ', items: unifiedKitchenItems }]
+    const isUnifiedKitchen = await shouldUseUnifiedKitchenPrinter(order);
+    // Plaza-only path: dedupe merged items so the unified kitchen ticket
+    // doesn't show the same line twice when items were broadcast to
+    // multiple stations. Other branches keep the legacy stationsToPrintRaw
+    // path untouched.
+    const dedupeUnifiedItems = (items: PrintItem[]): PrintItem[] => {
+      const map = new Map<string, PrintItem>();
+      for (const it of items || []) {
+        const modsSig = (it.modifiers || [])
+          .map(m => `${m.option_name}:${m.extra_price ?? ''}`)
+          .sort()
+          .join('|');
+        const key = `${it.id || it.name}|${it.note || ''}|${modsSig}`;
+        const existing = map.get(key);
+        if (existing) {
+          existing.quantity = (Number(existing.quantity) || 0) + (Number(it.quantity) || 0);
+        } else {
+          map.set(key, { ...it });
+        }
+      }
+      return Array.from(map.values());
+    };
+    const unifiedKitchenItems = isUnifiedKitchen
+      ? dedupeUnifiedItems(unifiedKitchenItemsRaw)
+      : unifiedKitchenItemsRaw;
+    // Plaza-only: print the SAME unified kitchen ticket on BOTH the
+    // kitchen printer (10.10.211.8) AND the receipt printer (10.10.211.7),
+    // so the heater also gets a copy without adding a second device.
+    const stationsToPrint = isUnifiedKitchen
+      ? [
+          { key: 'kitchen', label: 'المطبخ', items: unifiedKitchenItems },
+          { key: 'receipt', label: 'المطبخ', items: unifiedKitchenItems },
+        ]
       : stationsToPrintRaw;
 
     // ── DEDUPE by printerKey ──
@@ -593,6 +624,10 @@ export async function printAllImage(
     for (const s of stationsToPrint) {
       const existing = mergedByKey.get(s.key);
       if (existing) {
+        // In the unified-kitchen path we intentionally reuse the SAME items
+        // for both printer keys, so skip the cross-key merge to avoid
+        // doubling quantities on the second ticket.
+        if (isUnifiedKitchen) continue;
         existing.items = [...existing.items, ...s.items];
       } else {
         mergedByKey.set(s.key, { ...s, items: [...s.items] });
