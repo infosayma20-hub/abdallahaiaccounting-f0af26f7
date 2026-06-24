@@ -135,9 +135,11 @@ Deno.serve(async (req) => {
     // Skip-flag: when the agent marked the call-center order as "already on
     // Wheels" (typical for orders that originally came from the Wheels app),
     // we must NOT re-dispatch — that would create a duplicate trip. The
-    // lookup is unconditional so even orders that already had a phone on
-    // pos_orders are still gated by the linked call-center row.
-    let skipWheelsDispatch = false;
+    // PRIMARY source is pos_orders.skip_wheels_dispatch (set on insert by
+    // the cashier flow OR synced from the linked cco row by a DB trigger).
+    // We still consult call_center_orders as a fallback to cover any legacy
+    // rows that haven't been synced yet.
+    let skipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
     if (!customerPhone) {
       const { data: cco } = await admin
         .from("call_center_orders")
@@ -147,14 +149,14 @@ Deno.serve(async (req) => {
       customerPhone = (cco as any)?.customer_phone
         || (cco as any)?.delivery_info?.caller_phone
         || null;
-      skipWheelsDispatch = !!(cco as any)?.skip_wheels_dispatch;
+      skipWheelsDispatch = skipWheelsDispatch || !!(cco as any)?.skip_wheels_dispatch;
     } else {
       const { data: cco2 } = await admin
         .from("call_center_orders")
         .select("skip_wheels_dispatch")
         .eq("pos_order_id", order_id)
         .maybeSingle();
-      skipWheelsDispatch = !!(cco2 as any)?.skip_wheels_dispatch;
+      skipWheelsDispatch = skipWheelsDispatch || !!(cco2 as any)?.skip_wheels_dispatch;
     }
 
     if (skipWheelsDispatch) {

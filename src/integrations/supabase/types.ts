@@ -11890,6 +11890,7 @@ export type Database = {
           return_reason: string | null
           session_id: string
           session_seq: number | null
+          skip_wheels_dispatch: boolean
           state: string
           subtotal: number
           survey_sent: boolean | null
@@ -11980,6 +11981,7 @@ export type Database = {
           return_reason?: string | null
           session_id: string
           session_seq?: number | null
+          skip_wheels_dispatch?: boolean
           state?: string
           subtotal?: number
           survey_sent?: boolean | null
@@ -12070,6 +12072,7 @@ export type Database = {
           return_reason?: string | null
           session_id?: string
           session_seq?: number | null
+          skip_wheels_dispatch?: boolean
           state?: string
           subtotal?: number
           survey_sent?: boolean | null
