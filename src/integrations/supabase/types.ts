@@ -2538,6 +2538,7 @@ export type Database = {
           pos_return_policy_days: number | null
           pos_show_return_policy: boolean | null
           pos_show_tax: boolean | null
+          pos_tables_enabled: boolean
           pos_voice_call_enabled: boolean
           pos_voice_language: string
           pos_voice_template: string
@@ -2701,6 +2702,7 @@ export type Database = {
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
+          pos_tables_enabled?: boolean
           pos_voice_call_enabled?: boolean
           pos_voice_language?: string
           pos_voice_template?: string
@@ -2864,6 +2866,7 @@ export type Database = {
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
           pos_show_tax?: boolean | null
+          pos_tables_enabled?: boolean
           pos_voice_call_enabled?: boolean
           pos_voice_language?: string
           pos_voice_template?: string

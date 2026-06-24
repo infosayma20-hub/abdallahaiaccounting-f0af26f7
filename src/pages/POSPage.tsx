@@ -399,7 +399,7 @@ const POSPage = () => {
   const { user } = useAuth();
   // Phase A — Generalization Hard Stop: drives restaurant vs retail UI
   // and replaces the hardcoded Malaky email check for Call Center.
-  const { restaurantFeatures, callCenterEnabled } = usePosMode();
+  const { restaurantFeatures, callCenterEnabled, tablesEnabled } = usePosMode();
   const searchRef = useRef<HTMLInputElement>(null);
   const { printAll: bridgePrintAll } = usePrintBridge();
   // Guard against rapid double-fires on print shortcuts (F8/F9/payment button).
@@ -6256,7 +6256,9 @@ const POSPage = () => {
               : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
             ).map(type => {
               const isActive = type === "dine_in"
-                ? !!activeOrder.tableId
+                ? (tablesEnabled
+                    ? !!activeOrder.tableId
+                    : (activeOrder.orderType === "dine_in" && !!activeOrder.orderTypeChosen))
                 : (activeOrder.orderType === type && !activeOrder.tableId && !!activeOrder.orderTypeChosen);
               const labels: Record<string, string> = { takeaway: "سفري", delivery: "توصيل", dine_in: "طاولة" };
               return (
@@ -6264,7 +6266,19 @@ const POSPage = () => {
                   key={type}
                   onClick={() => {
                     if (type === "dine_in") {
-                      setShowTablePicker(!showTablePicker);
+                      if (tablesEnabled) {
+                        setShowTablePicker(!showTablePicker);
+                      } else {
+                        // No-numbers mode: just mark the order as dine-in
+                        // without binding to a specific table.
+                        updateActiveOrder(o => ({
+                          ...o,
+                          orderType: "dine_in",
+                          orderTypeChosen: true,
+                          tableId: null,
+                          tableName: null,
+                        }));
+                      }
                     } else {
                       updateActiveOrder(o => ({ ...o, orderType: type, orderTypeChosen: true, tableId: null, tableName: null }));
                     }
@@ -6554,7 +6568,7 @@ const POSPage = () => {
             />
 
             {/* Table picker dropdown */}
-            {restaurantFeatures && showTablePicker && (
+            {restaurantFeatures && tablesEnabled && showTablePicker && (
               <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: '#1a2d4a', borderColor: 'rgba(255,255,255,0.15)' }}>
                 {availableTables.length === 0 && (
                   <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</p>
