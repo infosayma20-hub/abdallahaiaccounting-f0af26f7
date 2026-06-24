@@ -12313,6 +12313,33 @@ export type Database = {
           },
         ]
       }
+      pos_product_force_stations: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          id: string
+          product_id: string
+          station_id: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          product_id: string
+          station_id: string
+          user_id?: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          product_id?: string
+          station_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_purchases: {
         Row: {
           created_at: string
