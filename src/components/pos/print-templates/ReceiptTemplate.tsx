@@ -100,7 +100,11 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
     'تحويل': 'تحويل', 'transfer': 'تحويل',
     'employee_account': 'حساب موظف',
   };
-  const payLabel = paymentLabels[order.paymentMethod || ''] || order.paymentMethod || 'نقد';
+  const baseLabel = paymentLabels[order.paymentMethod || ''] || order.paymentMethod || 'نقد';
+  // عند البيع على حساب موظف، نعرض اسم الموظف بدل ما يبقى مجرد "حساب موظف".
+  const payLabel = (order.paymentMethod === 'employee_account' && (order as any).employeeName)
+    ? `حساب موظف: ${(order as any).employeeName}`
+    : baseLabel;
 
   const tenderedCurrSym = currencySymbols[order.currency || 'ILS'] || order.currency || '₪';
   const changeSym = '₪';
