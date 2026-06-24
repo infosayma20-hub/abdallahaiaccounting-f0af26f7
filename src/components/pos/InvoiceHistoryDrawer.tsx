@@ -1413,6 +1413,7 @@ export default function InvoiceHistoryDrawer({
                   </Button>
                 )}
                 {printInvoices && (!cashierMode || canSeeDetails(selectedOrder)) && (
+                <>
                 <Button
                   variant="outline"
                   size="sm"
@@ -1501,6 +1502,7 @@ export default function InvoiceHistoryDrawer({
                     <option key={n} value={n}>{n} نسخة</option>
                   ))}
                 </select>
+                </>
                 )}
 
                 {canCancelInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
