@@ -399,7 +399,7 @@ const POSPage = () => {
   const { user } = useAuth();
   // Phase A — Generalization Hard Stop: drives restaurant vs retail UI
   // and replaces the hardcoded Malaky email check for Call Center.
-  const { restaurantFeatures, callCenterEnabled } = usePosMode();
+  const { restaurantFeatures, callCenterEnabled, tablesEnabled } = usePosMode();
   const searchRef = useRef<HTMLInputElement>(null);
   const { printAll: bridgePrintAll } = usePrintBridge();
   // Guard against rapid double-fires on print shortcuts (F8/F9/payment button).
