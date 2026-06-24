@@ -1413,6 +1413,7 @@ export default function InvoiceHistoryDrawer({
                   </Button>
                 )}
                 {printInvoices && (!cashierMode || canSeeDetails(selectedOrder)) && (
+                <>
                 <Button
                   variant="outline"
                   size="sm"
@@ -1471,7 +1472,6 @@ export default function InvoiceHistoryDrawer({
                       paymentMethod: paymentLabel,
                       orderNote: (selectedOrder as any).order_note || (selectedOrder as any).notes || undefined,
                       tenderedAmount: orderPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0) || undefined,
-                      change: 0,
                       orderType: ((selectedOrder as any).order_type as any) || undefined,
                       tableNumber: (selectedOrder as any).table_name || undefined,
                     };
@@ -1492,7 +1492,6 @@ export default function InvoiceHistoryDrawer({
                 >
                   <Printer className="h-3.5 w-3.5" /> طباعة {reprintCopies > 1 ? `× ${reprintCopies}` : ""}
                 </Button>
-                )}
                 <select
                   value={reprintCopies}
                   onChange={(e) => setReprintCopies(Number(e.target.value) || 1)}
@@ -1503,6 +1502,8 @@ export default function InvoiceHistoryDrawer({
                     <option key={n} value={n}>{n} نسخة</option>
                   ))}
                 </select>
+                </>
+                )}
 
                 {canCancelInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>
