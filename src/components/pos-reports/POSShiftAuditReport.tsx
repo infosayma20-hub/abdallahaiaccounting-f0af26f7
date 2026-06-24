@@ -72,6 +72,8 @@ interface SessionOrder {
   order_note?: string | null;
   customer_name?: string | null;
   notes?: string | null;
+  /** Resolved employee name for employee_account payments (from GL account or order_note). */
+  employee_name?: string | null;
 }
 interface SessionPayment {
   id: string;
@@ -310,6 +312,53 @@ function ShiftDetail({ session }: { session: POSSession }) {
         voidPays = (payRes || [])
           .filter((p: any) => voidedOrderIds.has(p.order_id))
           .map((p: any) => ({ id: p.id, payment_method: p.payment_method, amount: Number(p.amount) || 0, order_id: p.order_id }));
+
+        // ── Resolve employee names for employee_account payments ──
+        // Priority: order_note "حساب موظف: X" → GL debit account name (strip "ذمم موظف - ").
+        const employeeOrderIds = new Set(
+          (payRes || [])
+            .filter((p: any) => p.payment_method === "employee_account" || p.payment_method === "employee")
+            .map((p: any) => p.order_id)
+        );
+        const empOrders = enriched.filter(o => employeeOrderIds.has(o.id));
+        const txIdsForEmp = empOrders.map(o => o.transaction_id).filter(Boolean) as string[];
+        const txToAccountCode = new Map<string, string>();
+        if (txIdsForEmp.length) {
+          const { data: txRows } = await supabase
+            .from("transactions")
+            .select("id, debit_account_code")
+            .in("id", txIdsForEmp);
+          (txRows || []).forEach((t: any) => {
+            if (t?.debit_account_code) txToAccountCode.set(t.id, t.debit_account_code);
+          });
+        }
+        const codes = Array.from(new Set(Array.from(txToAccountCode.values())));
+        const codeToName = new Map<string, string>();
+        if (codes.length) {
+          const { data: accRows } = await supabase
+            .from("accounts")
+            .select("account_code, account_name")
+            .in("account_code", codes);
+          (accRows || []).forEach((a: any) => {
+            if (a?.account_code && a?.account_name && !codeToName.has(a.account_code)) {
+              codeToName.set(a.account_code, a.account_name);
+            }
+          });
+        }
+        const noteEmpRegex = /حساب\s*موظف\s*[:：]\s*([^|]+?)(?:\s*\||$)/;
+        empOrders.forEach(o => {
+          let name: string | null = null;
+          // 1) order_note pattern
+          const m = o.order_note?.match(noteEmpRegex);
+          if (m?.[1]) name = m[1].trim();
+          // 2) fall back to GL account name (strip "ذمم موظف - ")
+          if (!name && o.transaction_id) {
+            const code = txToAccountCode.get(o.transaction_id);
+            const accName = code ? codeToName.get(code) : null;
+            if (accName) name = accName.replace(/^ذمم\s*موظف\s*-\s*/, "").trim();
+          }
+          o.employee_name = name;
+        });
       }
       if (!cancelled) {
         setOrders(enriched);
@@ -337,11 +386,14 @@ function ShiftDetail({ session }: { session: POSSession }) {
       byMethod[k].count++;
       byMethod[k].amount += p.amount;
       const ord = p.order_id ? orderById.get(p.order_id) : undefined;
+      const isEmpMethod = p.payment_method === "employee_account" || p.payment_method === "employee";
       byMethod[k].rows.push({
         orderId: p.order_id || "",
         orderNumber: ord?.order_number || null,
         amount: p.amount,
-        note: ord?.order_note || ord?.customer_name || null,
+        note: isEmpMethod
+          ? (ord?.employee_name || ord?.order_note || ord?.customer_name || null)
+          : (ord?.order_note || ord?.customer_name || null),
       });
     });
     // Re-derive expected cash from real (non-voided) cash payments only.

@@ -3736,6 +3736,21 @@ const POSPage = () => {
         ? Math.round((effectiveTotal * companySharePct / 100) * 100) / 100
         : 0;
 
+      // ALWAYS persist the employee identity in order_note when paying via
+      // employee_account, even when the cashier also typed a free-form note.
+      // (Reports use this to show the employee name in the audit drill-down.)
+      const composedOrderNote: string | null = (() => {
+        const empHeader =
+          effectivePaymentMethod === "employee_account" && selectedEmployee
+            ? `حساب موظف: ${selectedEmployee.full_name}${
+                employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""
+              }`
+            : null;
+        const userNote = orderNote?.trim() || null;
+        const parts = [empHeader, userNote].filter(Boolean) as string[];
+        return parts.length ? parts.join(" | ") : null;
+      })();
+
       // Check if there's an existing draft/open order for this table (saved earlier)
       if (activeOrder.tableId) {
         const { data: existingOrder } = await supabase
@@ -3762,7 +3777,7 @@ const POSPage = () => {
             zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
             area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
-            order_note: orderNote || (effectivePaymentMethod === "employee_account" && selectedEmployee ? `حساب موظف: ${selectedEmployee.full_name}${employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""}` : null),
+            order_note: composedOrderNote,
             delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
@@ -3799,7 +3814,7 @@ const POSPage = () => {
                 zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
                 area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
                 pos_customer_id: activeOrder.posCustomerId || null,
-                order_note: orderNote || (effectivePaymentMethod === "employee_account" && selectedEmployee ? `حساب موظف: ${selectedEmployee.full_name}${employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""}` : null),
+                order_note: composedOrderNote,
                 delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
                 ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
                 ...(markAsReplacement && lastCancelledOrder ? {
@@ -3835,7 +3850,7 @@ const POSPage = () => {
               zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
               area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
               pos_customer_id: activeOrder.posCustomerId || null,
-              order_note: orderNote || (effectivePaymentMethod === "employee_account" && selectedEmployee ? `حساب موظف: ${selectedEmployee.full_name}${employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""}` : null),
+              order_note: composedOrderNote,
               delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
               ...(markAsReplacement && lastCancelledOrder ? {
