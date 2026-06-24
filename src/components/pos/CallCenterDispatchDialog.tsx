@@ -677,6 +677,27 @@ const CallCenterDispatchDialog = ({
                 طلب مباشر
               </button>
             </div>
+            {/* Skip Wheels auto-dispatch — only meaningful for Wheels-family
+                sources. The checkbox is also visible (unchecked) for non-Wheels
+                sources only when the agent manually toggles, to keep the UI
+                deterministic and uncluttered. */}
+            {/wheels/i.test(sourceApp || "") && (
+              <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/10 px-3 py-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-amber-600"
+                  checked={skipWheelsDispatch}
+                  onChange={(e) => {
+                    setSkipWheelsDispatch(e.target.checked);
+                    setSkipWheelsTouched(true);
+                  }}
+                />
+                <span className="text-[12px] leading-tight text-amber-900 dark:text-amber-200">
+                  <b>لا تُرسل إلى Wheels تلقائياً</b> — هاي الطلبية موجودة أصلاً
+                  على شاشة Wheels (لتجنّب التكرار).
+                </span>
+              </label>
+            )}
           </div>
 
           {/* Target Branch */}
