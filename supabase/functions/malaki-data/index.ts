@@ -348,13 +348,21 @@ Deno.serve(async (req) => {
         const byItem = Object.values(itemAgg).sort((a, b) => b.revenue - a.revenue);
 
         // ── Cashier aggregation (POS only) ──
-        const cashierAgg: Record<string, { name: string; total: number; orderCount: number }> = {};
+        const cashierAgg: Record<string, { name: string; branchId: string; branchName: string; total: number; orderCount: number }> = {};
         for (const o of orderList) {
           const sess = sessionMap[o.session_id];
           const name = sess?.cashierName || "غير محدد";
-          if (!cashierAgg[name]) cashierAgg[name] = { name, total: 0, orderCount: 0 };
-          cashierAgg[name].total += o.total || 0;
-          cashierAgg[name].orderCount += 1;
+          const cbId = sess?.cashBoxId || "";
+          const box = cashBoxMap[cbId];
+          const fallbackBranchId = sess?.terminalId ? terminalBranchMap[sess.terminalId] : null;
+          const resolvedBranchId = box?.branchId || fallbackBranchId || "__no_branch__";
+          const branchName = resolvedBranchId !== "__no_branch__"
+            ? (branchNameMap[resolvedBranchId] || "فرع غير مسمى")
+            : "بدون فرع";
+          const key = `${resolvedBranchId}::${name}`;
+          if (!cashierAgg[key]) cashierAgg[key] = { name, branchId: resolvedBranchId, branchName, total: 0, orderCount: 0 };
+          cashierAgg[key].total += o.total || 0;
+          cashierAgg[key].orderCount += 1;
         }
         // (Invoice sales attribution by user is not tracked on invoices table)
         const byCashier = Object.values(cashierAgg).sort((a, b) => b.total - a.total);
