@@ -1459,16 +1459,34 @@ export default function InvoiceHistoryDrawer({
                         name: line.product_name,
                         quantity: line.qty,
                         price: line.unit_price,
+                        note: line.notes || undefined,
+                        modifiers: line.modifiers && line.modifiers.length > 0
+                          ? line.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra_price ?? 0 }))
+                          : undefined,
                       })),
                       subtotal: selectedOrder.subtotal || selectedOrder.total,
                       discount: selectedOrder.discount_amount || 0,
                       total: selectedOrder.total,
                       paymentMethod: paymentLabel,
+                      orderNote: (selectedOrder as any).order_note || (selectedOrder as any).notes || undefined,
+                      tenderedAmount: orderPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0) || undefined,
+                      change: 0,
+                      orderType: ((selectedOrder as any).order_type as any) || undefined,
+                      tableNumber: (selectedOrder as any).table_name || undefined,
                     };
-                    printReceiptImage(bridgeOrder).catch(() => {
-                      console.warn("Print bridge unavailable");
-                    });
-                    toast.success("تم إرسال الإيصال للطابعة");
+                    const companyInfo = { name: terminalName || undefined, terminalName: terminalName || undefined };
+                    const copies = Math.max(1, Math.min(5, Number(reprintCopies) || 1));
+                    (async () => {
+                      for (let i = 0; i < copies; i++) {
+                        // Vary id per copy so the dedupe guard does not block reprints.
+                        const copyOrder: any = { ...bridgeOrder, id: `${selectedOrder.id || ""}-copy-${Date.now()}-${i}` };
+                        await printReceiptImage(copyOrder, companyInfo).catch(() => {
+                          console.warn("Print bridge unavailable");
+                        });
+                        if (i + 1 < copies) await new Promise(r => setTimeout(r, 350));
+                      }
+                    })();
+                    toast.success(copies > 1 ? `تم إرسال ${copies} نسخ للطابعة` : "تم إرسال الإيصال للطابعة");
                   }}
                 >
                   <Printer className="h-3.5 w-3.5" /> طباعة
