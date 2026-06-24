@@ -148,6 +148,10 @@ interface OrderTab {
   callCenterVisaGlAccountCode?: string | null;
   callCenterDeliveryInfo?: any | null;
   callCenterDeliveryFee?: number | null;
+  /** When true, the cashier accepted a call-center order whose agent flagged
+   *  it as "already on Wheels" — the post-payment auto-dispatch must be
+   *  skipped to avoid a duplicate trip on the courier screen. */
+  callCenterSkipWheelsDispatch?: boolean | null;
   /** When true the call-center user is editing an already-dispatched order. F12 will UPDATE the same row instead of inserting a new one. */
   isEditingDispatch?: boolean;
   /** Locked branch for the order being edited (cannot be changed during edit). */
