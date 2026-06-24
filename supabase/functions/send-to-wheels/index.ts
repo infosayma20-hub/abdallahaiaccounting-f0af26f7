@@ -38,15 +38,28 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
+    const isServiceRoleCall = token === serviceRoleKey;
+
+    // Service role client for cross-table reads and updates. This function may
+    // be called either by the cashier's browser or by a DB trigger after a paid
+    // delivery order, so the background path uses this client intentionally.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      serviceRoleKey,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: claimsData, error: claimsError } = isServiceRoleCall
+      ? { data: { claims: { role: "service_role" } }, error: null } as any
+      : await userClient.auth.getClaims(token);
+    if (!isServiceRoleCall && (claimsError || !claimsData?.claims)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -60,14 +73,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Service role client for cross-table reads and updates
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // 1) Fetch order (via user RLS to enforce ownership)
-    const { data: order, error: orderErr } = await userClient
+    // 1) Fetch order. Browser calls use user RLS; DB-trigger calls use service
+    // role because there is no interactive user token in the database worker.
+    const orderClient = isServiceRoleCall ? admin : userClient;
+    const { data: order, error: orderErr } = await orderClient
       .from("pos_orders")
       .select("*")
       .eq("id", order_id)
@@ -143,6 +152,11 @@ Deno.serve(async (req) => {
     }
     if (order.wheels_request_status === "sent") {
       return new Response(JSON.stringify({ error: "تم إرسال هذا الطلب مسبقاً إلى Wheels" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (order.wheels_request_status === "sending") {
+      return new Response(JSON.stringify({ error: "جاري إرسال هذا الطلب إلى Wheels" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -229,11 +243,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4) Mark sending
-    await admin.from("pos_orders").update({
+    // 4) Atomically claim the order before calling Wheels. This prevents a
+    // duplicate courier request when the browser call and DB-trigger retry fire
+    // at the same time.
+    const currentStatus = order.wheels_request_status || "not_sent";
+    const { data: claimedOrder } = await admin.from("pos_orders").update({
       wheels_request_status: "sending",
       wheels_last_error: null,
-    }).eq("id", order_id);
+    }).eq("id", order_id)
+      .eq("wheels_request_status", currentStatus)
+      .select("id")
+      .maybeSingle();
+
+    if (!claimedOrder) {
+      return new Response(JSON.stringify({ error: "جاري إرسال هذا الطلب إلى Wheels" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const headers = { "Content-Type": "application/json", "api-key": apiKey };
 
