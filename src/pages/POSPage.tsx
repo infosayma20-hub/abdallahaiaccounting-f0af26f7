@@ -4718,13 +4718,19 @@ const POSPage = () => {
     newOrder.callCenterSkipWheelsDispatch = !!(order as any).skip_wheels_dispatch;
     const _info: any = (order as any).delivery_info || null;
     const _fee = Number((order as any).delivery_fee || 0);
-    const deliveryBlock = _info ? [
-      `توصيل: ${_info.city || ""} - ${_info.area || ""}`,
-      _info.branch_name ? `الفرع: ${_info.branch_name}` : "",
-      _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info.manually_adjusted ? " (معدّل)" : ""}` : "",
+    const isDelivery = order.delivery_type === "delivery";
+    const deliveryBlock = (isDelivery || _info) ? [
+      _info ? `توصيل: ${_info.city || ""} - ${_info.area || ""}` : "توصيل",
+      _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
+      _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
       order.customer_name ? `الزبون: ${order.customer_name}` : "",
       order.customer_phone ? `جوال: ${order.customer_phone}` : "",
-    ].filter(Boolean).join(" | ") : "";
+    ].filter(Boolean).join(" | ") : [
+      // Takeaway / استلام / سفري — still surface customer info in the note so it prints on the receipt
+      "استلام",
+      order.customer_name ? `الزبون: ${order.customer_name}` : "",
+      order.customer_phone ? `جوال: ${order.customer_phone}` : "",
+    ].filter(Boolean).join(" | ");
     newOrder.orderNote = [
       order.source_app ? `مصدر: ${order.source_app}` : "",
       order.payment_method === "visa" ? "فيزا" : "نقدي",
@@ -5640,13 +5646,19 @@ const POSPage = () => {
               // a synthetic cart line.
               const _info: any = (order as any).delivery_info || null;
               const _fee = Number((order as any).delivery_fee || 0);
-              const deliveryBlock = _info ? [
-                `توصيل: ${_info.city || ""} - ${_info.area || ""}`,
-                _info.branch_name ? `الفرع: ${_info.branch_name}` : "",
-                _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info.manually_adjusted ? " (معدّل)" : ""}` : "",
+              const isDelivery = order.delivery_type === "delivery";
+              const deliveryBlock = (isDelivery || _info) ? [
+                _info ? `توصيل: ${_info.city || ""} - ${_info.area || ""}` : "توصيل",
+                _info?.branch_name ? `الفرع: ${_info.branch_name}` : "",
+                _fee > 0 ? `رسوم التوصيل: ₪${_fee.toFixed(2)}${_info?.manually_adjusted ? " (معدّل)" : ""}` : "",
                 order.customer_name ? `الزبون: ${order.customer_name}` : "",
                 order.customer_phone ? `جوال: ${order.customer_phone}` : "",
-              ].filter(Boolean).join(" | ") : "";
+              ].filter(Boolean).join(" | ") : [
+                // Takeaway / استلام — still print customer name + phone on the receipt note
+                "استلام",
+                order.customer_name ? `الزبون: ${order.customer_name}` : "",
+                order.customer_phone ? `جوال: ${order.customer_phone}` : "",
+              ].filter(Boolean).join(" | ");
               newOrder.orderNote = [
                 order.source_app ? `مصدر: ${order.source_app}` : "",
                 order.payment_method === "visa" ? "فيزا" : "نقدي",
