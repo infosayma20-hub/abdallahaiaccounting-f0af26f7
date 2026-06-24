@@ -557,6 +557,26 @@ export default function InvoiceHistoryDrawer({
       const safePayments = ((paymentsRes.data || []) as InvoicePayment[]).filter(
         (p: any) => !p.order_id || p.order_id === order.id
       );
+      // Load per-line modifiers so reprints include "+ حار، عادي 6" etc.
+      try {
+        const lineIds = safeLines.map(l => l.id).filter(Boolean);
+        if (lineIds.length) {
+          const { data: mods } = await supabase
+            .from("order_item_modifiers")
+            .select("order_line_id, option_name, extra_price")
+            .in("order_line_id", lineIds);
+          const byLine = new Map<string, { option_name: string; extra_price?: number }[]>();
+          for (const m of (mods || []) as any[]) {
+            if (!byLine.has(m.order_line_id)) byLine.set(m.order_line_id, []);
+            byLine.get(m.order_line_id)!.push({ option_name: m.option_name, extra_price: m.extra_price ?? 0 });
+          }
+          for (const l of safeLines) {
+            (l as any).modifiers = byLine.get(l.id) || [];
+          }
+        }
+      } catch (e) {
+        console.warn("[InvoiceHistoryDrawer] could not load modifiers for reprint", e);
+      }
       setOrderLines(safeLines);
       setOrderPayments(safePayments);
       setOrderCurrency((safePayments[0] as any)?.currency || "ILS");
