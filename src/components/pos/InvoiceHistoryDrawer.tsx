@@ -1490,9 +1490,19 @@ export default function InvoiceHistoryDrawer({
                     toast.success(copies > 1 ? `تم إرسال ${copies} نسخ للطابعة` : "تم إرسال الإيصال للطابعة");
                   }}
                 >
-                  <Printer className="h-3.5 w-3.5" /> طباعة
+                  <Printer className="h-3.5 w-3.5" /> طباعة {reprintCopies > 1 ? `× ${reprintCopies}` : ""}
                 </Button>
                 )}
+                <select
+                  value={reprintCopies}
+                  onChange={(e) => setReprintCopies(Number(e.target.value) || 1)}
+                  className="h-8 rounded-md border bg-background px-2 text-xs"
+                  title="عدد النسخ"
+                >
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <option key={n} value={n}>{n} نسخة</option>
+                  ))}
+                </select>
 
                 {canCancelInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>
