@@ -947,13 +947,13 @@ export default function InvoiceHistoryDrawer({
         <div className="px-5 py-3 border-b space-y-2.5" style={{ borderColor: "#E2E8F0" }}>
           <div className="flex items-center gap-2 text-xs font-medium" style={{ fontFamily: "Tajawal, sans-serif", color: "#64748B" }}>
             <ShoppingCart className="h-3.5 w-3.5" />
-            <span>{sessionId ? "فواتير الوردية الحالية" : "جميع الفواتير"}</span>
+            <span>{sessionId ? "فواتير ورديتي فقط (معزولة عن باقي الورديات)" : "جميع الفواتير"}</span>
           </div>
 
           {/* Status filter */}
           <div className="flex flex-wrap gap-1.5">
             {(([
-              { key: "all", label: "كل الفواتير" },
+              { key: "all", label: "كل فواتير ورديتي" },
               { key: "paid", label: "مكتملة" },
               { key: "draft", label: "معلقة" },
               { key: "cancelled", label: "ملغية" },
