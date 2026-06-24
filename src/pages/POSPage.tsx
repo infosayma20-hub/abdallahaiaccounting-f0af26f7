@@ -4440,7 +4440,11 @@ const POSPage = () => {
             bridgeOrder,
             companyPrintInfo,
             kitchenJobs.length > 0 ? kitchenJobs : undefined,
-            { skipReceipt: activeOrder.orderType === "delivery" },
+            // Delivery orders MUST also print the customer receipt automatically
+            // (the captain takes it with the order). Previously we skipped the
+            // receipt for delivery which caused "nothing printed on payment;
+            // re-print from popup printed only the receipt".
+            { skipReceipt: false },
           )
             .catch(() => console.warn("Image print failed"));
         } else {
