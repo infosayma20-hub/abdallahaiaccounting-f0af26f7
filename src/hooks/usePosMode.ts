@@ -8,6 +8,10 @@ export interface PosFeatureFlags {
   posMode: PosMode;
   /** Restaurant features (tables, kitchen, dine-in, send-to-kitchen). */
   restaurantFeatures: boolean;
+  /** Whether table numbers / table picker are used. When false the
+   *  "طاولة" pill becomes a single tap (no numbered picker) and any
+   *  table-list UI is hidden. Kitchen/dine-in flow itself stays on. */
+  tablesEnabled: boolean;
   /** Show the Call Center cash box option in the open-shift dialog. */
   callCenterEnabled: boolean;
   loading: boolean;
@@ -28,6 +32,7 @@ export function usePosMode(): PosFeatureFlags {
   const [state, setState] = useState<PosFeatureFlags>({
     posMode: "restaurant",
     restaurantFeatures: true,
+    tablesEnabled: true,
     callCenterEnabled: false,
     loading: true,
   });
@@ -50,7 +55,7 @@ export function usePosMode(): PosFeatureFlags {
 
         const { data: cs } = await supabase
           .from("company_settings" as any)
-          .select("pos_mode, pos_call_center_enabled")
+          .select("pos_mode, pos_call_center_enabled, pos_tables_enabled")
           .eq("user_id", ownerId)
           .maybeSingle();
 
@@ -58,11 +63,13 @@ export function usePosMode(): PosFeatureFlags {
         const isMalakyLegacy = user.email === "malakybroast@gmail.com";
         const callCenterEnabled =
           (cs as any)?.pos_call_center_enabled ?? isMalakyLegacy;
+        const tablesEnabled = (cs as any)?.pos_tables_enabled ?? true;
 
         if (!cancelled) {
           setState({
             posMode,
             restaurantFeatures: posMode === "restaurant",
+            tablesEnabled: !!tablesEnabled,
             callCenterEnabled: !!callCenterEnabled,
             loading: false,
           });
