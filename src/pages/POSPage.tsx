@@ -63,6 +63,7 @@ import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
 import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady, hydrateConfigFromBridge, syncBranchPrintersToBridge, getDeviceBranchId } from "@/lib/device-config";
 import { loadMuteChecker } from "@/hooks/usePrintMuteRules";
+import { loadForceChecker } from "@/hooks/useProductForceStations";
 import { getCanSell } from "@/lib/pos-device-auth";
 import { usePOSShiftWatcher } from "@/hooks/usePOSShiftWatcher";
 import { ShiftClosedElsewhereDialog } from "@/components/pos/ShiftClosedElsewhereDialog";
