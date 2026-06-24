@@ -19129,6 +19129,39 @@ export type Database = {
           },
         ]
       }
+      wheels_unmatched_areas: {
+        Row: {
+          branch_id: string | null
+          candidates: string[]
+          created_at: string
+          customer_address: string | null
+          id: string
+          order_id: string | null
+          resolved: boolean
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          candidates?: string[]
+          created_at?: string
+          customer_address?: string | null
+          id?: string
+          order_id?: string | null
+          resolved?: boolean
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          candidates?: string[]
+          created_at?: string
+          customer_address?: string | null
+          id?: string
+          order_id?: string | null
+          resolved?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       work_shifts: {
         Row: {
           break_duration_minutes: number | null
@@ -21313,6 +21346,20 @@ export type Database = {
       malaki_set_password: {
         Args: { p_new_password: string; p_user_id: string }
         Returns: boolean
+      }
+      match_wheels_zone_fuzzy: {
+        Args: {
+          p_branch_id: string
+          p_candidate: string
+          p_threshold?: number
+          p_user_id: string
+        }
+        Returns: {
+          area_name: string
+          score: number
+          wheels_area_id: number
+          wheels_fixed_price: number
+        }[]
       }
       move_account: {
         Args: {
