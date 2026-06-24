@@ -2851,6 +2851,13 @@ const POSPage = () => {
     if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
     if (!guardCashBoxBranchId()) return;
     const isCallCenter = selectedCashBoxId === "__call_center__";
+    // Block "بدون صندوق مؤقتاً" (empty cash box) for non-admins — it bypasses
+    // branch attribution and causes orders to land under "بدون فرع" in
+    // owner reports. Admins keep it for one-off / debugging flows.
+    if (!isAdmin && !isCallCenter && !selectedCashBoxId) {
+      toast.error("⛔ يجب اختيار صندوق نقدي لفتح الوردية");
+      return;
+    }
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
