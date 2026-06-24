@@ -3736,6 +3736,21 @@ const POSPage = () => {
         ? Math.round((effectiveTotal * companySharePct / 100) * 100) / 100
         : 0;
 
+      // ALWAYS persist the employee identity in order_note when paying via
+      // employee_account, even when the cashier also typed a free-form note.
+      // (Reports use this to show the employee name in the audit drill-down.)
+      const composedOrderNote: string | null = (() => {
+        const empHeader =
+          effectivePaymentMethod === "employee_account" && selectedEmployee
+            ? `حساب موظف: ${selectedEmployee.full_name}${
+                employeeNote.trim() ? ` | ${employeeNote.trim()}` : ""
+              }`
+            : null;
+        const userNote = orderNote?.trim() || null;
+        const parts = [empHeader, userNote].filter(Boolean) as string[];
+        return parts.length ? parts.join(" | ") : null;
+      })();
+
       // Check if there's an existing draft/open order for this table (saved earlier)
       if (activeOrder.tableId) {
         const { data: existingOrder } = await supabase
