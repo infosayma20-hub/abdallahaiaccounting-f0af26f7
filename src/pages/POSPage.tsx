@@ -8365,6 +8365,7 @@ const POSPage = () => {
             callCenterPaymentMethod: null,
             callCenterSourceApp: null,
             callCenterVisaGlAccountCode: null,
+            callCenterSkipWheelsDispatch: false,
           }));
         }}
       />
