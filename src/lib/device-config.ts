@@ -174,6 +174,7 @@ type PosPrinterRow = {
   branch_id?: string | null;
   is_active?: boolean | null;
   settings?: Record<string, any> | null;
+  terminal_ids?: string[] | null;
 };
 
 export function posPrinterRoleToBridgeKey(role: string | null | undefined): BridgePrinterKey | null {
@@ -246,15 +247,28 @@ function completePrintersReplacementMap(map: BridgePrintersMap): BridgePrintersM
   return fullMap;
 }
 
-export async function syncBranchPrintersToBridge(branchId: string): Promise<{ ok: boolean; count: number }> {
+export async function syncBranchPrintersToBridge(branchId: string, terminalId?: string | null): Promise<{ ok: boolean; count: number }> {
   if (!branchId) return { ok: false, count: 0 };
+  const tId = terminalId ?? getDeviceTerminalId();
   const { data, error } = await (supabase.from("pos_printers") as any)
-    .select("id, name, ip_address, port, printer_type, print_categories, branch_id, is_active, settings")
+    .select("id, name, ip_address, port, printer_type, print_categories, branch_id, is_active, settings, terminal_ids")
     .eq("is_active", true)
     .or(`branch_id.eq.${branchId},branch_id.is.null`)
     .order("is_default", { ascending: false });
   if (error) throw error;
-  const map = buildBridgePrintersMapFromRows((data || []) as PosPrinterRow[]);
+  // Filter by terminal: keep printers either unbound (shared) or bound to THIS terminal.
+  // A bound printer wins over an unbound one for the same role on this terminal.
+  const rows = ((data || []) as PosPrinterRow[]).filter(p => {
+    const tids = p.terminal_ids || [];
+    if (!tids || tids.length === 0) return true;
+    return tId ? tids.includes(tId) : false;
+  });
+  rows.sort((a, b) => {
+    const aBound = (a.terminal_ids?.length || 0) > 0 ? 0 : 1;
+    const bBound = (b.terminal_ids?.length || 0) > 0 ? 0 : 1;
+    return aBound - bBound;
+  });
+  const map = buildBridgePrintersMapFromRows(rows);
   const count = Object.keys(map).length;
   if (count === 0) return { ok: false, count: 0 };
   const ok = await pushPrintersToBridge(completePrintersReplacementMap(map), { replace: true });
