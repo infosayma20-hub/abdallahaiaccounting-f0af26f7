@@ -84,11 +84,6 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!order.warehouse_id) {
-      return new Response(JSON.stringify({ error: "الطلب بدون مستودع/فرع" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // Resolve branch_id: prefer session → terminal → branch (POS canonical path);
     // fall back to warehouse.branch_id when session is missing (legacy orders).
@@ -123,7 +118,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!order.customer_name || !order.customer_phone || !order.customer_address) {
+    // pos_orders has no customer_phone column. For call-center orders the phone
+    // lives on the linked call_center_orders row; fall back to that, then to
+    // any "جوال: <number>" tag embedded in order_note as a last resort.
+    let customerPhone: string | null = (order as any).customer_phone ?? null;
+    if (!customerPhone) {
+      const { data: cco } = await admin
+        .from("call_center_orders")
+        .select("customer_phone, delivery_info")
+        .eq("pos_order_id", order_id)
+        .maybeSingle();
+      customerPhone = (cco as any)?.customer_phone
+        || (cco as any)?.delivery_info?.caller_phone
+        || null;
+    }
+    if (!customerPhone && typeof order.order_note === "string") {
+      const m = order.order_note.match(/جوال[:：]\s*([0-9+\-\s]{6,})/);
+      if (m) customerPhone = m[1].trim();
+    }
+    if (!order.customer_name || !customerPhone || !order.customer_address) {
       return new Response(JSON.stringify({ error: "بيانات العميل غير مكتملة (الاسم/الهاتف/العنوان)" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -243,7 +256,7 @@ Deno.serve(async (req) => {
     const payload = {
       orderId: String(order.order_number || order.id),
       cname: order.customer_name,
-      cphone: order.customer_phone,
+      cphone: customerPhone,
       caddress: order.customer_address,
       branch: cfg.wheels_branch_id,
       area: zone.wheels_area_id,
