@@ -4472,21 +4472,26 @@ const POSPage = () => {
               );
             } else {
               const errMsg = String((wheelsRes as any)?.error || "");
-              // Silently ignore "branch not connected / area not mapped" —
-              // these are configuration states, not failures the cashier
-              // can act on. Surface every other failure so the kitchen knows
-              // the courier wasn't dispatched.
+              // Surface every failure so the cashier knows the courier wasn't
+              // dispatched. Only truly idempotent/non-actionable states are
+              // silent (already-sent or non-delivery order).
               const silentPatterns = [
-                "غير مربوط بـ Wheels",
-                "لم نجد منطقة مطابقة",
-                "تعذر تحديد فرع الطلب",
                 "ليس للتوصيل",
                 "تم إرسال هذا الطلب مسبقاً",
               ];
-              if (errMsg && !silentPatterns.some((p) => errMsg.includes(p))) {
-                toast.error(`❌ Wheels: ${errMsg}`);
+              const configPatterns = [
+                "غير مربوط بـ Wheels",
+                "لم نجد منطقة مطابقة",
+                "تعذر تحديد فرع الطلب",
+              ];
+              if (!errMsg) {
+                console.log("[Wheels auto-send] no error message");
+              } else if (silentPatterns.some((p) => errMsg.includes(p))) {
+                console.log("[Wheels auto-send] silent skip:", errMsg);
+              } else if (configPatterns.some((p) => errMsg.includes(p))) {
+                toast.warning(`⚠️ Wheels لم يُرسل: ${errMsg}`, { duration: 6000 });
               } else {
-                console.log("[Wheels auto-send] skipped:", errMsg);
+                toast.error(`❌ Wheels: ${errMsg}`, { duration: 6000 });
               }
             }
           } catch (e) {
