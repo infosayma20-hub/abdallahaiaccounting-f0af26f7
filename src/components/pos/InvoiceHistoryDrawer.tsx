@@ -233,6 +233,8 @@ export default function InvoiceHistoryDrawer({
   const [orderPayments, setOrderPayments] = useState<InvoicePayment[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [reprintCopies, setReprintCopies] = useState<number>(1);
+  // Fallback phone fetched from linked call_center_orders when pos_orders has no contact phone
+  const [ccoPhone, setCcoPhone] = useState<string | null>(null);
 
   // Recall flow
   const [showReasonDialog, setShowReasonDialog] = useState(false);
@@ -546,6 +548,7 @@ export default function InvoiceHistoryDrawer({
     setOrderLines([]);
     setOrderPayments([]);
     setOrderCurrency("ILS");
+    setCcoPhone(null);
     try {
       const [linesRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
@@ -581,6 +584,21 @@ export default function InvoiceHistoryDrawer({
       setOrderLines(safeLines);
       setOrderPayments(safePayments);
       setOrderCurrency((safePayments[0] as any)?.currency || "ILS");
+      // If no contact phone on the order, try linked call-center order for the phone
+      if (!(order as any).contacts?.phone) {
+        try {
+          const { data: cco } = await supabase
+            .from("call_center_orders")
+            .select("customer_phone")
+            .eq("pos_order_id", order.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (cco?.customer_phone) setCcoPhone(cco.customer_phone);
+        } catch (e) {
+          console.warn("[InvoiceHistoryDrawer] could not load call center phone", e);
+        }
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -1243,8 +1261,8 @@ export default function InvoiceHistoryDrawer({
                       <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
                         <Field label="اسم الزبون">{selectedOrder.customer_name || "زبون نقدي"}</Field>
                         <Field label="رقم الجوال">
-                          {selectedOrder.contacts?.phone ? (
-                            <span className="font-mono" dir="ltr">{selectedOrder.contacts.phone}</span>
+                          {(selectedOrder.contacts?.phone || ccoPhone) ? (
+                            <span className="font-mono" dir="ltr">{selectedOrder.contacts?.phone || ccoPhone}</span>
                           ) : "—"}
                         </Field>
                         {selectedOrder.recall_status && (
