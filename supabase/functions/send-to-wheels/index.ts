@@ -248,6 +248,37 @@ Deno.serve(async (req) => {
     let matchedArea: string | null = null;
     let matchedVia: string | null = null;
 
+    // Pass 0 — pre-resolved area from call_center_orders.delivery_info.
+    // The Call-Center DeliveryZonePicker writes { area, branch_id, ... } into
+    // delivery_info; trusting it short-circuits all address parsing. Scoped to
+    // the SAME branch we resolved above so a wrong delivery_info row can't
+    // misroute orders to a different branch's zone.
+    try {
+      const { data: ccoPre } = await admin
+        .from("call_center_orders")
+        .select("delivery_info")
+        .eq("pos_order_id", order_id)
+        .maybeSingle();
+      const di: any = (ccoPre as any)?.delivery_info || null;
+      const preArea = di && typeof di.area === "string" ? di.area.trim() : null;
+      const preBranch = di && typeof di.branch_id === "string" ? di.branch_id : null;
+      if (preArea && preBranch && preBranch === branchId) {
+        const { data: zPre } = await admin
+          .from("delivery_zones")
+          .select("wheels_area_id, wheels_fixed_price, area_name")
+          .eq("user_id", order.user_id)
+          .eq("branch_id", branchId)
+          .eq("area_name", preArea)
+          .not("wheels_area_id", "is", null)
+          .maybeSingle();
+        if (zPre?.wheels_area_id) {
+          zone = zPre as any;
+          matchedArea = (zPre as any).area_name || preArea;
+          matchedVia = "delivery_info";
+        }
+      }
+    } catch (_) { /* non-fatal — fall through to address parsing */ }
+
     // Normalize for fuzzy comparison:
     //  - strip leading definite article "ال"
     //  - drop digits / phone-like tokens
@@ -269,7 +300,7 @@ Deno.serve(async (req) => {
     }
 
     // Pass 1 — original exact + ILIKE per candidate (unchanged behavior).
-    for (const cand of candidates) {
+    if (!zone?.wheels_area_id) for (const cand of candidates) {
       const { data: z1 } = await admin
         .from("delivery_zones")
         .select("wheels_area_id, wheels_fixed_price")
@@ -336,7 +367,40 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Pass 4 — pg_trgm similarity (≥ 0.4). Catches typos / diacritics / minor
+    // misspellings ("الإنجيلي" vs "الانجيلي", "رفيدية" vs "رفيديا"). Scoped
+    // to the SAME branch, so no cross-branch leakage is possible.
     if (!zone?.wheels_area_id) {
+      for (const cand of candidates) {
+        const probe = normalize(cand);
+        if (!probe || probe.length < 3) continue;
+        const { data: fz } = await admin.rpc("match_wheels_zone_fuzzy", {
+          p_user_id: order.user_id,
+          p_branch_id: branchId,
+          p_candidate: probe,
+          p_threshold: 0.4,
+        });
+        const hit = Array.isArray(fz) ? fz[0] : (fz as any);
+        if (hit?.wheels_area_id) {
+          zone = { wheels_area_id: hit.wheels_area_id, wheels_fixed_price: hit.wheels_fixed_price } as any;
+          matchedArea = hit.area_name || cand;
+          matchedVia = `fuzzy:${typeof hit.score === "number" ? hit.score.toFixed(2) : ""}`;
+          break;
+        }
+      }
+    }
+
+    if (!zone?.wheels_area_id) {
+      // Log unmatched attempt for proactive alias seeding. Best-effort.
+      try {
+        await admin.from("wheels_unmatched_areas").insert({
+          user_id: order.user_id,
+          branch_id: branchId,
+          order_id: order_id,
+          customer_address: order.customer_address || null,
+          candidates,
+        } as any);
+      } catch (_) { /* non-fatal */ }
       return new Response(JSON.stringify({
         error: `لم نجد منطقة مطابقة في Wheels. جرّبنا: ${candidates.map((c) => `"${c}"`).join(" / ")}`,
       }), {
