@@ -6933,7 +6933,9 @@ const POSPage = () => {
                 }}
                 className="w-full h-12 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
               >
-                <option value="">بدون صندوق مؤقتاً</option>
+                {/* "بدون صندوق مؤقتاً" متاح فقط للمالك/الأدمن — إخفاؤه عن الكاشير
+                    يمنع المبيعات من الظهور تحت "بدون فرع" في تقارير المالك. */}
+                {isAdmin && <option value="">بدون صندوق مؤقتاً</option>}
                 {[...cashBoxes].sort((a, b) => (a.name || "").localeCompare(b.name || "", "ar", { numeric: true, sensitivity: "base" })).map(box => (
                   <option key={box.id} value={box.id}>{box.name}</option>
                 ))}
