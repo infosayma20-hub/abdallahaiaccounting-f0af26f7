@@ -4319,6 +4319,7 @@ const POSPage = () => {
           // kitchen ticket targets.
           const branchForMute = (() => { try { return getDeviceBranchId() || null; } catch { return null; } })();
           const isMuted = await loadMuteChecker(branchForMute).catch(() => () => false);
+          const forceChecker = await loadForceChecker(branchForMute).catch(() => ({ isForced: () => false, forcedStationsFor: () => [] as string[] }));
           // Routing model (category-rules-first):
           //   1) If a product has an explicit kitchen_station_id, that wins (single target).
           //   2) Otherwise the item targets ALL active stations.
@@ -4340,6 +4341,13 @@ const POSPage = () => {
             // Apply mute filter: drop stations where this product's category is muted.
             const cat = categoryMap.get(item.product_id);
             targets = targets.filter((sid) => !isMuted(cat, sid));
+            // Force-print extras: add stations where this product is forced,
+            // bypassing the category mute filter. Dedupe with existing targets.
+            const forced = forceChecker.forcedStationsFor(item.product_id);
+            for (const fsid of forced) {
+              if (!allStationIds.includes(fsid)) continue;
+              if (!targets.includes(fsid)) targets.push(fsid);
+            }
             for (const stationId of targets) {
               if (!stationItems[stationId]) stationItems[stationId] = [];
               stationItems[stationId].push({
