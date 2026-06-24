@@ -71,6 +71,7 @@ interface InvoiceLine {
   total: number;
   discount_amount: number;
   notes?: string | null;
+  modifiers?: { option_name: string; extra_price?: number }[];
 }
 
 interface InvoicePayment {
@@ -231,6 +232,7 @@ export default function InvoiceHistoryDrawer({
   const [orderLines, setOrderLines] = useState<InvoiceLine[]>([]);
   const [orderPayments, setOrderPayments] = useState<InvoicePayment[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [reprintCopies, setReprintCopies] = useState<number>(1);
 
   // Recall flow
   const [showReasonDialog, setShowReasonDialog] = useState(false);
@@ -556,6 +558,26 @@ export default function InvoiceHistoryDrawer({
       const safePayments = ((paymentsRes.data || []) as InvoicePayment[]).filter(
         (p: any) => !p.order_id || p.order_id === order.id
       );
+      // Load per-line modifiers so reprints include "+ حار، عادي 6" etc.
+      try {
+        const lineIds = safeLines.map(l => l.id).filter(Boolean);
+        if (lineIds.length) {
+          const { data: mods } = await supabase
+            .from("order_item_modifiers")
+            .select("order_line_id, option_name, extra_price")
+            .in("order_line_id", lineIds);
+          const byLine = new Map<string, { option_name: string; extra_price?: number }[]>();
+          for (const m of (mods || []) as any[]) {
+            if (!byLine.has(m.order_line_id)) byLine.set(m.order_line_id, []);
+            byLine.get(m.order_line_id)!.push({ option_name: m.option_name, extra_price: m.extra_price ?? 0 });
+          }
+          for (const l of safeLines) {
+            (l as any).modifiers = byLine.get(l.id) || [];
+          }
+        }
+      } catch (e) {
+        console.warn("[InvoiceHistoryDrawer] could not load modifiers for reprint", e);
+      }
       setOrderLines(safeLines);
       setOrderPayments(safePayments);
       setOrderCurrency((safePayments[0] as any)?.currency || "ILS");
@@ -1438,21 +1460,49 @@ export default function InvoiceHistoryDrawer({
                         name: line.product_name,
                         quantity: line.qty,
                         price: line.unit_price,
+                        note: line.notes || undefined,
+                        modifiers: line.modifiers && line.modifiers.length > 0
+                          ? line.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra_price ?? 0 }))
+                          : undefined,
                       })),
                       subtotal: selectedOrder.subtotal || selectedOrder.total,
                       discount: selectedOrder.discount_amount || 0,
                       total: selectedOrder.total,
                       paymentMethod: paymentLabel,
+                      orderNote: (selectedOrder as any).order_note || (selectedOrder as any).notes || undefined,
+                      tenderedAmount: orderPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0) || undefined,
+                      change: 0,
+                      orderType: ((selectedOrder as any).order_type as any) || undefined,
+                      tableNumber: (selectedOrder as any).table_name || undefined,
                     };
-                    printReceiptImage(bridgeOrder).catch(() => {
-                      console.warn("Print bridge unavailable");
-                    });
-                    toast.success("تم إرسال الإيصال للطابعة");
+                    const companyInfo = { name: terminalName || undefined, terminalName: terminalName || undefined };
+                    const copies = Math.max(1, Math.min(5, Number(reprintCopies) || 1));
+                    (async () => {
+                      for (let i = 0; i < copies; i++) {
+                        // Vary id per copy so the dedupe guard does not block reprints.
+                        const copyOrder: any = { ...bridgeOrder, id: `${selectedOrder.id || ""}-copy-${Date.now()}-${i}` };
+                        await printReceiptImage(copyOrder, companyInfo).catch(() => {
+                          console.warn("Print bridge unavailable");
+                        });
+                        if (i + 1 < copies) await new Promise(r => setTimeout(r, 350));
+                      }
+                    })();
+                    toast.success(copies > 1 ? `تم إرسال ${copies} نسخ للطابعة` : "تم إرسال الإيصال للطابعة");
                   }}
                 >
-                  <Printer className="h-3.5 w-3.5" /> طباعة
+                  <Printer className="h-3.5 w-3.5" /> طباعة {reprintCopies > 1 ? `× ${reprintCopies}` : ""}
                 </Button>
                 )}
+                <select
+                  value={reprintCopies}
+                  onChange={(e) => setReprintCopies(Number(e.target.value) || 1)}
+                  className="h-8 rounded-md border bg-background px-2 text-xs"
+                  title="عدد النسخ"
+                >
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <option key={n} value={n}>{n} نسخة</option>
+                  ))}
+                </select>
 
                 {canCancelInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>
