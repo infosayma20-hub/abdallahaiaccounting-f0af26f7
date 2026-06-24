@@ -514,6 +514,11 @@ const CallCenterDispatchDialog = ({
             : deliveryType === "dine_in"
               ? { delivery_type: "dine_in", table_label: tableLabel.trim(), caller_name: name.trim(), caller_phone: phone.trim(), note: note.trim() || null }
               : null,
+        // Server-side gate for the post-payment Wheels auto-dispatch. The
+        // edge function and DB trigger both consult this flag — leave it
+        // false (default) for any non-Wheels-sourced order so existing
+        // behaviour is unchanged.
+        skip_wheels_dispatch: !!skipWheelsDispatch,
       };
 
       let orderId: string | null = null;
