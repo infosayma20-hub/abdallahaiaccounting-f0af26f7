@@ -89,6 +89,8 @@ export default function POSShiftAuditReport({ sessions }: Props) {
   const [shiftKind, setShiftKind] = useState<ShiftKind>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [branchFilter, setBranchFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
 
   // Build unique branch list from sessions
   const branchesInData = useMemo(() => {
@@ -103,8 +105,16 @@ export default function POSShiftAuditReport({ sessions }: Props) {
     let out = sessions;
     if (branchFilter) out = out.filter(s => s.branch_id === branchFilter);
     if (shiftKind !== "all") out = out.filter(s => classifyShift(s.opened_at) === shiftKind);
+    if (dateFrom) {
+      const fromTs = new Date(dateFrom + "T00:00:00").getTime();
+      out = out.filter(s => new Date(s.opened_at).getTime() >= fromTs);
+    }
+    if (dateTo) {
+      const toTs = new Date(dateTo + "T23:59:59").getTime();
+      out = out.filter(s => new Date(s.opened_at).getTime() <= toTs);
+    }
     return out;
-  }, [sessions, shiftKind, branchFilter]);
+  }, [sessions, shiftKind, branchFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     if (filtered.length > 0 && !filtered.find(s => s.id === selectedId)) {
@@ -125,6 +135,29 @@ export default function POSShiftAuditReport({ sessions }: Props) {
           </h2>
         </div>
         <div className="flex items-center gap-2 text-[11px] flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">من</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <span className="text-muted-foreground">إلى</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <button
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
+              className="px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground"
+              title="مسح فلتر التاريخ"
+            >
+              مسح
+            </button>
+          </div>
           {branchesInData.length > 0 && (
             <div className="flex items-center gap-1">
               <Store className="w-3 h-3 text-muted-foreground" />
