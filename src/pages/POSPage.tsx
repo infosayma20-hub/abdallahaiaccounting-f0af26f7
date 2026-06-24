@@ -4472,21 +4472,26 @@ const POSPage = () => {
               );
             } else {
               const errMsg = String((wheelsRes as any)?.error || "");
-              // Silently ignore "branch not connected / area not mapped" —
-              // these are configuration states, not failures the cashier
-              // can act on. Surface every other failure so the kitchen knows
-              // the courier wasn't dispatched.
+              // Surface every failure so the cashier knows the courier wasn't
+              // dispatched. Only truly idempotent/non-actionable states are
+              // silent (already-sent or non-delivery order).
               const silentPatterns = [
-                "غير مربوط بـ Wheels",
-                "لم نجد منطقة مطابقة",
-                "تعذر تحديد فرع الطلب",
                 "ليس للتوصيل",
                 "تم إرسال هذا الطلب مسبقاً",
               ];
-              if (errMsg && !silentPatterns.some((p) => errMsg.includes(p))) {
-                toast.error(`❌ Wheels: ${errMsg}`);
+              const configPatterns = [
+                "غير مربوط بـ Wheels",
+                "لم نجد منطقة مطابقة",
+                "تعذر تحديد فرع الطلب",
+              ];
+              if (!errMsg) {
+                console.log("[Wheels auto-send] no error message");
+              } else if (silentPatterns.some((p) => errMsg.includes(p))) {
+                console.log("[Wheels auto-send] silent skip:", errMsg);
+              } else if (configPatterns.some((p) => errMsg.includes(p))) {
+                toast.warning(`⚠️ Wheels لم يُرسل: ${errMsg}`, { duration: 6000 });
               } else {
-                console.log("[Wheels auto-send] skipped:", errMsg);
+                toast.error(`❌ Wheels: ${errMsg}`, { duration: 6000 });
               }
             }
           } catch (e) {
@@ -6536,6 +6541,83 @@ const POSPage = () => {
 
             {/* Order Note Input */}
             {/* Order Note Input — WHITE background, always visible (Al-Malaky April 2026) */}
+            {/* 🚚 Delivery Info Banner — structured view of address / customer / fee
+                so the cashier sees every field clearly instead of one long note line.
+                Renders for any delivery order (call-center accepted OR cashier-direct). */}
+            {(activeOrder.orderType === "delivery" ||
+              activeOrder.callCenterDeliveryInfo ||
+              !!activeOrder.callCenterDeliveryFee) && (
+              <div className="px-3 pt-2">
+                <div
+                  className="rounded-lg p-2.5 text-[12px] leading-relaxed"
+                  style={{
+                    background: 'rgba(34,197,94,0.10)',
+                    border: '1px solid rgba(34,197,94,0.35)',
+                    color: '#dcfce7',
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold" style={{ color: '#86efac' }}>🚚 معلومات التوصيل</span>
+                    {activeOrder.callCenterSourceApp && (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                        style={{ background: 'rgba(59,130,246,0.25)', color: '#bfdbfe' }}
+                      >
+                        {activeOrder.callCenterSourceApp}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 gap-y-0.5">
+                    {activeOrder.customerName && (
+                      <div className="flex gap-2">
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>الزبون:</span>
+                        <span className="font-semibold" style={{ color: '#ffffff' }}>{activeOrder.customerName}</span>
+                      </div>
+                    )}
+                    {activeOrder.customerPhone && (
+                      <div className="flex gap-2">
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>الجوال:</span>
+                        <a
+                          href={`tel:${activeOrder.customerPhone}`}
+                          className="font-semibold tabular-nums"
+                          style={{ color: '#93c5fd' }}
+                        >
+                          {activeOrder.customerPhone}
+                        </a>
+                      </div>
+                    )}
+                    {activeOrder.deliveryAddress && (
+                      <div className="flex gap-2">
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>العنوان:</span>
+                        <span style={{ color: '#ffffff' }}>{activeOrder.deliveryAddress}</span>
+                      </div>
+                    )}
+                    {activeOrder.callCenterDeliveryInfo?.area && (
+                      <div className="flex gap-2">
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>المنطقة:</span>
+                        <span style={{ color: '#ffffff' }}>
+                          {activeOrder.callCenterDeliveryInfo.city
+                            ? `${activeOrder.callCenterDeliveryInfo.city} - ${activeOrder.callCenterDeliveryInfo.area}`
+                            : activeOrder.callCenterDeliveryInfo.area}
+                          {activeOrder.callCenterDeliveryInfo.branch_name
+                            ? ` (${activeOrder.callCenterDeliveryInfo.branch_name})`
+                            : ''}
+                        </span>
+                      </div>
+                    )}
+                    {!!activeOrder.callCenterDeliveryFee && activeOrder.callCenterDeliveryFee > 0 && (
+                      <div className="flex gap-2">
+                        <span style={{ color: 'rgba(255,255,255,0.55)' }}>رسوم التوصيل:</span>
+                        <span className="font-bold tabular-nums" style={{ color: '#fde68a' }}>
+                          ₪{Number(activeOrder.callCenterDeliveryFee).toFixed(2)}
+                          {activeOrder.callCenterDeliveryInfo?.manually_adjusted ? ' (معدّل)' : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="px-3 pt-2">
               <div className="flex items-center gap-1.5">
                 <Input
