@@ -594,15 +594,17 @@ Deno.serve(async (req) => {
 
         const sessionIds = [...new Set(orderList.map((o) => o.session_id).filter(Boolean))];
         const sessionMap: Record<string, string> = {};
+        const sessionTerminalMap: Record<string, string> = {};
         if (sessionIds.length > 0) {
           for (let i = 0; i < sessionIds.length; i += 200) {
             const chunk = sessionIds.slice(i, i + 200);
             const { data: sessions } = await supabase
               .from("pos_sessions")
-              .select("id, cash_box_id")
+              .select("id, cash_box_id, terminal_id")
               .in("id", chunk);
             (sessions || []).forEach((s: any) => {
               sessionMap[s.id] = s.cash_box_id;
+              if (s.terminal_id) sessionTerminalMap[s.id] = s.terminal_id;
             });
           }
         }
@@ -612,10 +614,38 @@ Deno.serve(async (req) => {
         if (cashBoxIds.length > 0) {
           const { data: boxes } = await supabase
             .from("cash_boxes")
-            .select("id, name, branch_location")
+            .select("id, name, branch_location, branch_id")
             .in("id", cashBoxIds);
           (boxes || []).forEach((b: any) => {
             cashBoxMap[b.id] = b;
+          });
+        }
+
+        // Terminal → branch fallback
+        const terminalIdsLive = [...new Set(Object.values(sessionTerminalMap))];
+        const terminalBranchMapLive: Record<string, string> = {};
+        if (terminalIdsLive.length > 0) {
+          const { data: terms } = await supabase
+            .from("pos_terminals")
+            .select("id, branch_id")
+            .in("id", terminalIdsLive);
+          (terms || []).forEach((t: any) => {
+            if (t.branch_id) terminalBranchMapLive[t.id] = t.branch_id;
+          });
+        }
+        const branchIdsLive = [...new Set([
+          ...Object.values(cashBoxMap).map((b: any) => b.branch_id).filter(Boolean) as string[],
+          ...Object.values(terminalBranchMapLive),
+        ])];
+        const branchNameMapLive: Record<string, string> = {};
+        if (branchIdsLive.length > 0) {
+          const { data: brs } = await supabase
+            .from("branches")
+            .select("id, name, location")
+            .in("id", branchIdsLive);
+          (brs || []).forEach((b: any) => {
+            branchNameMapLive[b.id] = b.name;
+            (branchNameMapLive as any)[b.id + "__loc"] = b.location || "";
           });
         }
 
@@ -625,13 +655,22 @@ Deno.serve(async (req) => {
         for (const order of orderList) {
           const cashBoxId = sessionMap[order.session_id];
           const box = cashBoxId ? cashBoxMap[cashBoxId] : null;
-          const branchKey = cashBoxId || "unknown";
+          // Group by branch (cash_box.branch_id → terminal.branch_id), falling back to cash_box id, then "unknown"
+          const terminalId = sessionTerminalMap[order.session_id];
+          const resolvedBranchId = box?.branch_id || (terminalId ? terminalBranchMapLive[terminalId] : null);
+          const branchKey = resolvedBranchId || cashBoxId || "unknown";
+          const resolvedName = resolvedBranchId
+            ? (branchNameMapLive[resolvedBranchId] || box?.name || "غير معروف")
+            : (box?.name || "غير معروف");
+          const resolvedLoc = resolvedBranchId
+            ? ((branchNameMapLive as any)[resolvedBranchId + "__loc"] || box?.branch_location || "")
+            : (box?.branch_location || "");
 
           if (!branchData[branchKey]) {
             branchData[branchKey] = {
               id: branchKey,
-              name: box?.name || "غير معروف",
-              location: box?.branch_location || "",
+              name: resolvedName,
+              location: resolvedLoc,
               totalSales: 0,
               orderCount: 0,
               orders: [],
