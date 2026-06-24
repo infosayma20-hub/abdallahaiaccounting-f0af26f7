@@ -39,8 +39,9 @@ Deno.serve(async (req) => {
       });
     }
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const internalServiceKey = Deno.env.get("AMWALI_SERVICE_ROLE_KEY") || serviceRoleKey;
     const token = authHeader.replace("Bearer ", "");
-    const isServiceRoleCall = token === serviceRoleKey;
+    const isServiceRoleCall = token === serviceRoleKey || token === internalServiceKey;
 
     // Service role client for cross-table reads and updates. This function may
     // be called either by the cashier's browser or by a DB trigger after a paid
