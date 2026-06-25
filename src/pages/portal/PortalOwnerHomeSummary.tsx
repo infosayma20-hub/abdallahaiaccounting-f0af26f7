@@ -58,10 +58,16 @@ export default function PortalOwnerHomeSummary({
         supabase.functions.invoke('malaki-data', { body: { action: 'overview', period: 'today' } }),
         supabase.functions.invoke('malaki-data', { body: { action: 'attendance', dateFrom: today, dateTo: today } }),
       ]);
+      const accountingRevenue = Number(o.data?.kpis?.revenue || 0);
       if (s.data?.success) {
         const c = s.data.current;
+        const ownerTotal = Number(c.total || 0);
+        const safeTotal = ownerTotal > 0 ? ownerTotal : accountingRevenue;
         setSales({
-          total: c.total, posTotal: c.posTotal, invTotal: c.invTotal, orderCount: c.orderCount,
+          total: safeTotal,
+          posTotal: Number(c.posTotal || 0) > 0 ? c.posTotal : safeTotal,
+          invTotal: c.invTotal,
+          orderCount: c.orderCount,
           growthPct: s.data.growthPct || 0, prevTotal: s.data.prevYear?.total || 0,
         });
       }

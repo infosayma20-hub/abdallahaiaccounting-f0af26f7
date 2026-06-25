@@ -38,6 +38,45 @@ async function excludeVoidedOrders<T extends { id: string; transaction_id?: stri
   return orders.filter(o => !o.transaction_id || !voided.has(o.transaction_id));
 }
 
+const POS_PAGE_SIZE = 1000;
+
+function palestineBusinessRange(fromDate: string, toDate: string) {
+  return {
+    startISO: new Date(`${fromDate}T00:00:00+03:00`).toISOString(),
+    endISO: new Date(`${toDate}T23:59:59.999+03:00`).toISOString(),
+  };
+}
+
+async function loadPaidPosOrders(
+  supabase: any,
+  linkedUserId: string | null,
+  startISO: string,
+  endISO: string,
+  select = "id, total, created_at, session_id, order_number, transaction_id",
+) {
+  if (!linkedUserId) return [];
+  const orders: any[] = [];
+
+  for (let from = 0; ; from += POS_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("pos_orders")
+      .select(select)
+      .eq("user_id", linkedUserId)
+      .eq("state", "paid")
+      .gte("created_at", startISO)
+      .lte("created_at", endISO)
+      .order("created_at", { ascending: false })
+      .range(from, from + POS_PAGE_SIZE - 1);
+
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    orders.push(...data);
+    if (data.length < POS_PAGE_SIZE) break;
+  }
+
+  return excludeVoidedOrders(supabase, orders);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -176,8 +215,6 @@ Deno.serve(async (req) => {
       const dateFrom: string = body.dateFrom || today;
       const dateTo: string = body.dateTo || today;
       const summaryOnly: boolean = body.summaryOnly === true;
-      const startISO = `${dateFrom}T00:00:00`;
-      const endISO = `${dateTo}T23:59:59.999`;
 
       const shiftDate = (d: string, years: number) => {
         const dt = new Date(`${d}T00:00:00`);
@@ -189,31 +226,17 @@ Deno.serve(async (req) => {
 
       // ───────── Helper: load sales for a given range ─────────
       async function loadRange(fromDate: string, toDate: string, withDetails: boolean) {
-        const sISO = `${fromDate}T00:00:00`;
-        const eISO = `${toDate}T23:59:59.999`;
+        const { startISO: sISO, endISO: eISO } = palestineBusinessRange(fromDate, toDate);
 
         // POS orders — paginated to bypass PostgREST 1000-row default cap
-        const orderList: any[] = [];
         const PAGE = 1000;
-        for (let from = 0; ; from += PAGE) {
-          const { data: chunk, error: chErr } = await supabase
-            .from("pos_orders")
-            .select("id, total, created_at, session_id, user_id, transaction_id")
-            .eq("user_id", linkedUserId)
-            .eq("state", "paid")
-            .gte("created_at", sISO)
-            .lte("created_at", eISO)
-            .order("created_at", { ascending: true })
-            .range(from, from + PAGE - 1);
-          if (chErr) break;
-          if (!chunk || chunk.length === 0) break;
-          orderList.push(...chunk);
-          if (chunk.length < PAGE) break;
-          if (from > 100000) break; // safety
-        }
-        const filteredOrders = await excludeVoidedOrders(supabase, orderList);
-        orderList.length = 0;
-        orderList.push(...filteredOrders);
+        const orderList: any[] = await loadPaidPosOrders(
+          supabase,
+          linkedUserId,
+          sISO,
+          eISO,
+          "id, total, created_at, session_id, user_id, transaction_id",
+        );
 
         // Invoice sales — paginated likewise
         const invList: any[] = [];
@@ -563,17 +586,7 @@ Deno.serve(async (req) => {
         const shiftEnd = body.shiftEnd;
 
         // ── SOURCE A: POS Orders ──
-        const { data: orders } = await supabase
-          .from("pos_orders")
-          .select("id, total, created_at, session_id, order_number, transaction_id")
-          .eq("user_id", linkedUserId)
-          .eq("state", "paid")
-          .gte("created_at", shiftStart)
-          .lte("created_at", shiftEnd)
-          .order("created_at", { ascending: false })
-          .limit(5000);
-
-        const orderList: any[] = await excludeVoidedOrders(supabase, orders || []);
+        const orderList: any[] = await loadPaidPosOrders(supabase, linkedUserId, shiftStart, shiftEnd);
         const orderIds = orderList.map((o) => o.id);
 
         // ── SOURCE B: Regular Sale Invoices ──
@@ -896,18 +909,7 @@ Deno.serve(async (req) => {
       const startISO = new Date(dateFrom + "T00:00:00+03:00").toISOString();
       const endISO = new Date(dateTo + "T23:59:59+03:00").toISOString();
 
-      let query = supabase
-        .from("pos_orders")
-        .select("id, total, created_at, session_id, order_number, transaction_id")
-        .eq("user_id", linkedUserId)
-        .eq("state", "paid")
-        .gte("created_at", startISO)
-        .lte("created_at", endISO)
-        .order("created_at", { ascending: false })
-        .limit(5000);
-
-      const { data: orders } = await query;
-      const orderList: any[] = await excludeVoidedOrders(supabase, orders || []);
+      const orderList: any[] = await loadPaidPosOrders(supabase, linkedUserId, startISO, endISO);
 
       const sessionIds = [...new Set(orderList.map(o => o.session_id).filter(Boolean))];
       const sessionMap: Record<string, string> = {};
