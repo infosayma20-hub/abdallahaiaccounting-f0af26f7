@@ -229,6 +229,12 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
               <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'left' }}>{order.customerPhone}</td>
             </tr>
           )}
+          {order.orderType === 'delivery' && (order as any).deliveryAddress && (
+            <tr>
+              <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 800, textAlign: 'right', verticalAlign: 'top' }}>العنوان</td>
+              <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'left', wordBreak: 'break-word' }}>{(order as any).deliveryAddress}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
