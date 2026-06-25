@@ -12199,6 +12199,11 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string
+          original_payment_method: string | null
+          payment_edit_manager_user_id: string | null
+          payment_edit_reason: string | null
+          payment_edited_at: string | null
+          payment_edited_by_pos_user_id: string | null
           payment_method: string
           reference: string | null
           tendered: number
@@ -12217,6 +12222,11 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id: string
+          original_payment_method?: string | null
+          payment_edit_manager_user_id?: string | null
+          payment_edit_reason?: string | null
+          payment_edited_at?: string | null
+          payment_edited_by_pos_user_id?: string | null
           payment_method?: string
           reference?: string | null
           tendered?: number
@@ -12235,6 +12245,11 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string
+          original_payment_method?: string | null
+          payment_edit_manager_user_id?: string | null
+          payment_edit_reason?: string | null
+          payment_edited_at?: string | null
+          payment_edited_by_pos_user_id?: string | null
           payment_method?: string
           reference?: string | null
           tendered?: number
@@ -20230,6 +20245,17 @@ export type Database = {
       }
       cancel_stock_transfer: {
         Args: { p_reason?: string; p_transfer_id: string }
+        Returns: Json
+      }
+      change_pos_payment_method: {
+        Args: {
+          p_edit_reason?: string
+          p_manager_user_id?: string
+          p_new_method: string
+          p_order_id: string
+          p_pos_user_id?: string
+          p_window_minutes?: number
+        }
         Returns: Json
       }
       claim_notification_batch: {
