@@ -187,6 +187,8 @@ export default function InvoiceHistoryDrawer({
   };
   const canCashierSeeAmount = (order: InvoiceOrder) => {
     if (!cashierMode) return true;
+    // Manager-mode unlock bypasses the visibility window entirely.
+    if (managerMode.active) return true;
     if (!order.created_at) return false;
     const ageMin = (getServerNow() - new Date(order.created_at).getTime()) / 60000;
     return ageMin <= amountVisibleMinutes;
@@ -197,6 +199,11 @@ export default function InvoiceHistoryDrawer({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [clockSkewMin, setClockSkewMin] = useState<number>(0);
+
+  // ── Manager Mode (short unlock for cashier history) ──
+  const managerMode = usePOSManagerMode(sessionId);
+  const [showManagerUnlock, setShowManagerUnlock] = useState(false);
+  const [showChangePayment, setShowChangePayment] = useState(false);
 
   // Auto-focus search input when drawer opens
   useEffect(() => {
