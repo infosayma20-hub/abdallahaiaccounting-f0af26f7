@@ -124,18 +124,22 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     let tokens = rawTokens.filter(t => !STOP.has(t) && t.length > 1);
     // If user typed only stop-words, fall back to original tokens so we still search.
     if (!tokens.length && rawTokens.length) tokens = rawTokens;
-    const filtered = zones.filter(z => {
-      if (city && z.city !== city) return false;
+    const matchZone = (z: Zone) => {
       if (!tokens.length) return true;
-      // Build a haystack from area_name + city + aliases, all normalized.
       const hay = [
         normalizeAr(z.area_name),
         normalizeAr(z.city),
         ...((z.area_aliases || []).map(normalizeAr)),
       ].join(" | ");
-      // Every non-stop token must appear somewhere.
       return tokens.every(t => hay.includes(t));
-    });
+    };
+    let filtered = zones.filter(z => (city ? z.city === city : true) && matchZone(z));
+    // Safety net: if a city chip is locked but the query has no matches in
+    // that city, broaden the search to ALL cities so the agent isn't stuck
+    // with a false "no results" when the area actually exists elsewhere.
+    if (city && tokens.length && filtered.length === 0) {
+      filtered = zones.filter(matchZone);
+    }
     const map = new Map<string, Zone[]>();
     for (const z of filtered) {
       const key = `${z.city}::${z.area_name}`;
