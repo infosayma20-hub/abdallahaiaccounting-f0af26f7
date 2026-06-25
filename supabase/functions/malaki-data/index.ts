@@ -286,16 +286,16 @@ Deno.serve(async (req) => {
 
       // ───────── Helper: load sales for a given range ─────────
       async function loadRange(fromDate: string, toDate: string, withDetails: boolean) {
-        const { startISO: sISO, endISO: eISO } = palestineBusinessRange(fromDate, toDate);
-
-        // POS orders — paginated to bypass PostgREST 1000-row default cap
+        // POS orders — use business_date (6 AM cutoff) so post-midnight sales
+        // stay attributed to the correct shift/cashier and don't bleed into the
+        // next calendar day.
         const PAGE = 1000;
-        const orderList: any[] = await loadPaidPosOrders(
+        const orderList: any[] = await loadPaidPosOrdersByBusinessDate(
           supabase,
           linkedUserId,
-          sISO,
-          eISO,
-          "id, total, created_at, session_id, user_id, transaction_id",
+          fromDate,
+          toDate,
+          "id, total, created_at, session_id, user_id, transaction_id, business_date",
         );
 
         // Invoice sales — paginated likewise
