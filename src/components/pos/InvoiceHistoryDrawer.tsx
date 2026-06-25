@@ -1105,7 +1105,7 @@ export default function InvoiceHistoryDrawer({
               ref={searchInputRef}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="بحث برقم الفاتورة أو اسم الزبون..."
+              placeholder="بحث برقم الفاتورة، اسم الزبون، الجوال، أو قيمة الفاتورة..."
               className="w-full h-9 pr-9 pl-3 rounded-lg border text-xs"
               style={{ fontFamily: "Tajawal, sans-serif", borderColor: "#E2E8F0" }}
             />
