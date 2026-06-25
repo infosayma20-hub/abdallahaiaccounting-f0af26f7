@@ -410,8 +410,74 @@ Deno.serve(async (req) => {
           if (data) invLines.push(...data);
         }
 
+        // ── Payments breakdown (cash / card / employee_account) ──
+        // Loaded per paid order, then attributed to its cashier+branch.
+        const paymentsByOrder: Record<string, { cash: number; card: number; employeeAccount: number }> = {};
+        for (let i = 0; i < orderIds.length; i += 200) {
+          const chunk = orderIds.slice(i, i + 200);
+          const { data: pays } = await supabase
+            .from("pos_payments")
+            .select("order_id, payment_method, amount")
+            .in("order_id", chunk);
+          (pays || []).forEach((p: any) => {
+            const bucket = paymentsByOrder[p.order_id] ||= { cash: 0, card: 0, employeeAccount: 0 };
+            const amt = Number(p.amount) || 0;
+            if (p.payment_method === "cash") bucket.cash += amt;
+            else if (p.payment_method === "card") bucket.card += amt;
+            else if (p.payment_method === "employee_account") bucket.employeeAccount += amt;
+          });
+        }
+
+        // ── Cancelled orders within the same business_date range ──
+        // Loaded separately because loadPaidPosOrdersByBusinessDate only returns paid orders.
+        const cancelledOrders: any[] = [];
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await supabase
+            .from("pos_orders")
+            .select("id, total, session_id, business_date, created_at")
+            .eq("user_id", linkedUserId)
+            .eq("state", "cancelled")
+            .gte("business_date", fromDate)
+            .lte("business_date", toDate)
+            .range(from, from + PAGE - 1);
+          if (error) break;
+          if (!data || data.length === 0) break;
+          cancelledOrders.push(...data);
+          if (data.length < PAGE) break;
+        }
+        // Sessions referenced only by cancelled orders need cashier/branch lookup too.
+        const extraSessionIds = [...new Set(
+          cancelledOrders.map(o => o.session_id).filter(Boolean).filter(id => !sessionMap[id])
+        )];
+        for (let i = 0; i < extraSessionIds.length; i += 200) {
+          const chunk = extraSessionIds.slice(i, i + 200);
+          const { data: sessions } = await supabase
+            .from("pos_sessions")
+            .select("id, cash_box_id, cashier_name, terminal_id")
+            .in("id", chunk);
+          (sessions || []).forEach((s: any) => {
+            sessionMap[s.id] = { cashBoxId: s.cash_box_id, cashierName: s.cashier_name, terminalId: s.terminal_id };
+          });
+        }
+
         // ── Branch aggregation (group cash boxes under their branch) ──
-        const branchAgg: Record<string, { id: string; name: string; location: string; total: number; orderCount: number }> = {};
+        const branchAgg: Record<string, {
+          id: string; name: string; location: string;
+          total: number; orderCount: number;
+          gross: number; net: number;
+          cash: number; card: number; employeeAccount: number; employeeMeals: number;
+          cancelledCount: number; cancelledTotal: number;
+        }> = {};
+        const ensureBranch = (brId: string, brName: string, location: string) => {
+          if (!branchAgg[brId]) branchAgg[brId] = {
+            id: brId, name: brName, location,
+            total: 0, orderCount: 0,
+            gross: 0, net: 0,
+            cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0,
+            cancelledCount: 0, cancelledTotal: 0,
+          };
+          return branchAgg[brId];
+        };
         for (const o of orderList) {
           const sess = sessionMap[o.session_id];
           const cbId = sess?.cashBoxId || "unknown";
@@ -423,23 +489,41 @@ Deno.serve(async (req) => {
           const brName = resolvedBranchId
             ? (branchNameMap[resolvedBranchId] || "فرع غير مسمى")
             : "بدون فرع";
-          if (!branchAgg[brId]) branchAgg[brId] = {
-            id: brId,
-            name: brName,
-            location: box?.location || "",
-            total: 0, orderCount: 0,
-          };
-          branchAgg[brId].total += o.total || 0;
-          branchAgg[brId].orderCount += 1;
+          const row = ensureBranch(brId, brName, box?.location || "");
+          const orderTotal = o.total || 0;
+          row.total += orderTotal;
+          row.orderCount += 1;
+          row.gross += orderTotal;
+          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0 };
+          row.cash += pay.cash;
+          row.card += pay.card;
+          row.employeeAccount += pay.employeeAccount;
+          // Employee meals: orders fully paid via employee_account OR carrying a meal subsidy
+          const meal = pay.employeeAccount + (Number(o.meal_subsidy_amount) || 0);
+          row.employeeMeals += meal;
+          row.net += orderTotal - meal;
+        }
+        // Attribute cancellations to their branch.
+        for (const o of cancelledOrders) {
+          const sess = sessionMap[o.session_id];
+          const cbId = sess?.cashBoxId || "";
+          const box = cashBoxMap[cbId];
+          const fallbackBranchId = sess?.terminalId ? terminalBranchMap[sess.terminalId] : null;
+          const resolvedBranchId = box?.branchId || fallbackBranchId || null;
+          const brId = resolvedBranchId || "__no_branch__";
+          const brName = resolvedBranchId
+            ? (branchNameMap[resolvedBranchId] || "فرع غير مسمى")
+            : "بدون فرع";
+          const row = ensureBranch(brId, brName, box?.location || "");
+          row.cancelledCount += 1;
+          row.cancelledTotal += Number(o.total) || 0;
         }
         if (invList.length > 0) {
-          branchAgg["__invoices__"] = {
-            id: "__invoices__",
-            name: "فواتير المبيعات",
-            location: "المحاسبة",
-            total: invTotal,
-            orderCount: invList.length,
-          };
+          const inv = ensureBranch("__invoices__", "فواتير المبيعات", "المحاسبة");
+          inv.total = invTotal;
+          inv.orderCount = invList.length;
+          inv.gross = invTotal;
+          inv.net = invTotal;
         }
         const byBranch = Object.values(branchAgg).sort((a, b) => b.total - a.total);
 
@@ -460,7 +544,23 @@ Deno.serve(async (req) => {
         const byItem = Object.values(itemAgg).sort((a, b) => b.revenue - a.revenue);
 
         // ── Cashier aggregation (POS only) ──
-        const cashierAgg: Record<string, { name: string; branchId: string; branchName: string; total: number; orderCount: number }> = {};
+        const cashierAgg: Record<string, {
+          name: string; branchId: string; branchName: string;
+          total: number; orderCount: number;
+          gross: number; net: number;
+          cash: number; card: number; employeeAccount: number; employeeMeals: number;
+          cancelledCount: number; cancelledTotal: number;
+        }> = {};
+        const ensureCashier = (key: string, name: string, branchId: string, branchName: string) => {
+          if (!cashierAgg[key]) cashierAgg[key] = {
+            name, branchId, branchName,
+            total: 0, orderCount: 0,
+            gross: 0, net: 0,
+            cash: 0, card: 0, employeeAccount: 0, employeeMeals: 0,
+            cancelledCount: 0, cancelledTotal: 0,
+          };
+          return cashierAgg[key];
+        };
         for (const o of orderList) {
           const sess = sessionMap[o.session_id];
           const name = sess?.cashierName || "غير محدد";
@@ -472,14 +572,52 @@ Deno.serve(async (req) => {
             ? (branchNameMap[resolvedBranchId] || "فرع غير مسمى")
             : "بدون فرع";
           const key = `${resolvedBranchId}::${name}`;
-          if (!cashierAgg[key]) cashierAgg[key] = { name, branchId: resolvedBranchId, branchName, total: 0, orderCount: 0 };
-          cashierAgg[key].total += o.total || 0;
-          cashierAgg[key].orderCount += 1;
+          const row = ensureCashier(key, name, resolvedBranchId, branchName);
+          const orderTotal = o.total || 0;
+          row.total += orderTotal;
+          row.orderCount += 1;
+          row.gross += orderTotal;
+          const pay = paymentsByOrder[o.id] || { cash: 0, card: 0, employeeAccount: 0 };
+          row.cash += pay.cash;
+          row.card += pay.card;
+          row.employeeAccount += pay.employeeAccount;
+          const meal = pay.employeeAccount + (Number(o.meal_subsidy_amount) || 0);
+          row.employeeMeals += meal;
+          row.net += orderTotal - meal;
+        }
+        // Attribute cancellations to their cashier.
+        for (const o of cancelledOrders) {
+          const sess = sessionMap[o.session_id];
+          const name = sess?.cashierName || "غير محدد";
+          const cbId = sess?.cashBoxId || "";
+          const box = cashBoxMap[cbId];
+          const fallbackBranchId = sess?.terminalId ? terminalBranchMap[sess.terminalId] : null;
+          const resolvedBranchId = box?.branchId || fallbackBranchId || "__no_branch__";
+          const branchName = resolvedBranchId !== "__no_branch__"
+            ? (branchNameMap[resolvedBranchId] || "فرع غير مسمى")
+            : "بدون فرع";
+          const key = `${resolvedBranchId}::${name}`;
+          const row = ensureCashier(key, name, resolvedBranchId, branchName);
+          row.cancelledCount += 1;
+          row.cancelledTotal += Number(o.total) || 0;
         }
         // (Invoice sales attribution by user is not tracked on invoices table)
         const byCashier = Object.values(cashierAgg).sort((a, b) => b.total - a.total);
 
-        return { total, posTotal, invTotal, orderCount, byBranch, byItem, byCashier };
+        // Top-level summary across the whole range.
+        const summary = {
+          gross: posTotal + invTotal,
+          cash: Object.values(branchAgg).reduce((s, b) => s + b.cash, 0),
+          card: Object.values(branchAgg).reduce((s, b) => s + b.card, 0),
+          employeeAccount: Object.values(branchAgg).reduce((s, b) => s + b.employeeAccount, 0),
+          employeeMeals: Object.values(branchAgg).reduce((s, b) => s + b.employeeMeals, 0),
+          cancelledCount: cancelledOrders.length,
+          cancelledTotal: cancelledOrders.reduce((s, o) => s + (Number(o.total) || 0), 0),
+          net: 0,
+        };
+        summary.net = summary.gross - summary.employeeMeals;
+
+        return { total, posTotal, invTotal, orderCount, byBranch, byItem, byCashier, summary };
       }
 
       // Prev-year only needs the total for growth %, never details.
