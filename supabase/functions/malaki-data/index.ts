@@ -191,29 +191,49 @@ Deno.serve(async (req) => {
         const sISO = `${fromDate}T00:00:00`;
         const eISO = `${toDate}T23:59:59.999`;
 
-        // POS orders
-        const { data: orders } = await supabase
-          .from("pos_orders")
-          .select("id, total, created_at, session_id, user_id, transaction_id")
-          .eq("user_id", linkedUserId)
-          .eq("state", "paid")
-          .gte("created_at", sISO)
-          .lte("created_at", eISO)
-          .limit(20000);
-        const orderList = await excludeVoidedOrders(supabase, orders || []);
+        // POS orders — paginated to bypass PostgREST 1000-row default cap
+        const orderList: any[] = [];
+        const PAGE = 1000;
+        for (let from = 0; ; from += PAGE) {
+          const { data: chunk, error: chErr } = await supabase
+            .from("pos_orders")
+            .select("id, total, created_at, session_id, user_id, transaction_id")
+            .eq("user_id", linkedUserId)
+            .eq("state", "paid")
+            .gte("created_at", sISO)
+            .lte("created_at", eISO)
+            .order("created_at", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (chErr) break;
+          if (!chunk || chunk.length === 0) break;
+          orderList.push(...chunk);
+          if (chunk.length < PAGE) break;
+          if (from > 100000) break; // safety
+        }
+        const filteredOrders = await excludeVoidedOrders(supabase, orderList);
+        orderList.length = 0;
+        orderList.push(...filteredOrders);
 
-        // Invoice sales
-        let invQ = supabase
-          .from("invoices")
-          .select("id, invoice_date, total_amount, contact_name, invoice_number, created_at")
-          .eq("user_id", linkedUserId)
-          .eq("invoice_type", "sale")
-          .eq("is_voided", false)
-          .not("status", "in", "(cancelled,void,reversed)")
-          .gte("invoice_date", fromDate)
-          .lte("invoice_date", toDate);
-        const { data: invs } = await invQ.limit(20000);
-        const invList = invs || [];
+        // Invoice sales — paginated likewise
+        const invList: any[] = [];
+        for (let from = 0; ; from += PAGE) {
+          const { data: chunk, error: chErr } = await supabase
+            .from("invoices")
+            .select("id, invoice_date, total_amount, contact_name, invoice_number, created_at")
+            .eq("user_id", linkedUserId)
+            .eq("invoice_type", "sale")
+            .eq("is_voided", false)
+            .not("status", "in", "(cancelled,void,reversed)")
+            .gte("invoice_date", fromDate)
+            .lte("invoice_date", toDate)
+            .order("invoice_date", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (chErr) break;
+          if (!chunk || chunk.length === 0) break;
+          invList.push(...chunk);
+          if (chunk.length < PAGE) break;
+          if (from > 100000) break;
+        }
 
         const posTotal = orderList.reduce((s, o) => s + (o.total || 0), 0);
         const invTotal = invList.reduce((s, i) => s + (i.total_amount || 0), 0);
