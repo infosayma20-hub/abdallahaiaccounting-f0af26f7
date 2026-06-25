@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, Printer, RotateCcw, Ban, Clock, User, Eye,
-  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft, Trash2,
+  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft, Trash2, ShieldCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
+import ManagerHistoryUnlockDialog from "./ManagerHistoryUnlockDialog";
+import ChangePaymentMethodDialog from "./ChangePaymentMethodDialog";
+import { usePOSManagerMode } from "@/hooks/usePOSManagerMode";
 import { multiWordMatchAny } from "@/lib/utils";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { sendToBridge } from "@/lib/print-bridge-client";
@@ -184,6 +187,8 @@ export default function InvoiceHistoryDrawer({
   };
   const canCashierSeeAmount = (order: InvoiceOrder) => {
     if (!cashierMode) return true;
+    // Manager-mode unlock bypasses the visibility window entirely.
+    if (managerMode.active) return true;
     if (!order.created_at) return false;
     const ageMin = (getServerNow() - new Date(order.created_at).getTime()) / 60000;
     return ageMin <= amountVisibleMinutes;
@@ -194,6 +199,11 @@ export default function InvoiceHistoryDrawer({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [clockSkewMin, setClockSkewMin] = useState<number>(0);
+
+  // ── Manager Mode (short unlock for cashier history) ──
+  const managerMode = usePOSManagerMode(sessionId);
+  const [showManagerUnlock, setShowManagerUnlock] = useState(false);
+  const [showChangePayment, setShowChangePayment] = useState(false);
 
   // Auto-focus search input when drawer opens
   useEffect(() => {
@@ -969,6 +979,27 @@ export default function InvoiceHistoryDrawer({
             <span className="text-base font-bold" style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}>
               سجل الفواتير
             </span>
+            {cashierMode && (
+              managerMode.active ? (
+                <button
+                  onClick={managerMode.lock}
+                  className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                  title={`وضع المدير نشط (${managerMode.managerName || "—"}). اضغط للقفل.`}
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  وضع المدير · {Math.max(0, Math.ceil(managerMode.remainingMs / 60000))}د
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowManagerUnlock(true)}
+                  className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-amber-500 text-amber-600 hover:bg-amber-50 transition-colors"
+                  title="فتح كامل التفاصيل مؤقتاً بصلاحية مدير"
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  وضع المدير
+                </button>
+              )
+            )}
           </div>
           <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
             <X className="h-4 w-4" style={{ color: "#64748B" }} />
@@ -1577,6 +1608,31 @@ export default function InvoiceHistoryDrawer({
                     <ArrowRightLeft className="h-3.5 w-3.5" /> نقل لموظف آخر
                   </Button>
                 )}
+
+                {/* تعديل طريقة الدفع — متاح خلال 30 دقيقة، أو بعدها بصلاحية وضع المدير */}
+                {selectedOrder.state === "paid" && !selectedOrder.is_return && !isTransferredOut(selectedOrder) && (() => {
+                  const ageMin = selectedOrder.paid_at
+                    ? (getServerNow() - new Date(selectedOrder.paid_at).getTime()) / 60000
+                    : selectedOrder.created_at
+                      ? (getServerNow() - new Date(selectedOrder.created_at).getTime()) / 60000
+                      : Infinity;
+                  const withinWindow = ageMin <= 30;
+                  const canShow = withinWindow || managerMode.active || !cashierMode;
+                  if (!canShow) return null;
+                  return (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs"
+                      style={{ borderColor: "#F59E0B", color: "#B45309" }}
+                      onClick={() => setShowChangePayment(true)}
+                      title={withinWindow ? "تعديل طريقة الدفع" : "تعديل بصلاحية المدير"}
+                    >
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                      تعديل طريقة الدفع
+                    </Button>
+                  );
+                })()}
               </div>
 
               {/* Manager approval note */}
@@ -1779,6 +1835,43 @@ export default function InvoiceHistoryDrawer({
           dataOwnerId={dataOwnerId}
           exchangeRates={exchangeRates}
           onSuccess={() => { fetchOrders(); setSelectedOrder(null); }}
+        />
+      )}
+
+      {/* ══════ MANAGER UNLOCK DIALOG ══════ */}
+      <ManagerHistoryUnlockDialog
+        open={showManagerUnlock}
+        onClose={() => setShowManagerUnlock(false)}
+        onUnlocked={(uid, name) => {
+          managerMode.unlock(uid, name);
+          setShowManagerUnlock(false);
+          toast.success(`تم تفعيل وضع المدير لمدة 15 دقيقة (${name})`);
+        }}
+        branchId={null}
+        companyId={dataOwnerId}
+        sessionId={sessionId}
+        cashierName={cashierName}
+      />
+
+      {/* ══════ CHANGE PAYMENT METHOD DIALOG ══════ */}
+      {selectedOrder && showChangePayment && (
+        <ChangePaymentMethodDialog
+          open={showChangePayment}
+          onClose={() => setShowChangePayment(false)}
+          orderId={selectedOrder.id}
+          orderNumber={selectedOrder.order_number}
+          orderTotal={selectedOrder.total}
+          currentMethod={orderPayments[0]?.payment_method || "cash"}
+          ageMinutes={
+            selectedOrder.paid_at
+              ? (getServerNow() - new Date(selectedOrder.paid_at).getTime()) / 60000
+              : selectedOrder.created_at
+                ? (getServerNow() - new Date(selectedOrder.created_at).getTime()) / 60000
+                : Infinity
+          }
+          windowMinutes={30}
+          managerUserId={managerMode.active ? managerMode.managerUserId : null}
+          onSuccess={() => { fetchOrders(); /* refetch payments */ setSelectedOrder({ ...selectedOrder }); }}
         />
       )}
     </>
