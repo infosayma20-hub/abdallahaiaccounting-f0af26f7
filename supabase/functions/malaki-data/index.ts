@@ -77,6 +77,57 @@ async function loadPaidPosOrders(
   return excludeVoidedOrders(supabase, orders);
 }
 
+// Loads paid POS orders by business_date (respects the 6 AM cutoff).
+// Falls back to created_at when business_date is NULL on legacy rows.
+async function loadPaidPosOrdersByBusinessDate(
+  supabase: any,
+  linkedUserId: string | null,
+  fromDate: string,
+  toDate: string,
+  select = "id, total, created_at, session_id, user_id, transaction_id, business_date",
+) {
+  if (!linkedUserId) return [];
+  const orders: any[] = [];
+
+  // 1) Rows with business_date set — primary source of truth.
+  for (let from = 0; ; from += POS_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("pos_orders")
+      .select(select)
+      .eq("user_id", linkedUserId)
+      .eq("state", "paid")
+      .gte("business_date", fromDate)
+      .lte("business_date", toDate)
+      .order("business_date", { ascending: false })
+      .range(from, from + POS_PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    orders.push(...data);
+    if (data.length < POS_PAGE_SIZE) break;
+  }
+
+  // 2) Legacy rows where business_date is NULL — approximate using created_at calendar range.
+  const { startISO, endISO } = palestineBusinessRange(fromDate, toDate);
+  for (let from = 0; ; from += POS_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("pos_orders")
+      .select(select)
+      .eq("user_id", linkedUserId)
+      .eq("state", "paid")
+      .is("business_date", null)
+      .gte("created_at", startISO)
+      .lte("created_at", endISO)
+      .order("created_at", { ascending: false })
+      .range(from, from + POS_PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    orders.push(...data);
+    if (data.length < POS_PAGE_SIZE) break;
+  }
+
+  return excludeVoidedOrders(supabase, orders);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -235,16 +286,16 @@ Deno.serve(async (req) => {
 
       // ───────── Helper: load sales for a given range ─────────
       async function loadRange(fromDate: string, toDate: string, withDetails: boolean) {
-        const { startISO: sISO, endISO: eISO } = palestineBusinessRange(fromDate, toDate);
-
-        // POS orders — paginated to bypass PostgREST 1000-row default cap
+        // POS orders — use business_date (6 AM cutoff) so post-midnight sales
+        // stay attributed to the correct shift/cashier and don't bleed into the
+        // next calendar day.
         const PAGE = 1000;
-        const orderList: any[] = await loadPaidPosOrders(
+        const orderList: any[] = await loadPaidPosOrdersByBusinessDate(
           supabase,
           linkedUserId,
-          sISO,
-          eISO,
-          "id, total, created_at, session_id, user_id, transaction_id",
+          fromDate,
+          toDate,
+          "id, total, created_at, session_id, user_id, transaction_id, business_date",
         );
 
         // Invoice sales — paginated likewise
