@@ -716,6 +716,27 @@ const POSPage = () => {
   const [splitTenders, setSplitTenders] = useState<SplitTender[]>([]);
   const [defaultCardGl, setDefaultCardGl] = useState<string | null>(null);
 
+  // ── Call-center payment lock ──────────────────────────────────────────────
+  // When the active order originated from the call center with a fixed payment
+  // method (e.g. Wheels-up "visa"), the cashier MUST honor that choice so the
+  // accounting (card vs cash sales) matches what the agent recorded. We expose
+  // it as a derived flag + sync `paymentMethod` whenever the active tab
+  // changes to a locked order.
+  const ccLockedMethod: "cash" | "card" | null = (() => {
+    const m = activeOrder?.callCenterPaymentMethod;
+    if (!m) return null;
+    return m === "cash" ? "cash" : "card";
+  })();
+  const isPaymentLockedByCC = ccLockedMethod !== null;
+  useEffect(() => {
+    if (!ccLockedMethod) return;
+    // Force the cashier UI to reflect the agent's choice. Also disable split.
+    setPaymentMethod(prev => (prev === ccLockedMethod ? prev : ccLockedMethod));
+    setPaymentCurrency("ILS");
+    setSplitMode(false);
+    setSplitTenders([]);
+  }, [ccLockedMethod, activeOrderIndex]);
+
   const currencies = [
     { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
     { code: "USD", symbol: "$", name: "دولار", flag: "US" },
@@ -7232,6 +7253,11 @@ const POSPage = () => {
               {/* Section header */}
               <div className="mx-4 mt-4 mb-2 flex items-center justify-between">
                 <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#605E5C', letterSpacing: '0.06em' }}>Tender type · نوع الدفع</span>
+                {isPaymentLockedByCC && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: '#FFF4CE', color: '#8A6100', border: '1px solid #F2C811' }}>
+                    محددة من الكول سنتر · {ccLockedMethod === 'card' ? 'بطاقة' : 'نقد'}
+                  </span>
+                )}
               </div>
 
               {/* Payment methods — uniform Dynamics tile grid (mixed payment is a peer tile) */}
@@ -7248,11 +7274,15 @@ const POSPage = () => {
                 }).map((m) => {
                   const isSplitTile = m.key === "__split";
                   const isActive = isSplitTile ? splitMode : (!splitMode && paymentMethod === m.key);
+                  const lockedOut = isPaymentLockedByCC && (isSplitTile || m.key !== ccLockedMethod);
                   return (
                     <motion.button
                       key={m.key}
-                      whileTap={{ scale: 0.97 }}
+                      whileTap={{ scale: lockedOut ? 1 : 0.97 }}
+                      disabled={lockedOut}
+                      title={lockedOut ? 'طريقة الدفع محددة من الكول سنتر ولا يمكن تغييرها' : undefined}
                       onClick={() => {
+                        if (lockedOut) return;
                         if (isSplitTile) {
                           if (splitMode) {
                             setSplitMode(false);
@@ -7289,6 +7319,8 @@ const POSPage = () => {
                         borderRadius: 2,
                         boxShadow: isActive ? `inset 0 -2px 0 ${m.selColor}` : 'none',
                         minHeight: 72,
+                        opacity: lockedOut ? 0.4 : 1,
+                        cursor: lockedOut ? 'not-allowed' : 'pointer',
                       }}
                     >
                       <m.icon className="h-5 w-5" style={{ color: isActive ? m.selColor : '#605E5C' }} />
