@@ -1,0 +1,2 @@
+ALTER TABLE public.pos_orders DROP CONSTRAINT IF EXISTS pos_orders_wheels_status_chk;
+ALTER TABLE public.pos_orders ADD CONSTRAINT pos_orders_wheels_status_chk CHECK (wheels_request_status = ANY (ARRAY['not_sent'::text,'sending'::text,'sent'::text,'failed'::text,'skipped'::text,'not_applicable'::text,'cancelled'::text]));
