@@ -22,6 +22,7 @@ interface Zone {
   is_active: boolean;
   wheels_area_id?: number | null;
   wheels_fixed_price?: number | null;
+  area_aliases?: string[] | null;
 }
 
 interface Props {
@@ -65,7 +66,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
     setLoading(true);
     supabase
       .from("delivery_zones" as any)
-      .select("id, city, area_name, branch_id, branch_name, price, is_active, wheels_area_id, wheels_fixed_price")
+      .select("id, city, area_name, branch_id, branch_name, price, is_active, wheels_area_id, wheels_fixed_price, area_aliases")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("city")
@@ -88,9 +89,44 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
 
   const cities = useMemo(() => Array.from(new Set(zones.map(z => z.city))).sort(), [zones]);
 
+  // Normalize Arabic text for fuzzy matching: unify hamza/alef variants,
+  // ya/alef-maksura, ta-marbuta/ha, strip tatweel/diacritics, collapse
+  // whitespace/dashes. Helps when callers type slightly different spellings
+  // (e.g. "الجيديدة" vs "الجديدة", "المعاجين القدس" vs "المعاجين - القدس").
+  const normalizeAr = (s: string): string => {
+    if (!s) return "";
+    return s
+      .toString()
+      .replace(/[\u200f\u200e]/g, "")
+      .replace(/[ـًٌٍَُِّْ]/g, "")
+      .replace(/[إأآا]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ؤ/g, "و")
+      .replace(/ئ/g, "ي")
+      .replace(/ة/g, "ه")
+      .replace(/\s*-\s*/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  };
+
   // Areas filtered by city + search, grouped by area name
   const areaGroups = useMemo(() => {
-    const filtered = zones.filter(z => (!city || z.city === city) && (!search.trim() || z.area_name.includes(search.trim())));
+    const q = normalizeAr(search);
+    const tokens = q ? q.split(" ").filter(Boolean) : [];
+    const filtered = zones.filter(z => {
+      if (city && z.city !== city) return false;
+      if (!tokens.length) return true;
+      // Build a haystack from area_name + city + aliases, all normalized.
+      const hay = [
+        normalizeAr(z.area_name),
+        normalizeAr(z.city),
+        ...((z.area_aliases || []).map(normalizeAr)),
+      ].join(" | ");
+      // Every token must appear somewhere — supports multi-word queries like
+      // "مخيم العين نابلس" matching "مخيم العين" (city=نابلس).
+      return tokens.every(t => hay.includes(t));
+    });
     const map = new Map<string, Zone[]>();
     for (const z of filtered) {
       const key = `${z.city}::${z.area_name}`;
@@ -105,7 +141,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
         const tieCount = sorted.filter(s => s.price === cheapest.price).length;
         return { city: c, area: a, options: sorted, cheapest, tie: tieCount > 1 };
       })
-      .slice(0, 50);
+      .slice(0, 100);
   }, [zones, city, search]);
 
   const selectZone = (zone: Zone) => {
