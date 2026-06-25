@@ -60,6 +60,7 @@ interface InvoiceOrder {
   delivery_fee?: number | null;
   order_note?: string | null;
   notes?: string | null;
+  guest_name?: string | null;
 }
 
 interface InvoiceLine {
