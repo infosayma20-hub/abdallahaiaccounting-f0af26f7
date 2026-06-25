@@ -129,6 +129,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 🔒 HARD LOCK: Malaky Broast tenant — only the owner auth account itself
+    // (malakybroast@gmail.com / user_id 0b08eba6-…) may pull this owner's data.
+    // Even portal sub-accounts linked to this tenant are denied access here.
+    const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
+    if (linkedUserId === MALAKY_OWNER_ID && authUserId !== MALAKY_OWNER_ID) {
+      return respond({ success: false, error: "forbidden_tenant" }, 403);
+    }
+
     // Fetch portal settings scoped to the resolved data owner
     if (linkedUserId) {
       const { data: settingsRows, error: settingsError } = await supabase
