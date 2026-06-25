@@ -1486,17 +1486,41 @@ export default function InvoiceHistoryDrawer({
                       toast.error("لا توجد بنود متاحة لهذه الفاتورة");
                       return;
                     }
-                    const mismatch = orderLines.some((l: any) => l.order_id && l.order_id !== selectedOrder.id);
+                    // ── ATOMIC SNAPSHOT ─────────────────────────────────────
+                    // Capture id+number+lines+payments AT CLICK TIME so a
+                    // subsequent state update (selecting another invoice,
+                    // realtime refresh, etc.) cannot leak data into this
+                    // print job. This is what causes "wrong number on copy"
+                    // reports — selectedOrder mutated while we were building
+                    // the bridge payload.
+                    const snap = {
+                      id: selectedOrder.id,
+                      order_number: selectedOrder.order_number,
+                      created_at: (selectedOrder as any).created_at,
+                      total: selectedOrder.total,
+                      subtotal: selectedOrder.subtotal,
+                      discount_amount: selectedOrder.discount_amount,
+                      order_note: (selectedOrder as any).order_note || (selectedOrder as any).notes,
+                      order_type: (selectedOrder as any).order_type,
+                      table_name: (selectedOrder as any).table_name,
+                      lines: orderLines.slice(),
+                      payments: orderPayments.slice(),
+                    };
+                    const mismatch = snap.lines.some((l: any) => l.order_id && l.order_id !== snap.id);
                     if (mismatch) {
                       toast.error("تعذرت الطباعة: بيانات غير متطابقة. أعد فتح الفاتورة.");
                       return;
                     }
+                    if (!snap.order_number) {
+                      toast.error("تعذرت الطباعة: رقم الفاتورة غير محمّل بعد.");
+                      return;
+                    }
                     // Use bridge for silent printing
-                    const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---";
+                    const paymentLabel = snap.payments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---";
                     // Preserve ORIGINAL invoice date/time on reprint (was: Print Bridge fell back to "now").
                     // selectedOrder.created_at is an ISO timestamp from the DB; split into YYYY-MM-DD and HH:MM
                     // because bridge expects (order.date, order.time) and rebuilds createdAt = `${date}T${time}`.
-                    const createdAtIso: string | undefined = (selectedOrder as any).created_at;
+                    const createdAtIso: string | undefined = snap.created_at;
                     let origDate: string | undefined;
                     let origTime: string | undefined;
                     if (createdAtIso) {
@@ -1508,12 +1532,16 @@ export default function InvoiceHistoryDrawer({
                       }
                     }
                     const bridgeOrder = {
-                      orderNumber: selectedOrder.order_number || "---",
+                      orderNumber: snap.order_number,
+                      // Force the printed counter to the ORIGINAL invoice
+                      // number — never let the bridge fall back to "---" or
+                      // any local counter.
+                      queueNumber: snap.order_number,
                       branchName: terminalName || "نقطة البيع",
                       cashier: cashierName,
                       date: origDate,
                       time: origTime,
-                      items: orderLines.map(line => ({
+                      items: snap.lines.map(line => ({
                         id: line.product_id || line.product_name,
                         name: line.product_name,
                         quantity: line.qty,
@@ -1523,28 +1551,37 @@ export default function InvoiceHistoryDrawer({
                           ? line.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra_price ?? 0 }))
                           : undefined,
                       })),
-                      subtotal: selectedOrder.subtotal || selectedOrder.total,
-                      discount: selectedOrder.discount_amount || 0,
-                      total: selectedOrder.total,
+                      subtotal: snap.subtotal || snap.total,
+                      discount: snap.discount_amount || 0,
+                      total: snap.total,
                       paymentMethod: paymentLabel,
-                      orderNote: (selectedOrder as any).order_note || (selectedOrder as any).notes || undefined,
-                      tenderedAmount: orderPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0) || undefined,
-                      orderType: ((selectedOrder as any).order_type as any) || undefined,
-                      tableNumber: (selectedOrder as any).table_name || undefined,
+                      // Watermark every reprint so the receipt cannot be
+                      // mistaken for a new sale by staff or customer.
+                      orderNote: [
+                        "⚠️ نسخة طبق الأصل — ليست فاتورة جديدة",
+                        snap.order_note,
+                      ].filter(Boolean).join(" | "),
+                      tenderedAmount: snap.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0) || undefined,
+                      orderType: (snap.order_type as any) || undefined,
+                      tableNumber: snap.table_name || undefined,
                     };
                     const companyInfo = { name: terminalName || undefined, terminalName: terminalName || undefined };
                     const copies = Math.max(1, Math.min(5, Number(reprintCopies) || 1));
                     (async () => {
                       for (let i = 0; i < copies; i++) {
                         // Vary id per copy so the dedupe guard does not block reprints.
-                        const copyOrder: any = { ...bridgeOrder, id: `${selectedOrder.id || ""}-copy-${Date.now()}-${i}` };
+                        const copyOrder: any = { ...bridgeOrder, id: `${snap.id || ""}-copy-${Date.now()}-${i}` };
                         await printReceiptImage(copyOrder, companyInfo).catch(() => {
                           console.warn("Print bridge unavailable");
                         });
                         if (i + 1 < copies) await new Promise(r => setTimeout(r, 350));
                       }
                     })();
-                    toast.success(copies > 1 ? `تم إرسال ${copies} نسخ للطابعة` : "تم إرسال الإيصال للطابعة");
+                    toast.success(
+                      copies > 1
+                        ? `تم إرسال ${copies} نسخ طبق الأصل لفاتورة #${snap.order_number}`
+                        : `تم إرسال نسخة طبق الأصل لفاتورة #${snap.order_number}`
+                    );
                   }}
                 >
                   <Printer className="h-3.5 w-3.5" /> طباعة {reprintCopies > 1 ? `× ${reprintCopies}` : ""}
