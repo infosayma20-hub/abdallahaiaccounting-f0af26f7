@@ -175,6 +175,7 @@ Deno.serve(async (req) => {
       const today = new Date().toISOString().split("T")[0];
       const dateFrom: string = body.dateFrom || today;
       const dateTo: string = body.dateTo || today;
+      const summaryOnly: boolean = body.summaryOnly === true;
       const startISO = `${dateFrom}T00:00:00`;
       const endISO = `${dateTo}T23:59:59.999`;
 
@@ -390,9 +391,12 @@ Deno.serve(async (req) => {
         return { total, posTotal, invTotal, orderCount, byBranch, byItem, byCashier };
       }
 
+      // Prev-year only needs the total for growth %, never details.
+      // Current range honours `summaryOnly` so the lightweight Owner-Home card
+      // can skip the heavy item/branch/cashier aggregations.
       const [current, prevYear] = await Promise.all([
-        loadRange(dateFrom, dateTo, true),
-        loadRange(prevFrom, prevTo, true),
+        loadRange(dateFrom, dateTo, !summaryOnly),
+        loadRange(prevFrom, prevTo, false),
       ]);
 
       const growthPct = prevYear.total > 0

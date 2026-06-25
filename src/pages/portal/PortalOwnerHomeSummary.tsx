@@ -54,7 +54,7 @@ export default function PortalOwnerHomeSummary({
     setLoading(true);
     try {
       const [s, o, a] = await Promise.all([
-        supabase.functions.invoke('malaki-data', { body: { action: 'owner_sales', dateFrom: today, dateTo: today } }),
+        supabase.functions.invoke('malaki-data', { body: { action: 'owner_sales', dateFrom: today, dateTo: today, summaryOnly: true } }),
         supabase.functions.invoke('malaki-data', { body: { action: 'overview', period: 'today' } }),
         supabase.functions.invoke('malaki-data', { body: { action: 'attendance', dateFrom: today, dateTo: today } }),
       ]);
