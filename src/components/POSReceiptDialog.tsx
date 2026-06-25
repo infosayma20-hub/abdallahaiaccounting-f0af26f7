@@ -47,6 +47,8 @@ interface ReceiptData {
   tax: number;
   discount: number;
   total: number;
+  deliveryFee?: number;
+  mealSubsidy?: number;
   paymentMethod: string;
   tenderedAmount: number;
   change: number;
@@ -126,6 +128,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
       subtotal: data.subtotal,
       discount: data.discount,
       total: data.total,
+      deliveryFee: data.deliveryFee || 0,
+      mealSubsidy: data.mealSubsidy || 0,
       paymentMethod: data.paymentMethod,
       currency: data.currency,
       tenderedAmount: data.tenderedAmount,

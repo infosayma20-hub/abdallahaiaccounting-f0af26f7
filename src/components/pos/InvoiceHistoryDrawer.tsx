@@ -61,9 +61,11 @@ interface InvoiceOrder {
   area_name?: string | null;
   zone_code?: string | null;
   delivery_fee?: number | null;
+  meal_subsidy_amount?: number | null;
   order_note?: string | null;
   notes?: string | null;
   guest_name?: string | null;
+  guest_count?: number | null;
 }
 
 interface InvoiceLine {
@@ -90,6 +92,7 @@ interface InvoicePayment {
 }
 
 type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled" | "transferred";
+type DrawerCartModifier = { group_id: string; group_name: string; option_id: string; option_name: string; extra_price: number };
 
 interface CartItem {
   id: string;
@@ -103,6 +106,7 @@ interface CartItem {
   unit: string;
   total: number;
   note: string;
+  modifiers?: DrawerCartModifier[];
 }
 
 interface InvoiceHistoryDrawerProps {
@@ -472,7 +476,7 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      const selectFields = "id, order_number, display_number, queue_number, daily_display_number, session_seq, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, guest_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, order_note, notes, pos_payments(payment_method), contacts:customer_id(phone)";
+      const selectFields = "id, order_number, display_number, queue_number, daily_display_number, session_seq, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, guest_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancel_reason, cancelled_at, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, meal_subsidy_amount, order_note, notes, guest_count, pos_payments(payment_method), contacts:customer_id(phone)";
 
       // Main query: orders belonging to this session
       let query = supabase
@@ -600,12 +604,18 @@ export default function InvoiceHistoryDrawer({
         if (lineIds.length) {
           const { data: mods } = await supabase
             .from("order_item_modifiers")
-            .select("order_line_id, option_name, extra_price")
+            .select("order_line_id, modifier_group_id, modifier_option_id, group_name, option_name, extra_price")
             .in("order_line_id", lineIds);
-          const byLine = new Map<string, { option_name: string; extra_price?: number }[]>();
+          const byLine = new Map<string, DrawerCartModifier[]>();
           for (const m of (mods || []) as any[]) {
             if (!byLine.has(m.order_line_id)) byLine.set(m.order_line_id, []);
-            byLine.get(m.order_line_id)!.push({ option_name: m.option_name, extra_price: m.extra_price ?? 0 });
+            byLine.get(m.order_line_id)!.push({
+              group_id: m.modifier_group_id || "",
+              group_name: m.group_name || "",
+              option_id: m.modifier_option_id || "",
+              option_name: m.option_name,
+              extra_price: m.extra_price ?? 0,
+            });
           }
           for (const l of safeLines) {
             (l as any).modifiers = byLine.get(l.id) || [];
@@ -795,7 +805,7 @@ export default function InvoiceHistoryDrawer({
         tax_rate: l.tax_rate || 0,
         unit: l.unit || "قطعة",
         total: l.total,
-        note: "",
+        note: l.notes || "",
       }));
 
       onRecallToCart(cartItems, order.id, order.order_number || "", reason, approvedBy);
@@ -1454,7 +1464,14 @@ export default function InvoiceHistoryDrawer({
                         tax_rate: 0,
                         unit: "قطعة",
                         total: line.total,
-                        note: "",
+                         note: line.notes || "",
+                         modifiers: ((line as any).modifiers || []).map((m: any) => ({
+                           group_id: m.group_id || "",
+                           group_name: m.group_name || "",
+                           option_id: m.option_id || "",
+                           option_name: m.option_name,
+                           extra_price: Number(m.extra_price || 0),
+                         })),
                       }));
                       onLoadDraftToCart(items, selectedOrder.id);
                       setSelectedOrder(null);
@@ -1527,6 +1544,9 @@ export default function InvoiceHistoryDrawer({
                       customer_name: (selectedOrder as any).customer_name || (selectedOrder as any).guest_name || null,
                       customer_phone: ccoPhone || (selectedOrder as any)?.contacts?.phone || null,
                       delivery_address: (selectedOrder as any).delivery_address || (selectedOrder as any).customer_address || null,
+                      delivery_fee: Number((selectedOrder as any).delivery_fee || 0),
+                      meal_subsidy_amount: Number((selectedOrder as any).meal_subsidy_amount || 0),
+                      guest_count: (selectedOrder as any).guest_count || null,
                       lines: orderLines.slice(),
                       payments: orderPayments.slice(),
                     };
@@ -1576,9 +1596,11 @@ export default function InvoiceHistoryDrawer({
                           ? line.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra_price ?? 0 }))
                           : undefined,
                       })),
-                      subtotal: snap.subtotal || snap.total,
+                      subtotal: snap.subtotal ?? Math.max(0, Number(snap.total || 0) - Number(snap.delivery_fee || 0)),
                       discount: snap.discount_amount || 0,
                       total: snap.total,
+                      deliveryFee: snap.delivery_fee || 0,
+                      mealSubsidy: snap.meal_subsidy_amount || 0,
                       paymentMethod: paymentLabel,
                       // Watermark every reprint so the receipt cannot be
                       // mistaken for a new sale by staff or customer.
@@ -1589,6 +1611,7 @@ export default function InvoiceHistoryDrawer({
                       tenderedAmount: snap.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0) || undefined,
                       orderType: (snap.order_type as any) || undefined,
                       tableNumber: snap.table_name || undefined,
+                      guestCount: snap.guest_count || undefined,
                       customerName: snap.customer_name || undefined,
                       customerPhone: snap.customer_phone || undefined,
                       deliveryAddress: snap.order_type === "delivery" ? (snap.delivery_address || undefined) : undefined,
