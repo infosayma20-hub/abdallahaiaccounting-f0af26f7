@@ -1608,6 +1608,31 @@ export default function InvoiceHistoryDrawer({
                     <ArrowRightLeft className="h-3.5 w-3.5" /> نقل لموظف آخر
                   </Button>
                 )}
+
+                {/* تعديل طريقة الدفع — متاح خلال 30 دقيقة، أو بعدها بصلاحية وضع المدير */}
+                {selectedOrder.state === "paid" && !selectedOrder.is_return && !isTransferredOut(selectedOrder) && (() => {
+                  const ageMin = selectedOrder.paid_at
+                    ? (getServerNow() - new Date(selectedOrder.paid_at).getTime()) / 60000
+                    : selectedOrder.created_at
+                      ? (getServerNow() - new Date(selectedOrder.created_at).getTime()) / 60000
+                      : Infinity;
+                  const withinWindow = ageMin <= 30;
+                  const canShow = withinWindow || managerMode.active || !cashierMode;
+                  if (!canShow) return null;
+                  return (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs"
+                      style={{ borderColor: "#F59E0B", color: "#B45309" }}
+                      onClick={() => setShowChangePayment(true)}
+                      title={withinWindow ? "تعديل طريقة الدفع" : "تعديل بصلاحية المدير"}
+                    >
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                      تعديل طريقة الدفع
+                    </Button>
+                  );
+                })()}
               </div>
 
               {/* Manager approval note */}
