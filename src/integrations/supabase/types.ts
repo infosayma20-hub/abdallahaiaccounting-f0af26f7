@@ -20259,6 +20259,7 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      cancel_stale_pending_call_center_orders: { Args: never; Returns: number }
       cancel_stock_transfer: {
         Args: { p_reason?: string; p_transfer_id: string }
         Returns: Json
