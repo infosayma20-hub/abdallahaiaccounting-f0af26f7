@@ -307,7 +307,13 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
               className="w-full text-right px-2.5 py-1.5 text-[11px] hover:bg-orange-100/50 dark:hover:bg-orange-950/30 flex items-center justify-between gap-2"
             >
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-muted-foreground text-[9px] shrink-0">{g.city}</span>
+                {city && g.city !== city ? (
+                  <span className="text-[9px] font-bold shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700">
+                    <AlertTriangle className="h-2.5 w-2.5" /> من {g.city}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-[9px] shrink-0">{g.city}</span>
+                )}
                 <span className="font-semibold truncate">{g.area}</span>
                 {g.tie && (
                   <span className="text-[9px] text-amber-600 font-bold shrink-0 flex items-center gap-0.5">
