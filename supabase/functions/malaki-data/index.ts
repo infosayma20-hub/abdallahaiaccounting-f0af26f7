@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
           linkedUserId,
           fromDate,
           toDate,
-          "id, total, created_at, session_id, user_id, transaction_id, business_date",
+          "id, total, created_at, session_id, user_id, transaction_id, business_date, meal_subsidy_amount",
         );
 
         // Invoice sales — paginated likewise
@@ -325,7 +325,15 @@ Deno.serve(async (req) => {
         const orderCount = orderList.length + invList.length;
 
         if (!withDetails) {
-          return { total, posTotal, invTotal, orderCount, byBranch: [], byItem: [], byCashier: [] };
+          return {
+            total, posTotal, invTotal, orderCount,
+            byBranch: [], byItem: [], byCashier: [],
+            summary: {
+              gross: total, net: total, cash: 0, card: 0,
+              employeeAccount: 0, employeeMeals: 0,
+              cancelledCount: 0, cancelledTotal: 0,
+            },
+          };
         }
 
         // ── Sessions + cash boxes (for branch & cashier) ──
