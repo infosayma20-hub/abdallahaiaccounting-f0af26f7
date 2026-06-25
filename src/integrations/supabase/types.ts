@@ -11835,6 +11835,9 @@ export type Database = {
           cancelled_approved_by: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          client_forwarded_for: string | null
+          client_ip: unknown
+          client_user_agent: string | null
           company_id: string
           created_at: string
           currency: string
@@ -11926,6 +11929,9 @@ export type Database = {
           cancelled_approved_by?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          client_forwarded_for?: string | null
+          client_ip?: unknown
+          client_user_agent?: string | null
           company_id: string
           created_at?: string
           currency?: string
@@ -12017,6 +12023,9 @@ export type Database = {
           cancelled_approved_by?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          client_forwarded_for?: string | null
+          client_ip?: unknown
+          client_user_agent?: string | null
           company_id?: string
           created_at?: string
           currency?: string
@@ -12193,6 +12202,8 @@ export type Database = {
           change_currency: string | null
           cheque_date: string | null
           cheque_number: string | null
+          client_ip: unknown
+          client_user_agent: string | null
           created_at: string
           currency: string
           exchange_rate: number | null
@@ -12216,6 +12227,8 @@ export type Database = {
           change_currency?: string | null
           cheque_date?: string | null
           cheque_number?: string | null
+          client_ip?: unknown
+          client_user_agent?: string | null
           created_at?: string
           currency?: string
           exchange_rate?: number | null
@@ -12239,6 +12252,8 @@ export type Database = {
           change_currency?: string | null
           cheque_date?: string | null
           cheque_number?: string | null
+          client_ip?: unknown
+          client_user_agent?: string | null
           created_at?: string
           currency?: string
           exchange_rate?: number | null
@@ -20119,6 +20134,7 @@ export type Database = {
         Args: { p_changes: Json; p_order_id: string }
         Returns: undefined
       }
+      _capture_client_request_info: { Args: never; Returns: Json }
       _fc_validate_postable_account: {
         Args: { p_account_code: string; p_user_id: string }
         Returns: undefined
