@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
+  CreditCard, Banknote, XCircle, Coffee,
 } from 'lucide-react';
 
 interface Props {
@@ -13,14 +14,26 @@ interface Props {
 
 type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 
+interface PaymentAgg {
+  gross: number;
+  net: number;
+  cash: number;
+  card: number;
+  employeeAccount: number;
+  employeeMeals: number;
+  cancelledCount: number;
+  cancelledTotal: number;
+}
+
 interface RangeData {
   total: number;
   posTotal: number;
   invTotal: number;
   orderCount: number;
-  byBranch: { id: string; name: string; location: string; total: number; orderCount: number }[];
+  byBranch: ({ id: string; name: string; location: string; total: number; orderCount: number } & Partial<PaymentAgg>)[];
   byItem: { name: string; quantity: number; revenue: number }[];
-  byCashier: { name: string; total: number; orderCount: number; branchId?: string; branchName?: string }[];
+  byCashier: ({ name: string; total: number; orderCount: number; branchId?: string; branchName?: string } & Partial<PaymentAgg>)[];
+  summary?: PaymentAgg;
 }
 
 interface OwnerSales {
@@ -225,6 +238,17 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
             </div>
           </div>
         </div>
+        {c?.summary && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 14,
+            position: 'relative',
+          }}>
+            <HeroChip label="صافي المبيعات" value={fmt(c.summary.net)} icon={<TrendingUp size={11} />} color="#86efac" />
+            <HeroChip label="فيزا" value={fmt(c.summary.card)} icon={<CreditCard size={11} />} color="#93c5fd" />
+            <HeroChip label="نقدي" value={fmt(c.summary.cash)} icon={<Banknote size={11} />} color="#fcd34d" />
+            <HeroChip label="ملغي" value={`${c.summary.cancelledCount} • ${fmt(c.summary.cancelledTotal)}`} icon={<XCircle size={11} />} color="#fca5a5" />
+          </div>
+        )}
       </div>
 
       {/* ═══════ POS vs Invoices split ═══════ */}
@@ -315,6 +339,21 @@ function SplitCard({ t, icon, label, value, accent, sub }: {
   );
 }
 
+function HeroChip({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: '8px 10px',
+      border: '1px solid rgba(255,255,255,0.08)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>
+        <span style={{ color }}>{icon}</span>
+        {label}
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', fontFamily: 'JetBrains Mono, monospace' }}>{value}</div>
+    </div>
+  );
+}
+
 function OverviewView({ c, t }: { c: RangeData; t: ReturnType<typeof getTokens> }) {
   const topBranch = c.byBranch[0];
   const topItem = c.byItem[0];
@@ -365,6 +404,56 @@ function BarRow({ name, value, label, max, t, accent }: any) {
   );
 }
 
+function DetailRow({ row, max, t, accent }: {
+  row: { name: string; total: number; orderCount: number } & Partial<PaymentAgg>;
+  max: number; t: ReturnType<typeof getTokens>; accent: string;
+}) {
+  const pct = max > 0 ? (row.total / max) * 100 : 0;
+  const showPayments = row.card !== undefined || row.cash !== undefined ||
+    row.employeeMeals !== undefined || row.cancelledCount !== undefined;
+  return (
+    <div style={{ padding: '10px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>{row.name}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: t.text, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(row.net ?? row.total)}</div>
+          <div style={{ fontSize: 9, color: t.textFaint }}>صافي • إجمالي {fmt(row.total)}</div>
+        </div>
+      </div>
+      <div style={{ height: 5, borderRadius: 3, background: t.sectionBg, overflow: 'hidden', marginBottom: 6 }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: accent, borderRadius: 3, transition: 'width 0.4s' }} />
+      </div>
+      {showPayments && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 10 }}>
+          <Pill t={t} color="#0EA5E9" icon={<CreditCard size={9} />} label="فيزا" value={fmt(row.card || 0)} />
+          <Pill t={t} color="#F59E0B" icon={<Banknote size={9} />} label="نقدي" value={fmt(row.cash || 0)} />
+          {(row.employeeMeals || 0) > 0 && (
+            <Pill t={t} color="#8B5CF6" icon={<Coffee size={9} />} label="وجبات موظفين" value={fmt(row.employeeMeals || 0)} />
+          )}
+          {(row.cancelledCount || 0) > 0 && (
+            <Pill t={t} color="#ef4444" icon={<XCircle size={9} />} label="ملغي" value={`${row.cancelledCount} • ${fmt(row.cancelledTotal || 0)}`} />
+          )}
+          <Pill t={t} color={t.textMuted} icon={<ShoppingBag size={9} />} label="عمليات" value={String(row.orderCount)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Pill({ t, color, icon, label, value }: any) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 3,
+      background: t.sectionBg, border: `1px solid ${t.cardBorder}`,
+      borderRadius: 6, padding: '2px 6px',
+    }}>
+      <span style={{ color }}>{icon}</span>
+      <span style={{ color: t.textMuted }}>{label}:</span>
+      <span style={{ color: t.text, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>{value}</span>
+    </div>
+  );
+}
+
 function BranchesView({ branches, t }: { branches: RangeData['byBranch']; t: ReturnType<typeof getTokens> }) {
   const max = branches[0]?.total || 1;
   return (
@@ -372,7 +461,7 @@ function BranchesView({ branches, t }: { branches: RangeData['byBranch']; t: Ret
       {branches.length === 0 ? (
         <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: t.textMuted }}>لا توجد بيانات</div>
       ) : branches.map(b => (
-        <BarRow key={b.id} name={b.name} value={b.total} label={`${fmt(b.total)} • ${b.orderCount}`} max={max} t={t} accent="#0EA5E9" />
+        <DetailRow key={b.id} row={b as any} max={max} t={t} accent="#0EA5E9" />
       ))}
     </div>
   );
@@ -413,7 +502,7 @@ function CashiersView({ cashiers, t }: { cashiers: RangeData['byCashier']; t: Re
             </div>
             <div style={{ padding: '4px 14px' }}>
               {sortedRows.map((cs, i) => (
-                <BarRow key={i} name={cs.name} value={cs.total} label={`${fmt(cs.total)} • ${cs.orderCount}`} max={max} t={t} accent="#16a34a" />
+                <DetailRow key={i} row={cs as any} max={max} t={t} accent="#16a34a" />
               ))}
             </div>
           </div>
