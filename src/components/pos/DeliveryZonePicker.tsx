@@ -113,7 +113,17 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
   // Areas filtered by city + search, grouped by area name
   const areaGroups = useMemo(() => {
     const q = normalizeAr(search);
-    const tokens = q ? q.split(" ").filter(Boolean) : [];
+    // Common generic qualifiers users often add that aren't in stored area names.
+    // We DROP them from the query tokens so "شارع هواش" still matches "هواش",
+    // "مخيم عسكر الجديد" matches "عسكر الجديد", "شارع عماد الدين" matches "طلعة عماد الدين", etc.
+    const STOP = new Set([
+      "شارع","مخيم","حي","منطقه","منطقة","حاره","حارة","ضاحيه","ضاحية",
+      "طلعه","طلعة","دوار","مستشفي","مستشفى","عماره","عمارة","مفرق","مدخل","قرب","بجانب","جانب","ال"
+    ]);
+    const rawTokens = q ? q.split(" ").filter(Boolean) : [];
+    let tokens = rawTokens.filter(t => !STOP.has(t) && t.length > 1);
+    // If user typed only stop-words, fall back to original tokens so we still search.
+    if (!tokens.length && rawTokens.length) tokens = rawTokens;
     const filtered = zones.filter(z => {
       if (city && z.city !== city) return false;
       if (!tokens.length) return true;
@@ -123,8 +133,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
         normalizeAr(z.city),
         ...((z.area_aliases || []).map(normalizeAr)),
       ].join(" | ");
-      // Every token must appear somewhere — supports multi-word queries like
-      // "مخيم العين نابلس" matching "مخيم العين" (city=نابلس).
+      // Every non-stop token must appear somewhere.
       return tokens.every(t => hay.includes(t));
     });
     const map = new Map<string, Zone[]>();
