@@ -587,6 +587,29 @@ const POSPage = () => {
         .rpc("cancel_editing_call_center_order" as any, { p_order_id: closing.callCenterOrderId } as any)
         .then(() => {});
     }
+    // If the tab holds an accepted call-center order that was never paid
+    // (no pos_order_id linked), return it to `pending` so other cashiers
+    // can see it again. Without this the order silently disappears until
+    // shift close or manual cancel from the call center.
+    if (
+      closing?.callCenterOrderId &&
+      !closing?.isEditingDispatch &&
+      !(closing as any)?.posOrderId
+    ) {
+      supabase
+        .from("call_center_orders" as any)
+        .update({
+          status: "pending",
+          accepted_by: null,
+          accepted_at: null,
+          session_id: null,
+        } as any)
+        .eq("id", closing.callCenterOrderId)
+        .is("pos_order_id", null)
+        .then(({ error }) => {
+          if (error) console.error("[removeOrder] revert call-center failed:", error);
+        });
+    }
     setOrders(prev => prev.filter((_, i) => i !== index));
     setActiveOrderIndex(prev => {
       if (prev >= index && prev > 0) return prev - 1;
