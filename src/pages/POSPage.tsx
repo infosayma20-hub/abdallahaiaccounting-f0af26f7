@@ -5761,20 +5761,34 @@ const POSPage = () => {
               // ever becoming a sales item.
               newOrder.callCenterDeliveryFee = _fee > 0 ? _fee : null;
               newOrder.callCenterDeliveryInfo = _info;
-              newOrder.cart = (order.items || []).map((item: any, i: number) => ({
-                id: crypto.randomUUID(),
-                product_id: item.product_id || null,
-                name: item.name,
-                qty: item.qty,
-                unit_price: item.unit_price,
-                cost_price: 0,
-                discount_pct: 0,
-                tax_rate: 0,
-                unit: "قطعة",
-                total: item.total || item.unit_price * item.qty,
-                note: item.note || "",
-                modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
-              }));
+              newOrder.cart = (order.items || []).map((item: any, i: number) => {
+                // 🛡️ Numeric hardening (root-cause fix): coerce every numeric
+                // field coming from the call-center JSON to a real number so
+                // a missing / string / null value can never propagate NaN into
+                // the cart totals, payment screen, or receipt template.
+                const qty = Number(item.qty);
+                const unitPrice = Number(item.unit_price);
+                const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+                const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
+                const rawTotal = Number(item.total);
+                const safeTotal = Number.isFinite(rawTotal) && rawTotal > 0
+                  ? rawTotal
+                  : safeUnitPrice * safeQty;
+                return {
+                  id: crypto.randomUUID(),
+                  product_id: item.product_id || null,
+                  name: item.name,
+                  qty: safeQty,
+                  unit_price: safeUnitPrice,
+                  cost_price: 0,
+                  discount_pct: 0,
+                  tax_rate: 0,
+                  unit: "قطعة",
+                  total: safeTotal,
+                  note: item.note || "",
+                  modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+                };
+              });
               newOrder.name = order.customer_name || "طلب كول سنتر";
               setOrders(prev => [...prev, newOrder]);
               setActiveOrderIndex(orders.length);
