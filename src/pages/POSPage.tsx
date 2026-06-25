@@ -716,6 +716,27 @@ const POSPage = () => {
   const [splitTenders, setSplitTenders] = useState<SplitTender[]>([]);
   const [defaultCardGl, setDefaultCardGl] = useState<string | null>(null);
 
+  // ── Call-center payment lock ──────────────────────────────────────────────
+  // When the active order originated from the call center with a fixed payment
+  // method (e.g. Wheels-up "visa"), the cashier MUST honor that choice so the
+  // accounting (card vs cash sales) matches what the agent recorded. We expose
+  // it as a derived flag + sync `paymentMethod` whenever the active tab
+  // changes to a locked order.
+  const ccLockedMethod: "cash" | "card" | null = (() => {
+    const m = activeOrder?.callCenterPaymentMethod;
+    if (!m) return null;
+    return m === "cash" ? "cash" : "card";
+  })();
+  const isPaymentLockedByCC = ccLockedMethod !== null;
+  useEffect(() => {
+    if (!ccLockedMethod) return;
+    // Force the cashier UI to reflect the agent's choice. Also disable split.
+    setPaymentMethod(prev => (prev === ccLockedMethod ? prev : ccLockedMethod));
+    setPaymentCurrency("ILS");
+    setSplitMode(false);
+    setSplitTenders([]);
+  }, [ccLockedMethod, activeOrderIndex]);
+
   const currencies = [
     { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
     { code: "USD", symbol: "$", name: "دولار", flag: "US" },
