@@ -21656,6 +21656,7 @@ export type Database = {
         Returns: string
       }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
+      revert_orphan_call_center_orders: { Args: never; Returns: number }
       sa_ensure_baseline_accounts: {
         Args: { p_user_id: string }
         Returns: Json
