@@ -58,8 +58,8 @@ export default function ManagerHistoryUnlockDialog({
     setLoading(true);
     setError("");
     const res = await verifyManagerCredentials(email, password);
-    if (!res.ok) {
-      setError(res.reason);
+    if (res.ok !== true) {
+      setError((res as { reason: string }).reason);
       setLoading(false);
       return;
     }
