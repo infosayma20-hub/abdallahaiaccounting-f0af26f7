@@ -48,25 +48,28 @@ export async function verifyManagerCredentials(
     }
     const managerUserId = data.user.id;
 
-    // Use the MAIN authenticated client (cashier's session) to fetch roles/branches,
-    // because RLS on user_roles / branch_manager_assignments / employees scopes by tenant.
+    // Read roles/branches/employee record via the MANAGER's own probe session.
+ // Self-row RLS policies (`Users can view their own roles`,
+    // `bma_select` user_id=auth.uid(), `employees_read_own_record`) guarantee
+    // the manager can see their own data regardless of which cashier/device
+    // session is active on the main client.
     const [{ data: roles }, { data: assignments }, { data: profile }, { data: empRows }] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", managerUserId),
-      supabase
+      probe.from("user_roles").select("role").eq("user_id", managerUserId),
+      probe
         .from("branch_manager_assignments")
         .select("branch_id")
         .eq("user_id", managerUserId),
-      supabase
+      probe
         .from("profiles")
         .select("display_name")
         .eq("user_id", managerUserId)
         .maybeSingle(),
       // Employees flagged as "مدير فرع" (is_manager) count as branch managers
       // for their assigned branch — keeps Manager Mode in sync with the HR toggle.
-      supabase
+      probe
         .from("employees")
         .select("branch_id, is_manager, full_name")
-        .or(`auth_user_id.eq.${managerUserId},user_id.eq.${managerUserId}`),
+        .eq("auth_user_id", managerUserId),
     ]);
 
     const isAdmin = (roles || []).some(
