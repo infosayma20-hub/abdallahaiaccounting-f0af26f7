@@ -5354,7 +5354,25 @@ const POSPage = () => {
           paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
         };
         printInProgressRef.current = true;
-        printAllImage(f8Order, undefined, undefined, { skipReceipt: activeOrder.orderType === "delivery" })
+        // 🛡️ Safety guard (June 2026): F8 may NEVER print a customer receipt
+        // unless the order has actually been saved (F12). This closes the gap
+        // where a cashier prints a receipt, walks away, and the order never
+        // hits pos_orders — causing missing-invoice incidents (e.g. #39).
+        //
+        // Allowed F8 outputs:
+        //   - Delivery orders         → kitchen tickets only (existing behavior)
+        //   - Dine-in / takeaway      → kitchen tickets only for non-admin
+        //   - Admin override          → full print (kitchen + receipt) for
+        //                                test prints / calibration
+        //
+        // F12 (handleCompleteOrder) remains the ONLY path that prints a
+        // customer receipt for a real, persisted order.
+        const isDelivery = activeOrder.orderType === "delivery";
+        const blockReceipt = !isAdmin || isDelivery;
+        if (blockReceipt && !isDelivery) {
+          toast.info("ℹ️ F8 طبع تذاكر المطبخ فقط — اضغط F12 للدفع وطباعة وصل الزبون", { duration: 3500 });
+        }
+        printAllImage(f8Order, undefined, undefined, { skipReceipt: blockReceipt })
           .catch(() => console.warn("F8 image print failed"))
           .finally(() => { printInProgressRef.current = false; });
         e.preventDefault();
