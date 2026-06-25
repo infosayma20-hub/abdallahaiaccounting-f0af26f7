@@ -2839,17 +2839,21 @@ const POSPage = () => {
 
   // Totals
   const cartTotals = useMemo(() => {
-    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-    const taxAmount = cart.reduce((sum, item) => sum + (item.total * item.tax_rate / 100), 0);
+    const safe = (n: any) => {
+      const v = Number(n);
+      return Number.isFinite(v) ? v : 0;
+    };
+    const subtotal = cart.reduce((sum, item) => sum + safe(item.total), 0);
+    const taxAmount = cart.reduce((sum, item) => sum + (safe(item.total) * safe(item.tax_rate) / 100), 0);
     // Enforce pos.sell.discount at calculation level — if user lacks permission,
     // the order-level discount is ignored even if state somehow holds a value.
     const canOrderDiscount = posFeatPerm.can("sell", "discount");
-    const effOrderDiscount = canOrderDiscount ? orderDiscount : 0;
+    const effOrderDiscount = canOrderDiscount ? safe(orderDiscount) : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
     // 🚚 Delivery fee is a SEPARATE financial line — never part of items[] (so
     // it can't pollute item/sales reports). It's added once to the final total
     // and printed as its own row. Source of truth = activeOrder.callCenterDeliveryFee.
-    const deliveryFee = Number(activeOrder?.callCenterDeliveryFee || 0);
+    const deliveryFee = safe(activeOrder?.callCenterDeliveryFee);
     const total = subtotal + taxAmount - discountAmt + deliveryFee;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
