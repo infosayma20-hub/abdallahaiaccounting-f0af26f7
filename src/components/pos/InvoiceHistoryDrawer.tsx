@@ -1552,12 +1552,13 @@ export default function InvoiceHistoryDrawer({
                         origTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
                       }
                     }
+                    const parsedPrintedNumber = Number(snap.printed_order_number);
                     const bridgeOrder = {
                       // Keep the immutable accounting number as the job identity,
                       // but print the same visible ticket number that was stored
                       // on the original sale (daily_display_number / queue_number).
                       orderNumber: snap.order_number,
-                      queueNumber: snap.queue_number ?? Number(snap.printed_order_number) ?? undefined,
+                      queueNumber: snap.queue_number ?? (Number.isFinite(parsedPrintedNumber) ? parsedPrintedNumber : undefined),
                       branchName: terminalName || "نقطة البيع",
                       cashier: cashierName,
                       date: origDate,
