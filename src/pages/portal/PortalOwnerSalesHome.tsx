@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, TrendingDown, Store, UtensilsCrossed, UserCheck,
   FileText, ShoppingBag, Calendar, RefreshCw, ChevronLeft, BarChart3,
+  CreditCard, Banknote, XCircle, Coffee,
 } from 'lucide-react';
 
 interface Props {
@@ -13,14 +14,26 @@ interface Props {
 
 type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 
+interface PaymentAgg {
+  gross: number;
+  net: number;
+  cash: number;
+  card: number;
+  employeeAccount: number;
+  employeeMeals: number;
+  cancelledCount: number;
+  cancelledTotal: number;
+}
+
 interface RangeData {
   total: number;
   posTotal: number;
   invTotal: number;
   orderCount: number;
-  byBranch: { id: string; name: string; location: string; total: number; orderCount: number }[];
+  byBranch: ({ id: string; name: string; location: string; total: number; orderCount: number } & Partial<PaymentAgg>)[];
   byItem: { name: string; quantity: number; revenue: number }[];
-  byCashier: { name: string; total: number; orderCount: number; branchId?: string; branchName?: string }[];
+  byCashier: ({ name: string; total: number; orderCount: number; branchId?: string; branchName?: string } & Partial<PaymentAgg>)[];
+  summary?: PaymentAgg;
 }
 
 interface OwnerSales {
