@@ -534,6 +534,13 @@ export default function InvoiceHistoryDrawer({
       o.order_number,
       o.session_seq != null ? String(o.session_seq) : null,
       o.customer_name,
+      o.guest_name,
+      o.contacts?.phone || null,
+      o.customer_address,
+      o.delivery_address,
+      o.area_name,
+      o.order_note,
+      o.notes,
     ));
   }, [orders, searchQuery, cashierMode]);
 
