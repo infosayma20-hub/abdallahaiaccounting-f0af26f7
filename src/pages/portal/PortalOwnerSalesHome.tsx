@@ -238,6 +238,17 @@ export default function PortalOwnerSalesHome({ theme, initialPreset }: Props) {
             </div>
           </div>
         </div>
+        {c?.summary && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 14,
+            position: 'relative',
+          }}>
+            <HeroChip label="صافي المبيعات" value={fmt(c.summary.net)} icon={<TrendingUp size={11} />} color="#86efac" />
+            <HeroChip label="فيزا" value={fmt(c.summary.card)} icon={<CreditCard size={11} />} color="#93c5fd" />
+            <HeroChip label="نقدي" value={fmt(c.summary.cash)} icon={<Banknote size={11} />} color="#fcd34d" />
+            <HeroChip label="ملغي" value={`${c.summary.cancelledCount} • ${fmt(c.summary.cancelledTotal)}`} icon={<XCircle size={11} />} color="#fca5a5" />
+          </div>
+        )}
       </div>
 
       {/* ═══════ POS vs Invoices split ═══════ */}
