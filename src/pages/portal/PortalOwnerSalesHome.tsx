@@ -339,6 +339,21 @@ function SplitCard({ t, icon, label, value, accent, sub }: {
   );
 }
 
+function HeroChip({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: '8px 10px',
+      border: '1px solid rgba(255,255,255,0.08)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>
+        <span style={{ color }}>{icon}</span>
+        {label}
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', fontFamily: 'JetBrains Mono, monospace' }}>{value}</div>
+    </div>
+  );
+}
+
 function OverviewView({ c, t }: { c: RangeData; t: ReturnType<typeof getTokens> }) {
   const topBranch = c.byBranch[0];
   const topItem = c.byItem[0];
