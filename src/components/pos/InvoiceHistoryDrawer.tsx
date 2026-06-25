@@ -1524,6 +1524,9 @@ export default function InvoiceHistoryDrawer({
                       order_note: (selectedOrder as any).order_note || (selectedOrder as any).notes,
                       order_type: (selectedOrder as any).order_type,
                       table_name: (selectedOrder as any).table_name,
+                      customer_name: (selectedOrder as any).customer_name || (selectedOrder as any).guest_name || null,
+                      customer_phone: ccoPhone || (selectedOrder as any)?.contacts?.phone || null,
+                      delivery_address: (selectedOrder as any).delivery_address || (selectedOrder as any).customer_address || null,
                       lines: orderLines.slice(),
                       payments: orderPayments.slice(),
                     };
@@ -1586,6 +1589,9 @@ export default function InvoiceHistoryDrawer({
                       tenderedAmount: snap.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0) || undefined,
                       orderType: (snap.order_type as any) || undefined,
                       tableNumber: snap.table_name || undefined,
+                      customerName: snap.customer_name || undefined,
+                      customerPhone: snap.customer_phone || undefined,
+                      deliveryAddress: snap.order_type === "delivery" ? (snap.delivery_address || undefined) : undefined,
                     };
                     const companyInfo = { name: terminalName || undefined, terminalName: terminalName || undefined };
                     const copies = Math.max(1, Math.min(5, Number(reprintCopies) || 1));

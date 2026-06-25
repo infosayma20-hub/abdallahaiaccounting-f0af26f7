@@ -71,6 +71,8 @@ export interface PrintOrder {
   customerName?: string;
   /** Customer phone (for delivery / takeaway / call-center orders) */
   customerPhone?: string;
+  /** Delivery address (printed on customer receipt for delivery orders) */
+  deliveryAddress?: string;
   /** Pickup note — e.g. "استلام من فيصل" */
   pickupBy?: string;
   /**

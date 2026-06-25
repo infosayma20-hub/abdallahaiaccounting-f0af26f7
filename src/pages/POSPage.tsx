@@ -4509,6 +4509,7 @@ const POSPage = () => {
           customerName: activeOrder.customerName || undefined,
           customerPhone: activeOrder.customerPhone || undefined,
           employeeName: effectivePaymentMethod === "employee_account" ? selectedEmployee?.full_name || undefined : undefined,
+          deliveryAddress: activeOrder.orderType === "delivery" ? (activeOrder.deliveryAddress || undefined) : undefined,
           items: cart.map(item => ({
             id: item.product_id || item.id,
             name: item.name,
@@ -5366,6 +5367,7 @@ const POSPage = () => {
           orderType: activeOrder.orderType,
           customerName: activeOrder.customerName || undefined,
           customerPhone: activeOrder.customerPhone || undefined,
+          deliveryAddress: activeOrder.orderType === "delivery" ? (activeOrder.deliveryAddress || undefined) : undefined,
           items: cart.map(item => ({
             id: item.product_id || item.id,
             name: item.name,
