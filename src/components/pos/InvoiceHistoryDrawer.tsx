@@ -544,7 +544,18 @@ export default function InvoiceHistoryDrawer({
       list = list.filter(o => o.state !== "cancelled");
     }
     if (!searchQuery.trim()) return list;
-    return list.filter(o => multiWordMatchAny(
+    // Numeric search: match by total amount (exact or ±0.5 tolerance)
+    const q = searchQuery.trim().replace(/[₪,\s]/g, "");
+    const numericQ = Number(q);
+    const isNumeric = q !== "" && !isNaN(numericQ) && /^\d+(\.\d+)?$/.test(q);
+    return list.filter(o => {
+      if (isNumeric) {
+        const total = Number(o.total) || 0;
+        if (Math.abs(total - numericQ) < 0.5) return true;
+        // also allow integer-floor match (e.g. user types 98 and total is 98.50)
+        if (Math.floor(total) === Math.floor(numericQ)) return true;
+      }
+      return multiWordMatchAny(
       searchQuery,
       getPrintedOrderNumber(o),
       o.order_number,
@@ -560,7 +571,8 @@ export default function InvoiceHistoryDrawer({
       o.area_name,
       o.order_note,
       o.notes,
-    ));
+      );
+    });
   }, [orders, searchQuery, cashierMode]);
 
   const isTransferredOut = (order: InvoiceOrder) => 
@@ -1093,7 +1105,7 @@ export default function InvoiceHistoryDrawer({
               ref={searchInputRef}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="بحث برقم الفاتورة أو اسم الزبون..."
+              placeholder="بحث برقم الفاتورة، اسم الزبون، الجوال، أو قيمة الفاتورة..."
               className="w-full h-9 pr-9 pl-3 rounded-lg border text-xs"
               style={{ fontFamily: "Tajawal, sans-serif", borderColor: "#E2E8F0" }}
             />
