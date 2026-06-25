@@ -544,7 +544,18 @@ export default function InvoiceHistoryDrawer({
       list = list.filter(o => o.state !== "cancelled");
     }
     if (!searchQuery.trim()) return list;
-    return list.filter(o => multiWordMatchAny(
+    // Numeric search: match by total amount (exact or ±0.5 tolerance)
+    const q = searchQuery.trim().replace(/[₪,\s]/g, "");
+    const numericQ = Number(q);
+    const isNumeric = q !== "" && !isNaN(numericQ) && /^\d+(\.\d+)?$/.test(q);
+    return list.filter(o => {
+      if (isNumeric) {
+        const total = Number(o.total) || 0;
+        if (Math.abs(total - numericQ) < 0.5) return true;
+        // also allow integer-floor match (e.g. user types 98 and total is 98.50)
+        if (Math.floor(total) === Math.floor(numericQ)) return true;
+      }
+      return multiWordMatchAny(
       searchQuery,
       getPrintedOrderNumber(o),
       o.order_number,
@@ -560,7 +571,8 @@ export default function InvoiceHistoryDrawer({
       o.area_name,
       o.order_note,
       o.notes,
-    ));
+      );
+    });
   }, [orders, searchQuery, cashierMode]);
 
   const isTransferredOut = (order: InvoiceOrder) => 
