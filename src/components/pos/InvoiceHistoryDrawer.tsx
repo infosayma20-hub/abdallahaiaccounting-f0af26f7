@@ -979,6 +979,27 @@ export default function InvoiceHistoryDrawer({
             <span className="text-base font-bold" style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}>
               سجل الفواتير
             </span>
+            {cashierMode && (
+              managerMode.active ? (
+                <button
+                  onClick={managerMode.lock}
+                  className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                  title={`وضع المدير نشط (${managerMode.managerName || "—"}). اضغط للقفل.`}
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  وضع المدير · {Math.max(0, Math.ceil(managerMode.remainingMs / 60000))}د
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowManagerUnlock(true)}
+                  className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border border-amber-500 text-amber-600 hover:bg-amber-50 transition-colors"
+                  title="فتح كامل التفاصيل مؤقتاً بصلاحية مدير"
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  وضع المدير
+                </button>
+              )
+            )}
           </div>
           <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
             <X className="h-4 w-4" style={{ color: "#64748B" }} />
