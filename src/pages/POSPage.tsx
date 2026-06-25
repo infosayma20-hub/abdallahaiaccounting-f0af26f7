@@ -6611,7 +6611,29 @@ const POSPage = () => {
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: 'white' }}>{item.qty}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={item.qty}
+                              onClick={(e) => { e.stopPropagation(); (e.currentTarget as HTMLInputElement).select(); }}
+                              onFocus={(e) => e.currentTarget.select()}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const raw = e.target.value;
+                                if (raw === "") return;
+                                const v = parseInt(raw, 10);
+                                if (!isNaN(v) && v >= 1 && v <= 9999) updateCartItem(index, "qty", v);
+                              }}
+                              onBlur={(e) => {
+                                const v = parseInt(e.target.value, 10);
+                                if (isNaN(v) || v < 1) updateCartItem(index, "qty", 1);
+                              }}
+                              onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
+                              className="w-10 text-center text-[14px] tabular-nums bg-transparent border-0 outline-none focus:bg-white/15 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              style={{ color: 'white' }}
+                              aria-label="الكمية"
+                            />
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
                               style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
