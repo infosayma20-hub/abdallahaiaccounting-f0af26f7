@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
     // ── Resolve the data owner (linked_user_id) from the portal user's record ──
     let linkedUserId: string | null = null;
     let portalSettings: any = null;
+    let activeOwnerPortalUser = false;
 
     if (authUserId) {
       // First check if this user IS an admin (owner) — they might access portal settings directly
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
       // Find the portal user record linked to this auth user
       const { data: portalUser } = await supabase
         .from("malaki_portal_users")
-        .select("user_id")
+        .select("user_id, role")
         .eq("auth_user_id", authUserId)
         .eq("is_active", true)
         .single();
@@ -120,6 +121,7 @@ Deno.serve(async (req) => {
       if (portalUser?.user_id) {
         // Portal user — data owner is the admin who created them
         linkedUserId = portalUser.user_id;
+        activeOwnerPortalUser = portalUser.role === "owner";
       } else if (adminProfile && !adminProfile.invited_by) {
         // This is an admin/owner viewing their own portal settings
         linkedUserId = authUserId;
@@ -129,11 +131,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 🔒 HARD LOCK: Malaky Broast tenant — only the owner auth account itself
-    // (malakybroast@gmail.com / user_id 0b08eba6-…) may pull this owner's data.
-    // Even portal sub-accounts linked to this tenant are denied access here.
+    // 🔒 HARD LOCK: Malaky Broast tenant — allow the owner auth account itself
+    // plus explicitly active owner portal accounts linked to this tenant only.
     const MALAKY_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
-    if (linkedUserId === MALAKY_OWNER_ID && authUserId !== MALAKY_OWNER_ID) {
+    if (linkedUserId === MALAKY_OWNER_ID && authUserId !== MALAKY_OWNER_ID && !activeOwnerPortalUser) {
       return respond({ success: false, error: "forbidden_tenant" }, 403);
     }
 
