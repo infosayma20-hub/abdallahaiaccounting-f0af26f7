@@ -28,6 +28,9 @@ import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/
 interface InvoiceOrder {
   id: string;
   order_number: string | null;
+  display_number?: string | null;
+  queue_number?: number | null;
+  daily_display_number?: number | null;
   session_seq: number | null;
   created_at: string;
   total: number;
@@ -161,6 +164,14 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }>
   cancelled: { label: "ملغية", bg: "#FEE2E2", text: "#DC2626" },
   recalled: { label: "معدّلة", bg: "#EFF6FF", text: "#0A2342" },
   transferred: { label: "منقولة", bg: "#F3E8FF", text: "#7C3AED" },
+};
+
+const getPrintedOrderNumber = (order: Pick<InvoiceOrder, "daily_display_number" | "queue_number" | "display_number" | "order_number" | "session_seq">) => {
+  if (order.daily_display_number !== null && order.daily_display_number !== undefined) return String(order.daily_display_number);
+  if (order.queue_number !== null && order.queue_number !== undefined) return String(order.queue_number);
+  if (order.display_number) return String(order.display_number).replace(/^#/, "");
+  if (order.session_seq !== null && order.session_seq !== undefined) return String(order.session_seq);
+  return order.order_number || "—";
 };
 
 const RECALL_REASONS = [
@@ -461,7 +472,7 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      const selectFields = "id, order_number, session_seq, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, guest_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, order_note, notes, pos_payments(payment_method), contacts:customer_id(phone)";
+      const selectFields = "id, order_number, display_number, queue_number, daily_display_number, session_seq, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, guest_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, order_note, notes, pos_payments(payment_method), contacts:customer_id(phone)";
 
       // Main query: orders belonging to this session
       let query = supabase
@@ -531,7 +542,11 @@ export default function InvoiceHistoryDrawer({
     if (!searchQuery.trim()) return list;
     return list.filter(o => multiWordMatchAny(
       searchQuery,
+      getPrintedOrderNumber(o),
       o.order_number,
+      o.display_number,
+      o.queue_number != null ? String(o.queue_number) : null,
+      o.daily_display_number != null ? String(o.daily_display_number) : null,
       o.session_seq != null ? String(o.session_seq) : null,
       o.customer_name,
       o.guest_name,
@@ -1097,6 +1112,7 @@ export default function InvoiceHistoryDrawer({
             <div>
               {filtered.map(order => {
                 const status = getStatusDisplay(order);
+                const printedOrderNumber = getPrintedOrderNumber(order);
                 const time = format(new Date(order.created_at), "HH:mm");
                 const date = format(new Date(order.created_at), "dd/MM/yyyy");
                 return (
@@ -1109,8 +1125,9 @@ export default function InvoiceHistoryDrawer({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, fontWeight: 600, color: "#0A2342" }}>
-                          فاتورة وردية #{order.session_seq ?? "—"}
+                          رقم الطلب #{printedOrderNumber}
                         </span>
+                        <span className="text-[10px]" style={{ color: "#64748B" }}>وردية #{order.session_seq ?? "—"}</span>
                         <span
                           className="font-mono text-[10px] px-1.5 py-0.5 rounded"
                           style={{ background: "#F1F5F9", color: "#64748B" }}
@@ -1255,6 +1272,7 @@ export default function InvoiceHistoryDrawer({
             <>
               {(() => {
                 const st = getStatusDisplay(selectedOrder);
+                const printedOrderNumber = getPrintedOrderNumber(selectedOrder);
                 const orderTypeLabel = ({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "—"));
                 const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join("، ") || "—";
                 const deliveryFee = Number(selectedOrder.delivery_fee || 0);
@@ -1274,8 +1292,9 @@ export default function InvoiceHistoryDrawer({
                     <DialogHeader className="pb-3 border-b" style={{ borderColor: "#E5E7EB" }}>
                       <DialogTitle className="flex items-center gap-2 text-right">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", color: "#0F172A", fontSize: 14, fontWeight: 600 }}>
-                          فاتورة وردية #{selectedOrder.session_seq ?? "—"}
+                          رقم الطلب #{printedOrderNumber}
                         </span>
+                        <span className="text-[11px]" style={{ color: "#64748B" }}>وردية #{selectedOrder.session_seq ?? "—"}</span>
                         <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#F1F5F9", color: "#64748B" }} title="الرقم العالمي للفاتورة">
                           {selectedOrder.order_number || "---"}
                         </span>
@@ -1496,6 +1515,8 @@ export default function InvoiceHistoryDrawer({
                     const snap = {
                       id: selectedOrder.id,
                       order_number: selectedOrder.order_number,
+                      printed_order_number: getPrintedOrderNumber(selectedOrder),
+                      queue_number: selectedOrder.daily_display_number ?? selectedOrder.queue_number ?? null,
                       created_at: (selectedOrder as any).created_at,
                       total: selectedOrder.total,
                       subtotal: selectedOrder.subtotal,
@@ -1531,12 +1552,13 @@ export default function InvoiceHistoryDrawer({
                         origTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
                       }
                     }
+                    const parsedPrintedNumber = Number(snap.printed_order_number);
                     const bridgeOrder = {
+                      // Keep the immutable accounting number as the job identity,
+                      // but print the same visible ticket number that was stored
+                      // on the original sale (daily_display_number / queue_number).
                       orderNumber: snap.order_number,
-                      // Force the printed counter to the ORIGINAL invoice
-                      // number — never let the bridge fall back to "---" or
-                      // any local counter.
-                      queueNumber: snap.order_number,
+                      queueNumber: snap.queue_number ?? (Number.isFinite(parsedPrintedNumber) ? parsedPrintedNumber : undefined),
                       branchName: terminalName || "نقطة البيع",
                       cashier: cashierName,
                       date: origDate,
@@ -1579,8 +1601,8 @@ export default function InvoiceHistoryDrawer({
                     })();
                     toast.success(
                       copies > 1
-                        ? `تم إرسال ${copies} نسخ طبق الأصل لفاتورة #${snap.order_number}`
-                        : `تم إرسال نسخة طبق الأصل لفاتورة #${snap.order_number}`
+                        ? `تم إرسال ${copies} نسخ طبق الأصل لرقم الطلب #${snap.printed_order_number}`
+                        : `تم إرسال نسخة طبق الأصل لرقم الطلب #${snap.printed_order_number}`
                     );
                   }}
                 >
