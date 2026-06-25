@@ -2839,17 +2839,21 @@ const POSPage = () => {
 
   // Totals
   const cartTotals = useMemo(() => {
-    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-    const taxAmount = cart.reduce((sum, item) => sum + (item.total * item.tax_rate / 100), 0);
+    const safe = (n: any) => {
+      const v = Number(n);
+      return Number.isFinite(v) ? v : 0;
+    };
+    const subtotal = cart.reduce((sum, item) => sum + safe(item.total), 0);
+    const taxAmount = cart.reduce((sum, item) => sum + (safe(item.total) * safe(item.tax_rate) / 100), 0);
     // Enforce pos.sell.discount at calculation level — if user lacks permission,
     // the order-level discount is ignored even if state somehow holds a value.
     const canOrderDiscount = posFeatPerm.can("sell", "discount");
-    const effOrderDiscount = canOrderDiscount ? orderDiscount : 0;
+    const effOrderDiscount = canOrderDiscount ? safe(orderDiscount) : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
     // 🚚 Delivery fee is a SEPARATE financial line — never part of items[] (so
     // it can't pollute item/sales reports). It's added once to the final total
     // and printed as its own row. Source of truth = activeOrder.callCenterDeliveryFee.
-    const deliveryFee = Number(activeOrder?.callCenterDeliveryFee || 0);
+    const deliveryFee = safe(activeOrder?.callCenterDeliveryFee);
     const total = subtotal + taxAmount - discountAmt + deliveryFee;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
@@ -4807,13 +4811,13 @@ const POSPage = () => {
       id: crypto.randomUUID(),
       product_id: item.product_id || null,
       name: item.name,
-      qty: item.qty,
-      unit_price: item.unit_price,
+      qty: Number(item.qty) || 0,
+      unit_price: Number(item.unit_price) || 0,
       cost_price: 0,
       discount_pct: 0,
       tax_rate: 0,
       unit: "قطعة",
-      total: item.total || item.unit_price * item.qty,
+      total: Number(item.total) || (Number(item.unit_price) || 0) * (Number(item.qty) || 0),
       note: item.note || "",
       modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
     }));
@@ -8565,13 +8569,13 @@ const POSPage = () => {
             id: crypto.randomUUID(),
             product_id: item.product_id || null,
             name: item.name,
-            qty: item.qty,
-            unit_price: item.unit_price,
+            qty: Number(item.qty) || 0,
+            unit_price: Number(item.unit_price) || 0,
             cost_price: 0,
             discount_pct: 0,
             tax_rate: 0,
             unit: "قطعة",
-            total: item.total || item.unit_price * item.qty,
+            total: Number(item.total) || (Number(item.unit_price) || 0) * (Number(item.qty) || 0),
             note: item.note || "",
             modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
           }));
