@@ -4480,16 +4480,26 @@ const POSPage = () => {
               }));
 
             if (grilledItems.length > 0) {
-              let pizzaJob = kitchenJobs.find((j) => j.printerKey === 'pizza');
-              if (!pizzaJob) {
-                pizzaJob = { printerKey: 'pizza', stationLabel: 'البيتزا', items: [] };
-                kitchenJobs.push(pizzaJob);
-              }
-              for (const gi of grilledItems) {
-                const dup = pizzaJob.items.some(
-                  (x: any) => x.name === gi.name && x.quantity === gi.quantity && (x.note || '') === (gi.note || ''),
-                );
-                if (!dup) pizzaJob.items.push(gi);
+              // ضمان الطباعة على كل من البيتزا والمطبخ الرئيسي
+              const ensureJob = (key: string, label: string) => {
+                let j = kitchenJobs.find((x) => x.printerKey === key);
+                if (!j) {
+                  j = { printerKey: key, stationLabel: label, items: [] };
+                  kitchenJobs.push(j);
+                }
+                return j;
+              };
+              const targets = [
+                ensureJob('pizza', 'البيتزا'),
+                ensureJob('kitchen', 'المطبخ'),
+              ];
+              for (const job of targets) {
+                for (const gi of grilledItems) {
+                  const dup = job.items.some(
+                    (x: any) => x.name === gi.name && x.quantity === gi.quantity && (x.note || '') === (gi.note || ''),
+                  );
+                  if (!dup) job.items.push(gi);
+                }
               }
               // أزل السنتنل الفاضي إذا انضاف عمل فعلي
               kitchenJobs = kitchenJobs.filter(
