@@ -1684,7 +1684,7 @@ export default function InvoiceHistoryDrawer({
                         <RotateCcw className="h-3.5 w-3.5" /> ارتجاع
                       </Button>
                     )}
-                    {(!cashierMode || isWithinCancelGrace(selectedOrder)) ? (
+                    {(!cashierMode || isWithinCancelGrace(selectedOrder) || managerMode.active) ? (
                     <Button
                       variant="destructive"
                       size="sm"
