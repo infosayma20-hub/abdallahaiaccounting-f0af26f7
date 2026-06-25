@@ -22,6 +22,13 @@ function fmt(n: number) {
 function localDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+// Active business date — matches POS 6 AM cutoff so post-midnight sales
+// (00:00 → 06:00) stay attributed to the previous calendar day's shift.
+function activeBusinessDate(d: Date) {
+  const ref = new Date(d);
+  if (ref.getHours() < 6) ref.setDate(ref.getDate() - 1);
+  return localDate(ref);
+}
 
 function tokens(dark: boolean) {
   return dark ? {
@@ -48,7 +55,7 @@ export default function PortalOwnerHomeSummary({
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const today = localDate(new Date());
+  const today = activeBusinessDate(new Date());
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
