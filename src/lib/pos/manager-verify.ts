@@ -49,8 +49,8 @@ export async function verifyManagerCredentials(
     const managerUserId = data.user.id;
 
     // Use the MAIN authenticated client (cashier's session) to fetch roles/branches,
-    // because RLS on user_roles / branch_manager_assignments scopes by tenant.
-    const [{ data: roles }, { data: assignments }, { data: profile }] = await Promise.all([
+    // because RLS on user_roles / branch_manager_assignments / employees scopes by tenant.
+    const [{ data: roles }, { data: assignments }, { data: profile }, { data: empRows }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", managerUserId),
       supabase
         .from("branch_manager_assignments")
@@ -61,12 +61,23 @@ export async function verifyManagerCredentials(
         .select("display_name")
         .eq("user_id", managerUserId)
         .maybeSingle(),
+      // Employees flagged as "مدير فرع" (is_manager) count as branch managers
+      // for their assigned branch — keeps Manager Mode in sync with the HR toggle.
+      supabase
+        .from("employees")
+        .select("branch_id, is_manager, full_name")
+        .or(`auth_user_id.eq.${managerUserId},user_id.eq.${managerUserId}`),
     ]);
 
     const isAdmin = (roles || []).some(
       (r: any) => r.role === "admin" || r.role === "super_admin",
     );
-    const branchIds = (assignments || []).map((a: any) => a.branch_id).filter(Boolean);
+    const assignmentBranchIds = (assignments || []).map((a: any) => a.branch_id).filter(Boolean);
+    const employeeBranchIds = (empRows || [])
+      .filter((e: any) => e.is_manager && e.branch_id)
+      .map((e: any) => e.branch_id);
+    const branchIds = Array.from(new Set([...assignmentBranchIds, ...employeeBranchIds]));
+    const employeeName = (empRows || []).find((e: any) => e.is_manager)?.full_name;
 
     if (!isAdmin && branchIds.length === 0) {
       // Sign out the throwaway just to be tidy
@@ -79,7 +90,7 @@ export async function verifyManagerCredentials(
     return {
       ok: true,
       managerUserId,
-      managerName: profile?.display_name || cleanEmail,
+      managerName: profile?.display_name || employeeName || cleanEmail,
       isAdmin,
       branchIds,
     };
