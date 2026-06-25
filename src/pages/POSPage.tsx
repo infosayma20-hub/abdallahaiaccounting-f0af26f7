@@ -4400,6 +4400,49 @@ const POSPage = () => {
           if (kitchenJobs.length === 0) {
             kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
           }
+
+          // ── استثناء "مشوي" → دائماً يطبع كمان على البيتزا ──
+          // أي صنف فيه كلمة "مشوي" باسمه لازم يظهر بتذكرة البيتزا
+          // حتى لو الـ category/station ما بوجهه لهناك. لا يؤثر على
+          // الوصل ولا يضيف نسخ مكررة على نفس المحطة.
+          try {
+            const grilledItems = cart
+              .filter((it: any) => typeof it.name === 'string' && it.name.includes('مشوي'))
+              .map((it: any) => ({
+                id: it.name,
+                name: it.name,
+                quantity: it.qty,
+                price: 0,
+                note: it.note || undefined,
+                modifiers: (it.modifiers || []).map((m: any) => ({
+                  option_name: m.option_name,
+                  extra_price: m.extra_price,
+                })),
+              }));
+
+            if (grilledItems.length > 0) {
+              let pizzaJob = kitchenJobs.find((j) => j.printerKey === 'pizza');
+              if (!pizzaJob) {
+                pizzaJob = { printerKey: 'pizza', stationLabel: 'البيتزا', items: [] };
+                kitchenJobs.push(pizzaJob);
+              }
+              for (const gi of grilledItems) {
+                const dup = pizzaJob.items.some(
+                  (x: any) => x.name === gi.name && x.quantity === gi.quantity && (x.note || '') === (gi.note || ''),
+                );
+                if (!dup) pizzaJob.items.push(gi);
+              }
+              // أزل السنتنل الفاضي إذا انضاف عمل فعلي
+              kitchenJobs = kitchenJobs.filter(
+                (j) => j.items.length > 0 || j.printerKey !== 'kitchen',
+              );
+              if (kitchenJobs.length === 0) {
+                kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
+              }
+            }
+          } catch (e) {
+            console.warn('[grilled→pizza] skipped:', e);
+          }
         }
       } catch (err) {
         console.error("Kitchen ticket creation error:", err);
