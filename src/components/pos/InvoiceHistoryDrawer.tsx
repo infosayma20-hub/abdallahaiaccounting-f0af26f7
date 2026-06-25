@@ -1837,6 +1837,43 @@ export default function InvoiceHistoryDrawer({
           onSuccess={() => { fetchOrders(); setSelectedOrder(null); }}
         />
       )}
+
+      {/* ══════ MANAGER UNLOCK DIALOG ══════ */}
+      <ManagerHistoryUnlockDialog
+        open={showManagerUnlock}
+        onClose={() => setShowManagerUnlock(false)}
+        onUnlocked={(uid, name) => {
+          managerMode.unlock(uid, name);
+          setShowManagerUnlock(false);
+          toast.success(`تم تفعيل وضع المدير لمدة 15 دقيقة (${name})`);
+        }}
+        branchId={null}
+        companyId={dataOwnerId}
+        sessionId={sessionId}
+        cashierName={cashierName}
+      />
+
+      {/* ══════ CHANGE PAYMENT METHOD DIALOG ══════ */}
+      {selectedOrder && showChangePayment && (
+        <ChangePaymentMethodDialog
+          open={showChangePayment}
+          onClose={() => setShowChangePayment(false)}
+          orderId={selectedOrder.id}
+          orderNumber={selectedOrder.order_number}
+          orderTotal={selectedOrder.total}
+          currentMethod={orderPayments[0]?.payment_method || "cash"}
+          ageMinutes={
+            selectedOrder.paid_at
+              ? (getServerNow() - new Date(selectedOrder.paid_at).getTime()) / 60000
+              : selectedOrder.created_at
+                ? (getServerNow() - new Date(selectedOrder.created_at).getTime()) / 60000
+                : Infinity
+          }
+          windowMinutes={30}
+          managerUserId={managerMode.active ? managerMode.managerUserId : null}
+          onSuccess={() => { fetchOrders(); /* refetch payments */ setSelectedOrder({ ...selectedOrder }); }}
+        />
+      )}
     </>
   );
 }
