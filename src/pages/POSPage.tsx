@@ -3093,6 +3093,67 @@ const POSPage = () => {
   };
 
   // Save order as draft (no payment)
+  const isUuid = (value: unknown): value is string =>
+    typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+  const clearOrderLinesWithModifiers = async (orderId: string) => {
+    const { data: oldLines } = await supabase
+      .from("pos_order_lines")
+      .select("id")
+      .eq("order_id", orderId);
+    const oldLineIds = ((oldLines || []) as any[]).map((l) => l.id).filter(Boolean);
+    if (oldLineIds.length) {
+      await supabase.from("order_item_modifiers" as any).delete().in("order_line_id", oldLineIds);
+    }
+    await supabase.from("pos_order_lines").delete().eq("order_id", orderId);
+  };
+
+  const persistOrderLinesWithModifiers = async (orderId: string, items: CartItem[]) => {
+    const lines = items.map((item) => ({
+      user_id: dataOwnerId,
+      order_id: orderId,
+      product_id: item.product_id,
+      product_name: item.name,
+      qty: item.qty,
+      unit: item.unit,
+      unit_price: item.unit_price,
+      discount_pct: item.discount_pct,
+      discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
+      tax_rate: item.tax_rate,
+      tax_amount: item.total * item.tax_rate / 100,
+      subtotal: item.qty * item.unit_price,
+      total: item.total,
+      cost_price: item.cost_price,
+      notes: item.note?.trim() || null,
+    }));
+
+    const { data: insertedLines, error: linesError } = await supabase
+      .from("pos_order_lines")
+      .insert(lines)
+      .select("id");
+    if (linesError) throw linesError;
+
+    const modifiers = ((insertedLines || []) as any[]).flatMap((line, idx) => {
+      const itemMods = items[idx]?.modifiers || [];
+      return itemMods
+        .filter((mod: any) => mod?.option_name)
+        .map((mod: any) => ({
+          order_line_id: line.id,
+          modifier_group_id: isUuid(mod.group_id) ? mod.group_id : null,
+          modifier_option_id: isUuid(mod.option_id) ? mod.option_id : null,
+          group_name: mod.group_name || null,
+          option_name: mod.option_name,
+          extra_price: Number(mod.extra_price || 0),
+          quantity: 1,
+        }));
+    });
+
+    if (modifiers.length) {
+      const { error: modsError } = await supabase.from("order_item_modifiers" as any).insert(modifiers as any);
+      if (modsError) throw modsError;
+    }
+  };
+
   const handleSaveToTable = async () => {
     if (!userId || !session || cart.length === 0 || !company) return;
     if (!enforceDeviceGuard()) return;
@@ -3131,25 +3192,8 @@ const POSPage = () => {
 
       if (existingOrder) {
         // Replace all items in existing order with current cart
-        await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
-
-        const lines = cart.map((item) => ({
-          user_id: dataOwnerId,
-          order_id: existingOrder.id,
-          product_id: item.product_id,
-          product_name: item.name,
-          qty: item.qty,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          discount_pct: item.discount_pct,
-          discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
-          tax_rate: item.tax_rate,
-          tax_amount: item.total * item.tax_rate / 100,
-          subtotal: item.qty * item.unit_price,
-          total: item.total,
-          cost_price: item.cost_price,
-        }));
-        await supabase.from("pos_order_lines").insert(lines);
+        await clearOrderLinesWithModifiers(existingOrder.id);
+        await persistOrderLinesWithModifiers(existingOrder.id, cart);
 
         // Update order totals
         await supabase.from("pos_orders").update({
@@ -3201,23 +3245,7 @@ const POSPage = () => {
         if (error) throw error;
         updateActiveOrder(o => ({ ...o, savedOrderId: order.id }));
 
-        const lines = cart.map((item) => ({
-          user_id: dataOwnerId,
-          order_id: order.id,
-          product_id: item.product_id,
-          product_name: item.name,
-          qty: item.qty,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          discount_pct: item.discount_pct,
-          discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
-          tax_rate: item.tax_rate,
-          tax_amount: item.total * item.tax_rate / 100,
-          subtotal: item.qty * item.unit_price,
-          total: item.total,
-          cost_price: item.cost_price,
-        }));
-        await supabase.from("pos_order_lines").insert(lines);
+        await persistOrderLinesWithModifiers(order.id, cart);
 
         // Link call center order to POS order if applicable
         if (activeOrder.callCenterOrderId && order.id) {
@@ -3845,7 +3873,7 @@ const POSPage = () => {
 
         if (existingOrder) {
           // Use existing order - update its totals and delete old lines
-          await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
+          await clearOrderLinesWithModifiers(existingOrder.id);
            await supabase.from("pos_orders").update({
             customer_name: customerName || null,
             customer_id: activeOrder.customerId || null,
@@ -3949,24 +3977,7 @@ const POSPage = () => {
         orderObj = order;
       }
 
-      const lines = cart.map((item) => ({
-        user_id: dataOwnerId,
-        order_id: orderId,
-        product_id: item.product_id,
-        product_name: item.name,
-        qty: item.qty,
-        unit: item.unit,
-        unit_price: item.unit_price,
-        discount_pct: item.discount_pct,
-        discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
-        tax_rate: item.tax_rate,
-        tax_amount: item.total * item.tax_rate / 100,
-        subtotal: item.qty * item.unit_price,
-        total: item.total,
-        cost_price: item.cost_price,
-      }));
-
-      await supabase.from("pos_order_lines").insert(lines);
+      await persistOrderLinesWithModifiers(orderId, cart);
 
       // Link call center order to POS order if applicable
       if (activeOrder.callCenterOrderId && orderId) {
