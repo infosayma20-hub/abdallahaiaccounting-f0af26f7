@@ -509,7 +509,72 @@ Deno.serve(async (req) => {
 
       const cashDr = allTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
       const cashCr = allTx.filter(t => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
-      const cashBalance = cashDr - cashCr;
+      let cashBalance = cashDr - cashCr;
+
+      // ── Override cashBalance from real cash_boxes balances (single source of truth) ──
+      // This matches the Liquidity tab exactly, so home + finance center show the same number.
+      try {
+        const { data: cashBoxesOv } = await supabase
+          .from("cash_boxes")
+          .select("id, currency")
+          .eq("user_id", linkedUserId)
+          .eq("is_active", true);
+
+        if (cashBoxesOv && cashBoxesOv.length > 0) {
+          // Resolve FX rates the same way the liquidity action does
+          let jodRate = 3.55;
+          let usdRate = 3.65;
+          try {
+            const { data: ps } = await supabase
+              .from("malaki_portal_settings")
+              .select("exchange_rate_jod, exchange_rate_usd")
+              .eq("user_id", linkedUserId)
+              .maybeSingle();
+            if (ps?.exchange_rate_jod) jodRate = ps.exchange_rate_jod;
+            if (ps?.exchange_rate_usd) usdRate = ps.exchange_rate_usd;
+          } catch (_) { /* fallback to defaults */ }
+          try {
+            const { data: currencies } = await supabase
+              .from("currencies")
+              .select("id, code")
+              .eq("user_id", linkedUserId)
+              .in("code", ["JOD", "USD"]);
+            if (currencies && currencies.length > 0) {
+              const codeMap: Record<string, string> = {};
+              for (const c of currencies) codeMap[c.id] = c.code;
+              const { data: rates } = await supabase
+                .from("exchange_rates")
+                .select("currency_id, mid_rate, sell_rate, rate_date")
+                .eq("user_id", linkedUserId)
+                .in("currency_id", currencies.map((c: any) => c.id))
+                .order("rate_date", { ascending: false });
+              const seen = new Set<string>();
+              for (const r of rates || []) {
+                const code = codeMap[r.currency_id];
+                if (code && !seen.has(code)) {
+                  seen.add(code);
+                  const rate = r.sell_rate || r.mid_rate || 0;
+                  if (code === "JOD" && rate > 0) jodRate = rate;
+                  if (code === "USD" && rate > 0) usdRate = rate;
+                }
+              }
+            }
+          } catch (_) { /* fallback */ }
+
+          let totalILS = 0;
+          for (const box of cashBoxesOv) {
+            const { data: bal } = await supabase.rpc("get_cash_box_balance", { p_box_id: box.id });
+            const amount = Number(bal || 0);
+            const ccy = box.currency || "ILS";
+            if (ccy === "JOD") totalILS += amount * jodRate;
+            else if (ccy === "USD") totalILS += amount * usdRate;
+            else totalILS += amount;
+          }
+          cashBalance = totalILS;
+        }
+      } catch (e) {
+        console.error("[overview] cash_boxes override failed, falling back to ledger:", e);
+      }
 
       // Cash flow
       const inflows = periodTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
