@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, Printer, RotateCcw, Ban, Clock, User, Eye,
-  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft, Trash2,
+  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft, Trash2, ShieldCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
+import ManagerHistoryUnlockDialog from "./ManagerHistoryUnlockDialog";
+import ChangePaymentMethodDialog from "./ChangePaymentMethodDialog";
+import { usePOSManagerMode } from "@/hooks/usePOSManagerMode";
 import { multiWordMatchAny } from "@/lib/utils";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { sendToBridge } from "@/lib/print-bridge-client";
