@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
-import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink, FileDown } from "lucide-react";
+import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink, FileDown, MessageCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { getFreshFormPdfUrl } from "@/lib/employee-forms/pdfUrl";
 import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
-import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
+import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
 interface FormRow {
   id: string;
   title: string | null;
