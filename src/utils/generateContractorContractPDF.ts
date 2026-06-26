@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { AmiriRegular, AmiriBold } from './amiri-font';
+import { registerAmiriFont } from './pdf-font-loader';
 import { ar } from './arabic-pdf-utils';
 
 const navy: [number, number, number] = [27, 58, 92];
@@ -29,14 +29,6 @@ export interface ContractorCompanyData {
   email?: string;
   logo_url?: string;
 }
-
-const registerFont = (doc: jsPDF) => {
-  doc.addFileToVFS('Amiri-Regular.ttf', AmiriRegular);
-  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-  doc.addFileToVFS('Amiri-Bold.ttf', AmiriBold);
-  doc.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
-  doc.setFont('Amiri', 'normal');
-};
 
 const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmtDate = (d: string) => {
@@ -95,7 +87,7 @@ export const generateContractorContractPDF = async (
   const margin = 15;
   const contentWidth = W - margin * 2;
 
-  registerFont(doc);
+  await registerAmiriFont(doc);
 
   // ══════ HEADER ══════
   doc.setFillColor(...navy);

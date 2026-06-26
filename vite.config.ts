@@ -36,6 +36,17 @@ export default defineConfig(({ mode }) => ({
     appVersionPlugin(),
     mode === "development" && componentTagger(),
   ].filter(Boolean),
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/date-fns")) return "vendor-date-fns";
+          if (id.includes("node_modules/lucide-react")) return "vendor-lucide";
+          if (id.includes("node_modules/@radix-ui")) return "vendor-radix";
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
