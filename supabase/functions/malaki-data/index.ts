@@ -295,8 +295,19 @@ Deno.serve(async (req) => {
           linkedUserId,
           fromDate,
           toDate,
-          "id, total, created_at, session_id, user_id, transaction_id, business_date, meal_subsidy_amount",
+          "id, total, created_at, session_id, user_id, transaction_id, business_date, meal_subsidy_amount, delivery_fee, total_includes_delivery_fee",
         );
+        // 🚚 Delivery fee is NOT restaurant revenue — it's collected from the
+        // customer on behalf of the delivery company and never enters the
+        // restaurant cash flow. Strip it from the order total for ALL
+        // downstream aggregation (branch, cashier, payments, summary).
+        const netOrderTotal = (o: any) => {
+          const t = Number(o?.total) || 0;
+          if (o?.total_includes_delivery_fee) {
+            return Math.max(0, t - (Number(o?.delivery_fee) || 0));
+          }
+          return t;
+        };
 
         // Invoice sales — paginated likewise
         const invList: any[] = [];
@@ -319,7 +330,7 @@ Deno.serve(async (req) => {
           if (from > 100000) break;
         }
 
-        const posTotal = orderList.reduce((s, o) => s + (o.total || 0), 0);
+        const posTotal = orderList.reduce((s, o) => s + netOrderTotal(o), 0);
         const invTotal = invList.reduce((s, i) => s + (i.total_amount || 0), 0);
         const total = posTotal + invTotal;
         const orderCount = orderList.length + invList.length;
@@ -427,6 +438,20 @@ Deno.serve(async (req) => {
             else if (p.payment_method === "employee_account") bucket.employeeAccount += amt;
           });
         }
+        // 🚚 Strip delivery_fee from cash bucket (customer paid it in cash
+        // but the cashier hands it to the driver — not real revenue).
+        for (const o of orderList) {
+          if (!o?.total_includes_delivery_fee) continue;
+          const fee = Number(o?.delivery_fee) || 0;
+          if (fee <= 0) continue;
+          const bucket = paymentsByOrder[o.id];
+          if (!bucket) continue;
+          // Deduct from cash first, then card as a defensive fallback.
+          const fromCash = Math.min(bucket.cash, fee);
+          bucket.cash -= fromCash;
+          const remaining = fee - fromCash;
+          if (remaining > 0) bucket.card = Math.max(0, bucket.card - remaining);
+        }
 
         // ── Cancelled orders within the same business_date range ──
         // Loaded separately because loadPaidPosOrdersByBusinessDate only returns paid orders.
@@ -434,7 +459,7 @@ Deno.serve(async (req) => {
         for (let from = 0; ; from += PAGE) {
           const { data, error } = await supabase
             .from("pos_orders")
-            .select("id, total, session_id, business_date, created_at")
+            .select("id, total, session_id, business_date, created_at, delivery_fee, total_includes_delivery_fee")
             .eq("user_id", linkedUserId)
             .eq("state", "cancelled")
             .gte("business_date", fromDate)
@@ -490,7 +515,7 @@ Deno.serve(async (req) => {
             ? (branchNameMap[resolvedBranchId] || "فرع غير مسمى")
             : "بدون فرع";
           const row = ensureBranch(brId, brName, box?.location || "");
-          const orderTotal = o.total || 0;
+          const orderTotal = netOrderTotal(o);
           row.total += orderTotal;
           row.orderCount += 1;
           row.gross += orderTotal;
@@ -517,7 +542,7 @@ Deno.serve(async (req) => {
             : "بدون فرع";
           const row = ensureBranch(brId, brName, box?.location || "");
           row.cancelledCount += 1;
-          row.cancelledTotal += Number(o.total) || 0;
+          row.cancelledTotal += netOrderTotal(o);
         }
         if (invList.length > 0) {
           const inv = ensureBranch("__invoices__", "فواتير المبيعات", "المحاسبة");
@@ -574,7 +599,7 @@ Deno.serve(async (req) => {
             : "بدون فرع";
           const key = `${resolvedBranchId}::${name}`;
           const row = ensureCashier(key, name, resolvedBranchId, branchName);
-          const orderTotal = o.total || 0;
+          const orderTotal = netOrderTotal(o);
           row.total += orderTotal;
           row.orderCount += 1;
           row.gross += orderTotal;
@@ -600,7 +625,7 @@ Deno.serve(async (req) => {
           const key = `${resolvedBranchId}::${name}`;
           const row = ensureCashier(key, name, resolvedBranchId, branchName);
           row.cancelledCount += 1;
-          row.cancelledTotal += Number(o.total) || 0;
+          row.cancelledTotal += netOrderTotal(o);
         }
         // (Invoice sales attribution by user is not tracked on invoices table)
         const byCashier = Object.values(cashierAgg).sort((a, b) => b.total - a.total);
@@ -613,7 +638,7 @@ Deno.serve(async (req) => {
           employeeAccount: Object.values(branchAgg).reduce((s, b) => s + b.employeeAccount, 0),
           employeeMeals: Object.values(branchAgg).reduce((s, b) => s + b.employeeMeals, 0),
           cancelledCount: cancelledOrders.length,
-          cancelledTotal: cancelledOrders.reduce((s, o) => s + (Number(o.total) || 0), 0),
+          cancelledTotal: cancelledOrders.reduce((s, o) => s + netOrderTotal(o), 0),
           net: 0,
         };
         summary.net = summary.gross - summary.employeeMeals;
