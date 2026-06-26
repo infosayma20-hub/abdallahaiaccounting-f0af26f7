@@ -3,9 +3,8 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, ShoppingBag, Check } from "lucide-react";
+import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 type Resolved = {
@@ -134,113 +133,214 @@ export default function PublicMenuPage() {
   };
 
   if (error) {
-    return <div className="min-h-screen grid place-items-center bg-background p-6 text-center" dir="rtl">
-      <div><h1 className="text-xl font-bold mb-2">{error}</h1>
-        <p className="text-sm text-muted-foreground">يرجى التواصل مع الكاشير</p></div>
-    </div>;
+    return (
+      <div dir="rtl" className="min-h-[100dvh] grid place-items-center p-6 text-center"
+        style={{ background: "radial-gradient(circle at top, #2a1410 0%, #0e0604 60%)", color: "#f8e9c8" }}>
+        <div className="space-y-2">
+          <ChefHat className="h-12 w-12 mx-auto opacity-70" />
+          <h1 className="text-2xl font-bold">{error}</h1>
+          <p className="text-sm opacity-70">يرجى التواصل مع الكاشير</p>
+        </div>
+      </div>
+    );
   }
-  if (!ctx) return <div className="min-h-screen grid place-items-center">جارٍ التحميل…</div>;
+  if (!ctx) return (
+    <div className="min-h-[100dvh] grid place-items-center" style={{ background: "#0e0604", color: "#f8e9c8" }}>
+      <div className="animate-pulse text-sm tracking-widest">جارٍ تحضير المنيو…</div>
+    </div>
+  );
 
   if (submittedId) {
     const labels: Record<string, string> = {
-      pending: "قيد المراجعة من الكاشير…", accepted: "✅ تم قبول طلبك — يجهّز الآن",
-      rejected: "❌ اعتذر الكاشير عن الطلب", converted: "✅ طلبك في الإعداد", cancelled: "تم الإلغاء",
+      pending: "طلبك قيد المراجعة…", accepted: "تم قبول طلبك — يجهّز الآن",
+      rejected: "اعتذر الكاشير عن الطلب", converted: "طلبك في الإعداد", cancelled: "تم الإلغاء",
     };
+    const isOk = submittedStatus === "accepted" || submittedStatus === "converted";
+    const isPending = submittedStatus === "pending";
     return (
-      <div className="min-h-screen grid place-items-center bg-background p-6 text-center" dir="rtl">
-        <Card className="p-6 max-w-sm space-y-3">
-          <Check className="h-12 w-12 mx-auto text-green-600" />
+      <div dir="rtl" className="min-h-[100dvh] grid place-items-center p-6"
+        style={{ background: "radial-gradient(circle at top, #2a1410 0%, #0e0604 70%)", color: "#f8e9c8" }}>
+        <div className="max-w-sm w-full rounded-3xl p-8 text-center space-y-4 backdrop-blur-xl border"
+          style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(212,170,86,0.25)" }}>
+          <div className="mx-auto h-20 w-20 rounded-full grid place-items-center"
+            style={{ background: isOk ? "linear-gradient(135deg,#1f7a3a,#3ec76a)" : isPending ? "linear-gradient(135deg,#d4aa56,#a37b29)" : "linear-gradient(135deg,#7a1f1f,#c73e3e)" }}>
+            {isPending ? <Clock className="h-10 w-10 text-white" /> : isOk ? <Check className="h-10 w-10 text-white" /> : <X className="h-10 w-10 text-white" />}
+          </div>
           <h1 className="text-xl font-bold">{labels[submittedStatus] || submittedStatus}</h1>
-          <p className="text-sm text-muted-foreground">{ctx.branch_name}</p>
+          <p className="text-sm opacity-70">{ctx.account_name} · {ctx.branch_name}</p>
           {submittedStatus === "rejected" && (
-            <Button onClick={() => { setSubmittedId(null); setCart([]); }}>إعادة الطلب</Button>
+            <button onClick={() => { setSubmittedId(null); setCart([]); }}
+              className="w-full py-3 rounded-xl font-bold"
+              style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08" }}>
+              إعادة الطلب
+            </button>
           )}
-        </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24" dir="rtl">
-      <div className="bg-gradient-to-b from-primary/10 to-transparent p-4 text-center">
-        <h1 className="text-xl font-bold">{ctx.account_name}</h1>
-        <p className="text-sm text-muted-foreground">{ctx.branch_name}{tableCode ? ` · طاولة` : ""}</p>
-        {ctx.welcome_message && <p className="text-xs mt-2">{ctx.welcome_message}</p>}
+    <div dir="rtl" className="min-h-[100dvh] pb-28"
+      style={{ background: "radial-gradient(1200px 600px at 50% -10%, #2a1410 0%, #150906 35%, #0a0403 100%)", color: "#f8e9c8" }}>
+      {/* Hero */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 opacity-30"
+          style={{ background: "radial-gradient(circle at 20% 30%, #d4aa5680 0%, transparent 50%), radial-gradient(circle at 80% 60%, #c7402840 0%, transparent 50%)" }} />
+        <div className="relative px-5 pt-10 pb-8 text-center">
+          <div className="inline-flex items-center justify-center h-20 w-20 rounded-2xl mb-4 shadow-2xl"
+            style={{ background: "linear-gradient(135deg, #d4aa56 0%, #a37b29 100%)", boxShadow: "0 20px 60px -10px rgba(212,170,86,0.5)" }}>
+            <ChefHat className="h-10 w-10" style={{ color: "#1a0c08" }} />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: "#f8e9c8" }}>{ctx.account_name}</h1>
+          <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
+            style={{ background: "rgba(212,170,86,0.12)", border: "1px solid rgba(212,170,86,0.3)", color: "#d4aa56" }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#3ec76a", boxShadow: "0 0 8px #3ec76a" }} />
+            {ctx.branch_name}{tableCode ? ` · طاولة ${tableCode.slice(0, 4)}` : ""}
+          </div>
+          {ctx.welcome_message && (
+            <p className="text-sm mt-4 opacity-75 max-w-md mx-auto leading-relaxed">{ctx.welcome_message}</p>
+          )}
+        </div>
       </div>
 
-      {/* Categories tabs */}
-      <div className="sticky top-0 bg-background z-10 border-b overflow-x-auto">
-        <div className="flex gap-2 px-3 py-2 min-w-max">
-          {categories.map(c => (
-            <button key={c.id} onClick={() => setActiveCat(c.id)}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${activeCat === c.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-              {c.name}
-            </button>
-          ))}
+      {/* Categories — sticky pills */}
+      <div className="sticky top-0 z-20 backdrop-blur-xl"
+        style={{ background: "rgba(10,4,3,0.85)", borderBottom: "1px solid rgba(212,170,86,0.15)" }}>
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 px-4 py-3 min-w-max">
+            {categories.map(c => {
+              const active = activeCat === c.id;
+              return (
+                <button key={c.id} onClick={() => setActiveCat(c.id)}
+                  className="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all"
+                  style={active
+                    ? { background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08", boxShadow: "0 8px 20px -6px rgba(212,170,86,0.6)" }
+                    : { background: "rgba(255,255,255,0.04)", color: "#f8e9c8", border: "1px solid rgba(212,170,86,0.15)" }}>
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Products */}
-      <div className="p-3 grid grid-cols-2 gap-3">
+      <div className="px-4 pt-5 grid grid-cols-2 gap-3">
         {filtered.map(p => (
-          <Card key={p.id} className="overflow-hidden cursor-pointer" onClick={() => openProduct(p)}>
-            {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-28 object-cover" />}
-            <div className="p-2">
-              <p className="text-sm font-bold leading-tight">{p.name}</p>
-              {p.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{p.description}</p>}
-              <div className="flex items-center justify-between mt-2">
-                <span className="font-bold text-primary">₪{Number(p.price).toFixed(2)}</span>
-                <Button size="sm" className="h-7" onClick={(e) => { e.stopPropagation(); openProduct(p); }}><Plus className="h-3 w-3" /></Button>
+          <button key={p.id} onClick={() => openProduct(p)}
+            className="text-right rounded-2xl overflow-hidden transition-transform active:scale-[0.97]"
+            style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                     border: "1px solid rgba(212,170,86,0.18)",
+                     boxShadow: "0 10px 30px -15px rgba(0,0,0,0.8)" }}>
+            <div className="relative h-32 overflow-hidden">
+              {p.image_url ? (
+                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+              ) : (
+                <div className="w-full h-full grid place-items-center"
+                  style={{ background: "linear-gradient(135deg, #3a1a14 0%, #1a0c08 100%)" }}>
+                  <ChefHat className="h-10 w-10 opacity-30" style={{ color: "#d4aa56" }} />
+                </div>
+              )}
+              <div className="absolute inset-x-0 bottom-0 h-12"
+                style={{ background: "linear-gradient(0deg, rgba(10,4,3,0.95) 0%, transparent 100%)" }} />
+            </div>
+            <div className="p-3 space-y-2">
+              <p className="text-sm font-bold leading-tight line-clamp-1" style={{ color: "#f8e9c8" }}>{p.name}</p>
+              {p.description && (
+                <p className="text-[11px] opacity-60 line-clamp-2 leading-snug">{p.description}</p>
+              )}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-sm font-black" style={{ color: "#d4aa56" }}>₪{Number(p.price).toFixed(2)}</span>
+                <span className="h-7 w-7 rounded-full grid place-items-center"
+                  style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08" }}>
+                  <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>
               </div>
             </div>
-          </Card>
+          </button>
         ))}
-        {filtered.length === 0 && <p className="col-span-2 text-center text-sm text-muted-foreground py-6">لا أصناف</p>}
+        {filtered.length === 0 && (
+          <p className="col-span-2 text-center text-sm opacity-50 py-10">لا توجد أصناف في هذا القسم</p>
+        )}
       </div>
 
-      {/* Floating cart */}
+      {/* Floating cart bar */}
       {cart.length > 0 && !showCart && (
         <button onClick={() => setShowCart(true)}
-          className="fixed bottom-4 inset-x-4 bg-primary text-primary-foreground rounded-xl py-3 px-4 shadow-lg flex items-center justify-between font-bold">
-          <span className="flex items-center gap-2"><ShoppingBag className="h-4 w-4" />{cart.reduce((s, l) => s + l.qty, 0)} صنف</span>
-          <span>₪{total.toFixed(2)} — متابعة</span>
+          className="fixed bottom-4 inset-x-4 rounded-2xl py-4 px-5 flex items-center justify-between font-bold z-30 animate-in fade-in slide-in-from-bottom-4"
+          style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08",
+                   boxShadow: "0 20px 50px -10px rgba(212,170,86,0.55)" }}>
+          <span className="flex items-center gap-3">
+            <span className="relative">
+              <ShoppingBag className="h-5 w-5" />
+              <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full grid place-items-center text-[10px] font-black"
+                style={{ background: "#1a0c08", color: "#d4aa56" }}>
+                {cart.reduce((s, l) => s + l.qty, 0)}
+              </span>
+            </span>
+            عرض الطلب
+          </span>
+          <span className="text-lg">₪{total.toFixed(2)}</span>
         </button>
       )}
 
       {/* Cart sheet */}
       {showCart && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setShowCart(false)}>
-          <div className="bg-background w-full rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-3">طلبك</h2>
-            <div className="space-y-2">
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          onClick={() => setShowCart(false)}>
+          <div className="w-full rounded-t-3xl p-5 max-h-[88vh] overflow-y-auto"
+            style={{ background: "#150906", color: "#f8e9c8", borderTop: "1px solid rgba(212,170,86,0.25)" }}
+            onClick={e => e.stopPropagation()} dir="rtl">
+            <div className="mx-auto w-12 h-1 rounded-full mb-4" style={{ background: "rgba(212,170,86,0.3)" }} />
+            <h2 className="text-xl font-black mb-4">طلبك</h2>
+            <div className="space-y-3">
               {cart.map((l, i) => (
-                <div key={i} className="flex items-center gap-2 border-b pb-2">
-                  <div className="flex-1">
-                    <p className="text-sm font-bold">{l.name}</p>
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,170,86,0.12)" }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{l.name}</p>
                     {l.modifiers.length > 0 && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {l.modifiers.map(m => m.name).join(" • ")}
-                      </p>
+                      <p className="text-[11px] opacity-60 truncate">{l.modifiers.map(m => m.name).join(" • ")}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">₪{l.unit_price.toFixed(2)} × {l.qty}</p>
+                    {l.note && <p className="text-[11px] opacity-50">📝 {l.note}</p>}
+                    <p className="text-xs mt-1" style={{ color: "#d4aa56" }}>₪{l.unit_price.toFixed(2)} × {l.qty}</p>
                   </div>
-                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => changeQty(i, -1)}><Minus className="h-3 w-3" /></Button>
-                  <span className="w-6 text-center text-sm">{l.qty}</span>
-                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => changeQty(i, 1)}><Plus className="h-3 w-3" /></Button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => changeQty(i, -1)}
+                      className="h-8 w-8 rounded-full grid place-items-center"
+                      style={{ background: "rgba(212,170,86,0.15)", color: "#d4aa56" }}>
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="w-6 text-center font-bold">{l.qty}</span>
+                    <button onClick={() => changeQty(i, 1)}
+                      className="h-8 w-8 rounded-full grid place-items-center"
+                      style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08" }}>
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 space-y-2">
-              <Input placeholder="اسمك (اختياري)" value={name} onChange={e => setName(e.target.value)} />
-              <Input placeholder={ctx.require_phone ? "رقم جوالك *" : "رقم جوالك (اختياري)"} value={phone} onChange={e => setPhone(e.target.value)} />
-              <Textarea placeholder="ملاحظات للمطبخ (اختياري)" value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+            <div className="mt-5 space-y-2">
+              <Input placeholder="اسمك (اختياري)" value={name} onChange={e => setName(e.target.value)}
+                className="border-0" style={{ background: "rgba(255,255,255,0.05)", color: "#f8e9c8" }} />
+              <Input placeholder={ctx.require_phone ? "رقم جوالك *" : "رقم جوالك (اختياري)"} value={phone}
+                onChange={e => setPhone(e.target.value)} inputMode="tel"
+                className="border-0" style={{ background: "rgba(255,255,255,0.05)", color: "#f8e9c8" }} />
+              <Textarea placeholder="ملاحظات للمطبخ (اختياري)" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                className="border-0" style={{ background: "rgba(255,255,255,0.05)", color: "#f8e9c8" }} />
             </div>
-            <div className="flex items-center justify-between font-bold mt-3 text-lg">
-              <span>الإجمالي</span><span>₪{total.toFixed(2)}</span>
+            <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: "1px dashed rgba(212,170,86,0.2)" }}>
+              <span className="text-sm opacity-70">الإجمالي</span>
+              <span className="text-2xl font-black" style={{ color: "#d4aa56" }}>₪{total.toFixed(2)}</span>
             </div>
-            <Button className="w-full mt-3" disabled={submitting} onClick={submit}>
-              {submitting ? "جارٍ الإرسال…" : "إرسال الطلب"}
-            </Button>
+            <button onClick={submit} disabled={submitting}
+              className="w-full mt-4 py-4 rounded-2xl font-black text-base disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08",
+                       boxShadow: "0 15px 40px -10px rgba(212,170,86,0.5)" }}>
+              {submitting ? "جارٍ الإرسال…" : "تأكيد الطلب"}
+            </button>
           </div>
         </div>
       )}
@@ -327,51 +427,67 @@ function ProductDetailSheet({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[60] flex items-end" onClick={onClose} dir="rtl">
-      <div className="bg-background w-full rounded-t-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {product.image_url && (
-          <img src={product.image_url} alt={product.name} className="w-full h-44 object-cover" />
-        )}
-        <div className="p-4 space-y-4">
+    <div className="fixed inset-0 z-[60] flex items-end" dir="rtl"
+      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}>
+      <div className="w-full rounded-t-3xl max-h-[92vh] overflow-y-auto"
+        style={{ background: "#150906", color: "#f8e9c8", borderTop: "1px solid rgba(212,170,86,0.25)" }}
+        onClick={e => e.stopPropagation()}>
+        <div className="relative">
+          {product.image_url ? (
+            <img src={product.image_url} alt={product.name} className="w-full h-56 object-cover" />
+          ) : (
+            <div className="w-full h-40 grid place-items-center"
+              style={{ background: "linear-gradient(135deg,#3a1a14,#1a0c08)" }}>
+              <ChefHat className="h-14 w-14 opacity-40" style={{ color: "#d4aa56" }} />
+            </div>
+          )}
+          <button onClick={onClose}
+            className="absolute top-3 left-3 h-9 w-9 rounded-full grid place-items-center"
+            style={{ background: "rgba(0,0,0,0.6)", color: "#f8e9c8", backdropFilter: "blur(8px)" }}>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="p-5 space-y-5">
           <div>
-            <h2 className="text-xl font-bold">{product.name}</h2>
-            {product.description && <p className="text-sm text-muted-foreground mt-1">{product.description}</p>}
-            <p className="text-primary font-bold mt-1">₪{Number(product.price).toFixed(2)}</p>
+            <h2 className="text-2xl font-black">{product.name}</h2>
+            {product.description && <p className="text-sm opacity-70 mt-1 leading-relaxed">{product.description}</p>}
+            <p className="text-lg font-black mt-2" style={{ color: "#d4aa56" }}>₪{Number(product.price).toFixed(2)}</p>
           </div>
 
           {product.modifier_groups.map(g => {
             const isSingle = g.selection_type === "single" || (g.max_select ?? 0) === 1;
             return (
-              <div key={g.id} className="border rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
+              <div key={g.id} className="rounded-2xl p-4"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,170,86,0.15)" }}>
+                <div className="flex items-center justify-between mb-3">
                   <p className="font-bold text-sm">
                     {g.name}
-                    {g.is_required && <span className="text-red-600 mr-1">*</span>}
+                    {g.is_required && <span className="mr-1" style={{ color: "#ff6b6b" }}>*</span>}
                   </p>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(212,170,86,0.15)", color: "#d4aa56" }}>
                     {isSingle ? "اختر واحد" : g.max_select ? `حتى ${g.max_select}` : "اختياري"}
                   </span>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {g.options.map(o => {
                     const checked = (selections[g.id] || new Set()).has(o.id);
                     return (
-                      <button
-                        type="button"
-                        key={o.id}
-                        onClick={() => toggle(g, o.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-md border text-sm transition-colors ${
-                          checked ? "border-primary bg-primary/10" : "border-border bg-background"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className={`h-4 w-4 rounded-full border-2 grid place-items-center ${checked ? "border-primary" : "border-muted-foreground"}`}>
-                            {checked && <span className="h-2 w-2 rounded-full bg-primary" />}
+                      <button type="button" key={o.id} onClick={() => toggle(g, o.id)}
+                        className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm transition-all"
+                        style={checked
+                          ? { background: "rgba(212,170,86,0.15)", border: "1.5px solid #d4aa56", color: "#f8e9c8" }
+                          : { background: "rgba(255,255,255,0.03)", border: "1.5px solid rgba(255,255,255,0.08)", color: "#f8e9c8" }}>
+                        <span className="flex items-center gap-3">
+                          <span className="h-5 w-5 rounded-full grid place-items-center"
+                            style={{ border: `2px solid ${checked ? "#d4aa56" : "rgba(255,255,255,0.25)"}` }}>
+                            {checked && <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#d4aa56" }} />}
                           </span>
-                          {o.name}
+                          <span className="font-medium">{o.name}</span>
                         </span>
                         {Number(o.extra_price) > 0 && (
-                          <span className="text-xs text-muted-foreground">+₪{Number(o.extra_price).toFixed(2)}</span>
+                          <span className="text-xs font-bold" style={{ color: "#d4aa56" }}>+₪{Number(o.extra_price).toFixed(2)}</span>
                         )}
                       </button>
                     );
@@ -382,23 +498,32 @@ function ProductDetailSheet({
           })}
 
           <div>
-            <p className="text-sm font-bold mb-1">ملاحظات (اختياري)</p>
-            <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="بدون بصل، حار، الخ" />
+            <p className="text-sm font-bold mb-2">ملاحظات (اختياري)</p>
+            <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="بدون بصل، حار، الخ"
+              className="border-0" style={{ background: "rgba(255,255,255,0.05)", color: "#f8e9c8" }} />
           </div>
 
-          <div className="flex items-center justify-between border-t pt-3">
-            <div className="flex items-center gap-2">
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(q => Math.max(1, q - 1))}>
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="w-8 text-center font-bold">{qty}</span>
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(q => q + 1)}>
-                <Plus className="h-3 w-3" />
-              </Button>
+          <div className="flex items-center gap-3 pt-3" style={{ borderTop: "1px dashed rgba(212,170,86,0.2)" }}>
+            <div className="flex items-center gap-1 p-1 rounded-full"
+              style={{ background: "rgba(255,255,255,0.05)" }}>
+              <button onClick={() => setQty(q => Math.max(1, q - 1))}
+                className="h-9 w-9 rounded-full grid place-items-center"
+                style={{ background: "rgba(212,170,86,0.15)", color: "#d4aa56" }}>
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="w-8 text-center font-black text-lg">{qty}</span>
+              <button onClick={() => setQty(q => q + 1)}
+                className="h-9 w-9 rounded-full grid place-items-center"
+                style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08" }}>
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
-            <Button className="flex-1 mr-3" onClick={handleAdd}>
+            <button onClick={handleAdd}
+              className="flex-1 py-3.5 rounded-2xl font-black"
+              style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08",
+                       boxShadow: "0 15px 40px -10px rgba(212,170,86,0.5)" }}>
               إضافة — ₪{(unitPrice * qty).toFixed(2)}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
