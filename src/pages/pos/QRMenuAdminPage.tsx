@@ -25,9 +25,13 @@ type Order = {
   items: any; notes: string | null;
 };
 
+// ASCII-only slug — keeps URLs/QR codes clean & avoids %D8 encoding
 const slugify = (s: string) =>
-  s.toLowerCase().trim().replace(/[\u064B-\u0652]/g, "")
-   .replace(/[^a-z0-9\u0600-\u06FF]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  (s || "").toLowerCase().trim()
+    .replace(/[\u064B-\u0652]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
 
 export default function QRMenuAdminPage() {
   const navigate = useNavigate();
@@ -115,9 +119,30 @@ export default function QRMenuAdminPage() {
 
   const ensureBranchSlug = async (b: Branch) => {
     if (b.public_slug) return b.public_slug;
-    const slug = slugify(b.name) || "branch-" + b.id.slice(0, 6);
+    const slug = slugify(b.name) || "br-" + b.id.slice(0, 8);
     await updateBranch(b.id, { public_slug: slug });
     return slug;
+  };
+
+  const enableAllBranches = async () => {
+    if (!user) return;
+    // Ensure account slug exists
+    let acct = accountSlug.trim();
+    if (!acct) {
+      acct = slugify(accountSlug) || "menu-" + user.id.slice(0, 6);
+      setAccountSlug(acct);
+    }
+    await supabase.from("company_settings").update({ qr_menu_enabled: true }).eq("user_id", user.id);
+    await supabase.from("profiles").update({ public_slug: acct }).eq("id", user.id);
+    setEnabled(true);
+    // Ensure each branch has a slug + enabled
+    for (const b of branches) {
+      const slug = b.public_slug || (slugify(b.name) || "br-" + b.id.slice(0, 8));
+      await supabase.from("branches").update({ public_slug: slug, qr_menu_enabled: true }).eq("id", b.id);
+    }
+    const { data: br } = await supabase.from("branches").select("id, name, qr_menu_enabled, public_slug").eq("user_id", user.id).order("name");
+    setBranches((br as Branch[]) || []);
+    toast.success("تم تفعيل QR لكل الفروع — انشر التطبيق لتفعيل الروابط للزبائن");
   };
 
   const toggleCategoryVis = async (c: Category) => {
@@ -244,6 +269,9 @@ export default function QRMenuAdminPage() {
 
           {/* Branches & QR */}
           <TabsContent value="branches" className="mt-4 space-y-3">
+            <div className="flex justify-end">
+              <Button size="sm" onClick={enableAllBranches}>تفعيل QR لكل الفروع تلقائياً</Button>
+            </div>
             {branches.map(b => (
               <Card key={b.id} className="p-4">
                 <div className="flex items-center justify-between gap-3">
