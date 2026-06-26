@@ -646,19 +646,21 @@ export default function InvoiceHistoryDrawer({
       setOrderPayments(safePayments);
       setOrderCurrency((safePayments[0] as any)?.currency || "ILS");
       // If no contact phone on the order, try linked call-center order for the phone
-      if (!(order as any).contacts?.phone) {
-        try {
-          const { data: cco } = await supabase
-            .from("call_center_orders")
-            .select("customer_phone")
-            .eq("pos_order_id", order.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (cco?.customer_phone) setCcoPhone(cco.customer_phone);
-        } catch (e) {
-          console.warn("[InvoiceHistoryDrawer] could not load call center phone", e);
+      try {
+        const { data: cco } = await supabase
+          .from("call_center_orders")
+          .select("customer_phone, dispatched_by_name, source_app")
+          .eq("pos_order_id", order.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cco) {
+          if (!(order as any).contacts?.phone && cco.customer_phone) setCcoPhone(cco.customer_phone);
+          if (cco.dispatched_by_name) setCcoDispatcher(cco.dispatched_by_name);
+          if (cco.source_app) setCcoSourceApp(cco.source_app);
         }
+      } catch (e) {
+        console.warn("[InvoiceHistoryDrawer] could not load call center info", e);
       }
     } catch (err) {
       console.error(err);
