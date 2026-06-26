@@ -395,7 +395,7 @@ export default function POSExpenseDialog({
           transaction_date: date,
           description: txDescription,
           debit_account_code: txDebitAccount,
-          credit_account_code: "1110",
+          credit_account_code: creditAccount,
           amount: amt,
           currency: "شيكل",
           transaction_type: mode === "employee" ? "employee_advance" : "expense",
