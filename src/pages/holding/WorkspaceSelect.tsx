@@ -149,6 +149,11 @@ export default function WorkspaceSelect() {
 
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 36, paddingTop: 12 }}>
+          {slug === "sparta" && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+              <img src={spartaLogoAsset.url} alt="Sparta Holding" style={{ height: 120, objectFit: "contain" }} />
+            </div>
+          )}
           <div style={{ color: accent, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
             {lang === "ar" ? `مرحباً بعودتك، ${userName}` : `Welcome back, ${userName}`}
           </div>
@@ -172,7 +177,11 @@ export default function WorkspaceSelect() {
             <div style={{ position: "absolute", top: 0, insetInlineStart: 20, insetInlineEnd: 20, height: 3, borderRadius: 2, background: gradient }} />
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ width: 52, height: 60, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 10, background: "#FBEDF0", color: accent }}>
-                {holding.logo_url ? <img src={holding.logo_url} alt="" style={{ height: 50, objectFit: "contain" }} /> : <span style={{ fontSize: 28, fontWeight: 900 }}>Λ</span>}
+                {(slug === "sparta" ? spartaLogoAsset.url : holding.logo_url) ? (
+                  <img src={slug === "sparta" ? spartaLogoAsset.url : holding.logo_url!} alt="" style={{ height: 50, objectFit: "contain" }} />
+                ) : (
+                  <span style={{ fontSize: 28, fontWeight: 900 }}>Λ</span>
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 18, fontWeight: 900 }}>{holding.name_ar}</div>
