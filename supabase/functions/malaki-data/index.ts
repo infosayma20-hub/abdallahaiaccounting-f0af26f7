@@ -542,7 +542,7 @@ Deno.serve(async (req) => {
             : "بدون فرع";
           const row = ensureBranch(brId, brName, box?.location || "");
           row.cancelledCount += 1;
-          row.cancelledTotal += Number(o.total) || 0;
+          row.cancelledTotal += netOrderTotal(o);
         }
         if (invList.length > 0) {
           const inv = ensureBranch("__invoices__", "فواتير المبيعات", "المحاسبة");
@@ -625,7 +625,7 @@ Deno.serve(async (req) => {
           const key = `${resolvedBranchId}::${name}`;
           const row = ensureCashier(key, name, resolvedBranchId, branchName);
           row.cancelledCount += 1;
-          row.cancelledTotal += Number(o.total) || 0;
+          row.cancelledTotal += netOrderTotal(o);
         }
         // (Invoice sales attribution by user is not tracked on invoices table)
         const byCashier = Object.values(cashierAgg).sort((a, b) => b.total - a.total);
@@ -638,7 +638,7 @@ Deno.serve(async (req) => {
           employeeAccount: Object.values(branchAgg).reduce((s, b) => s + b.employeeAccount, 0),
           employeeMeals: Object.values(branchAgg).reduce((s, b) => s + b.employeeMeals, 0),
           cancelledCount: cancelledOrders.length,
-          cancelledTotal: cancelledOrders.reduce((s, o) => s + (Number(o.total) || 0), 0),
+          cancelledTotal: cancelledOrders.reduce((s, o) => s + netOrderTotal(o), 0),
           net: 0,
         };
         summary.net = summary.gross - summary.employeeMeals;
