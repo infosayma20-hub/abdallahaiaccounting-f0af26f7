@@ -428,7 +428,8 @@ const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesR
   if (loading || ((blockCashier || blockStoreTracker || blockSalesRep) && checking)) {
     return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  const isSpartaRoute = location.pathname.startsWith("/sparta");
+  if (!user) return <Navigate to={isSpartaRoute ? "/g/sparta" : "/auth"} replace />;
   // امنع وميض شاشة المندوب/الموظف قبل ما نتأكد إذا لازم يروح لاختيار workspace
   if (checking && (location.pathname.startsWith("/rep") || location.pathname.startsWith("/employee"))) {
     return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
@@ -437,7 +438,9 @@ const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesR
     try { return !!sessionStorage.getItem(`workspace-choice:${user.id}`); }
     catch { return false; }
   })();
-  if (!checking && targetPath === "/choose-workspace" && !hasWorkspaceChoice && location.pathname !== "/choose-workspace") return <Navigate to="/choose-workspace" replace />;
+  // Sparta is a white-label workspace gated by SpartaTenantGuard — bypass the generic
+  // workspace chooser so Sparta members land directly in /sparta.
+  if (!checking && !isSpartaRoute && targetPath === "/choose-workspace" && !hasWorkspaceChoice && location.pathname !== "/choose-workspace") return <Navigate to="/choose-workspace" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
   if (blockStoreTracker && targetPath === "/store-tracker") return <Navigate to="/store-tracker" replace />;
   if (blockSalesRep && targetPath === "/rep") return <Navigate to="/rep" replace />;
