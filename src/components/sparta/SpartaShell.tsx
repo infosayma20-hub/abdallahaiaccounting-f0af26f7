@@ -10,7 +10,7 @@ const NAV = [
   { to: "/sparta/batches", label: "الدفعات (LOTs)", icon: CalendarClock },
   { to: "/sparta/inventory", label: "المخزون", icon: Boxes },
   { to: "/sparta/movements", label: "حركات الدفعات", icon: Activity },
-  { to: "/sparta/sales", label: "المبيعات", icon: FileText },
+  { to: "/sparta/invoices", label: "فواتير المبيعات", icon: FileText },
   { to: "/sparta/customers", label: "العملاء", icon: Users },
   { to: "/sparta/m", label: "تطبيق الموبايل", icon: Smartphone },
 ];
