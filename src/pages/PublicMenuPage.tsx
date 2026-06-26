@@ -417,45 +417,44 @@ function ProductDetailSheet({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end" dir="rtl"
-      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
+      style={{ background: "rgba(31,44,124,0.35)", backdropFilter: "blur(6px)" }}
       onClick={onClose}>
-      <div className="w-full rounded-t-3xl max-h-[92vh] overflow-y-auto"
-        style={{ background: "#150906", color: "#f8e9c8", borderTop: "1px solid rgba(212,170,86,0.25)" }}
+      <div className="w-full rounded-t-3xl max-h-[92vh] overflow-y-auto bg-white"
+        style={{ color: "#1F2C7C" }}
         onClick={e => e.stopPropagation()}>
         <div className="relative">
           {product.image_url ? (
             <img src={product.image_url} alt={product.name} className="w-full h-56 object-cover" />
           ) : (
-            <div className="w-full h-40 grid place-items-center"
-              style={{ background: "linear-gradient(135deg,#3a1a14,#1a0c08)" }}>
-              <ChefHat className="h-14 w-14 opacity-40" style={{ color: "#d4aa56" }} />
+            <div className="w-full h-40 grid place-items-center" style={{ background: "#F8F9FB" }}>
+              <ChefHat className="h-14 w-14" style={{ color: "#E63027", opacity: 0.4 }} />
             </div>
           )}
           <button onClick={onClose}
-            className="absolute top-3 left-3 h-9 w-9 rounded-full grid place-items-center"
-            style={{ background: "rgba(0,0,0,0.6)", color: "#f8e9c8", backdropFilter: "blur(8px)" }}>
+            className="absolute top-3 left-3 h-9 w-9 rounded-full grid place-items-center text-white"
+            style={{ background: "rgba(31,44,124,0.7)", backdropFilter: "blur(8px)" }}>
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="p-5 space-y-5">
           <div>
-            <h2 className="text-2xl font-black">{product.name}</h2>
-            {product.description && <p className="text-sm opacity-70 mt-1 leading-relaxed">{product.description}</p>}
-            <p className="text-lg font-black mt-2" style={{ color: "#d4aa56" }}>₪{Number(product.price).toFixed(2)}</p>
+            <h2 className="text-2xl font-black" style={{ color: "#1F2C7C" }}>{product.name}</h2>
+            {product.description && <p className="text-sm mt-1 leading-relaxed" style={{ color: "#5B6478" }}>{product.description}</p>}
+            <p className="text-lg font-black mt-2" style={{ color: "#E63027" }}>₪{Number(product.price).toFixed(2)}</p>
           </div>
 
           {product.modifier_groups.map(g => {
             const isSingle = g.selection_type === "single" || (g.max_select ?? 0) === 1;
             return (
               <div key={g.id} className="rounded-2xl p-4"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,170,86,0.15)" }}>
+                style={{ background: "#F8F9FB", border: "1px solid #ECEEF3" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="font-bold text-sm">
+                  <p className="font-bold text-sm" style={{ color: "#1F2C7C" }}>
                     {g.name}
-                    {g.is_required && <span className="mr-1" style={{ color: "#ff6b6b" }}>*</span>}
+                    {g.is_required && <span className="mr-1" style={{ color: "#E63027" }}>*</span>}
                   </p>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(212,170,86,0.15)", color: "#d4aa56" }}>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: "#fff", color: "#1F2C7C", border: "1px solid #ECEEF3" }}>
                     {isSingle ? "اختر واحد" : g.max_select ? `حتى ${g.max_select}` : "اختياري"}
                   </span>
                 </div>
@@ -466,17 +465,17 @@ function ProductDetailSheet({
                       <button type="button" key={o.id} onClick={() => toggle(g, o.id)}
                         className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm transition-all"
                         style={checked
-                          ? { background: "rgba(212,170,86,0.15)", border: "1.5px solid #d4aa56", color: "#f8e9c8" }
-                          : { background: "rgba(255,255,255,0.03)", border: "1.5px solid rgba(255,255,255,0.08)", color: "#f8e9c8" }}>
+                          ? { background: "#fff", border: "1.5px solid #E63027", color: "#1F2C7C" }
+                          : { background: "#fff", border: "1.5px solid #ECEEF3", color: "#1F2C7C" }}>
                         <span className="flex items-center gap-3">
                           <span className="h-5 w-5 rounded-full grid place-items-center"
-                            style={{ border: `2px solid ${checked ? "#d4aa56" : "rgba(255,255,255,0.25)"}` }}>
-                            {checked && <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#d4aa56" }} />}
+                            style={{ border: `2px solid ${checked ? "#E63027" : "#D5D9E2"}` }}>
+                            {checked && <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#E63027" }} />}
                           </span>
                           <span className="font-medium">{o.name}</span>
                         </span>
                         {Number(o.extra_price) > 0 && (
-                          <span className="text-xs font-bold" style={{ color: "#d4aa56" }}>+₪{Number(o.extra_price).toFixed(2)}</span>
+                          <span className="text-xs font-bold" style={{ color: "#E63027" }}>+₪{Number(o.extra_price).toFixed(2)}</span>
                         )}
                       </button>
                     );
@@ -487,30 +486,28 @@ function ProductDetailSheet({
           })}
 
           <div>
-            <p className="text-sm font-bold mb-2">ملاحظات (اختياري)</p>
+            <p className="text-sm font-bold mb-2" style={{ color: "#1F2C7C" }}>ملاحظات (اختياري)</p>
             <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="بدون بصل، حار، الخ"
-              className="border-0" style={{ background: "rgba(255,255,255,0.05)", color: "#f8e9c8" }} />
+              style={{ background: "#F8F9FB", color: "#1F2C7C", border: "1px solid #ECEEF3" }} />
           </div>
 
-          <div className="flex items-center gap-3 pt-3" style={{ borderTop: "1px dashed rgba(212,170,86,0.2)" }}>
-            <div className="flex items-center gap-1 p-1 rounded-full"
-              style={{ background: "rgba(255,255,255,0.05)" }}>
+          <div className="flex items-center gap-3 pt-3" style={{ borderTop: "1px dashed #E5E7EE" }}>
+            <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "#F1F2F8" }}>
               <button onClick={() => setQty(q => Math.max(1, q - 1))}
                 className="h-9 w-9 rounded-full grid place-items-center"
-                style={{ background: "rgba(212,170,86,0.15)", color: "#d4aa56" }}>
+                style={{ background: "#fff", color: "#1F2C7C" }}>
                 <Minus className="h-4 w-4" />
               </button>
-              <span className="w-8 text-center font-black text-lg">{qty}</span>
+              <span className="w-8 text-center font-black text-lg" style={{ color: "#1F2C7C" }}>{qty}</span>
               <button onClick={() => setQty(q => q + 1)}
-                className="h-9 w-9 rounded-full grid place-items-center"
-                style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08" }}>
+                className="h-9 w-9 rounded-full grid place-items-center text-white"
+                style={{ background: "#E63027" }}>
                 <Plus className="h-4 w-4" />
               </button>
             </div>
             <button onClick={handleAdd}
-              className="flex-1 py-3.5 rounded-2xl font-black"
-              style={{ background: "linear-gradient(135deg,#d4aa56,#a37b29)", color: "#1a0c08",
-                       boxShadow: "0 15px 40px -10px rgba(212,170,86,0.5)" }}>
+              className="flex-1 py-3.5 rounded-2xl font-black text-white"
+              style={{ background: "#E63027", boxShadow: "0 12px 30px -10px rgba(230,48,39,0.5)" }}>
               إضافة — ₪{(unitPrice * qty).toFixed(2)}
             </button>
           </div>
