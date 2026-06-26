@@ -602,6 +602,8 @@ export default function InvoiceHistoryDrawer({
     setOrderPayments([]);
     setOrderCurrency("ILS");
     setCcoPhone(null);
+    setCcoDispatcher(null);
+    setCcoSourceApp(null);
     try {
       const [linesRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
