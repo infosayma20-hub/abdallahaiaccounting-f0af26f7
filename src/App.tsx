@@ -158,6 +158,15 @@ const SuperAdminHoldingsPage = lazy(() => import("./pages/holding/SuperAdminHold
 const BrandedHoldingLoginPage = lazy(() => import("./pages/holding/BrandedHoldingLoginPage"));
 const HoldingConsolePage = lazy(() => import("./pages/holding/HoldingConsolePage"));
 const WorkspaceSelectPage = lazy(() => import("./pages/holding/WorkspaceSelect"));
+// Sparta white-label workspace (Phase 1)
+const SpartaShell = lazy(() => import("./components/sparta/SpartaShell"));
+const SpartaThemeProvider = lazy(() =>
+  import("./components/sparta/SpartaThemeProvider").then((m) => ({ default: m.SpartaThemeProvider }))
+);
+const SpartaDashboard = lazy(() => import("./pages/sparta/SpartaDashboard"));
+const SpartaModulePlaceholder = lazy(() => import("./pages/sparta/SpartaModulePlaceholder"));
+const SpartaMobileHome = lazy(() => import("./pages/sparta/SpartaMobileHome"));
+const SpartaMobilePlaceholder = lazy(() => import("./pages/sparta/SpartaMobilePlaceholder"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
@@ -482,6 +491,41 @@ const App = () => (
               <Route path="/g/:slug" element={<BrandedHoldingLoginPage />} />
               <Route path="/g/:slug/select" element={<WorkspaceSelectPage />} />
               <Route path="/holding/:id" element={<ProtectedRoute><HoldingConsolePage /></ProtectedRoute>} />
+
+              {/* Sparta white-label workspace (Phase 1) */}
+              <Route
+                path="/sparta"
+                element={
+                  <ProtectedRoute>
+                    <SpartaThemeProvider>
+                      <SpartaShell />
+                    </SpartaThemeProvider>
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<SpartaDashboard />} />
+                <Route
+                  path="products"
+                  element={<SpartaModulePlaceholder title="المنتجات والكتالوج" description="إدارة منتجات زرعات الأسنان مع الـ LOTs وتواريخ الصلاحية." amwaliRoute="/products" />}
+                />
+                <Route
+                  path="inventory"
+                  element={<SpartaModulePlaceholder title="المخزون" description="رصيد المستودعات، حركات المخزون، وتنبيهات الصلاحية." amwaliRoute="/inventory" />}
+                />
+                <Route
+                  path="sales"
+                  element={<SpartaModulePlaceholder title="المبيعات" description="فواتير المبيعات وعروض الأسعار بـ PDF بثيم سبارتا." amwaliRoute="/invoices" />}
+                />
+                <Route
+                  path="customers"
+                  element={<SpartaModulePlaceholder title="العملاء" description="العيادات والأطباء وكشوف الحساب." amwaliRoute="/contacts" />}
+                />
+                <Route path="m" element={<SpartaMobileHome />} />
+                <Route path="m/stock" element={<SpartaMobilePlaceholder title="استعلام المخزون" />} />
+                <Route path="m/sale" element={<SpartaMobilePlaceholder title="فاتورة سريعة" />} />
+                <Route path="m/catalog" element={<SpartaMobilePlaceholder title="الكتالوج" />} />
+                <Route path="m/customer" element={<SpartaMobilePlaceholder title="كشف الزبون" />} />
+              </Route>
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/choose-workspace" element={<ProtectedRoute><ChooseWorkspacePage /></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />

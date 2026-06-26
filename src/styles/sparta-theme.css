@@ -1,0 +1,62 @@
+/* Sparta Trade — White-Label Theme Overrides
+ * Applied by adding `.sparta-theme` class on <html> or any ancestor.
+ * Overrides shadcn HSL design tokens so all existing components inherit Sparta branding.
+ */
+
+.sparta-theme {
+  /* Brand colors */
+  --sparta-wine: 343 64% 33%;          /* #8B1E3F */
+  --sparta-wine-light: 343 50% 45%;
+  --sparta-wine-dark: 343 70% 22%;
+  --sparta-gold: 33 50% 64%;           /* #D4A574 */
+  --sparta-cream: 45 33% 97%;          /* #FAFAF7 */
+
+  /* Override shadcn tokens */
+  --background: var(--sparta-cream);
+  --foreground: 343 30% 12%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 343 30% 12%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 343 30% 12%;
+
+  --primary: var(--sparta-wine);
+  --primary-foreground: 45 33% 97%;
+
+  --secondary: 33 50% 92%;
+  --secondary-foreground: var(--sparta-wine-dark);
+
+  --muted: 33 30% 94%;
+  --muted-foreground: 343 15% 40%;
+
+  --accent: var(--sparta-gold);
+  --accent-foreground: var(--sparta-wine-dark);
+
+  --border: 33 25% 88%;
+  --input: 33 25% 88%;
+  --ring: var(--sparta-wine);
+
+  /* Sidebar */
+  --sidebar-background: var(--sparta-wine-dark);
+  --sidebar-foreground: 33 40% 85%;
+  --sidebar-primary: var(--sparta-gold);
+  --sidebar-primary-foreground: var(--sparta-wine-dark);
+  --sidebar-accent: var(--sparta-wine);
+  --sidebar-accent-foreground: 45 33% 97%;
+  --sidebar-border: var(--sparta-wine);
+  --sidebar-ring: var(--sparta-gold);
+
+  /* Gradients */
+  --gradient-sparta: linear-gradient(135deg, #8B1E3F 0%, #5C1429 100%);
+  --gradient-sparta-gold: linear-gradient(135deg, #D4A574 0%, #B8895C 100%);
+
+  font-family: 'Cairo', 'Inter', system-ui, sans-serif;
+}
+
+.sparta-theme .sparta-brand-gradient {
+  background: var(--gradient-sparta);
+}
+.sparta-theme .sparta-gold-gradient {
+  background: var(--gradient-sparta-gold);
+}
