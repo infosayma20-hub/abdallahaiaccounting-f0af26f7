@@ -1,97 +1,74 @@
-# Phase 1 — Sparta Dental: العمود الفقري
+## Phase 1 — Sparta Dental Implants: Products, Batches & Inventory
 
-## 🎯 الهدف
-بناء أول workspace تشغيلي لـ **سبارتا لزرعات الأسنان** يشمل: Products & Inventory + Sales + Customers، مع PWA منفصل للموبايل بثيم سبارتا (#8B1E3F)، عملة موحّدة ILS، وكل البيانات معزولة عن أموالي عبر `company_id`.
+نبني العمود الفقري التشغيلي لشركة "سبارتا لزرعات الأسنان" داخل بيئة سبارتا (`/sparta`) معتمدين على جداول أموالي الحالية (`products`, `warehouses`, `stock_movements`) مع إضافة طبقة **تتبع الدفعات** (Batch/LOT + Expiry) المطلوبة في قطاع الأجهزة الطبية.
 
-## 🧱 استراتيجية إعادة الاستخدام (توفير الكلفة)
-| نستعير من أموالي | نخصص لسبارتا |
-|---|---|
-| جداول `products`, `invoices`, `invoice_items`, `contacts`, `stock_movements`, `warehouses`, `accounts` | `company_id` = سبارتا دنتال + RLS تلقائي |
-| منطق الفاتورة (ترقيم، VAT، PDF Arabic Engine) | قالب PDF بشعار وألوان سبارتا |
-| `useCompanyContext`, `useAuth`, RLS Policies | لا تغيير — معزول تلقائياً |
-| مكونات shadcn (Dialog, Table, Form) | Tokens جديدة في `sparta-theme.css` |
+### 1. قاعدة البيانات (Migrations جديدة)
 
-**0 جداول جديدة في Phase 1** — كله يعمل على البنية الحالية + فلتر `company_id`.
+جدول جديد `product_batches`:
+- `product_id`, `company_id`, `warehouse_id`
+- `batch_number` (رقم التشغيلة من المورد)
+- `lot_number` (LOT الداخلي)
+- `manufacture_date`, `expiry_date`
+- `quantity_in`, `quantity_remaining`
+- `unit_cost`, `supplier_id`, `purchase_invoice_id`
+- `status` (active / expired / recalled / depleted)
+- RLS عبر `company_id` + GRANTs
 
-## 🎨 ثيم سبارتا (موحّد للويب + الموبايل)
-- Primary: `#8B1E3F` (عنابي) — Secondary: `#D4A574` (ذهبي)
-- Background: `#FAFAF7` فاتح / `#1A1A1A` داكن
-- خط: `Cairo` للعربي، `Inter` للإنجليزي
-- شعار سبارتا في Header + Login + PDFs
-- ملف واحد: `src/themes/sparta.css` يُحمَّل ديناميكياً عند `company_id = sparta-dental`
+جدول `batch_movements`:
+- يربط كل حركة مخزنية بدفعة محددة (FIFO حسب تاريخ الصلاحية)
+- `batch_id`, `stock_movement_id`, `quantity`, `direction`
 
-## 📱 PWA منفصل للموبايل
-- مسار: `/sparta/m/*` (مثل `/employee/*` بأموالي)
-- صفحات موبايل:
-  - **Catalog Browse** — تصفح المنتجات بالباركود/البحث
-  - **Quick Sale** — فاتورة سريعة من الموبايل لمندوب الفرع
-  - **Stock Check** — استعلام رصيد لحظي
-  - **Customer Lookup** — كشف حساب الزبون
-- Manifest منفصل: `public/sparta-manifest.webmanifest`
-- Icons بشعار سبارتا
-- يعمل عبر `sparta-trade.com/m` (يكتشف الدومين تلقائياً)
+تعديل `products`:
+- إضافة `requires_batch_tracking` boolean (يفعّل تلقائياً لمنتجات سبارتا)
+- `min_shelf_life_days` (أدنى مدة صلاحية مقبولة عند البيع)
 
-## 📦 الوحدات (Web Desktop)
+Trigger: `auto_consume_batches_fifo()` — عند أي حركة `out` يستهلك من أقدم دفعة منتهية أولاً.
 
-### 1. Products & Inventory
-- **شجرة فئات سبارتا الخاصة**: Dental Implants / Prosthetics / Surgical Kits / Biomaterials / Instruments / Consumables
-- حقول إضافية (نضيفها لـ `products` كـ JSON في حقل `meta` الموجود):
-  - `brand`, `lot_number`, `expiry_date`, `min_stock`, `reorder_point`
-- **Batch/LOT Tracking** — تتبع تواريخ الصلاحية مع تنبيه قبل 90 يوم
-- **Multi-Warehouse** — Main / Branch / Reserved (موجود أصلاً)
-- شاشة "تنبيهات قرب انتهاء الصلاحية"
+### 2. وحدات Sparta Shell الجديدة
 
-### 2. Sales
-- فاتورة مبيعات قياسية (نفس محرك أموالي)
-- **Price Lists** بسيطة (سعر طبيب / سعر عيادة / سعر جملة) عبر `pos_customers.price_list_code`
-- **Quotations → Sales Order → Invoice** (الـ workflow الجاهز)
-- PDF بشعار سبارتا
+نضيف 4 صفحات داخل `SpartaShell`:
 
-### 3. Customers (CRM خفيف)
-- عيادات + أطباء (نوع `contact_type = "عميل"`)
-- حقول إضافية: `clinic_name`, `doctor_specialty`, `license_number` في `meta`
-- كشف حساب + Aging Report (جاهز)
-- ملاحظات + تاريخ زيارات المندوب
+| الصفحة | المسار | المحتوى |
+|---|---|---|
+| كتالوج المنتجات | `/sparta/products` | جدول المنتجات + بحث + فلتر فئة (Implants/Abutments/Tools) |
+| إدارة الدفعات | `/sparta/batches` | عرض كل LOTs، تنبيه قرب الانتهاء (90/60/30 يوم) |
+| المخازن والمستودعات | `/sparta/warehouses` | مستودع رئيسي + مستودعات المناديب |
+| حركة المخزون | `/sparta/inventory` | IN/OUT/Transfer بين المستودعات |
 
-## 🗄️ تغييرات قاعدة البيانات (Minimal)
-لا جداول جديدة. فقط:
-1. إنشاء `company_id` = `sparta-dental` (موجودة من قبل)
-2. إضافة 6 حسابات في شجرة الحسابات الخاصة بسبارتا (1110 صندوق، 1130 ذمم مدينة، 4110 مبيعات…)
-3. Seed: 6 فئات منتجات سبارتا
-4. Seed: 4 مستودعات (Main / Reserved / Damaged / In-Transit)
+### 3. لوحة تنبيهات الصلاحية (Dashboard Widget)
 
-## 🛣️ المسارات الجديدة
-```text
-/sparta              → Dashboard Web
-/sparta/products     → كتالوج المنتجات
-/sparta/inventory    → المخزون والـ LOTs
-/sparta/sales        → الفواتير والعروض
-/sparta/customers    → العيادات والأطباء
-/sparta/m            → PWA Mobile Home
-/sparta/m/sale       → فاتورة سريعة موبايل
-/sparta/m/stock      → استعلام مخزون
-```
+إضافة Widget في `SpartaDashboard`:
+- منتجات تنتهي خلال 90 يوم (قيمتها المالية)
+- منتجات منتهية الصلاحية فعلياً (يجب إتلافها)
+- منتجات تحت الحد الأدنى للمخزون
 
-## ✅ معايير القبول
-- مستخدم سبارتا لا يشوف أي بيانات أموالي (RLS مفعّل)
-- ثيم سبارتا يظهر فوراً عند الدخول من `sparta-trade.com`
-- إنشاء فاتورة كاملة من Web + Mobile وحفظها بـ ILS
-- PDF الفاتورة بشعار وألوان سبارتا
-- PWA قابل للتثبيت على iPhone + Android من `sparta-trade.com/m`
+### 4. PWA المناديب (`/sparta/m`)
 
-## ⏭️ خارج نطاق Phase 1 (لاحقاً)
-- Sales Reps PWA الكامل (Phase 2)
-- Academy Module (Phase 3)
-- HR + Projects + Payroll (Phase 4)
-- Cohort Management — يدخل في Phase 3 مع الأكاديمية
+شاشة بسيطة للمندوب:
+- مخزون شاحنته (warehouse مرتبط بـ employee_id)
+- مسح Barcode/QR لإخراج صنف
+- يعرض الدفعة المختارة آلياً (FIFO) قبل التأكيد
 
-## 🚀 خطوات التنفيذ بالترتيب
-1. إنشاء ثيم سبارتا (`sparta.css` + ThemeProvider switch)
-2. Seed بيانات (حسابات + فئات + مستودعات لسبارتا)
-3. صفحة `/sparta` Dashboard
-4. صفحات Products/Inventory/Sales/Customers (نسخ-تكييف من أموالي)
-5. Manifest + Icons + Routes للـ PWA
-6. صفحات Mobile (4 شاشات)
-7. اختبار end-to-end على دومين سبارتا
+### 5. الأمان
 
-**ملاحظة:** Cohort Management ذكرته في طلبك بس هو جزء من **Academy** (Phase 3). هل تأكد إنه يبقى مؤجل، أم تبيه يدخل Phase 1 بصيغة مبسطة (دفعات الطلاب فقط بدون جدولة محاضرات)؟
+- كل الجداول الجديدة بـ RLS مرتبط بـ `holding_members` (تم في Tenant Guard)
+- لا أحد يصل لجداول سبارتا إلا أعضاء قابضة `0a0655c6-...`
+- منع البيع من دفعة منتهية الصلاحية على مستوى DB Trigger (ليس UI فقط)
+
+### الترتيب التنفيذي
+
+1. Migration جداول `product_batches` + `batch_movements` + trigger FIFO
+2. صفحات Products + Batches (CRUD)
+3. صفحة Warehouses + Inventory Movements
+4. Dashboard Widget للتنبيهات
+5. PWA Mobile للمناديب
+6. QA + اختبار اختراق RLS
+
+### خارج النطاق (Phase 2)
+
+- المبيعات والفواتير لسبارتا
+- CRM للأطباء والعيادات
+- HR
+- المشاريع والعمولات
+
+موافق نبدأ بـ Migration قاعدة البيانات أولاً؟
