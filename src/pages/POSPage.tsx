@@ -8802,7 +8802,7 @@ const POSPage = () => {
         terminalId={deviceConfig.terminalId}
         companyId={company?.id ?? null}
         sessionId={session?.id ?? null}
-        cashierName={pos_user?.name || posUser?.name || undefined}
+        cashierName={session?.cashier_name || undefined}
         orderSubtotal={cartTotals.subtotal}
       />
 
