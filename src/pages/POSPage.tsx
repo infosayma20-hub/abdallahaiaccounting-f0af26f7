@@ -5263,6 +5263,7 @@ const POSPage = () => {
       openingCash: session.opening_cash,
       totalSales: recalcTotalSales,
       totalExpenses,
+      expenseBreakdown,
       totalOrders: recalcTotalOrders,
       closingCash: cash,
       closingCashUSD: cashUSD,
