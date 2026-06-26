@@ -36,6 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
+import QRMenuTopBarButton from "@/components/pos/QRMenuTopBarButton";
 import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
@@ -5845,6 +5846,9 @@ const POSPage = () => {
           <button onClick={() => navigate("/pos/kitchen")} className="hidden xl:flex h-9 w-9 rounded-lg items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="المطبخ">
             <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
+
+          {/* QR Menu */}
+          <QRMenuTopBarButton onClick={() => navigate("/pos/qr-menu")} />
 
           {/* Stockout alert — icon shortcut in top bar (cashier only) */}
           {!isCallCenter && dataOwnerId && (

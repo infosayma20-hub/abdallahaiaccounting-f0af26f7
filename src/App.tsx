@@ -220,6 +220,8 @@ const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const CustomerOrderDisplayPage = lazy(() => import("./pages/CustomerOrderDisplayPage"));
 const KitchenDisplayPublicPage = lazy(() => import("./pages/KitchenDisplayPublicPage"));
+const QRMenuAdminPage = lazy(() => import("./pages/pos/QRMenuAdminPage"));
+const PublicMenuPage = lazy(() => import("./pages/PublicMenuPage"));
 const HeaterScreenPage = lazy(() => import("./pages/HeaterScreenPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
@@ -508,6 +510,9 @@ const App = () => (
               <Route path="/pos/heater-screen" element={<HeaterScreenPage />} />
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/delivery-zones" element={<ProtectedRoute><ModuleGuard><RoleGuard allowedRoles={["admin", "accountant_senior"]}><DeliveryZonesPage /></RoleGuard></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/qr-menu" element={<ProtectedRoute><ModuleGuard><QRMenuAdminPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/m/:accountSlug/:branchSlug" element={<PublicMenuPage />} />
+              <Route path="/m/:accountSlug/:branchSlug/:tableCode" element={<PublicMenuPage />} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />

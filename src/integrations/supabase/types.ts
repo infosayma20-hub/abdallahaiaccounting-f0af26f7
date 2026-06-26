@@ -1578,6 +1578,8 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          public_slug: string | null
+          qr_menu_enabled: boolean | null
           qr_mode: string
           qr_rotation_minutes: number
           radius_meters: number
@@ -1599,6 +1601,8 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          public_slug?: string | null
+          qr_menu_enabled?: boolean | null
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
@@ -1620,6 +1624,8 @@ export type Database = {
           latitude?: number
           longitude?: number
           name?: string
+          public_slug?: string | null
+          qr_menu_enabled?: boolean | null
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
@@ -2546,6 +2552,10 @@ export type Database = {
           primary_color: string | null
           print_decorative_ornaments: boolean | null
           purchase_order_prefix: string | null
+          qr_menu_enabled: boolean | null
+          qr_menu_mode: string | null
+          qr_menu_require_phone: boolean | null
+          qr_menu_welcome_message: string | null
           receipt_prefix: string | null
           rep_allow_negative_stock: boolean
           rep_disable_stock_deduction: boolean
@@ -2710,6 +2720,10 @@ export type Database = {
           primary_color?: string | null
           print_decorative_ornaments?: boolean | null
           purchase_order_prefix?: string | null
+          qr_menu_enabled?: boolean | null
+          qr_menu_mode?: string | null
+          qr_menu_require_phone?: boolean | null
+          qr_menu_welcome_message?: string | null
           receipt_prefix?: string | null
           rep_allow_negative_stock?: boolean
           rep_disable_stock_deduction?: boolean
@@ -2874,6 +2888,10 @@ export type Database = {
           primary_color?: string | null
           print_decorative_ornaments?: boolean | null
           purchase_order_prefix?: string | null
+          qr_menu_enabled?: boolean | null
+          qr_menu_mode?: string | null
+          qr_menu_require_phone?: boolean | null
+          qr_menu_welcome_message?: string | null
           receipt_prefix?: string | null
           rep_allow_negative_stock?: boolean
           rep_disable_stock_deduction?: boolean
@@ -11278,6 +11296,7 @@ export type Database = {
           name: string
           parent_id: string | null
           restricted_cash_box_ids: string[] | null
+          show_in_qr_menu: boolean | null
           sort_order: number | null
           updated_at: string
           user_id: string
@@ -11291,6 +11310,7 @@ export type Database = {
           name: string
           parent_id?: string | null
           restricted_cash_box_ids?: string[] | null
+          show_in_qr_menu?: boolean | null
           sort_order?: number | null
           updated_at?: string
           user_id: string
@@ -11304,6 +11324,7 @@ export type Database = {
           name?: string
           parent_id?: string | null
           restricted_cash_box_ids?: string[] | null
+          show_in_qr_menu?: boolean | null
           sort_order?: number | null
           updated_at?: string
           user_id?: string
@@ -13595,6 +13616,7 @@ export type Database = {
           sales_account_code: string | null
           sell_price: number
           service_direction: string | null
+          show_in_qr_menu: boolean | null
           sku: string | null
           sort_order: number | null
           source: string | null
@@ -13637,6 +13659,7 @@ export type Database = {
           sales_account_code?: string | null
           sell_price?: number
           service_direction?: string | null
+          show_in_qr_menu?: boolean | null
           sku?: string | null
           sort_order?: number | null
           source?: string | null
@@ -13679,6 +13702,7 @@ export type Database = {
           sales_account_code?: string | null
           sell_price?: number
           service_direction?: string | null
+          show_in_qr_menu?: boolean | null
           sku?: string | null
           sort_order?: number | null
           source?: string | null
@@ -13734,6 +13758,7 @@ export type Database = {
           invited_by: string | null
           is_suspended: boolean
           last_seen_at: string | null
+          public_slug: string | null
           role: string
           setup_completed: boolean | null
           smart_accountant_onboarded: boolean | null
@@ -13761,6 +13786,7 @@ export type Database = {
           invited_by?: string | null
           is_suspended?: boolean
           last_seen_at?: string | null
+          public_slug?: string | null
           role?: string
           setup_completed?: boolean | null
           smart_accountant_onboarded?: boolean | null
@@ -13788,6 +13814,7 @@ export type Database = {
           invited_by?: string | null
           is_suspended?: boolean
           last_seen_at?: string | null
+          public_slug?: string | null
           role?: string
           setup_completed?: boolean | null
           smart_accountant_onboarded?: boolean | null
@@ -14400,6 +14427,88 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qr_menu_orders: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          branch_id: string
+          created_at: string
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          items: Json
+          notes: string | null
+          pos_order_id: string | null
+          reject_reason: string | null
+          short_number: number | null
+          source_ip: string | null
+          status: string
+          table_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          branch_id: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          pos_order_id?: string | null
+          reject_reason?: string | null
+          short_number?: number | null
+          source_ip?: string | null
+          status?: string
+          table_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          branch_id?: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          pos_order_id?: string | null
+          reject_reason?: string | null
+          short_number?: number | null
+          source_ip?: string | null
+          status?: string
+          table_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_menu_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_menu_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_menu_orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
             referencedColumns: ["id"]
           },
         ]
@@ -21608,6 +21717,22 @@ export type Database = {
           out_branch_id: string
           out_created: boolean
           out_currency: string
+        }[]
+      }
+      qr_menu_get_menu: {
+        Args: { _branch_id: string; _user_id: string }
+        Returns: Json
+      }
+      qr_menu_resolve: {
+        Args: { _account_slug: string; _branch_slug: string }
+        Returns: {
+          account_name: string
+          branch_id: string
+          branch_name: string
+          mode: string
+          require_phone: boolean
+          user_id: string
+          welcome_message: string
         }[]
       }
       read_email_batch: {
