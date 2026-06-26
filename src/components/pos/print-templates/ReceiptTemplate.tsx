@@ -119,7 +119,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   // total so the employee sees the exact amount they owe. Gross revenue stays
   // intact server-side — the subsidy posts to 5316 in complete_pos_order.
   const mealSubsidy = Math.max(0, Number((order as any).mealSubsidy || 0));
-  const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee - mealSubsidy);
+  // For NEW orders `total` is already items-only — don't subtract `deliveryFee`
+  // again. Only legacy rows (totalIncludesDeliveryFee=true) need the strip.
+  const totalHasDelivery = (order as any).totalIncludesDeliveryFee === true;
+  const printedTotal = Math.max(
+    0,
+    Number(order.total || 0) - (totalHasDelivery ? deliveryFee : 0) - mealSubsidy,
+  );
   // order.subtotal already excludes delivery fee in POSPage — keep as-is.
   const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;
   const deliveryNoteLine = deliveryFee > 0
