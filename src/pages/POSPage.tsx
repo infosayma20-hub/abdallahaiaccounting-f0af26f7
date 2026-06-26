@@ -4769,7 +4769,7 @@ const POSPage = () => {
       } else {
         setCart([]);
         setCustomerName("", null, "", null);
-        setOrderDiscount(0);
+        setOrderDiscount(0); setManagerDiscountMeta(null);
         setOrderNote("");
         setSelectedCartIndex(null);
         setRecallBanner(null);
@@ -5469,7 +5469,7 @@ const POSPage = () => {
       }
       // Delete / Backspace = Clear cart
       if (e.key === "Delete" && e.ctrlKey) {
-        setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+        setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote("");
         setCustomerDataDiscount(null);
         e.preventDefault();
         return;
@@ -6510,7 +6510,7 @@ const POSPage = () => {
               <button
                 onClick={async () => {
                   const tId = activeOrder.tableId;
-                  setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
+                  setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
                   updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
                   if (tId) {
                     await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
@@ -6955,7 +6955,7 @@ const POSPage = () => {
                     <button
                       onClick={() => {
                         setManagerDiscountMeta(null);
-                        setOrderDiscount(0);
+                        setOrderDiscount(0); setManagerDiscountMeta(null);
                         setOrderDiscountType("fixed");
                       }}
                       className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1 transition"
@@ -8672,7 +8672,7 @@ const POSPage = () => {
         editingSkipWheelsDispatch={activeOrder.isEditingDispatch ? (activeOrder.callCenterSkipWheelsDispatch || false) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
-          setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+          setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote("");
           setCustomerDataDiscount(null);
           setCustomerName("", null, "", null);
           updateActiveOrder(o => ({
