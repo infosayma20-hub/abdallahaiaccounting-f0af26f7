@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompanyContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -15,27 +15,26 @@ interface Product {
   name: string;
   sku: string | null;
   quantity: number;
-  price: number;
-  cost: number | null;
+  sell_price: number;
+  buy_price: number | null;
   requires_batch_tracking: boolean;
   min_shelf_life_days: number | null;
-  category_id?: string | null;
 }
 
 export default function SpartaProductsPage() {
-  const { company } = useCompany();
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [openCreate, setOpenCreate] = useState(false);
-  const [form, setForm] = useState({ name: "", sku: "", price: 0, cost: 0, requires_batch_tracking: true, min_shelf_life_days: 180 });
+  const [form, setForm] = useState({ name: "", sku: "", sell_price: 0, buy_price: 0, requires_batch_tracking: true, min_shelf_life_days: 180 });
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("products")
-      .select("id, name, sku, quantity, price, cost, requires_batch_tracking, min_shelf_life_days")
-      .eq("company_id", company.id)
+      .select("id, name, sku, quantity, sell_price, buy_price, requires_batch_tracking, min_shelf_life_days")
+      .eq("user_id", user!.id)
       .order("name", { ascending: true })
       .limit(500);
     if (error) toast.error(error.message);
@@ -43,7 +42,7 @@ export default function SpartaProductsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { if (company.id) load(); }, [company.id]);
+  useEffect(() => { if (user?.id) load(); }, [user?.id]);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -60,11 +59,11 @@ export default function SpartaProductsPage() {
   const create = async () => {
     if (!form.name.trim()) return toast.error("اسم المنتج مطلوب");
     const { error } = await supabase.from("products").insert({
-      company_id: company.id,
+      user_id: user!.id,
       name: form.name,
       sku: form.sku || null,
-      price: form.price,
-      cost: form.cost,
+      sell_price: form.sell_price,
+      buy_price: form.buy_price,
       quantity: 0,
       requires_batch_tracking: form.requires_batch_tracking,
       min_shelf_life_days: form.min_shelf_life_days || null,
@@ -72,7 +71,7 @@ export default function SpartaProductsPage() {
     if (error) return toast.error(error.message);
     toast.success("تمت إضافة المنتج");
     setOpenCreate(false);
-    setForm({ name: "", sku: "", price: 0, cost: 0, requires_batch_tracking: true, min_shelf_life_days: 180 });
+    setForm({ name: "", sku: "", sell_price: 0, buy_price: 0, requires_batch_tracking: true, min_shelf_life_days: 180 });
     load();
   };
 
@@ -111,7 +110,7 @@ export default function SpartaProductsPage() {
                 <td className="p-3 font-medium">{p.name}</td>
                 <td className="p-3 text-muted-foreground">{p.sku || "—"}</td>
                 <td className="p-3"><Badge variant={p.quantity > 0 ? "secondary" : "destructive"}>{p.quantity}</Badge></td>
-                <td className="p-3">₪ {Number(p.price || 0).toFixed(2)}</td>
+                <td className="p-3">₪ {Number(p.sell_price || 0).toFixed(2)}</td>
                 <td className="p-3"><Switch checked={p.requires_batch_tracking} onCheckedChange={(v) => toggleBatch(p, v)} /></td>
                 <td className="p-3 text-muted-foreground">{p.min_shelf_life_days || "—"}</td>
               </tr>
@@ -127,8 +126,8 @@ export default function SpartaProductsPage() {
             <div><Label>الاسم</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
             <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>السعر (₪)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
-              <div><Label>التكلفة (₪)</Label><Input type="number" value={form.cost} onChange={(e) => setForm({ ...form, cost: Number(e.target.value) })} /></div>
+              <div><Label>السعر (₪)</Label><Input type="number" value={form.sell_price} onChange={(e) => setForm({ ...form, sell_price: Number(e.target.value) })} /></div>
+              <div><Label>التكلفة (₪)</Label><Input type="number" value={form.buy_price} onChange={(e) => setForm({ ...form, buy_price: Number(e.target.value) })} /></div>
             </div>
             <div className="flex items-center justify-between border rounded-md p-3">
               <Label>تفعيل تتبع الدفعات (LOT)</Label>
