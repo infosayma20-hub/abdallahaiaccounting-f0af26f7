@@ -42,7 +42,7 @@ export default function SpartaShell() {
   }
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground" style={{ fontFamily: "Cairo, Inter, sans-serif" }}>
+    <div className="sparta-app min-h-screen flex bg-background text-foreground" style={{ fontFamily: "Cairo, Inter, sans-serif" }} dir="rtl">
       {/* Sidebar */}
       <aside
         className={`fixed lg:static inset-y-0 right-0 z-40 w-64 transform transition-transform lg:translate-x-0 ${
