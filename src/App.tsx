@@ -418,6 +418,11 @@ const SmartRedirect = () => {
   return <Navigate to={targetPath || "/apps"} replace />;
 };
 
+const isMenuDomain = typeof window !== "undefined" && (
+  window.location.hostname.startsWith("menu.") || 
+  window.location.hostname.includes("menu-preview")
+);
+
 const App = () => (
   <ThemeProvider>
     <QueryClientProvider client={queryClient}>
@@ -513,6 +518,15 @@ const App = () => (
               <Route path="/pos/qr-menu" element={<ProtectedRoute><ModuleGuard><QRMenuAdminPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/m/:accountSlug/:branchSlug" element={<PublicMenuPage />} />
               <Route path="/m/:accountSlug/:branchSlug/:tableCode" element={<PublicMenuPage />} />
+              
+              {/* Prettier direct URL routing for menu.amwali.app */}
+              {isMenuDomain && (
+                <>
+                  <Route path="/:accountSlug/:branchSlug" element={<PublicMenuPage />} />
+                  <Route path="/:accountSlug/:branchSlug/:tableCode" element={<PublicMenuPage />} />
+                  <Route path="/" element={<Navigate to="https://amwali.app" replace />} />
+                </>
+              )}
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />

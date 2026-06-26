@@ -164,7 +164,10 @@ export default function QRMenuAdminPage() {
     if (!user) return "";
     const safeAccountSlug = slugify(accountSlug) || fallbackAccountSlug(user.id);
     const safeBranchSlug = branchSlug || "br";
-    const base = `${window.location.origin}/m/${encodeURIComponent(safeAccountSlug)}/${encodeURIComponent(safeBranchSlug)}`;
+    // Use the dedicated menu subdomain on production/preview, otherwise fallback to local /m route
+    const isProd = window.location.origin.includes("amwali.app") || window.location.origin.includes("lovableproject.com");
+    const domain = isProd ? "https://menu.amwali.app" : `${window.location.origin}/m`;
+    const base = `${domain}/${encodeURIComponent(safeAccountSlug)}/${encodeURIComponent(safeBranchSlug)}`;
     return tableCode ? `${base}/${encodeURIComponent(tableCode)}` : base;
   };
 
