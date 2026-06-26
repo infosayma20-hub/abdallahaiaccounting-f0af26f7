@@ -107,6 +107,11 @@ export default function PublicMenuPage() {
   }, [submittedId]);
 
   const filtered = useMemo(() => products.filter(p => p.category_id === activeCat), [products, activeCat]);
+  const catNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    categories.forEach(c => { m[c.id] = c.name; });
+    return m;
+  }, [categories]);
   const total = cart.reduce((s, l) => s + l.unit_price * l.qty, 0);
 
   const openProduct = (p: Product) => {
