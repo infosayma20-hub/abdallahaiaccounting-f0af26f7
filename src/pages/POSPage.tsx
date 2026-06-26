@@ -4959,9 +4959,14 @@ const POSPage = () => {
     // Fetch total expenses for this session
     const { data: expensesData } = await supabase
       .from("pos_expenses")
-      .select("amount")
+      .select("amount, description, expense_kind, account_code, employee_id")
       .eq("shift_id", session.id);
     const totalExpenses = (expensesData || []).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+    const expenseBreakdown = (expensesData || []).map((e: any) => ({
+      kind: e.expense_kind || "account",
+      label: (e.description || "").replace(/^مصروف — /, "").replace(/^(سلفة راتب|قرض حسن) — /, "").slice(0, 40),
+      amount: Number(e.amount) || 0,
+    }));
 
     // Fetch total POS purchases (cash out) for this session
     const { data: purchasesData } = await supabase
