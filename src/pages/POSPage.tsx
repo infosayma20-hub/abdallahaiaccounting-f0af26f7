@@ -1111,6 +1111,10 @@ const POSPage = () => {
    const [showInventoryInput, setShowInventoryInput] = useState(false);
    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
    const [showExpenseModal, setShowExpenseModal] = useState(false);
+  // Manager-gated D365-style expense flow
+  const [showExpenseManagerUnlock, setShowExpenseManagerUnlock] = useState(false);
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  const [expenseManager, setExpenseManager] = useState<{ id: string; name: string } | null>(null);
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
     const [showSyncLog, setShowSyncLog] = useState(false);
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
