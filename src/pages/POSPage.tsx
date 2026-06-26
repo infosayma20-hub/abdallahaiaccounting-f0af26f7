@@ -59,6 +59,8 @@ import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
+import POSExpenseDialog from "@/components/pos/POSExpenseDialog";
+import ManagerHistoryUnlockDialog from "@/components/pos/ManagerHistoryUnlockDialog";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
