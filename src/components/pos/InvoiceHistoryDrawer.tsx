@@ -1371,6 +1371,16 @@ export default function InvoiceHistoryDrawer({
                         {selectedOrder.recall_status && (
                           <Field label="سبب التعديل">{selectedOrder.recall_reason || "—"}</Field>
                         )}
+                        {(ccoDispatcher || ccoSourceApp) && (
+                          <Field label="مصدر الطلب (كول سنتر)">
+                            <span className="text-[12px]" style={{ color: "#0F172A" }}>
+                              {ccoDispatcher || "—"}
+                              {ccoSourceApp ? (
+                                <span className="mr-1 text-[10px]" style={{ color: "#94A3B8" }}> · {ccoSourceApp}</span>
+                              ) : null}
+                            </span>
+                          </Field>
+                        )}
                       </div>
                     ) : (
                       <div className="py-3 border-b text-[11px]" style={{ borderColor: "#F1F5F9", color: "#94A3B8" }}>
