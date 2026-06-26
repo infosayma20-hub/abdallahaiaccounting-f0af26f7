@@ -407,12 +407,32 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { targetPath, checking, user, stalled, retry } = useRoleRedirect();
   if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
   if (user && targetPath) return <Navigate to={targetPath} replace />;
+
+  const isSpartaDomain = typeof window !== "undefined" && (
+    window.location.hostname === "sparta-trade.com" || 
+    window.location.hostname === "www.sparta-trade.com" ||
+    window.location.hostname.includes("sparta-trade")
+  );
+  if (isSpartaDomain) {
+    return <Navigate to="/g/sparta" replace />;
+  }
+
   return <>{children}</>;
 };
 
 const SmartRedirect = () => {
   const { targetPath, checking, user, stalled, retry } = useRoleRedirect();
   if (checking) return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
+
+  const isSpartaDomain = typeof window !== "undefined" && (
+    window.location.hostname === "sparta-trade.com" || 
+    window.location.hostname === "www.sparta-trade.com" ||
+    window.location.hostname.includes("sparta-trade")
+  );
+  if (isSpartaDomain && !user) {
+    return <Navigate to="/g/sparta" replace />;
+  }
+
   // Logged-out visitors → public marketing landing page.
   if (!user) return <LandingPage />;
   return <Navigate to={targetPath || "/apps"} replace />;
