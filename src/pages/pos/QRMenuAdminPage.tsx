@@ -269,6 +269,9 @@ export default function QRMenuAdminPage() {
 
           {/* Branches & QR */}
           <TabsContent value="branches" className="mt-4 space-y-3">
+            <div className="flex justify-end">
+              <Button size="sm" onClick={enableAllBranches}>تفعيل QR لكل الفروع تلقائياً</Button>
+            </div>
             {branches.map(b => (
               <Card key={b.id} className="p-4">
                 <div className="flex items-center justify-between gap-3">
