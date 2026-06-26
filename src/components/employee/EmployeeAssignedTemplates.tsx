@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Loader2, ChevronLeft, CheckCircle2, X,
   Megaphone, ClipboardList, Users, ShieldCheck, Coins, FileText, FileDown, Send,
+  MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -12,8 +13,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
 import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
-import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
-import FormSectionAssignmentsPanel from "@/components/employee/forms/FormSectionAssignmentsPanel";
+import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
+import InlineSectionAssign from "@/components/employee/forms/InlineSectionAssign";
 import { useIsBranchManager } from "@/hooks/useIsBranchManager";
 
 interface Props {
@@ -188,6 +189,32 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     toast({ title: "تم تنزيل ملف Word" });
   };
 
+  const shareWhatsApp = async (sub: Submission) => {
+    const tpl = templates.find((t) => t.id === sub.template_id);
+    try {
+      const res = await shareEmployeeFormViaWhatsApp({
+        title: sub.title || tpl?.name || "نموذج",
+        createdAt: sub.created_at,
+        schema: tpl?.schema as any,
+        data: sub.form_data,
+      });
+      if (res.method === "native") toast({ title: "تمت المشاركة" });
+      else if (res.method === "fallback") toast({ title: "تم تنزيل الملف", description: "أرفقه يدوياً في واتساب." });
+    } catch (e: any) {
+      toast({ title: "تعذرت المشاركة", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const previewWordFromDraft = (data: Record<string, any>) => {
+    if (!activeTemplate) return;
+    downloadEmployeeFormWord({
+      title: activeTemplate.name,
+      schema: activeTemplate.schema as any,
+      data,
+    });
+    toast({ title: "تم تنزيل ملف Word", description: "هاد ملف معاينة قبل الإرسال." });
+  };
+
   const submitForReview = async (sub: Submission) => {
     try {
       const { error } = await supabase
@@ -272,21 +299,24 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
             }}
           >
-            {isManager && (
-              <div className="mb-4">
-                <FormSectionAssignmentsPanel
-                  mode="template"
-                  templateId={activeTemplate.id}
-                  schema={activeTemplate.schema as any}
-                />
-              </div>
-            )}
             <DynamicFormRenderer
               schema={activeTemplate.schema}
               draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
               submitting={submitting}
               onSubmit={handleSubmit}
               onSaveDraft={() => {}}
+              onPreviewWord={previewWordFromDraft}
+              renderSectionExtras={
+                isManager
+                  ? (sec) => (
+                      <InlineSectionAssign
+                        templateId={activeTemplate.id}
+                        sectionKey={sec.key}
+                        sectionTitle={sec.title}
+                      />
+                    )
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -302,21 +332,24 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           </DialogHeader>
           {activeTemplate && (
             <>
-              {isManager && (
-                <div className="mb-4">
-                  <FormSectionAssignmentsPanel
-                    mode="template"
-                    templateId={activeTemplate.id}
-                    schema={activeTemplate.schema as any}
-                  />
-                </div>
-              )}
               <DynamicFormRenderer
                 schema={activeTemplate.schema}
                 draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
                 submitting={submitting}
                 onSubmit={handleSubmit}
                 onSaveDraft={() => {}}
+                onPreviewWord={previewWordFromDraft}
+                renderSectionExtras={
+                  isManager
+                    ? (sec) => (
+                        <InlineSectionAssign
+                          templateId={activeTemplate.id}
+                          sectionKey={sec.key}
+                          sectionTitle={sec.title}
+                        />
+                      )
+                    : undefined
+                }
               />
             </>
           )}
@@ -412,6 +445,15 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         >
           <FileDown className="h-4 w-4" />
           تنزيل Word
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+          onClick={() => shareWhatsApp(sub)}
+        >
+          <MessageCircle className="h-4 w-4" />
+          مشاركة واتساب
         </Button>
         {canSubmit && (
           <Button
