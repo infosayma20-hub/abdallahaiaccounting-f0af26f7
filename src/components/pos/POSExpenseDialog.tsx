@@ -203,6 +203,18 @@ export default function POSExpenseDialog({
   // Only expense leaves (5xxx that are NOT a parent of something else),
   // plus 1146 (دفعات مقدمة للموردين) for advances. We allow children of any
   // depth so the user can post directly to فروع التشغيل / الإدارة / etc.
+  // Multi-token search: every whitespace-separated token must appear
+  // somewhere in (code + name). Trims diacritics-light, case-insensitive
+  // (Arabic is unaffected by case).
+  const matchTokens = (hay: string, query: string) => {
+    const h = (hay || "").toLowerCase();
+    return query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .every((tok) => h.includes(tok));
+  };
+
   const expenseAccounts = useMemo(() => {
     const parents = new Set(accounts.map((a) => a.parent_code).filter(Boolean));
     const leaves = accounts.filter(
@@ -212,15 +224,17 @@ export default function POSExpenseDialog({
     );
     const q = accountSearch.trim();
     if (!q) return leaves;
-    return leaves.filter(
-      (a) => a.account_code.includes(q) || a.account_name.includes(q)
+    return leaves.filter((a) =>
+      matchTokens(`${a.account_code} ${a.account_name}`, q)
     );
   }, [accounts, accountSearch]);
 
   const filteredEmployees = useMemo(() => {
     const q = empSearch.trim();
     if (!q) return employees;
-    return employees.filter((e) => e.full_name.includes(q));
+    return employees.filter((e) =>
+      matchTokens(`${e.full_name} ${e.job_title || ""}`, q)
+    );
   }, [employees, empSearch]);
 
   const selectedEmployee = employees.find((e) => e.id === employeeId);
