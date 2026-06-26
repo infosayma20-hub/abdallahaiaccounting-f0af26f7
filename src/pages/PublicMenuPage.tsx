@@ -76,6 +76,8 @@ export default function PublicMenuPage() {
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submittedStatus, setSubmittedStatus] = useState<string>("pending");
   const [detail, setDetail] = useState<Product | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [showSideMenu, setShowSideMenu] = useState(false);
 
   // Resolve
   useEffect(() => {
@@ -112,6 +114,10 @@ export default function PublicMenuPage() {
   }, [submittedId]);
 
   const filtered = useMemo(() => products.filter(p => p.category_id === activeCat), [products, activeCat]);
+  useEffect(() => { setActiveIdx(0); }, [activeCat]);
+  const current = filtered[activeIdx];
+  const goPrev = () => setActiveIdx(i => (filtered.length ? (i - 1 + filtered.length) % filtered.length : 0));
+  const goNext = () => setActiveIdx(i => (filtered.length ? (i + 1) % filtered.length : 0));
   const catNameById = useMemo(() => {
     const m: Record<string, string> = {};
     categories.forEach(c => { m[c.id] = c.name; });
