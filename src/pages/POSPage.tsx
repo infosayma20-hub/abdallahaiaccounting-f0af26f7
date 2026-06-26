@@ -6548,7 +6548,7 @@ const POSPage = () => {
                 onClick={async () => {
                   const tId = activeOrder.tableId;
                   setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
-                  updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
+                  updateActiveOrder(o => ({ ...o, orderType: "takeaway", orderTypeChosen: true, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
                   if (tId) {
                     await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
                     setAvailableTables(prev => prev.map(t => t.id === tId ? { ...t, status: "available" } : t));
