@@ -89,6 +89,7 @@ interface InvoicePayment {
   payment_method: string;
   amount: number;
   currency: string | null;
+  exchange_rate?: number | null;
 }
 
 type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled" | "transferred";
