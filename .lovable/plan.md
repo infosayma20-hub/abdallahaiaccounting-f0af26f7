@@ -1,72 +1,84 @@
-# Phase 4 — سبارتا: HR + إدارة المشاريع
+# Sparta ERP — Phase 5: المحاسبة المالية الكاملة
 
-نبني وحدتين مستقلتين تحت نفس الـ Tenant Guard والثيم (`sparta-theme`)، مع RLS كامل ومسارات `/sparta/hr/*` و `/sparta/projects/*`.
+البنية: GL مزدوج القيد + AP/AR aging + بنوك وتسويات + ميزانية تقديرية، مفصول 100% عن نظام أموالي (sparta_* prefix) ومحمي بـ holding RLS.
 
----
+## القطع الأساسية
 
-## 1) الموارد البشرية (HR)
+### 1) شجرة الحسابات (Chart of Accounts)
+- `sparta_accounts`: code, name_ar/en, type (asset/liability/equity/revenue/expense), parent_id, currency, is_postable, opening_balance.
+- Seed افتراضي محاسبي قياسي (5 مجموعات × فرعيات: نقدية، بنوك، ذمم مدينة/دائنة، إيرادات، مصاريف...).
+- منع الترحيل على حسابات أب (نفس قاعدة أموالي).
 
-### قاعدة البيانات
-- `sparta_employees` — بيانات أساسية: code, full_name, national_id, phone, email, hire_date, job_title, department, branch, employment_type (full/part/contract), basic_salary, currency, status (active/onleave/terminated), bank_info JSON.
-- `sparta_departments` — name, manager_id, parent_id.
-- `sparta_attendance` — employee_id, date, check_in, check_out, work_hours, late_minutes, overtime, status (present/absent/leave/holiday).
-- `sparta_leaves` — employee_id, leave_type (annual/sick/unpaid/emergency), from_date, to_date, days, status (pending/approved/rejected), approved_by.
-- `sparta_payroll_runs` — month, year, status (draft/posted), totals.
-- `sparta_payroll_lines` — run_id, employee_id, basic, allowances JSON, deductions JSON, overtime, net, currency.
-- `sparta_employee_advances` — سلف للموظفين مع جدول تقسيط.
+### 2) دفتر الأستاذ (General Ledger)
+- `sparta_journal_entries` (رأس: entry_no, date, ref_type, ref_id, status[draft/posted/void], total_debit/credit, description).
+- `sparta_journal_lines` (account_id, debit, credit, currency, fx_rate, project_id?, cost_center?, contact_id?).
+- Triggers: يجبر debit=credit، يقفل التعديل بعد posted (Credit Note فقط).
+- RPC `sparta_post_journal(entry_id)` ذرّي + `sparta_reverse_journal(entry_id, reason)`.
 
-كل الجداول تتضمن `company_id` + RLS عبر `sparta_is_member()` + GRANTs لـ authenticated/service_role.
+### 3) ربط تلقائي مع الوحدات السابقة
+- فاتورة مبيعات Sparta → JE (مدين AR / دائن إيراد + ضريبة).
+- دفع عميل → JE (مدين بنك/صندوق / دائن AR).
+- فاتورة شراء (موجودة في Phase 2 جزئياً) → JE.
+- راتب Phase 4 → JE (مدين مصاريف رواتب / دائن ذمم موظفين + نقدية).
+- مصاريف مشروع → JE مع cost_center=project.
 
-### الواجهة (تحت `/sparta/hr/*`)
-- `SpartaHRDashboard` — KPIs: عدد الموظفين، حضور اليوم، إجازات معلقة، صافي الرواتب الشهر.
-- `SpartaEmployeesPage` — جدول + بحث + إضافة/تعديل + كرت موظف (Tabs: بيانات، حضور، إجازات، رواتب، سلف).
-- `SpartaAttendancePage` — تسجيل حضور يدوي + جدول شهري + استيراد CSV.
-- `SpartaLeavesPage` — طلبات إجازة + موافقة/رفض.
-- `SpartaPayrollPage` — تشغيل راتب الشهر + معاينة سطر بسطر + ترحيل.
-- موبايل: `/sparta/m/attendance` — تسجيل حضور سريع للمندوب (موجود جزئياً، نضيف check-in/out).
+### 4) AP/AR Aging
+- View `sparta_ar_aging` و `sparta_ap_aging`: تجميع بفترات (0-30, 31-60, 61-90, 90+).
+- صفحة `SpartaReceivablesPage` و `SpartaPayablesPage` مع كشف حساب لكل عميل/مورد.
 
----
+### 5) البنوك والصناديق
+- `sparta_cash_accounts` (cash/bank/credit_card)، مع رصيد محسوب من GL.
+- `sparta_bank_transactions` (deposit/withdrawal/transfer/fee).
+- `sparta_bank_reconciliations`: مطابقة كشف البنك مع GL، توسيم matched/unmatched، حفظ snapshot.
 
-## 2) إدارة المشاريع (Projects)
+### 6) الميزانية التقديرية (Budgeting)
+- `sparta_budgets` (year, name, status) + `sparta_budget_lines` (account_id, month 1-12, amount).
+- تقرير Budget vs Actual: مقارنة شهرية مع GL، نسبة الانحراف.
 
-### قاعدة البيانات
-- `sparta_projects` — code, name, customer_id (FK→sparta_customers), manager_id, start_date, end_date, status (planned/active/onhold/completed/cancelled), budget, currency, progress_pct.
-- `sparta_project_tasks` — project_id, parent_id, title, assigned_to, start_date, due_date, status (todo/doing/review/done), priority, progress_pct, estimated_hours, actual_hours.
-- `sparta_project_milestones` — project_id, title, due_date, status, weight.
-- `sparta_project_members` — project_id, employee_id, role.
-- `sparta_project_timesheets` — task_id, employee_id, date, hours, notes.
-- `sparta_project_expenses` — project_id, category, amount, currency, date, attachment_url.
-- `sparta_project_invoices_link` — ربط مع `sparta_invoices` (فوترة المشروع).
+### 7) التقارير المالية
+- ميزان المراجعة (Trial Balance) بأي تاريخ.
+- قائمة الدخل (P&L) شهري/ربعي/سنوي.
+- الميزانية العمومية (Balance Sheet).
+- التدفق النقدي (Cash Flow) — مبسّط Direct Method.
+- دفتر الأستاذ التفصيلي لأي حساب.
+- تصدير PDF + Excel.
 
-### الواجهة (تحت `/sparta/projects/*`)
-- `SpartaProjectsDashboard` — KPIs: مشاريع نشطة، متأخرة، نسب الإنجاز، الربحية (الإيراد − المصاريف − الرواتب المخصصة).
-- `SpartaProjectsListPage` — جدول مشاريع + فلاتر.
-- `SpartaProjectDetailPage` — Tabs:
-  - **نظرة عامة**: تقدم، ميزانية، فريق.
-  - **المهام**: Kanban + List + Gantt مبسط.
-  - **الجداول الزمنية**: timesheets للموظفين.
-  - **المصاريف**: مع رفع مرفقات.
-  - **الفواتير**: ربط/إنشاء فاتورة من المشروع.
-- `MyTasksPage` — مهامي عبر كل المشاريع.
+### 8) الفترات المحاسبية
+- `sparta_fiscal_periods` (شهر/سنة، open/closed) — trigger يمنع الترحيل على فترة مغلقة.
+- صلاحية إغلاق/فتح للمدير المالي فقط.
 
-### ربط متقاطع
-- عند ترحيل راتب شهري لموظف مخصص لمشروع → توزيع تكلفة الراتب على المشاريع حسب ساعات timesheets.
-- ربح المشروع = `sparta_invoices` المرتبطة − مجموع `sparta_project_expenses` − حصة الرواتب.
-- CRM Opportunity → عند تحويل لمشروع: زر "إنشاء مشروع" يولد `sparta_projects` تلقائياً.
+## الواجهات
 
----
+```
+/sparta/accounting
+  ├── /chart            شجرة حسابات
+  ├── /journal          قيود يومية (list + new + view)
+  ├── /ledger/:id       دفتر أستاذ حساب
+  ├── /receivables      ذمم مدينة + aging
+  ├── /payables         ذمم دائنة + aging
+  ├── /banks            صناديق وبنوك + تسويات
+  ├── /budget           ميزانية تقديرية
+  ├── /reports          TB / P&L / BS / CF
+  └── /periods          فترات محاسبية
+```
+- Sidebar `SpartaShell` يضيف قسم "المحاسبة" بأيقونة.
+- نفس Sparta theme (RTL + ألوان الشركة).
 
-## التنفيذ (3 خطوات Migrations + UI)
+## ترتيب التنفيذ
+1. Migration: الجداول + RLS + GRANTs + seed COA + triggers.
+2. RPCs: `sparta_post_journal`، `sparta_reverse_journal`، `sparta_recalc_account_balance`، `sparta_close_period`.
+3. Hooks تلقائية: ربط sparta_invoices / sparta_payments / sparta_payroll_runs / sparta_project_expenses بـ JE تلقائي.
+4. Views: aging + trial_balance + pnl + balance_sheet.
+5. صفحات React (8 صفحات) + components مشتركة (AccountPicker, JournalLineEditor, FxConverter).
+6. تقارير PDF (jspdf) + Excel (xlsx) — قوالب RTL.
+7. QA: قيد متوازن، منع ترحيل على أب، قفل فترات، aging صحيح، تسوية بنك، Budget vs Actual.
 
-1. **Migration 1** — جداول HR + RLS + GRANTs + Triggers (updated_at, advance installments).
-2. **Migration 2** — جداول Projects + RLS + GRANTs + Trigger لحساب `progress_pct` من المهام.
-3. **Migration 3** — RPCs:
-   - `sparta_run_payroll(p_month, p_year)` — توليد payroll_lines ذرياً.
-   - `sparta_post_payroll(p_run_id)` — ترحيل وقفل.
-   - `sparta_project_profitability(p_project_id)` — حساب الربحية.
-   - `sparta_convert_opportunity_to_project(p_opp_id)` — تحويل فرصة لمشروع.
-4. **UI** — 11 صفحة جديدة + إضافة عناصر للقائمة الجانبية `SpartaShell`.
+## تنبيهات
+- متعدد العملات: كل JE يحفظ amount بعملة الحساب + base ILS مع fx_rate.
+- لا حذف فيزيائي للقيود المُرحَّلة — Reverse Entry فقط (IFRS).
+- إذا فيه أكثر من شركة تحت Sparta Holding، RLS يفلتر بـ `holding_id` + `company_id`.
 
-ملاحظة: نظام HR هنا مبسط (بدون تعقيدات أموالي مثل الورديات الكاملة، attendance locks، إلخ) — كافٍ لاحتياج سبارتا حالياً، ونوسعه لاحقاً عند الطلب.
-
-نبدأ؟
+ملاحظة: هذا المخطط كبير. إذا تريد، أنفّذه على 3 دفعات صغيرة بدل ضربة واحدة:
+- **5A**: COA + Journals + Posting + ربط الفواتير/المدفوعات.
+- **5B**: AP/AR Aging + بنوك وتسويات.
+- **5C**: ميزانية + تقارير مالية + إغلاق فترات.

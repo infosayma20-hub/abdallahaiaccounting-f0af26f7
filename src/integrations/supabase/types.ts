@@ -16152,6 +16152,65 @@ export type Database = {
           },
         ]
       }
+      sparta_accounts: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          holding_id: string
+          id: string
+          is_active: boolean
+          is_postable: boolean
+          name_ar: string
+          name_en: string | null
+          opening_balance: number
+          parent_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          holding_id: string
+          id?: string
+          is_active?: boolean
+          is_postable?: boolean
+          name_ar: string
+          name_en?: string | null
+          opening_balance?: number
+          parent_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          holding_id?: string
+          id?: string
+          is_active?: boolean
+          is_postable?: boolean
+          name_ar?: string
+          name_en?: string | null
+          opening_balance?: number
+          parent_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sparta_activities: {
         Row: {
           assigned_to: string | null
@@ -16677,6 +16736,143 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_journal_entries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entry_date: string
+          entry_no: string
+          holding_id: string
+          id: string
+          posted_at: string | null
+          posted_by: string | null
+          ref_id: string | null
+          ref_type: string | null
+          reversed_by: string | null
+          status: string
+          total_credit: number
+          total_debit: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entry_date?: string
+          entry_no: string
+          holding_id: string
+          id?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
+          reversed_by?: string | null
+          status?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entry_date?: string
+          entry_no?: string
+          holding_id?: string
+          id?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
+          reversed_by?: string | null
+          status?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_journal_entries_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
+            referencedRelation: "sparta_journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_journal_lines: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit: number
+          currency: string
+          customer_id: string | null
+          debit: number
+          description: string | null
+          employee_id: string | null
+          entry_id: string
+          foreign_amount: number | null
+          fx_rate: number
+          holding_id: string
+          id: string
+          line_no: number | null
+          project_id: string | null
+          supplier_id: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit?: number
+          currency?: string
+          customer_id?: string | null
+          debit?: number
+          description?: string | null
+          employee_id?: string | null
+          entry_id: string
+          foreign_amount?: number | null
+          fx_rate?: number
+          holding_id: string
+          id?: string
+          line_no?: number | null
+          project_id?: string | null
+          supplier_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit?: number
+          currency?: string
+          customer_id?: string | null
+          debit?: number
+          description?: string | null
+          employee_id?: string | null
+          entry_id?: string
+          foreign_amount?: number | null
+          fx_rate?: number
+          holding_id?: string
+          id?: string
+          line_no?: number | null
+          project_id?: string | null
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_journal_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -23433,9 +23629,11 @@ export type Database = {
       }
       sparta_dispatch_activity_reminders: { Args: never; Returns: number }
       sparta_holding_id: { Args: never; Returns: string }
+      sparta_next_entry_no: { Args: { _holding_id: string }; Returns: string }
       sparta_next_invoice_number: { Args: never; Returns: string }
       sparta_owner_user_id: { Args: never; Returns: string }
       sparta_post_invoice: { Args: { _invoice_id: string }; Returns: Json }
+      sparta_post_journal: { Args: { _entry_id: string }; Returns: Json }
       sparta_post_payroll: { Args: { p_run_id: string }; Returns: undefined }
       sparta_project_profitability: {
         Args: { p_project_id: string }
@@ -23465,9 +23663,17 @@ export type Database = {
         }
         Returns: string
       }
+      sparta_reverse_journal: {
+        Args: { _entry_id: string; _reason: string }
+        Returns: string
+      }
       sparta_run_payroll: {
         Args: { p_month: number; p_year: number }
         Returns: string
+      }
+      sparta_seed_default_coa: {
+        Args: { _holding_id: string }
+        Returns: undefined
       }
       start_editing_call_center_order: {
         Args: { p_order_id: string }

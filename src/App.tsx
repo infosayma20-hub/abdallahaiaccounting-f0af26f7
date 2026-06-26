@@ -182,6 +182,12 @@ const SpartaCRMPage = lazy(() => import("./pages/sparta/SpartaCRMPage"));
 const SpartaHRPage = lazy(() => import("./pages/sparta/SpartaHRPage"));
 const SpartaProjectsPage = lazy(() => import("./pages/sparta/SpartaProjectsPage"));
 const SpartaProjectDetailPage = lazy(() => import("./pages/sparta/SpartaProjectDetailPage"));
+const SpartaAccountingHub = lazy(() => import("./pages/sparta/accounting/SpartaAccountingHub"));
+const SpartaChartOfAccountsPage = lazy(() => import("./pages/sparta/accounting/SpartaChartOfAccountsPage"));
+const SpartaJournalListPage = lazy(() => import("./pages/sparta/accounting/SpartaJournalListPage"));
+const SpartaJournalFormPage = lazy(() => import("./pages/sparta/accounting/SpartaJournalFormPage"));
+const SpartaAccountLedgerPage = lazy(() => import("./pages/sparta/accounting/SpartaAccountLedgerPage"));
+const SpartaTrialBalancePage = lazy(() => import("./pages/sparta/accounting/SpartaTrialBalancePage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
@@ -544,6 +550,15 @@ const App = () => (
                 <Route path="hr" element={<SpartaHRPage />} />
                 <Route path="projects" element={<SpartaProjectsPage />} />
                 <Route path="projects/:id" element={<SpartaProjectDetailPage />} />
+                {/* Accounting (Phase 5A) */}
+                <Route path="accounting" element={<SpartaAccountingHub />} />
+                <Route path="accounting/chart" element={<SpartaChartOfAccountsPage />} />
+                <Route path="accounting/journal" element={<SpartaJournalListPage />} />
+                <Route path="accounting/journal/new" element={<SpartaJournalFormPage />} />
+                <Route path="accounting/journal/:id" element={<SpartaJournalFormPage />} />
+                <Route path="accounting/ledger" element={<SpartaChartOfAccountsPage />} />
+                <Route path="accounting/ledger/:id" element={<SpartaAccountLedgerPage />} />
+                <Route path="accounting/reports" element={<SpartaTrialBalancePage />} />
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />

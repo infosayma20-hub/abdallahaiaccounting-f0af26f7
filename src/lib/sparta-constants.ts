@@ -1,0 +1,1 @@
+export const SPARTA_HOLDING_ID = "0a0655c6-b2b1-4607-a949-311cb8fb9f77";
