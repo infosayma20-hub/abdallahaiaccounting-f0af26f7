@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, GraduationCap, Stethoscope, Lock, ArrowLeftRight } from "lucide-react";
+import spartaLogoAsset from "@/assets/sparta-logo.png.asset.json";
 
 interface Branding {
   id: string;
