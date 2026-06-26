@@ -791,7 +791,10 @@ export default function POSExpenseDialog({
                           : selectedEmployee?.full_name}{" "}
                         ₪{amt.toFixed(2)}
                       </div>
-                      <div>دائن 1110 — الصندوق ₪{amt.toFixed(2)}</div>
+                      <div>
+                        دائن {cashBoxName ? `(${cashBoxName})` : "صندوق الفرع"} —{" "}
+                        ₪{amt.toFixed(2)}
+                      </div>
                     </div>
                   </div>
                 )}
