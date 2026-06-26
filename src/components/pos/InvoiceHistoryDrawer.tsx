@@ -263,6 +263,8 @@ export default function InvoiceHistoryDrawer({
   const [reprintCopies, setReprintCopies] = useState<number>(1);
   // Fallback phone fetched from linked call_center_orders when pos_orders has no contact phone
   const [ccoPhone, setCcoPhone] = useState<string | null>(null);
+  const [ccoDispatcher, setCcoDispatcher] = useState<string | null>(null);
+  const [ccoSourceApp, setCcoSourceApp] = useState<string | null>(null);
 
   // Recall flow
   const [showReasonDialog, setShowReasonDialog] = useState(false);
