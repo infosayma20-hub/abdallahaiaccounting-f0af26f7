@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Package, Boxes, FileText, Users, Smartphone, LogOut, Menu, X, CalendarClock } from "lucide-react";
+import { LayoutDashboard, Package, Boxes, FileText, Users, Smartphone, LogOut, Menu, X, CalendarClock, Activity } from "lucide-react";
 import spartaIcon from "/sparta-icon-512.png?url";
 
 const NAV = [
@@ -9,6 +9,7 @@ const NAV = [
   { to: "/sparta/products", label: "المنتجات", icon: Package },
   { to: "/sparta/batches", label: "الدفعات (LOTs)", icon: CalendarClock },
   { to: "/sparta/inventory", label: "المخزون", icon: Boxes },
+  { to: "/sparta/movements", label: "حركات الدفعات", icon: Activity },
   { to: "/sparta/sales", label: "المبيعات", icon: FileText },
   { to: "/sparta/customers", label: "العملاء", icon: Users },
   { to: "/sparta/m", label: "تطبيق الموبايل", icon: Smartphone },
