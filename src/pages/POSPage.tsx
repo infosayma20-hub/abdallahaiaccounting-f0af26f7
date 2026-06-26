@@ -39,6 +39,7 @@ import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
+import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
 import { StockoutAlertButton, StockoutAlertsListener, StockoutAlertsBanner } from "@/components/pos/StockoutAlerts";
