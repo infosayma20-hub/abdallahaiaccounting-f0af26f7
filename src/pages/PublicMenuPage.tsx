@@ -451,13 +451,9 @@ function ProductDetailSheet({
         style={{ color: "#1F2C7C" }}
         onClick={e => e.stopPropagation()}>
         <div className="relative">
-          {product.image_url ? (
-            <img src={product.image_url} alt={product.name} className="w-full h-56 object-cover" />
-          ) : (
-            <div className="w-full h-40 grid place-items-center" style={{ background: "#F8F9FB" }}>
-              <ChefHat className="h-14 w-14" style={{ color: "#E63027", opacity: 0.4 }} />
-            </div>
-          )}
+          <img src={product.image_url || pickFoodImage(product.name)} alt={product.name}
+            className="w-full h-56 object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }} />
           <button onClick={onClose}
             className="absolute top-3 left-3 h-9 w-9 rounded-full grid place-items-center text-white"
             style={{ background: "rgba(31,44,124,0.7)", backdropFilter: "blur(8px)" }}>
