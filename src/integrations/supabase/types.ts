@@ -1541,6 +1541,69 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_movements: {
+        Row: {
+          batch_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reference_id: string | null
+          reference_type: string | null
+          stock_movement_id: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          batch_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_movement_id?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          batch_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_movement_id?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_movements_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "product_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_movements_stock_movement_id_fkey"
+            columns: ["stock_movement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_movements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_manager_assignments: {
         Row: {
           branch_id: string
@@ -13632,6 +13695,98 @@ export type Database = {
           },
         ]
       }
+      product_batches: {
+        Row: {
+          batch_number: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expiry_date: string | null
+          id: string
+          lot_number: string | null
+          manufacture_date: string | null
+          notes: string | null
+          product_id: string
+          purchase_invoice_id: string | null
+          quantity_in: number
+          quantity_remaining: number
+          status: string
+          supplier_id: string | null
+          unit_cost: number
+          updated_at: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          batch_number: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          lot_number?: string | null
+          manufacture_date?: string | null
+          notes?: string | null
+          product_id: string
+          purchase_invoice_id?: string | null
+          quantity_in?: number
+          quantity_remaining?: number
+          status?: string
+          supplier_id?: string | null
+          unit_cost?: number
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          batch_number?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          lot_number?: string | null
+          manufacture_date?: string | null
+          notes?: string | null
+          product_id?: string
+          purchase_invoice_id?: string | null
+          quantity_in?: number
+          quantity_remaining?: number
+          status?: string
+          supplier_id?: string | null
+          unit_cost?: number
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_batches_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "product_batches_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_modifier_groups: {
         Row: {
           group_id: string
@@ -13694,6 +13849,7 @@ export type Database = {
           is_weighted: boolean | null
           kitchen_station_id: string | null
           min_quantity: number
+          min_shelf_life_days: number | null
           name: string
           notes: string | null
           pos_category_id: string | null
@@ -13702,6 +13858,7 @@ export type Database = {
           product_type: string | null
           purchase_account_code: string | null
           quantity: number
+          requires_batch_tracking: boolean
           sales_account_code: string | null
           sell_price: number
           service_direction: string | null
@@ -13737,6 +13894,7 @@ export type Database = {
           is_weighted?: boolean | null
           kitchen_station_id?: string | null
           min_quantity?: number
+          min_shelf_life_days?: number | null
           name: string
           notes?: string | null
           pos_category_id?: string | null
@@ -13745,6 +13903,7 @@ export type Database = {
           product_type?: string | null
           purchase_account_code?: string | null
           quantity?: number
+          requires_batch_tracking?: boolean
           sales_account_code?: string | null
           sell_price?: number
           service_direction?: string | null
@@ -13780,6 +13939,7 @@ export type Database = {
           is_weighted?: boolean | null
           kitchen_station_id?: string | null
           min_quantity?: number
+          min_shelf_life_days?: number | null
           name?: string
           notes?: string | null
           pos_category_id?: string | null
@@ -13788,6 +13948,7 @@ export type Database = {
           product_type?: string | null
           purchase_account_code?: string | null
           quantity?: number
+          requires_batch_tracking?: boolean
           sales_account_code?: string | null
           sell_price?: number
           service_direction?: string | null
@@ -20557,6 +20718,17 @@ export type Database = {
         Returns: string
       }
       confirm_stock_transfer: { Args: { p_transfer_id: string }; Returns: Json }
+      consume_batches_fifo: {
+        Args: {
+          _company_id: string
+          _product_id: string
+          _quantity: number
+          _reference_id?: string
+          _reference_type?: string
+          _warehouse_id: string
+        }
+        Returns: Json
+      }
       convert_delivery_note_to_invoice: {
         Args: { p_delivery_note_id: string }
         Returns: string
@@ -21467,6 +21639,7 @@ export type Database = {
       }
       is_my_team_employee: { Args: { _employee_id: string }; Returns: boolean }
       is_sales_rep: { Args: never; Returns: boolean }
+      is_sparta_holding_member: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_task_user_owned_by: {
         Args: { _owner: string; _task_user_id: string }
