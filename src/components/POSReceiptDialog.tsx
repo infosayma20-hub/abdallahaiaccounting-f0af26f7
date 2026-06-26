@@ -383,8 +383,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                     </div>
                   )}
                   {item.note && (
-                    <div style={{ fontSize: "11px", color: "#000", fontWeight: 600, fontStyle: "italic", paddingRight: "4px", marginTop: "1px" }}>
-                      📝 {item.note}
+                    <div style={{ fontSize: "11px", color: "#000", fontWeight: 600, fontStyle: "italic", paddingRight: "4px", marginTop: "1px", direction: "rtl", unicodeBidi: "plaintext", textAlign: "right" }}>
+                      📝 <bdi>{item.note}</bdi>
                     </div>
                   )}
                 </div>

@@ -323,7 +323,8 @@ export default function InlineAddonPanel({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="ملاحظة خاصة (اختياري)..."
-              className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none"
+              className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none text-right"
+              style={{ direction: 'rtl', textAlign: 'right', unicodeBidi: 'plaintext' }}
             />
           </div>
         </div>

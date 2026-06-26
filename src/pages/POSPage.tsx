@@ -6703,7 +6703,8 @@ const POSPage = () => {
                               }}
                               onClick={(e) => e.stopPropagation()}
                               placeholder="ملاحظة..."
-                              className="h-7 text-[11px] bg-muted/30 border-dashed border-border"
+                              className="h-7 text-[11px] bg-muted/30 border-dashed border-border text-right"
+                              style={{ direction: 'rtl', textAlign: 'right', unicodeBidi: 'plaintext' }}
                             />
                           </motion.div>
                         )}
@@ -8302,7 +8303,7 @@ const POSPage = () => {
                           {item.modifiers?.map((m: any, mi: number) => (
                             <p key={mi} className="text-xs text-muted-foreground">← {m.option_name}{m.extra_price > 0 ? ` +₪${m.extra_price}` : ''}</p>
                           ))}
-                          {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
+                          {item.note && <p className="text-xs text-amber-600 mt-0.5 text-right" style={{ direction: 'rtl', unicodeBidi: 'plaintext' }}>📝 <bdi>{item.note}</bdi></p>}
                         </div>
                       </div>
                     ))}

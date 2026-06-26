@@ -387,8 +387,8 @@ function KitchenTicketInline({ order, items, stationName }: { order: PrintOrder;
             </div>
           ))}
           {item.note && (
-            <div style={{ fontSize: '20px', fontWeight: 900, textAlign: 'right', paddingRight: '50px', marginTop: '4px', background: '#eee', padding: '4px 8px', borderRadius: '4px' }}>
-              ملاحظة: {item.note}
+            <div style={{ fontSize: '20px', fontWeight: 900, textAlign: 'right', paddingRight: '50px', marginTop: '4px', background: '#eee', padding: '4px 8px', borderRadius: '4px', direction: 'rtl', unicodeBidi: 'plaintext' }}>
+              ملاحظة: <bdi>{item.note}</bdi>
             </div>
           )}
         </div>
