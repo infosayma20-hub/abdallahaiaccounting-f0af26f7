@@ -220,6 +220,8 @@ const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const CustomerOrderDisplayPage = lazy(() => import("./pages/CustomerOrderDisplayPage"));
 const KitchenDisplayPublicPage = lazy(() => import("./pages/KitchenDisplayPublicPage"));
+const QRMenuAdminPage = lazy(() => import("./pages/pos/QRMenuAdminPage"));
+const PublicMenuPage = lazy(() => import("./pages/PublicMenuPage"));
 const HeaterScreenPage = lazy(() => import("./pages/HeaterScreenPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
