@@ -1235,7 +1235,9 @@ export default function InvoiceHistoryDrawer({
                             ₪{order.total.toFixed(2)}
                           </span>
                           {Number(order.delivery_fee || 0) > 0 && (
-                            <span className="text-[9px]" style={{ color: "#94A3B8" }}>يشمل التوصيل</span>
+                            <span className="text-[9px]" style={{ color: "#94A3B8" }}>
+                              {order.total_includes_delivery_fee ? "يشمل التوصيل" : "بدون التوصيل"}
+                            </span>
                           )}
                         </div>
                       ) : (
