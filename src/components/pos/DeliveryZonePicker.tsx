@@ -63,18 +63,34 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
 
   useEffect(() => {
     if (!dataOwnerId) return;
+    let cancelled = false;
     setLoading(true);
-    supabase
-      .from("delivery_zones" as any)
-      .select("id, city, area_name, branch_id, branch_name, price, is_active, wheels_area_id, wheels_fixed_price, area_aliases")
-      .eq("user_id", dataOwnerId)
-      .eq("is_active", true)
-      .order("city")
-      .order("area_name")
-      .then(({ data }) => {
-        setZones(((data as any) || []) as Zone[]);
+    (async () => {
+      const pageSize = 1000;
+      const allZones: Zone[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("delivery_zones" as any)
+          .select("id, city, area_name, branch_id, branch_name, price, is_active, wheels_area_id, wheels_fixed_price, area_aliases")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true)
+          .order("city")
+          .order("area_name")
+          .range(from, from + pageSize - 1);
+        if (cancelled) return;
+        if (error) {
+          console.error("Failed to load delivery zones", error);
+          break;
+        }
+        const batch = ((data as any) || []) as Zone[];
+        allZones.push(...batch);
+        if (batch.length < pageSize) break;
+      }
+      if (!cancelled) {
+        setZones(allZones);
         setLoading(false);
-      });
+      }
+    })();
     // Load which branches are mapped to Wheels so we can distinguish missing area
     // mappings (warning) from branches that aren't on Wheels at all (info).
     supabase
@@ -85,6 +101,7 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       .then(({ data }) => {
         setWheelsBranchIds(new Set(((data as any) || []).map((r: any) => r.branch_id)));
       });
+    return () => { cancelled = true; };
   }, [dataOwnerId]);
 
   const cities = useMemo(() => Array.from(new Set(zones.map(z => z.city))).sort(), [zones]);
@@ -134,12 +151,6 @@ export default function DeliveryZonePicker({ dataOwnerId, value, onChange, locke
       return tokens.every(t => hay.includes(t));
     };
     let filtered = zones.filter(z => (city ? z.city === city : true) && matchZone(z));
-    // Safety net: if a city chip is locked but the query has no matches in
-    // that city, broaden the search to ALL cities so the agent isn't stuck
-    // with a false "no results" when the area actually exists elsewhere.
-    if (city && tokens.length && filtered.length === 0) {
-      filtered = zones.filter(matchZone);
-    }
     const map = new Map<string, Zone[]>();
     for (const z of filtered) {
       const key = `${z.city}::${z.area_name}`;
