@@ -5944,9 +5944,20 @@ const POSPage = () => {
                     <ShoppingBag className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تسجيل مشتريات
                   </button>
                 )}
-                {session && (isAdmin || posPerms.can_record_expenses) && (
-                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
+                {session && (
+                  <button
+                    className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors"
+                    onClick={() => {
+                      setShowOpsDropdown(false);
+                      if (expenseManager) {
+                        setShowExpenseDialog(true);
+                      } else {
+                        setShowExpenseManagerUnlock(true);
+                      }
+                    }}
+                  >
                     <Receipt className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> صرف مصروف
+                    <span className="mr-auto text-[9px] bg-amber-100 text-amber-800 rounded px-1 py-0.5">مدير</span>
                   </button>
                 )}
                 <div className="border-t border-gray-200 my-1" />
