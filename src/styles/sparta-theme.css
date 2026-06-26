@@ -60,3 +60,81 @@
 .sparta-theme .sparta-gold-gradient {
   background: var(--gradient-sparta-gold);
 }
+
+/* =========================================================================
+   Sparta "Finance Shell" — Microsoft Dynamics-inspired page & table chrome.
+   Activated by wrapping the app shell with class `.sparta-app`.
+   Mirrors the Holding Console look (burgundy accent + soft pink table head).
+   ========================================================================= */
+.sparta-app {
+  --sparta-accent: #9E2B43;
+  --sparta-accent-2: #B23A55;
+  --sparta-gradient: linear-gradient(135deg, #9E2B43 0%, #B23A55 100%);
+  --sparta-head-bg: #F5F1F3;
+  --sparta-head-fg: #867C88;
+  --sparta-head-border: #EEE3E8;
+  --sparta-row-border: #F1F2F4;
+  --sparta-surface-border: #EEF0F3;
+  --sparta-ink: #0F172A;
+  --sparta-ink-mute: #6B7280;
+  background: #FFFFFF;
+  color: var(--sparta-ink);
+}
+
+/* Containerised tables — restyle every shadcn / native table inside Sparta */
+.sparta-app table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.sparta-app table thead,
+.sparta-app table thead tr,
+.sparta-app table thead th {
+  background: var(--sparta-head-bg) !important;
+  color: var(--sparta-head-fg) !important;
+  border-color: var(--sparta-head-border) !important;
+}
+.sparta-app table thead th {
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 18px !important;
+  text-align: inherit;
+  border-bottom: 1px solid var(--sparta-head-border) !important;
+}
+.sparta-app table tbody td {
+  padding: 14px 18px !important;
+  font-size: 13px;
+  border-top: 1px solid var(--sparta-row-border);
+  background: #fff;
+}
+.sparta-app table tbody tr:hover td { background: #FBF8F9; }
+
+/* Card / surface containers used as table wrappers */
+.sparta-app .bg-card,
+.sparta-app [data-sparta-surface] {
+  background: #FFFFFF;
+  border: 1px solid var(--sparta-surface-border) !important;
+  border-radius: 16px;
+}
+.sparta-app .bg-card { box-shadow: none; }
+
+/* Primary buttons inherit burgundy gradient */
+.sparta-app .bg-primary,
+.sparta-app button[data-sparta-primary] {
+  background: var(--sparta-gradient) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+/* Sparta page header (eyebrow + big title + accent underline) */
+.sparta-page-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+.sparta-page-header .eyebrow { font-size:12px; color: var(--sparta-accent); font-weight:700; letter-spacing:0.5px; margin-bottom:8px; }
+.sparta-page-header h1 { font-size:32px; font-weight:900; margin:0; color: var(--sparta-ink); line-height:1; }
+.sparta-page-header .accent-bar { width:96px; height:4px; border-radius:2px; background: var(--sparta-gradient); margin-top:12px; }
+
+/* KPI card matching Holding Console */
+.sparta-kpi { background:#fff; border:1px solid var(--sparta-surface-border); border-radius:16px; padding:18px 20px; }
+.sparta-kpi .label { font-size:12px; color: var(--sparta-ink-mute); font-weight:600; }
+.sparta-kpi .value { font-size:28px; font-weight:900; margin-top:6px; color: var(--sparta-ink); }
+.sparta-kpi .sub   { font-size:11px; color:#9CA3AF; margin-top:6px; }
+
+/* Pills */
+.sparta-pill { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:#FBEAF1; color: var(--sparta-accent); }
