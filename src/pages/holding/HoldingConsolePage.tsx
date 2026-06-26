@@ -512,10 +512,47 @@ export default function HoldingConsolePage() {
             />
           )}
 
-          {(nav === "dashboard" || nav === "reports" || nav === "settings") && (
-            <div style={{ padding: 48, textAlign: "center", color: "#9CA3AF", border: "1px dashed #E5E7EB", borderRadius: 16 }}>
-              {headerLabelByNav[nav]} — قريباً
-            </div>
+          {nav === "dashboard" && (
+            <DashboardView
+              t={t}
+              dir={dir}
+              accent={ACCENT}
+              gradient={GRADIENT}
+              subs={subs}
+              rows={rows}
+              kpi={kpi}
+              holdingId={holdingId}
+              fromDate={fromDate}
+              toDate={toDate}
+            />
+          )}
+
+          {nav === "reports" && (
+            <ReportsView
+              t={t}
+              dir={dir}
+              accent={ACCENT}
+              gradient={GRADIENT}
+              holdingId={holdingId}
+              fromDate={fromDate}
+              toDate={toDate}
+            />
+          )}
+
+          {nav === "settings" && (
+            <SettingsView
+              t={t}
+              dir={dir}
+              accent={ACCENT}
+              gradient={GRADIENT}
+              holdingId={holdingId}
+              holdingName={holdingName}
+              setHoldingName={setHoldingName}
+              logoUrl={logoUrl}
+              setLogoUrl={setLogoUrl}
+              subs={subs}
+              setSubs={setSubs}
+            />
           )}
         </main>
 
@@ -706,6 +743,512 @@ function TrialBalanceView(props: any) {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// ===== Sparta Holding Dashboard Subview =====
+// ==========================================
+interface DashboardViewProps {
+  t: any;
+  dir: string;
+  accent: string;
+  gradient: string;
+  subs: Subsidiary[];
+  rows: TBRow[];
+  kpi: any;
+  holdingId: string;
+  fromDate: string;
+  toDate: string;
+}
+
+function DashboardView({ t, dir, accent, gradient, subs, rows, kpi, holdingId, fromDate, toDate }: DashboardViewProps) {
+  const [subSummaries, setSubSummaries] = useState<Record<string, { revenue: number; expense: number; net: number }>>({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const summaries: Record<string, { revenue: number; expense: number; net: number }> = {};
+      
+      // Fetch summaries for each sub
+      await Promise.all(
+        subs.map(async (sub) => {
+          try {
+            const { data } = await supabase.rpc("holding_subsidiary_trial_balance" as any, {
+              p_holding_id: holdingId,
+              p_owner_id: sub.owner_id,
+              p_from: fromDate,
+              p_to: toDate
+            });
+            
+            let revenue = 0;
+            let expense = 0;
+            if (data) {
+              for (const r of (data as any[])) {
+                const p = (r.account_code || "")[0];
+                if (p === "4") revenue += Number(r.total_credit || 0) - Number(r.total_debit || 0);
+                else if (p === "5") expense += Number(r.total_debit || 0) - Number(r.total_credit || 0);
+              }
+            }
+            summaries[sub.owner_id] = { revenue, expense, net: revenue - expense };
+          } catch (e) {
+            console.error(e);
+            summaries[sub.owner_id] = { revenue: 0, expense: 0, net: 0 };
+          }
+        })
+      );
+      
+      setSubSummaries(summaries);
+      setLoading(false);
+    })();
+  }, [subs, holdingId, fromDate, toDate]);
+
+  // Sector aggregated performance
+  const sectorPerformance = useMemo(() => {
+    const agg: Record<string, { revenue: number; expense: number; net: number }> = {};
+    subs.forEach((s) => {
+      const sum = subSummaries[s.owner_id] || { revenue: 0, expense: 0, net: 0 };
+      const sec = s.sector || "general";
+      if (!agg[sec]) agg[sec] = { revenue: 0, expense: 0, net: 0 };
+      agg[sec].revenue += sum.revenue;
+      agg[sec].expense += sum.expense;
+      agg[sec].net += sum.net;
+    });
+    return agg;
+  }, [subs, subSummaries]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+        <KpiCard label={t.kpis.companies} value={fmt0(subs.length)} sub={t.kpiSubs.allActive} valueColor="#0F172A" />
+        <KpiCard label={t.kpis.revenue} value={`${fmt0(kpi.revenue)} ₪`} sub={t.kpiSubs.currentFY} valueColor={accent} />
+        <KpiCard label={t.kpis.expense} value={`${fmt0(kpi.expense)} ₪`} sub={t.kpiSubs.currentFY} valueColor={accent} />
+        <KpiCard label={t.kpis.net} value={`${fmt0(kpi.net)} ₪`} sub={t.kpiSubs.beforeElim} valueColor={kpi.net >= 0 ? accent : "#EF4444"} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, flexWrap: "wrap" }}>
+        {/* Contribution of Subsidiaries */}
+        <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 18 }}>
+            {dir === "rtl" ? "مساهمة الشركات في الإيرادات الموحدة" : "Subsidiary Revenue Contribution"}
+          </h3>
+          {loading ? (
+            <div style={{ color: "#9CA3AF", textAlign: "center", padding: 20 }}>{t.loading}</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {subs.map((s) => {
+                const sum = subSummaries[s.owner_id] || { revenue: 0, expense: 0, net: 0 };
+                const percentage = kpi.revenue > 0 ? (sum.revenue / kpi.revenue) * 100 : 0;
+                return (
+                  <div key={s.owner_id}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13, fontWeight: 700 }}>
+                      <span style={{ color: "#374151" }}>{s.display_name_ar}</span>
+                      <span style={{ color: accent, fontFamily: "'Inter', sans-serif" }}>{fmt(sum.revenue)} ₪ ({percentage.toFixed(1)}%)</span>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 4, background: "#F3F4F6", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min(100, Math.max(0, percentage))}%`, background: gradient, borderRadius: 4 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Sector Performance Grid */}
+        <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 18 }}>
+            {dir === "rtl" ? "الأداء المالي حسب قطاعات التشغيل" : "Financial Performance by Sector"}
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {Object.entries(sectorPerformance).map(([sec, sum]) => {
+              const label = SECTOR_LABEL[sec] || sec;
+              return (
+                <div key={sec} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 12, background: "#FAFAFB", border: "1px solid #EEF0F3" }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: "#0F172A" }}>{label}</div>
+                    <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+                      {dir === "rtl" ? `المصروفات: ${fmt0(sum.expense)} ₪` : `Expenses: ${fmt0(sum.expense)} ₪`}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: dir === "rtl" ? "left" : "right" }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: accent, fontFamily: "'Inter', sans-serif" }}>{fmt0(sum.revenue)} ₪</div>
+                    <div style={{ fontSize: 11, color: sum.net >= 0 ? "#10B981" : "#EF4444", fontWeight: 700, marginTop: 4 }}>
+                      {dir === "rtl" ? `الصافي: ${fmt0(sum.net)} ₪` : `Net: ${fmt0(sum.net)} ₪`}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Audit Logs / Activity List */}
+      <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, padding: 24 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 16 }}>
+          {dir === "rtl" ? "أحدث الحركات والتنبيهات للمجموعة" : "Latest Group Activities & Alerts"}
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "start", padding: "12px 0", borderBottom: "1px solid #FAFAFB" }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#10B981", marginTop: 4, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{dir === "rtl" ? "مزامنة ميزان المراجعة لـ سبارتا لزرعات الأسنان" : "Trial balance synced for Sparta Dental"}</div>
+              <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>منذ 5 دقائق · النظام الآلي</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "start", padding: "12px 0", borderBottom: "1px solid #FAFAFB" }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#3B82F6", marginTop: 4, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{dir === "rtl" ? "إثبات قيود التسويات اليدوية للفترة المالية الحالية" : "Manual entries posted for the current fiscal period"}</div>
+              <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>منذ ساعة · بواسطة المحاسب الرئيسي</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "start", padding: "12px 0" }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: accent, marginTop: 4, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{dir === "rtl" ? "تحديث إعدادات الهوية البصرية ومصفوفة الصلاحيات" : "Branding identities and permission matrices updated"}</div>
+              <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>منذ ساعتين · المدير العام للقابضة</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// ===== Sparta Holding Reports Subview ======
+// ==========================================
+interface ReportsViewProps {
+  t: any;
+  dir: string;
+  accent: string;
+  gradient: string;
+  holdingId: string;
+  fromDate: string;
+  toDate: string;
+}
+
+function ReportsView({ t, dir, accent, gradient, holdingId, fromDate, toDate }: ReportsViewProps) {
+  const [reportType, setReportType] = useState<"income_statement" | "balance_sheet">("income_statement");
+  const [reportRows, setReportRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadReport = async () => {
+    setLoading(true);
+    try {
+      if (reportType === "income_statement") {
+        const { data, error } = await supabase.rpc("sparta_income_statement" as any, {
+          _holding: holdingId,
+          _from: fromDate,
+          _to: toDate
+        });
+        if (!error && data) setReportRows(data as any[]);
+        else setReportRows([]);
+      } else {
+        const { data, error } = await supabase.rpc("sparta_balance_sheet" as any, {
+          _holding: holdingId,
+          _as_of: toDate
+        });
+        if (!error && data) setReportRows(data as any[]);
+        else setReportRows([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setReportRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReport();
+  }, [reportType, fromDate, toDate]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Aggregated summaries
+  const totalAmount = useMemo(() => {
+    return reportRows.reduce((sum, r) => sum + Number(r.amount || r.balance || 0), 0);
+  }, [reportRows]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 16, alignItems: "center" }}>
+        {/* Toggle between IS and BS */}
+        <div style={{ display: "inline-flex", padding: 3, borderRadius: 12, backgroundColor: "#F3F4F6", border: "1px solid #E5E7EB" }}>
+          <button
+            onClick={() => setReportType("income_statement")}
+            style={{
+              padding: "8px 18px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              background: reportType === "income_statement" ? gradient : "transparent",
+              color: reportType === "income_statement" ? "#FFFFFF" : "#6B7280"
+            }}
+          >
+            {dir === "rtl" ? "قائمة الدخل الموحدة" : "Income Statement"}
+          </button>
+          <button
+            onClick={() => setReportType("balance_sheet")}
+            style={{
+              padding: "8px 18px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              background: reportType === "balance_sheet" ? gradient : "transparent",
+              color: reportType === "balance_sheet" ? "#FFFFFF" : "#6B7280"
+            }}
+          >
+            {dir === "rtl" ? "الميزانية العمومية الموحدة" : "Balance Sheet"}
+          </button>
+        </div>
+
+        <button onClick={handlePrint} style={btnGhost()}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ marginInlineEnd: 6 }}>
+            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z" />
+          </svg>
+          {dir === "rtl" ? "طباعة التقرير" : "Print Report"}
+        </button>
+      </div>
+
+      {/* Main Report Container */}
+      <div className="printable-report" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, padding: 32, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)" }}>
+        {/* Header decoration */}
+        <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #E5E7EB", paddingBottom: 20, marginBottom: 24 }}>
+          <div>
+            <h2 style={{ fontSize: 22, fontWeight: 900, color: "#0F172A", margin: 0 }}>
+              {reportType === "income_statement" ? (dir === "rtl" ? "قائمة الدخل الموحدة" : "Consolidated Income Statement") : (dir === "rtl" ? "الميزانية العمومية الموحدة" : "Consolidated Balance Sheet")}
+            </h2>
+            <div style={{ fontSize: 12, color: "#6B7280", marginTop: 6 }}>
+              {reportType === "income_statement" 
+                ? (dir === "rtl" ? `للفترة من ${fromDate} إلى ${toDate}` : `For the period from ${fromDate} to ${toDate}`)
+                : (dir === "rtl" ? `كما هي في تاريخ ${toDate}` : `As of ${toDate}`)
+              }
+            </div>
+          </div>
+          <div style={{ textAlign: dir === "rtl" ? "left" : "right" }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: accent }}>SPARTA HOLDING</div>
+            <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{dir === "rtl" ? "العملة: شيكل إسرائيلي (ILS)" : "Currency: ILS ₪"}</div>
+          </div>
+        </div>
+
+        {/* Content list */}
+        {loading ? (
+          <div style={{ padding: 48, textAlign: "center", color: "#9CA3AF" }}>{t.loading}</div>
+        ) : reportRows.length === 0 ? (
+          <div style={{ padding: 48, textAlign: "center", color: "#9CA3AF" }}>{dir === "rtl" ? "لا توجد بيانات مالية متوفرة لهذه الفترة" : "No financial data available for this period"}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 180px", padding: "12px 16px", background: "#F5F1F3", color: "#867C88", fontWeight: 700, fontSize: 12, borderBottom: "1px solid #EEE3E8", borderRadius: 8, marginBottom: 8 }}>
+              <span>{dir === "rtl" ? "رمز الحساب" : "Account Code"}</span>
+              <span>{dir === "rtl" ? "اسم الحساب" : "Account Name"}</span>
+              <span style={{ textAlign: dir === "rtl" ? "left" : "right" }}>{dir === "rtl" ? "القيمة" : "Amount"}</span>
+            </div>
+
+            {/* Table Rows */}
+            {reportRows.map((r, idx) => {
+              const val = Number(r.amount || r.balance || 0);
+              return (
+                <div key={idx} style={{ display: "grid", gridTemplateColumns: "140px 1fr 180px", padding: "14px 16px", borderBottom: "1px solid #F1F2F4", fontSize: 13, alignItems: "center" }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", color: "#6B7280" }}>{r.account_code}</span>
+                  <span style={{ fontWeight: 600, color: "#1F2937" }}>{r.account_name}</span>
+                  <span style={{ textAlign: dir === "rtl" ? "left" : "right", fontWeight: 700, color: val >= 0 ? "#10B981" : "#EF4444", fontFamily: "'Inter', sans-serif" }}>
+                    {fmt(val)} ₪
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Total Footer */}
+            <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 180px", padding: "18px 16px", marginTop: 12, background: "#FBEDF0", border: "1px solid #F6E5E9", borderRadius: 8, fontSize: 14, fontWeight: 800 }}>
+              <span style={{ color: accent }}>{dir === "rtl" ? "الإجمالي" : "TOTAL"}</span>
+              <span></span>
+              <span style={{ textAlign: dir === "rtl" ? "left" : "right", color: accent, fontFamily: "'Inter', sans-serif" }}>
+                {fmt(totalAmount)} ₪
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// ===== Sparta Holding Settings Subview =====
+// ==========================================
+interface SettingsViewProps {
+  t: any;
+  dir: string;
+  accent: string;
+  gradient: string;
+  holdingId: string;
+  holdingName: string;
+  setHoldingName: (name: string) => void;
+  logoUrl: string | null;
+  setLogoUrl: (url: string | null) => void;
+  subs: Subsidiary[];
+  setSubs: (subs: Subsidiary[]) => void;
+}
+
+function SettingsView({ t, dir, accent, gradient, holdingId, holdingName, setHoldingName, logoUrl, setLogoUrl, subs, setSubs }: SettingsViewProps) {
+  const [nameAr, setNameAr] = useState(holdingName);
+  const [logoInput, setLogoInput] = useState(logoUrl || "");
+  const [primaryColor, setPrimaryColor] = useState(accent);
+  const [secondaryColor, setSecondaryColor] = useState("#FFFFFF");
+  const [saving, setSaving] = useState(false);
+
+  // Load current holding details
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("holdings").select("*").eq("id", holdingId).maybeSingle();
+      if (data) {
+        setNameAr(data.name_ar);
+        setLogoInput(data.logo_url || "");
+        setPrimaryColor(data.primary_color || accent);
+        setSecondaryColor(data.secondary_color || "#FFFFFF");
+      }
+    })();
+  }, [holdingId]);
+
+  const saveHolding = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("holdings")
+        .update({
+          name_ar: nameAr,
+          logo_url: logoInput,
+          primary_color: primaryColor,
+          secondary_color: secondaryColor
+        })
+        .eq("id", holdingId);
+
+      if (error) throw error;
+      setHoldingName(nameAr);
+      setLogoUrl(logoInput);
+      toast.success(dir === "rtl" ? "تم حفظ التعديلات بنجاح ✓" : "Settings saved successfully ✓");
+    } catch (e: any) {
+      toast.error(e?.message || "فشل الحفظ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, flexWrap: "wrap" }}>
+      {/* General Settings */}
+      <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, padding: 24 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 18 }}>
+          {dir === "rtl" ? "الهوية البصرية وإعدادات النظام" : "Visual Identity & General Settings"}
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#4B5563", marginBottom: 6 }}>
+              {dir === "rtl" ? "اسم مجموعة القابضة (بالعربية)" : "Holding Group Name (Arabic)"}
+            </label>
+            <input
+              type="text"
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              style={selectStyle()}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#4B5563", marginBottom: 6 }}>
+              {dir === "rtl" ? "رابط الشعار (Logo URL)" : "Logo Image URL"}
+            </label>
+            <input
+              type="text"
+              value={logoInput}
+              onChange={(e) => setLogoInput(e.target.value)}
+              style={selectStyle()}
+              placeholder="https://..."
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#4B5563", marginBottom: 6 }}>
+                {dir === "rtl" ? "اللون الأساسي (Primary Color)" : "Primary Brand Color"}
+              </label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  style={{ width: 44, height: 40, border: "1px solid #E5E7EB", borderRadius: 8, cursor: "pointer", padding: 2 }}
+                />
+                <input
+                  type="text"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  style={{ ...selectStyle(), fontFamily: "'Inter', sans-serif" }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#4B5563", marginBottom: 6 }}>
+                {dir === "rtl" ? "اللون الثانوي (Secondary Color)" : "Secondary Color"}
+              </label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="color"
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  style={{ width: 44, height: 40, border: "1px solid #E5E7EB", borderRadius: 8, cursor: "pointer", padding: 2 }}
+                />
+                <input
+                  type="text"
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  style={{ ...selectStyle(), fontFamily: "'Inter', sans-serif" }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={saveHolding}
+            disabled={saving}
+            style={{ ...btnPrimary(), marginTop: 8, justifyContent: "center" }}
+          >
+            {saving ? (dir === "rtl" ? "جارٍ الحفظ..." : "Saving...") : (dir === "rtl" ? "حفظ الإعدادات" : "Save Changes")}
+          </button>
+        </div>
+      </div>
+
+      {/* Subsidiaries Management */}
+      <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #EEF0F3", borderRadius: 16, padding: 24 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 18 }}>
+          {dir === "rtl" ? "إدارة الشركات التابعة والفرعية" : "Manage Sub-Companies"}
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {subs.map((s, idx) => (
+            <div key={s.owner_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, border: "1px solid #F1F2F4", borderRadius: 12, background: "#FAFAFB" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, color: "#0F172A" }}>{s.display_name_ar}</div>
+                <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+                  {SECTOR_LABEL[s.sector || ""] || s.sector || "—"} · الترتيب: {s.sort_order}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#10B981" }}>
+                  {dir === "rtl" ? "موصولة ونشطة" : "Connected & Active"}
+                </span>
+              </div>
+            </div>
+          ))}
+          <div style={{ padding: 16, background: "#F5F1F3", borderRadius: 12, border: "1px dashed #EEE3E8", fontSize: 12, color: "#867C88", textAlign: "center" }}>
+            {dir === "rtl" ? "✓ كافة فروع سبارتا الثلاثة مهيأة وموصولة بشكل آلي بالكامل" : "✓ All three Sparta subsidiary branches are fully configured and connected automatically"}
+          </div>
         </div>
       </div>
     </div>
