@@ -150,18 +150,19 @@ export default function POSExpenseDialog({
   const loadData = async () => {
     setLoading(true);
     try {
-      const empsP: any = supabase
-          .from("employees")
-          .select("id, full_name, job_title")
-          .eq("user_id", dataOwnerId)
-          .eq("status", "نشط")
-          .order("full_name");
-      const accsP: any = supabase
-          .from("accounts")
-          .select("account_code, account_name, parent_code")
-          .eq("user_id", dataOwnerId)
-          .eq("is_active", true)
-          .order("account_code");
+      const sb: any = supabase;
+      const empsP = sb
+        .from("employees")
+        .select("id, full_name, job_title")
+        .eq("user_id", dataOwnerId)
+        .eq("status", "نشط")
+        .order("full_name");
+      const accsP = sb
+        .from("accounts")
+        .select("account_code, account_name, parent_code")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .order("account_code");
       const [emps, accs]: any = await Promise.all([empsP, accsP]);
 
       const allAccounts = (accs.data || []) as AccountRow[];
