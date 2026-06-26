@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.change_pos_payment_method(uuid, text, text, uuid, uuid, integer);
