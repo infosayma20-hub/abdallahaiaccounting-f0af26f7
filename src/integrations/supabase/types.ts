@@ -16225,6 +16225,62 @@ export type Database = {
           },
         ]
       }
+      sparta_attendance: {
+        Row: {
+          check_in: string | null
+          check_out: string | null
+          company_id: string
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          late_minutes: number | null
+          notes: string | null
+          overtime_hours: number | null
+          status: string
+          updated_at: string
+          work_hours: number | null
+        }
+        Insert: {
+          check_in?: string | null
+          check_out?: string | null
+          company_id: string
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          late_minutes?: number | null
+          notes?: string | null
+          overtime_hours?: number | null
+          status?: string
+          updated_at?: string
+          work_hours?: number | null
+        }
+        Update: {
+          check_in?: string | null
+          check_out?: string | null
+          company_id?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          late_minutes?: number | null
+          notes?: string | null
+          overtime_hours?: number | null
+          status?: string
+          updated_at?: string
+          work_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sparta_customers: {
         Row: {
           address: string | null
@@ -16290,6 +16346,186 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sparta_departments: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          manager_id: string | null
+          name: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          manager_id?: string | null
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          manager_id?: string | null
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_departments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_employee_advances: {
+        Row: {
+          amount: number
+          amount_remaining: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          employee_id: string
+          id: string
+          installments_count: number
+          issue_date: string
+          monthly_deduction: number
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          amount_remaining: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          employee_id: string
+          id?: string
+          installments_count?: number
+          issue_date?: string
+          monthly_deduction: number
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          amount_remaining?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          employee_id?: string
+          id?: string
+          installments_count?: number
+          issue_date?: string
+          monthly_deduction?: number
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_employee_advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_employees: {
+        Row: {
+          bank_info: Json | null
+          basic_salary: number
+          branch: string | null
+          code: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          department_id: string | null
+          email: string | null
+          employment_type: string
+          full_name: string
+          hire_date: string | null
+          id: string
+          job_title: string | null
+          national_id: string | null
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bank_info?: Json | null
+          basic_salary?: number
+          branch?: string | null
+          code?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          department_id?: string | null
+          email?: string | null
+          employment_type?: string
+          full_name: string
+          hire_date?: string | null
+          id?: string
+          job_title?: string | null
+          national_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bank_info?: Json | null
+          basic_salary?: number
+          branch?: string | null
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          department_id?: string | null
+          email?: string | null
+          employment_type?: string
+          full_name?: string
+          hire_date?: string | null
+          id?: string
+          job_title?: string | null
+          national_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sparta_invoice_items: {
         Row: {
@@ -16504,6 +16740,65 @@ export type Database = {
           },
         ]
       }
+      sparta_leaves: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          days: number
+          employee_id: string
+          from_date: string
+          id: string
+          leave_type: string
+          reason: string | null
+          status: string
+          to_date: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          days: number
+          employee_id: string
+          from_date: string
+          id?: string
+          leave_type: string
+          reason?: string | null
+          status?: string
+          to_date: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          employee_id?: string
+          from_date?: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          status?: string
+          to_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sparta_opportunities: {
         Row: {
           assigned_to: string | null
@@ -16641,6 +16936,126 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sparta_payroll_lines: {
+        Row: {
+          advances_deducted: number | null
+          allowances: Json | null
+          basic: number
+          company_id: string
+          created_at: string
+          currency: string
+          deductions: Json | null
+          employee_id: string
+          gross: number
+          id: string
+          net: number
+          notes: string | null
+          overtime_amount: number | null
+          run_id: string
+        }
+        Insert: {
+          advances_deducted?: number | null
+          allowances?: Json | null
+          basic?: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          deductions?: Json | null
+          employee_id: string
+          gross?: number
+          id?: string
+          net?: number
+          notes?: string | null
+          overtime_amount?: number | null
+          run_id: string
+        }
+        Update: {
+          advances_deducted?: number | null
+          allowances?: Json | null
+          basic?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          deductions?: Json | null
+          employee_id?: string
+          gross?: number
+          id?: string
+          net?: number
+          notes?: string | null
+          overtime_amount?: number | null
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_payroll_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_payroll_runs: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          notes: string | null
+          period_month: number
+          period_year: number
+          posted_at: string | null
+          posted_by: string | null
+          status: string
+          total_deductions: number | null
+          total_gross: number | null
+          total_net: number | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          notes?: string | null
+          period_month: number
+          period_year: number
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          total_deductions?: number | null
+          total_gross?: number | null
+          total_net?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          notes?: string | null
+          period_month?: number
+          period_year?: number
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          total_deductions?: number | null
+          total_gross?: number | null
+          total_net?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       statement_send_log: {
         Row: {
