@@ -16608,6 +16608,111 @@ export type Database = {
         }
         Relationships: []
       }
+      sparta_budgets: {
+        Row: {
+          account_id: string
+          budget_amount: number
+          created_at: string | null
+          fiscal_year_id: string
+          holding_id: string
+          id: string
+          notes: string | null
+          period_number: number
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          budget_amount?: number
+          created_at?: string | null
+          fiscal_year_id: string
+          holding_id: string
+          id?: string
+          notes?: string | null
+          period_number: number
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          budget_amount?: number
+          created_at?: string | null
+          fiscal_year_id?: string
+          holding_id?: string
+          id?: string
+          notes?: string | null
+          period_number?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_budgets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_budgets_fiscal_year_id_fkey"
+            columns: ["fiscal_year_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_fiscal_years"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_closing_entries: {
+        Row: {
+          closing_type: string
+          created_at: string | null
+          created_by: string | null
+          fiscal_year_id: string
+          holding_id: string
+          id: string
+          journal_entry_id: string | null
+          net_income: number | null
+          total_expense: number | null
+          total_revenue: number | null
+        }
+        Insert: {
+          closing_type: string
+          created_at?: string | null
+          created_by?: string | null
+          fiscal_year_id: string
+          holding_id: string
+          id?: string
+          journal_entry_id?: string | null
+          net_income?: number | null
+          total_expense?: number | null
+          total_revenue?: number | null
+        }
+        Update: {
+          closing_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          fiscal_year_id?: string
+          holding_id?: string
+          id?: string
+          journal_entry_id?: string | null
+          net_income?: number | null
+          total_expense?: number | null
+          total_revenue?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_closing_entries_fiscal_year_id_fkey"
+            columns: ["fiscal_year_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_fiscal_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_closing_entries_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sparta_customers: {
         Row: {
           address: string | null
@@ -16853,6 +16958,101 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sparta_fiscal_periods: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          fiscal_year_id: string
+          holding_id: string
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          period_number: number
+          start_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          fiscal_year_id: string
+          holding_id: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_number: number
+          start_date: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          fiscal_year_id?: string
+          holding_id?: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_number?: number
+          start_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_fiscal_periods_fiscal_year_id_fkey"
+            columns: ["fiscal_year_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_fiscal_years"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_fiscal_years: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string | null
+          end_date: string
+          holding_id: string
+          id: string
+          net_income: number | null
+          retained_earnings_account_id: string | null
+          start_date: string
+          status: string
+          updated_at: string | null
+          year_number: number
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          end_date: string
+          holding_id: string
+          id?: string
+          net_income?: number | null
+          retained_earnings_account_id?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string | null
+          year_number: number
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          end_date?: string
+          holding_id?: string
+          id?: string
+          net_income?: number | null
+          retained_earnings_account_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string | null
+          year_number?: number
+        }
+        Relationships: []
       }
       sparta_invoice_items: {
         Row: {
@@ -23984,10 +24184,27 @@ export type Database = {
           balance: number
         }[]
       }
+      sparta_budget_vs_actual: {
+        Args: { p_fy_id: string; p_period?: number }
+        Returns: {
+          account_code: string
+          account_id: string
+          account_name: string
+          actual_amount: number
+          budget_amount: number
+          variance: number
+          variance_pct: number
+        }[]
+      }
       sparta_cancel_invoice: {
         Args: { _invoice_id: string; _reason?: string }
         Returns: Json
       }
+      sparta_cash_flow_statement: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      sparta_close_fiscal_year: { Args: { p_fy_id: string }; Returns: Json }
       sparta_convert_lead: {
         Args: { p_create_opportunity?: boolean; p_lead_id: string }
         Returns: Json
@@ -23996,6 +24213,7 @@ export type Database = {
         Args: { p_opp_id: string }
         Returns: string
       }
+      sparta_create_fiscal_year: { Args: { p_year: number }; Returns: string }
       sparta_dispatch_activity_reminders: { Args: never; Returns: number }
       sparta_holding_id: { Args: never; Returns: string }
       sparta_income_statement: {
@@ -24006,6 +24224,10 @@ export type Database = {
           account_type: string
           amount: number
         }[]
+      }
+      sparta_lock_fiscal_period: {
+        Args: { p_lock: boolean; p_period_id: string }
+        Returns: Json
       }
       sparta_next_entry_no: { Args: { _holding_id: string }; Returns: string }
       sparta_next_invoice_number: { Args: never; Returns: string }
