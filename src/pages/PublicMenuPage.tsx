@@ -367,13 +367,13 @@ export default function PublicMenuPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center min-h-[78vh]">
               {/* Right column (text) — comes first in RTL */}
               <div className="relative z-10 lg:pr-6">
-                <h1 className="text-5xl lg:text-7xl font-black leading-tight"
-                  style={{ color: "#E63027" }}>
+                <h1 className="text-5xl lg:text-7xl font-black"
+                  style={{ color: "#E63027", lineHeight: 1.55 }}>
                   {current.name}
                 </h1>
                 {current.description && (
-                  <p className="mt-5 text-base lg:text-lg leading-loose max-w-md"
-                    style={{ color: "#1F2C7C", opacity: 0.85 }}>
+                  <p className="mt-6 text-base lg:text-lg max-w-md"
+                    style={{ color: "#1F2C7C", opacity: 0.85, lineHeight: 2 }}>
                     {current.description}
                   </p>
                 )}
@@ -398,11 +398,12 @@ export default function PublicMenuPage() {
 
                 <div className="mt-10 h-px w-64" style={{ background: "#E5E7EE" }} />
 
-                {/* Price */}
-                <div className="mt-6 flex items-baseline gap-2" style={{ color: "#1F2C7C" }}>
-                  <span className="text-6xl font-black">{Math.floor(Number(current.price))}</span>
-                  <span className="text-2xl font-black">.{(Number(current.price).toFixed(2).split('.')[1] || '00')}</span>
-                  <span className="text-xl font-bold mr-2 opacity-70">₪</span>
+                {/* Price — RTL-safe: render the number as one LTR unit */}
+                <div className="mt-6 flex items-baseline gap-3" style={{ color: "#1F2C7C" }}>
+                  <span dir="ltr" className="text-6xl font-black tracking-tight inline-block">
+                    {Number(current.price).toFixed(2)}
+                  </span>
+                  <span className="text-2xl font-bold opacity-70">₪</span>
                 </div>
 
                 {/* CTA */}
