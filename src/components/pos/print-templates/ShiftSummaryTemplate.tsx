@@ -21,6 +21,12 @@ export interface ShiftSummaryPrintData {
   openingCash: number;
   totalSales: number;
   totalExpenses?: number;
+  expenseBreakdown?: Array<{
+    kind: string;
+    label: string;
+    amount: number;
+    note?: string;
+  }>;
   totalOrders: number;
   closingCash: number;
   closingCashUSD?: number;
