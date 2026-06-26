@@ -36,7 +36,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
-import QRMenuTopBarButton from "@/components/pos/QRMenuTopBarButton";
 import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
