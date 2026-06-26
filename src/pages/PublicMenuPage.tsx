@@ -275,10 +275,9 @@ export default function PublicMenuPage() {
                     style={{ background: "radial-gradient(circle, rgba(255,200,160,0.35) 0%, rgba(255,200,160,0) 65%)", filter: "blur(20px)" }} />
                   <img src={imgSrc} alt={p.name}
                     onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }}
-                    className="relative w-full h-full object-contain animate-fade-in"
+                    className="relative w-full h-full object-cover rounded-full ring-8 ring-white/15 animate-fade-in"
                     style={{
                       filter: "drop-shadow(0 30px 40px rgba(0,0,0,0.55)) drop-shadow(0 10px 20px rgba(0,0,0,0.35))",
-                      mixBlendMode: "multiply",
                     }}
                     loading="lazy" />
                 </div>
