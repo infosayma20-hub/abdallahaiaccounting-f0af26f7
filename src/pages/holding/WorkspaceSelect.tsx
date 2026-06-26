@@ -105,6 +105,10 @@ export default function WorkspaceSelect() {
   const enter = (workspace: "consolidated" | string) => {
     if (!holding) return;
     localStorage.setItem(LS_KEY, JSON.stringify({ holdingId: holding.id, workspace }));
+    if (slug === "sparta" && workspace === "consolidated") {
+      navigate("/sparta");
+      return;
+    }
     if (workspace === "consolidated") navigate(`/holding/${holding.id}`);
     else navigate(`/holding/${holding.id}?company=${workspace}`);
   };
