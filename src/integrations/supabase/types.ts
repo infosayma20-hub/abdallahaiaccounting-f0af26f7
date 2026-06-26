@@ -16152,6 +16152,79 @@ export type Database = {
           },
         ]
       }
+      sparta_activities: {
+        Row: {
+          assigned_to: string | null
+          body: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          done_at: string | null
+          due_at: string | null
+          id: string
+          kind: string
+          lead_id: string | null
+          opportunity_id: string | null
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          done_at?: string | null
+          due_at?: string | null
+          id?: string
+          kind: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          done_at?: string | null
+          due_at?: string | null
+          id?: string
+          kind?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_activities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sparta_customers: {
         Row: {
           address: string | null
@@ -16368,6 +16441,134 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_leads: {
+        Row: {
+          assigned_to: string | null
+          company: string | null
+          company_id: string
+          converted_customer_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company?: string | null
+          company_id?: string
+          converted_customer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string | null
+          company_id?: string
+          converted_customer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_leads_converted_customer_id_fkey"
+            columns: ["converted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_opportunities: {
+        Row: {
+          assigned_to: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          expected_close_date: string | null
+          expected_value: number
+          id: string
+          lead_id: string | null
+          notes: string | null
+          probability: number
+          stage: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          expected_close_date?: string | null
+          expected_value?: number
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          probability?: number
+          stage?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          expected_close_date?: string | null
+          expected_value?: number
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          probability?: number
+          stage?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_opportunities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -22412,6 +22613,10 @@ export type Database = {
       }
       sparta_cancel_invoice: {
         Args: { _invoice_id: string; _reason?: string }
+        Returns: Json
+      }
+      sparta_convert_lead: {
+        Args: { p_create_opportunity?: boolean; p_lead_id: string }
         Returns: Json
       }
       sparta_holding_id: { Args: never; Returns: string }
