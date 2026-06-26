@@ -4461,13 +4461,17 @@ const POSPage = () => {
             kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
           }
 
-          // ── استثناء "مشوي" → دائماً يطبع كمان على البيتزا ──
-          // أي صنف فيه كلمة "مشوي" باسمه لازم يظهر بتذكرة البيتزا
-          // حتى لو الـ category/station ما بوجهه لهناك. لا يؤثر على
-          // الوصل ولا يضيف نسخ مكررة على نفس المحطة.
+          // ── استثناء أصناف مشتركة → دائماً تطبع على البيتزا + المطبخ ──
+          // أي صنف اسمه فيه: مشوي / كرنشي / حلقات بصل / خبز متوم / خبز ثوم
+          // لازم يظهر بتذكرة البيتزا وتذكرة المطبخ معاً، حتى لو الـ
+          // category/station ما بوجهه لهناك. لا يؤثر على الوصل ولا يضيف
+          // نسخ مكررة على نفس المحطة.
           try {
+            const SHARED_KEYWORDS = ['مشوي', 'كرنشي', 'حلقات بصل', 'خبز متوم', 'خبز ثوم'];
+            const matchesShared = (name: string) =>
+              SHARED_KEYWORDS.some((kw) => name.includes(kw));
             const grilledItems = cart
-              .filter((it: any) => typeof it.name === 'string' && it.name.includes('مشوي'))
+              .filter((it: any) => typeof it.name === 'string' && matchesShared(it.name))
               .map((it: any) => ({
                 id: it.name,
                 name: it.name,
