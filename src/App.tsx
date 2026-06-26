@@ -166,6 +166,9 @@ const SpartaThemeProvider = lazy(() =>
 );
 const SpartaDashboard = lazy(() => import("./pages/sparta/SpartaDashboard"));
 const SpartaModulePlaceholder = lazy(() => import("./pages/sparta/SpartaModulePlaceholder"));
+const SpartaProductsPage = lazy(() => import("./pages/sparta/SpartaProductsPage"));
+const SpartaBatchesPage = lazy(() => import("./pages/sparta/SpartaBatchesPage"));
+const SpartaInventoryPage = lazy(() => import("./pages/sparta/SpartaInventoryPage"));
 const SpartaMobileHome = lazy(() => import("./pages/sparta/SpartaMobileHome"));
 const SpartaMobilePlaceholder = lazy(() => import("./pages/sparta/SpartaMobilePlaceholder"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
@@ -509,11 +512,15 @@ const App = () => (
                 <Route index element={<SpartaDashboard />} />
                 <Route
                   path="products"
-                  element={<SpartaModulePlaceholder title="المنتجات والكتالوج" description="إدارة منتجات زرعات الأسنان مع الـ LOTs وتواريخ الصلاحية." amwaliRoute="/products" />}
+                  element={<SpartaProductsPage />}
+                />
+                <Route
+                  path="batches"
+                  element={<SpartaBatchesPage />}
                 />
                 <Route
                   path="inventory"
-                  element={<SpartaModulePlaceholder title="المخزون" description="رصيد المستودعات، حركات المخزون، وتنبيهات الصلاحية." amwaliRoute="/inventory" />}
+                  element={<SpartaInventoryPage />}
                 />
                 <Route
                   path="sales"
