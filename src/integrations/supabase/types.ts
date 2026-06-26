@@ -16152,6 +16152,295 @@ export type Database = {
           },
         ]
       }
+      sparta_customers: {
+        Row: {
+          address: string | null
+          balance: number
+          city: string | null
+          clinic_name: string | null
+          code: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          credit_limit: number
+          doctor_name: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          sales_rep_id: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          balance?: number
+          city?: string | null
+          clinic_name?: string | null
+          code?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string
+          credit_limit?: number
+          doctor_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          sales_rep_id?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          balance?: number
+          city?: string | null
+          clinic_name?: string | null
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          credit_limit?: number
+          doctor_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          sales_rep_id?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sparta_invoice_items: {
+        Row: {
+          consumed_batches: Json | null
+          cost_total: number
+          created_at: string
+          discount: number
+          id: string
+          invoice_id: string
+          line_total: number
+          notes: string | null
+          product_id: string
+          product_name: string
+          quantity: number
+          sku: string | null
+          unit_price: number
+        }
+        Insert: {
+          consumed_batches?: Json | null
+          cost_total?: number
+          created_at?: string
+          discount?: number
+          id?: string
+          invoice_id: string
+          line_total?: number
+          notes?: string | null
+          product_id: string
+          product_name: string
+          quantity: number
+          sku?: string | null
+          unit_price?: number
+        }
+        Update: {
+          consumed_batches?: Json | null
+          cost_total?: number
+          created_at?: string
+          discount?: number
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          notes?: string | null
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          sku?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_invoices: {
+        Row: {
+          balance_due: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          currency: string
+          customer_id: string
+          discount_amount: number
+          due_date: string | null
+          exchange_rate: number
+          id: string
+          invoice_date: string
+          invoice_number: string
+          notes: string | null
+          paid_amount: number
+          posted_at: string | null
+          posted_by: string | null
+          sales_rep_id: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          total: number
+          updated_at: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          balance_due?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_id: string
+          discount_amount?: number
+          due_date?: string | null
+          exchange_rate?: number
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          notes?: string | null
+          paid_amount?: number
+          posted_at?: string | null
+          posted_by?: string | null
+          sales_rep_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total?: number
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          balance_due?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_id?: string
+          discount_amount?: number
+          due_date?: string | null
+          exchange_rate?: number
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_amount?: number
+          posted_at?: string | null
+          posted_by?: string | null
+          sales_rep_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total?: number
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string
+          currency: string
+          customer_id: string
+          id: string
+          invoice_id: string
+          is_voided: boolean
+          method: string
+          notes: string | null
+          payment_date: string
+          reference: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          invoice_id: string
+          is_voided?: boolean
+          method: string
+          notes?: string | null
+          payment_date?: string
+          reference?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          invoice_id?: string
+          is_voided?: boolean
+          method?: string
+          notes?: string | null
+          payment_date?: string
+          reference?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statement_send_log: {
         Row: {
           balance_at_send: number | null
@@ -22121,8 +22410,34 @@ export type Database = {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
       }
+      sparta_cancel_invoice: {
+        Args: { _invoice_id: string; _reason?: string }
+        Returns: Json
+      }
       sparta_holding_id: { Args: never; Returns: string }
+      sparta_next_invoice_number: { Args: never; Returns: string }
       sparta_owner_user_id: { Args: never; Returns: string }
+      sparta_post_invoice: { Args: { _invoice_id: string }; Returns: Json }
+      sparta_recalc_customer_balance: {
+        Args: { _customer_id: string }
+        Returns: undefined
+      }
+      sparta_recalc_invoice: {
+        Args: { _invoice_id: string }
+        Returns: undefined
+      }
+      sparta_record_payment: {
+        Args: {
+          _amount: number
+          _currency?: string
+          _invoice_id: string
+          _method: string
+          _notes?: string
+          _payment_date?: string
+          _reference?: string
+        }
+        Returns: string
+      }
       start_editing_call_center_order: {
         Args: { p_order_id: string }
         Returns: Json
