@@ -3245,6 +3245,8 @@ const POSPage = () => {
             zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
             area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
+            discount_reason: managerDiscountMeta?.reason ?? null,
+            discount_approved_by: managerDiscountMeta?.managerUserId ?? null,
           } as any)
           .select()
           .single();
