@@ -295,6 +295,11 @@ export default function QRMenuAdminPage() {
                     <Button size="sm" variant="outline" onClick={() => setSelectedBranch(b.id === selectedBranch ? "" : b.id)}>
                       {selectedBranch === b.id ? "إخفاء" : "عرض QR"}
                     </Button>
+                    {b.qr_menu_enabled && b.public_slug && (
+                      <Button size="sm" variant="default" onClick={() => window.open(buildMenuUrl(b.public_slug!), "_blank")}>
+                        معاينة المنيو
+                      </Button>
+                    )}
                   </div>
                 </div>
                 {selectedBranch === b.id && b.qr_menu_enabled && b.public_slug && (
