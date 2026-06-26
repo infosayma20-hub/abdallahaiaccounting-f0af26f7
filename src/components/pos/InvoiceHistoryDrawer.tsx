@@ -1574,6 +1574,7 @@ export default function InvoiceHistoryDrawer({
                       customer_phone: ccoPhone || (selectedOrder as any)?.contacts?.phone || null,
                       delivery_address: (selectedOrder as any).delivery_address || (selectedOrder as any).customer_address || null,
                       delivery_fee: Number((selectedOrder as any).delivery_fee || 0),
+                      total_includes_delivery_fee: (selectedOrder as any).total_includes_delivery_fee === true,
                       meal_subsidy_amount: Number((selectedOrder as any).meal_subsidy_amount || 0),
                       guest_count: (selectedOrder as any).guest_count || null,
                       lines: orderLines.slice(),
@@ -1625,10 +1626,14 @@ export default function InvoiceHistoryDrawer({
                           ? line.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra_price ?? 0 }))
                           : undefined,
                       })),
-                      subtotal: snap.subtotal ?? Math.max(0, Number(snap.total || 0) - Number(snap.delivery_fee || 0)),
+                      subtotal: snap.subtotal ?? Math.max(
+                        0,
+                        Number(snap.total || 0) - (snap.total_includes_delivery_fee ? Number(snap.delivery_fee || 0) : 0),
+                      ),
                       discount: snap.discount_amount || 0,
                       total: snap.total,
                       deliveryFee: snap.delivery_fee || 0,
+                      totalIncludesDeliveryFee: snap.total_includes_delivery_fee === true,
                       mealSubsidy: snap.meal_subsidy_amount || 0,
                       paymentMethod: paymentLabel,
                       // Watermark every reprint so the receipt cannot be
