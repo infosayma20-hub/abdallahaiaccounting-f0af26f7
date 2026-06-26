@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { Search, ScanLine, Receipt, User, Box } from "lucide-react";
+import { Search, Receipt, User, Box, Truck } from "lucide-react";
 import spartaIcon from "/sparta-icon-512.png?url";
 
 const TILES = [
+  { to: "/sparta/m/van", icon: Truck, label: "البائع المتجول", color: "#0EA371" },
   { to: "/sparta/m/stock", icon: Box, label: "استعلام مخزون", color: "#8B1E3F" },
   { to: "/sparta/m/sale", icon: Receipt, label: "فاتورة سريعة", color: "#D4A574" },
   { to: "/sparta/m/catalog", icon: Search, label: "الكتالوج", color: "#6B7280" },
