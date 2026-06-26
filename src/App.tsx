@@ -170,6 +170,9 @@ const SpartaProductsPage = lazy(() => import("./pages/sparta/SpartaProductsPage"
 const SpartaBatchesPage = lazy(() => import("./pages/sparta/SpartaBatchesPage"));
 const SpartaInventoryPage = lazy(() => import("./pages/sparta/SpartaInventoryPage"));
 const SpartaBatchMovementsPage = lazy(() => import("./pages/sparta/SpartaBatchMovementsPage"));
+const SpartaCustomersPage = lazy(() => import("./pages/sparta/SpartaCustomersPage"));
+const SpartaInvoicesPage = lazy(() => import("./pages/sparta/SpartaInvoicesPage"));
+const SpartaInvoiceFormPage = lazy(() => import("./pages/sparta/SpartaInvoiceFormPage"));
 const SpartaMobileHome = lazy(() => import("./pages/sparta/SpartaMobileHome"));
 const SpartaMobilePlaceholder = lazy(() => import("./pages/sparta/SpartaMobilePlaceholder"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
@@ -527,14 +530,11 @@ const App = () => (
                   path="movements"
                   element={<SpartaBatchMovementsPage />}
                 />
-                <Route
-                  path="sales"
-                  element={<SpartaModulePlaceholder title="المبيعات" description="فواتير المبيعات وعروض الأسعار بـ PDF بثيم سبارتا." amwaliRoute="/invoices" />}
-                />
-                <Route
-                  path="customers"
-                  element={<SpartaModulePlaceholder title="العملاء" description="العيادات والأطباء وكشوف الحساب." amwaliRoute="/contacts" />}
-                />
+                <Route path="invoices" element={<SpartaInvoicesPage />} />
+                <Route path="invoices/:id" element={<SpartaInvoiceFormPage />} />
+                <Route path="customers" element={<SpartaCustomersPage />} />
+                {/* legacy alias */}
+                <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />
                 <Route path="m/stock" element={<SpartaMobilePlaceholder title="استعلام المخزون" />} />
                 <Route path="m/sale" element={<SpartaMobilePlaceholder title="فاتورة سريعة" />} />
