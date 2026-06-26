@@ -17057,6 +17057,397 @@ export type Database = {
         }
         Relationships: []
       }
+      sparta_project_expenses: {
+        Row: {
+          amount: number
+          attachment_url: string | null
+          category: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          expense_date: string
+          id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          attachment_url?: string | null
+          category?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          attachment_url?: string | null
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_project_expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_project_invoices_link: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          invoice_id: string
+          project_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          invoice_id: string
+          project_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_project_invoices_link_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_project_invoices_link_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_project_members: {
+        Row: {
+          allocation_pct: number | null
+          company_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          project_id: string
+          role: string | null
+        }
+        Insert: {
+          allocation_pct?: number | null
+          company_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          project_id: string
+          role?: string | null
+        }
+        Update: {
+          allocation_pct?: number | null
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          project_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_project_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_project_milestones: {
+        Row: {
+          company_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_project_tasks: {
+        Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          parent_id: string | null
+          priority: string
+          progress_pct: number | null
+          project_id: string
+          sort_order: number | null
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          parent_id?: string | null
+          priority?: string
+          progress_pct?: number | null
+          project_id: string
+          sort_order?: number | null
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          parent_id?: string | null
+          priority?: string
+          progress_pct?: number | null
+          project_id?: string
+          sort_order?: number | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_project_tasks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_project_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_project_timesheets: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          date: string
+          employee_id: string
+          hours: number
+          id: string
+          notes: string | null
+          project_id: string
+          task_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          date: string
+          employee_id: string
+          hours: number
+          id?: string
+          notes?: string | null
+          project_id: string
+          task_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          employee_id?: string
+          hours?: number
+          id?: string
+          notes?: string | null
+          project_id?: string
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_project_timesheets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_project_timesheets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sparta_project_timesheets_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_projects: {
+        Row: {
+          budget: number | null
+          code: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          manager_id: string | null
+          name: string
+          notes: string | null
+          progress_pct: number | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number | null
+          code?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          manager_id?: string | null
+          name: string
+          notes?: string | null
+          progress_pct?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number | null
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          manager_id?: string | null
+          name?: string
+          notes?: string | null
+          progress_pct?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statement_send_log: {
         Row: {
           balance_at_send: number | null
