@@ -4,7 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type SplitTender = {
   method: "cash" | "card";
-  amount: number;
+  amount: number; // ILS-equivalent amount (always)
+  currency?: string; // ILS | USD | JOD ... — defaults to ILS
+  exchange_rate?: number; // foreign_amount * rate = amount(ILS)
+  foreign_amount?: number; // amount in the picked currency (for cash foreign)
   visa_gl_account_code?: string;
   reference?: string;
 };
@@ -22,13 +25,15 @@ interface Props {
   setTenders: (t: SplitTender[]) => void;
   userId: string | null | undefined;
   defaultCardGlAccountCode: string | null;
+  exchangeRates?: Record<string, number>;
+  currencies?: Array<{ code: string; symbol: string; name: string }>;
 }
 
 /**
  * Mixed payment panel — cash + card combinations only (ILS only).
  * Backward compatible: parent component drives whether to use split tenders or single-tender flow.
  */
-export default function SplitPaymentPanel({ total, tenders, setTenders, userId, defaultCardGlAccountCode }: Props) {
+export default function SplitPaymentPanel({ total, tenders, setTenders, userId, defaultCardGlAccountCode, exchangeRates = {}, currencies = [] }: Props) {
   const [cardOptions, setCardOptions] = useState<BankAccountOption[]>([]);
 
   useEffect(() => {
@@ -52,7 +57,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
 
   const addTender = (method: "cash" | "card") => {
     const amt = Math.max(0, remaining);
-    const next: SplitTender = { method, amount: amt };
+    const next: SplitTender = { method, amount: amt, currency: "ILS", exchange_rate: 1, foreign_amount: amt };
     if (method === "card") {
       next.visa_gl_account_code = defaultCardGlAccountCode || cardOptions[0]?.gl_account_code || undefined;
     }
@@ -63,11 +68,33 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
     setTenders(tenders.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
   };
 
+  const changeTenderCurrency = (idx: number, currency: string) => {
+    const t = tenders[idx];
+    if (!t) return;
+    if (currency === "ILS") {
+      updateTender(idx, { currency: "ILS", exchange_rate: 1, foreign_amount: t.amount });
+      return;
+    }
+    const rate = exchangeRates[currency] || 0;
+    if (!rate) return;
+    // Recompute foreign so ILS amount stays the same as before
+    const foreign = Math.round((t.amount / rate) * 100) / 100;
+    updateTender(idx, { currency, exchange_rate: rate, foreign_amount: foreign });
+  };
+
+  const updateForeignAmount = (idx: number, foreign: number) => {
+    const t = tenders[idx];
+    if (!t) return;
+    const rate = t.exchange_rate || exchangeRates[t.currency || "ILS"] || 1;
+    const ils = Math.round(foreign * rate * 100) / 100;
+    updateTender(idx, { foreign_amount: Math.max(0, foreign), amount: Math.max(0, ils) });
+  };
+
   const removeTender = (idx: number) => setTenders(tenders.filter((_, i) => i !== idx));
 
   const fillRemainingCash = () => {
     if (remaining <= 0) return;
-    setTenders([...tenders, { method: "cash", amount: remaining }]);
+    setTenders([...tenders, { method: "cash", amount: remaining, currency: "ILS", exchange_rate: 1, foreign_amount: remaining }]);
   };
 
   return (
@@ -77,7 +104,7 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
           <Split className="h-4 w-4" style={{ color: "#7c3aed" }} />
           <span className="text-[13px] font-semibold" style={{ color: "#111827" }}>دفع مختلط (نقد + فيزا)</span>
         </div>
-        <div className="text-[11px]" style={{ color: "#6b7280" }}>شيكل فقط</div>
+        <div className="text-[11px]" style={{ color: "#6b7280" }}>متعدد العملات (فيزا شيكل فقط)</div>
       </div>
 
       {/* Balance bar */}
@@ -108,7 +135,8 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
           </div>
         )}
         {tenders.map((t, idx) => (
-          <div key={idx} className="flex items-center gap-2" style={{ background: "#f9fafb", borderRadius: 8, padding: 8 }}>
+          <div key={idx} className="flex flex-col gap-2" style={{ background: "#f9fafb", borderRadius: 8, padding: 8 }}>
+            <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 shrink-0" style={{ width: 70 }}>
               {t.method === "cash" ? (
                 <Banknote className="h-4 w-4" style={{ color: "#16a34a" }} />
@@ -120,16 +148,48 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
               </span>
             </div>
 
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={t.amount || ""}
-              onChange={(e) => updateTender(idx, { amount: Math.max(0, parseFloat(e.target.value) || 0) })}
-              placeholder="0.00"
-              className="flex-1 text-right tabular-nums text-[14px] font-semibold"
-              style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 8px", color: "#111827" }}
-            />
+            {t.method === "cash" && t.currency && t.currency !== "ILS" ? (
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={t.foreign_amount || ""}
+                onChange={(e) => updateForeignAmount(idx, parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+                className="flex-1 text-right tabular-nums text-[14px] font-semibold"
+                style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 8px", color: "#111827" }}
+              />
+            ) : (
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={t.amount || ""}
+                onChange={(e) => {
+                  const v = Math.max(0, parseFloat(e.target.value) || 0);
+                  updateTender(idx, { amount: v, foreign_amount: v, currency: "ILS", exchange_rate: 1 });
+                }}
+                placeholder="0.00"
+                className="flex-1 text-right tabular-nums text-[14px] font-semibold"
+                style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 8px", color: "#111827" }}
+              />
+            )}
+
+            {t.method === "cash" && currencies.length > 0 && (
+              <select
+                value={t.currency || "ILS"}
+                onChange={(e) => changeTenderCurrency(idx, e.target.value)}
+                className="text-[11px]"
+                style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 6px", maxWidth: 90 }}
+              >
+                <option value="ILS">شيكل</option>
+                {currencies.filter(c => c.code !== "ILS").map((c) => (
+                  <option key={c.code} value={c.code} disabled={!exchangeRates[c.code]}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {t.method === "card" && cardOptions.length > 1 && (
               <select
@@ -156,6 +216,13 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
             >
               <X className="h-4 w-4" />
             </button>
+            </div>
+            {t.method === "cash" && t.currency && t.currency !== "ILS" && (
+              <div className="flex items-center justify-between text-[11px] px-1" style={{ color: "#6b7280" }}>
+                <span>سعر الصرف: {(t.exchange_rate || 0).toFixed(4)}</span>
+                <span className="tabular-nums">≈ ₪{(t.amount || 0).toFixed(2)}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
