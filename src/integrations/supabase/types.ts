@@ -20438,17 +20438,31 @@ export type Database = {
         Args: { p_reason?: string; p_transfer_id: string }
         Returns: Json
       }
-      change_pos_payment_method: {
-        Args: {
-          p_edit_reason?: string
-          p_manager_user_id?: string
-          p_new_method: string
-          p_order_id: string
-          p_pos_user_id?: string
-          p_window_minutes?: number
-        }
-        Returns: Json
-      }
+      change_pos_payment_method:
+        | {
+            Args: {
+              p_edit_reason?: string
+              p_manager_user_id?: string
+              p_new_method: string
+              p_order_id: string
+              p_pos_user_id?: string
+              p_window_minutes?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_edit_reason?: string
+              p_manager_user_id?: string
+              p_new_currency?: string
+              p_new_exchange_rate?: number
+              p_new_method: string
+              p_order_id: string
+              p_pos_user_id?: string
+              p_window_minutes?: number
+            }
+            Returns: Json
+          }
       claim_notification_batch: {
         Args: { _limit?: number }
         Returns: {

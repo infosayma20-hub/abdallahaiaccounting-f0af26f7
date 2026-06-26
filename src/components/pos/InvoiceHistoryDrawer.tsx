@@ -89,6 +89,7 @@ interface InvoicePayment {
   payment_method: string;
   amount: number;
   currency: string | null;
+  exchange_rate?: number | null;
 }
 
 type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled" | "transferred";
@@ -601,7 +602,7 @@ export default function InvoiceHistoryDrawer({
     try {
       const [linesRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
-        supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency").eq("order_id", order.id),
+        supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency, exchange_rate").eq("order_id", order.id),
       ]);
       // Defensive: ensure the lines we got actually belong to this order.
       const safeLines = ((linesRes.data || []) as InvoiceLine[]).filter(
@@ -1970,6 +1971,9 @@ export default function InvoiceHistoryDrawer({
           orderNumber={selectedOrder.order_number}
           orderTotal={selectedOrder.total}
           currentMethod={orderPayments[0]?.payment_method || "cash"}
+          currentCurrency={orderPayments[0]?.currency || "ILS"}
+          paymentsCount={orderPayments.length}
+          exchangeRates={exchangeRates}
           ageMinutes={
             selectedOrder.paid_at
               ? (getServerNow() - new Date(selectedOrder.paid_at).getTime()) / 60000
