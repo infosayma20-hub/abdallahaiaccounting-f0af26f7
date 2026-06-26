@@ -3598,6 +3598,31 @@ const POSPage = () => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
+    // 🛡️ Call-center dispatch guard: prevent paying a dispatched order from a
+    // session whose terminal/cash-box does NOT belong to the order's target
+    // branch (this caused سفيان/فيصل/فرع افتراضي cross-attribution incidents).
+    if (activeOrder.callCenterOrderId) {
+      const sessionBranchId = cashBoxBranchId || terminalBranchId;
+      try {
+        const { data: ccRow } = await supabase
+          .from("call_center_orders" as any)
+          .select("target_branch_id, target_branch_name")
+          .eq("id", activeOrder.callCenterOrderId)
+          .maybeSingle();
+        const targetBr = (ccRow as any)?.target_branch_id || null;
+        const targetName = (ccRow as any)?.target_branch_name || "الفرع الهدف";
+        if (!sessionBranchId) {
+          toast.error("⛔ لا يمكن تنفيذ طلب كول سنتر من جلسة غير مرتبطة بفرع (فرع/محطة افتراضية). افتح وردية على الفرع الصحيح.");
+          return;
+        }
+        if (targetBr && targetBr !== sessionBranchId) {
+          toast.error(`⛔ هذه الطلبية موجّهة لفرع "${targetName}" — لا يمكن تنفيذها من هذا الجهاز/الفرع.`);
+          return;
+        }
+      } catch (e) {
+        console.warn("[dispatch-guard] failed to verify target branch", e);
+      }
+    }
     // Handle "card:GLCODE" format from delivery app visa accounts
     let effectivePaymentMethod = overridePaymentMethod || paymentMethod;
     let visaGlAccountCode: string | null = null;
