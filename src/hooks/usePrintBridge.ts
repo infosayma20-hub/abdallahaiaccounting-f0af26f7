@@ -82,6 +82,13 @@ export interface PrintOrder {
    */
   deliveryFee?: number;
   /**
+   * Legacy-data flag. When true the supplied `total` already bundles
+   * `deliveryFee` (old pos_orders rows). When false (default for new orders)
+   * `total` is items only and the receipt prints `deliveryFee` purely as a
+   * note line without subtracting it again.
+   */
+  totalIncludesDeliveryFee?: boolean;
+  /**
    * Company's share of an employee meal (dual-mode discount).
    * - Family discount: 10% of total (employee owes 90%).
    * - Individual discount: 50% of total (employee owes 50%).

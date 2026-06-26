@@ -12002,6 +12002,7 @@ export type Database = {
           table_id: string | null
           tax_amount: number
           total: number
+          total_includes_delivery_fee: boolean
           transaction_id: string | null
           transferred_from_session_id: string | null
           transferred_to_name: string | null
@@ -12098,6 +12099,7 @@ export type Database = {
           table_id?: string | null
           tax_amount?: number
           total?: number
+          total_includes_delivery_fee?: boolean
           transaction_id?: string | null
           transferred_from_session_id?: string | null
           transferred_to_name?: string | null
@@ -12194,6 +12196,7 @@ export type Database = {
           table_id?: string | null
           tax_amount?: number
           total?: number
+          total_includes_delivery_fee?: boolean
           transaction_id?: string | null
           transferred_from_session_id?: string | null
           transferred_to_name?: string | null

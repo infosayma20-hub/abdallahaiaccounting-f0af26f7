@@ -266,7 +266,14 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   // surface it only as a note line. The DB invoice total and accounting
   // journal are NOT touched here (they live in POSPage / complete_pos_order).
   const deliveryFee = Math.max(0, Number(order.deliveryFee || 0));
-  const printedTotal = Math.max(0, Number(order.total || 0) - deliveryFee);
+  // For NEW orders `order.total` is already items-only — don't subtract
+  // `deliveryFee` again. Legacy rows pass totalIncludesDeliveryFee=true so
+  // we strip them as before.
+  const totalHasDelivery = (order as any).totalIncludesDeliveryFee === true;
+  const printedTotal = Math.max(
+    0,
+    Number(order.total || 0) - (totalHasDelivery ? deliveryFee : 0),
+  );
   // NOTE: order.subtotal is already items-only in POSPage (the delivery fee
   // is only added when computing `total`). So do NOT subtract here.
   const printedSubtotal = order.subtotal != null ? Number(order.subtotal) : undefined;

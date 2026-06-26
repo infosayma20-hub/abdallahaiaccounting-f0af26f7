@@ -2883,11 +2883,14 @@ const POSPage = () => {
     const canOrderDiscount = posFeatPerm.can("sell", "discount");
     const effOrderDiscount = canOrderDiscount ? safe(orderDiscount) : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
-    // 🚚 Delivery fee is a SEPARATE financial line — never part of items[] (so
-    // it can't pollute item/sales reports). It's added once to the final total
-    // and printed as its own row. Source of truth = activeOrder.callCenterDeliveryFee.
+    // 🚚 Delivery fee is COMPLETELY OUTSIDE the restaurant cash flow.
+    // The driver/delivery company collects it directly from the customer —
+    // it never enters the cash drawer, never appears in payments, and never
+    // affects the shift's expected cash. We keep the number around purely
+    // for the printed receipt (which shows it as a separate informational
+    // line) and never add it to `total`.
     const deliveryFee = safe(activeOrder?.callCenterDeliveryFee);
-    const total = subtotal + taxAmount - discountAmt + deliveryFee;
+    const total = subtotal + taxAmount - discountAmt;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
       tax: Math.round(taxAmount * 100) / 100,
@@ -4980,7 +4983,7 @@ const POSPage = () => {
     // Fetch sales breakdown by payment currency (paid orders only, including returns for tracking)
     const { data: ordersData } = await supabase
       .from("pos_orders")
-      .select("id, payment_currency, payment_currency_amount, total, is_return, return_currency, return_exchange_rate, return_currency_amount")
+      .select("id, payment_currency, payment_currency_amount, total, is_return, return_currency, return_exchange_rate, return_currency_amount, delivery_fee, total_includes_delivery_fee")
       .eq("session_id", session.id)
       .eq("state", "paid");
 
@@ -5074,7 +5077,19 @@ const POSPage = () => {
     // that stale value still includes cancelled invoices and produces a false
     // "expected cash" (and a fake deficit) when the cashier voided everything
     // before closing the shift. Cancelled orders must NOT inflate expected cash.
-    const effectiveILSCashSales = ilsCashSales;
+    //
+    // 🚚 Delivery fees are NEVER part of the restaurant's cash. They go straight
+    // from the customer to the driver. For legacy orders whose `total` (and the
+    // matching pos_payments row) still bundles the fee, subtract it back out
+    // here so the drawer match isn't off by the delivery amount.
+    const legacyDeliveryCashILS = (ordersData || [])
+      .filter((o: any) =>
+        !o.is_return &&
+        (o.payment_currency || "ILS") === "ILS" &&
+        o.total_includes_delivery_fee === true,
+      )
+      .reduce((s: number, o: any) => s + (Number(o.delivery_fee) || 0), 0);
+    const effectiveILSCashSales = Math.max(0, ilsCashSales - legacyDeliveryCashILS);
     const totalReturnsILS = returnsByCurrency.ILS || 0;
     const totalReturnsUSD = returnsByCurrency.USD || 0;
     const totalReturnsJOD = returnsByCurrency.JOD || 0;

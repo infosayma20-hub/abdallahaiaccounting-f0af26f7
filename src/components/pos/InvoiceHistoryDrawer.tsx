@@ -61,6 +61,7 @@ interface InvoiceOrder {
   area_name?: string | null;
   zone_code?: string | null;
   delivery_fee?: number | null;
+  total_includes_delivery_fee?: boolean | null;
   meal_subsidy_amount?: number | null;
   order_note?: string | null;
   notes?: string | null;
@@ -477,7 +478,7 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      const selectFields = "id, order_number, display_number, queue_number, daily_display_number, session_seq, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, guest_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancel_reason, cancelled_at, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, meal_subsidy_amount, order_note, notes, guest_count, pos_payments(payment_method), contacts:customer_id(phone)";
+      const selectFields = "id, order_number, display_number, queue_number, daily_display_number, session_seq, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, guest_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancel_reason, cancelled_at, paid_at, transferred_from_session_id, transferred_to_name, order_type, is_delivery, delivery_address, customer_address, area_name, zone_code, delivery_fee, total_includes_delivery_fee, meal_subsidy_amount, order_note, notes, guest_count, pos_payments(payment_method), contacts:customer_id(phone)";
 
       // Main query: orders belonging to this session
       let query = supabase
@@ -1200,9 +1201,16 @@ export default function InvoiceHistoryDrawer({
                       )}
                       {Number(order.delivery_fee || 0) > 0 && canCashierSeeAmount(order) && (
                         <div className="mt-1 flex items-center gap-1 flex-wrap text-[10px]" style={{ color: "#64748B" }}>
-                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>أصناف ₪{(Number(order.total) - Number(order.delivery_fee || 0)).toFixed(2)}</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                            أصناف ₪{(order.total_includes_delivery_fee
+                              ? Number(order.total) - Number(order.delivery_fee || 0)
+                              : Number(order.total)
+                            ).toFixed(2)}
+                          </span>
                           <span style={{ color: "#CBD5E1" }}>·</span>
-                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>توصيل ₪{Number(order.delivery_fee).toFixed(2)}</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }} title="يخص شركة التوصيل — خارج عهدة الصندوق">
+                            توصيل ₪{Number(order.delivery_fee).toFixed(2)}
+                          </span>
                           {(order.area_name || order.delivery_address) && (
                             <>
                               <span style={{ color: "#CBD5E1" }}>·</span>
@@ -1227,7 +1235,9 @@ export default function InvoiceHistoryDrawer({
                             ₪{order.total.toFixed(2)}
                           </span>
                           {Number(order.delivery_fee || 0) > 0 && (
-                            <span className="text-[9px]" style={{ color: "#94A3B8" }}>يشمل التوصيل</span>
+                            <span className="text-[9px]" style={{ color: "#94A3B8" }}>
+                              {order.total_includes_delivery_fee ? "يشمل التوصيل" : "بدون التوصيل"}
+                            </span>
                           )}
                         </div>
                       ) : (
@@ -1564,6 +1574,7 @@ export default function InvoiceHistoryDrawer({
                       customer_phone: ccoPhone || (selectedOrder as any)?.contacts?.phone || null,
                       delivery_address: (selectedOrder as any).delivery_address || (selectedOrder as any).customer_address || null,
                       delivery_fee: Number((selectedOrder as any).delivery_fee || 0),
+                      total_includes_delivery_fee: (selectedOrder as any).total_includes_delivery_fee === true,
                       meal_subsidy_amount: Number((selectedOrder as any).meal_subsidy_amount || 0),
                       guest_count: (selectedOrder as any).guest_count || null,
                       lines: orderLines.slice(),
@@ -1615,10 +1626,14 @@ export default function InvoiceHistoryDrawer({
                           ? line.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra_price ?? 0 }))
                           : undefined,
                       })),
-                      subtotal: snap.subtotal ?? Math.max(0, Number(snap.total || 0) - Number(snap.delivery_fee || 0)),
+                      subtotal: snap.subtotal ?? Math.max(
+                        0,
+                        Number(snap.total || 0) - (snap.total_includes_delivery_fee ? Number(snap.delivery_fee || 0) : 0),
+                      ),
                       discount: snap.discount_amount || 0,
                       total: snap.total,
                       deliveryFee: snap.delivery_fee || 0,
+                      totalIncludesDeliveryFee: snap.total_includes_delivery_fee === true,
                       mealSubsidy: snap.meal_subsidy_amount || 0,
                       paymentMethod: paymentLabel,
                       // Watermark every reprint so the receipt cannot be
