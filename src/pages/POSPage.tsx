@@ -237,8 +237,7 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   guestCount: guestCount || 1,
   guestName: guestName || "",
   orderType: tableId ? "dine_in" : "takeaway",
-  // لا يوضع خيار افتراضي؛ يفرض على الكاشير الاختيار يدوياً (سفري/توصيل/طاولة)
-  orderTypeChosen: tableId ? true : false,
+  orderTypeChosen: true,
   deliveryAddress: "",
   zoneCode: "",
   areaName: "",
@@ -6549,7 +6548,7 @@ const POSPage = () => {
                 onClick={async () => {
                   const tId = activeOrder.tableId;
                   setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
-                  updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
+                  updateActiveOrder(o => ({ ...o, orderType: "takeaway", orderTypeChosen: true, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
                   if (tId) {
                     await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
                     setAvailableTables(prev => prev.map(t => t.id === tId ? { ...t, status: "available" } : t));
@@ -6834,7 +6833,7 @@ const POSPage = () => {
                 {activeOrder.tableId && (
                   <button
                     onClick={() => {
-                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: false, name: `طلب ${activeOrderIndex + 1}` }));
+                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: true, name: `طلب ${activeOrderIndex + 1}` }));
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
@@ -8746,8 +8745,8 @@ const POSPage = () => {
           setCustomerName("", null, "", null);
           updateActiveOrder(o => ({
             ...o,
-            orderType: "dine_in",
-            orderTypeChosen: false,
+            orderType: "takeaway",
+            orderTypeChosen: true,
             deliveryAddress: "",
             isEditingDispatch: false,
             callCenterOrderId: null,
