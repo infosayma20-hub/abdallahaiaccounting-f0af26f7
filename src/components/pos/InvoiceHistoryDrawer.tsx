@@ -1992,6 +1992,7 @@ export default function InvoiceHistoryDrawer({
           orderNumber={selectedOrder.order_number}
           orderTotal={selectedOrder.total}
           currentMethod={orderPayments[0]?.payment_method || "cash"}
+          companyId={dataOwnerId}
           currentCurrency={orderPayments[0]?.currency || "ILS"}
           paymentsCount={orderPayments.length}
           exchangeRates={exchangeRates}

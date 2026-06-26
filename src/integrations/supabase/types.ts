@@ -21922,12 +21922,14 @@ export type Database = {
       change_pos_payment_method: {
         Args: {
           p_edit_reason?: string
+          p_employee_id?: string
           p_manager_user_id?: string
           p_new_currency?: string
           p_new_exchange_rate?: number
           p_new_method: string
           p_order_id: string
           p_pos_user_id?: string
+          p_split_payments?: Json
           p_window_minutes?: number
         }
         Returns: Json
