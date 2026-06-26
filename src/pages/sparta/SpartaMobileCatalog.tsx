@@ -11,11 +11,11 @@ import { toast } from "sonner";
 interface Product {
   id: string;
   name: string;
-  code: string | null;
+  sku: string | null;
   sell_price: number;
   buy_price: number;
   quantity: number;
-  category_id: string | null;
+  category: string | null;
 }
 
 export default function SpartaMobileCatalog() {
@@ -32,13 +32,13 @@ export default function SpartaMobileCatalog() {
         // Query public products scoped to Sparta's owner user_id
         const { data, error } = await supabase
           .from("products")
-          .select("id, name, code, sell_price, buy_price, quantity, category_id")
+          .select("id, name, sku, sell_price, buy_price, quantity, category")
           .eq("user_id", ownerUserId)
           .eq("is_deleted", false)
           .order("name");
 
         if (error) throw error;
-        setProducts(data || []);
+        setProducts(data as Product[] || []);
       } catch (err: any) {
         toast.error("خطأ في تحميل الكتالوج: " + err.message);
       } finally {
@@ -53,7 +53,8 @@ export default function SpartaMobileCatalog() {
     if (!term) return true;
     return (
       p.name.toLowerCase().includes(term) ||
-      (p.code || "").toLowerCase().includes(term)
+      (p.sku || "").toLowerCase().includes(term) ||
+      (p.category || "").toLowerCase().includes(term)
     );
   });
 
@@ -79,7 +80,7 @@ export default function SpartaMobileCatalog() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث باسم المنتج أو الكود..."
+            placeholder="ابحث باسم المنتج أو الكود أو الفئة..."
             className="pr-9"
           />
         </div>
@@ -105,7 +106,7 @@ export default function SpartaMobileCatalog() {
                 </div>
                 <div className="flex-1 space-y-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">{p.code || "بدون كود"}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{p.sku || "بدون كود"}</span>
                     <Badge variant="secondary" className="font-semibold">
                       ₪ {Number(p.sell_price).toFixed(2)}
                     </Badge>
