@@ -174,7 +174,10 @@ const SpartaCustomersPage = lazy(() => import("./pages/sparta/SpartaCustomersPag
 const SpartaInvoicesPage = lazy(() => import("./pages/sparta/SpartaInvoicesPage"));
 const SpartaInvoiceFormPage = lazy(() => import("./pages/sparta/SpartaInvoiceFormPage"));
 const SpartaMobileHome = lazy(() => import("./pages/sparta/SpartaMobileHome"));
-const SpartaMobilePlaceholder = lazy(() => import("./pages/sparta/SpartaMobilePlaceholder"));
+const SpartaMobileCatalog = lazy(() => import("./pages/sparta/SpartaMobileCatalog"));
+const SpartaMobileStock = lazy(() => import("./pages/sparta/SpartaMobileStock"));
+const SpartaMobileCustomer = lazy(() => import("./pages/sparta/SpartaMobileCustomer"));
+const SpartaMobileSale = lazy(() => import("./pages/sparta/SpartaMobileSale"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
@@ -536,10 +539,10 @@ const App = () => (
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />
-                <Route path="m/stock" element={<SpartaMobilePlaceholder title="استعلام المخزون" />} />
-                <Route path="m/sale" element={<SpartaMobilePlaceholder title="فاتورة سريعة" />} />
-                <Route path="m/catalog" element={<SpartaMobilePlaceholder title="الكتالوج" />} />
-                <Route path="m/customer" element={<SpartaMobilePlaceholder title="كشف الزبون" />} />
+                <Route path="m/stock" element={<SpartaMobileStock />} />
+                <Route path="m/sale" element={<SpartaMobileSale />} />
+                <Route path="m/catalog" element={<SpartaMobileCatalog />} />
+                <Route path="m/customer" element={<SpartaMobileCustomer />} />
               </Route>
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/choose-workspace" element={<ProtectedRoute><ChooseWorkspacePage /></ProtectedRoute>} />
