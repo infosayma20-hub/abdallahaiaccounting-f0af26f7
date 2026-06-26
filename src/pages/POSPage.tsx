@@ -5846,6 +5846,9 @@ const POSPage = () => {
             <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
           </button>
 
+          {/* QR Menu */}
+          <QRMenuTopBarButton onClick={() => navigate("/pos/qr-menu")} />
+
           {/* Stockout alert — icon shortcut in top bar (cashier only) */}
           {!isCallCenter && dataOwnerId && (
             <StockoutAlertButton
