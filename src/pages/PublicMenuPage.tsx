@@ -511,7 +511,7 @@ export default function PublicMenuPage() {
       {/* Floating cart bar */}
       {cart.length > 0 && !showCart && (
         <button onClick={() => setShowCart(true)}
-          className="fixed bottom-4 inset-x-4 rounded-2xl py-4 px-5 flex items-center justify-between font-bold z-30 text-white animate-in fade-in slide-in-from-bottom-4"
+          className="fixed bottom-20 md:bottom-4 inset-x-4 md:inset-x-auto md:left-4 md:right-[104px] md:max-w-md rounded-2xl py-3 sm:py-4 px-5 flex items-center justify-between font-bold z-30 text-white animate-in fade-in slide-in-from-bottom-4"
           style={{ background: "#E63027", boxShadow: "0 18px 40px -10px rgba(230,48,39,0.55)" }}>
           <span className="flex items-center gap-3">
             <span className="relative">
