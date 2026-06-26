@@ -1,11 +1,16 @@
 import { Link } from "react-router-dom";
-import { BookOpen, ListTree, FileText, BarChart3 } from "lucide-react";
+import { BookOpen, ListTree, FileText, BarChart3, Receipt, Landmark, Clock, TrendingUp } from "lucide-react";
 
 const TILES = [
   { to: "/sparta/accounting/chart", label: "شجرة الحسابات", desc: "إدارة دليل الحسابات", icon: ListTree, color: "from-emerald-500 to-emerald-700" },
   { to: "/sparta/accounting/journal", label: "قيود اليومية", desc: "إدخال ومراجعة القيود", icon: BookOpen, color: "from-blue-500 to-blue-700" },
   { to: "/sparta/accounting/ledger", label: "دفتر الأستاذ", desc: "حركة أي حساب بالتفصيل", icon: FileText, color: "from-amber-500 to-amber-700" },
-  { to: "/sparta/accounting/reports", label: "التقارير المالية", desc: "ميزان مراجعة، أرباح، ميزانية", icon: BarChart3, color: "from-purple-500 to-purple-700" },
+  { to: "/sparta/accounting/reports", label: "ميزان المراجعة", desc: "أرصدة الحسابات الكلية", icon: BarChart3, color: "from-purple-500 to-purple-700" },
+  { to: "/sparta/accounting/bills", label: "فواتير المشتريات", desc: "فواتير الموردين (AP)", icon: Receipt, color: "from-rose-500 to-rose-700" },
+  { to: "/sparta/accounting/banks", label: "الحسابات البنكية", desc: "البنوك والحركات والتسويات", icon: Landmark, color: "from-cyan-500 to-cyan-700" },
+  { to: "/sparta/accounting/ar-aging", label: "أعمار الذمم المدينة", desc: "تحليل ذمم العملاء", icon: Clock, color: "from-teal-500 to-teal-700" },
+  { to: "/sparta/accounting/ap-aging", label: "أعمار الذمم الدائنة", desc: "تحليل ذمم الموردين", icon: Clock, color: "from-orange-500 to-orange-700" },
+  { to: "/sparta/accounting/financial-reports", label: "قائمة الدخل والميزانية", desc: "P&L والميزانية العامة", icon: TrendingUp, color: "from-indigo-500 to-indigo-700" },
 ];
 
 export default function SpartaAccountingHub() {

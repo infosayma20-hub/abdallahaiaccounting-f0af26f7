@@ -16340,6 +16340,274 @@ export type Database = {
           },
         ]
       }
+      sparta_bank_accounts: {
+        Row: {
+          account_id: string | null
+          account_number: string | null
+          bank_name: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          current_balance: number
+          iban: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          opening_balance: number
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          current_balance?: number
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          opening_balance?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          current_balance?: number
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          opening_balance?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_bank_accounts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_bank_transactions: {
+        Row: {
+          amount: number
+          bank_account_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          direction: string
+          id: string
+          reconciled: boolean
+          reconciled_at: string | null
+          reconciled_by: string | null
+          ref_id: string | null
+          ref_type: string | null
+          reference: string | null
+          txn_date: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          direction: string
+          id?: string
+          reconciled?: boolean
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
+          reference?: string | null
+          txn_date?: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          direction?: string
+          id?: string
+          reconciled?: boolean
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
+          reference?: string | null
+          txn_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_bill_payments: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          bill_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          is_voided: boolean
+          method: string
+          notes: string | null
+          payment_date: string
+          reference: string | null
+          supplier_id: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          bill_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          is_voided?: boolean
+          method?: string
+          notes?: string | null
+          payment_date?: string
+          reference?: string | null
+          supplier_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          bill_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          is_voided?: boolean
+          method?: string
+          notes?: string | null
+          payment_date?: string
+          reference?: string | null
+          supplier_id?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_bill_payments_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_ap_aging"
+            referencedColumns: ["bill_id"]
+          },
+          {
+            foreignKeyName: "sparta_bill_payments_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_bills: {
+        Row: {
+          balance_due: number
+          bill_date: string
+          bill_number: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_date: string | null
+          exchange_rate: number
+          expense_account_id: string | null
+          id: string
+          notes: string | null
+          paid_amount: number
+          posted_at: string | null
+          posted_by: string | null
+          status: string
+          subtotal: number
+          supplier_id: string | null
+          tax_amount: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          balance_due?: number
+          bill_date?: string
+          bill_number: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date?: string | null
+          exchange_rate?: number
+          expense_account_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          subtotal?: number
+          supplier_id?: string | null
+          tax_amount?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          balance_due?: number
+          bill_date?: string
+          bill_number?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date?: string | null
+          exchange_rate?: number
+          expense_account_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          posted_at?: string | null
+          posted_by?: string | null
+          status?: string
+          subtotal?: number
+          supplier_id?: string | null
+          tax_amount?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sparta_customers: {
         Row: {
           address: string | null
@@ -16633,6 +16901,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sparta_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_ar_aging"
+            referencedColumns: ["invoice_id"]
+          },
           {
             foreignKeyName: "sparta_invoice_items_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -17128,6 +17403,13 @@ export type Database = {
             foreignKeyName: "sparta_payments_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "sparta_ar_aging"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "sparta_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "sparta_invoices"
             referencedColumns: ["id"]
           },
@@ -17329,6 +17611,13 @@ export type Database = {
           project_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sparta_project_invoices_link_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_ar_aging"
+            referencedColumns: ["invoice_id"]
+          },
           {
             foreignKeyName: "sparta_project_invoices_link_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -21675,6 +21964,73 @@ export type Database = {
           },
         ]
       }
+      sparta_ap_aging: {
+        Row: {
+          aging_bucket: string | null
+          balance_due: number | null
+          bill_date: string | null
+          bill_id: string | null
+          bill_number: string | null
+          company_id: string | null
+          days_overdue: number | null
+          due_date: string | null
+          paid_amount: number | null
+          supplier_id: string | null
+          total: number | null
+        }
+        Insert: {
+          aging_bucket?: never
+          balance_due?: number | null
+          bill_date?: string | null
+          bill_id?: string | null
+          bill_number?: string | null
+          company_id?: string | null
+          days_overdue?: never
+          due_date?: string | null
+          paid_amount?: number | null
+          supplier_id?: string | null
+          total?: number | null
+        }
+        Update: {
+          aging_bucket?: never
+          balance_due?: number | null
+          bill_date?: string | null
+          bill_id?: string | null
+          bill_number?: string | null
+          company_id?: string | null
+          days_overdue?: never
+          due_date?: string | null
+          paid_amount?: number | null
+          supplier_id?: string | null
+          total?: number | null
+        }
+        Relationships: []
+      }
+      sparta_ar_aging: {
+        Row: {
+          aging_bucket: string | null
+          balance_due: number | null
+          company_id: string | null
+          customer_id: string | null
+          customer_name: string | null
+          days_overdue: number | null
+          due_date: string | null
+          invoice_date: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          paid_amount: number | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       travel_booking_passengers_safe: {
         Row: {
           booking_id: string | null
@@ -23615,6 +23971,19 @@ export type Database = {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
       }
+      sparta_account_id_by_code: {
+        Args: { _code: string; _holding: string }
+        Returns: string
+      }
+      sparta_balance_sheet: {
+        Args: { _as_of: string; _holding: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          account_type: string
+          balance: number
+        }[]
+      }
       sparta_cancel_invoice: {
         Args: { _invoice_id: string; _reason?: string }
         Returns: Json
@@ -23629,11 +23998,33 @@ export type Database = {
       }
       sparta_dispatch_activity_reminders: { Args: never; Returns: number }
       sparta_holding_id: { Args: never; Returns: string }
+      sparta_income_statement: {
+        Args: { _from: string; _holding: string; _to: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          account_type: string
+          amount: number
+        }[]
+      }
       sparta_next_entry_no: { Args: { _holding_id: string }; Returns: string }
       sparta_next_invoice_number: { Args: never; Returns: string }
       sparta_owner_user_id: { Args: never; Returns: string }
+      sparta_post_bill_journal: { Args: { _bill_id: string }; Returns: string }
+      sparta_post_bill_payment_journal: {
+        Args: { _payment_id: string }
+        Returns: string
+      }
       sparta_post_invoice: { Args: { _invoice_id: string }; Returns: Json }
+      sparta_post_invoice_journal: {
+        Args: { _invoice_id: string }
+        Returns: string
+      }
       sparta_post_journal: { Args: { _entry_id: string }; Returns: Json }
+      sparta_post_payment_journal: {
+        Args: { _payment_id: string }
+        Returns: string
+      }
       sparta_post_payroll: { Args: { p_run_id: string }; Returns: undefined }
       sparta_project_profitability: {
         Args: { p_project_id: string }
