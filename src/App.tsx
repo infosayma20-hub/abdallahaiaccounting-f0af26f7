@@ -179,6 +179,9 @@ const SpartaMobileStock = lazy(() => import("./pages/sparta/SpartaMobileStock"))
 const SpartaMobileCustomer = lazy(() => import("./pages/sparta/SpartaMobileCustomer"));
 const SpartaMobileSale = lazy(() => import("./pages/sparta/SpartaMobileSale"));
 const SpartaCRMPage = lazy(() => import("./pages/sparta/SpartaCRMPage"));
+const SpartaHRPage = lazy(() => import("./pages/sparta/SpartaHRPage"));
+const SpartaProjectsPage = lazy(() => import("./pages/sparta/SpartaProjectsPage"));
+const SpartaProjectDetailPage = lazy(() => import("./pages/sparta/SpartaProjectDetailPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
@@ -538,6 +541,9 @@ const App = () => (
                 <Route path="invoices/:id" element={<SpartaInvoiceFormPage />} />
                 <Route path="customers" element={<SpartaCustomersPage />} />
                 <Route path="crm" element={<SpartaCRMPage />} />
+                <Route path="hr" element={<SpartaHRPage />} />
+                <Route path="projects" element={<SpartaProjectsPage />} />
+                <Route path="projects/:id" element={<SpartaProjectDetailPage />} />
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />
