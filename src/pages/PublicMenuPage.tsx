@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock, ChevronDown } from "lucide-react";
+import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock, ChevronRight, ChevronLeft, Home, UtensilsCrossed, MapPin, User, Menu, Flame, GlassWater } from "lucide-react";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 
 // خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
@@ -76,6 +76,8 @@ export default function PublicMenuPage() {
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submittedStatus, setSubmittedStatus] = useState<string>("pending");
   const [detail, setDetail] = useState<Product | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [showSideMenu, setShowSideMenu] = useState(false);
 
   // Resolve
   useEffect(() => {
@@ -112,6 +114,10 @@ export default function PublicMenuPage() {
   }, [submittedId]);
 
   const filtered = useMemo(() => products.filter(p => p.category_id === activeCat), [products, activeCat]);
+  useEffect(() => { setActiveIdx(0); }, [activeCat]);
+  const current = filtered[activeIdx];
+  const goPrev = () => setActiveIdx(i => (filtered.length ? (i - 1 + filtered.length) % filtered.length : 0));
+  const goNext = () => setActiveIdx(i => (filtered.length ? (i + 1) % filtered.length : 0));
   const catNameById = useMemo(() => {
     const m: Record<string, string> = {};
     categories.forEach(c => { m[c.id] = c.name; });
@@ -217,111 +223,192 @@ export default function PublicMenuPage() {
   }
 
   return (
-    <div dir="rtl" className="h-[100dvh] w-full overflow-hidden relative"
-      style={{ background: "#7A0E0E", color: "#fff", fontFamily: "'Tajawal','Cairo','Noto Naskh Arabic',sans-serif" }}>
+    <div dir="rtl" className="min-h-[100dvh] w-full relative overflow-hidden"
+      style={{ background: "#F5F5F5", color: "#1F2C7C", fontFamily: "'Tajawal','Cairo','Noto Naskh Arabic',sans-serif" }}>
 
-      {/* Floating top bar: logo + branch + categories */}
-      <div className="absolute top-0 inset-x-0 z-30 pointer-events-none">
-        <div className="pointer-events-auto px-4 pt-4 pb-2 flex items-center gap-3"
-          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent)" }}>
-          {/* Logo on the right (RTL leading edge) */}
-          <div className="h-14 w-14 rounded-2xl bg-white p-1.5 shrink-0 order-first"
-            style={{ boxShadow: "0 10px 24px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.35)" }}>
-            <img src={malakyLogo.url} alt={ctx.account_name} className="w-full h-full object-contain" />
+      {/* Right vertical red sidebar (RTL leading edge) */}
+      <aside className="fixed top-0 right-0 h-full w-[88px] z-40 flex flex-col items-center py-6 gap-7 text-white"
+        style={{ background: "#E63027" }}>
+        <button className="flex flex-col items-center gap-1 opacity-90 hover:opacity-100 transition">
+          <Home className="h-5 w-5" /><span className="text-[11px] font-bold">الرئيسية</span>
+        </button>
+        <button className="flex flex-col items-center gap-1">
+          <UtensilsCrossed className="h-5 w-5" /><span className="text-[11px] font-bold">القائمة</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 opacity-90">
+          <MapPin className="h-5 w-5" /><span className="text-[11px] font-bold">الفروع</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 opacity-90">
+          <User className="h-5 w-5" /><span className="text-[11px] font-bold">حسابي</span>
+        </button>
+        <button onClick={() => cart.length && setShowCart(true)} className="flex flex-col items-center gap-1 opacity-90 mt-auto relative">
+          <div className="relative">
+            <ShoppingBag className="h-5 w-5" />
+            {cart.reduce((s,l)=>s+l.qty,0) > 0 && (
+              <span className="absolute -top-2 -right-2 h-4 min-w-4 px-1 rounded-full grid place-items-center text-[10px] font-black bg-white" style={{ color: "#E63027" }}>
+                {cart.reduce((s,l)=>s+l.qty,0)}
+              </span>
+            )}
           </div>
-          <div className="min-w-0 flex-1 text-right">
-            <p className="text-sm font-black truncate text-white drop-shadow">{ctx.account_name}</p>
-            <div className="inline-flex items-center gap-1.5 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 backdrop-blur text-white">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
-              {ctx.branch_name}{tableCode ? ` · طاولة ${tableCode.slice(0, 4)}` : ""}
+          <span className="text-[11px] font-bold">سلة الطلب</span>
+        </button>
+      </aside>
+
+      {/* Main canvas (offset from sidebar) */}
+      <div className="mr-[88px] min-h-[100dvh] relative">
+
+        {/* Top bar: logo (right) + categories (center) + branch + menu (left) */}
+        <header className="relative z-20 flex items-center gap-4 px-6 lg:px-10 pt-6">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="h-20 w-20 rounded-2xl bg-white p-2"
+              style={{ boxShadow: "0 8px 24px -10px rgba(230,48,39,0.25)" }}>
+              <img src={malakyLogo.url} alt={ctx.account_name} className="w-full h-full object-contain" />
             </div>
           </div>
-        </div>
-        {/* Categories */}
-        <div className="pointer-events-auto overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2 px-4 pb-3 min-w-max">
-            {categories.map(c => {
-              const active = activeCat === c.id;
-              return (
-                <button key={c.id} onClick={() => setActiveCat(c.id)}
-                  className="px-4 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all backdrop-blur"
-                  style={active
-                    ? { background: "#fff", color: "#7A0E0E", boxShadow: "0 6px 16px -4px rgba(0,0,0,0.4)" }
-                    : { background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)" }}>
-                  {c.name}
-                </button>
-              );
-            })}
+
+          {/* Categories pill bar */}
+          <nav className="flex-1 min-w-0">
+            <div className="mx-auto max-w-3xl rounded-full px-3 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide"
+              style={{ background: "#fff", boxShadow: "0 8px 24px -14px rgba(31,44,124,0.18)" }}>
+              {categories.map(c => {
+                const active = activeCat === c.id;
+                return (
+                  <button key={c.id} onClick={() => setActiveCat(c.id)}
+                    className="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all"
+                    style={active
+                      ? { background: "#E63027", color: "#fff" }
+                      : { background: "transparent", color: "#1F2C7C" }}>
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2 rounded-full text-white text-sm font-bold flex items-center gap-2"
+              style={{ background: "#E63027" }}>
+              <MapPin className="h-4 w-4" />
+              {ctx.branch_name}
+            </div>
+            <button onClick={() => setShowSideMenu(true)}
+              className="h-11 w-11 rounded-full grid place-items-center bg-white"
+              style={{ boxShadow: "0 8px 20px -12px rgba(31,44,124,0.2)", color: "#1F2C7C" }}>
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* Full-screen vertical snap reel */}
-      <div className="h-full w-full overflow-y-auto snap-y snap-mandatory scrollbar-hide">
-        {filtered.length === 0 && (
-          <div className="h-full w-full grid place-items-center">
-            <p className="text-white/70 text-lg">لا توجد أصناف في هذا القسم</p>
+        {/* Showcase area */}
+        {filtered.length === 0 || !current ? (
+          <div className="min-h-[70vh] grid place-items-center">
+            <p className="text-lg opacity-60">لا توجد أصناف في هذا القسم</p>
           </div>
-        )}
-        {filtered.map(p => {
-          const imgSrc = p.image_url || pickFoodImage(p.name, catNameById[p.category_id]);
-          return (
-            <section key={p.id}
-              className="relative h-[100dvh] w-full snap-start snap-always overflow-hidden"
-              style={{
-                background: "radial-gradient(ellipse at top, #B81E1E 0%, #7A0E0E 55%, #4E0808 100%)",
-              }}>
-              {/* Decorative giant logo watermark — bottom-left, very subtle */}
-              <img src={malakyLogo.url} alt=""
-                className="absolute -bottom-16 -left-16 w-80 opacity-[0.05] pointer-events-none select-none rotate-[-12deg]" />
-
-              {/* Huge transparent product image */}
-              <div className="absolute inset-0 flex items-center justify-center pt-24 pb-56">
-                <div className="relative w-[min(85vw,520px)] aspect-square">
-                  <div className="absolute inset-4 rounded-full"
-                    style={{ background: "radial-gradient(circle, rgba(255,200,160,0.35) 0%, rgba(255,200,160,0) 65%)", filter: "blur(20px)" }} />
-                  <img src={imgSrc} alt={p.name}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }}
-                    className="relative w-full h-full object-cover rounded-full ring-8 ring-white/15 animate-fade-in"
-                    style={{
-                      filter: "drop-shadow(0 30px 40px rgba(0,0,0,0.55)) drop-shadow(0 10px 20px rgba(0,0,0,0.35))",
-                    }}
-                    loading="lazy" />
-                </div>
-              </div>
-
-              {/* Bottom info panel */}
-              <div className="absolute bottom-0 inset-x-0 px-6 pb-32 pt-10 text-center"
-                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent)" }}>
-                <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight drop-shadow-lg leading-tight">
-                  {p.name}
-                </h2>
-                {p.description && (
-                  <p className="mt-3 text-white/85 text-base sm:text-lg max-w-xl mx-auto leading-relaxed line-clamp-2">
-                    {p.description}
+        ) : (
+          <main className="relative px-6 lg:px-16 pt-8 pb-20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center min-h-[78vh]">
+              {/* Right column (text) — comes first in RTL */}
+              <div className="relative z-10 lg:pr-6">
+                <h1 className="text-5xl lg:text-7xl font-black leading-tight"
+                  style={{ color: "#E63027" }}>
+                  {current.name}
+                </h1>
+                {current.description && (
+                  <p className="mt-5 text-base lg:text-lg leading-loose max-w-md"
+                    style={{ color: "#1F2C7C", opacity: 0.85 }}>
+                    {current.description}
                   </p>
                 )}
-                <div className="mt-5 flex items-center justify-center gap-4">
-                  <span className="text-3xl font-black text-white drop-shadow"
-                    style={{ textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>
-                    ₪{Number(p.price).toFixed(2)}
-                  </span>
-                  <button onClick={() => openProduct(p)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-black text-base transition-transform active:scale-95"
-                    style={{ background: "#fff", color: "#7A0E0E", boxShadow: "0 12px 28px -8px rgba(0,0,0,0.5)" }}>
-                    <Plus className="h-5 w-5" strokeWidth={3} />
-                    أضف للطلب
-                  </button>
+
+                {/* Specs row */}
+                <div className="mt-8 flex items-center gap-10">
+                  <div className="flex items-center gap-3">
+                    <GlassWater className="h-7 w-7" style={{ color: "#E63027" }} />
+                    <div>
+                      <div className="text-xl font-black" style={{ color: "#1F2C7C" }}>450 مل</div>
+                      <div className="text-xs opacity-60">الحجم</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Flame className="h-7 w-7" style={{ color: "#E63027" }} />
+                    <div>
+                      <div className="text-xl font-black" style={{ color: "#1F2C7C" }}>280</div>
+                      <div className="text-xs opacity-60">سعرات حرارية</div>
+                    </div>
+                  </div>
                 </div>
+
+                <div className="mt-10 h-px w-64" style={{ background: "#E5E7EE" }} />
+
+                {/* Price */}
+                <div className="mt-6 flex items-baseline gap-2" style={{ color: "#1F2C7C" }}>
+                  <span className="text-6xl font-black">{Math.floor(Number(current.price))}</span>
+                  <span className="text-2xl font-black">.{(Number(current.price).toFixed(2).split('.')[1] || '00')}</span>
+                  <span className="text-xl font-bold mr-2 opacity-70">₪</span>
+                </div>
+
+                {/* CTA */}
+                <button onClick={() => openProduct(current)}
+                  className="mt-8 inline-flex items-center gap-3 pl-8 pr-2 py-2 rounded-full font-black text-lg text-white transition-transform active:scale-[0.98]"
+                  style={{ background: "#E63027", boxShadow: "0 18px 36px -14px rgba(230,48,39,0.55)" }}>
+                  <span className="h-12 w-12 rounded-full grid place-items-center bg-white" style={{ color: "#E63027" }}>
+                    <Plus className="h-6 w-6" strokeWidth={3} />
+                  </span>
+                  أضف للطلب
+                </button>
               </div>
 
-              {/* Scroll hint */}
-              <div className="absolute bottom-24 inset-x-0 flex justify-center pointer-events-none">
-                <ChevronDown className="h-6 w-6 text-white/60 animate-bounce" />
+              {/* Left column (image with red half-circle) */}
+              <div className="relative h-[60vh] lg:h-[78vh] order-first lg:order-last">
+                {/* Red disc */}
+                <div className="absolute inset-0 grid place-items-center">
+                  <div className="relative w-[90%] aspect-square max-w-[560px]">
+                    <div className="absolute inset-0 rounded-full"
+                      style={{ background: "#E63027" }} />
+                    {/* Concentric outline ring */}
+                    <div className="absolute -inset-6 rounded-full pointer-events-none"
+                      style={{ border: "2px dashed rgba(230,48,39,0.25)" }} />
+                    {/* Product image */}
+                    <img src={current.image_url || pickFoodImage(current.name, catNameById[current.category_id])}
+                      alt={current.name}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }}
+                      className="absolute inset-0 w-full h-full object-cover rounded-full"
+                      style={{ filter: "drop-shadow(0 40px 50px rgba(0,0,0,0.35))" }} />
+                  </div>
+                </div>
+
+                {/* "New" badge */}
+                <div className="absolute top-6 left-2 h-20 w-20 rounded-full grid place-items-center bg-white text-sm font-black"
+                  style={{ border: "2px solid #E63027", color: "#E63027" }}>
+                  جديد
+                </div>
               </div>
-            </section>
-          );
-        })}
+            </div>
+
+            {/* Navigation arrows */}
+            <button onClick={goNext} aria-label="next"
+              className="absolute top-1/2 -translate-y-1/2 right-4 lg:right-8 h-12 w-12 rounded-full grid place-items-center bg-white z-20"
+              style={{ boxShadow: "0 10px 24px -10px rgba(31,44,124,0.25)", color: "#1F2C7C" }}>
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <button onClick={goPrev} aria-label="prev"
+              className="absolute top-1/2 -translate-y-1/2 left-4 lg:left-8 h-12 w-12 rounded-full grid place-items-center bg-white z-20"
+              style={{ boxShadow: "0 10px 24px -10px rgba(31,44,124,0.25)", color: "#1F2C7C" }}>
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            {/* Dot indicators */}
+            <div className="mt-8 flex items-center justify-center gap-2">
+              {filtered.slice(0, Math.min(filtered.length, 8)).map((_, i) => (
+                <button key={i} onClick={() => setActiveIdx(i)}
+                  className="h-2 rounded-full transition-all"
+                  style={i === activeIdx
+                    ? { width: 22, background: "#E63027" }
+                    : { width: 8, background: "#D5D9E2" }} />
+              ))}
+            </div>
+          </main>
+        )}
       </div>
 
       {/* Floating cart bar */}
