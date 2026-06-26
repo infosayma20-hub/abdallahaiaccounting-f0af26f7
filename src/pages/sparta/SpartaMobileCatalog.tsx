@@ -29,9 +29,9 @@ export default function SpartaMobileCatalog() {
       if (!ownerUserId) return;
       try {
         setLoading(true);
-        // Query public products scoped to Sparta's owner user_id
-        const { data, error } = await supabase
-          .from("products")
+        // Cast as any to prevent excessively deep type instantiation in complex Supabase client schemas
+        const { data, error } = await (supabase
+          .from("products") as any)
           .select("id, name, sku, sell_price, buy_price, quantity, category")
           .eq("user_id", ownerUserId)
           .eq("is_deleted", false)
