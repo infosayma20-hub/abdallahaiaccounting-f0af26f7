@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Plus, Trash2, Save, Send, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, Send, Loader2, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export type FieldDef = {
@@ -44,11 +44,15 @@ interface Props {
   onSubmit?: (data: Record<string, any>) => void;
   onSaveDraft?: (data: Record<string, any>) => void;
   draftKey?: string;
+  /** Optional renderer for extra controls inside each section header (e.g. assignment chip). */
+  renderSectionExtras?: (section: SectionDef) => ReactNode;
+  /** When provided, shows a "تنزيل Word" button in the action bar that hands back the current data. */
+  onPreviewWord?: (data: Record<string, any>) => void;
 }
 
 function makeEmptyRow(fields: FieldDef[]): Record<string, any> {
   const row: Record<string, any> = {};
-  fields.forEach((f) => (row[f.key] = f.type === "date" ? todayISO() : ""));
+  fields.forEach((f) => (row[f.key] = ""));
   return row;
 }
 
@@ -72,8 +76,8 @@ function buildInitialData(schema: FormSchema, initial?: Record<string, any>): Re
     if (s.type === "fields") {
       data[s.key] = initial?.[s.key] || {};
       s.fields.forEach((f) => {
-        if (data[s.key][f.key] === undefined || data[s.key][f.key] === "") {
-          data[s.key][f.key] = f.type === "date" ? todayISO() : "";
+        if (data[s.key][f.key] === undefined) {
+          data[s.key][f.key] = "";
         }
       });
     } else {
@@ -119,13 +123,13 @@ function FieldInput({
       );
     case "date":
       return (
-        <div
-          className={`${common} flex items-center justify-between px-3 rounded-md border bg-muted/40 text-sm`}
-          title="التاريخ يُعبَّأ تلقائياً من النظام ولا يمكن تعديله"
-        >
-          <span className="font-semibold">{formatDMY(value) || formatDMY(todayISO())}</span>
-          <span className="text-[10px] text-muted-foreground">🔒 تلقائي</span>
-        </div>
+        <Input
+          type="date"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className={common}
+        />
       );
     case "select":
       return (
@@ -273,6 +277,7 @@ function FieldInput({
 
 export default function DynamicFormRenderer({
   schema, initialData, readOnly, submitting, onSubmit, onSaveDraft, draftKey,
+  renderSectionExtras, onPreviewWord,
 }: Props) {
   const [data, setData] = useState<Record<string, any>>(() =>
     buildInitialData(schema, initialData)
@@ -331,27 +336,8 @@ export default function DynamicFormRenderer({
   };
 
   const handleSubmit = () => {
-    // Force overwrite ALL date fields with system time (anti-tampering)
-    const today = todayISO();
+    // Manager-driven dates: no auto-overwrite — submit data as entered.
     const sanitized: Record<string, any> = { ...data };
-    for (const section of schema.sections) {
-      if (section.type === "fields") {
-        const dateKeys = section.fields.filter((f) => f.type === "date").map((f) => f.key);
-        if (dateKeys.length) {
-          sanitized[section.key] = { ...(sanitized[section.key] || {}) };
-          dateKeys.forEach((k) => (sanitized[section.key][k] = today));
-        }
-      } else {
-        const dateKeys = section.fields.filter((f) => f.type === "date").map((f) => f.key);
-        if (dateKeys.length && Array.isArray(sanitized[section.key])) {
-          sanitized[section.key] = sanitized[section.key].map((row: any) => {
-            const next = { ...row };
-            dateKeys.forEach((k) => (next[k] = today));
-            return next;
-          });
-        }
-      }
-    }
     // Validate required fields
     for (const section of schema.sections) {
       if (section.type === "fields") {
@@ -385,7 +371,17 @@ export default function DynamicFormRenderer({
             className="border rounded-xl bg-card overflow-hidden"
           >
             <AccordionTrigger className="px-4 py-3 hover:no-underline text-right">
-              <span className="text-sm font-bold flex-1 text-right">{section.title}</span>
+              <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
+                <span className="text-sm font-bold text-right truncate">{section.title}</span>
+                {renderSectionExtras && (
+                  <span
+                    className="shrink-0"
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  >
+                    {renderSectionExtras(section)}
+                  </span>
+                )}
+              </div>
             </AccordionTrigger>
             <AccordionContent className="px-3 pb-3">
               {section.type === "fields" ? (
@@ -485,6 +481,19 @@ export default function DynamicFormRenderer({
             >
               <Save className="h-4 w-4 ml-1" />
               حفظ مسودة
+            </Button>
+          )}
+          {onPreviewWord && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={() => onPreviewWord(data)}
+              disabled={submitting}
+              title="عاين النموذج كملف Word قبل الإرسال"
+            >
+              <FileDown className="h-4 w-4 ml-1" />
+              تنزيل Word
             </Button>
           )}
           <Button
