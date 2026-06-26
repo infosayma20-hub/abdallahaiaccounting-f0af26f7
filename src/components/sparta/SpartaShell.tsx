@@ -51,7 +51,7 @@ export default function SpartaShell() {
         style={{ background: "var(--gradient-sparta)", color: "hsl(45 33% 97%)" }}
       >
         <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-          <img src={spartaIcon} alt="Sparta" width={40} height={40} className="rounded-md bg-white/10 p-1" />
+          <img src={spartaLogoAsset.url} alt="Sparta" width={44} height={44} className="rounded-md bg-white p-1 object-contain" />
           <div>
             <div className="font-bold text-lg leading-tight">Sparta Trade</div>
             <div className="text-[11px] opacity-70">زرعات الأسنان</div>
