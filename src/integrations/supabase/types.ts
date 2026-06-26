@@ -23425,11 +23425,24 @@ export type Database = {
         Args: { p_create_opportunity?: boolean; p_lead_id: string }
         Returns: Json
       }
+      sparta_convert_opportunity_to_project: {
+        Args: { p_opp_id: string }
+        Returns: string
+      }
       sparta_dispatch_activity_reminders: { Args: never; Returns: number }
       sparta_holding_id: { Args: never; Returns: string }
       sparta_next_invoice_number: { Args: never; Returns: string }
       sparta_owner_user_id: { Args: never; Returns: string }
       sparta_post_invoice: { Args: { _invoice_id: string }; Returns: Json }
+      sparta_post_payroll: { Args: { p_run_id: string }; Returns: undefined }
+      sparta_project_profitability: {
+        Args: { p_project_id: string }
+        Returns: {
+          expenses: number
+          profit: number
+          revenue: number
+        }[]
+      }
       sparta_recalc_customer_balance: {
         Args: { _customer_id: string }
         Returns: undefined
@@ -23448,6 +23461,10 @@ export type Database = {
           _payment_date?: string
           _reference?: string
         }
+        Returns: string
+      }
+      sparta_run_payroll: {
+        Args: { p_month: number; p_year: number }
         Returns: string
       }
       start_editing_call_center_order: {
