@@ -9,31 +9,89 @@ import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 // خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
 // صور 4K واضحة — تظهر بكامل الشاشة لتجوّع الزبون
 const IMG_Q = "w=1920&q=95&auto=format&fit=crop";
-const FOOD_IMAGE_MAP: Array<{ keys: string[]; url: string }> = [
-  { keys: ["بيتزا", "pizza"], url: `https://images.unsplash.com/photo-1513104890138-7c749659a591?${IMG_Q}` },
-  { keys: ["برغر", "برجر", "burger"], url: `https://images.unsplash.com/photo-1568901346375-23c9450c58cd?${IMG_Q}` },
-  { keys: ["بروست", "دجاج مقلي", "broast", "fried"], url: `https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?${IMG_Q}` },
-  { keys: ["مشوي", "شوي", "grill", "مشاوي"], url: `https://images.unsplash.com/photo-1555939594-58d7cb561ad1?${IMG_Q}` },
-  { keys: ["شاورما", "shawarma"], url: `https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?${IMG_Q}` },
-  { keys: ["سموذي", "smoothie", "عصير فراولة"], url: `https://images.unsplash.com/photo-1505252585461-04db1eb84625?${IMG_Q}` },
-  { keys: ["عصير", "juice"], url: `https://images.unsplash.com/photo-1600271886742-f049cd451bba?${IMG_Q}` },
-  { keys: ["موهيتو", "mojito"], url: `https://images.unsplash.com/photo-1551538827-9c037cb4f32a?${IMG_Q}` },
-  { keys: ["كريسبي", "crispy", "تندرز"], url: `https://images.unsplash.com/photo-1562967914-608f82629710?${IMG_Q}` },
-  { keys: ["بطاطا", "fries", "بطاطس"], url: `https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?${IMG_Q}` },
-  { keys: ["سلطة", "salad"], url: `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?${IMG_Q}` },
-  { keys: ["وجبة عائلية", "عائلية", "family"], url: `https://images.unsplash.com/photo-1606755962773-d324e0a13086?${IMG_Q}` },
-  { keys: ["وجبة", "كرسي", "اريزكو"], url: `https://images.unsplash.com/photo-1567620832903-9fc6debc209f?${IMG_Q}` },
-  { keys: ["أطفال", "اطفال", "kids"], url: `https://images.unsplash.com/photo-1546548970-71785318a17b?${IMG_Q}` },
-  { keys: ["عرض", "offer"], url: `https://images.unsplash.com/photo-1504674900247-0877df9cc836?${IMG_Q}` },
-  { keys: ["ميلك", "milkshake", "شيك"], url: `https://images.unsplash.com/photo-1572490122747-3968b75cc699?${IMG_Q}` },
-  { keys: ["بوظة", "آيس", "ice cream"], url: `https://images.unsplash.com/photo-1501443762994-82bd5dace89a?${IMG_Q}` },
-  { keys: ["موهيتو", "نعناع"], url: `https://images.unsplash.com/photo-1551538827-9c037cb4f32a?${IMG_Q}` },
+// لكل تصنيف مجموعة صور — نختار صورة مختلفة لكل صنف حسب اسمه
+const FOOD_IMAGE_MAP: Array<{ keys: string[]; urls: string[] }> = [
+  { keys: ["بيتزا", "pizza"], urls: [
+    `https://images.unsplash.com/photo-1513104890138-7c749659a591?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1574071318508-1cdbab80d002?${IMG_Q}`,
+  ]},
+  { keys: ["برغر", "برجر", "burger"], urls: [
+    `https://images.unsplash.com/photo-1568901346375-23c9450c58cd?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1586190848861-99aa4a171e90?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1550317138-10000687a72b?${IMG_Q}`,
+  ]},
+  // بروست / دجاج مقلي — صور احترافية مع خضار وسلطة وأطباق جانبية
+  { keys: ["بروست", "دجاج مقلي", "كريسبي", "crispy", "تندرز", "broast", "fried", "كرسبي", "وجبة قطعة", "وجبة عائلية", "عائلية", "family"], urls: [
+    `https://images.unsplash.com/photo-1626645738196-c2a7c87a8f3e?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1606755456206-b25206cde27e?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1610057099431-d73a1c9d2f2f?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1562967914-608f82629710?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1585032226651-759b368d7246?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?${IMG_Q}`,
+  ]},
+  { keys: ["مشوي", "شوي", "grill", "مشاوي"], urls: [
+    `https://images.unsplash.com/photo-1555939594-58d7cb561ad1?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1544025162-d76694265947?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1432139509613-5c4255815697?${IMG_Q}`,
+  ]},
+  { keys: ["شاورما", "shawarma"], urls: [
+    `https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1561651823-34feb02250e4?${IMG_Q}`,
+  ]},
+  { keys: ["سموذي", "smoothie"], urls: [
+    `https://images.unsplash.com/photo-1505252585461-04db1eb84625?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?${IMG_Q}`,
+  ]},
+  { keys: ["عصير", "juice", "طبيعية"], urls: [
+    `https://images.unsplash.com/photo-1600271886742-f049cd451bba?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1622597467836-f3285f2131b8?${IMG_Q}`,
+  ]},
+  { keys: ["موهيتو", "mojito", "نعناع"], urls: [
+    `https://images.unsplash.com/photo-1551538827-9c037cb4f32a?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?${IMG_Q}`,
+  ]},
+  { keys: ["بطاطا", "fries", "بطاطس"], urls: [
+    `https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1573080496219-bb080dd4f877?${IMG_Q}`,
+  ]},
+  { keys: ["سلطة", "salad"], urls: [
+    `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1512621776951-a57141f2eefd?${IMG_Q}`,
+  ]},
+  { keys: ["وجبة", "كرسي", "اريزكو"], urls: [
+    `https://images.unsplash.com/photo-1567620832903-9fc6debc209f?${IMG_Q}`,
+    `https://images.unsplash.com/photo-1606755962773-d324e0a13086?${IMG_Q}`,
+  ]},
+  { keys: ["أطفال", "اطفال", "kids"], urls: [
+    `https://images.unsplash.com/photo-1546548970-71785318a17b?${IMG_Q}`,
+  ]},
+  { keys: ["عرض", "offer"], urls: [
+    `https://images.unsplash.com/photo-1504674900247-0877df9cc836?${IMG_Q}`,
+  ]},
+  { keys: ["ميلك", "milkshake", "شيك"], urls: [
+    `https://images.unsplash.com/photo-1572490122747-3968b75cc699?${IMG_Q}`,
+  ]},
+  { keys: ["بوظة", "آيس", "ice cream"], urls: [
+    `https://images.unsplash.com/photo-1501443762994-82bd5dace89a?${IMG_Q}`,
+  ]},
 ];
 const DEFAULT_FOOD_IMG = `https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?${IMG_Q}`;
+function hashStr(s: string): number {
+  let h = 0; for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
 
-function pickFoodImage(name?: string, catName?: string): string {
+function pickFoodImage(name?: string, catName?: string, seed?: string): string {
   const text = `${name || ""} ${catName || ""}`.toLowerCase();
-  for (const m of FOOD_IMAGE_MAP) if (m.keys.some(k => text.includes(k.toLowerCase()))) return m.url;
+  for (const m of FOOD_IMAGE_MAP) {
+    if (m.keys.some(k => text.includes(k.toLowerCase()))) {
+      const idx = hashStr(seed || name || "") % m.urls.length;
+      return m.urls[idx];
+    }
+  }
   return DEFAULT_FOOD_IMG;
 }
 import { toast } from "sonner";
