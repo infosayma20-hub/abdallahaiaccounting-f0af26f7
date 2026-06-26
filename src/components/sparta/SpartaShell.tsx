@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Package, Boxes, FileText, Users, Smartphone, LogOut, Menu, X, CalendarClock, Activity, Sparkles } from "lucide-react";
+import { LayoutDashboard, Package, Boxes, FileText, Users, Smartphone, LogOut, Menu, X, CalendarClock, Activity, Sparkles, UserSquare2, FolderKanban } from "lucide-react";
 import spartaIcon from "/sparta-icon-512.png?url";
 
 const NAV = [
@@ -13,6 +13,8 @@ const NAV = [
   { to: "/sparta/invoices", label: "فواتير المبيعات", icon: FileText },
   { to: "/sparta/customers", label: "العملاء", icon: Users },
   { to: "/sparta/crm", label: "CRM — متابعة العملاء", icon: Sparkles },
+  { to: "/sparta/hr", label: "الموارد البشرية", icon: UserSquare2 },
+  { to: "/sparta/projects", label: "المشاريع", icon: FolderKanban },
   { to: "/sparta/m", label: "تطبيق الموبايل", icon: Smartphone },
 ];
 
