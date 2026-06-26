@@ -7442,6 +7442,8 @@ const POSPage = () => {
                   setTenders={setSplitTenders}
                   userId={dataOwnerId}
                   defaultCardGlAccountCode={defaultCardGl}
+                  exchangeRates={exchangeRates}
+                  currencies={currencies}
                 />
               )}
 
