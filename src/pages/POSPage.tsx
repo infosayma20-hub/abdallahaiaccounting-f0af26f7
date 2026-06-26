@@ -7594,7 +7594,13 @@ const POSPage = () => {
                         return (
                           <button
                             key={cur.code}
-                            onClick={() => { setPaymentCurrency(cur.code); setChangeCurrency("ILS"); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); setManualChangeAmount(null); }}
+                            onClick={() => {
+                              if (cur.code !== 'ILS' && paymentCurrency !== cur.code) {
+                                const ok = window.confirm(`⚠️ تأكيد العملة\n\nهل الزبون فعلاً دفع بـ ${cur.name} (${cur.symbol})؟\n\nاختيار العملة الخطأ يؤدي لفوارق في إغلاق العهدة.`);
+                                if (!ok) return;
+                              }
+                              setPaymentCurrency(cur.code); setChangeCurrency("ILS"); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); setManualChangeAmount(null);
+                            }}
                             className="flex flex-col items-center gap-0.5 rounded-lg transition-all"
                             style={{
                               padding: '8px 12px',
