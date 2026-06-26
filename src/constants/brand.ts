@@ -19,13 +19,13 @@ export const BRAND = {
     mono:       '/branding/logo-mono.png',      // Single-color full
     text:       '/branding/logo-text.png',      // Text only (أموالي + amwali)
     icon:       '/branding/logo-icon-only.png', // A mark only (transparent)
-    dark:       '/branding/logo-dark.png',      // Inverted (white on navy)
+    dark:       '/logo-white.svg',              // Lightweight inverted logo for dark backgrounds
     iconSquare: '/branding/icon-square.png',    // App icon — rounded square
     iconCircle: '/branding/icon-circle.png',    // App icon — circle
     iconPlain:  '/branding/icon-plain.png',     // Plain 'a' mark
     favicon:    '/favicon.png',
     // Backwards-compat aliases (used across legacy print views / PDFs)
-    white:      '/branding/logo-dark.png',      // logo for dark backgrounds (white text on navy)
+    white:      '/logo-white.svg',              // logo for dark backgrounds (white text on transparent)
     navy:       '/branding/logo-primary.png',   // logo for light backgrounds
     markNavy:   '/branding/icon-plain.png',
     markWhite:  '/branding/logo-icon-only.png',

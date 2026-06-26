@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { AmiriRegular, AmiriBold } from './amiri-font';
+import { registerAmiriFont } from './pdf-font-loader';
 import { ar } from './arabic-pdf-utils';
 
 // ─── Types ───
@@ -151,15 +151,6 @@ const getPdfTypeLabel = (t: string): string => {
   return 'حركة';
 };
 
-// ─── Register Arabic font ───
-const registerArabicFont = (doc: jsPDF) => {
-  doc.addFileToVFS('Amiri-Regular.ttf', AmiriRegular);
-  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-  doc.addFileToVFS('Amiri-Bold.ttf', AmiriBold);
-  doc.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
-  doc.setFont('Amiri', 'normal');
-};
-
 // ─── Draw right-aligned Arabic label + value pair ───
 const drawLabelValue = (
   doc: jsPDF,
@@ -180,11 +171,11 @@ const drawLabelValue = (
 };
 
 // ─── Main Generator ───
-export const generateStatementPDF = (
+export const generateStatementPDF = async (
   data: StatementPDFData,
   company: StatementCompanyData,
   viewOpts: StatementPDFViewOptions = {}
-): jsPDF => {
+): Promise<jsPDF> => {
   const opts = { ...DEFAULT_PDF_VIEW_OPTS, ...viewOpts };
   if (opts.monochrome) applyMonochrome();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -193,7 +184,7 @@ export const generateStatementPDF = (
   const sym = getCurrencySymbol(data.currency);
   const margin = 18;
 
-  registerArabicFont(doc);
+  await registerAmiriFont(doc);
 
   // ══════ HEADER BAR ══════
   doc.setFillColor(...navy);
