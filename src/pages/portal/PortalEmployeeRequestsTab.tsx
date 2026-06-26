@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, ChevronDown, FileDown } from 'lucide-react';
+import { Loader2, Search, ChevronDown, FileDown, MessageCircle } from 'lucide-react';
 import { multiWordMatchAny } from "@/lib/utils";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
 import { getDetailGroups } from "@/lib/employeeRequestDisplay";
 import { displayReason } from "@/lib/hrMessages";
-import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
+import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
 
 const ACCENT = '#2A7B9B';
 
@@ -138,6 +138,18 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
       schema: r.templateSchema || undefined,
       data: r.details,
     });
+  };
+
+  const shareWhatsApp = async (r: EmployeeRequest) => {
+    try {
+      await shareEmployeeFormViaWhatsApp({
+        title: r.templateName || r.title || labelFor(r),
+        employeeName: r.employeeName,
+        createdAt: r.createdAt,
+        schema: r.templateSchema || undefined,
+        data: r.details,
+      });
+    } catch {}
   };
 
   return (
@@ -344,6 +356,18 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                       }}
                     >
                       <FileDown size={14} /> تنزيل Word
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => shareWhatsApp(r)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '7px 10px', borderRadius: 8, marginBottom: 10, marginInlineStart: 8,
+                        border: '1px solid #6EE7B7', background: '#ECFDF5',
+                        color: '#047857', fontSize: 11, fontFamily: 'Tajawal, sans-serif',
+                      }}
+                    >
+                      <MessageCircle size={14} /> مشاركة واتساب
                     </button>
                     {r.formType === 'dynamic_template' ? (
                       <DynamicTemplateView

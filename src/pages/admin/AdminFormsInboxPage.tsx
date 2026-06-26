@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
-import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink, FileDown } from "lucide-react";
+import { Loader2, FileText, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye, ExternalLink, FileDown, MessageCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { getFreshFormPdfUrl } from "@/lib/employee-forms/pdfUrl";
 import DynamicTemplateView from "@/components/employee/DynamicTemplateView";
-import { downloadEmployeeFormWord } from "@/lib/employee-forms/exportFormWord";
+import { downloadEmployeeFormWord, shareEmployeeFormViaWhatsApp } from "@/lib/employee-forms/exportFormWord";
 interface FormRow {
   id: string;
   title: string | null;
@@ -120,6 +120,21 @@ export default function AdminFormsInboxPage() {
     toast({ title: "تم تنزيل ملف Word" });
   };
 
+  const shareWhatsApp = async (row: FormRow) => {
+    try {
+      const res = await shareEmployeeFormViaWhatsApp({
+        title: row.title || row.form_templates?.name || "نموذج",
+        employeeName: row.employees?.full_name,
+        createdAt: row.created_at,
+        schema: row.form_templates?.schema,
+        data: row.form_data,
+      });
+      if (res.method === "fallback") toast({ title: "تم تنزيل الملف", description: "أرفقه يدوياً في واتساب." });
+    } catch (e: any) {
+      toast({ title: "تعذرت المشاركة", description: e.message, variant: "destructive" });
+    }
+  };
+
   const counts = {
     submitted: rows.filter((r) => r.workflow_status === "submitted").length,
     under_review: rows.filter((r) => r.workflow_status === "under_review").length,
@@ -194,6 +209,14 @@ export default function AdminFormsInboxPage() {
                         onClick={() => downloadWord(r)}
                       >
                         <FileDown className="h-4 w-4" /> تنزيل Word
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 w-full sm:w-auto text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                        onClick={() => shareWhatsApp(r)}
+                      >
+                        <MessageCircle className="h-4 w-4" /> مشاركة واتساب
                       </Button>
                     </div>
 
