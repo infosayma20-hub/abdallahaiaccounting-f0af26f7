@@ -160,6 +160,7 @@ const HoldingConsolePage = lazy(() => import("./pages/holding/HoldingConsolePage
 const WorkspaceSelectPage = lazy(() => import("./pages/holding/WorkspaceSelect"));
 // Sparta white-label workspace (Phase 1)
 const SpartaShell = lazy(() => import("./components/sparta/SpartaShell"));
+const SpartaTenantGuard = lazy(() => import("./components/sparta/SpartaTenantGuard"));
 const SpartaThemeProvider = lazy(() =>
   import("./components/sparta/SpartaThemeProvider").then((m) => ({ default: m.SpartaThemeProvider }))
 );
@@ -497,9 +498,11 @@ const App = () => (
                 path="/sparta"
                 element={
                   <ProtectedRoute>
-                    <SpartaThemeProvider>
-                      <SpartaShell />
-                    </SpartaThemeProvider>
+                    <SpartaTenantGuard>
+                      <SpartaThemeProvider>
+                        <SpartaShell />
+                      </SpartaThemeProvider>
+                    </SpartaTenantGuard>
                   </ProtectedRoute>
                 }
               >
