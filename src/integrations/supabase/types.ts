@@ -11622,33 +11622,54 @@ export type Database = {
       }
       pos_expenses: {
         Row: {
+          account_code: string | null
+          advance_id: string | null
           amount: number
           category_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          employee_id: string | null
+          expense_kind: string
           id: string
+          manager_user_id: string | null
+          payment_method: string
           shift_id: string | null
+          transaction_id: string | null
           user_id: string
         }
         Insert: {
+          account_code?: string | null
+          advance_id?: string | null
           amount?: number
           category_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          employee_id?: string | null
+          expense_kind?: string
           id?: string
+          manager_user_id?: string | null
+          payment_method?: string
           shift_id?: string | null
+          transaction_id?: string | null
           user_id: string
         }
         Update: {
+          account_code?: string | null
+          advance_id?: string | null
           amount?: number
           category_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          employee_id?: string | null
+          expense_kind?: string
           id?: string
+          manager_user_id?: string | null
+          payment_method?: string
           shift_id?: string | null
+          transaction_id?: string | null
           user_id?: string
         }
         Relationships: [

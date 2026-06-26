@@ -59,6 +59,8 @@ import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
+import POSExpenseDialog from "@/components/pos/POSExpenseDialog";
+import ManagerHistoryUnlockDialog from "@/components/pos/ManagerHistoryUnlockDialog";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
 import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
@@ -1109,6 +1111,10 @@ const POSPage = () => {
    const [showInventoryInput, setShowInventoryInput] = useState(false);
    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
    const [showExpenseModal, setShowExpenseModal] = useState(false);
+  // Manager-gated D365-style expense flow
+  const [showExpenseManagerUnlock, setShowExpenseManagerUnlock] = useState(false);
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+  const [expenseManager, setExpenseManager] = useState<{ id: string; name: string } | null>(null);
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
     const [showSyncLog, setShowSyncLog] = useState(false);
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
@@ -4953,9 +4959,14 @@ const POSPage = () => {
     // Fetch total expenses for this session
     const { data: expensesData } = await supabase
       .from("pos_expenses")
-      .select("amount")
+      .select("amount, description, expense_kind, account_code, employee_id")
       .eq("shift_id", session.id);
     const totalExpenses = (expensesData || []).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+    const expenseBreakdown = (expensesData || []).map((e: any) => ({
+      kind: e.expense_kind || "account",
+      label: (e.description || "").replace(/^مصروف — /, "").replace(/^(سلفة راتب|قرض حسن) — /, "").slice(0, 40),
+      amount: Number(e.amount) || 0,
+    }));
 
     // Fetch total POS purchases (cash out) for this session
     const { data: purchasesData } = await supabase
@@ -5252,6 +5263,7 @@ const POSPage = () => {
       openingCash: session.opening_cash,
       totalSales: recalcTotalSales,
       totalExpenses,
+      expenseBreakdown,
       totalOrders: recalcTotalOrders,
       closingCash: cash,
       closingCashUSD: cashUSD,
@@ -5938,9 +5950,20 @@ const POSPage = () => {
                     <ShoppingBag className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تسجيل مشتريات
                   </button>
                 )}
-                {session && (isAdmin || posPerms.can_record_expenses) && (
-                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
+                {session && (
+                  <button
+                    className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors"
+                    onClick={() => {
+                      setShowOpsDropdown(false);
+                      if (expenseManager) {
+                        setShowExpenseDialog(true);
+                      } else {
+                        setShowExpenseManagerUnlock(true);
+                      }
+                    }}
+                  >
                     <Receipt className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> صرف مصروف
+                    <span className="mr-auto text-[9px] bg-amber-100 text-amber-800 rounded px-1 py-0.5">مدير</span>
                   </button>
                 )}
                 <div className="border-t border-gray-200 my-1" />
@@ -8629,6 +8652,35 @@ const POSPage = () => {
         sessionId={session?.id}
         canCreateCategory={isAdmin || posPerms.can_create_expense_category}
         sessionBalance={isAdmin && session ? session.opening_cash + session.total_sales : 0}
+      />
+      <ManagerHistoryUnlockDialog
+        open={showExpenseManagerUnlock}
+        onClose={() => setShowExpenseManagerUnlock(false)}
+        onUnlocked={(mid, mname) => {
+          setExpenseManager({ id: mid, name: mname });
+          setShowExpenseManagerUnlock(false);
+          setShowExpenseDialog(true);
+        }}
+        branchId={terminalBranchId || cashBoxBranchId || null}
+        companyId={company?.id || null}
+        sessionId={session?.id || null}
+        cashierName={session?.cashier_name}
+        ttlMinutes={15}
+      />
+      <POSExpenseDialog
+        open={showExpenseDialog}
+        onOpenChange={(v) => {
+          setShowExpenseDialog(v);
+          if (!v) setExpenseManager(null);
+        }}
+        dataOwnerId={dataOwnerId || ""}
+        userId={userId || ""}
+        sessionId={session?.id}
+        sessionBalance={session ? (session.opening_cash || 0) + (session.total_sales || 0) : 0}
+        managerUserId={expenseManager?.id || null}
+        managerName={expenseManager?.name}
+        cashierName={session?.cashier_name}
+        branchId={terminalBranchId || cashBoxBranchId || null}
       />
       <SyncLogSheet
         open={showSyncLog}

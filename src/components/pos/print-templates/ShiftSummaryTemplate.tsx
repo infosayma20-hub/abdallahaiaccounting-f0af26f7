@@ -21,6 +21,12 @@ export interface ShiftSummaryPrintData {
   openingCash: number;
   totalSales: number;
   totalExpenses?: number;
+  expenseBreakdown?: Array<{
+    kind: string;
+    label: string;
+    amount: number;
+    note?: string;
+  }>;
   totalOrders: number;
   closingCash: number;
   closingCashUSD?: number;
@@ -121,6 +127,18 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       <Row label="اجمالي المبيعات" value={`₪${data.totalSales.toFixed(2)}`} bold />
       {(data.totalExpenses || 0) > 0 && (
         <Row label="مصروفات من الصندوق" value={`-₪${(data.totalExpenses || 0).toFixed(2)}`} />
+      )}
+      {(data.expenseBreakdown && data.expenseBreakdown.length > 0) && (
+        <div style={{ marginTop: 4, marginBottom: 6, paddingInline: 6, fontSize: 11 }}>
+          {data.expenseBreakdown.map((e, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, lineHeight: 1.4 }}>
+              <span style={{ flex: 1, textAlign: 'right' }}>
+                {e.kind === 'employee_advance' ? '· سلفة' : e.kind === 'employee_loan' ? '· قرض' : '· مصروف'} {e.label}
+              </span>
+              <span style={{ fontFamily: 'monospace' }}>-₪{e.amount.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
       )}
       <Row label="عدد الطلبات" value={String(data.totalOrders)} />
 
