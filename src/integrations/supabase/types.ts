@@ -21781,6 +21781,26 @@ export type Database = {
         Returns: string
       }
       pos_order_branch_id: { Args: { _order_id: string }; Returns: string }
+      pos_record_expense_v1: {
+        Args: {
+          p_amount: number
+          p_credit_account: string
+          p_data_owner: string
+          p_date: string
+          p_debit_account: string
+          p_description: string
+          p_emp_kind: string
+          p_employee_id: string
+          p_idempotency_key: string
+          p_installments: number
+          p_manager_user_id: string
+          p_mode: string
+          p_reference: string
+          p_session_id: string
+          p_start_month: string
+        }
+        Returns: Json
+      }
       post_import_shipment_atomic: {
         Args: { p_shipment_id: string; p_user_id: string }
         Returns: Json
