@@ -33,6 +33,8 @@ const slugify = (s: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
 
+const fallbackAccountSlug = (userId: string) => `menu-${userId.slice(0, 6)}`;
+
 export default function QRMenuAdminPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -57,7 +59,7 @@ export default function QRMenuAdminPage() {
     (async () => {
       const [{ data: cs }, { data: prof }, { data: br }, { data: cats }, { data: prods }] = await Promise.all([
         supabase.from("company_settings").select("qr_menu_enabled, qr_menu_mode, qr_menu_welcome_message, qr_menu_require_phone").eq("user_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("public_slug, company_name, full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("public_slug, company_name, full_name, display_name").eq("user_id", user.id).maybeSingle(),
         supabase.from("branches").select("id, name, qr_menu_enabled, public_slug").eq("user_id", user.id).order("name"),
         supabase.from("pos_categories").select("id, name, show_in_qr_menu").eq("user_id", user.id).order("sort_order").order("name"),
         supabase.from("products").select("id, name, show_in_qr_menu, pos_category_id, sell_price").eq("user_id", user.id).eq("is_pos_available", true).order("name"),
@@ -69,8 +71,10 @@ export default function QRMenuAdminPage() {
         setRequirePhone(!!(cs as any).qr_menu_require_phone);
       }
       if (prof) {
-        const slug = (prof as any).public_slug || slugify((prof as any).company_name || (prof as any).full_name || "menu");
+        const slug = (prof as any).public_slug || slugify((prof as any).company_name || (prof as any).full_name || (prof as any).display_name || "") || fallbackAccountSlug(user.id);
         setAccountSlug(slug);
+      } else {
+        setAccountSlug(fallbackAccountSlug(user.id));
       }
       setBranches((br as Branch[]) || []);
       setCategories((cats as Category[]) || []);
@@ -100,12 +104,12 @@ export default function QRMenuAdminPage() {
 
   const saveSettings = async () => {
     if (!user) return;
-    const slug = accountSlug.trim() || slugify("menu-" + user.id.slice(0, 6));
+    const slug = slugify(accountSlug.trim()) || fallbackAccountSlug(user.id);
     const { error: e1 } = await supabase.from("company_settings").update({
       qr_menu_enabled: enabled, qr_menu_mode: mode,
       qr_menu_welcome_message: welcome, qr_menu_require_phone: requirePhone,
     }).eq("user_id", user.id);
-    const { error: e2 } = await supabase.from("profiles").update({ public_slug: slug }).eq("id", user.id);
+    const { error: e2 } = await supabase.from("profiles").update({ public_slug: slug }).eq("user_id", user.id);
     if (e1 || e2) { toast.error("تعذّر الحفظ"); return; }
     setAccountSlug(slug);
     toast.success("تم الحفظ");
@@ -129,11 +133,11 @@ export default function QRMenuAdminPage() {
     // Ensure account slug exists
     let acct = accountSlug.trim();
     if (!acct) {
-      acct = slugify(accountSlug) || "menu-" + user.id.slice(0, 6);
+      acct = fallbackAccountSlug(user.id);
       setAccountSlug(acct);
     }
     await supabase.from("company_settings").update({ qr_menu_enabled: true }).eq("user_id", user.id);
-    await supabase.from("profiles").update({ public_slug: acct }).eq("id", user.id);
+    await supabase.from("profiles").update({ public_slug: acct }).eq("user_id", user.id);
     setEnabled(true);
     // Ensure each branch has a slug + enabled
     for (const b of branches) {
@@ -157,7 +161,10 @@ export default function QRMenuAdminPage() {
   };
 
   const buildMenuUrl = (branchSlug: string, tableCode?: string) => {
-    const base = `${window.location.origin}/m/${encodeURIComponent(accountSlug)}/${encodeURIComponent(branchSlug)}`;
+    if (!user) return "";
+    const safeAccountSlug = slugify(accountSlug) || fallbackAccountSlug(user.id);
+    const safeBranchSlug = branchSlug || "br";
+    const base = `${window.location.origin}/m/${encodeURIComponent(safeAccountSlug)}/${encodeURIComponent(safeBranchSlug)}`;
     return tableCode ? `${base}/${encodeURIComponent(tableCode)}` : base;
   };
 
