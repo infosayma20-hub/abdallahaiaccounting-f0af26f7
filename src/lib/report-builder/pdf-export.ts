@@ -6,7 +6,7 @@ import html2canvas from "html2canvas";
 import { format } from "date-fns";
 import { ColumnDef } from "@/components/reports/SortableReportTable";
 import { ar as reshapeArabicText } from "@/utils/arabic-pdf-utils";
-import { AmiriRegular, AmiriBold } from "@/utils/amiri-font";
+import { registerAmiriFont } from "@/utils/pdf-font-loader";
 
 export type PdfTemplate = "executive" | "financial" | "compact" | "detailed";
 
@@ -61,18 +61,6 @@ function ar(text: string): string {
   }
 }
 
-// Register Amiri font (full Arabic support)
-function registerAmiri(doc: jsPDF) {
-  try {
-    doc.addFileToVFS("Amiri-Regular.ttf", AmiriRegular);
-    doc.addFont("Amiri-Regular.ttf", "Amiri", "normal");
-    doc.addFileToVFS("Amiri-Bold.ttf", AmiriBold);
-    doc.addFont("Amiri-Bold.ttf", "Amiri", "bold");
-  } catch (e) {
-    console.warn("Failed to register Amiri font, falling back to helvetica", e);
-  }
-}
-
 // Template-specific config
 function templateConfig(template: PdfTemplate) {
   switch (template) {
@@ -104,7 +92,11 @@ export async function exportReportToPdf({
   userName,
 }: ExportPdfParams) {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-  registerAmiri(doc);
+  try {
+    await registerAmiriFont(doc);
+  } catch (e) {
+    console.warn("Failed to register Amiri font, falling back to helvetica", e);
+  }
   doc.setFont("Amiri", "normal");
 
   const pageW = doc.internal.pageSize.getWidth();
