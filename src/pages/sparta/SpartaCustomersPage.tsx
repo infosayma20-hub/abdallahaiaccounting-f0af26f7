@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSpartaContext } from "@/hooks/sparta/useSpartaContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Search, Users, FileText } from "lucide-react";
+import { Plus, Search, Users, FileText, Download } from "lucide-react";
+import { SpartaPageHeader, SpartaKpiCard, SpartaKpiGrid, SpartaSurface, SpartaPill } from "@/components/sparta/SpartaUI";
 
 interface Customer {
   id: string;
@@ -89,22 +89,32 @@ export default function SpartaCustomersPage() {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto" dir="rtl">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Users className="h-6 w-6" /> العملاء — العيادات والأطباء</h1>
-          <p className="text-sm text-muted-foreground">إدارة العيادات والأطباء وحدود الائتمان والأرصدة الجارية</p>
-        </div>
-        {isAdmin && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 ml-1" /> عميل جديد</Button>}
-      </div>
+      <SpartaPageHeader
+        eyebrow="§ 02 · سجلّ العملاء"
+        title="العملاء — العيادات والأطباء"
+        actions={
+          <>
+            <Button variant="outline" size="sm"><Download className="h-4 w-4 ml-1" /> تصدير Excel</Button>
+            {isAdmin && <Button data-sparta-primary onClick={() => setOpen(true)}><Plus className="h-4 w-4 ml-1" /> عميل جديد</Button>}
+          </>
+        }
+      />
 
-      <div className="relative max-w-md">
+      <SpartaKpiGrid>
+        <SpartaKpiCard label="إجمالي العملاء" value={rows.length} sub="كلهم نشطون" />
+        <SpartaKpiCard label="إجمالي الأرصدة" value={`${rows.reduce((s, r) => s + Number(r.balance || 0), 0).toFixed(0)} ₪`} sub="مدين على العملاء" accent />
+        <SpartaKpiCard label="عدد العيادات" value={new Set(rows.map(r => r.clinic_name).filter(Boolean)).size} sub="عيادات فريدة" />
+        <SpartaKpiCard label="تجاوزوا حد الائتمان" value={rows.filter(r => r.credit_limit > 0 && r.balance > r.credit_limit).length} sub="بحاجة متابعة" accent />
+      </SpartaKpiGrid>
+
+      <div className="relative max-w-md mb-3">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم/العيادة/الطبيب/الجوال..." className="pr-9" />
       </div>
 
-      <div className="bg-card border rounded-xl overflow-x-auto">
+      <SpartaSurface>
         <table className="w-full text-sm min-w-[800px]">
-          <thead className="bg-muted/50 text-right">
+          <thead className="text-right">
             <tr>
               <th className="p-3">الكود</th>
               <th className="p-3">الاسم</th>
@@ -123,7 +133,7 @@ export default function SpartaCustomersPage() {
             {filtered.map((c) => {
               const over = c.credit_limit > 0 && c.balance > c.credit_limit;
               return (
-                <tr key={c.id} className="border-t hover:bg-muted/30">
+                <tr key={c.id}>
                   <td className="p-3 text-muted-foreground">{c.code || "—"}</td>
                   <td className="p-3 font-medium">{c.name}</td>
                   <td className="p-3">{c.clinic_name || "—"}</td>
@@ -132,9 +142,9 @@ export default function SpartaCustomersPage() {
                   <td className="p-3">{c.city || "—"}</td>
                   <td className="p-3">₪ {Number(c.credit_limit).toFixed(2)}</td>
                   <td className="p-3">
-                    <Badge variant={over ? "destructive" : c.balance > 0 ? "secondary" : "outline"}>
+                    <SpartaPill bg={over ? "#FEE2E2" : c.balance > 0 ? "#FEF3C7" : "#DCFCE7"} fg={over ? "#991B1B" : c.balance > 0 ? "#92400E" : "#166534"}>
                       ₪ {Number(c.balance).toFixed(2)}
-                    </Badge>
+                    </SpartaPill>
                   </td>
                   <td className="p-3">
                     <Button size="sm" variant="ghost" onClick={() => nav(`/sparta/invoices?customer=${c.id}`)}>
@@ -146,7 +156,7 @@ export default function SpartaCustomersPage() {
             })}
           </tbody>
         </table>
-      </div>
+      </SpartaSurface>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent dir="rtl" className="max-w-2xl">
