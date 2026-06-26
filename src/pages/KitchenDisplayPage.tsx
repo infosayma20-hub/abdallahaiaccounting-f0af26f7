@@ -197,7 +197,7 @@ export default function KitchenDisplayPage() {
         <td style="padding:4px 0;font-weight:900;font-size:14px;color:#000;">${item.name}</td>
         <td style="padding:4px 0;text-align:center;font-size:16px;font-weight:900;color:#000;">×${item.qty}</td>
       </tr>
-      ${item.note ? `<tr><td colspan="2" style="font-size:12px;color:#000;font-weight:700;padding:1px 6px 4px;">📝 ${item.note}</td></tr>` : ""}
+      ${item.note ? `<tr><td colspan="2" style="font-size:12px;color:#000;font-weight:700;padding:1px 6px 4px;direction:rtl;unicode-bidi:plaintext;text-align:right;">📝 <bdi>${item.note}</bdi></td></tr>` : ""}
       ${item.modifiers?.map((m: any) => `<tr><td colspan="2" style="font-size:12px;color:#000;font-weight:700;padding:1px 6px 3px;">↳ ${m.option_name}</td></tr>`).join("") || ""}`
     ).join("");
 
@@ -390,7 +390,7 @@ function TicketCard({ ticket, stations, onStatusChange, onPrint, getElapsed, onR
               {item.modifiers?.map((m: any, mi: number) => (
                 <p key={mi} className="text-xs text-white/50">↳ {m.option_name}</p>
               ))}
-              {item.note && <p className="text-xs text-amber-300/70 italic">📝 {item.note}</p>}
+              {item.note && <p className="text-xs text-amber-300/70 italic text-right" style={{ direction: 'rtl', unicodeBidi: 'plaintext' }}>📝 <bdi>{item.note}</bdi></p>}
             </div>
           </div>
         ))}
