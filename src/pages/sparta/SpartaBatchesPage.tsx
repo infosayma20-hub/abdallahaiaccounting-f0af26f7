@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSpartaContext } from "@/hooks/sparta/useSpartaContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ function daysUntil(d?: string | null) {
 
 export default function SpartaBatchesPage() {
   const { user } = useAuth();
+  const { companyId, ownerUserId, isAdmin } = useSpartaContext();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
@@ -40,12 +42,12 @@ export default function SpartaBatchesPage() {
   const [form, setForm] = useState({ product_id: "", warehouse_id: "", batch_number: "", lot_number: "", manufacture_date: "", expiry_date: "", quantity_in: 0, unit_cost: 0 });
 
   const load = async () => {
-    if (!user) return;
+    if (!companyId || !ownerUserId) return;
     setLoading(true);
     const [b, p, w] = await Promise.all([
-      supabase.from("product_batches").select("*").eq("company_id", user.id).order("expiry_date", { ascending: true, nullsFirst: false }).limit(500),
-      supabase.from("products").select("id, name").eq("user_id", user.id).eq("requires_batch_tracking", true).order("name").limit(500),
-      supabase.from("warehouses").select("id, name").eq("user_id", user.id).eq("is_active", true).order("name"),
+      supabase.from("product_batches").select("*").eq("company_id", companyId).order("expiry_date", { ascending: true, nullsFirst: false }).limit(500),
+      supabase.from("products").select("id, name").eq("user_id", ownerUserId).eq("requires_batch_tracking", true).order("name").limit(500),
+      supabase.from("warehouses").select("id, name").eq("user_id", ownerUserId).eq("is_active", true).order("name"),
     ]);
     if (b.error) toast.error(b.error.message);
     setBatches((b.data as any) || []);
@@ -54,7 +56,7 @@ export default function SpartaBatchesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user?.id]);
+  useEffect(() => { load(); }, [companyId, ownerUserId]);
 
   const productMap = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p.name])), [products]);
   const warehouseMap = useMemo(() => Object.fromEntries(warehouses.map((w) => [w.id, w.name])), [warehouses]);
@@ -83,8 +85,15 @@ export default function SpartaBatchesPage() {
     if (!form.product_id || !form.batch_number.trim() || form.quantity_in <= 0) {
       return toast.error("اختر المنتج، أدخل رقم الدفعة والكمية");
     }
+    if (!isAdmin || !companyId) return toast.error("صلاحية مدير القابضة مطلوبة");
+    if (form.manufacture_date && form.expiry_date && form.expiry_date < form.manufacture_date) {
+      return toast.error("تاريخ الانتهاء يجب أن يكون بعد تاريخ التصنيع");
+    }
+    if (form.expiry_date && form.expiry_date < new Date().toISOString().slice(0, 10)) {
+      if (!confirm("تاريخ الانتهاء في الماضي. هل أنت متأكد من إدخال دفعة منتهية؟")) return;
+    }
     const { error } = await supabase.from("product_batches").insert({
-      company_id: user!.id,
+      company_id: companyId,
       product_id: form.product_id,
       warehouse_id: form.warehouse_id || null,
       batch_number: form.batch_number,
@@ -97,6 +106,26 @@ export default function SpartaBatchesPage() {
       created_by: user!.id,
     });
     if (error) return toast.error(error.message);
+    // Record the "in" movement so products.quantity auto-syncs via trigger.
+    const { data: createdBatch } = await supabase
+      .from("product_batches")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("product_id", form.product_id)
+      .eq("batch_number", form.batch_number)
+      .single();
+    if (createdBatch?.id) {
+      await supabase.from("batch_movements").insert({
+        company_id: companyId,
+        batch_id: createdBatch.id,
+        product_id: form.product_id,
+        warehouse_id: form.warehouse_id || null,
+        quantity: form.quantity_in,
+        direction: "in",
+        reference_type: "initial_receipt",
+        created_by: user!.id,
+      });
+    }
     toast.success("تمت إضافة الدفعة");
     setOpen(false);
     setForm({ product_id: "", warehouse_id: "", batch_number: "", lot_number: "", manufacture_date: "", expiry_date: "", quantity_in: 0, unit_cost: 0 });
