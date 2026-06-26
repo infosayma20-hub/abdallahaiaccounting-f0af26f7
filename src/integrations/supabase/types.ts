@@ -11760,6 +11760,59 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_order_discounts: {
+        Row: {
+          account_code: string | null
+          applied_by_user_id: string
+          created_at: string
+          discount_amount: number
+          discount_type: string
+          discount_value: number
+          id: string
+          manager_user_id: string | null
+          order_id: string
+          reason: string | null
+          subtotal_before: number
+          user_id: string
+        }
+        Insert: {
+          account_code?: string | null
+          applied_by_user_id: string
+          created_at?: string
+          discount_amount: number
+          discount_type: string
+          discount_value: number
+          id?: string
+          manager_user_id?: string | null
+          order_id: string
+          reason?: string | null
+          subtotal_before: number
+          user_id: string
+        }
+        Update: {
+          account_code?: string | null
+          applied_by_user_id?: string
+          created_at?: string
+          discount_amount?: number
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          manager_user_id?: string | null
+          order_id?: string
+          reason?: string | null
+          subtotal_before?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_order_discounts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_order_lines: {
         Row: {
           cost_price: number
@@ -11874,6 +11927,8 @@ export type Database = {
           delivery_status: string | null
           digital_receipt_sent: boolean | null
           discount_amount: number
+          discount_approved_by: string | null
+          discount_reason: string | null
           discount_type: string | null
           display_number: string | null
           guest_count: number | null
@@ -11968,6 +12023,8 @@ export type Database = {
           delivery_status?: string | null
           digital_receipt_sent?: boolean | null
           discount_amount?: number
+          discount_approved_by?: string | null
+          discount_reason?: string | null
           discount_type?: string | null
           display_number?: string | null
           guest_count?: number | null
@@ -12062,6 +12119,8 @@ export type Database = {
           delivery_status?: string | null
           digital_receipt_sent?: boolean | null
           discount_amount?: number
+          discount_approved_by?: string | null
+          discount_reason?: string | null
           discount_type?: string | null
           display_number?: string | null
           guest_count?: number | null
@@ -12724,9 +12783,11 @@ export type Database = {
           cogs_account_code: string
           company_id: string
           created_at: string
+          discount_account_code: string | null
           id: string
           inventory_account_code: string
           is_active: boolean
+          max_manager_discount_percent: number
           name: string
           receivable_account_code: string
           revenue_account_code: string
@@ -12740,9 +12801,11 @@ export type Database = {
           cogs_account_code?: string
           company_id: string
           created_at?: string
+          discount_account_code?: string | null
           id?: string
           inventory_account_code?: string
           is_active?: boolean
+          max_manager_discount_percent?: number
           name?: string
           receivable_account_code?: string
           revenue_account_code?: string
@@ -12756,9 +12819,11 @@ export type Database = {
           cogs_account_code?: string
           company_id?: string
           created_at?: string
+          discount_account_code?: string | null
           id?: string
           inventory_account_code?: string
           is_active?: boolean
+          max_manager_discount_percent?: number
           name?: string
           receivable_account_code?: string
           revenue_account_code?: string
