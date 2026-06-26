@@ -428,7 +428,7 @@ export default function PublicMenuPage() {
                     <div className="absolute -inset-6 rounded-full pointer-events-none"
                       style={{ border: "2px dashed rgba(230,48,39,0.25)" }} />
                     {/* Product image */}
-                    <img src={current.image_url || pickFoodImage(current.name, catNameById[current.category_id])}
+                    <img src={current.image_url || pickFoodImage(current.name, catNameById[current.category_id], current.id)}
                       alt={current.name}
                       onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }}
                       className="absolute inset-0 w-full h-full object-cover rounded-full"
