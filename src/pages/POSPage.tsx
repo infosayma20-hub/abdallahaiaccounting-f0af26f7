@@ -4127,18 +4127,15 @@ const POSPage = () => {
               ? Math.round((cartTotals.subtotal * managerDiscountMeta.amount) / 100 * 100) / 100
               : managerDiscountMeta.amount;
           await (supabase.from("pos_order_discounts" as any) as any).insert({
+            user_id: dataOwnerId,
             order_id: orderId,
-            company_id: company?.id ?? null,
-            session_id: session?.id ?? null,
-            terminal_id: deviceConfig.terminalId ?? null,
-            branch_id: terminalBranchId ?? null,
+            applied_by_user_id: userId,
+            manager_user_id: managerDiscountMeta.managerUserId,
             discount_type: managerDiscountMeta.type,
             discount_value: managerDiscountMeta.amount,
             discount_amount: equivalent,
+            subtotal_before: cartTotals.subtotal,
             reason: managerDiscountMeta.reason,
-            approved_by: managerDiscountMeta.managerUserId,
-            approved_by_name: managerDiscountMeta.managerName,
-            cashier_user_id: userId ?? null,
           });
         } catch (e) {
           console.warn("[POS] failed to log manager discount audit:", e);
