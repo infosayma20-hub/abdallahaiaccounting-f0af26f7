@@ -21639,6 +21639,7 @@ export type Database = {
       }
       is_my_team_employee: { Args: { _employee_id: string }; Returns: boolean }
       is_sales_rep: { Args: never; Returns: boolean }
+      is_sparta_holding_admin: { Args: { _user_id: string }; Returns: boolean }
       is_sparta_holding_member: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_task_user_owned_by: {
@@ -22120,6 +22121,8 @@ export type Database = {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
       }
+      sparta_holding_id: { Args: never; Returns: string }
+      sparta_owner_user_id: { Args: never; Returns: string }
       start_editing_call_center_order: {
         Args: { p_order_id: string }
         Returns: Json

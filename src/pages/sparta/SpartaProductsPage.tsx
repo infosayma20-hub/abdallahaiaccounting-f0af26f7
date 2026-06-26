@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSpartaContext } from "@/hooks/sparta/useSpartaContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +24,7 @@ interface Product {
 
 export default function SpartaProductsPage() {
   const { user } = useAuth();
+  const { ownerUserId, isAdmin, loading: ctxLoading } = useSpartaContext();
   const [products, setProducts] = useState<Product[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,11 +32,12 @@ export default function SpartaProductsPage() {
   const [form, setForm] = useState({ name: "", sku: "", sell_price: 0, buy_price: 0, requires_batch_tracking: true, min_shelf_life_days: 180 });
 
   const load = async () => {
+    if (!ownerUserId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("products")
       .select("id, name, sku, quantity, sell_price, buy_price, requires_batch_tracking, min_shelf_life_days")
-      .eq("user_id", user!.id)
+      .eq("user_id", ownerUserId)
       .order("name", { ascending: true })
       .limit(500);
     if (error) toast.error(error.message);
@@ -42,7 +45,7 @@ export default function SpartaProductsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { if (user?.id) load(); }, [user?.id]);
+  useEffect(() => { if (ownerUserId) load(); }, [ownerUserId]);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -51,6 +54,7 @@ export default function SpartaProductsPage() {
   }, [products, q]);
 
   const toggleBatch = async (p: Product, next: boolean) => {
+    if (!isAdmin) return toast.error("صلاحية مدير القابضة مطلوبة");
     const { error } = await supabase.from("products").update({ requires_batch_tracking: next }).eq("id", p.id);
     if (error) return toast.error(error.message);
     setProducts((arr) => arr.map((x) => (x.id === p.id ? { ...x, requires_batch_tracking: next } : x)));
@@ -58,8 +62,10 @@ export default function SpartaProductsPage() {
 
   const create = async () => {
     if (!form.name.trim()) return toast.error("اسم المنتج مطلوب");
+    if (!isAdmin) return toast.error("صلاحية مدير القابضة مطلوبة لإنشاء منتج");
+    if (!ownerUserId) return toast.error("جاري تهيئة سياق سبارتا...");
     const { error } = await supabase.from("products").insert({
-      user_id: user!.id,
+      user_id: ownerUserId,
       name: form.name,
       sku: form.sku || null,
       sell_price: form.sell_price,

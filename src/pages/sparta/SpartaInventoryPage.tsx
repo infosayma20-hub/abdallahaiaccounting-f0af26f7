@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSpartaContext } from "@/hooks/sparta/useSpartaContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Boxes, Plus, Warehouse } from "lucide-react";
+import { Boxes, Plus, Warehouse, Search } from "lucide-react";
 
 interface Wh { id: string; name: string; code: string; warehouse_type: string; is_default: boolean }
 
 export default function SpartaInventoryPage() {
   const { user } = useAuth();
+  const { companyId, ownerUserId, isAdmin } = useSpartaContext();
   const [warehouses, setWarehouses] = useState<Wh[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string; quantity: number; requires_batch_tracking: boolean }[]>([]);
   const [openWh, setOpenWh] = useState(false);
@@ -20,25 +22,29 @@ export default function SpartaInventoryPage() {
   const [wForm, setWForm] = useState({ code: "", name: "", warehouse_type: "main" });
   const [iForm, setIForm] = useState({ product_id: "", warehouse_id: "", quantity: 0, notes: "" });
   const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
 
   const load = async () => {
-    if (!user) return;
+    if (!ownerUserId) return;
     setLoading(true);
     const [w, p] = await Promise.all([
-      supabase.from("warehouses").select("id, name, code, warehouse_type, is_default").eq("user_id", user.id).eq("is_active", true).order("name"),
-      supabase.from("products").select("id, name, quantity, requires_batch_tracking").eq("user_id", user.id).order("name").limit(500),
+      supabase.from("warehouses").select("id, name, code, warehouse_type, is_default").eq("user_id", ownerUserId).eq("is_active", true).order("name"),
+      supabase.from("products").select("id, name, quantity, requires_batch_tracking").eq("user_id", ownerUserId).order("name").limit(2000),
     ]);
     setWarehouses((w.data as any) || []);
     setProducts((p.data as any) || []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user?.id]);
+  useEffect(() => { load(); }, [ownerUserId]);
 
   const createWarehouse = async () => {
     if (!wForm.code.trim() || !wForm.name.trim()) return toast.error("الرمز والاسم مطلوبان");
+    if (!isAdmin || !ownerUserId) return toast.error("صلاحية مدير القابضة مطلوبة");
     const { error } = await supabase.from("warehouses").insert({
-      user_id: user!.id, code: wForm.code, name: wForm.name, warehouse_type: wForm.warehouse_type as any,
+      user_id: ownerUserId, code: wForm.code, name: wForm.name, warehouse_type: wForm.warehouse_type as any,
     });
     if (error) return toast.error(error.message);
     toast.success("تمت إضافة المستودع");
@@ -49,12 +55,13 @@ export default function SpartaInventoryPage() {
 
   const issueStock = async () => {
     if (!iForm.product_id || !iForm.warehouse_id || iForm.quantity <= 0) return toast.error("اختر المنتج، المستودع، والكمية");
+    if (!isAdmin || !companyId) return toast.error("صلاحية مدير القابضة مطلوبة");
     const product = products.find((p) => p.id === iForm.product_id);
     if (!product) return;
     try {
       if (product.requires_batch_tracking) {
         const { error } = await supabase.rpc("consume_batches_fifo", {
-          _company_id: user!.id,
+          _company_id: companyId,
           _product_id: iForm.product_id,
           _warehouse_id: iForm.warehouse_id,
           _quantity: iForm.quantity,
@@ -62,16 +69,22 @@ export default function SpartaInventoryPage() {
           _reference_id: null,
         });
         if (error) throw error;
+        // products.quantity is auto-synced by trg_batch_movements_sync_qty.
+      } else {
+        // Non-batch product: write stock_movements (legacy path) and adjust quantity manually
+        await supabase.from("stock_movements").insert({
+          user_id: ownerUserId!,
+          product_id: iForm.product_id,
+          warehouse_id: iForm.warehouse_id,
+          quantity: iForm.quantity,
+          movement_type: "out",
+          notes: iForm.notes || "Sparta manual issue",
+        } as any);
+        await supabase
+          .from("products")
+          .update({ quantity: Math.max(0, Number(product.quantity || 0) - iForm.quantity) })
+          .eq("id", iForm.product_id);
       }
-      // Also write a stock_movements row for audit
-      await supabase.from("stock_movements").insert({
-        user_id: user!.id,
-        product_id: iForm.product_id,
-        warehouse_id: iForm.warehouse_id,
-        quantity: iForm.quantity,
-        movement_type: "out",
-        notes: iForm.notes || "Sparta manual issue",
-      } as any);
       toast.success("تم خصم المخزون");
       setOpenIssue(false);
       setIForm({ product_id: "", warehouse_id: "", quantity: 0, notes: "" });
@@ -82,6 +95,12 @@ export default function SpartaInventoryPage() {
   };
 
   const totalUnits = useMemo(() => products.reduce((s, p) => s + Number(p.quantity || 0), 0), [products]);
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return t ? products.filter((p) => p.name?.toLowerCase().includes(t)) : products;
+  }, [products, q]);
+  const pageRows = filtered.slice(page * pageSize, page * pageSize + pageSize);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto" dir="rtl">
@@ -119,21 +138,35 @@ export default function SpartaInventoryPage() {
 
       <div>
         <h2 className="text-lg font-semibold mb-3">أرصدة المنتجات</h2>
+        <div className="relative max-w-md mb-3">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="بحث بالاسم..." className="pr-9" />
+        </div>
         <div className="bg-card border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-right">
               <tr><th className="p-3">المنتج</th><th className="p-3">الرصيد</th><th className="p-3">تتبع LOT</th></tr>
             </thead>
             <tbody>
-              {products.slice(0, 100).map((p) => (
+              {pageRows.map((p) => (
                 <tr key={p.id} className="border-t">
                   <td className="p-3 font-medium">{p.name}</td>
                   <td className="p-3">{p.quantity}</td>
                   <td className="p-3">{p.requires_batch_tracking ? "✓" : "—"}</td>
                 </tr>
               ))}
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">لا توجد منتجات</td></tr>
+              )}
             </tbody>
           </table>
+          {filtered.length > pageSize && (
+            <div className="flex items-center justify-between p-3 border-t text-xs">
+              <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>السابق</Button>
+              <span className="text-muted-foreground">صفحة {page + 1} من {totalPages} — {filtered.length} منتج</span>
+              <Button variant="ghost" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>التالي</Button>
+            </div>
+          )}
         </div>
       </div>
 

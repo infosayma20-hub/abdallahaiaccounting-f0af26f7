@@ -169,6 +169,7 @@ const SpartaModulePlaceholder = lazy(() => import("./pages/sparta/SpartaModulePl
 const SpartaProductsPage = lazy(() => import("./pages/sparta/SpartaProductsPage"));
 const SpartaBatchesPage = lazy(() => import("./pages/sparta/SpartaBatchesPage"));
 const SpartaInventoryPage = lazy(() => import("./pages/sparta/SpartaInventoryPage"));
+const SpartaBatchMovementsPage = lazy(() => import("./pages/sparta/SpartaBatchMovementsPage"));
 const SpartaMobileHome = lazy(() => import("./pages/sparta/SpartaMobileHome"));
 const SpartaMobilePlaceholder = lazy(() => import("./pages/sparta/SpartaMobilePlaceholder"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
@@ -521,6 +522,10 @@ const App = () => (
                 <Route
                   path="inventory"
                   element={<SpartaInventoryPage />}
+                />
+                <Route
+                  path="movements"
+                  element={<SpartaBatchMovementsPage />}
                 />
                 <Route
                   path="sales"
