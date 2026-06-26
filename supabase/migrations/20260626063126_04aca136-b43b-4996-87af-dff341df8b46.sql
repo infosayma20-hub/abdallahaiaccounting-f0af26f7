@@ -1,0 +1,1 @@
+UPDATE public.profiles SET public_slug = 'menu-' || substr(id::text, 1, 6) WHERE public_slug IS NULL OR public_slug = '';
