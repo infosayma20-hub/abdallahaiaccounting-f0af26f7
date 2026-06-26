@@ -8647,6 +8647,35 @@ const POSPage = () => {
         canCreateCategory={isAdmin || posPerms.can_create_expense_category}
         sessionBalance={isAdmin && session ? session.opening_cash + session.total_sales : 0}
       />
+      <ManagerHistoryUnlockDialog
+        open={showExpenseManagerUnlock}
+        onClose={() => setShowExpenseManagerUnlock(false)}
+        onUnlocked={(mid, mname) => {
+          setExpenseManager({ id: mid, name: mname });
+          setShowExpenseManagerUnlock(false);
+          setShowExpenseDialog(true);
+        }}
+        branchId={terminalBranchId || cashBoxBranchId || null}
+        companyId={company?.id || null}
+        sessionId={session?.id || null}
+        cashierName={session?.cashier_name}
+        ttlMinutes={15}
+      />
+      <POSExpenseDialog
+        open={showExpenseDialog}
+        onOpenChange={(v) => {
+          setShowExpenseDialog(v);
+          if (!v) setExpenseManager(null);
+        }}
+        dataOwnerId={dataOwnerId || ""}
+        userId={userId || ""}
+        sessionId={session?.id}
+        sessionBalance={session ? (session.opening_cash || 0) + (session.total_sales || 0) : 0}
+        managerUserId={expenseManager?.id || null}
+        managerName={expenseManager?.name}
+        cashierName={session?.cashier_name}
+        branchId={terminalBranchId || cashBoxBranchId || null}
+      />
       <SyncLogSheet
         open={showSyncLog}
         onOpenChange={setShowSyncLog}
