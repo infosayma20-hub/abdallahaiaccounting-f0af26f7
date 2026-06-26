@@ -3594,10 +3594,6 @@ const POSPage = () => {
         toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
         return;
       }
-      if (paymentCurrency !== "ILS") {
-        toast.error("الدفع المختلط متاح بعملة الشيكل فقط");
-        return;
-      }
       const paid = splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0);
       const diff = Math.abs(paid - cartTotals.total);
       if (diff > 0.01) {
@@ -3610,6 +3606,11 @@ const POSPage = () => {
       }
       if (splitTenders.some((t) => t.method !== "cash" && t.method !== "card")) {
         toast.error("الدفع المختلط يدعم النقدي والفيزا فقط");
+        return;
+      }
+      // Foreign-currency tenders must be cash (no foreign card swipes)
+      if (splitTenders.some((t) => (t.currency && t.currency !== "ILS") && t.method !== "cash")) {
+        toast.error("الدفع بالعملة الأجنبية مسموح نقداً فقط");
         return;
       }
     }
@@ -4064,9 +4065,9 @@ const POSPage = () => {
             tendered: t.amount, // no over-tender concept in split mode
             change: 0,
             change_currency: "ILS",
-            currency: "ILS",
-            exchange_rate: 1,
-            foreign_amount: t.amount,
+            currency: t.currency || "ILS",
+            exchange_rate: t.exchange_rate || 1,
+            foreign_amount: t.foreign_amount ?? t.amount,
             rate_source: "system",
             ...(t.method === "card" && (t.visa_gl_account_code || defaultCardGl)
               ? { visa_gl_account_code: t.visa_gl_account_code || defaultCardGl }
@@ -7442,6 +7443,8 @@ const POSPage = () => {
                   setTenders={setSplitTenders}
                   userId={dataOwnerId}
                   defaultCardGlAccountCode={defaultCardGl}
+                  exchangeRates={exchangeRates}
+                  currencies={currencies}
                 />
               )}
 
