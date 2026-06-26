@@ -22619,6 +22619,7 @@ export type Database = {
         Args: { p_create_opportunity?: boolean; p_lead_id: string }
         Returns: Json
       }
+      sparta_dispatch_activity_reminders: { Args: never; Returns: number }
       sparta_holding_id: { Args: never; Returns: string }
       sparta_next_invoice_number: { Args: never; Returns: string }
       sparta_owner_user_id: { Args: never; Returns: string }
