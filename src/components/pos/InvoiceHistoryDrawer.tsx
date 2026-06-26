@@ -1971,6 +1971,9 @@ export default function InvoiceHistoryDrawer({
           orderNumber={selectedOrder.order_number}
           orderTotal={selectedOrder.total}
           currentMethod={orderPayments[0]?.payment_method || "cash"}
+          currentCurrency={orderPayments[0]?.currency || "ILS"}
+          paymentsCount={orderPayments.length}
+          exchangeRates={exchangeRates}
           ageMinutes={
             selectedOrder.paid_at
               ? (getServerNow() - new Date(selectedOrder.paid_at).getTime()) / 60000
