@@ -801,6 +801,9 @@ const POSPage = () => {
   const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
+  // خصم بإذن مدير الفرع (Contra-Revenue). يُمسح بعد كل بيع ناجح أو إلغاء.
+  const [showManagerDiscountDialog, setShowManagerDiscountDialog] = useState(false);
+  const [managerDiscountMeta, setManagerDiscountMeta] = useState<ManagerDiscountApproved | null>(null);
   // Diagnostic state for the open-shift dialog (per-line readiness)
   const [bridgeOnlineDiag, setBridgeOnlineDiag] = useState<boolean | null>(null);
   const [printersCountDiag, setPrintersCountDiag] = useState<number | null>(null);
