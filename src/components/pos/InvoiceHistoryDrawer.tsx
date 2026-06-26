@@ -1201,9 +1201,16 @@ export default function InvoiceHistoryDrawer({
                       )}
                       {Number(order.delivery_fee || 0) > 0 && canCashierSeeAmount(order) && (
                         <div className="mt-1 flex items-center gap-1 flex-wrap text-[10px]" style={{ color: "#64748B" }}>
-                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>أصناف ₪{(Number(order.total) - Number(order.delivery_fee || 0)).toFixed(2)}</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                            أصناف ₪{(order.total_includes_delivery_fee
+                              ? Number(order.total) - Number(order.delivery_fee || 0)
+                              : Number(order.total)
+                            ).toFixed(2)}
+                          </span>
                           <span style={{ color: "#CBD5E1" }}>·</span>
-                          <span style={{ fontFamily: "JetBrains Mono, monospace" }}>توصيل ₪{Number(order.delivery_fee).toFixed(2)}</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace" }} title="يخص شركة التوصيل — خارج عهدة الصندوق">
+                            توصيل ₪{Number(order.delivery_fee).toFixed(2)}
+                          </span>
                           {(order.area_name || order.delivery_address) && (
                             <>
                               <span style={{ color: "#CBD5E1" }}>·</span>
