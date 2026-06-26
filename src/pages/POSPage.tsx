@@ -4117,6 +4117,34 @@ const POSPage = () => {
         throw new Error(res?.error || "خطأ في إتمام الطلب");
       }
 
+      // 🧾 تسجيل سجل التدقيق لخصم المدير — يُكتب بعد إتمام الدفع فقط حتى لا
+      // نسجل خصومات لطلبات لم تُغلق. الحفظ المحاسبي الفعلي (Contra-Revenue)
+      // يتم داخل دالة complete_pos_order عبر discount_account_code.
+      if (managerDiscountMeta && cartTotals.discount > 0) {
+        try {
+          const equivalent =
+            managerDiscountMeta.type === "percent"
+              ? Math.round((cartTotals.subtotal * managerDiscountMeta.amount) / 100 * 100) / 100
+              : managerDiscountMeta.amount;
+          await (supabase.from("pos_order_discounts" as any) as any).insert({
+            order_id: orderId,
+            company_id: company?.id ?? null,
+            session_id: session?.id ?? null,
+            terminal_id: deviceConfig.terminalId ?? null,
+            branch_id: terminalBranchId ?? null,
+            discount_type: managerDiscountMeta.type,
+            discount_value: managerDiscountMeta.amount,
+            discount_amount: equivalent,
+            reason: managerDiscountMeta.reason,
+            approved_by: managerDiscountMeta.managerUserId,
+            approved_by_name: managerDiscountMeta.managerName,
+            cashier_user_id: userId ?? null,
+          });
+        } catch (e) {
+          console.warn("[POS] failed to log manager discount audit:", e);
+        }
+      }
+
       // Fallback: manually release table if trigger didn't fire
       if (activeOrder.tableId) {
         await supabase
