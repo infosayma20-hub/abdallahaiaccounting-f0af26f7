@@ -8681,6 +8681,8 @@ const POSPage = () => {
         managerName={expenseManager?.name}
         cashierName={session?.cashier_name}
         branchId={terminalBranchId || cashBoxBranchId || null}
+        cashBoxId={session?.cash_box_id || selectedCashBoxId || null}
+        cashBoxName={selectedCashBox?.name || null}
       />
       <SyncLogSheet
         open={showSyncLog}
