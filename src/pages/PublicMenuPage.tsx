@@ -4,6 +4,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock } from "lucide-react";
+import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+
+// خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
+const FOOD_IMAGE_MAP: Array<{ keys: string[]; url: string }> = [
+  { keys: ["بيتزا", "pizza"], url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=70" },
+  { keys: ["برغر", "برجر", "burger"], url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=70" },
+  { keys: ["بروست", "دجاج مقلي", "broast", "fried"], url: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&q=70" },
+  { keys: ["مشوي", "شوي", "grill", "مشاوي"], url: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=70" },
+  { keys: ["شاورما", "shawarma"], url: "https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?w=600&q=70" },
+  { keys: ["سموذي", "smoothie", "عصير فراولة"], url: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=600&q=70" },
+  { keys: ["عصير", "juice"], url: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=70" },
+  { keys: ["موهيتو", "mojito"], url: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=600&q=70" },
+  { keys: ["كريسبي", "crispy", "تندرز"], url: "https://images.unsplash.com/photo-1562967914-608f82629710?w=600&q=70" },
+  { keys: ["بطاطا", "fries", "بطاطس"], url: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&q=70" },
+  { keys: ["سلطة", "salad"], url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70" },
+  { keys: ["وجبة عائلية", "عائلية", "family"], url: "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f3a?w=600&q=70" },
+  { keys: ["وجبة", "كرسي", "اريزكو"], url: "https://images.unsplash.com/photo-1432139509613-5c4255815697?w=600&q=70" },
+  { keys: ["أطفال", "اطفال", "kids"], url: "https://images.unsplash.com/photo-1546548970-71785318a17b?w=600&q=70" },
+  { keys: ["عرض", "offer"], url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=70" },
+];
+const DEFAULT_FOOD_IMG = "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=600&q=70";
+
+function pickFoodImage(name?: string, catName?: string): string {
+  const text = `${name || ""} ${catName || ""}`.toLowerCase();
+  for (const m of FOOD_IMAGE_MAP) if (m.keys.some(k => text.includes(k.toLowerCase()))) return m.url;
+  return DEFAULT_FOOD_IMG;
+}
 import { toast } from "sonner";
 
 type Resolved = {
