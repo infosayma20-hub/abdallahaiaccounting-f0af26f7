@@ -550,6 +550,15 @@ const App = () => (
                 <Route path="hr" element={<SpartaHRPage />} />
                 <Route path="projects" element={<SpartaProjectsPage />} />
                 <Route path="projects/:id" element={<SpartaProjectDetailPage />} />
+                {/* Accounting (Phase 5A) */}
+                <Route path="accounting" element={<SpartaAccountingHub />} />
+                <Route path="accounting/chart" element={<SpartaChartOfAccountsPage />} />
+                <Route path="accounting/journal" element={<SpartaJournalListPage />} />
+                <Route path="accounting/journal/new" element={<SpartaJournalFormPage />} />
+                <Route path="accounting/journal/:id" element={<SpartaJournalFormPage />} />
+                <Route path="accounting/ledger" element={<SpartaChartOfAccountsPage />} />
+                <Route path="accounting/ledger/:id" element={<SpartaAccountLedgerPage />} />
+                <Route path="accounting/reports" element={<SpartaTrialBalancePage />} />
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />
