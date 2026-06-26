@@ -602,7 +602,7 @@ export default function InvoiceHistoryDrawer({
     try {
       const [linesRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
-        supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency").eq("order_id", order.id),
+        supabase.from("pos_payments").select("id, order_id, payment_method, amount, currency, exchange_rate").eq("order_id", order.id),
       ]);
       // Defensive: ensure the lines we got actually belong to this order.
       const safeLines = ((linesRes.data || []) as InvoiceLine[]).filter(
