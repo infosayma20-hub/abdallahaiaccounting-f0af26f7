@@ -180,38 +180,39 @@ export default function SpartaInvoiceFormPage() {
             <p className="text-xs text-muted-foreground">شركة سبارتا للتجارة واستيراد زرعات الأسنان</p>
           </div>
         </div>
-        <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto md:divide-r dark:divide-slate-800 rtl:divide-x-reverse">
-          <div className="px-4">
+        <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center">
+          <div className="px-4 border-r dark:border-slate-800 rtl:border-l">
             <div className="text-xs text-muted-foreground">رقم الفاتورة</div>
             <div className="text-lg font-bold font-mono">{inv.invoice_number}</div>
             <Badge className="mt-1" variant={inv.status === "posted" ? "secondary" : inv.status === "cancelled" ? "destructive" : "outline"}>
               {inv.status === "draft" ? "مسودة" : inv.status === "posted" ? "معتمدة" : "ملغاة"}
             </Badge>
           </div>
-        <div>
-          <Label className="text-xs">العميل</Label>
-          {canEdit ? (
-            <select className="w-full border rounded-md px-2 py-1.5 bg-background text-sm" value={inv.customer_id} onChange={(e) => updateInv({ customer_id: e.target.value })}>
-              {customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.clinic_name ? ` — ${c.clinic_name}` : ""}</option>)}
-            </select>
-          ) : (
-            <div className="font-medium mt-1">{customer?.name} {customer?.clinic_name && <span className="text-muted-foreground">— {customer.clinic_name}</span>}</div>
-          )}
-          {customer && (
-            <div className="text-xs text-muted-foreground mt-1">
-              الرصيد الجاري: ₪ {Number(customer.balance).toFixed(2)}
-              {customer.credit_limit > 0 && ` / حد الائتمان: ₪ ${Number(customer.credit_limit).toFixed(2)}`}
-            </div>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label className="text-xs">التاريخ</Label>
-            <Input type="date" value={inv.invoice_date} disabled={!canEdit} onChange={(e) => updateInv({ invoice_date: e.target.value })} />
+          <div className="px-4 border-r dark:border-slate-800 rtl:border-l">
+            <Label className="text-xs">العميل</Label>
+            {canEdit ? (
+              <select className="w-full border rounded-md px-2 py-1.5 bg-background text-sm mt-1" value={inv.customer_id} onChange={(e) => updateInv({ customer_id: e.target.value })}>
+                {customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.clinic_name ? ` — ${c.clinic_name}` : ""}</option>)}
+              </select>
+            ) : (
+              <div className="font-medium mt-1">{customer?.name} {customer?.clinic_name && <span className="text-muted-foreground">— {customer.clinic_name}</span>}</div>
+            )}
+            {customer && (
+              <div className="text-xs text-muted-foreground mt-1">
+                الرصيد الجاري: ₪ {Number(customer.balance).toFixed(2)}
+                {customer.credit_limit > 0 && ` / حد الائتمان: ₪ ${Number(customer.credit_limit).toFixed(2)}`}
+              </div>
+            )}
           </div>
-          <div>
-            <Label className="text-xs">تاريخ الاستحقاق</Label>
-            <Input type="date" value={inv.due_date || ""} disabled={!canEdit} onChange={(e) => updateInv({ due_date: e.target.value || null })} />
+          <div className="px-4 grid grid-cols-2 gap-2 border-r dark:border-slate-800 rtl:border-l">
+            <div>
+              <Label className="text-xs">التاريخ</Label>
+              <Input type="date" value={inv.invoice_date} disabled={!canEdit} onChange={(e) => updateInv({ invoice_date: e.target.value })} className="mt-1 h-8" />
+            </div>
+            <div>
+              <Label className="text-xs">تاريخ الاستحقاق</Label>
+              <Input type="date" value={inv.due_date || ""} disabled={!canEdit} onChange={(e) => updateInv({ due_date: e.target.value || null })} className="mt-1 h-8" />
+            </div>
           </div>
         </div>
       </div>
