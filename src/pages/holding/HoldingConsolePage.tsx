@@ -512,10 +512,47 @@ export default function HoldingConsolePage() {
             />
           )}
 
-          {(nav === "dashboard" || nav === "reports" || nav === "settings") && (
-            <div style={{ padding: 48, textAlign: "center", color: "#9CA3AF", border: "1px dashed #E5E7EB", borderRadius: 16 }}>
-              {headerLabelByNav[nav]} — قريباً
-            </div>
+          {nav === "dashboard" && (
+            <DashboardView
+              t={t}
+              dir={dir}
+              accent={ACCENT}
+              gradient={GRADIENT}
+              subs={subs}
+              rows={rows}
+              kpi={kpi}
+              holdingId={holdingId}
+              fromDate={fromDate}
+              toDate={toDate}
+            />
+          )}
+
+          {nav === "reports" && (
+            <ReportsView
+              t={t}
+              dir={dir}
+              accent={ACCENT}
+              gradient={GRADIENT}
+              holdingId={holdingId}
+              fromDate={fromDate}
+              toDate={toDate}
+            />
+          )}
+
+          {nav === "settings" && (
+            <SettingsView
+              t={t}
+              dir={dir}
+              accent={ACCENT}
+              gradient={GRADIENT}
+              holdingId={holdingId}
+              holdingName={holdingName}
+              setHoldingName={setHoldingName}
+              logoUrl={logoUrl}
+              setLogoUrl={setLogoUrl}
+              subs={subs}
+              setSubs={setSubs}
+            />
           )}
         </main>
 
