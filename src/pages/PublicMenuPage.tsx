@@ -82,7 +82,7 @@ export default function PublicMenuPage() {
   }, [submittedId]);
 
   const filtered = useMemo(() => products.filter(p => p.category_id === activeCat), [products, activeCat]);
-  const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
+  const total = cart.reduce((s, l) => s + l.unit_price * l.qty, 0);
 
   const openProduct = (p: Product) => {
     if (!p.modifier_groups || p.modifier_groups.length === 0) {
