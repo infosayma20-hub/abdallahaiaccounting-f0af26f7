@@ -205,7 +205,7 @@ function buildBody(opts: {
   return out;
 }
 
-export function downloadEmployeeFormWord(opts: {
+function buildDoc(opts: {
   title: string;
   employeeName?: string | null;
   createdAt?: string | null;
@@ -217,7 +217,7 @@ export function downloadEmployeeFormWord(opts: {
   // Docs / WPS) rendered as a black screen. With native docx + proper RTL
   // flags (bidirectional, rightToLeft, visuallyRightToLeft) the file
   // opens identically on phones and desktops.
-  const doc = new Document({
+  return new Document({
     creator: "Amwali",
     title: opts.title,
     styles: {
@@ -237,8 +237,28 @@ export function downloadEmployeeFormWord(opts: {
       },
     ],
   });
+}
 
-  Packer.toBlob(doc).then((blob) => {
+/** Build the .docx file in-memory as a Blob (for share / preview). */
+export async function buildEmployeeFormWordBlob(opts: {
+  title: string;
+  employeeName?: string | null;
+  createdAt?: string | null;
+  schema?: TemplateSchema | null;
+  data?: Record<string, any> | null;
+}): Promise<Blob> {
+  return Packer.toBlob(buildDoc(opts));
+}
+
+/** Generate and trigger a browser download for the .docx file. */
+export function downloadEmployeeFormWord(opts: {
+  title: string;
+  employeeName?: string | null;
+  createdAt?: string | null;
+  schema?: TemplateSchema | null;
+  data?: Record<string, any> | null;
+}) {
+  buildEmployeeFormWordBlob(opts).then((blob) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -248,4 +268,49 @@ export function downloadEmployeeFormWord(opts: {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
+}
+
+/**
+ * Share the form as a Word file via the native share sheet (WhatsApp, etc.).
+ * Falls back to a normal download + opening WhatsApp web with a text summary.
+ */
+export async function shareEmployeeFormViaWhatsApp(opts: {
+  title: string;
+  employeeName?: string | null;
+  createdAt?: string | null;
+  schema?: TemplateSchema | null;
+  data?: Record<string, any> | null;
+  message?: string;
+}) {
+  const fileName = `${sanitizeExportFileName(opts.title)}.docx`;
+  const blob = await buildEmployeeFormWordBlob(opts);
+  const file = new File(
+    [blob],
+    fileName,
+    { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+  );
+
+  const nav: any = typeof navigator !== "undefined" ? navigator : null;
+  const text = opts.message
+    || `📄 ${opts.title}${opts.employeeName ? ` — ${opts.employeeName}` : ""}`;
+
+  if (nav?.canShare && nav.canShare({ files: [file] })) {
+    try {
+      await nav.share({ files: [file], title: opts.title, text });
+      return { method: "native" as const };
+    } catch (e: any) {
+      // User cancelled — don't fallback
+      if (e?.name === "AbortError") return { method: "cancelled" as const };
+    }
+  }
+
+  // Fallback: download the file and open WhatsApp Web with a text message
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  const waText = encodeURIComponent(`${text}\n(تم تنزيل الملف على جهازك — أرفقه هنا 👇)`);
+  window.open(`https://wa.me/?text=${waText}`, "_blank", "noopener,noreferrer");
+  return { method: "fallback" as const };
 }
