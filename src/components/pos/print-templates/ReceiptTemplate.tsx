@@ -268,8 +268,8 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
                     </div>
                   )}
                   {item.note && (
-                    <div style={{ fontSize: '15px', color: '#222', marginTop: '3px', fontWeight: 700, lineHeight: 1.25, wordBreak: 'break-word' }}>
-                      📝 {item.note}
+                    <div style={{ fontSize: '15px', color: '#222', marginTop: '3px', fontWeight: 700, lineHeight: 1.25, wordBreak: 'break-word', direction: 'rtl', unicodeBidi: 'plaintext', textAlign: 'right' }}>
+                      📝 <bdi>{item.note}</bdi>
                     </div>
                   )}
                 </td>
@@ -347,9 +347,12 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
           fontSize: '20px',
           fontWeight: 700,
           borderRadius: '4px',
+          direction: 'rtl',
+          unicodeBidi: 'plaintext',
+          textAlign: 'right',
           ...box,
         }}>
-          <span style={{ fontWeight: 900 }}>📝 ملاحظة:</span> {mergedOrderNote}
+          <span style={{ fontWeight: 900 }}>📝 ملاحظة:</span> <bdi>{mergedOrderNote}</bdi>
         </div>
       )}
 

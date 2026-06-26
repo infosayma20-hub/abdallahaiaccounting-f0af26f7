@@ -172,8 +172,9 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
                 fontSize: '12px', fontWeight: 700, color: '#000',
                 textAlign: 'right', marginTop: '2px', paddingRight: '48px',
                 lineHeight: 1.2, wordBreak: 'break-word',
+                direction: 'rtl', unicodeBidi: 'plaintext',
               }}>
-                ملاحظة: {item.note}
+                ملاحظة: <bdi>{item.note}</bdi>
               </div>
             )}
           </div>
@@ -191,8 +192,10 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
             marginTop: '8px',
             lineHeight: 1.25,
             wordBreak: 'break-word',
+            direction: 'rtl',
+            unicodeBidi: 'plaintext',
           }}>
-            ملاحظة الفاتورة: {order.orderNote}
+            ملاحظة الفاتورة: <bdi>{order.orderNote}</bdi>
           </div>
         </>
       )}

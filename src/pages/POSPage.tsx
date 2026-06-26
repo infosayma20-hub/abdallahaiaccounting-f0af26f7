@@ -6703,7 +6703,8 @@ const POSPage = () => {
                               }}
                               onClick={(e) => e.stopPropagation()}
                               placeholder="ملاحظة..."
-                              className="h-7 text-[11px] bg-muted/30 border-dashed border-border"
+                              className="h-7 text-[11px] bg-muted/30 border-dashed border-border text-right"
+                              style={{ direction: 'rtl', textAlign: 'right', unicodeBidi: 'plaintext' }}
                             />
                           </motion.div>
                         )}
