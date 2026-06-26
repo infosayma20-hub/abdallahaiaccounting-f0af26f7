@@ -51,12 +51,19 @@ export default function SpartaDashboard() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="rounded-2xl p-6 lg:p-8 text-white" style={{ background: "var(--gradient-sparta)" }}>
-        <div className="text-sm opacity-80 mb-1">مرحباً بك في</div>
-        <h1 className="text-2xl lg:text-3xl font-bold">Sparta Trade · زرعات الأسنان</h1>
-        <p className="text-sm opacity-80 mt-2 max-w-xl">
-          ابدأ من إدارة منتجاتك، تتبع المخزون والـ LOTs، واصدر الفواتير بعملة الشيكل (ILS).
-        </p>
+      <div className="rounded-2xl p-6 lg:p-8 text-white flex flex-col md:flex-row md:items-center justify-between gap-6" style={{ background: "var(--gradient-sparta)" }}>
+        <div className="space-y-2">
+          <div className="text-sm opacity-80">مرحباً بك في</div>
+          <h1 className="text-2xl lg:text-3xl font-bold">Sparta Trade · زرعات الأسنان</h1>
+          <p className="text-sm opacity-80 max-w-xl">
+            ابدأ من إدارة منتجاتك، تتبع المخزون والـ LOTs، واصدر الفواتير بعملة الشيكل (ILS).
+          </p>
+        </div>
+        <img 
+          src={spartaLogoAsset.url} 
+          alt="Sparta Trade Logo" 
+          className="h-20 w-20 md:h-24 md:w-24 rounded-xl bg-white p-2 object-contain shadow-lg shrink-0 self-start md:self-auto"
+        />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
