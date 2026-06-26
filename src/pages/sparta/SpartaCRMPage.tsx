@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpartaContext } from "@/hooks/sparta/useSpartaContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,22 +11,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Target, Sparkles, Calendar, Phone, Mail, ArrowRightLeft, CheckCircle2 } from "lucide-react";
+import { Plus, Target, Sparkles, Calendar, Phone, Mail, ArrowRightLeft, CheckCircle2, LayoutGrid, Columns, User as UserIcon } from "lucide-react";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/core";
 
 type Lead = {
   id: string; name: string; company: string | null; phone: string | null;
   email: string | null; source: string | null; status: string; notes: string | null;
-  converted_customer_id: string | null; created_at: string;
+  converted_customer_id: string | null; created_at: string; assigned_to: string | null;
 };
 type Opp = {
   id: string; title: string; customer_id: string | null; expected_value: number;
   currency: string; probability: number; stage: string; expected_close_date: string | null;
-  notes: string | null; created_at: string;
+  notes: string | null; created_at: string; assigned_to: string | null;
 };
 type Activity = {
   id: string; kind: string; subject: string; body: string | null;
   due_at: string | null; done_at: string | null; lead_id: string | null;
-  opportunity_id: string | null; customer_id: string | null; created_at: string;
+  opportunity_id: string | null; customer_id: string | null; created_at: string; assigned_to: string | null;
 };
 
 const LEAD_STATUS: Record<string, { label: string; tone: string }> = {
@@ -50,12 +52,15 @@ const KIND: Record<string, string> = {
 
 export default function SpartaCRMPage() {
   const { companyId } = useSpartaContext();
+  const { user } = useAuth();
   const [tab, setTab] = useState("leads");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [opps, setOpps] = useState<Opp[]>([]);
   const [acts, setActs] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [dlg, setDlg] = useState<"" | "lead" | "opp" | "act">("");
+  const [mineOnly, setMineOnly] = useState(false);
+  const [oppView, setOppView] = useState<"cards" | "kanban">("kanban");
 
   const reload = async () => {
     if (!companyId) return;
@@ -75,13 +80,18 @@ export default function SpartaCRMPage() {
   };
   useEffect(() => { reload(); }, [companyId]);
 
+  const myId = user?.id ?? null;
+  const fLeads = useMemo(() => mineOnly && myId ? leads.filter(l => l.assigned_to === myId) : leads, [leads, mineOnly, myId]);
+  const fOpps  = useMemo(() => mineOnly && myId ? opps .filter(o => o.assigned_to === myId) : opps,  [opps,  mineOnly, myId]);
+  const fActs  = useMemo(() => mineOnly && myId ? acts .filter(a => a.assigned_to === myId) : acts,  [acts,  mineOnly, myId]);
+
   const summary = useMemo(() => ({
-    newLeads: leads.filter((l) => l.status === "new").length,
-    activeOpps: opps.filter((o) => !["won", "lost"].includes(o.stage)).length,
-    pipelineValue: opps.filter((o) => !["lost"].includes(o.stage))
+    newLeads: fLeads.filter((l) => l.status === "new").length,
+    activeOpps: fOpps.filter((o) => !["won", "lost"].includes(o.stage)).length,
+    pipelineValue: fOpps.filter((o) => !["lost"].includes(o.stage))
       .reduce((s, o) => s + Number(o.expected_value || 0) * (o.probability / 100), 0),
-    overdueAct: acts.filter((a) => !a.done_at && a.due_at && new Date(a.due_at) < new Date()).length,
-  }), [leads, opps, acts]);
+    overdueAct: fActs.filter((a) => !a.done_at && a.due_at && new Date(a.due_at) < new Date()).length,
+  }), [fLeads, fOpps, fActs]);
 
   return (
     <div dir="rtl" className="space-y-6">
@@ -90,6 +100,15 @@ export default function SpartaCRMPage() {
           <h1 className="text-2xl font-bold flex items-center gap-2"><Sparkles className="h-6 w-6 text-primary" /> إدارة علاقات العملاء</h1>
           <p className="text-sm text-muted-foreground">عملاء محتملون، فرص بيعية وأنشطة متابعة</p>
         </div>
+        <Button
+          variant={mineOnly ? "default" : "outline"}
+          size="sm"
+          onClick={() => setMineOnly(v => !v)}
+          className="gap-1"
+        >
+          <UserIcon className="h-4 w-4" />
+          {mineOnly ? "عرض كل القابضة" : "مسؤول عني فقط"}
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -101,9 +120,9 @@ export default function SpartaCRMPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="leads">العملاء المحتملون ({leads.length})</TabsTrigger>
-          <TabsTrigger value="opps">الفرص البيعية ({opps.length})</TabsTrigger>
-          <TabsTrigger value="acts">سجل الأنشطة ({acts.length})</TabsTrigger>
+          <TabsTrigger value="leads">العملاء المحتملون ({fLeads.length})</TabsTrigger>
+          <TabsTrigger value="opps">الفرص البيعية ({fOpps.length})</TabsTrigger>
+          <TabsTrigger value="acts">سجل الأنشطة ({fActs.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads" className="mt-4">
@@ -124,8 +143,8 @@ export default function SpartaCRMPage() {
               </thead>
               <tbody>
                 {loading ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">جاري التحميل…</td></tr>
-                : leads.length === 0 ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">لا يوجد عملاء محتملون بعد</td></tr>
-                : leads.map((l) => (
+                : fLeads.length === 0 ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">لا يوجد عملاء محتملون بعد</td></tr>
+                : fLeads.map((l) => (
                   <tr key={l.id} className="border-t hover:bg-muted/30">
                     <td className="p-3 font-medium">{l.name}</td>
                     <td className="p-3">{l.company || "—"}</td>
@@ -153,12 +172,19 @@ export default function SpartaCRMPage() {
         </TabsContent>
 
         <TabsContent value="opps" className="mt-4">
-          <div className="flex justify-end mb-3">
+          <div className="flex justify-between items-center mb-3 gap-2">
+            <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
+              <Button size="sm" variant={oppView === "kanban" ? "default" : "ghost"} onClick={() => setOppView("kanban")} className="h-7 px-2 gap-1"><Columns className="h-3.5 w-3.5" />Kanban</Button>
+              <Button size="sm" variant={oppView === "cards" ? "default" : "ghost"} onClick={() => setOppView("cards")} className="h-7 px-2 gap-1"><LayoutGrid className="h-3.5 w-3.5" />بطاقات</Button>
+            </div>
             <Button onClick={() => setDlg("opp")}><Plus className="h-4 w-4 ml-1" />فرصة بيعية</Button>
           </div>
+          {oppView === "kanban" ? (
+            <OppKanban opps={fOpps} onChanged={reload} />
+          ) : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {opps.length === 0 && <div className="p-6 text-center text-muted-foreground col-span-full border rounded-lg bg-card">لا توجد فرص بيعية بعد</div>}
-            {opps.map((o) => (
+            {fOpps.length === 0 && <div className="p-6 text-center text-muted-foreground col-span-full border rounded-lg bg-card">لا توجد فرص بيعية بعد</div>}
+            {fOpps.map((o) => (
               <div key={o.id} className="border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold flex items-center gap-2"><Target className="h-4 w-4 text-primary" />{o.title}</div>
@@ -185,6 +211,7 @@ export default function SpartaCRMPage() {
               </div>
             ))}
           </div>
+          )}
         </TabsContent>
 
         <TabsContent value="acts" className="mt-4">
@@ -203,8 +230,8 @@ export default function SpartaCRMPage() {
                 </tr>
               </thead>
               <tbody>
-                {acts.length === 0 ? <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">لا يوجد سجل أنشطة</td></tr>
-                : acts.map((a) => {
+                {fActs.length === 0 ? <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">لا يوجد سجل أنشطة</td></tr>
+                : fActs.map((a) => {
                   const overdue = !a.done_at && a.due_at && new Date(a.due_at) < new Date();
                   return (
                     <tr key={a.id} className="border-t hover:bg-muted/30">
@@ -249,10 +276,11 @@ function Kpi({ label, value, suffix, tone }: { label: string; value: number | st
 }
 
 function LeadDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuth();
   const [f, setF] = useState({ name: "", company: "", phone: "", email: "", source: "", notes: "" });
   const save = async () => {
     if (!f.name.trim()) return toast.error("الاسم مطلوب");
-    const { error } = await (supabase as any).from("sparta_leads").insert(f);
+    const { error } = await (supabase as any).from("sparta_leads").insert({ ...f, assigned_to: user?.id ?? null });
     if (error) return toast.error(error.message);
     toast.success("تم الحفظ"); onSaved(); onClose();
   };
@@ -277,10 +305,11 @@ function LeadDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
 }
 
 function OppDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuth();
   const [f, setF] = useState({ title: "", expected_value: 0, currency: "ILS", probability: 30, stage: "prospect", expected_close_date: "", notes: "" });
   const save = async () => {
     if (!f.title.trim()) return toast.error("العنوان مطلوب");
-    const payload: any = { ...f, expected_close_date: f.expected_close_date || null };
+    const payload: any = { ...f, expected_close_date: f.expected_close_date || null, assigned_to: user?.id ?? null };
     const { error } = await (supabase as any).from("sparta_opportunities").insert(payload);
     if (error) return toast.error(error.message);
     toast.success("تم الحفظ"); onSaved(); onClose();
@@ -330,6 +359,7 @@ function OppDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
 }
 
 function ActDialog({ onClose, onSaved, leads, opps }: { onClose: () => void; onSaved: () => void; leads: Lead[]; opps: Opp[] }) {
+  const { user } = useAuth();
   const [f, setF] = useState({ kind: "call", subject: "", body: "", due_at: "", lead_id: "", opportunity_id: "" });
   const save = async () => {
     if (!f.subject.trim()) return toast.error("الموضوع مطلوب");
@@ -337,6 +367,7 @@ function ActDialog({ onClose, onSaved, leads, opps }: { onClose: () => void; onS
       kind: f.kind, subject: f.subject, body: f.body || null,
       due_at: f.due_at ? new Date(f.due_at).toISOString() : null,
       lead_id: f.lead_id || null, opportunity_id: f.opportunity_id || null,
+      assigned_to: user?.id ?? null,
     };
     const { error } = await (supabase as any).from("sparta_activities").insert(payload);
     if (error) return toast.error(error.message);
@@ -389,4 +420,78 @@ function ActDialog({ onClose, onSaved, leads, opps }: { onClose: () => void; onS
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="space-y-1"><Label className="text-xs">{label}</Label>{children}</div>;
+}
+
+// ========= Kanban Board for Opportunities (drag & drop) =========
+const KANBAN_STAGES: string[] = ["prospect", "qualified", "proposal", "negotiation", "won", "lost"];
+
+function OppKanban({ opps, onChanged }: { opps: Opp[]; onChanged: () => void }) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const onDragEnd = async (e: DragEndEvent) => {
+    setActiveId(null);
+    const oppId = String(e.active.id);
+    const newStage = e.over?.id ? String(e.over.id) : null;
+    if (!newStage) return;
+    const opp = opps.find(o => o.id === oppId);
+    if (!opp || opp.stage === newStage) return;
+    const prob = newStage === "won" ? 100 : newStage === "lost" ? 0 : opp.probability;
+    const { error } = await (supabase as any).from("sparta_opportunities").update({ stage: newStage, probability: prob }).eq("id", oppId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم نقل الفرصة");
+    onChanged();
+  };
+
+  const active = activeId ? opps.find(o => o.id === activeId) : null;
+
+  return (
+    <DndContext sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {KANBAN_STAGES.map(stage => (
+          <KanbanColumn key={stage} stage={stage} opps={opps.filter(o => o.stage === stage)} />
+        ))}
+      </div>
+      <DragOverlay>{active ? <KanbanCard opp={active} dragging /> : null}</DragOverlay>
+    </DndContext>
+  );
+}
+
+function KanbanColumn({ stage, opps }: { stage: string; opps: Opp[] }) {
+  const { isOver, setNodeRef } = useDroppable({ id: stage });
+  const meta = OPP_STAGE[stage];
+  const total = opps.reduce((s, o) => s + Number(o.expected_value || 0), 0);
+  return (
+    <div ref={setNodeRef} className={`rounded-lg border bg-muted/20 min-h-[200px] flex flex-col ${isOver ? "ring-2 ring-primary bg-primary/5" : ""}`}>
+      <div className={`px-3 py-2 rounded-t-lg ${meta?.tone || "bg-slate-100"} font-semibold text-xs flex items-center justify-between`}>
+        <span>{meta?.label}</span>
+        <span className="opacity-70">{opps.length}</span>
+      </div>
+      <div className="p-2 space-y-2 flex-1">
+        {opps.length === 0 && <div className="text-[11px] text-center text-muted-foreground py-4">—</div>}
+        {opps.map(o => <KanbanCard key={o.id} opp={o} />)}
+      </div>
+      <div className="px-3 py-1.5 border-t text-[11px] text-muted-foreground text-center">
+        المجموع: {total.toLocaleString("ar-PS", { maximumFractionDigits: 0 })}
+      </div>
+    </div>
+  );
+}
+
+function KanbanCard({ opp, dragging }: { opp: Opp; dragging?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: opp.id });
+  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
+  return (
+    <div
+      ref={setNodeRef} style={style} {...listeners} {...attributes}
+      className={`bg-card border rounded-md p-2 cursor-grab active:cursor-grabbing text-xs shadow-sm ${isDragging || dragging ? "opacity-60" : ""}`}
+    >
+      <div className="font-semibold mb-1 truncate">{opp.title}</div>
+      <div className="text-muted-foreground flex justify-between">
+        <span>{Number(opp.expected_value).toLocaleString("ar-PS", { maximumFractionDigits: 0 })} {opp.currency}</span>
+        <span>{opp.probability}%</span>
+      </div>
+      {opp.expected_close_date && <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Calendar className="h-3 w-3" />{opp.expected_close_date}</div>}
+    </div>
+  );
 }
