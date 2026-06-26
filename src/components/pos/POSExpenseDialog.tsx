@@ -70,6 +70,10 @@ interface Props {
   managerName?: string | null;
   cashierName?: string | null;
   branchId?: string | null;
+  /** Cash box the cashier is currently using. The expense will be CREDITED
+   *  to this box's GL sub-account (e.g. 11105 for "كاش سفيان 1"). */
+  cashBoxId?: string | null;
+  cashBoxName?: string | null;
   onSuccess?: () => void;
 }
 
