@@ -7,24 +7,29 @@ import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock, ChevronDown } from 
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 
 // خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
+// صور 4K واضحة — تظهر بكامل الشاشة لتجوّع الزبون
+const IMG_Q = "w=1920&q=95&auto=format&fit=crop";
 const FOOD_IMAGE_MAP: Array<{ keys: string[]; url: string }> = [
-  { keys: ["بيتزا", "pizza"], url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=70" },
-  { keys: ["برغر", "برجر", "burger"], url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=70" },
-  { keys: ["بروست", "دجاج مقلي", "broast", "fried"], url: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&q=70" },
-  { keys: ["مشوي", "شوي", "grill", "مشاوي"], url: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=70" },
-  { keys: ["شاورما", "shawarma"], url: "https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?w=600&q=70" },
-  { keys: ["سموذي", "smoothie", "عصير فراولة"], url: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=600&q=70" },
-  { keys: ["عصير", "juice"], url: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=70" },
-  { keys: ["موهيتو", "mojito"], url: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=600&q=70" },
-  { keys: ["كريسبي", "crispy", "تندرز"], url: "https://images.unsplash.com/photo-1562967914-608f82629710?w=600&q=70" },
-  { keys: ["بطاطا", "fries", "بطاطس"], url: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&q=70" },
-  { keys: ["سلطة", "salad"], url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70" },
-  { keys: ["وجبة عائلية", "عائلية", "family"], url: "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f3a?w=600&q=70" },
-  { keys: ["وجبة", "كرسي", "اريزكو"], url: "https://images.unsplash.com/photo-1432139509613-5c4255815697?w=600&q=70" },
-  { keys: ["أطفال", "اطفال", "kids"], url: "https://images.unsplash.com/photo-1546548970-71785318a17b?w=600&q=70" },
-  { keys: ["عرض", "offer"], url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=70" },
+  { keys: ["بيتزا", "pizza"], url: `https://images.unsplash.com/photo-1513104890138-7c749659a591?${IMG_Q}` },
+  { keys: ["برغر", "برجر", "burger"], url: `https://images.unsplash.com/photo-1568901346375-23c9450c58cd?${IMG_Q}` },
+  { keys: ["بروست", "دجاج مقلي", "broast", "fried"], url: `https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?${IMG_Q}` },
+  { keys: ["مشوي", "شوي", "grill", "مشاوي"], url: `https://images.unsplash.com/photo-1555939594-58d7cb561ad1?${IMG_Q}` },
+  { keys: ["شاورما", "shawarma"], url: `https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?${IMG_Q}` },
+  { keys: ["سموذي", "smoothie", "عصير فراولة"], url: `https://images.unsplash.com/photo-1505252585461-04db1eb84625?${IMG_Q}` },
+  { keys: ["عصير", "juice"], url: `https://images.unsplash.com/photo-1600271886742-f049cd451bba?${IMG_Q}` },
+  { keys: ["موهيتو", "mojito"], url: `https://images.unsplash.com/photo-1551538827-9c037cb4f32a?${IMG_Q}` },
+  { keys: ["كريسبي", "crispy", "تندرز"], url: `https://images.unsplash.com/photo-1562967914-608f82629710?${IMG_Q}` },
+  { keys: ["بطاطا", "fries", "بطاطس"], url: `https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?${IMG_Q}` },
+  { keys: ["سلطة", "salad"], url: `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?${IMG_Q}` },
+  { keys: ["وجبة عائلية", "عائلية", "family"], url: `https://images.unsplash.com/photo-1606755962773-d324e0a13086?${IMG_Q}` },
+  { keys: ["وجبة", "كرسي", "اريزكو"], url: `https://images.unsplash.com/photo-1567620832903-9fc6debc209f?${IMG_Q}` },
+  { keys: ["أطفال", "اطفال", "kids"], url: `https://images.unsplash.com/photo-1546548970-71785318a17b?${IMG_Q}` },
+  { keys: ["عرض", "offer"], url: `https://images.unsplash.com/photo-1504674900247-0877df9cc836?${IMG_Q}` },
+  { keys: ["ميلك", "milkshake", "شيك"], url: `https://images.unsplash.com/photo-1572490122747-3968b75cc699?${IMG_Q}` },
+  { keys: ["بوظة", "آيس", "ice cream"], url: `https://images.unsplash.com/photo-1501443762994-82bd5dace89a?${IMG_Q}` },
+  { keys: ["موهيتو", "نعناع"], url: `https://images.unsplash.com/photo-1551538827-9c037cb4f32a?${IMG_Q}` },
 ];
-const DEFAULT_FOOD_IMG = "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=600&q=70";
+const DEFAULT_FOOD_IMG = `https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?${IMG_Q}`;
 
 function pickFoodImage(name?: string, catName?: string): string {
   const text = `${name || ""} ${catName || ""}`.toLowerCase();
@@ -218,11 +223,13 @@ export default function PublicMenuPage() {
       {/* Floating top bar: logo + branch + categories */}
       <div className="absolute top-0 inset-x-0 z-30 pointer-events-none">
         <div className="pointer-events-auto px-4 pt-4 pb-2 flex items-center gap-3"
-          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)" }}>
-          <div className="h-12 w-12 rounded-xl bg-white p-1 shrink-0 shadow-lg">
+          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent)" }}>
+          {/* Logo on the right (RTL leading edge) */}
+          <div className="h-14 w-14 rounded-2xl bg-white p-1.5 shrink-0 order-first"
+            style={{ boxShadow: "0 10px 24px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.35)" }}>
             <img src={malakyLogo.url} alt={ctx.account_name} className="w-full h-full object-contain" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 text-right">
             <p className="text-sm font-black truncate text-white drop-shadow">{ctx.account_name}</p>
             <div className="inline-flex items-center gap-1.5 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 backdrop-blur text-white">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
@@ -264,9 +271,9 @@ export default function PublicMenuPage() {
               style={{
                 background: "radial-gradient(ellipse at top, #B81E1E 0%, #7A0E0E 55%, #4E0808 100%)",
               }}>
-              {/* Decorative giant logo watermark */}
+              {/* Decorative giant logo watermark — bottom-left, very subtle */}
               <img src={malakyLogo.url} alt=""
-                className="absolute -top-10 -left-10 w-72 opacity-[0.06] pointer-events-none select-none" />
+                className="absolute -bottom-16 -left-16 w-80 opacity-[0.05] pointer-events-none select-none rotate-[-12deg]" />
 
               {/* Huge transparent product image */}
               <div className="absolute inset-0 flex items-center justify-center pt-24 pb-56">
