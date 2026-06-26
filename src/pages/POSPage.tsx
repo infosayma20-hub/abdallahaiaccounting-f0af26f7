@@ -6833,7 +6833,7 @@ const POSPage = () => {
                 {activeOrder.tableId && (
                   <button
                     onClick={() => {
-                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: false, name: `طلب ${activeOrderIndex + 1}` }));
+                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", orderTypeChosen: true, name: `طلب ${activeOrderIndex + 1}` }));
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
