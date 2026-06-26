@@ -6948,6 +6948,40 @@ const POSPage = () => {
 
             {/* Totals */}
             <div className="px-3 py-3">
+              {/* خصم بإذن المدير — يفتح حواراً منفصلاً للتحقق + إدخال السبب */}
+              {!isCallCenter && cart.length > 0 && (
+                <div className="flex items-center justify-between mb-2">
+                  {managerDiscountMeta ? (
+                    <button
+                      onClick={() => {
+                        setManagerDiscountMeta(null);
+                        setOrderDiscount(0);
+                        setOrderDiscountType("fixed");
+                      }}
+                      className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1 transition"
+                      style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
+                      title={`خصم مدير: ${managerDiscountMeta.managerName} — ${managerDiscountMeta.reason}`}
+                    >
+                      <X className="h-3 w-3" />
+                      إلغاء خصم المدير
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowManagerDiscountDialog(true)}
+                      className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1 transition"
+                      style={{ background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}
+                    >
+                      <Tag className="h-3 w-3" />
+                      خصم مدير
+                    </button>
+                  )}
+                  {managerDiscountMeta && (
+                    <span className="text-[10px] text-amber-300/80 truncate max-w-[60%]" title={managerDiscountMeta.reason}>
+                      {managerDiscountMeta.managerName}
+                    </span>
+                  )}
+                </div>
+              )}
               {cartTotals.tax > 0 && (
                 <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   <span>الضريبة</span>
