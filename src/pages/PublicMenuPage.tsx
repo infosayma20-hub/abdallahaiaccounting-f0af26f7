@@ -217,9 +217,9 @@ export default function PublicMenuPage() {
       {/* Hero — white with red accent */}
       <div className="relative overflow-hidden bg-white" style={{ borderBottom: "4px solid #E63027" }}>
         <div className="relative px-5 pt-8 pb-6 text-center">
-          <div className="inline-flex items-center justify-center h-20 w-20 rounded-2xl mb-3"
-            style={{ background: "#E63027", boxShadow: "0 12px 30px -10px rgba(230,48,39,0.5)" }}>
-            <ChefHat className="h-10 w-10 text-white" />
+          <div className="inline-flex items-center justify-center h-24 w-24 rounded-2xl mb-3 bg-white p-2"
+            style={{ boxShadow: "0 12px 30px -10px rgba(31,44,124,0.25)" }}>
+            <img src={malakyLogo.url} alt={ctx.account_name} className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-black tracking-tight" style={{ color: "#1F2C7C" }}>{ctx.account_name}</h1>
           <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold"
@@ -257,16 +257,12 @@ export default function PublicMenuPage() {
       <div className="px-4 pt-5 grid grid-cols-2 gap-3">
         {filtered.map(p => (
           <button key={p.id} onClick={() => openProduct(p)}
-            className="text-right rounded-2xl overflow-hidden transition-transform active:scale-[0.97] bg-white"
-            style={{ border: "1px solid #ECEEF3", boxShadow: "0 6px 20px -12px rgba(31,44,124,0.18)" }}>
+            className="text-right rounded-2xl overflow-hidden transition-all active:scale-[0.97] bg-white hover:-translate-y-0.5"
+            style={{ border: "2px solid #E63027", boxShadow: "0 10px 24px -10px rgba(31,44,124,0.25), 0 2px 6px -2px rgba(230,48,39,0.12)" }}>
             <div className="relative h-32 overflow-hidden bg-white">
-              {p.image_url ? (
-                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-              ) : (
-                <div className="w-full h-full grid place-items-center" style={{ background: "#F8F9FB" }}>
-                  <ChefHat className="h-10 w-10" style={{ color: "#E63027", opacity: 0.35 }} />
-                </div>
-              )}
+              <img src={p.image_url || pickFoodImage(p.name, catNameById[p.category_id])}
+                alt={p.name} className="w-full h-full object-cover" loading="lazy"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }} />
             </div>
             <div className="p-3 space-y-2">
               <p className="text-sm font-bold leading-tight line-clamp-1" style={{ color: "#1F2C7C" }}>{p.name}</p>
