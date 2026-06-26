@@ -8745,8 +8745,8 @@ const POSPage = () => {
           setCustomerName("", null, "", null);
           updateActiveOrder(o => ({
             ...o,
-            orderType: "dine_in",
-            orderTypeChosen: false,
+            orderType: "takeaway",
+            orderTypeChosen: true,
             deliveryAddress: "",
             isEditingDispatch: false,
             callCenterOrderId: null,
