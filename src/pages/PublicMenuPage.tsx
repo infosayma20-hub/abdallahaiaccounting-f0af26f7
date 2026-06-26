@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock } from "lucide-react";
+import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock, ChevronDown } from "lucide-react";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 
 // خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
@@ -212,39 +212,35 @@ export default function PublicMenuPage() {
   }
 
   return (
-    <div dir="rtl" className="min-h-[100dvh] pb-28"
-      style={{ background: "#F8F9FB", color: "#1F2C7C" }}>
-      {/* Hero — white with red accent */}
-      <div className="relative overflow-hidden bg-white" style={{ borderBottom: "4px solid #E63027" }}>
-        <div className="relative px-5 pt-8 pb-6 text-center">
-          <div className="inline-flex items-center justify-center h-24 w-24 rounded-2xl mb-3 bg-white p-2"
-            style={{ boxShadow: "0 12px 30px -10px rgba(31,44,124,0.25)" }}>
+    <div dir="rtl" className="h-[100dvh] w-full overflow-hidden relative"
+      style={{ background: "#7A0E0E", color: "#fff", fontFamily: "'Tajawal','Cairo','Noto Naskh Arabic',sans-serif" }}>
+
+      {/* Floating top bar: logo + branch + categories */}
+      <div className="absolute top-0 inset-x-0 z-30 pointer-events-none">
+        <div className="pointer-events-auto px-4 pt-4 pb-2 flex items-center gap-3"
+          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)" }}>
+          <div className="h-12 w-12 rounded-xl bg-white p-1 shrink-0 shadow-lg">
             <img src={malakyLogo.url} alt={ctx.account_name} className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: "#1F2C7C" }}>{ctx.account_name}</h1>
-          <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold"
-            style={{ background: "#F1F2F8", color: "#1F2C7C" }}>
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#16A34A", boxShadow: "0 0 6px #16A34A" }} />
-            {ctx.branch_name}{tableCode ? ` · طاولة ${tableCode.slice(0, 4)}` : ""}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black truncate text-white drop-shadow">{ctx.account_name}</p>
+            <div className="inline-flex items-center gap-1.5 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 backdrop-blur text-white">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+              {ctx.branch_name}{tableCode ? ` · طاولة ${tableCode.slice(0, 4)}` : ""}
+            </div>
           </div>
-          {ctx.welcome_message && (
-            <p className="text-sm mt-3 max-w-md mx-auto leading-relaxed" style={{ color: "#5B6478" }}>{ctx.welcome_message}</p>
-          )}
         </div>
-      </div>
-
-      {/* Categories — sticky pills */}
-      <div className="sticky top-0 z-20 bg-white" style={{ borderBottom: "1px solid #ECEEF3" }}>
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2 px-4 py-3 min-w-max">
+        {/* Categories */}
+        <div className="pointer-events-auto overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 px-4 pb-3 min-w-max">
             {categories.map(c => {
               const active = activeCat === c.id;
               return (
                 <button key={c.id} onClick={() => setActiveCat(c.id)}
-                  className="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all"
+                  className="px-4 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all backdrop-blur"
                   style={active
-                    ? { background: "#E63027", color: "#fff", boxShadow: "0 6px 16px -6px rgba(230,48,39,0.55)" }
-                    : { background: "#F1F2F8", color: "#1F2C7C" }}>
+                    ? { background: "#fff", color: "#7A0E0E", boxShadow: "0 6px 16px -4px rgba(0,0,0,0.4)" }
+                    : { background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)" }}>
                   {c.name}
                 </button>
               );
@@ -253,35 +249,72 @@ export default function PublicMenuPage() {
         </div>
       </div>
 
-      {/* Products */}
-      <div className="px-4 pt-5 grid grid-cols-2 gap-3">
-        {filtered.map(p => (
-          <button key={p.id} onClick={() => openProduct(p)}
-            className="text-right rounded-2xl overflow-hidden transition-all active:scale-[0.97] bg-white hover:-translate-y-0.5"
-            style={{ border: "2px solid #E63027", boxShadow: "0 10px 24px -10px rgba(31,44,124,0.25), 0 2px 6px -2px rgba(230,48,39,0.12)" }}>
-            <div className="relative h-32 overflow-hidden bg-white">
-              <img src={p.image_url || pickFoodImage(p.name, catNameById[p.category_id])}
-                alt={p.name} className="w-full h-full object-cover" loading="lazy"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }} />
-            </div>
-            <div className="p-3 space-y-2">
-              <p className="text-sm font-bold leading-tight line-clamp-1" style={{ color: "#1F2C7C" }}>{p.name}</p>
-              {p.description && (
-                <p className="text-[11px] line-clamp-2 leading-snug" style={{ color: "#7C8499" }}>{p.description}</p>
-              )}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-sm font-black" style={{ color: "#E63027" }}>₪{Number(p.price).toFixed(2)}</span>
-                <span className="h-7 w-7 rounded-full grid place-items-center text-white"
-                  style={{ background: "#E63027" }}>
-                  <Plus className="h-3.5 w-3.5" strokeWidth={3} />
-                </span>
-              </div>
-            </div>
-          </button>
-        ))}
+      {/* Full-screen vertical snap reel */}
+      <div className="h-full w-full overflow-y-auto snap-y snap-mandatory scrollbar-hide">
         {filtered.length === 0 && (
-          <p className="col-span-2 text-center text-sm py-10" style={{ color: "#9AA1B4" }}>لا توجد أصناف في هذا القسم</p>
+          <div className="h-full w-full grid place-items-center">
+            <p className="text-white/70 text-lg">لا توجد أصناف في هذا القسم</p>
+          </div>
         )}
+        {filtered.map(p => {
+          const imgSrc = p.image_url || pickFoodImage(p.name, catNameById[p.category_id]);
+          return (
+            <section key={p.id}
+              className="relative h-[100dvh] w-full snap-start snap-always overflow-hidden"
+              style={{
+                background: "radial-gradient(ellipse at top, #B81E1E 0%, #7A0E0E 55%, #4E0808 100%)",
+              }}>
+              {/* Decorative giant logo watermark */}
+              <img src={malakyLogo.url} alt=""
+                className="absolute -top-10 -left-10 w-72 opacity-[0.06] pointer-events-none select-none" />
+
+              {/* Huge transparent product image */}
+              <div className="absolute inset-0 flex items-center justify-center pt-24 pb-56">
+                <div className="relative w-[min(85vw,520px)] aspect-square">
+                  <div className="absolute inset-4 rounded-full"
+                    style={{ background: "radial-gradient(circle, rgba(255,200,160,0.35) 0%, rgba(255,200,160,0) 65%)", filter: "blur(20px)" }} />
+                  <img src={imgSrc} alt={p.name}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }}
+                    className="relative w-full h-full object-cover rounded-full ring-8 ring-white/15 animate-fade-in"
+                    style={{
+                      filter: "drop-shadow(0 30px 40px rgba(0,0,0,0.55)) drop-shadow(0 10px 20px rgba(0,0,0,0.35))",
+                    }}
+                    loading="lazy" />
+                </div>
+              </div>
+
+              {/* Bottom info panel */}
+              <div className="absolute bottom-0 inset-x-0 px-6 pb-32 pt-10 text-center"
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent)" }}>
+                <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight drop-shadow-lg leading-tight">
+                  {p.name}
+                </h2>
+                {p.description && (
+                  <p className="mt-3 text-white/85 text-base sm:text-lg max-w-xl mx-auto leading-relaxed line-clamp-2">
+                    {p.description}
+                  </p>
+                )}
+                <div className="mt-5 flex items-center justify-center gap-4">
+                  <span className="text-3xl font-black text-white drop-shadow"
+                    style={{ textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>
+                    ₪{Number(p.price).toFixed(2)}
+                  </span>
+                  <button onClick={() => openProduct(p)}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-black text-base transition-transform active:scale-95"
+                    style={{ background: "#fff", color: "#7A0E0E", boxShadow: "0 12px 28px -8px rgba(0,0,0,0.5)" }}>
+                    <Plus className="h-5 w-5" strokeWidth={3} />
+                    أضف للطلب
+                  </button>
+                </div>
+              </div>
+
+              {/* Scroll hint */}
+              <div className="absolute bottom-24 inset-x-0 flex justify-center pointer-events-none">
+                <ChevronDown className="h-6 w-6 text-white/60 animate-bounce" />
+              </div>
+            </section>
+          );
+        })}
       </div>
 
       {/* Floating cart bar */}
