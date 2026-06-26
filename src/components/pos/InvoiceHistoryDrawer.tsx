@@ -1028,12 +1028,18 @@ export default function InvoiceHistoryDrawer({
             {cashierMode && (
               managerMode.active ? (
                 <button
-                  onClick={managerMode.lock}
-                  className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 transition-colors"
-                  title={`وضع المدير نشط (${managerMode.managerName || "—"}). اضغط للقفل.`}
+                  onClick={() => {
+                    if (window.confirm("هل تريد إنهاء وضع المدير الآن وإخفاء تفاصيل الفواتير؟")) {
+                      managerMode.lock();
+                      toast.success("تم إنهاء وضع المدير");
+                    }
+                  }}
+                  className="ml-2 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                  title={`وضع المدير نشط (${managerMode.managerName || "—"}). اضغط لإنهائه فوراً.`}
                 >
                   <ShieldCheck className="h-3 w-3" />
                   وضع المدير · {Math.max(0, Math.ceil(managerMode.remainingMs / 60000))}د
+                  <X className="h-3 w-3 opacity-90" />
                 </button>
               ) : (
                 <button
