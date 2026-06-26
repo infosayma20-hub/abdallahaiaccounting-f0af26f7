@@ -271,6 +271,31 @@ export default function POSExpenseDialog({
       let expenseKind: string = "account";
       let txDescription = "";
 
+      // 🏦 Resolve the credit account from the active cash box. Each branch
+      // cash box (e.g. كاش سفيان 1/2/3) has its own GL sub-account on the
+      // chart (11105 / 11106 / 11107). Posting to the parent 1110 is
+      // forbidden by the posting-constraints rule.
+      let creditAccount = "1110";
+      let creditAccountName = "الصندوق";
+      if (cashBoxId) {
+        const { data: box } = await (supabase as any)
+          .from("cash_boxes")
+          .select("gl_account_code, name")
+          .eq("id", cashBoxId)
+          .maybeSingle();
+        if (box?.gl_account_code) {
+          creditAccount = box.gl_account_code;
+          creditAccountName = box.name || cashBoxName || "صندوق الفرع";
+        }
+      }
+      if (creditAccount === "1110") {
+        toast.error(
+          "صندوق الفرع غير مربوط بحساب فرعي في شجرة الحسابات — لا يمكن الصرف منه."
+        );
+        setSaving(false);
+        return;
+      }
+
       if (mode === "employee") {
         if (!employeeId) {
           toast.error("اختر الموظف");
