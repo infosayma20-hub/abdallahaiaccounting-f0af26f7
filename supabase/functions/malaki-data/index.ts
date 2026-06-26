@@ -498,10 +498,11 @@ Deno.serve(async (req) => {
           row.cash += pay.cash;
           row.card += pay.card;
           row.employeeAccount += pay.employeeAccount;
-          // Employee meals: orders fully paid via employee_account OR carrying a meal subsidy
-          const meal = pay.employeeAccount + (Number(o.meal_subsidy_amount) || 0);
-          row.employeeMeals += meal;
-          row.net += orderTotal - meal;
+          // Employee meals = company-subsidized portion ONLY.
+          // employee_account payments are A/R (real revenue collected later from payroll), not a deduction.
+          const subsidy = Number(o.meal_subsidy_amount) || 0;
+          row.employeeMeals += subsidy;
+          row.net += orderTotal - subsidy;
         }
         // Attribute cancellations to their branch.
         for (const o of cancelledOrders) {
@@ -581,9 +582,9 @@ Deno.serve(async (req) => {
           row.cash += pay.cash;
           row.card += pay.card;
           row.employeeAccount += pay.employeeAccount;
-          const meal = pay.employeeAccount + (Number(o.meal_subsidy_amount) || 0);
-          row.employeeMeals += meal;
-          row.net += orderTotal - meal;
+          const subsidy = Number(o.meal_subsidy_amount) || 0;
+          row.employeeMeals += subsidy;
+          row.net += orderTotal - subsidy;
         }
         // Attribute cancellations to their cashier.
         for (const o of cancelledOrders) {
