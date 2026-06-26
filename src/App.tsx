@@ -188,6 +188,10 @@ const SpartaJournalListPage = lazy(() => import("./pages/sparta/accounting/Spart
 const SpartaJournalFormPage = lazy(() => import("./pages/sparta/accounting/SpartaJournalFormPage"));
 const SpartaAccountLedgerPage = lazy(() => import("./pages/sparta/accounting/SpartaAccountLedgerPage"));
 const SpartaTrialBalancePage = lazy(() => import("./pages/sparta/accounting/SpartaTrialBalancePage"));
+const SpartaBillsPage = lazy(() => import("./pages/sparta/accounting/SpartaBillsPage"));
+const SpartaBankAccountsPage = lazy(() => import("./pages/sparta/accounting/SpartaBankAccountsPage"));
+const SpartaAgingPage = lazy(() => import("./pages/sparta/accounting/SpartaAgingPage"));
+const SpartaFinancialReportsPage = lazy(() => import("./pages/sparta/accounting/SpartaFinancialReportsPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
@@ -559,6 +563,12 @@ const App = () => (
                 <Route path="accounting/ledger" element={<SpartaChartOfAccountsPage />} />
                 <Route path="accounting/ledger/:id" element={<SpartaAccountLedgerPage />} />
                 <Route path="accounting/reports" element={<SpartaTrialBalancePage />} />
+                {/* Phase 5B */}
+                <Route path="accounting/bills" element={<SpartaBillsPage />} />
+                <Route path="accounting/banks" element={<SpartaBankAccountsPage />} />
+                <Route path="accounting/ar-aging" element={<SpartaAgingPage mode="ar" />} />
+                <Route path="accounting/ap-aging" element={<SpartaAgingPage mode="ap" />} />
+                <Route path="accounting/financial-reports" element={<SpartaFinancialReportsPage />} />
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />
