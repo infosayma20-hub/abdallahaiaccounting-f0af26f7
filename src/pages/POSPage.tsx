@@ -39,6 +39,7 @@ import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
 import { extractBaseNote } from "@/lib/order-note-utils";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
+import ManagerDiscountDialog, { type ManagerDiscountApproved } from "@/components/pos/ManagerDiscountDialog";
 import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import { useDelayedDispatchAlerts } from "@/hooks/useDelayedDispatchAlerts";
 import { StockoutAlertButton, StockoutAlertsListener, StockoutAlertsBanner } from "@/components/pos/StockoutAlerts";
@@ -800,6 +801,9 @@ const POSPage = () => {
   const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
   const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
+  // خصم بإذن مدير الفرع (Contra-Revenue). يُمسح بعد كل بيع ناجح أو إلغاء.
+  const [showManagerDiscountDialog, setShowManagerDiscountDialog] = useState(false);
+  const [managerDiscountMeta, setManagerDiscountMeta] = useState<ManagerDiscountApproved | null>(null);
   // Diagnostic state for the open-shift dialog (per-line readiness)
   const [bridgeOnlineDiag, setBridgeOnlineDiag] = useState<boolean | null>(null);
   const [printersCountDiag, setPrintersCountDiag] = useState<number | null>(null);
@@ -3212,6 +3216,9 @@ const POSPage = () => {
            zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
            area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
           pos_customer_id: activeOrder.posCustomerId || null,
+          // خصم مدير (اختياري) — يُمسح إذا أُلغي الخصم.
+          discount_reason: managerDiscountMeta?.reason ?? null,
+          discount_approved_by: managerDiscountMeta?.managerUserId ?? null,
         } as any).eq("id", existingOrder.id);
       } else {
         // Create new draft order
@@ -3238,6 +3245,8 @@ const POSPage = () => {
             zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
             area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
+            discount_reason: managerDiscountMeta?.reason ?? null,
+            discount_approved_by: managerDiscountMeta?.managerUserId ?? null,
           } as any)
           .select()
           .single();
@@ -4108,6 +4117,31 @@ const POSPage = () => {
         throw new Error(res?.error || "خطأ في إتمام الطلب");
       }
 
+      // 🧾 تسجيل سجل التدقيق لخصم المدير — يُكتب بعد إتمام الدفع فقط حتى لا
+      // نسجل خصومات لطلبات لم تُغلق. الحفظ المحاسبي الفعلي (Contra-Revenue)
+      // يتم داخل دالة complete_pos_order عبر discount_account_code.
+      if (managerDiscountMeta && cartTotals.discount > 0) {
+        try {
+          const equivalent =
+            managerDiscountMeta.type === "percent"
+              ? Math.round((cartTotals.subtotal * managerDiscountMeta.amount) / 100 * 100) / 100
+              : managerDiscountMeta.amount;
+          await (supabase.from("pos_order_discounts" as any) as any).insert({
+            user_id: dataOwnerId,
+            order_id: orderId,
+            applied_by_user_id: userId,
+            manager_user_id: managerDiscountMeta.managerUserId,
+            discount_type: managerDiscountMeta.type,
+            discount_value: managerDiscountMeta.amount,
+            discount_amount: equivalent,
+            subtotal_before: cartTotals.subtotal,
+            reason: managerDiscountMeta.reason,
+          });
+        } catch (e) {
+          console.warn("[POS] failed to log manager discount audit:", e);
+        }
+      }
+
       // Fallback: manually release table if trigger didn't fire
       if (activeOrder.tableId) {
         await supabase
@@ -4735,7 +4769,7 @@ const POSPage = () => {
       } else {
         setCart([]);
         setCustomerName("", null, "", null);
-        setOrderDiscount(0);
+        setOrderDiscount(0); setManagerDiscountMeta(null);
         setOrderNote("");
         setSelectedCartIndex(null);
         setRecallBanner(null);
@@ -5435,7 +5469,7 @@ const POSPage = () => {
       }
       // Delete / Backspace = Clear cart
       if (e.key === "Delete" && e.ctrlKey) {
-        setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+        setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote("");
         setCustomerDataDiscount(null);
         e.preventDefault();
         return;
@@ -6476,7 +6510,7 @@ const POSPage = () => {
               <button
                 onClick={async () => {
                   const tId = activeOrder.tableId;
-                  setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
+                  setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
                   updateActiveOrder(o => ({ ...o, orderType: "dine_in", orderTypeChosen: false, deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
                   if (tId) {
                     await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
@@ -6914,6 +6948,40 @@ const POSPage = () => {
 
             {/* Totals */}
             <div className="px-3 py-3">
+              {/* خصم بإذن المدير — يفتح حواراً منفصلاً للتحقق + إدخال السبب */}
+              {!isCallCenter && cart.length > 0 && (
+                <div className="flex items-center justify-between mb-2">
+                  {managerDiscountMeta ? (
+                    <button
+                      onClick={() => {
+                        setManagerDiscountMeta(null);
+                        setOrderDiscount(0); setManagerDiscountMeta(null);
+                        setOrderDiscountType("fixed");
+                      }}
+                      className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1 transition"
+                      style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
+                      title={`خصم مدير: ${managerDiscountMeta.managerName} — ${managerDiscountMeta.reason}`}
+                    >
+                      <X className="h-3 w-3" />
+                      إلغاء خصم المدير
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowManagerDiscountDialog(true)}
+                      className="text-[11px] px-2 py-1 rounded-md flex items-center gap-1 transition"
+                      style={{ background: 'rgba(245,158,11,0.15)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}
+                    >
+                      <Tag className="h-3 w-3" />
+                      خصم مدير
+                    </button>
+                  )}
+                  {managerDiscountMeta && (
+                    <span className="text-[10px] text-amber-300/80 truncate max-w-[60%]" title={managerDiscountMeta.reason}>
+                      {managerDiscountMeta.managerName}
+                    </span>
+                  )}
+                </div>
+              )}
               {cartTotals.tax > 0 && (
                 <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   <span>الضريبة</span>
@@ -8604,7 +8672,7 @@ const POSPage = () => {
         editingSkipWheelsDispatch={activeOrder.isEditingDispatch ? (activeOrder.callCenterSkipWheelsDispatch || false) : null}
         onSuccess={() => {
           // Clear cart after successful dispatch
-          setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+          setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setManagerDiscountMeta(null); setOrderNote("");
           setCustomerDataDiscount(null);
           setCustomerName("", null, "", null);
           updateActiveOrder(o => ({
@@ -8713,6 +8781,29 @@ const POSPage = () => {
         open={showBarcodeScanner}
         onClose={() => setShowBarcodeScanner(false)}
         onScan={handleBarcodeScan}
+      />
+
+      {/* ── خصم بإذن مدير الفرع ── */}
+      <ManagerDiscountDialog
+        open={showManagerDiscountDialog}
+        onClose={() => setShowManagerDiscountDialog(false)}
+        onApproved={(data) => {
+          setManagerDiscountMeta(data);
+          setOrderDiscountType(data.type);
+          setOrderDiscount(data.amount);
+          setShowManagerDiscountDialog(false);
+          toast.success(
+            data.type === "percent"
+              ? `تم اعتماد خصم ${data.amount}% بإذن ${data.managerName}`
+              : `تم اعتماد خصم ₪${data.amount.toFixed(2)} بإذن ${data.managerName}`
+          );
+        }}
+        branchId={terminalBranchId}
+        terminalId={deviceConfig.terminalId}
+        companyId={company?.id ?? null}
+        sessionId={session?.id ?? null}
+        cashierName={session?.cashier_name || undefined}
+        orderSubtotal={cartTotals.subtotal}
       />
 
       {/* ── Concurrent-shift safeguard ── */}
