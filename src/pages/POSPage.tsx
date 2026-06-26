@@ -3594,10 +3594,6 @@ const POSPage = () => {
         toast.error("الدفع المختلط غير متاح في وضع عدم الاتصال");
         return;
       }
-      if (paymentCurrency !== "ILS") {
-        toast.error("الدفع المختلط متاح بعملة الشيكل فقط");
-        return;
-      }
       const paid = splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0);
       const diff = Math.abs(paid - cartTotals.total);
       if (diff > 0.01) {
@@ -3610,6 +3606,11 @@ const POSPage = () => {
       }
       if (splitTenders.some((t) => t.method !== "cash" && t.method !== "card")) {
         toast.error("الدفع المختلط يدعم النقدي والفيزا فقط");
+        return;
+      }
+      // Foreign-currency tenders must be cash (no foreign card swipes)
+      if (splitTenders.some((t) => (t.currency && t.currency !== "ILS") && t.method !== "cash")) {
+        toast.error("الدفع بالعملة الأجنبية مسموح نقداً فقط");
         return;
       }
     }
