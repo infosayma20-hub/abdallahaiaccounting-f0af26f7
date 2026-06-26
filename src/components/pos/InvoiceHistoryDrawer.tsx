@@ -263,6 +263,8 @@ export default function InvoiceHistoryDrawer({
   const [reprintCopies, setReprintCopies] = useState<number>(1);
   // Fallback phone fetched from linked call_center_orders when pos_orders has no contact phone
   const [ccoPhone, setCcoPhone] = useState<string | null>(null);
+  const [ccoDispatcher, setCcoDispatcher] = useState<string | null>(null);
+  const [ccoSourceApp, setCcoSourceApp] = useState<string | null>(null);
 
   // Recall flow
   const [showReasonDialog, setShowReasonDialog] = useState(false);
@@ -600,6 +602,8 @@ export default function InvoiceHistoryDrawer({
     setOrderPayments([]);
     setOrderCurrency("ILS");
     setCcoPhone(null);
+    setCcoDispatcher(null);
+    setCcoSourceApp(null);
     try {
       const [linesRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, notes").eq("order_id", order.id),
@@ -642,19 +646,21 @@ export default function InvoiceHistoryDrawer({
       setOrderPayments(safePayments);
       setOrderCurrency((safePayments[0] as any)?.currency || "ILS");
       // If no contact phone on the order, try linked call-center order for the phone
-      if (!(order as any).contacts?.phone) {
-        try {
-          const { data: cco } = await supabase
-            .from("call_center_orders")
-            .select("customer_phone")
-            .eq("pos_order_id", order.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (cco?.customer_phone) setCcoPhone(cco.customer_phone);
-        } catch (e) {
-          console.warn("[InvoiceHistoryDrawer] could not load call center phone", e);
+      try {
+        const { data: cco } = await supabase
+          .from("call_center_orders")
+          .select("customer_phone, dispatched_by_name, source_app")
+          .eq("pos_order_id", order.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cco) {
+          if (!(order as any).contacts?.phone && cco.customer_phone) setCcoPhone(cco.customer_phone);
+          if (cco.dispatched_by_name) setCcoDispatcher(cco.dispatched_by_name);
+          if (cco.source_app) setCcoSourceApp(cco.source_app);
         }
+      } catch (e) {
+        console.warn("[InvoiceHistoryDrawer] could not load call center info", e);
       }
     } catch (err) {
       console.error(err);
@@ -1364,6 +1370,16 @@ export default function InvoiceHistoryDrawer({
                         </Field>
                         {selectedOrder.recall_status && (
                           <Field label="سبب التعديل">{selectedOrder.recall_reason || "—"}</Field>
+                        )}
+                        {(ccoDispatcher || ccoSourceApp) && (
+                          <Field label="مصدر الطلب (كول سنتر)">
+                            <span className="text-[12px]" style={{ color: "#0F172A" }}>
+                              {ccoDispatcher || "—"}
+                              {ccoSourceApp ? (
+                                <span className="mr-1 text-[10px]" style={{ color: "#94A3B8" }}> · {ccoSourceApp}</span>
+                              ) : null}
+                            </span>
+                          </Field>
                         )}
                       </div>
                     ) : (
