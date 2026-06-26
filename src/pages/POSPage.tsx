@@ -237,8 +237,8 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   guestCount: guestCount || 1,
   guestName: guestName || "",
   orderType: tableId ? "dine_in" : "takeaway",
-  // الافتراضي: الاستلام مختار تلقائياً لتسهيل العمل (طلبات بدون طاولة)
-  orderTypeChosen: true,
+  // لا يوضع خيار افتراضي؛ يفرض على الكاشير الاختيار يدوياً (سفري/توصيل/طاولة)
+  orderTypeChosen: tableId ? true : false,
   deliveryAddress: "",
   zoneCode: "",
   areaName: "",
