@@ -18133,6 +18133,136 @@ export type Database = {
           },
         ]
       }
+      sparta_van_cash_movements: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          id: string
+          movement_type: string
+          notes: string | null
+          reference_id: string | null
+          reference_type: string | null
+          sales_rep_id: string
+          van_day_id: string
+        }
+        Insert: {
+          amount: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          movement_type: string
+          notes?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          sales_rep_id: string
+          van_day_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          sales_rep_id?: string
+          van_day_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_van_cash_movements_van_day_id_fkey"
+            columns: ["van_day_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_van_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sparta_van_days: {
+        Row: {
+          actual_cash: number | null
+          closed_at: string | null
+          closed_by: string | null
+          company_id: string
+          created_at: string
+          day_date: string
+          expected_cash: number
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          opening_cash: number
+          sales_rep_id: string
+          status: string
+          total_collections: number
+          total_expenses: number
+          total_sales_cash: number
+          total_sales_credit: number
+          updated_at: string
+          variance: number | null
+        }
+        Insert: {
+          actual_cash?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          day_date?: string
+          expected_cash?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_cash?: number
+          sales_rep_id: string
+          status?: string
+          total_collections?: number
+          total_expenses?: number
+          total_sales_cash?: number
+          total_sales_credit?: number
+          updated_at?: string
+          variance?: number | null
+        }
+        Update: {
+          actual_cash?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          day_date?: string
+          expected_cash?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_cash?: number
+          sales_rep_id?: string
+          status?: string
+          total_collections?: number
+          total_expenses?: number
+          total_sales_cash?: number
+          total_sales_credit?: number
+          updated_at?: string
+          variance?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_van_days_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sparta_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statement_send_log: {
         Row: {
           balance_at_send: number | null
@@ -24287,6 +24417,36 @@ export type Database = {
       sparta_seed_default_coa: {
         Args: { _holding_id: string }
         Returns: undefined
+      }
+      sparta_van_close_day: {
+        Args: { _actual_cash: number; _notes?: string; _van_day_id: string }
+        Returns: Json
+      }
+      sparta_van_collect_payment: {
+        Args: {
+          _amount: number
+          _customer_id: string
+          _method?: string
+          _notes?: string
+          _van_day_id: string
+        }
+        Returns: Json
+      }
+      sparta_van_create_sale: {
+        Args: {
+          _customer_id: string
+          _items: Json
+          _notes?: string
+          _paid_amount?: number
+          _payment_method: string
+          _van_day_id: string
+          _warehouse_id?: string
+        }
+        Returns: Json
+      }
+      sparta_van_open_day: {
+        Args: { _notes?: string; _opening_cash?: number; _sales_rep_id: string }
+        Returns: string
       }
       start_editing_call_center_order: {
         Args: { p_order_id: string }
