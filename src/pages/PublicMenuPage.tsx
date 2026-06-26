@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock, ChevronRight, ChevronLeft, Home, UtensilsCrossed, MapPin, User, Menu, Flame, GlassWater } from "lucide-react";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+import broastBucket from "@/assets/menu/broast-bucket.png.asset.json";
 
 // خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
 // صور 4K واضحة — تظهر بكامل الشاشة لتجوّع الزبون
@@ -21,16 +22,9 @@ const FOOD_IMAGE_MAP: Array<{ keys: string[]; urls: string[] }> = [
     `https://images.unsplash.com/photo-1586190848861-99aa4a171e90?${IMG_Q}`,
     `https://images.unsplash.com/photo-1550317138-10000687a72b?${IMG_Q}`,
   ]},
-  // بروست / دجاج مقلي — صور احترافية مع خضار وسلطة وأطباق جانبية
-  { keys: ["بروست", "دجاج مقلي", "كريسبي", "crispy", "تندرز", "broast", "fried", "كرسبي", "وجبة قطعة", "وجبة عائلية", "عائلية", "family"], urls: [
-    `https://images.unsplash.com/photo-1626645738196-c2a7c87a8f3e?${IMG_Q}`,
-    `https://images.unsplash.com/photo-1606755456206-b25206cde27e?${IMG_Q}`,
-    `https://images.unsplash.com/photo-1610057099431-d73a1c9d2f2f?${IMG_Q}`,
-    `https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?${IMG_Q}`,
-    `https://images.unsplash.com/photo-1562967914-608f82629710?${IMG_Q}`,
-    `https://images.unsplash.com/photo-1585032226651-759b368d7246?${IMG_Q}`,
-    `https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?${IMG_Q}`,
-    `https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?${IMG_Q}`,
+  // بروست / دجاج / فخاد — صورة موحّدة من رفع المالك
+  { keys: ["بروست", "دجاج", "كريسبي", "crispy", "تندرز", "broast", "fried", "كرسبي", "فخاد", "فخد", "ورك", "صدر", "قطع", "وجبة قطعة", "وجبة عائلية", "عائلية", "family", "chicken"], urls: [
+    broastBucket.url,
   ]},
   { keys: ["مشوي", "شوي", "grill", "مشاوي"], urls: [
     `https://images.unsplash.com/photo-1555939594-58d7cb561ad1?${IMG_Q}`,
