@@ -278,8 +278,8 @@ export default function PublicMenuPage() {
     <div dir="rtl" className="min-h-[100dvh] w-full relative overflow-hidden"
       style={{ background: "#F5F5F5", color: "#1F2C7C", fontFamily: "'Tajawal','Cairo','Noto Naskh Arabic',sans-serif" }}>
 
-      {/* Right vertical red sidebar (RTL leading edge) */}
-      <aside className="fixed top-0 right-0 h-full w-[88px] z-40 flex flex-col items-center py-6 gap-7 text-white"
+      {/* Right vertical red sidebar (RTL leading edge) - hidden on mobile, bottom nav used instead */}
+      <aside className="hidden md:flex fixed top-0 right-0 h-full w-[72px] lg:w-[88px] z-40 flex-col items-center py-6 gap-7 text-white"
         style={{ background: "#E63027" }}>
         <button className="flex flex-col items-center gap-1 opacity-90 hover:opacity-100 transition">
           <Home className="h-5 w-5" /><span className="text-[11px] font-bold">الرئيسية</span>
@@ -306,49 +306,68 @@ export default function PublicMenuPage() {
         </button>
       </aside>
 
-      {/* Main canvas (offset from sidebar) */}
-      <div className="mr-[88px] min-h-[100dvh] relative">
+      {/* Main canvas (offset from sidebar on md+) */}
+      <div className="md:mr-[72px] lg:mr-[88px] min-h-[100dvh] relative pb-20 md:pb-0">
 
-        {/* Top bar: logo (right) + categories (center) + branch + menu (left) */}
-        <header className="relative z-20 flex items-center gap-4 px-6 lg:px-10 pt-6">
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="h-20 w-20 rounded-2xl bg-white p-2"
+        {/* Top bar: responsive — single row on desktop, stacked on mobile */}
+        <header className="relative z-20 px-4 sm:px-6 lg:px-10 pt-4 sm:pt-6">
+          {/* Row 1: logo + branch + menu */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-2xl bg-white p-1.5 sm:p-2 shrink-0"
               style={{ boxShadow: "0 8px 24px -10px rgba(230,48,39,0.25)" }}>
               <img src={malakyLogo.url} alt={ctx.account_name} className="w-full h-full object-contain" />
             </div>
+
+            {/* Categories on desktop, between logo and branch */}
+            <nav className="hidden md:block flex-1 min-w-0">
+              <div className="mx-auto max-w-3xl rounded-full px-3 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide"
+                style={{ background: "#fff", boxShadow: "0 8px 24px -14px rgba(31,44,124,0.18)" }}>
+                {categories.map(c => {
+                  const active = activeCat === c.id;
+                  return (
+                    <button key={c.id} onClick={() => setActiveCat(c.id)}
+                      className="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all"
+                      style={active
+                        ? { background: "#E63027", color: "#fff" }
+                        : { background: "transparent", color: "#1F2C7C" }}>
+                      {c.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <div className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 max-w-[120px] sm:max-w-none truncate"
+                style={{ background: "#E63027" }}>
+                <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span className="truncate">{ctx.branch_name}</span>
+              </div>
+              <button onClick={() => setShowSideMenu(true)}
+                className="h-10 w-10 sm:h-11 sm:w-11 rounded-full grid place-items-center bg-white shrink-0"
+                style={{ boxShadow: "0 8px 20px -12px rgba(31,44,124,0.2)", color: "#1F2C7C" }}>
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
-          {/* Categories pill bar */}
-          <nav className="flex-1 min-w-0">
-            <div className="mx-auto max-w-3xl rounded-full px-3 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide"
-              style={{ background: "#fff", boxShadow: "0 8px 24px -14px rgba(31,44,124,0.18)" }}>
+          {/* Row 2 (mobile only): full-width categories scroll bar */}
+          <nav className="md:hidden mt-3 -mx-4 sm:-mx-6 px-4 sm:px-6">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
               {categories.map(c => {
                 const active = activeCat === c.id;
                 return (
                   <button key={c.id} onClick={() => setActiveCat(c.id)}
-                    className="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all"
+                    className="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shrink-0"
                     style={active
-                      ? { background: "#E63027", color: "#fff" }
-                      : { background: "transparent", color: "#1F2C7C" }}>
+                      ? { background: "#E63027", color: "#fff", boxShadow: "0 8px 18px -8px rgba(230,48,39,0.5)" }
+                      : { background: "#fff", color: "#1F2C7C", boxShadow: "0 4px 12px -6px rgba(31,44,124,0.12)" }}>
                     {c.name}
                   </button>
                 );
               })}
             </div>
           </nav>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="px-4 py-2 rounded-full text-white text-sm font-bold flex items-center gap-2"
-              style={{ background: "#E63027" }}>
-              <MapPin className="h-4 w-4" />
-              {ctx.branch_name}
-            </div>
-            <button onClick={() => setShowSideMenu(true)}
-              className="h-11 w-11 rounded-full grid place-items-center bg-white"
-              style={{ boxShadow: "0 8px 20px -12px rgba(31,44,124,0.2)", color: "#1F2C7C" }}>
-              <Menu className="h-5 w-5" />
-            </button>
-          </div>
         </header>
 
         {/* Showcase area */}
@@ -357,69 +376,69 @@ export default function PublicMenuPage() {
             <p className="text-lg opacity-60">لا توجد أصناف في هذا القسم</p>
           </div>
         ) : (
-          <main className="relative px-6 lg:px-16 pt-8 pb-20">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center min-h-[78vh]">
+          <main className="relative px-4 sm:px-6 lg:px-16 pt-4 sm:pt-8 pb-20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-center lg:min-h-[78vh]">
               {/* Right column (text) — comes first in RTL */}
-              <div className="relative z-10 lg:pr-6">
-                <h1 className="text-5xl lg:text-7xl font-black"
+              <div className="relative z-10 lg:pr-6 text-center lg:text-right">
+                <h1 className="text-3xl sm:text-4xl lg:text-7xl font-black"
                   style={{ color: "#E63027", lineHeight: 1.55 }}>
                   {current.name}
                 </h1>
                 {current.description && (
-                  <p className="mt-6 text-base lg:text-lg max-w-md"
+                  <p className="mt-4 sm:mt-6 text-sm sm:text-base lg:text-lg max-w-md mx-auto lg:mx-0"
                     style={{ color: "#1F2C7C", opacity: 0.85, lineHeight: 2 }}>
                     {current.description}
                   </p>
                 )}
 
                 {/* Specs row */}
-                <div className="mt-8 flex items-center gap-10">
-                  <div className="flex items-center gap-3">
-                    <GlassWater className="h-7 w-7" style={{ color: "#E63027" }} />
+                <div className="mt-6 sm:mt-8 flex items-center justify-center lg:justify-start gap-6 sm:gap-10">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <GlassWater className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: "#E63027" }} />
                     <div>
-                      <div className="text-xl font-black" style={{ color: "#1F2C7C" }}>450 مل</div>
-                      <div className="text-xs opacity-60">الحجم</div>
+                      <div className="text-lg sm:text-xl font-black" style={{ color: "#1F2C7C" }}>450 مل</div>
+                      <div className="text-[11px] sm:text-xs opacity-60">الحجم</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Flame className="h-7 w-7" style={{ color: "#E63027" }} />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Flame className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: "#E63027" }} />
                     <div>
-                      <div className="text-xl font-black" style={{ color: "#1F2C7C" }}>280</div>
-                      <div className="text-xs opacity-60">سعرات حرارية</div>
+                      <div className="text-lg sm:text-xl font-black" style={{ color: "#1F2C7C" }}>280</div>
+                      <div className="text-[11px] sm:text-xs opacity-60">سعرات حرارية</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-10 h-px w-64" style={{ background: "#E5E7EE" }} />
+                <div className="mt-6 sm:mt-10 h-px w-48 sm:w-64 mx-auto lg:mx-0" style={{ background: "#E5E7EE" }} />
 
                 {/* Price — RTL-safe: render the number as one LTR unit */}
-                <div className="mt-6 flex items-baseline gap-3" style={{ color: "#1F2C7C" }}>
-                  <span dir="ltr" className="text-6xl font-black tracking-tight inline-block">
+                <div className="mt-4 sm:mt-6 flex items-baseline justify-center lg:justify-start gap-3" style={{ color: "#1F2C7C" }}>
+                  <span dir="ltr" className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight inline-block">
                     {Number(current.price).toFixed(2)}
                   </span>
-                  <span className="text-2xl font-bold opacity-70">₪</span>
+                  <span className="text-xl sm:text-2xl font-bold opacity-70">₪</span>
                 </div>
 
                 {/* CTA */}
                 <button onClick={() => openProduct(current)}
-                  className="mt-8 inline-flex items-center gap-3 pl-8 pr-2 py-2 rounded-full font-black text-lg text-white transition-transform active:scale-[0.98]"
+                  className="mt-6 sm:mt-8 inline-flex items-center gap-3 pl-6 sm:pl-8 pr-2 py-2 rounded-full font-black text-base sm:text-lg text-white transition-transform active:scale-[0.98]"
                   style={{ background: "#E63027", boxShadow: "0 18px 36px -14px rgba(230,48,39,0.55)" }}>
-                  <span className="h-12 w-12 rounded-full grid place-items-center bg-white" style={{ color: "#E63027" }}>
-                    <Plus className="h-6 w-6" strokeWidth={3} />
+                  <span className="h-10 w-10 sm:h-12 sm:w-12 rounded-full grid place-items-center bg-white" style={{ color: "#E63027" }}>
+                    <Plus className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={3} />
                   </span>
                   أضف للطلب
                 </button>
               </div>
 
               {/* Left column (image with red half-circle) */}
-              <div className="relative h-[60vh] lg:h-[78vh] order-first lg:order-last">
+              <div className="relative h-[42vh] sm:h-[52vh] lg:h-[78vh] order-first lg:order-last">
                 {/* Red disc */}
                 <div className="absolute inset-0 grid place-items-center">
-                  <div className="relative w-[90%] aspect-square max-w-[560px]">
+                  <div className="relative w-[80%] sm:w-[85%] lg:w-[90%] aspect-square max-w-[560px]">
                     <div className="absolute inset-0 rounded-full"
                       style={{ background: "#E63027" }} />
                     {/* Concentric outline ring */}
-                    <div className="absolute -inset-6 rounded-full pointer-events-none"
+                    <div className="absolute -inset-3 sm:-inset-6 rounded-full pointer-events-none"
                       style={{ border: "2px dashed rgba(230,48,39,0.25)" }} />
                     {/* Product image */}
                     <img src={current.image_url || pickFoodImage(current.name, catNameById[current.category_id], current.id)}
@@ -431,7 +450,7 @@ export default function PublicMenuPage() {
                 </div>
 
                 {/* "New" badge */}
-                <div className="absolute top-6 left-2 h-20 w-20 rounded-full grid place-items-center bg-white text-sm font-black"
+                <div className="absolute top-2 sm:top-6 left-2 h-14 w-14 sm:h-20 sm:w-20 rounded-full grid place-items-center bg-white text-xs sm:text-sm font-black"
                   style={{ border: "2px solid #E63027", color: "#E63027" }}>
                   جديد
                 </div>
@@ -440,18 +459,18 @@ export default function PublicMenuPage() {
 
             {/* Navigation arrows */}
             <button onClick={goNext} aria-label="next"
-              className="absolute top-1/2 -translate-y-1/2 right-4 lg:right-8 h-12 w-12 rounded-full grid place-items-center bg-white z-20"
+              className="absolute top-[22vh] sm:top-[26vh] lg:top-1/2 lg:-translate-y-1/2 right-2 sm:right-4 lg:right-8 h-10 w-10 sm:h-12 sm:w-12 rounded-full grid place-items-center bg-white z-20"
               style={{ boxShadow: "0 10px 24px -10px rgba(31,44,124,0.25)", color: "#1F2C7C" }}>
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <button onClick={goPrev} aria-label="prev"
-              className="absolute top-1/2 -translate-y-1/2 left-4 lg:left-8 h-12 w-12 rounded-full grid place-items-center bg-white z-20"
+              className="absolute top-[22vh] sm:top-[26vh] lg:top-1/2 lg:-translate-y-1/2 left-2 sm:left-4 lg:left-8 h-10 w-10 sm:h-12 sm:w-12 rounded-full grid place-items-center bg-white z-20"
               style={{ boxShadow: "0 10px 24px -10px rgba(31,44,124,0.25)", color: "#1F2C7C" }}>
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
             {/* Dot indicators */}
-            <div className="mt-8 flex items-center justify-center gap-2">
+            <div className="mt-4 sm:mt-8 flex items-center justify-center gap-2">
               {filtered.slice(0, Math.min(filtered.length, 8)).map((_, i) => (
                 <button key={i} onClick={() => setActiveIdx(i)}
                   className="h-2 rounded-full transition-all"
@@ -464,10 +483,35 @@ export default function PublicMenuPage() {
         )}
       </div>
 
+      {/* Mobile bottom nav (replaces side rail on small screens) */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex items-center justify-around py-2 text-white"
+        style={{ background: "#E63027", boxShadow: "0 -8px 24px -10px rgba(230,48,39,0.4)" }}>
+        <button className="flex flex-col items-center gap-0.5 px-3 py-1">
+          <Home className="h-5 w-5" /><span className="text-[10px] font-bold">الرئيسية</span>
+        </button>
+        <button className="flex flex-col items-center gap-0.5 px-3 py-1">
+          <UtensilsCrossed className="h-5 w-5" /><span className="text-[10px] font-bold">القائمة</span>
+        </button>
+        <button className="flex flex-col items-center gap-0.5 px-3 py-1">
+          <MapPin className="h-5 w-5" /><span className="text-[10px] font-bold">الفروع</span>
+        </button>
+        <button onClick={() => cart.length && setShowCart(true)} className="flex flex-col items-center gap-0.5 px-3 py-1 relative">
+          <div className="relative">
+            <ShoppingBag className="h-5 w-5" />
+            {cart.reduce((s,l)=>s+l.qty,0) > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full grid place-items-center text-[9px] font-black bg-white" style={{ color: "#E63027" }}>
+                {cart.reduce((s,l)=>s+l.qty,0)}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-bold">السلة</span>
+        </button>
+      </nav>
+
       {/* Floating cart bar */}
       {cart.length > 0 && !showCart && (
         <button onClick={() => setShowCart(true)}
-          className="fixed bottom-4 inset-x-4 rounded-2xl py-4 px-5 flex items-center justify-between font-bold z-30 text-white animate-in fade-in slide-in-from-bottom-4"
+          className="fixed bottom-20 md:bottom-4 inset-x-4 md:inset-x-auto md:left-4 md:right-[104px] md:max-w-md rounded-2xl py-3 sm:py-4 px-5 flex items-center justify-between font-bold z-30 text-white animate-in fade-in slide-in-from-bottom-4"
           style={{ background: "#E63027", boxShadow: "0 18px 40px -10px rgba(230,48,39,0.55)" }}>
           <span className="flex items-center gap-3">
             <span className="relative">
