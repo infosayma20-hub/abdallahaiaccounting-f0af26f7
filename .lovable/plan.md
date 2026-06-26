@@ -1,90 +1,97 @@
+# Phase 1 — Sparta Dental: العمود الفقري
 
-# منيو QR — وحدة عامة لأي مستخدم (الملكي أول زبون)
+## 🎯 الهدف
+بناء أول workspace تشغيلي لـ **سبارتا لزرعات الأسنان** يشمل: Products & Inventory + Sales + Customers، مع PWA منفصل للموبايل بثيم سبارتا (#8B1E3F)، عملة موحّدة ILS، وكل البيانات معزولة عن أموالي عبر `company_id`.
 
-## المبدأ
-لا يوجد أي شيء Hard-coded لفرع أو شركة. كل الإعدادات (الفروع، الطاولات، الأقسام، المنتجات، العملة، الألوان، اللوغو) تُقرأ من جداول الشركة الحالية. تفعيل الميزة لكل شركة عبر `company_settings.qr_menu_enabled`.
+## 🧱 استراتيجية إعادة الاستخدام (توفير الكلفة)
+| نستعير من أموالي | نخصص لسبارتا |
+|---|---|
+| جداول `products`, `invoices`, `invoice_items`, `contacts`, `stock_movements`, `warehouses`, `accounts` | `company_id` = سبارتا دنتال + RLS تلقائي |
+| منطق الفاتورة (ترقيم، VAT، PDF Arabic Engine) | قالب PDF بشعار وألوان سبارتا |
+| `useCompanyContext`, `useAuth`, RLS Policies | لا تغيير — معزول تلقائياً |
+| مكونات shadcn (Dialog, Table, Form) | Tokens جديدة في `sparta-theme.css` |
 
-## نقطة الدخول
-بطاقة جديدة داخل **شاشة نقطة البيع** (`POSPage` أو `AppsLauncher` ضمن مجموعة المطاعم):
-- **"منيو QR"** بأيقونة QrCode → يفتح `/pos/qr-menu/admin`
-- تظهر فقط إذا `qr_menu_enabled = true` لشركة المستخدم.
+**0 جداول جديدة في Phase 1** — كله يعمل على البنية الحالية + فلتر `company_id`.
 
-## الشاشات المضافة
+## 🎨 ثيم سبارتا (موحّد للويب + الموبايل)
+- Primary: `#8B1E3F` (عنابي) — Secondary: `#D4A574` (ذهبي)
+- Background: `#FAFAF7` فاتح / `#1A1A1A` داكن
+- خط: `Cairo` للعربي، `Inter` للإنجليزي
+- شعار سبارتا في Header + Login + PDFs
+- ملف واحد: `src/themes/sparta.css` يُحمَّل ديناميكياً عند `company_id = sparta-dental`
 
-### 1. لوحة إدارة منيو QR (للمالك/المدير) — `/pos/qr-menu/admin`
-- تبويب **الإعدادات**: تفعيل/تعطيل، اختيار نمط (Dine-in / Takeaway / كلاهما)، رسالة ترحيب، شعار، ألوان (تُقرأ من `company_themes`).
-- تبويب **الفروع المفعّلة**: checkbox لكل فرع من `branches`.
-- تبويب **الطاولات والـ QR**: لكل طاولة من `restaurant_tables` زر "تنزيل QR" و"طباعة كل QR للفرع" (PDF شبكي).
-- تبويب **الأقسام والمنتجات الظاهرة**: toggle لإخفاء/إظهار قسم أو منتج من المنيو العام (عمود جديد `show_in_qr_menu` على `pos_categories` و`products`).
-- تبويب **الطلبات الواردة**: لوحة Realtime لمتابعة كل طلبات QR.
+## 📱 PWA منفصل للموبايل
+- مسار: `/sparta/m/*` (مثل `/employee/*` بأموالي)
+- صفحات موبايل:
+  - **Catalog Browse** — تصفح المنتجات بالباركود/البحث
+  - **Quick Sale** — فاتورة سريعة من الموبايل لمندوب الفرع
+  - **Stock Check** — استعلام رصيد لحظي
+  - **Customer Lookup** — كشف حساب الزبون
+- Manifest منفصل: `public/sparta-manifest.webmanifest`
+- Icons بشعار سبارتا
+- يعمل عبر `sparta-trade.com/m` (يكتشف الدومين تلقائياً)
 
-### 2. صفحة المنيو العامة (للزبون) — `/m/:companySlug/:branchSlug/:tableCode?`
-- بدون تسجيل دخول.
-- تقرأ الفرع والشركة من الـ slug، تعرض المنتجات الظاهرة + الإضافات (`modifier_groups`).
-- سلة + ملاحظات لكل صنف + اسم/جوال (اختياري) + إرسال.
-- بعد الإرسال: شاشة "طلبك رقم #X قيد المراجعة" مع Realtime لحالة الطلب.
+## 📦 الوحدات (Web Desktop)
 
-### 3. شاشة استقبال الطلبات في POS — Drawer داخل `POSPage`
-- زر عائم/تنبيه صوتي عند وصول طلب QR جديد (Realtime على جدول `qr_menu_orders`).
-- بطاقة الطلب: الطاولة، الأصناف، الإضافات، الملاحظات، اسم/جوال الزبون.
-- زرّان: **قبول** → يحوّل الطلب لسلة POS الحالية (نفس آلية تحويل طلبات الكول سنتر) ويُطلق التذاكر التلقائية للمطبخ. **رفض** + سبب → يُعلم الزبون.
+### 1. Products & Inventory
+- **شجرة فئات سبارتا الخاصة**: Dental Implants / Prosthetics / Surgical Kits / Biomaterials / Instruments / Consumables
+- حقول إضافية (نضيفها لـ `products` كـ JSON في حقل `meta` الموجود):
+  - `brand`, `lot_number`, `expiry_date`, `min_stock`, `reorder_point`
+- **Batch/LOT Tracking** — تتبع تواريخ الصلاحية مع تنبيه قبل 90 يوم
+- **Multi-Warehouse** — Main / Branch / Reserved (موجود أصلاً)
+- شاشة "تنبيهات قرب انتهاء الصلاحية"
 
-## تغييرات قاعدة البيانات (Migration واحد)
+### 2. Sales
+- فاتورة مبيعات قياسية (نفس محرك أموالي)
+- **Price Lists** بسيطة (سعر طبيب / سعر عيادة / سعر جملة) عبر `pos_customers.price_list_code`
+- **Quotations → Sales Order → Invoice** (الـ workflow الجاهز)
+- PDF بشعار سبارتا
 
-```sql
--- 1) Settings flags
-ALTER TABLE company_settings
-  ADD COLUMN qr_menu_enabled boolean DEFAULT false,
-  ADD COLUMN qr_menu_mode text DEFAULT 'dine_in', -- dine_in | takeaway | both
-  ADD COLUMN qr_menu_welcome_message text,
-  ADD COLUMN qr_menu_require_phone boolean DEFAULT false;
+### 3. Customers (CRM خفيف)
+- عيادات + أطباء (نوع `contact_type = "عميل"`)
+- حقول إضافية: `clinic_name`, `doctor_specialty`, `license_number` في `meta`
+- كشف حساب + Aging Report (جاهز)
+- ملاحظات + تاريخ زيارات المندوب
 
--- 2) Slugs for public URLs (no hard-coding)
-ALTER TABLE companies ADD COLUMN public_slug text UNIQUE;
-ALTER TABLE branches  ADD COLUMN qr_menu_enabled boolean DEFAULT false,
-                      ADD COLUMN public_slug text;
+## 🗄️ تغييرات قاعدة البيانات (Minimal)
+لا جداول جديدة. فقط:
+1. إنشاء `company_id` = `sparta-dental` (موجودة من قبل)
+2. إضافة 6 حسابات في شجرة الحسابات الخاصة بسبارتا (1110 صندوق، 1130 ذمم مدينة، 4110 مبيعات…)
+3. Seed: 6 فئات منتجات سبارتا
+4. Seed: 4 مستودعات (Main / Reserved / Damaged / In-Transit)
 
--- 3) Visibility toggles
-ALTER TABLE pos_categories ADD COLUMN show_in_qr_menu boolean DEFAULT true;
-ALTER TABLE products       ADD COLUMN show_in_qr_menu boolean DEFAULT true;
-
--- 4) Orders inbox
-CREATE TABLE qr_menu_orders (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id uuid NOT NULL,
-  branch_id  uuid NOT NULL REFERENCES branches(id),
-  table_id   uuid REFERENCES restaurant_tables(id),
-  customer_name text, customer_phone text,
-  items jsonb NOT NULL,        -- [{product_id, qty, note, modifiers:[]}]
-  notes text,
-  status text NOT NULL DEFAULT 'pending', -- pending|accepted|rejected|converted|cancelled
-  reject_reason text,
-  pos_order_id uuid,           -- after acceptance
-  short_number int,            -- daily display number for customer
-  created_at timestamptz DEFAULT now(),
-  accepted_at timestamptz, accepted_by uuid
-);
--- GRANTs + RLS (anon INSERT scoped to branch where qr_menu_enabled=true,
--- authenticated SELECT/UPDATE within their company).
-ALTER PUBLICATION supabase_realtime ADD TABLE qr_menu_orders;
+## 🛣️ المسارات الجديدة
+```text
+/sparta              → Dashboard Web
+/sparta/products     → كتالوج المنتجات
+/sparta/inventory    → المخزون والـ LOTs
+/sparta/sales        → الفواتير والعروض
+/sparta/customers    → العيادات والأطباء
+/sparta/m            → PWA Mobile Home
+/sparta/m/sale       → فاتورة سريعة موبايل
+/sparta/m/stock      → استعلام مخزون
 ```
 
-## نقاط أمان وحماية
-- صفحة عامة بدون auth → Rate limit عبر edge function `submit-qr-order` (5 طلبات/دقيقة لكل IP).
-- التحقق أن الفرع والشركة مفعّلين فعلاً قبل القبول.
-- لا يُنشأ سجل POS إلا بعد قبول الكاشير (لا auto-fire للمطبخ).
+## ✅ معايير القبول
+- مستخدم سبارتا لا يشوف أي بيانات أموالي (RLS مفعّل)
+- ثيم سبارتا يظهر فوراً عند الدخول من `sparta-trade.com`
+- إنشاء فاتورة كاملة من Web + Mobile وحفظها بـ ILS
+- PDF الفاتورة بشعار وألوان سبارتا
+- PWA قابل للتثبيت على iPhone + Android من `sparta-trade.com/m`
 
-## ربط أوتوماتيكي بالموجود (بدون تكرار)
-- التذاكر → نظام KDS v2 الحالي (تلقائي عند تحويل الطلب لـ `pos_orders`).
-- الطباعة → Print Bridge + station routing (نفسه).
-- الأرقام اليومية → `daily_display_number` الحالية.
-- التقييم بعد الدفع → `customer_surveys` (نفسه).
+## ⏭️ خارج نطاق Phase 1 (لاحقاً)
+- Sales Reps PWA الكامل (Phase 2)
+- Academy Module (Phase 3)
+- HR + Projects + Payroll (Phase 4)
+- Cohort Management — يدخل في Phase 3 مع الأكاديمية
 
-## خطة التسليم (مراحل صغيرة)
-1. **Migration + إعدادات + بطاقة "منيو QR" في POS** (يومان).
-2. **صفحة المنيو العامة + Edge function لإرسال الطلب** (يومان).
-3. **Drawer استقبال الطلبات + تحويلها لسلة POS + Realtime + تنبيه صوتي** (يومان).
-4. **مولد QR للطاولات + PDF شبكي للطباعة** (يوم).
-5. **تجربة على فرع واحد للملكي قبل التعميم** (يوم).
+## 🚀 خطوات التنفيذ بالترتيب
+1. إنشاء ثيم سبارتا (`sparta.css` + ThemeProvider switch)
+2. Seed بيانات (حسابات + فئات + مستودعات لسبارتا)
+3. صفحة `/sparta` Dashboard
+4. صفحات Products/Inventory/Sales/Customers (نسخ-تكييف من أموالي)
+5. Manifest + Icons + Routes للـ PWA
+6. صفحات Mobile (4 شاشات)
+7. اختبار end-to-end على دومين سبارتا
 
-أبدأ بالمرحلة 1؟
+**ملاحظة:** Cohort Management ذكرته في طلبك بس هو جزء من **Academy** (Phase 3). هل تأكد إنه يبقى مؤجل، أم تبيه يدخل Phase 1 بصيغة مبسطة (دفعات الطلاب فقط بدون جدولة محاضرات)؟
