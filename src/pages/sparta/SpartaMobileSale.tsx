@@ -136,15 +136,14 @@ export default function SpartaMobileSale() {
     try {
       setSaving(true);
       // 1. Get next invoice number
-      const { data: invNo, error: numError } = await supabase.rpc(
-        "sparta_next_invoice_number",
-        { _company_id: companyId },
-      );
+      const { data: invNo, error: numError } = await (supabase.rpc(
+        "sparta_next_invoice_number"
+      ) as any);
       if (numError) throw numError;
 
       // 2. Insert invoice draft
-      const { data: invoice, error: invError } = await supabase
-        .from("sparta_invoices")
+      const { data: invoice, error: invError } = await (supabase
+        .from("sparta_invoices") as any)
         .insert({
           company_id: companyId,
           customer_id: selectedCustId,
@@ -163,12 +162,15 @@ export default function SpartaMobileSale() {
       const itemsToInsert = cart.map((item) => ({
         invoice_id: invoiceId,
         product_id: item.product.id,
+        product_name: item.product.name,
+        sku: item.product.sku,
         quantity: item.quantity,
         unit_price: item.price,
+        discount: 0,
       }));
 
-      const { error: itemsError } = await supabase
-        .from("sparta_invoice_items")
+      const { error: itemsError } = await (supabase
+        .from("sparta_invoice_items") as any)
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
