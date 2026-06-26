@@ -178,6 +178,10 @@ const SpartaMobileCatalog = lazy(() => import("./pages/sparta/SpartaMobileCatalo
 const SpartaMobileStock = lazy(() => import("./pages/sparta/SpartaMobileStock"));
 const SpartaMobileCustomer = lazy(() => import("./pages/sparta/SpartaMobileCustomer"));
 const SpartaMobileSale = lazy(() => import("./pages/sparta/SpartaMobileSale"));
+const SpartaVanHome = lazy(() => import("./pages/sparta/van/SpartaVanHome"));
+const SpartaVanSale = lazy(() => import("./pages/sparta/van/SpartaVanSale"));
+const SpartaVanCollect = lazy(() => import("./pages/sparta/van/SpartaVanCollect"));
+const SpartaVanClose = lazy(() => import("./pages/sparta/van/SpartaVanClose"));
 const SpartaCRMPage = lazy(() => import("./pages/sparta/SpartaCRMPage"));
 const SpartaHRPage = lazy(() => import("./pages/sparta/SpartaHRPage"));
 const SpartaProjectsPage = lazy(() => import("./pages/sparta/SpartaProjectsPage"));
@@ -583,6 +587,10 @@ const App = () => (
                 <Route path="m/sale" element={<SpartaMobileSale />} />
                 <Route path="m/catalog" element={<SpartaMobileCatalog />} />
                 <Route path="m/customer" element={<SpartaMobileCustomer />} />
+                <Route path="m/van" element={<SpartaVanHome />} />
+                <Route path="m/van/sale" element={<SpartaVanSale />} />
+                <Route path="m/van/collect" element={<SpartaVanCollect />} />
+                <Route path="m/van/close" element={<SpartaVanClose />} />
               </Route>
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/choose-workspace" element={<ProtectedRoute><ChooseWorkspacePage /></ProtectedRoute>} />
