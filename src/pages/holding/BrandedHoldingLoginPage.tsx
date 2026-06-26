@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import spartaLogoAsset from "@/assets/sparta_logo.png.asset.json";
 
 interface Branding {
   id: string;
