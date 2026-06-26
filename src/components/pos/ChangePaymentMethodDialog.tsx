@@ -65,6 +65,8 @@ export default function ChangePaymentMethodDialog({
   const [newCurrency, setNewCurrency] = useState<string>(currentCurrency || "ILS");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // المبلغ المستلم بالعملة الأجنبية (قابل للتعديل من الكاشير).
+  const [foreignAmountInput, setForeignAmountInput] = useState<string>("");
 
   const needsManager = ageMinutes > windowMinutes && !managerUserId;
   const currencyChanged = newCurrency.toUpperCase() !== (currentCurrency || "ILS").toUpperCase();
@@ -72,7 +74,10 @@ export default function ChangePaymentMethodDialog({
   // تغيير العملة مسموح فقط: cash + دفعة واحدة + مش credit/card.
   const canChangeCurrency = newMethod === "cash" && paymentsCount <= 1;
   const newRate = newCurrency.toUpperCase() === "ILS" ? 1 : (exchangeRates[newCurrency] || 0);
-  const equivalentForeign = newRate > 0 ? orderTotal / newRate : 0;
+  const defaultForeign = newRate > 0 ? orderTotal / newRate : 0;
+  const foreignAmount = foreignAmountInput.trim() === "" ? defaultForeign : parseFloat(foreignAmountInput);
+  // سعر الصرف الفعلي بناءً على المبلغ المُدخل (لو الكاشير غيّره).
+  const effectiveRate = foreignAmount > 0 ? orderTotal / foreignAmount : newRate;
   // عملات يدعمها النظام (نظهر فقط ما هو موجود في exchangeRates + ILS دوماً).
   const availableCurrencies = ["ILS", ...Object.keys(exchangeRates).filter(c => c.toUpperCase() !== "ILS")];
 
@@ -103,7 +108,7 @@ export default function ChangePaymentMethodDialog({
         p_manager_user_id: managerUserId || null,
         p_window_minutes: windowMinutes,
         p_new_currency: currencyChanged ? newCurrency.toUpperCase() : null,
-        p_new_exchange_rate: currencyChanged ? newRate : null,
+        p_new_exchange_rate: currencyChanged ? effectiveRate : null,
       });
       if (error) {
         const msg = (error.message || "").toString();
@@ -247,14 +252,32 @@ export default function ChangePaymentMethodDialog({
                 })}
               </div>
               {currencyChanged && newRate > 0 && (
-                <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-800 space-y-0.5">
+                <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-800 space-y-2">
                   <div className="flex justify-between">
-                    <span>سعر الصرف:</span>
+                    <span>سعر الصرف المرجعي:</span>
                     <span className="font-mono">1 {newCurrency} = {newRate.toFixed(4)} ₪</span>
                   </div>
-                  <div className="flex justify-between font-semibold">
-                    <span>المبلغ المُستلم:</span>
-                    <span className="font-mono">{equivalentForeign.toFixed(2)} {newCurrency}</span>
+                  <div>
+                    <label className="block mb-1 font-semibold">المبلغ المُستلم ({newCurrency})</label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        min="0"
+                        value={foreignAmountInput}
+                        onChange={e => setForeignAmountInput(e.target.value)}
+                        placeholder={defaultForeign.toFixed(2)}
+                        className="h-8 text-sm font-mono"
+                        dir="ltr"
+                      />
+                      <span className="text-[10px] whitespace-nowrap">≈ ₪{(foreignAmount * effectiveRate).toFixed(2)}</span>
+                    </div>
+                    {foreignAmountInput.trim() !== "" && Math.abs(effectiveRate - newRate) > 0.0001 && (
+                      <div className="mt-1 text-[10px] text-amber-700">
+                        سعر الصرف الفعلي: 1 {newCurrency} = {effectiveRate.toFixed(4)} ₪
+                      </div>
+                    )}
                   </div>
                   <div className="text-[10px] text-amber-700/80">
                     ⓘ ينقل المبلغ من درج {currentCurrency || "ILS"} إلى درج {newCurrency} في إغلاق العهدة.
