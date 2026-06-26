@@ -107,6 +107,8 @@ export default function POSExpenseDialog({
   managerName,
   cashierName,
   branchId,
+  cashBoxId,
+  cashBoxName,
   onSuccess,
 }: Props) {
   const [mode, setMode] = useState<Mode>("account");
@@ -157,9 +159,9 @@ export default function POSExpenseDialog({
       const sb: any = supabase;
       const empsP = sb
         .from("employees")
-        .select("id, full_name, job_title")
+        .select("id, full_name, job_title, is_active")
         .eq("user_id", dataOwnerId)
-        .eq("status", "نشط")
+        .eq("is_active", true)
         .order("full_name");
       const accsP = sb
         .from("accounts")
@@ -173,11 +175,22 @@ export default function POSExpenseDialog({
       setAccounts(allAccounts);
 
       // Best-effort: look up each employee's sub-account by name match.
+      // Convention: "ذمم موظف - <full_name>" (employee receivable sub-account
+      // under 2180 / 21xx). Falls back to any account containing the name.
+      const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
       const empList: Employee[] = (emps.data || []).map((e: any) => {
-        const match = allAccounts.find(
-          (a) => a.account_name.includes(e.full_name) && a.account_code.length >= 4
+        const name = norm(e.full_name);
+        const exact = allAccounts.find(
+          (a) => norm(a.account_name) === `ذمم موظف - ${name}`
         );
-        return { ...e, account_code: match?.account_code || null };
+        const loose =
+          exact ||
+          allAccounts.find(
+            (a) =>
+              norm(a.account_name).includes(name) &&
+              (a.account_code.startsWith("21") || a.account_code.startsWith("13"))
+          );
+        return { ...e, account_code: loose?.account_code || null };
       });
       setEmployees(empList);
     } catch (e) {
