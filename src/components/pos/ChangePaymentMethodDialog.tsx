@@ -111,14 +111,14 @@ export default function ChangePaymentMethodDialog({
     (async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, account_code")
+        .select("id, full_name")
         .eq("user_id", companyId)
         .eq("is_active", true)
         .order("full_name", { ascending: true })
         .limit(500);
       if (cancel) return;
       if (error) toast.error("تعذّر تحميل الموظفين: " + error.message);
-      else setEmployees((data as EmpRow[]) || []);
+      else setEmployees(((data as any[]) || []).map(d => ({ id: d.id, full_name: d.full_name })));
       setLoadingEmps(false);
     })();
     return () => { cancel = true; };
