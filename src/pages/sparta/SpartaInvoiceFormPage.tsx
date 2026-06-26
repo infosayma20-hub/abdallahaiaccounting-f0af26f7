@@ -171,15 +171,23 @@ export default function SpartaInvoiceFormPage() {
         </div>
       </div>
 
-      {/* Header */}
-      <div className="bg-card border rounded-xl p-5 grid md:grid-cols-3 gap-4">
-        <div>
-          <div className="text-xs text-muted-foreground">رقم الفاتورة</div>
-          <div className="text-lg font-bold font-mono">{inv.invoice_number}</div>
-          <Badge className="mt-2" variant={inv.status === "posted" ? "secondary" : inv.status === "cancelled" ? "destructive" : "outline"}>
-            {inv.status === "draft" ? "مسودة" : inv.status === "posted" ? "معتمدة" : "ملغاة"}
-          </Badge>
+      {/* Invoice Banner & Details */}
+      <div className="bg-card border rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="flex items-center gap-4">
+          <img src={spartaLogoAsset.url} alt="Sparta Trade" className="h-20 w-auto object-contain bg-white rounded-md p-1 border" />
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Sparta Trade</h1>
+            <p className="text-xs text-muted-foreground">شركة سبارتا للتجارة واستيراد زرعات الأسنان</p>
+          </div>
         </div>
+        <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto md:divide-r dark:divide-slate-800 rtl:divide-x-reverse">
+          <div className="px-4">
+            <div className="text-xs text-muted-foreground">رقم الفاتورة</div>
+            <div className="text-lg font-bold font-mono">{inv.invoice_number}</div>
+            <Badge className="mt-1" variant={inv.status === "posted" ? "secondary" : inv.status === "cancelled" ? "destructive" : "outline"}>
+              {inv.status === "draft" ? "مسودة" : inv.status === "posted" ? "معتمدة" : "ملغاة"}
+            </Badge>
+          </div>
         <div>
           <Label className="text-xs">العميل</Label>
           {canEdit ? (
