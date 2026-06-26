@@ -8783,6 +8783,29 @@ const POSPage = () => {
         onScan={handleBarcodeScan}
       />
 
+      {/* ── خصم بإذن مدير الفرع ── */}
+      <ManagerDiscountDialog
+        open={showManagerDiscountDialog}
+        onClose={() => setShowManagerDiscountDialog(false)}
+        onApproved={(data) => {
+          setManagerDiscountMeta(data);
+          setOrderDiscountType(data.type);
+          setOrderDiscount(data.amount);
+          setShowManagerDiscountDialog(false);
+          toast.success(
+            data.type === "percent"
+              ? `تم اعتماد خصم ${data.amount}% بإذن ${data.managerName}`
+              : `تم اعتماد خصم ₪${data.amount.toFixed(2)} بإذن ${data.managerName}`
+          );
+        }}
+        branchId={terminalBranchId}
+        terminalId={deviceConfig.terminalId}
+        companyId={company?.id ?? null}
+        sessionId={session?.id ?? null}
+        cashierName={pos_user?.name || posUser?.name || undefined}
+        orderSubtotal={cartTotals.subtotal}
+      />
+
       {/* ── Concurrent-shift safeguard ── */}
       {/* Pops the moment Realtime reports the session was closed from another */}
       {/* device. Cart stays untouched; cashier can open a new shift or sign out. */}
