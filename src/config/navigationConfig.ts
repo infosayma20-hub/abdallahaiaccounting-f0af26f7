@@ -195,6 +195,7 @@ export const navigationSections: NavSection[] = [
               { label: "نقطة البيع", path: "/pos" },
               { label: "خريطة الطاولات", path: "/pos/floor-plan" },
               { label: "إدارة الإضافات", path: "/pos/modifiers" },
+              { label: "منيو QR", path: "/pos/qr-menu" },
             ],
           },
           {
