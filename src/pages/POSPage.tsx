@@ -2883,11 +2883,14 @@ const POSPage = () => {
     const canOrderDiscount = posFeatPerm.can("sell", "discount");
     const effOrderDiscount = canOrderDiscount ? safe(orderDiscount) : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
-    // 🚚 Delivery fee is a SEPARATE financial line — never part of items[] (so
-    // it can't pollute item/sales reports). It's added once to the final total
-    // and printed as its own row. Source of truth = activeOrder.callCenterDeliveryFee.
+    // 🚚 Delivery fee is COMPLETELY OUTSIDE the restaurant cash flow.
+    // The driver/delivery company collects it directly from the customer —
+    // it never enters the cash drawer, never appears in payments, and never
+    // affects the shift's expected cash. We keep the number around purely
+    // for the printed receipt (which shows it as a separate informational
+    // line) and never add it to `total`.
     const deliveryFee = safe(activeOrder?.callCenterDeliveryFee);
-    const total = subtotal + taxAmount - discountAmt + deliveryFee;
+    const total = subtotal + taxAmount - discountAmt;
     return {
       subtotal: Math.round(subtotal * 100) / 100,
       tax: Math.round(taxAmount * 100) / 100,
