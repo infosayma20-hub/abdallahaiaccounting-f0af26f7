@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpartaContext } from "@/hooks/sparta/useSpartaContext";
 import { Package, FileText, Users, AlertTriangle, TrendingUp, Boxes } from "lucide-react";
+import spartaLogoAsset from "@/assets/sparta-logo.png.asset.json";
 
 function StatCard({ icon: Icon, label, value, sub, accent }: any) {
   return (
