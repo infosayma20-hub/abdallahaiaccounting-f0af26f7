@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import spartaLogoAsset from "@/assets/sparta_logo.png.asset.json";
 
 interface Branding {
   id: string;
@@ -274,7 +275,9 @@ export default function BrandedHoldingLoginPage() {
       <div style={{ position: "relative", zIndex: 1, minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 16px" }}>
         {/* Brand */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28, textAlign: "center" }}>
-          {holding.logo_url ? (
+          {holding.slug === "sparta" || slug === "sparta" ? (
+            <img src={spartaLogoAsset.url} alt={holding.name_ar} style={{ height: 140, objectFit: "contain", marginBottom: 16 }} />
+          ) : holding.logo_url ? (
             <img src={holding.logo_url} alt={holding.name_ar} style={{ height: 96, objectFit: "contain", marginBottom: 16 }} />
           ) : (
             <div style={{ marginBottom: 16 }}>
