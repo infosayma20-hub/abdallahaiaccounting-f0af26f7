@@ -467,47 +467,50 @@ export default function DynamicFormRenderer({
       </Accordion>
 
       {!readOnly && (
-        <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur border-t -mx-3 px-3 py-3 flex gap-2">
+        <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur border-t -mx-3 px-2 py-2 flex flex-wrap gap-2">
           {onSaveDraft && (
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              size="sm"
+              className="flex-1 min-w-0 basis-[30%] px-2 text-xs sm:text-sm"
               onClick={() => {
                 onSaveDraft(data);
                 toast({ title: "تم حفظ المسودة", description: "تقدر تكمّل بعدين." });
               }}
               disabled={submitting}
             >
-              <Save className="h-4 w-4 ml-1" />
-              حفظ مسودة
+              <Save className="h-4 w-4 ml-1 shrink-0" />
+              <span className="truncate">حفظ مسودة</span>
             </Button>
           )}
           {onPreviewWord && (
             <Button
               type="button"
               variant="secondary"
-              className="flex-1"
+              size="sm"
+              className="flex-1 min-w-0 basis-[30%] px-2 text-xs sm:text-sm"
               onClick={() => onPreviewWord(data)}
               disabled={submitting}
               title="عاين النموذج كملف Word قبل الإرسال"
             >
-              <FileDown className="h-4 w-4 ml-1" />
-              تنزيل Word
+              <FileDown className="h-4 w-4 ml-1 shrink-0" />
+              <span className="truncate">Word</span>
             </Button>
           )}
           <Button
             type="button"
-            className="flex-1"
+            size="sm"
+            className="flex-1 min-w-0 basis-[30%] px-2 text-xs sm:text-sm"
             onClick={handleSubmit}
             disabled={submitting}
           >
             {submitting ? (
-              <Loader2 className="h-4 w-4 ml-1 animate-spin" />
+              <Loader2 className="h-4 w-4 ml-1 animate-spin shrink-0" />
             ) : (
-              <Send className="h-4 w-4 ml-1" />
+              <Send className="h-4 w-4 ml-1 shrink-0" />
             )}
-            إرسال النموذج
+            <span className="truncate">إرسال</span>
           </Button>
         </div>
       )}
