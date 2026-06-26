@@ -1,0 +1,1 @@
+UPDATE public.holdings SET logo_url='/__l5e/assets-v1/498fd34f-4dfa-448f-a5cb-d8635dccb4a5/sparta-logo.png' WHERE slug='sparta';
