@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LayoutDashboard, Package, Boxes, FileText, Users, Smartphone, LogOut, Menu, X, CalendarClock, Activity, Sparkles, UserSquare2, FolderKanban, Calculator } from "lucide-react";
-import spartaLogoAsset from "@/assets/sparta_logo.png.asset.json";
+import spartaLogoAsset from "@/assets/sparta-logo.png.asset.json";
 
 const NAV = [
   { to: "/sparta", label: "الرئيسية", icon: LayoutDashboard, end: true },
