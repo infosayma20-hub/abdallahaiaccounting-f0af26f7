@@ -4065,9 +4065,9 @@ const POSPage = () => {
             tendered: t.amount, // no over-tender concept in split mode
             change: 0,
             change_currency: "ILS",
-            currency: "ILS",
-            exchange_rate: 1,
-            foreign_amount: t.amount,
+            currency: t.currency || "ILS",
+            exchange_rate: t.exchange_rate || 1,
+            foreign_amount: t.foreign_amount ?? t.amount,
             rate_source: "system",
             ...(t.method === "card" && (t.visa_gl_account_code || defaultCardGl)
               ? { visa_gl_account_code: t.visa_gl_account_code || defaultCardGl }
