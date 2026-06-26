@@ -315,65 +315,6 @@ export default function POSExpenseDialog({
         txDescription = `${kindLabel} — ${selectedEmployee.full_name}${
           description ? ` — ${description}` : ""
         }`;
-
-        // 1) employee_advances row
-        const count = empKind === "employee_loan" ? installments : 1;
-        const instAmt = empKind === "employee_loan" ? installmentAmount : amt;
-        const startDed =
-          empKind === "employee_advance"
-            ? format(addMonths(new Date(date), 1), "yyyy-MM-01")
-            : startMonth;
-
-        const { data: adv, error: advErr } = await supabase
-          .from("employee_advances")
-          .insert({
-            user_id: dataOwnerId,
-            employee_id: employeeId,
-            advance_type: empKind === "employee_loan" ? "قرض_حسن" : "سلفة_راتب",
-            amount: amt,
-            request_date: date,
-            payment_method: "نقداً",
-            installments_count: count,
-            installment_amount: instAmt,
-            start_deduction_month: startDed,
-            status: "approved",
-            approved_date: date,
-            approved_by: managerUserId,
-            notes: [
-              `صُرفت من نقطة البيع — كاشير: ${cashierName || "—"} — مدير: ${managerName || "—"}`,
-              description,
-            ]
-              .filter(Boolean)
-              .join(" | "),
-            created_by: userId,
-          } as any)
-          .select("id")
-          .single();
-
-        if (advErr) throw advErr;
-        advanceId = adv.id;
-
-        // installments
-        const start = new Date(startDed);
-        let remaining = amt;
-        const rows = [];
-        for (let i = 0; i < count; i++) {
-          const m = addMonths(start, i);
-          const a = i === count - 1 ? remaining : instAmt;
-          remaining -= a;
-          rows.push({
-            advance_id: adv.id,
-            employee_id: employeeId,
-            user_id: dataOwnerId,
-            installment_number: i + 1,
-            due_month: format(m, "yyyy-MM-01"),
-            amount: a,
-            status: "pending",
-          });
-        }
-        if (rows.length > 0) {
-          await supabase.from("employee_advance_installments").insert(rows as any);
-        }
       } else {
         if (!accountCode) {
           toast.error("اختر حساب المصروف من شجرة الحسابات");
@@ -387,42 +328,38 @@ export default function POSExpenseDialog({
         }`;
       }
 
-      // 2) Journal entry — DR <txDebitAccount> / CR 1110 cash
-      const { data: txRow, error: txErr } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: dataOwnerId,
-          transaction_date: date,
-          description: txDescription,
-          debit_account_code: txDebitAccount,
-          credit_account_code: creditAccount,
-          amount: amt,
-          currency: "شيكل",
-          transaction_type: mode === "employee" ? "employee_advance" : "expense",
-          reference: ref,
-          payment_method: "نقدي",
-          idempotency_key: `POS-EXP-${stamp}`,
-        } as any)
-        .select("id")
-        .single();
-      if (txErr) throw txErr;
+      // Atomic save via SECURITY DEFINER RPC — bypasses cashier RLS limits
+      // on `transactions` while keeping all multi-tenant checks server-side.
+      const startDed =
+        mode === "employee"
+          ? (empKind === "employee_advance"
+              ? format(addMonths(new Date(date), 1), "yyyy-MM-01")
+              : startMonth)
+          : null;
 
-      // 3) pos_expenses for shift-close attribution
-      await supabase.from("pos_expenses").insert({
-        user_id: dataOwnerId,
-        category_id: null,
-        amount: amt,
-        description: txDescription,
-        shift_id: sessionId || null,
-        created_by: userId,
-        expense_kind: expenseKind,
-        account_code: txDebitAccount,
-        employee_id: mode === "employee" ? employeeId : null,
-        advance_id: advanceId,
-        manager_user_id: managerUserId,
-        transaction_id: txRow?.id || null,
-        payment_method: "cash",
-      } as any);
+      const { data: rpc, error: rpcErr } = await (supabase as any).rpc(
+        "pos_record_expense_v1",
+        {
+          p_data_owner: dataOwnerId,
+          p_mode: mode,
+          p_amount: amt,
+          p_date: date,
+          p_description: txDescription,
+          p_reference: ref,
+          p_credit_account: creditAccount,
+          p_debit_account: txDebitAccount,
+          p_employee_id: mode === "employee" ? employeeId : null,
+          p_emp_kind: mode === "employee" ? empKind : null,
+          p_installments:
+            mode === "employee" && empKind === "employee_loan" ? installments : 1,
+          p_start_month: startDed,
+          p_session_id: sessionId || null,
+          p_manager_user_id: managerUserId,
+          p_idempotency_key: `POS-EXP-${stamp}`,
+        }
+      );
+      if (rpcErr) throw rpcErr;
+      advanceId = (rpc as any)?.advance_id || null;
 
       // 4) audit
       try {
