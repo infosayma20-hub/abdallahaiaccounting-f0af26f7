@@ -4,6 +4,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock } from "lucide-react";
+import malakyLogo from "@/assets/malaky-logo.png.asset.json";
+
+// خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
+const FOOD_IMAGE_MAP: Array<{ keys: string[]; url: string }> = [
+  { keys: ["بيتزا", "pizza"], url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=70" },
+  { keys: ["برغر", "برجر", "burger"], url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=70" },
+  { keys: ["بروست", "دجاج مقلي", "broast", "fried"], url: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&q=70" },
+  { keys: ["مشوي", "شوي", "grill", "مشاوي"], url: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=70" },
+  { keys: ["شاورما", "shawarma"], url: "https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?w=600&q=70" },
+  { keys: ["سموذي", "smoothie", "عصير فراولة"], url: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=600&q=70" },
+  { keys: ["عصير", "juice"], url: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=70" },
+  { keys: ["موهيتو", "mojito"], url: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=600&q=70" },
+  { keys: ["كريسبي", "crispy", "تندرز"], url: "https://images.unsplash.com/photo-1562967914-608f82629710?w=600&q=70" },
+  { keys: ["بطاطا", "fries", "بطاطس"], url: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&q=70" },
+  { keys: ["سلطة", "salad"], url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70" },
+  { keys: ["وجبة عائلية", "عائلية", "family"], url: "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f3a?w=600&q=70" },
+  { keys: ["وجبة", "كرسي", "اريزكو"], url: "https://images.unsplash.com/photo-1432139509613-5c4255815697?w=600&q=70" },
+  { keys: ["أطفال", "اطفال", "kids"], url: "https://images.unsplash.com/photo-1546548970-71785318a17b?w=600&q=70" },
+  { keys: ["عرض", "offer"], url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=70" },
+];
+const DEFAULT_FOOD_IMG = "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=600&q=70";
+
+function pickFoodImage(name?: string, catName?: string): string {
+  const text = `${name || ""} ${catName || ""}`.toLowerCase();
+  for (const m of FOOD_IMAGE_MAP) if (m.keys.some(k => text.includes(k.toLowerCase()))) return m.url;
+  return DEFAULT_FOOD_IMG;
+}
 import { toast } from "sonner";
 
 type Resolved = {
@@ -80,6 +107,11 @@ export default function PublicMenuPage() {
   }, [submittedId]);
 
   const filtered = useMemo(() => products.filter(p => p.category_id === activeCat), [products, activeCat]);
+  const catNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    categories.forEach(c => { m[c.id] = c.name; });
+    return m;
+  }, [categories]);
   const total = cart.reduce((s, l) => s + l.unit_price * l.qty, 0);
 
   const openProduct = (p: Product) => {
@@ -185,9 +217,9 @@ export default function PublicMenuPage() {
       {/* Hero — white with red accent */}
       <div className="relative overflow-hidden bg-white" style={{ borderBottom: "4px solid #E63027" }}>
         <div className="relative px-5 pt-8 pb-6 text-center">
-          <div className="inline-flex items-center justify-center h-20 w-20 rounded-2xl mb-3"
-            style={{ background: "#E63027", boxShadow: "0 12px 30px -10px rgba(230,48,39,0.5)" }}>
-            <ChefHat className="h-10 w-10 text-white" />
+          <div className="inline-flex items-center justify-center h-24 w-24 rounded-2xl mb-3 bg-white p-2"
+            style={{ boxShadow: "0 12px 30px -10px rgba(31,44,124,0.25)" }}>
+            <img src={malakyLogo.url} alt={ctx.account_name} className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-black tracking-tight" style={{ color: "#1F2C7C" }}>{ctx.account_name}</h1>
           <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold"
@@ -225,16 +257,12 @@ export default function PublicMenuPage() {
       <div className="px-4 pt-5 grid grid-cols-2 gap-3">
         {filtered.map(p => (
           <button key={p.id} onClick={() => openProduct(p)}
-            className="text-right rounded-2xl overflow-hidden transition-transform active:scale-[0.97] bg-white"
-            style={{ border: "1px solid #ECEEF3", boxShadow: "0 6px 20px -12px rgba(31,44,124,0.18)" }}>
+            className="text-right rounded-2xl overflow-hidden transition-all active:scale-[0.97] bg-white hover:-translate-y-0.5"
+            style={{ border: "2px solid #E63027", boxShadow: "0 10px 24px -10px rgba(31,44,124,0.25), 0 2px 6px -2px rgba(230,48,39,0.12)" }}>
             <div className="relative h-32 overflow-hidden bg-white">
-              {p.image_url ? (
-                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-              ) : (
-                <div className="w-full h-full grid place-items-center" style={{ background: "#F8F9FB" }}>
-                  <ChefHat className="h-10 w-10" style={{ color: "#E63027", opacity: 0.35 }} />
-                </div>
-              )}
+              <img src={p.image_url || pickFoodImage(p.name, catNameById[p.category_id])}
+                alt={p.name} className="w-full h-full object-cover" loading="lazy"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }} />
             </div>
             <div className="p-3 space-y-2">
               <p className="text-sm font-bold leading-tight line-clamp-1" style={{ color: "#1F2C7C" }}>{p.name}</p>
@@ -423,13 +451,9 @@ function ProductDetailSheet({
         style={{ color: "#1F2C7C" }}
         onClick={e => e.stopPropagation()}>
         <div className="relative">
-          {product.image_url ? (
-            <img src={product.image_url} alt={product.name} className="w-full h-56 object-cover" />
-          ) : (
-            <div className="w-full h-40 grid place-items-center" style={{ background: "#F8F9FB" }}>
-              <ChefHat className="h-14 w-14" style={{ color: "#E63027", opacity: 0.4 }} />
-            </div>
-          )}
+          <img src={product.image_url || pickFoodImage(product.name)} alt={product.name}
+            className="w-full h-56 object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_FOOD_IMG; }} />
           <button onClick={onClose}
             className="absolute top-3 left-3 h-9 w-9 rounded-full grid place-items-center text-white"
             style={{ background: "rgba(31,44,124,0.7)", backdropFilter: "blur(8px)" }}>
