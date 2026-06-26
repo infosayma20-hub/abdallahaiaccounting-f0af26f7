@@ -61,6 +61,7 @@ interface InvoiceOrder {
   area_name?: string | null;
   zone_code?: string | null;
   delivery_fee?: number | null;
+  total_includes_delivery_fee?: boolean | null;
   meal_subsidy_amount?: number | null;
   order_note?: string | null;
   notes?: string | null;
