@@ -70,6 +70,10 @@ interface Props {
   managerName?: string | null;
   cashierName?: string | null;
   branchId?: string | null;
+  /** Cash box the cashier is currently using. The expense will be CREDITED
+   *  to this box's GL sub-account (e.g. 11105 for "كاش سفيان 1"). */
+  cashBoxId?: string | null;
+  cashBoxName?: string | null;
   onSuccess?: () => void;
 }
 
@@ -103,6 +107,8 @@ export default function POSExpenseDialog({
   managerName,
   cashierName,
   branchId,
+  cashBoxId,
+  cashBoxName,
   onSuccess,
 }: Props) {
   const [mode, setMode] = useState<Mode>("account");
@@ -153,9 +159,9 @@ export default function POSExpenseDialog({
       const sb: any = supabase;
       const empsP = sb
         .from("employees")
-        .select("id, full_name, job_title")
+        .select("id, full_name, job_title, is_active")
         .eq("user_id", dataOwnerId)
-        .eq("status", "نشط")
+        .eq("is_active", true)
         .order("full_name");
       const accsP = sb
         .from("accounts")
@@ -169,11 +175,22 @@ export default function POSExpenseDialog({
       setAccounts(allAccounts);
 
       // Best-effort: look up each employee's sub-account by name match.
+      // Convention: "ذمم موظف - <full_name>" (employee receivable sub-account
+      // under 2180 / 21xx). Falls back to any account containing the name.
+      const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
       const empList: Employee[] = (emps.data || []).map((e: any) => {
-        const match = allAccounts.find(
-          (a) => a.account_name.includes(e.full_name) && a.account_code.length >= 4
+        const name = norm(e.full_name);
+        const exact = allAccounts.find(
+          (a) => norm(a.account_name) === `ذمم موظف - ${name}`
         );
-        return { ...e, account_code: match?.account_code || null };
+        const loose =
+          exact ||
+          allAccounts.find(
+            (a) =>
+              norm(a.account_name).includes(name) &&
+              (a.account_code.startsWith("21") || a.account_code.startsWith("13"))
+          );
+        return { ...e, account_code: loose?.account_code || null };
       });
       setEmployees(empList);
     } catch (e) {
@@ -186,6 +203,18 @@ export default function POSExpenseDialog({
   // Only expense leaves (5xxx that are NOT a parent of something else),
   // plus 1146 (دفعات مقدمة للموردين) for advances. We allow children of any
   // depth so the user can post directly to فروع التشغيل / الإدارة / etc.
+  // Multi-token search: every whitespace-separated token must appear
+  // somewhere in (code + name). Trims diacritics-light, case-insensitive
+  // (Arabic is unaffected by case).
+  const matchTokens = (hay: string, query: string) => {
+    const h = (hay || "").toLowerCase();
+    return query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .every((tok) => h.includes(tok));
+  };
+
   const expenseAccounts = useMemo(() => {
     const parents = new Set(accounts.map((a) => a.parent_code).filter(Boolean));
     const leaves = accounts.filter(
@@ -195,15 +224,17 @@ export default function POSExpenseDialog({
     );
     const q = accountSearch.trim();
     if (!q) return leaves;
-    return leaves.filter(
-      (a) => a.account_code.includes(q) || a.account_name.includes(q)
+    return leaves.filter((a) =>
+      matchTokens(`${a.account_code} ${a.account_name}`, q)
     );
   }, [accounts, accountSearch]);
 
   const filteredEmployees = useMemo(() => {
     const q = empSearch.trim();
     if (!q) return employees;
-    return employees.filter((e) => e.full_name.includes(q));
+    return employees.filter((e) =>
+      matchTokens(`${e.full_name} ${e.job_title || ""}`, q)
+    );
   }, [employees, empSearch]);
 
   const selectedEmployee = employees.find((e) => e.id === employeeId);
@@ -239,6 +270,31 @@ export default function POSExpenseDialog({
       let advanceId: string | null = null;
       let expenseKind: string = "account";
       let txDescription = "";
+
+      // 🏦 Resolve the credit account from the active cash box. Each branch
+      // cash box (e.g. كاش سفيان 1/2/3) has its own GL sub-account on the
+      // chart (11105 / 11106 / 11107). Posting to the parent 1110 is
+      // forbidden by the posting-constraints rule.
+      let creditAccount = "1110";
+      let creditAccountName = "الصندوق";
+      if (cashBoxId) {
+        const { data: box } = await (supabase as any)
+          .from("cash_boxes")
+          .select("gl_account_code, name")
+          .eq("id", cashBoxId)
+          .maybeSingle();
+        if (box?.gl_account_code) {
+          creditAccount = box.gl_account_code;
+          creditAccountName = box.name || cashBoxName || "صندوق الفرع";
+        }
+      }
+      if (creditAccount === "1110") {
+        toast.error(
+          "صندوق الفرع غير مربوط بحساب فرعي في شجرة الحسابات — لا يمكن الصرف منه."
+        );
+        setSaving(false);
+        return;
+      }
 
       if (mode === "employee") {
         if (!employeeId) {
@@ -339,7 +395,7 @@ export default function POSExpenseDialog({
           transaction_date: date,
           description: txDescription,
           debit_account_code: txDebitAccount,
-          credit_account_code: "1110",
+          credit_account_code: creditAccount,
           amount: amt,
           currency: "شيكل",
           transaction_type: mode === "employee" ? "employee_advance" : "expense",
@@ -735,7 +791,10 @@ export default function POSExpenseDialog({
                           : selectedEmployee?.full_name}{" "}
                         ₪{amt.toFixed(2)}
                       </div>
-                      <div>دائن 1110 — الصندوق ₪{amt.toFixed(2)}</div>
+                      <div>
+                        دائن {cashBoxName ? `(${cashBoxName})` : "صندوق الفرع"} —{" "}
+                        ₪{amt.toFixed(2)}
+                      </div>
                     </div>
                   </div>
                 )}
