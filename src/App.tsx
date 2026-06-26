@@ -539,10 +539,10 @@ const App = () => (
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />
-                <Route path="m/stock" element={<SpartaMobilePlaceholder title="استعلام المخزون" />} />
-                <Route path="m/sale" element={<SpartaMobilePlaceholder title="فاتورة سريعة" />} />
-                <Route path="m/catalog" element={<SpartaMobilePlaceholder title="الكتالوج" />} />
-                <Route path="m/customer" element={<SpartaMobilePlaceholder title="كشف الزبون" />} />
+                <Route path="m/stock" element={<SpartaMobileStock />} />
+                <Route path="m/sale" element={<SpartaMobileSale />} />
+                <Route path="m/catalog" element={<SpartaMobileCatalog />} />
+                <Route path="m/customer" element={<SpartaMobileCustomer />} />
               </Route>
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/choose-workspace" element={<ProtectedRoute><ChooseWorkspacePage /></ProtectedRoute>} />
