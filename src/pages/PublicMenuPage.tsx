@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock, ChevronDown } from "lucide-react";
+import { Plus, Minus, ShoppingBag, Check, ChefHat, X, Clock, ChevronRight, ChevronLeft, Home, UtensilsCrossed, MapPin, User, Menu, Flame, GlassWater } from "lucide-react";
 import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 
 // خريطة كلمات مفتاحية → صور طعام من Unsplash (احتياطية لحين رفع صور المنتجات)
