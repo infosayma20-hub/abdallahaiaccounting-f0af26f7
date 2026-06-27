@@ -896,12 +896,19 @@ const CallCenterDispatchDialog = ({
             </div>
           </div>
 
-          {/* Note */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium flex items-center gap-1">
-              <StickyNote className="h-3 w-3" /> ملاحظات (اختياري)
+          {/* Note — prominent, multi-line so agents see what they typed */}
+          <div className="space-y-1.5 p-3 rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30">
+            <label className="text-sm font-bold flex items-center gap-1 text-amber-900 dark:text-amber-200">
+              <StickyNote className="h-4 w-4" /> ملاحظات للفرع (مهم — ستظهر على الفاتورة)
             </label>
-            <Input value={note} onChange={e => setNote(e.target.value)} placeholder="ملاحظات إضافية..." className="h-10" />
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="مثال: بدل الأجنحة دبابيس — بدون بصل — حار جداً"
+              rows={2}
+              dir="rtl"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
           </div>
 
           {/* Order Summary */}
@@ -919,6 +926,12 @@ const CallCenterDispatchDialog = ({
               <span>المجموع</span>
               <span className="font-mono">₪{total.toFixed(2)}</span>
             </div>
+            {note.trim() && (
+              <div className="mt-2 p-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 text-xs">
+                <span className="font-bold text-amber-900 dark:text-amber-200">📝 ملاحظة سترسل: </span>
+                <span className="text-amber-900 dark:text-amber-100">{note.trim()}</span>
+              </div>
+            )}
             {deliveryType === "delivery" && deliveryInfo && (
               <>
                 <div className="flex justify-between text-xs text-orange-700 dark:text-orange-300">
