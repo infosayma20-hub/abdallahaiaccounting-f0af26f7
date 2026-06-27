@@ -930,46 +930,15 @@ export default function InvoiceHistoryDrawer({
         terminal_name: terminalName,
       } as any);
 
-      // Print KITCHEN CANCEL TICKET (fire-and-forget)
-      try {
-        const { data: lines } = await (supabase
-          .from("pos_order_lines")
-          .select("id, product_id, product_name, qty, unit_price")
-          .eq("order_id", order.id) as any);
-
-        if (Array.isArray(lines) && lines.length > 0) {
-          const printItems: PrintItem[] = lines.map((l: any) => ({
-            id: l.id,
-            name: l.product_name,
-            quantity: Number(l.qty) || 0,
-            price: Number(l.unit_price) || 0,
-          }));
-          const printOrder: PrintOrder = {
-            id: order.id,
-            orderNumber: order.order_number || order.id.slice(0, 8),
-            date: format(new Date(), "yyyy-MM-dd"),
-            time: format(new Date(), "HH:mm"),
-            branchName: terminalName || "",
-            cashier: cashierName,
-            items: printItems,
-            total: order.total,
-            isCancellation: true,
-            cancelReason: fullReason,
-            cancelledBy: cashierName,
-          };
-          sendToBridge("kitchen", printOrder).catch(() => {
-            console.warn("Kitchen cancel ticket: bridge unavailable");
-          });
-        }
-      } catch (printErr) {
-        console.warn("Failed to print kitchen cancel ticket:", printErr);
-      }
+      // NOTE: Kitchen cancel ticket disabled — Print Bridge renders it as a
+      // regular kitchen ticket without a clear "CANCELLED" header, which
+      // caused kitchen staff to prepare cancelled orders. Until the bridge
+      // template clearly distinguishes cancellations, do NOT print on cancel.
 
       const wasReversed = rpcResult?.reverse_transaction_id;
       toast.success(
         `تم إلغاء الفاتورة #${order.order_number || ""}` +
-        (wasReversed ? " — تم إنشاء قيد عكسي" : "") +
-        " — أُرسلت تذكرة إلغاء للمطبخ"
+        (wasReversed ? " — تم إنشاء قيد عكسي" : "")
       );
       // Notify parent so it can offer a "replacement invoice" toggle on the
       // next sale (links the new invoice to this cancelled one).
