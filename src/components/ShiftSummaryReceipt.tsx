@@ -152,7 +152,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
 
   if (!data) return null;
 
-  const varianceType = data.variance > 0 ? "فائض" : data.variance < 0 ? "عجز" : "مطابق";
+  const varianceType = data.variance > 0 ? "فائض" : data.variance < 0 ? "عجز" : "شغل مرتب ✅";
   const varianceColor = data.variance > 0 ? "#16a34a" : data.variance < 0 ? "#dc2626" : "#475569";
   const pmb = data.paymentMethodBreakdown || {};
   const cb = data.currencyBreakdown || {};
@@ -352,7 +352,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data, cashierM
               color: "#000",
               border: "2px solid #000",
             }}>
-              {varianceType}: ₪{Math.abs(data.variance).toFixed(2)}
+              {data.variance === 0 ? varianceType : `${varianceType}: ₪${Math.abs(data.variance).toFixed(2)}`}
             </div>
 
             <hr style={dashed} />

@@ -77,7 +77,7 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB");
   const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-  const variancePrefix = data.variance > 0 ? "⚠️ فائض" : data.variance < 0 ? "⚠️ عجز" : "✅ مطابق";
+  const variancePrefix = data.variance > 0 ? "⚠️ فائض" : data.variance < 0 ? "⚠️ عجز" : "✅ شغل مرتب";
   const pmb = data.paymentMethodBreakdown || {};
   const cb = data.currencyBreakdown || {};
 
@@ -216,7 +216,7 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         border: 'none',
         background: 'transparent',
       }}>
-        {variancePrefix}: ₪{Math.abs(data.variance).toFixed(2)}
+        {data.variance === 0 ? variancePrefix : `${variancePrefix}: ₪${Math.abs(data.variance).toFixed(2)}`}
       </div>
 
       {/* ═══ SIGNATURE ═══ */}
