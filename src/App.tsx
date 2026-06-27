@@ -302,8 +302,7 @@ import RequireSetupAccess from "./components/RequireSetupAccess";
 import VersionGate from "./components/VersionGate";
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
-const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
-const StoreTrackerOrderDetail = lazy(() => import("./pages/store-tracker/StoreTrackerOrderDetail"));
+// Store tracker pages removed with Qamar integration cleanup
 
 // CRM Module
 const CrmLayout = lazy(() => import("./pages/crm/CrmLayout"));
@@ -422,11 +421,11 @@ const RoleResolveFallback = ({ onRetry }: { onRetry: () => void }) => (
   </div>
 );
 
-const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesRep }: { children: React.ReactNode; blockCashier?: boolean; blockStoreTracker?: boolean; blockSalesRep?: boolean }) => {
+const ProtectedRoute = ({ children, blockCashier, blockSalesRep }: { children: React.ReactNode; blockCashier?: boolean; blockSalesRep?: boolean }) => {
   const { user, loading } = useAuth();
   const { targetPath, checking, stalled, retry } = useRoleRedirect();
   const location = useLocation();
-  if (loading || ((blockCashier || blockStoreTracker || blockSalesRep) && checking)) {
+  if (loading || ((blockCashier || blockSalesRep) && checking)) {
     return stalled ? <RoleResolveFallback onRetry={retry} /> : <AuthCheckSpinner />;
   }
   const isSpartaRoute = location.pathname.startsWith("/sparta");
@@ -443,7 +442,6 @@ const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesR
   // workspace chooser so Sparta members land directly in /sparta.
   if (!checking && !isSpartaRoute && targetPath === "/choose-workspace" && !hasWorkspaceChoice && location.pathname !== "/choose-workspace") return <Navigate to="/choose-workspace" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
-  if (blockStoreTracker && targetPath === "/store-tracker") return <Navigate to="/store-tracker" replace />;
   if (blockSalesRep && targetPath === "/rep") return <Navigate to="/rep" replace />;
   return <>{children}</>;
 };
@@ -664,8 +662,7 @@ const App = () => (
               )}
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
-              <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />
-              <Route path="/store-tracker/orders/:id" element={<ProtectedRoute><StoreTrackerOrderDetail /></ProtectedRoute>} />
+              {/* /store-tracker routes removed with Qamar integration */}
               {/* Feedback: standalone shell — no AppSidebar, no WebLayout, no tabs */}
               <Route
                 path="/feedback"
@@ -682,7 +679,7 @@ const App = () => (
                 }
               />
               <Route path="/*" element={
-                <ProtectedRoute blockCashier blockStoreTracker blockSalesRep>
+                <ProtectedRoute blockCashier blockSalesRep>
                   <OnboardingGate>
                   <WebLayout>
                     <Suspense fallback={<AuthCheckSpinner />}>

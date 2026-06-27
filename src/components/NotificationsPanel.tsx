@@ -47,7 +47,7 @@ export function useNotifications() {
     const today = now.toISOString().split("T")[0];
 
     try {
-      // Get team owner for qamar orders
+      // Get team owner
       const { data: profile } = await supabase
         .from("profiles")
         .select("invited_by")
@@ -55,50 +55,7 @@ export function useNotifications() {
         .single();
       const ownerId = profile?.invited_by || user.id;
 
-      // ── 1. Qamar/E-commerce orders: New ──
-      const { data: qamarNew } = await supabase
-        .from("qamar_orders")
-        .select("id, reference_number, customer_name, total, created_at, status")
-        .eq("user_id", ownerId)
-        .eq("status", "جديد")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      const qamarNewList = qamarNew || [];
-      if (qamarNewList.length > 0) {
-        notifs.push({
-          id: "qamar-new-orders",
-          icon: Store,
-          iconColor: "#3B82F6",
-          iconBg: "rgba(59,130,246,0.1)",
-          title: `${qamarNewList.length} طلبيات جديدة بانتظار التجهيز`,
-          description: `إجمالي: ${qamarNewList.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()} شيكل`,
-          time: new Date(qamarNewList[0].created_at),
-          path: "/orders",
-          read: false,
-          category: "urgent",
-        });
-      }
-
-      // ── 2. Qamar orders: Overdue (new > 24h) ──
-      const overdueThreshold = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-      const qamarOverdue = qamarNewList.filter(o => o.created_at < overdueThreshold);
-      if (qamarOverdue.length > 0) {
-        notifs.push({
-          id: "qamar-overdue",
-          icon: AlertTriangle,
-          iconColor: "#EF4444",
-          iconBg: "rgba(239,68,68,0.1)",
-          title: `${qamarOverdue.length} طلبيات متأخرة تحتاج متابعة!`,
-          description: `طلبيات مضى عليها أكثر من 24 ساعة بحالة "جديد"`,
-          time: new Date(),
-          path: "/orders",
-          read: false,
-          category: "urgent",
-        });
-      }
-
-      // ── 3. Qamar orders: Recent status changes (last 24h) ──
+      // ── Recent status changes (last 24h) ──
       const { data: recentLogs } = await supabase
         .from("order_status_log")
         .select("id, order_id, from_status, to_status, changed_by_name, created_at, notes")
@@ -347,18 +304,8 @@ export function useNotifications() {
 
     try {
       const channelInstanceId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const channel = supabase.channel(`notif-qamar-orders-${user.id}-${channelInstanceId}`);
+      const channel = supabase.channel(`notif-orders-${user.id}-${channelInstanceId}`);
 
-      channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "qamar_orders" }, () => {
-        if (!active) return;
-        // Play notification sound
-        try { new Audio("/notification.mp3").play().catch(() => {}); } catch {}
-        generateNotifications();
-      });
-      channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "qamar_orders" }, () => {
-        if (!active) return;
-        generateNotifications();
-      });
       channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "order_status_log" }, () => {
         if (!active) return;
         generateNotifications();

@@ -56,12 +56,8 @@ export default function OrderStatusActions({ orderId, currentStatus, orderTable,
         metadata: metadata || {},
       });
 
-      // Update order status in the appropriate table
-      if (orderTable === "qamar_orders") {
-        await supabase.from("qamar_orders" as any).update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", orderId);
-      } else {
-        await supabase.from("orders").update({ status: newStatus } as any).eq("id", orderId);
-      }
+      // Update order status
+      await supabase.from("orders").update({ status: newStatus } as any).eq("id", orderId);
 
       // Auto-sync to webhook log
       syncProductionToWebhook({

@@ -11,7 +11,7 @@ export async function syncContactFromOrder(order: {
   customer_address?: string | null;
   order_number?: string | null;
   source?: string | null;
-}, sourceTable: "orders" | "qamar_orders" = "orders"): Promise<string | null> {
+}): Promise<string | null> {
   const userId = order.user_id;
   const customerName = order.customer_name?.trim();
   const customerPhone = order.customer_phone?.replace(/[^0-9+]/g, "")?.trim();
@@ -84,7 +84,7 @@ export async function syncContactFromOrder(order: {
   // 4. Link contact to order
   if (contactId) {
     await supabase
-      .from(sourceTable as any)
+      .from("orders" as any)
       .update({ contact_id: contactId } as any)
       .eq("id", order.id);
   }
@@ -99,21 +99,10 @@ export async function syncProductsFromOrderItems(
   orderId: string,
   userId: string
 ): Promise<number> {
-  // Try order_items first, then qamar_order_items
-  let { data: items } = await supabase
+  const { data: items } = await supabase
     .from("order_items")
     .select("*")
     .eq("order_id", orderId);
-
-  let fromQamar = false;
-  if (!items || items.length === 0) {
-    const { data: qItems } = await supabase
-      .from("qamar_order_items" as any)
-      .select("*")
-      .eq("order_id", orderId);
-    items = (qItems as any[]) || [];
-    fromQamar = true;
-  }
 
   if (!items || items.length === 0) return 0;
 
@@ -138,7 +127,7 @@ export async function syncProductsFromOrderItems(
 
     if (!productId) {
       // 2. Create new product
-      const unitPrice = fromQamar ? (raw.price || 0) : (raw.unit_price || 0);
+      const unitPrice = raw.unit_price || 0;
       const { data: newProduct, error } = await supabase
         .from("products")
         .insert({
@@ -164,9 +153,8 @@ export async function syncProductsFromOrderItems(
 
     // 3. Link product to order item
     if (productId) {
-      const table = fromQamar ? "qamar_order_items" : "order_items";
       await supabase
-        .from(table as any)
+        .from("order_items" as any)
         .update({ product_id: productId } as any)
         .eq("id", raw.id);
       synced++;
@@ -191,31 +179,9 @@ export async function retroactiveSyncOrders(userId: string): Promise<{ contactsL
     .is("contact_id" as any, null);
 
   for (const order of (unlinkedOrders || [])) {
-    const cid = await syncContactFromOrder(order as any, "orders");
+    const cid = await syncContactFromOrder(order as any);
     if (cid) contactsLinked++;
     const ps = await syncProductsFromOrderItems(order.id, userId);
-    productsLinked += ps;
-  }
-
-  // Sync from qamar_orders table
-  const { data: qamarOrders } = await supabase
-    .from("qamar_orders" as any)
-    .select("id, user_id, customer_name, customer_phone, customer_address, reference_number, source")
-    .eq("user_id", userId);
-
-  for (const q of (qamarOrders as any[] || [])) {
-    const cid = await syncContactFromOrder({
-      id: q.id,
-      user_id: q.user_id,
-      customer_name: q.customer_name,
-      customer_phone: q.customer_phone,
-      customer_address: q.customer_address,
-      order_number: q.reference_number,
-      source: q.source,
-    }, "qamar_orders");
-    if (cid) contactsLinked++;
-    // Also sync products from qamar_order_items
-    const ps = await syncProductsFromOrderItems(q.id, userId);
     productsLinked += ps;
   }
 

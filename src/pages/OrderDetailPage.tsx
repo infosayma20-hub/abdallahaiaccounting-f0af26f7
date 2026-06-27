@@ -31,52 +31,6 @@ const OrderDetailPage = () => {
     if (!id || !user) return;
     setLoading(true);
 
-    // Try qamar_orders first, then orders
-    const { data: qamarOrder } = await supabase
-      .from("qamar_orders" as any).select("*").eq("id", id).maybeSingle();
-
-    if (qamarOrder) {
-      setSourceTable("qamar_orders");
-      const q = qamarOrder as any;
-      setOrder({
-        id: q.id, order_number: q.reference_number, customer_name: q.customer_name || "",
-        customer_phone: q.customer_phone, customer_address: q.customer_address,
-        customer_city: q.customer_city, order_date: q.created_at, status: q.status || "جديد",
-        subtotal: q.subtotal || 0, discount: q.discount || 0, shipping_cost: q.shipping_cost || 0,
-        total: q.total || 0, payment_status: q.payment_status === "paid" ? "مدفوع كاملاً" : q.payment_status === "partial" ? "مدفوع جزئياً" : "غير مدفوع",
-        payment_method: q.payment_method, source: q.source || "قمر براند",
-        notes: q.all_notes || q.customer_notes || null,
-        agent_name: q.agent_name, priority: q.priority, production_notes: q.production_notes,
-        linked_invoice_id: q.linked_invoice_id, invoice_number: q.invoice_number,
-        paid_amount: q.amount_paid || 0, remaining_amount: (q.total || 0) - (q.amount_paid || 0),
-        created_at: q.created_at, user_id: q.user_id,
-        // Delivery settlement fields
-        shipping_estimate: q.shipping_estimate || 0,
-        shipping_final: q.shipping_final,
-        driver_cost: q.driver_cost,
-        net_delivery: q.net_delivery,
-        shipping_settled: q.shipping_settled || false,
-        shipping_settled_at: q.shipping_settled_at,
-        shipping_settled_by: q.shipping_settled_by,
-        shipping_notes: q.shipping_notes,
-      });
-      // Fetch items from qamar_order_items
-      const { data: qItems } = await supabase.from("qamar_order_items" as any).select("*").eq("order_id", id);
-      if (qItems && (qItems as any[]).length > 0) {
-        setOrderItems((qItems as any[]).map((qi: any) => ({
-          id: qi.id, order_id: qi.order_id, product_name: qi.product_name,
-          quantity: qi.quantity, unit_price: qi.price, total: qi.line_total,
-          product_id: qi.product_id, notes: qi.note,
-        })));
-      } else {
-        // Fallback: check order_items table
-        const { data: fallbackItems } = await supabase.from("order_items").select("*").eq("order_id", id);
-        setOrderItems((fallbackItems as any[]) || []);
-      }
-      setLoading(false);
-      return;
-    }
-
     const { data: legacyOrder } = await supabase
       .from("orders").select("*").eq("id", id).maybeSingle();
 
@@ -243,7 +197,7 @@ const OrderDetailPage = () => {
           )}
 
           {/* Delivery Settlement Section */}
-          {sourceTable === "qamar_orders" && (
+          {false && (
             <div style={{
               background: order.shipping_settled ? "#F0FDF4" : "#FFFBEB",
               border: `1px solid ${order.shipping_settled ? "#BBF7D0" : "#FDE68A"}`,
