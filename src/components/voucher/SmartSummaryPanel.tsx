@@ -124,8 +124,14 @@ function ReceiptPaymentSummary({
   // For receipts: amount REDUCES debit (customer pays us → balance decreases)
   // For payments: amount REDUCES our debt (we pay supplier → their credit decreases / employee balance decreases)
   // We treat balanceBefore as positive=debit (they owe us), negative=credit (we owe them)
-  const before = balanceBefore ?? 0;
-  const after = isReceipt ? before - amount : before + amount;
+  // When isPosted=true (viewing an existing posted voucher), the passed
+  // balance already INCLUDES this document. We must back it out so the
+  // "before / impact / after" trio shows the historic state, not a
+  // double-counted projection.
+  const rawBalance = balanceBefore ?? 0;
+  const docDelta = isReceipt ? -amount : amount;
+  const before = isPosted ? rawBalance - docDelta : rawBalance;
+  const after = isPosted ? rawBalance : rawBalance + docDelta;
   const balanceDelta = after - before;
 
   // Warnings
@@ -202,8 +208,8 @@ function ReceiptPaymentSummary({
               isReceipt={isReceipt}
               onOpenStatement={onOpenStatement}
             />
-            <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">أثر هذا المستند</span>
+          <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
+            <span className="text-muted-foreground">{isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}</span>
               <span
                 className={`font-bold ${accentText}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
@@ -211,7 +217,7 @@ function ReceiptPaymentSummary({
                 {balanceDelta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(balanceDelta))}
               </span>
             </div>
-            <BalanceRow label={isPosted ? "الرصيد بعد القيد" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
+          <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
           </div>
         </div>
       )}
@@ -576,11 +582,16 @@ function InvoiceSummary({
   //   sales invoice → INCREASES customer debit (they owe more)
   //   purchase invoice → INCREASES our liability to supplier (their credit grows)
   //   credit note (sales) → REDUCES customer debit
-  const before = balanceBefore ?? 0;
+  // When isPosted=true (viewing a saved/posted invoice) the passed balance
+  // already INCLUDES this invoice's effect. Back it out so the user sees
+  // the historical "before" and the real current "after" — not a
+  // double-counted projection.
+  const rawBalance = balanceBefore ?? 0;
   const delta = isCreditNote
     ? (isSales ? -total : total)
     : (isPurchase ? -total : total);
-  const after = before + delta;
+  const before = isPosted ? rawBalance - delta : rawBalance;
+  const after = isPosted ? rawBalance : rawBalance + delta;
 
   // Warnings
   const noItems = !itemsCount || total <= 0;
@@ -688,7 +699,7 @@ function InvoiceSummary({
               onOpenStatement={onOpenStatement}
             />
             <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">أثر هذا المستند</span>
+              <span className="text-muted-foreground">{isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}</span>
               <span
                 className={`font-bold ${delta >= 0 ? (isPurchase ? "text-emerald-600" : "text-rose-600") : "text-emerald-600"}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
@@ -696,7 +707,7 @@ function InvoiceSummary({
                 {delta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(delta))}
               </span>
             </div>
-            <BalanceRow label={isPosted ? "الرصيد بعد القيد" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
+            <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
           </div>
         </div>
       )}
@@ -715,7 +726,7 @@ function InvoiceSummary({
         )}
         {!noItems && !overCreditLimit && (
           <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-            الفاتورة جاهزة للحفظ والترحيل
+            {isPosted ? "الفاتورة مُرحَّلة ومُسجَّلة محاسبياً" : "الفاتورة جاهزة للحفظ والترحيل"}
           </Warning>
         )}
       </div>

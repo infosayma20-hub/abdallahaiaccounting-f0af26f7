@@ -2581,6 +2581,7 @@ const InvoiceCreatePage = () => {
       <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
         <SmartSummaryPanel
           variant="invoice"
+          isPosted={isEditMode}
           invoiceType={form.type}
           subtotal={summary.subtotal}
           totalDiscount={summary.totalDiscount}

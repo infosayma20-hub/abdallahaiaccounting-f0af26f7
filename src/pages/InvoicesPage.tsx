@@ -1440,10 +1440,10 @@ const InvoicesPage = () => {
                       {show("actions") && <TableCell onClick={e => e.stopPropagation()}>
                         <div className="flex gap-0.5 items-center">
                           <Tooltip><TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">عرض</p></TooltipContent></Tooltip>
+                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">عرض الفاتورة</p></TooltipContent></Tooltip>
 
                           <Tooltip><TooltipTrigger asChild>
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDirectPrint(inv)}>
