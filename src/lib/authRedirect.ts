@@ -58,7 +58,31 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
     .select("onboarding_completed")
     .eq("company_id", company.id)
     .maybeSingle());
-  if (profile?.onboarding_completed) return true;
+  const readAccountsReady = async () => {
+    const { count: accountsCount, error: accountsError } = await supabase
+      .from("accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", ownerId);
+    if (accountsError) {
+      if (isAuthSessionExpiredError(accountsError)) redirectToSessionExpired();
+      throw accountsError;
+    }
+    return (accountsCount ?? 0) > 0;
+  };
+  if (profile?.onboarding_completed) {
+    return readAccountsReady();
+  }
+
+  // Compatibility with the older /setup wizard: it writes completion into
+  // company_settings, while the newer /onboarding gate reads company_profiles.
+  const settings = assertQueryOk(await supabase
+    .from("company_settings" as any)
+    .select("onboarding_completed")
+    .eq("user_id", ownerId)
+    .maybeSingle()) as { onboarding_completed?: boolean } | null;
+  if (settings?.onboarding_completed) {
+    return readAccountsReady();
+  }
   // Fallback for legacy tenants who own a company but never went through the
   // 6-step wizard: if they already have substantive data, treat as completed
   // so the gate doesn't loop them back to /onboarding.
@@ -78,28 +102,58 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
 
 export async function fetchOnboardingStatus(userId: string): Promise<OnboardingStatus> {
   try {
-    const [rolesResult, empResult] = await Promise.all([
+    const [rolesResult, empResult, profileResult, posResult, portalResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase
         .from("employees")
         .select("id, is_active, is_terminated")
         .eq("auth_user_id", userId)
         .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("invited_by, role")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("pos_users")
+        .select("id, is_active, is_call_center")
+        .eq("auth_user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("malaki_portal_users")
+        .select("id, is_active")
+        .eq("auth_user_id", userId)
+        .maybeSingle(),
     ]);
     const rolesData = assertQueryOk(rolesResult);
     const emp = assertQueryOk(empResult);
+    const profile = assertQueryOk(profileResult) as { invited_by?: string | null; role?: string | null } | null;
+    const posUser = assertQueryOk(posResult) as { is_active?: boolean | null; is_call_center?: boolean | null } | null;
+    const portalUser = assertQueryOk(portalResult) as { is_active?: boolean | null } | null;
     const roles = (rolesData || []).map((r) => String(r.role));
+    if (profile?.role) roles.push(String(profile.role));
     const hasAdminAccess = roles.some(
       (r) => r === "admin" || r === "hr_manager" || r.startsWith("accountant")
     );
+    const isInvitedAdmin = !!profile?.invited_by && profile.invited_by !== userId;
+    const isPosUser = !!posUser && posUser.is_active !== false;
+    const isPortalUser = !!portalUser && portalUser.is_active !== false;
+
+    // The owner onboarding wizard must only gate real tenant owners. Invited
+    // admins/accountants/HR, cashiers/call-center, portal users and other
+    // sub-accounts are routed by their own guards; sending them to /onboarding
+    // can create loops because they do not own the tenant bootstrap records.
+    if (isInvitedAdmin || isPosUser || isPortalUser) return "na";
     // System / portal-only roles → no gate.
     if (roles.includes("super_admin")) return "na";
+    if (roles.includes("call_center")) return "na";
     if (roles.includes("portal") && !roles.includes("admin")) return "na";
     if (roles.includes("store_tracker") && !roles.includes("admin")) return "na";
     if (roles.includes("worker") && roles.length === 1) return "na";
     if (roles.includes("sales_rep") && !hasAdminAccess) return "na";
     if (roles.includes("cashier") && !roles.includes("admin")) return "na";
     if (roles.includes("employee") && !hasAdminAccess) return "na";
+    if ((roles.includes("hr_manager") || roles.some((r) => r.startsWith("accountant"))) && !roles.includes("admin")) return "na";
 
     const isEmployee = !!emp && emp.is_active && !emp.is_terminated;
     if (isEmployee && !hasAdminAccess) return "na";
