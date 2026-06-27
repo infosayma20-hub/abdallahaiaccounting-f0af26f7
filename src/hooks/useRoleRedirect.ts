@@ -255,7 +255,7 @@ export function useRoleRedirect() {
             if (fbPerms && fbPerms.length > 0) {
               nextPath = "/feedback";
             } else {
-              // Resolve the true tenant owner (the user may have been
+                // Resolve the true tenant owner (the user may have been
               // invited as admin by the company owner — their accounts
               // live under the owner's UID, not their own).
               const { data: ownerIdData } = await supabase.rpc(
@@ -273,7 +273,7 @@ export function useRoleRedirect() {
                 // Final safety: never seed a stray tenant for a user who
                 // isn't actually allowed to create one.
                 const guard = await canUserCreateTenant(user.id);
-                nextPath = guard.canCreateTenant ? "/setup" : "/apps";
+                nextPath = guard.canCreateTenant ? "/onboarding" : "/apps";
               }
             }
           } else {
@@ -287,7 +287,7 @@ export function useRoleRedirect() {
         }
 
         if (isCancelled) return;
-        if (nextPath !== "/setup") redirectCache.set(user.id, nextPath);
+        if (!["/setup", "/onboarding"].includes(nextPath)) redirectCache.set(user.id, nextPath);
         setTargetPath(nextPath);
       } catch (err) {
         if (isCancelled) return;

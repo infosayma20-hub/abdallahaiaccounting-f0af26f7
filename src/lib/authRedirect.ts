@@ -58,7 +58,17 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
     .select("onboarding_completed")
     .eq("company_id", company.id)
     .maybeSingle());
-  if (profile?.onboarding_completed) return true;
+  if (profile?.onboarding_completed) {
+    const { count: accountsCount, error: accountsError } = await supabase
+      .from("accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", ownerId);
+    if (accountsError) {
+      if (isAuthSessionExpiredError(accountsError)) redirectToSessionExpired();
+      throw accountsError;
+    }
+    return (accountsCount ?? 0) > 0;
+  }
   // Fallback for legacy tenants who own a company but never went through the
   // 6-step wizard: if they already have substantive data, treat as completed
   // so the gate doesn't loop them back to /onboarding.

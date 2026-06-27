@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { clearOnboardingStatusCache } from "@/components/auth/OnboardingGate";
 import { fetchOnboardingStatus } from "@/lib/authRedirect";
+import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
 
 // ─── 5 خطوات (سابقاً 6؛ تم حذف خطوة "ما هو قطاعك" لأنها كانت مكررة
 // مع "ما طبيعة عملك") ───
@@ -119,9 +120,17 @@ const OnboardingPage = () => {
 
         if (cancelled) return;
         if (profile?.onboarding_completed) {
-          clearOnboardingStatusCache(user.id);
-          navigate("/apps", { replace: true });
-          return;
+          const { count: accountsCount } = await supabase
+            .from("accounts")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", ownerId);
+          if ((accountsCount ?? 0) > 0) {
+            clearOnboardingStatusCache(user.id);
+            clearRoleRedirectCache(user.id);
+            navigate("/apps", { replace: true });
+            return;
+          }
+          setStep(TOTAL_STEPS);
         }
 
         if (company.name) setCompanyName(company.name);
@@ -301,13 +310,19 @@ const OnboardingPage = () => {
         .eq("owner_id", ownerId)
         .maybeSingle();
       if (company?.id) {
-        const { data: profile } = await supabase
-          .from("company_profiles")
-          .select("onboarding_completed")
-          .eq("company_id", company.id)
-          .maybeSingle();
-        if (!profile?.onboarding_completed) {
-          console.error("[finishOnboarding] read-back failed:", profile);
+        const [{ data: profile }, { count: accountsCount }] = await Promise.all([
+          supabase
+            .from("company_profiles")
+            .select("onboarding_completed")
+            .eq("company_id", company.id)
+            .maybeSingle(),
+          supabase
+            .from("accounts")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", ownerId),
+        ]);
+        if (!profile?.onboarding_completed || (accountsCount ?? 0) === 0) {
+          console.error("[finishOnboarding] read-back failed:", { profile, accountsCount });
           toast.error("لم يتم تأكيد حفظ الإعداد، حاول مرة أخرى");
           setFinishing(false);
           return;
@@ -343,6 +358,7 @@ const OnboardingPage = () => {
         console.warn("[finishOnboarding] user_onboarding sync failed:", err);
       }
       clearOnboardingStatusCache(user.id);
+      clearRoleRedirectCache(user.id);
     }
     toast.success("أهلاً بك في AMWALI أموالي! 🎉");
     navigate("/apps");
