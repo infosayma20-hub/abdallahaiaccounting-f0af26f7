@@ -118,6 +118,57 @@
           }
         } catch (e) {}
 
+        // ── Stuck-blank safety net ──────────────────────────────────────────
+        // If after 8s the React root is still empty, surface a visible
+        // recovery panel instead of leaving the user on a blank white page.
+        // Triggers a one-shot full wipe (SW + caches) + reload bypassing SW.
+        setTimeout(function () {
+          try {
+            var root = document.getElementById("root");
+            if (root && root.childElementCount === 0) {
+              var panel = document.createElement("div");
+              panel.dir = "rtl";
+              panel.style.cssText =
+                "position:fixed;inset:0;z-index:2147483647;background:#0D1B2E;color:#fff;" +
+                "display:flex;align-items:center;justify-content:center;padding:24px;" +
+                "font-family:Cairo,system-ui,-apple-system,sans-serif;";
+              panel.innerHTML =
+                '<div style="max-width:420px;width:100%;text-align:center;line-height:1.7">' +
+                '<div style="font-size:22px;font-weight:700;margin-bottom:12px">تعذّر تشغيل أموالي على هذا الجهاز</div>' +
+                '<div style="opacity:.85;margin-bottom:20px;font-size:14px">في نسخة قديمة محفوظة بالمتصفح. اضغط الزر لتنظيفها وإعادة التحميل.</div>' +
+                '<button id="__amwali_fix_btn" style="background:#fff;color:#0D1B2E;border:0;border-radius:10px;padding:12px 24px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">تنظيف وإعادة التشغيل</button>' +
+                '<div style="opacity:.5;margin-top:18px;font-size:11px;font-family:monospace">amwali recovery</div>' +
+                "</div>";
+              document.body.appendChild(panel);
+              var btn = document.getElementById("__amwali_fix_btn");
+              if (btn) btn.addEventListener("click", async function () {
+                btn.innerText = "جارٍ التنظيف...";
+                try {
+                  if (window.caches && caches.keys) {
+                    var kk = await caches.keys();
+                    await Promise.all(kk.map(function (k) { return caches.delete(k); }));
+                  }
+                  if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+                    var rr = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(rr.map(function (r) { return r.unregister().catch(function () {}); }));
+                  }
+                  try {
+                    Object.keys(localStorage).forEach(function (k) {
+                      if (k.indexOf("workbox") === 0 || k.indexOf("amwali_chunk_recovery") === 0 || k.indexOf("amwali_recover_boot") === 0) {
+                        localStorage.removeItem(k);
+                      }
+                    });
+                  } catch (e) {}
+                } catch (e) {}
+                var cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete("__recover");
+                cleanUrl.searchParams.set("__hard", String(Date.now()));
+                window.location.replace(cleanUrl.toString());
+              });
+            }
+          } catch (e) {}
+        }, 8000);
+
         function shouldRecover(msg, src) {
           if (!msg && !src) return false;
           var m = (msg || "") + " " + (src || "");
