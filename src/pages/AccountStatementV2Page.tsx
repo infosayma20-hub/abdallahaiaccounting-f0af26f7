@@ -32,6 +32,22 @@ import StatementViewOptionsPanel, { loadViewOptions, type StatementViewOptions }
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
+import { useTaxEnabled } from "@/hooks/useTaxEnabled";
+
+// ─── Reference label formatting ───
+// Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
+function formatReferenceLabel(ref: string | null | undefined): string {
+  if (!ref) return "—";
+  const r = String(ref).trim();
+  if (/^OB-CONTACT/i.test(r)) return "رصيد افتتاحي";
+  if (/^OB-/i.test(r)) return "رصيد افتتاحي";
+  if (/^INV-/i.test(r)) return r; // invoice numbers are already short/clean
+  if (/^PO-/i.test(r)) return r;
+  if (/^RV-|^PV-|^JV-|^REC-/i.test(r)) return r;
+  // Generic long reference: keep first 12 chars + ellipsis
+  if (r.length > 16) return r.slice(0, 12) + "…";
+  return r;
+}
 
 // ─── TYPES ───
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
