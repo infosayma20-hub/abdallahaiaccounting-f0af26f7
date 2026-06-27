@@ -4534,7 +4534,7 @@ const POSPage = () => {
           // category/station ما بوجهه لهناك. لا يؤثر على الوصل ولا يضيف
           // نسخ مكررة على نفس المحطة.
           try {
-            const SHARED_KEYWORDS = ['مشوي', 'كرنشي', 'حلقات بصل', 'خبز متوم', 'خبز ثوم'];
+            const SHARED_KEYWORDS = ['مشوي', 'كرنشي', 'حلقات بصل', 'حلقات البصل', 'خبز متوم', 'خبز ثوم', 'هاش بروان', 'هاشبروان'];
             const matchesShared = (name: string) =>
               SHARED_KEYWORDS.some((kw) => name.includes(kw));
             const grilledItems = cart
