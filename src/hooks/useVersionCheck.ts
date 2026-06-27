@@ -12,7 +12,7 @@ export interface VersionManifest {
 export interface VersionCheckState {
   manifest: VersionManifest | null;
   isOutdated: boolean;       // soft — newer build available
-  isHardBlocked: boolean;    // hard — APP_BUILD < minSupportedBuild OR forceUpdate set
+  isHardBlocked: boolean;    // hard — only APP_BUILD < minSupportedBuild
   appBuild: number;
   lastCheckedAt: number | null;
 }
@@ -82,7 +82,7 @@ function evaluate(m: VersionManifest | null): {
   if (!m) return { isOutdated: false, isHardBlocked: false };
   const isOutdated = APP_BUILD < m.latestBuild;
   const belowMin = APP_BUILD < m.minSupportedBuild;
-  const isHardBlocked = belowMin || (m.forceUpdate && APP_BUILD < m.latestBuild);
+  const isHardBlocked = belowMin;
   return { isOutdated, isHardBlocked };
 }
 

@@ -10,7 +10,7 @@
  * public/version.json. To force-block older clients, also raise
  * `minSupportedBuild` and set `forceUpdate: true`.
  */
-export const APP_BUILD = 3;
+export const APP_BUILD = 4;
 export const BUILD_DATE = "2026-06-27";
 
 export const APP_VERSION_LABEL = `Build #${APP_BUILD} (${BUILD_DATE})`;
