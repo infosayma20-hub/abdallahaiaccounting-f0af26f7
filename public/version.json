@@ -1,7 +1,7 @@
 {
-  "latestBuild": 3,
-  "minSupportedBuild": 3,
-  "forceUpdate": true,
-  "message": "تم إصدار تحديث طارئ لإصلاح مشكلة الشاشة البيضاء، يرجى الانتظار حتى يتم التحديث.",
-  "updatedAt": "2026-06-27T13:35:00Z"
+  "latestBuild": 4,
+  "minSupportedBuild": 1,
+  "forceUpdate": false,
+  "message": "يوجد تحديث جديد لأموالي. يمكنكم متابعة العمل والتحديث عند توفر الوقت.",
+  "updatedAt": "2026-06-27T13:45:00Z"
 }

@@ -9,9 +9,9 @@ import { APP_BUILD, APP_VERSION_LABEL } from "@/config/appVersion";
  * VersionGate
  * ------------
  * Wraps the entire app. Behavior:
- *   • forceUpdate=false OR build is current → renders children normally.
- *   • Soft outdated (latestBuild > APP_BUILD, no force) → quiet bottom banner.
- *   • Hard block (forceUpdate=true OR APP_BUILD < minSupportedBuild)
+  *   • Current build → renders children normally.
+  *   • Soft outdated (latestBuild > APP_BUILD) → quiet bottom banner.
+  *   • Hard block (APP_BUILD < minSupportedBuild only)
  *     → full-screen blocking screen with single "تحديث الآن" button.
  *
  * Initial paint is NEVER blocked: the first check is delayed and the
@@ -53,7 +53,7 @@ export default function VersionGate({ children }: { children: React.ReactNode })
           <h1 className="text-2xl font-bold">جاري تحديث النظام</h1>
           <p className="text-white/80 leading-relaxed text-base">
             {manifest.message ||
-              "تم إصدار نسخة جديدة من أموالي. يرجى الانتظار حتى يتم التحديث تلقائياً."}
+              "هذه النسخة قديمة جداً. يرجى التحديث للمتابعة."}
           </p>
           <div className="text-xs text-white/50 font-mono">
             current: build #{APP_BUILD} → latest: build #{manifest.latestBuild}
