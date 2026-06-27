@@ -5977,10 +5977,10 @@ const POSPage = () => {
             />
           )}
 
-          {/* Stockout alert — icon in top bar (call-center receiver).
-              Replaces the inline red banner; sound + toast still fire via
-              <StockoutAlertsListener/>. */}
-          {isCallCenter && dataOwnerId && (
+          {/* Stockout alert — icon in top bar. Shown to ALL POS users (not
+              just call-center) so every branch can see when another branch
+              ran out of an item (e.g. "الرز جاهز نفد بفرع فيصل"). */}
+          {dataOwnerId && (
             <StockoutAlertsBanner dataOwnerId={dataOwnerId} mode="icon" />
           )}
 
@@ -6147,9 +6147,15 @@ const POSPage = () => {
       {/* ══════ OFFLINE STATUS BAR — hidden, data kept in sync log ══════ */}
 
       {/* Global stockout listener — plays beep + toast for new alerts.
-          Cashiers RAISE the alert, so the sound must fire at the call-center
-          terminal (the recipient), not at the cashier who sent it. */}
-      {isCallCenter && dataOwnerId && <StockoutAlertsListener dataOwnerId={dataOwnerId} />}
+          Now fires at EVERY POS terminal so all branches hear when a
+          sister-branch reports a stockout; the originating branch is
+          silenced via ignoreBranchId to avoid self-beep. */}
+      {dataOwnerId && (
+        <StockoutAlertsListener
+          dataOwnerId={dataOwnerId}
+          ignoreBranchId={deviceConfig?.branchId || cashBoxBranchId || null}
+        />
+      )}
 
       {/* Stockout banner moved to a top-bar icon (see header above) for the
           call-center workspace so the main screen stays uncluttered. */}
