@@ -519,6 +519,14 @@ export function StockoutAlertsBanner({
   const [branchMap, setBranchMap] = useState<Map<string, string>>(new Map());
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  // Auto-dismiss the details dialog after 15s so it doesn't block the screen.
+  // The alert itself stays active in the DB — only the popup closes.
+  useEffect(() => {
+    if (!detailsOpen) return;
+    const t = setTimeout(() => setDetailsOpen(false), 15000);
+    return () => clearTimeout(t);
+  }, [detailsOpen]);
+
   const load = async () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
