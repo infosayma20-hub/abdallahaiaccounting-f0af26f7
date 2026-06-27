@@ -76,6 +76,7 @@ export function StockoutAlertButton({
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [myActive, setMyActive] = useState<AlertRow[]>([]);
+  const [recentResolved, setRecentResolved] = useState<AlertRow[]>([]);
   const [showPicker, setShowPicker] = useState(false);
 
   // Load product + modifier names for the picker
@@ -201,6 +202,41 @@ export function StockoutAlertButton({
     toast.success("تم تعليم التنبيه كمنتهي");
   };
 
+  // Load recently resolved alerts (last 24h) so a mistakenly dismissed
+  // alert can be restored.
+  useEffect(() => {
+    if (!open || !dataOwnerId) return;
+    (async () => {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      let q = supabase
+        .from("stockout_alerts")
+        .select("*")
+        .eq("user_id", dataOwnerId)
+        .eq("status", "resolved")
+        .gte("resolved_at", since)
+        .order("resolved_at", { ascending: false })
+        .limit(15);
+      if (branchId) q = q.eq("branch_id", branchId);
+      const { data } = await q;
+      setRecentResolved(((data as any[]) || []) as AlertRow[]);
+    })();
+  }, [open, dataOwnerId, branchId, myActive.length]);
+
+  const restore = async (id: string) => {
+    const { error } = await supabase
+      .from("stockout_alerts")
+      .update({
+        status: "active",
+        resolved_at: null,
+        resolved_by: null,
+        resolved_by_name: null,
+      } as any)
+      .eq("id", id);
+    if (error) { toast.error("تعذّر إعادة التنبيه"); return; }
+    setRecentResolved(prev => prev.filter(a => a.id !== id));
+    toast.success("تم إعادة تفعيل التنبيه");
+  };
+
   return (
     <>
       {iconOnly ? (
@@ -256,6 +292,30 @@ export function StockoutAlertButton({
                     <X className="w-3 h-3 ml-1" /> إلغاء التنبيه
                   </Button>
                 </div>
+                );
+              })}
+            </div>
+          )}
+
+          {recentResolved.length > 0 && (
+            <div className="rounded-md border bg-slate-50 p-2 text-xs space-y-1">
+              <div className="font-semibold text-slate-700">
+                تنبيهات تم إلغاؤها مؤخراً (آخر 24 ساعة) — يمكنك إعادتها إذا أُلغيت بالخطأ:
+              </div>
+              {recentResolved.map(a => {
+                const name =
+                  a.custom_label ||
+                  (a.product_id ? products.find(p => p.id === a.product_id)?.name : null) ||
+                  (a.modifier_option_id ? mods.find(m => m.id === a.modifier_option_id)?.name : null) ||
+                  "تنبيه";
+                const by = a.resolved_by_name ? ` — بواسطة ${a.resolved_by_name}` : "";
+                return (
+                  <div key={a.id} className="flex items-center justify-between gap-2">
+                    <span className="text-slate-600">• {name}<span className="text-[10px] text-slate-400">{by}</span></span>
+                    <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-emerald-700" onClick={() => restore(a.id)}>
+                      ↺ إعادة التنبيه
+                    </Button>
+                  </div>
                 );
               })}
             </div>
