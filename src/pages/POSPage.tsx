@@ -8895,8 +8895,9 @@ const POSPage = () => {
         onClose={() => setShowManagerDiscountDialog(false)}
         onApproved={(data) => {
           setManagerDiscountMeta(data);
-          setOrderDiscountType(data.type);
-          setOrderDiscount(data.amount);
+          // Bypass cashier permission — this is a manager-authorized discount.
+          setOrderDiscountType(data.type, { bypassPermission: true });
+          setOrderDiscount(data.amount, { bypassPermission: true });
           setShowManagerDiscountDialog(false);
           toast.success(
             data.type === "percent"
