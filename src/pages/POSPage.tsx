@@ -3737,8 +3737,8 @@ const POSPage = () => {
     }
 
     // Defense-in-depth: block sale if an order-level discount is present but
-    // the user lacks pos.sell.discount.
-    if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount")) {
+    // the user lacks pos.sell.discount AND no branch-manager override exists.
+    if (orderDiscount > 0 && !posFeatPerm.can("sell", "discount") && !managerDiscountMeta) {
       toast.error("لا تملك صلاحية تطبيق خصم");
       return;
     }
