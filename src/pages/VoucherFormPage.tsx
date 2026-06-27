@@ -1414,6 +1414,34 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
+      // ─── Auto-route to contact sub-account when parent has children ───
+      // If the user already opened sub-accounts under 1130 / 2110 / 2115 / 1146,
+      // posting to the parent is forbidden. Resolve (or auto-create) the
+      // contact's own sub-account so receipts/payments always land in a
+      // postable account and the customer/supplier statement stays clean.
+      if (selectedContact && !isAccountPayment) {
+        try {
+          const { data: resolved, error: resErr } = await supabase.rpc(
+            "resolve_postable_account" as any,
+            {
+              p_user_id: ownerId,
+              p_parent_code: counterAccountCode,
+              p_contact_id: selectedContact.id,
+              p_contact_name: selectedContact.contact_name,
+            }
+          );
+          if (resErr) throw resErr;
+          if (typeof resolved === "string" && resolved) {
+            counterAccountCode = resolved;
+          }
+        } catch (e: any) {
+          throw new Error(
+            e?.message ||
+              `تعذر تحديد الحساب الفرعي للجهة على ${counterAccountCode}`
+          );
+        }
+      }
+
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
         if (isReceipt) {
