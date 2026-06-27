@@ -315,7 +315,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">الرصيد الافتتاحي</label>
-                <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" className="h-9 font-mono" />
+                <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} onWheel={e => (e.target as HTMLInputElement).blur()} placeholder="0.00" className="h-9 font-mono" />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">تاريخ الرصيد</label>
@@ -327,11 +327,11 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">حد التنبيه (الحد الأدنى)</label>
-                <Input type="number" value={minAlert} onChange={e => setMinAlert(e.target.value)} placeholder="₪ 0.00" className="h-9 font-mono" />
+                <Input type="number" value={minAlert} onChange={e => setMinAlert(e.target.value)} onWheel={e => (e.target as HTMLInputElement).blur()} placeholder="₪ 0.00" className="h-9 font-mono" />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1">الحد الأقصى المسموح</label>
-                <Input type="number" value={maxAlert} onChange={e => setMaxAlert(e.target.value)} placeholder="₪ 0.00" className="h-9 font-mono" />
+                <Input type="number" value={maxAlert} onChange={e => setMaxAlert(e.target.value)} onWheel={e => (e.target as HTMLInputElement).blur()} placeholder="₪ 0.00" className="h-9 font-mono" />
               </div>
             </div>
             {maxAlert && (
