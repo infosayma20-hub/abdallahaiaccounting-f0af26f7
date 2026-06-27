@@ -1349,7 +1349,12 @@ export default function InvoiceHistoryDrawer({
                           {st.label}
                         </span>
                         <span className="text-[11px] mr-auto" style={{ color: "#94A3B8" }}>
-                          {format(new Date(selectedOrder.created_at), "dd/MM/yyyy · HH:mm")}
+                          {(() => {
+                            const d = new Date(selectedOrder.created_at);
+                            const dt = d.toLocaleDateString("en-GB", { timeZone: "Asia/Hebron", day: "2-digit", month: "2-digit", year: "numeric" });
+                            const tm = d.toLocaleTimeString("en-GB", { timeZone: "Asia/Hebron", hour: "2-digit", minute: "2-digit", hour12: false });
+                            return `${dt} · ${tm}`;
+                          })()}
                         </span>
                       </DialogTitle>
                     </DialogHeader>
