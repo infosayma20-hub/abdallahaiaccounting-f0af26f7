@@ -16,19 +16,14 @@ import {
   Search,
   Phone,
   MessageCircle,
-  Calendar,
   User,
   Star,
   FileText,
-  TrendingUp,
-  AlertTriangle,
-  Smile,
   ShieldCheck,
   ChevronDown,
   ChevronUp,
   MapPin,
   Clock,
-  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
