@@ -24245,6 +24245,15 @@ export type Database = {
         Args: { _auth_uid?: string }
         Returns: string
       }
+      resolve_postable_account: {
+        Args: {
+          p_contact_id?: string
+          p_contact_name?: string
+          p_parent_code: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       reverse_invoice_stock: { Args: { p_invoice_id: string }; Returns: number }
       revert_orphan_call_center_orders: { Args: never; Returns: number }
       sa_ensure_baseline_accounts: {
