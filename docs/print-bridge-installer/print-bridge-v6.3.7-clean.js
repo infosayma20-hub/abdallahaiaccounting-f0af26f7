@@ -24,7 +24,7 @@ const bodyParser  = require('body-parser');
 
 // v6.3.6-clean version + buildHash. buildHash is a sha1 of THIS file
 // computed at startup, so operators can verify what's actually deployed.
-const BRIDGE_VERSION = '6.3.7-clean';
+const BRIDGE_VERSION = '6.3.7-clean-r2';
 const BRIDGE_FEATURES = [
   'note-downward',
   'dedupe-on-success',
@@ -33,6 +33,9 @@ const BRIDGE_FEATURES = [
   'kitchen-note-stacked',
   'item-bullet-prefix',
   'no-line-above-items-header',
+  // r2: reverted item-name/item-note RTL attrs (caused overflow off paper).
+  // RTL handling kept only on customer/kitchen note boxes (drawNoteBox).
+  'items-no-rtl-attrs',
 ];
 let BRIDGE_BUILD_HASH = 'unknown';
 try {
