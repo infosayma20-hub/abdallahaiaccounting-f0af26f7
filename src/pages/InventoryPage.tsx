@@ -333,9 +333,38 @@ const InventoryPage = () => {
       if (error) toast({ title: "خطأ في تحديث المنتج", variant: "destructive" });
       else toast({ title: "تم تحديث المنتج" });
     } else {
-      const { error } = await supabase.from("products").insert(payload);
+      const { data: inserted, error } = await supabase
+        .from("products")
+        .insert(payload)
+        .select("id, quantity")
+        .single();
       if (error) toast({ title: "خطأ في إضافة المنتج", description: error.message, variant: "destructive" });
-      else toast({ title: "تم إضافة المنتج" });
+      else {
+        toast({ title: "تم إضافة المنتج" });
+        // Opening balance → write a stock movement to the default warehouse so per-warehouse
+        // availability (used in invoices/POS) reflects the manual opening quantity.
+        const openingQty = Number(payload.quantity) || 0;
+        if (inserted?.id && openingQty > 0 && form.product_type !== "service") {
+          const { data: defWh } = await supabase
+            .from("warehouses")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("is_default", true)
+            .maybeSingle();
+          if (defWh?.id) {
+            await supabase.from("stock_movements").insert({
+              user_id: user.id,
+              product_id: inserted.id,
+              warehouse_id: defWh.id,
+              movement_type: "وارد" as any,
+              quantity: openingQty,
+              reference_type: "opening_balance",
+              reference_note: "رصيد افتتاحي",
+              unit_cost: parseFloat(form.buy_price) || 0,
+            });
+          }
+        }
+      }
     }
     setSaving(false);
     setShowProductDialog(false);
