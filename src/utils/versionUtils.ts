@@ -15,7 +15,14 @@ export async function clearServiceWorkers(): Promise<void> {
   try {
     if ("serviceWorker" in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+      await Promise.all(
+        regs
+          .filter((r) => {
+            const scriptURL = r.active?.scriptURL || r.waiting?.scriptURL || r.installing?.scriptURL || "";
+            return scriptURL.includes("/sw.js") || scriptURL.includes("/service-worker.js");
+          })
+          .map((r) => r.unregister().catch(() => false)),
+      );
     }
   } catch {
     /* swallow — best-effort */
@@ -26,7 +33,11 @@ export async function clearCacheStorage(): Promise<void> {
   try {
     if ("caches" in window) {
       const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)));
+      await Promise.all(
+        keys
+          .filter((k) => /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-/.test(k) || k.includes("workbox"))
+          .map((k) => caches.delete(k).catch(() => false)),
+      );
     }
   } catch {
     /* swallow */
@@ -54,6 +65,10 @@ export async function hardRefreshToLatest(latestBuild: number | string): Promise
   await clearCacheStorage();
 
   const url = new URL(window.location.href);
+  url.searchParams.delete("__recover");
+  url.searchParams.delete("__hard");
+  url.searchParams.delete("__refresh");
+  url.searchParams.delete("sw-cleanup");
   url.searchParams.set("v", String(latestBuild));
   url.searchParams.set("t", String(Date.now()));
   window.location.replace(url.toString());
