@@ -332,7 +332,7 @@ const ContactsPage = () => {
         if (newC) {
           const isDebit = newContact.balance_direction === "debit";
           const contactAccountCode = newContact.type === "مورد" ? "2110" : "1130";
-          await supabase.rpc("create_opening_balance_entry", {
+          const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
             p_user_id: user.id,
             p_debit_account_code: isDebit ? contactAccountCode : "3400",
             p_credit_account_code: isDebit ? "3400" : contactAccountCode,
@@ -345,6 +345,10 @@ const ContactsPage = () => {
             p_replace_existing: true,
             p_idempotency_key: `OB-CONTACT-${newC.id}`,
           });
+          const obResult = obRes as { success?: boolean; error?: string } | null;
+          if (obErr || (obResult && obResult.success === false)) {
+            throw new Error(obErr?.message || obResult?.error || "تعذر تسجيل الرصيد الافتتاحي");
+          }
           // Phase 5G: do NOT mirror balance into contacts.current_balance.
           // The opening balance entry above writes to the ledger; the UI
           // reads via get_contact_balance. Keeping the stored column stale
@@ -398,7 +402,7 @@ const ContactsPage = () => {
       if (obAmount > 0) {
         const isDebit = editData.balance_direction === "debit";
         const contactAccountCode = editData.contact_type === "مورد" ? "2110" : "1130";
-        await supabase.rpc("create_opening_balance_entry", {
+        const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
           p_user_id: user!.id,
           p_debit_account_code: isDebit ? contactAccountCode : "3400",
           p_credit_account_code: isDebit ? "3400" : contactAccountCode,
@@ -411,6 +415,10 @@ const ContactsPage = () => {
           p_replace_existing: true,
           p_idempotency_key: `OB-CONTACT-${editContact.id}-${Date.now()}`,
         });
+        const obResult = obRes as { success?: boolean; error?: string } | null;
+        if (obErr || (obResult && obResult.success === false)) {
+          throw new Error(obErr?.message || obResult?.error || "تعذر تسجيل الرصيد الافتتاحي");
+        }
         // Phase 5G: ledger is the source of truth — no mirror to current_balance.
       }
       // Phase 5G: removed the "reset to 0" branch as well — balance is always
