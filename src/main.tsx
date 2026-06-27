@@ -4,9 +4,14 @@ import "./index.css";
 import "./lib/excel-export"; // Activates Excel branding interceptor globally
 import { hydrateConfigFromBridge } from "./lib/device-config";
 import { captureRefFromUrl } from "./lib/referralCapture";
+import { supabase } from "./integrations/supabase/client";
+import { installRealtimeGuard } from "./lib/realtime-guard";
 
 // Capture ?ref=CODE from URL into localStorage for referral attribution
 captureRefFromUrl();
+
+// Protect the app from Supabase Realtime channel reuse crashes after dependency upgrades.
+installRealtimeGuard(supabase);
 
 // Force Western Arabic numerals (123) globally instead of Eastern (١٢٣)
 const origNumberToLocaleString = Number.prototype.toLocaleString;
