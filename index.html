@@ -79,6 +79,52 @@
         var RECOVERY_KEY = "amwali_chunk_recovery_ts";
         var COOLDOWN_MS = 60 * 1000;
 
+        function isInternalRecoveryParam(key) {
+          return key === "__recover" || key === "__hard" || key === "__refresh" || key === "sw-cleanup" || key === "v" || key === "t";
+        }
+
+        function cleanRecoveryUrl() {
+          try {
+            var clean = new URL(window.location.href);
+            var changed = false;
+            Array.from(clean.searchParams.keys()).forEach(function (key) {
+              if (isInternalRecoveryParam(key)) {
+                clean.searchParams.delete(key);
+                changed = true;
+              }
+            });
+            if (changed) window.history.replaceState({}, "", clean.pathname + clean.search + clean.hash);
+          } catch (e) {}
+        }
+
+        function isAppServiceWorkerRegistration(reg) {
+          try {
+            var script = (reg && reg.active && reg.active.scriptURL) || (reg && reg.installing && reg.installing.scriptURL) || (reg && reg.waiting && reg.waiting.scriptURL) || "";
+            return script.indexOf("/sw.js") !== -1 || script.indexOf("/service-worker.js") !== -1;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function isAppCacheName(name) {
+          return /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-/.test(name) || name.indexOf("workbox") !== -1;
+        }
+
+        async function clearAppShellCacheAndWorkers() {
+          try {
+            if (window.caches && caches.keys) {
+              var ks = await caches.keys();
+              await Promise.all(ks.filter(isAppCacheName).map(function (k) { return caches.delete(k); }));
+            }
+          } catch (e) {}
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+              var regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.filter(isAppServiceWorkerRegistration).map(function (r) { return r.unregister().catch(function () {}); }));
+            }
+          } catch (e) {}
+        }
+
         // On boot: if the URL carries __recover, make sure no Service Worker
         // is still controlling this page (it may be serving the stale HTML
         // that referenced the dead bundle). If so, unregister + clear caches
@@ -92,14 +138,7 @@
             if (Date.now() - lastBoot > 10 * 1000 && navigator.serviceWorker && navigator.serviceWorker.controller) {
               sessionStorage.setItem(BOOT_KEY, String(Date.now()));
               (async function () {
-                try {
-                  if (window.caches && caches.keys) {
-                    var ks = await caches.keys();
-                    await Promise.all(ks.map(function (k) { return caches.delete(k); }));
-                  }
-                  var regs = await navigator.serviceWorker.getRegistrations();
-                  await Promise.all(regs.map(function (r) { return r.unregister().catch(function () {}); }));
-                } catch (e) {}
+                await clearAppShellCacheAndWorkers();
                 window.location.replace(u.pathname + u.hash);
               })();
               return;
@@ -109,14 +148,20 @@
             setTimeout(function () {
               try {
                 if (document.getElementById("root") && document.getElementById("root").childElementCount > 0) {
-                  var clean = new URL(window.location.href);
-                  clean.searchParams.delete("__recover");
-                  window.history.replaceState({}, "", clean.pathname + clean.search + clean.hash);
+                  cleanRecoveryUrl();
                 }
               } catch (e) {}
             }, 4000);
           }
         } catch (e) {}
+
+        // If React boots normally after any recovery/update navigation, remove
+        // internal rescue markers so staff never keep sharing scary URLs.
+        setTimeout(function () {
+          try {
+            if (document.getElementById("root") && document.getElementById("root").childElementCount > 0) cleanRecoveryUrl();
+          } catch (e) {}
+        }, 5000);
 
         // ── Stuck-blank safety net ──────────────────────────────────────────
         // If after 8s the React root is still empty, surface a visible
@@ -143,25 +188,12 @@
               var btn = document.getElementById("__amwali_fix_btn");
               if (btn) btn.addEventListener("click", async function () {
                 btn.innerText = "جارٍ التنظيف...";
-                try {
-                  if (window.caches && caches.keys) {
-                    var kk = await caches.keys();
-                    await Promise.all(kk.map(function (k) { return caches.delete(k); }));
-                  }
-                  if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
-                    var rr = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(rr.map(function (r) { return r.unregister().catch(function () {}); }));
-                  }
-                  try {
-                    Object.keys(localStorage).forEach(function (k) {
-                      if (k.indexOf("workbox") === 0 || k.indexOf("amwali_chunk_recovery") === 0 || k.indexOf("amwali_recover_boot") === 0) {
-                        localStorage.removeItem(k);
-                      }
-                    });
-                  } catch (e) {}
-                } catch (e) {}
+                await clearAppShellCacheAndWorkers();
+                try { sessionStorage.removeItem("amwali_recover_boot_ts"); } catch (e) {}
                 var cleanUrl = new URL(window.location.href);
                 cleanUrl.searchParams.delete("__recover");
+                cleanUrl.searchParams.delete("v");
+                cleanUrl.searchParams.delete("t");
                 cleanUrl.searchParams.set("__hard", String(Date.now()));
                 window.location.replace(cleanUrl.toString());
               });
@@ -187,18 +219,7 @@
             if (Date.now() - last < COOLDOWN_MS) return;
             sessionStorage.setItem(RECOVERY_KEY, String(Date.now()));
           } catch (e) {}
-          try {
-            if (window.caches && caches.keys) {
-              var keys = await caches.keys();
-              await Promise.all(keys.map(function (k) { return caches.delete(k); }));
-            }
-          } catch (e) {}
-          try {
-            if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
-              var regs = await navigator.serviceWorker.getRegistrations();
-              await Promise.all(regs.map(function (r) { return r.unregister().catch(function () {}); }));
-            }
-          } catch (e) {}
+          await clearAppShellCacheAndWorkers();
           try {
             var url = new URL(window.location.href);
             url.searchParams.set("__recover", String(Date.now()));
