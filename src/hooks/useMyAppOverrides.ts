@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -16,7 +16,6 @@ export interface MyAppOverrides {
  */
 export function useMyAppOverrides(): MyAppOverrides {
   const { user } = useAuth();
-  const channelInstanceId = useRef(Math.random().toString(36).slice(2));
   const [allow, setAllow] = useState<Set<string>>(new Set());
   const [deny, setDeny] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -51,8 +50,9 @@ export function useMyAppOverrides(): MyAppOverrides {
       return;
     }
     load(user.id);
+    const channelInstanceId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const ch = supabase
-      .channel(`uaao-${user.id}-${channelInstanceId.current}`)
+      .channel(`uaao-${user.id}-${channelInstanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_app_access_overrides", filter: `target_user_id=eq.${user.id}` },

@@ -37,8 +37,9 @@ export function useMyFeaturePermissions() {
   useEffect(() => {
     if (!user?.id) { setLoading(false); return; }
     load(user.id);
+    const channelInstanceId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const ch = supabase
-      .channel(`ufp-${user.id}`)
+      .channel(`ufp-${user.id}-${channelInstanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_feature_permissions", filter: `target_user_id=eq.${user.id}` },
