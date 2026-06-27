@@ -128,11 +128,27 @@ const UsersSettingsSection = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load team users (profiles with same company or invited_by)
-      const { data: profiles } = await supabase
+      // Get current user's company_id first
+      const { data: myProfile } = await supabase
         .from("profiles")
-        .select("user_id, display_name, company_name, role, last_seen_at, created_at, invited_by, company_id")
-        .or(`user_id.eq.${user!.id},invited_by.eq.${user!.id}`);
+        .select("company_id")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      const myCompanyId = myProfile?.company_id;
+
+      // Load team users (profiles with same company or invited_by)
+      let query = supabase
+        .from("profiles")
+        .select("user_id, display_name, company_name, role, last_seen_at, created_at, invited_by, company_id");
+      
+      if (myCompanyId) {
+        query = query.eq("company_id", myCompanyId);
+      } else {
+        query = query.or(`user_id.eq.${user!.id},invited_by.eq.${user!.id}`);
+      }
+
+      const { data: profiles } = await query;
 
       if (profiles) {
         const users: TeamUser[] = profiles.map(p => ({
