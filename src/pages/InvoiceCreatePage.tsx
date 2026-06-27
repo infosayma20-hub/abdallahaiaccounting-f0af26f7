@@ -1285,6 +1285,7 @@ const InvoiceCreatePage = () => {
               total_amount: lineRevenue,
               unit_of_measure: item.unitOfMeasure,
               workshop_id: item.workshopId || form.workshopId || null,
+              cost_center_id: form.costCenterId || null,
               cost_price,
               line_profit,
             };
