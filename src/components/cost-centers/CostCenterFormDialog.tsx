@@ -110,6 +110,9 @@ export default function CostCenterFormDialog({ open, onOpenChange, editing }: Pr
   const handleSave = async () => {
     if (!code.trim()) return toast.error("الكود مطلوب");
     if (!name.trim()) return toast.error("الاسم مطلوب");
+    if (centerType === "branch" && branchId === "__none__") {
+      return toast.error("اختر الفرع المرتبط بمركز التكلفة عند تحديد النوع \"فرع\"");
+    }
     setSaving(true);
     try {
       await upsert.mutateAsync({
