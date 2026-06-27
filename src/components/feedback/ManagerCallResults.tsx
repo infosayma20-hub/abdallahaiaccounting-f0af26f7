@@ -16,19 +16,14 @@ import {
   Search,
   Phone,
   MessageCircle,
-  Calendar,
   User,
   Star,
   FileText,
-  TrendingUp,
-  AlertTriangle,
-  Smile,
   ShieldCheck,
   ChevronDown,
   ChevronUp,
   MapPin,
   Clock,
-  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -205,21 +200,63 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
   };
 
   const getOutcomeBadge = (outcome: string) => {
+    const outcomeMap: Record<string, string> = {
+      answered: "تم الرد",
+      no_answer: "لم يرد",
+      busy: "مشغول",
+      wrong_number: "رقم خاطئ",
+      callback_requested: "طلب معاودة الاتصال",
+      refused: "رفض المكالمة",
+      voicemail: "تم ترك رسالة صوتية",
+      disconnected: "انقطع الاتصال",
+      invalid: "رقم غير صالح",
+      unavailable: "غير متاح",
+      blocked: "محظور",
+      dnd: "عدم الإزعاج",
+      scheduled: "مجدول للمتابعة",
+      transferred: "تم تحويل المكالمة",
+    };
+    const label = outcomeMap[outcome] || "نتيجة أخرى";
     switch (outcome) {
       case "answered":
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200" variant="outline">تم الرد</Badge>;
+      case "transferred":
+        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200" variant="outline">{label}</Badge>;
       case "no_answer":
-        return <Badge className="bg-amber-50 text-amber-700 border-amber-200" variant="outline">لم يرد</Badge>;
       case "busy":
-        return <Badge className="bg-slate-50 text-slate-700 border-slate-200" variant="outline">مشغول</Badge>;
+      case "callback_requested":
+      case "scheduled":
+        return <Badge className="bg-amber-50 text-amber-700 border-amber-200" variant="outline">{label}</Badge>;
+      case "wrong_number":
+      case "invalid":
+      case "blocked":
+      case "refused":
+      case "dnd":
+        return <Badge className="bg-rose-50 text-rose-700 border-rose-200" variant="outline">{label}</Badge>;
       default:
-        return <Badge variant="outline">{outcome}</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
     }
   };
 
   const getBranchName = (id: string | null) => {
     if (!id) return null;
     return branches.find((b) => b.id === id)?.name || id;
+  };
+
+  const formatArabicDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return new Intl.DateTimeFormat("ar-SA", {
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Jerusalem",
+        numberingSystem: "arab",
+      }).format(d);
+    } catch {
+      return dateStr;
+    }
   };
 
   const whatsappHref = (phone: string | null) => {
@@ -256,7 +293,7 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
             <div className="text-base font-bold text-slate-800">{stats.total}</div>
           </div>
           <div className="bg-emerald-50/50 p-2.5 rounded-lg text-center border border-emerald-100">
-            <div className="text-[10px] text-emerald-600 font-semibold mb-0.5">الراضين 😊</div>
+            <div className="text-[10px] text-emerald-600 font-semibold mb-0.5">الراضين</div>
             <div className="text-base font-bold text-emerald-700">{stats.satisfied}</div>
           </div>
           <div className="bg-amber-50/50 p-2.5 rounded-lg text-center border border-amber-100">
@@ -375,12 +412,7 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
                   {/* Mid Line: Call metadata and Rating */}
                   <div className="flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2 pt-1 border-t border-slate-50">
                     <span className="inline-flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md text-slate-700">
-                      <Clock className="h-3 w-3" /> {new Date(call.created_at).toLocaleString("ar-EG", {
-                        month: "short",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      <Clock className="h-3 w-3" /> {formatArabicDate(call.created_at)}
                     </span>
                     <div className="flex items-center gap-0.5">
                       {call.rating ? (
