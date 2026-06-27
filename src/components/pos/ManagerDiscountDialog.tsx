@@ -80,9 +80,8 @@ export default function ManagerDiscountDialog({
           .select("max_manager_discount_percent")
           .eq("id", terminalId)
           .maybeSingle();
-        const v = Number((data as any)?.max_manager_discount_percent);
-        if (!isNaN(v) && v > 0) setMaxPct(Math.min(100, v));
-        else setMaxPct(100);
+        // الحد الأقصى دائماً 100% للسماح بتعويض كامل للزبون
+        setMaxPct(100);
       } catch {
         setMaxPct(100);
       }
