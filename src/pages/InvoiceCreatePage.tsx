@@ -48,6 +48,7 @@ import DraftsHistoryDialog from "@/components/invoice/DraftsHistoryDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
 import { fetchManyContactStatementBalances, fetchContactStatementBalance } from "@/lib/contact-balance";
 import { formatDbError } from "@/lib/db-error-toast";
+import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
