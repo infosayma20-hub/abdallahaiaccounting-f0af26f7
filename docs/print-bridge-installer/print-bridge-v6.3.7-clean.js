@@ -24,7 +24,7 @@ const bodyParser  = require('body-parser');
 
 // v6.3.6-clean version + buildHash. buildHash is a sha1 of THIS file
 // computed at startup, so operators can verify what's actually deployed.
-const BRIDGE_VERSION = '6.3.7-clean-r2';
+const BRIDGE_VERSION = '6.3.7-clean';
 const BRIDGE_FEATURES = [
   'note-downward',
   'dedupe-on-success',
@@ -33,9 +33,6 @@ const BRIDGE_FEATURES = [
   'kitchen-note-stacked',
   'item-bullet-prefix',
   'no-line-above-items-header',
-  // r2: reverted item-name/item-note RTL attrs (caused overflow off paper).
-  // RTL handling kept only on customer/kitchen note boxes (drawNoteBox).
-  'items-no-rtl-attrs',
 ];
 let BRIDGE_BUILD_HASH = 'unknown';
 try {
@@ -537,19 +534,6 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Thermal tickets are rendered as SVG then rasterized. Mixed Arabic + leading
-// numbers / plus signs need explicit RTL isolation, otherwise printers may show
-// notes like "10 ملفوف" as "ملفوف 10" and move "+" to the visual end.
-const RTL_SVG_TEXT_ATTRS = ' direction="rtl" unicode-bidi="plaintext"';
-const ARABIC_LETTER_MARK = '\u061C';
-function rtlSafeText(s) {
-  const raw = String(s == null ? '' : s);
-  if (!raw.trim()) return raw;
-  return (ARABIC_LETTER_MARK + raw)
-    .replace(/(^|[\s([{،,؛;:+\-/])([+-]?\d)/g, `$1${ARABIC_LETTER_MARK}$2`)
-    .replace(/\+/g, `${ARABIC_LETTER_MARK}+${ARABIC_LETTER_MARK}`);
-}
-
 function wrapTextForSvg(text, maxChars) {
   const max = Math.max(1, Number(maxChars) || 1);
   // First split on whitespace, then HARD-break any token longer than max.
@@ -891,7 +875,7 @@ function renderKitchenSVG(order, stationLabel) {
     push(10, () => '');
     push(boxH + 6, (cy) => `
       <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="1"/>
-      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma"${RTL_SVG_TEXT_ATTRS}>${esc(rtlSafeText(`${i === 0 ? label + ' ' : ''}${ln}`))}</text>`).join('')}`);
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
   };
   // Internal banner (replacement / cancellation) — printed FIRST so the
   // kitchen notices the operational change before reading the customer note.
