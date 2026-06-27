@@ -1,0 +1,1 @@
+DELETE FROM cron.job_run_details WHERE start_time < now() - interval '3 days';
