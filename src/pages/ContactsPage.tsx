@@ -405,7 +405,8 @@ const ContactsPage = () => {
       }
       if (obAmount > 0) {
         const isDebit = editData.balance_direction === "debit";
-        const contactAccountCode = editData.contact_type === "مورد" ? "2110" : "1130";
+        const isSupplierSide = editData.contact_type === "مورد" || (editData.contact_type === "عميل ومورد" && !isDebit);
+        const contactAccountCode = isSupplierSide ? "2110" : "1130";
         const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
           p_user_id: user!.id,
           p_debit_account_code: isDebit ? contactAccountCode : "3400",
