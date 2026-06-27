@@ -74,12 +74,20 @@ export default function InlineAddonPanel({
           .filter((m) => m.group_id === g.id)
           .map((m) => m.option_id)
           .filter((id) => g.options.some((o) => o.id === id));
-        defaults[g.id] = picked.length > 0 ? picked : g.options.filter((o) => o.is_default).map((o) => o.id);
+        defaults[g.id] = picked;
       });
       return defaults;
     }
+    // No auto-defaults for real options — cashier must explicitly pick.
+    // Single-select groups still get the synthetic "بدون ملاحظة" pre-selected
+    // (added by augmentGroupsWithNone with is_default=true).
     groups.forEach((g) => {
-      defaults[g.id] = g.options.filter((o) => o.is_default).map((o) => o.id);
+      if (g.selection_type === "single") {
+        const none = g.options.find((o) => o.id === "__none__");
+        defaults[g.id] = none ? [none.id] : [];
+      } else {
+        defaults[g.id] = [];
+      }
     });
     return defaults;
   });
@@ -338,7 +346,17 @@ export default function InlineAddonPanel({
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="w-9 text-center text-sm font-bold tabular-nums">{quantity}</span>
+          <input
+            type="number"
+            min={1}
+            value={quantity}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              setQuantity(Number.isFinite(v) && v > 0 ? v : 1);
+            }}
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-12 bg-transparent text-center text-sm font-bold tabular-nums outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
             <button
               onClick={() => setQuantity((q) => q + 1)}
               className="flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-muted"
