@@ -345,9 +345,9 @@ const ContactsPage = () => {
             p_description: `رصيد افتتاحي - ${newContact.name.trim()}`,
             p_currency: "شيكل",
             p_contact_id: newC.id,
-            p_reference: `OB-CONTACT-${newC.id}`,
+          p_reference: `OB-${newC.id.slice(0, 8).toUpperCase()}`,
             p_replace_existing: true,
-            p_idempotency_key: `OB-CONTACT-${newC.id}-${Date.now()}`,
+          p_idempotency_key: `OB-CONTACT-${newC.id}-${Date.now()}`,
           });
           const obResult = obRes as { success?: boolean; error?: string } | null;
           if (obErr || (obResult && obResult.success === false)) {
@@ -416,7 +416,7 @@ const ContactsPage = () => {
           p_description: `رصيد افتتاحي - ${editData.contact_name.trim()}`,
           p_currency: "شيكل",
           p_contact_id: editContact.id,
-          p_reference: `OB-CONTACT-${editContact.id}`,
+          p_reference: `OB-${editContact.id.slice(0, 8).toUpperCase()}`,
           p_replace_existing: true,
           p_idempotency_key: `OB-CONTACT-${editContact.id}-${Date.now()}`,
         });
