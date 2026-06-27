@@ -808,6 +808,7 @@ const InvoiceCreatePage = () => {
           billingAddress: data.billing_address || "",
           taxInclusive: Boolean(data.tax_inclusive),
           workshopId: data.workshop_id || null,
+          costCenterId: (data as any).cost_center_id || null,
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
         }));
 
