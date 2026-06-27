@@ -1229,6 +1229,7 @@ const InvoiceCreatePage = () => {
         terms: invoiceTerms.trim() || null,
         warehouse_id: form.warehouseId || null,
         workshop_id: form.workshopId || null,
+        cost_center_id: form.costCenterId || null,
         cash_account_code: form.invoiceKind === "cash" ? form.cashAccountCode : null,
       } as any;
 
