@@ -32,6 +32,22 @@ import StatementViewOptionsPanel, { loadViewOptions, type StatementViewOptions }
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
+import { useTaxEnabled } from "@/hooks/useTaxEnabled";
+
+// ─── Reference label formatting ───
+// Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
+function formatReferenceLabel(ref: string | null | undefined): string {
+  if (!ref) return "—";
+  const r = String(ref).trim();
+  if (/^OB-CONTACT/i.test(r)) return "رصيد افتتاحي";
+  if (/^OB-/i.test(r)) return "رصيد افتتاحي";
+  if (/^INV-/i.test(r)) return r; // invoice numbers are already short/clean
+  if (/^PO-/i.test(r)) return r;
+  if (/^RV-|^PV-|^JV-|^REC-/i.test(r)) return r;
+  // Generic long reference: keep first 12 chars + ellipsis
+  if (r.length > 16) return r.slice(0, 12) + "…";
+  return r;
+}
 
 // ─── TYPES ───
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
@@ -117,6 +133,7 @@ const AccountStatementV2Page = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { taxEnabled } = useTaxEnabled();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
   const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
@@ -775,7 +792,7 @@ const AccountStatementV2Page = () => {
       date: r.date,
       description: r.description,
       transaction_type: r.transaction_type,
-      reference: r.reference,
+      reference: formatReferenceLabel(r.reference),
       debit: r.debit,
       credit: r.credit,
       balance: r.balance,
@@ -795,11 +812,12 @@ const AccountStatementV2Page = () => {
     invoiceDetailsByRef: detailsMap.invoiceDetailsById || {},
     showReference: !!statementOptions.showReference,
     showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
+    taxEnabled,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
     selectedEntityCode, filteredRows, openingBalance, totalDebit, totalCredit,
     closingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
-    statementOptions, detailsMap.invoiceDetailsById,
+    statementOptions, detailsMap.invoiceDetailsById, taxEnabled,
   ]);
 
   const handlePreviewPDF = useCallback(() => {
@@ -1222,10 +1240,12 @@ const AccountStatementV2Page = () => {
                                         {it.discount > 0 ? it.discount : "—"}
                                       </span>
                                     </span>
-                                    <span style={chipStyle}>
-                                      <span style={chipLabel}>الضريبة:</span>
-                                      <span style={{ ...chipValue, color: "#475569" }}>{it.tax > 0 ? `${it.tax}%` : "—"}</span>
-                                    </span>
+                                    {taxEnabled && (
+                                      <span style={chipStyle}>
+                                        <span style={chipLabel}>الضريبة:</span>
+                                        <span style={{ ...chipValue, color: "#475569" }}>{it.tax > 0 ? `${it.tax}%` : "—"}</span>
+                                      </span>
+                                    )}
                                     <span style={{ ...chipStyle, background: "#ECFDF5", borderColor: "#A7F3D0" }}>
                                       <span style={chipLabel}>الإجمالي:</span>
                                       <span style={{ ...chipValue, color: "#065F46", fontWeight: 700 }}>{fmtAmount(it.total, row.currency)}</span>
@@ -1251,7 +1271,9 @@ const AccountStatementV2Page = () => {
                                       <th style={{ textAlign: "center", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 60 }}>كمية</th>
                                       <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 80 }}>سعر</th>
                                       <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 60 }}>خصم</th>
-                                      <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 55 }}>ضريبة</th>
+                                      {taxEnabled && (
+                                        <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 55 }}>ضريبة</th>
+                                      )}
                                       <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 700, color: "#FFFFFF", fontSize: 10, width: 90 }}>إجمالي</th>
                                     </tr>
                                   </thead>
@@ -1264,12 +1286,14 @@ const AccountStatementV2Page = () => {
                                         </td>
                                         <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#475569", fontFamily: "tabular-nums", fontSize: 10.5 }}>{fmtAmount(it.unitPrice, row.currency)}</td>
                                         <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: it.discount > 0 ? "#B45309" : "#CBD5E1", fontFamily: "tabular-nums", fontSize: 10.5 }}>{it.discount > 0 ? `${it.discount}` : "—"}</td>
-                                        <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#64748B", fontFamily: "tabular-nums", fontSize: 10.5 }}>{it.tax > 0 ? `${it.tax}%` : "—"}</td>
+                                        {taxEnabled && (
+                                          <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#64748B", fontFamily: "tabular-nums", fontSize: 10.5 }}>{it.tax > 0 ? `${it.tax}%` : "—"}</td>
+                                        )}
                                         <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 10.5 }}>{fmtAmount(it.total, row.currency)}</td>
                                       </tr>
                                     ))}
-                                    <tr style={{ background: "#ECFDF5" }}>
-                                      <td colSpan={5} style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, color: "#475569", fontWeight: 600 }}>الإجمالي</td>
+                                     <tr style={{ background: "#ECFDF5" }}>
+                                      <td colSpan={taxEnabled ? 5 : 4} style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, color: "#475569", fontWeight: 600 }}>الإجمالي</td>
                                       <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 700, fontSize: 11 }}>{fmtAmount(subtotal, row.currency)}</td>
                                     </tr>
                                   </tbody>
@@ -1342,13 +1366,14 @@ const AccountStatementV2Page = () => {
                           if (c.key === "reference") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
                           {row.reference ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDrawerRow(row); setDrawerOpen(true); }}
-                              className="hover:underline text-left"
-                              style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace", textDecoration: row.isCancelled ? "line-through" : "none" }}
-                            >
-                              {row.isLineItem ? "—" : row.reference}
-                            </button>
+                             <button
+                               onClick={(e) => { e.stopPropagation(); setDrawerRow(row); setDrawerOpen(true); }}
+                               className="hover:underline text-left"
+                               title={row.reference}
+                               style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace", textDecoration: row.isCancelled ? "line-through" : "none", whiteSpace: "nowrap" }}
+                             >
+                               {row.isLineItem ? "—" : formatReferenceLabel(row.reference)}
+                             </button>
                           ) : "—"}
                             </td>
                           );

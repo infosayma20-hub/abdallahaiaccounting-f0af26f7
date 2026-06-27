@@ -68,6 +68,8 @@ export interface BuildPrintOpts {
   showReference?: boolean;
   /** Show due-date / type columns merged into one "الاستحقاق / النوع" column. */
   showDueOrType?: boolean;
+  /** Hide tax column / chip when VAT is disabled at company level. */
+  taxEnabled?: boolean;
 }
 
 const esc = (s: any) =>
@@ -111,6 +113,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
     invoiceDetailsByRef = {},
     showReference = true,
     showDueOrType = true,
+    taxEnabled = true,
   } = opts;
 
   const fmt = (n: number) => {
@@ -262,7 +265,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
                 <th class="al-center" style="width:50px">الكمية</th>
                 <th class="al-left" style="width:70px">السعر</th>
                 <th class="al-left" style="width:60px">الخصم</th>
-                <th class="al-left" style="width:60px">الضريبة</th>
+                ${taxEnabled ? `<th class="al-left" style="width:60px">الضريبة</th>` : ""}
                 <th class="al-left" style="width:80px">الإجمالي</th>
               </tr>
             </thead>
@@ -273,7 +276,7 @@ export function buildAccountStatementPrintHTML(opts: BuildPrintOpts): string {
                   <td class="al-center">${esc(it.quantity)}${it.unit ? ` <span class="muted">${esc(it.unit)}</span>` : ""}</td>
                   <td class="al-left">${esc(fmt(it.unitPrice))}</td>
                   <td class="al-left">${it.discount > 0 ? esc(fmt(it.discount)) : "—"}</td>
-                  <td class="al-left">${it.tax > 0 ? `${esc(it.tax)}%` : "—"}</td>
+                  ${taxEnabled ? `<td class="al-left">${it.tax > 0 ? `${esc(it.tax)}%` : "—"}</td>` : ""}
                   <td class="al-left"><strong>${esc(fmt(it.total))}</strong></td>
                 </tr>`).join("")}
             </tbody>
