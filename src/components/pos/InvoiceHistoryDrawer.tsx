@@ -1149,8 +1149,10 @@ export default function InvoiceHistoryDrawer({
               {filtered.map(order => {
                 const status = getStatusDisplay(order);
                 const printedOrderNumber = getPrintedOrderNumber(order);
-                const time = format(new Date(order.created_at), "HH:mm");
-                const date = format(new Date(order.created_at), "dd/MM/yyyy");
+                // ثبّت العرض على توقيت فلسطين حتى لا يتأثر بإعداد Time Zone خاطئ على جهاز الكاشير
+                const _d = new Date(order.created_at);
+                const time = _d.toLocaleTimeString("en-GB", { timeZone: "Asia/Hebron", hour: "2-digit", minute: "2-digit", hour12: false });
+                const date = _d.toLocaleDateString("en-GB", { timeZone: "Asia/Hebron", day: "2-digit", month: "2-digit", year: "numeric" });
                 return (
                   <div
                     key={order.id}
