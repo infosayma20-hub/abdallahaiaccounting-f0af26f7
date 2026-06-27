@@ -68,6 +68,8 @@ export interface BuildPrintOpts {
   showReference?: boolean;
   /** Show due-date / type columns merged into one "الاستحقاق / النوع" column. */
   showDueOrType?: boolean;
+  /** Hide tax column / chip when VAT is disabled at company level. */
+  taxEnabled?: boolean;
 }
 
 const esc = (s: any) =>
