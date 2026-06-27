@@ -495,6 +495,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           const meta = categoryMeta(t.category);
           const Icon = meta.icon;
           const mySubs = submissions.filter((s) => s.template_id === t.id);
+          const draftSub = mySubs.find((s) => (s.workflow_status || "draft") === "draft");
           return (
             <div key={t.id} className="space-y-1">
               <button
@@ -503,6 +504,12 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     // open most-recent submission if any, else just no-op
                     if (mySubs[0]) setViewSubmission(mySubs[0]);
                   } else {
+                    // If there's an existing draft, resume it instead of creating a new blank form
+                    if (draftSub) {
+                      setActiveDraft(draftSub);
+                    } else {
+                      setActiveDraft(null);
+                    }
                     setActiveTemplate(t);
                   }
                 }}
@@ -514,6 +521,11 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm font-medium">{t.name}</span>
+                    {!viewOnly && draftSub && (
+                      <span className="text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 leading-none">
+                        📝 مسودة محفوظة
+                      </span>
+                    )}
                     {!viewOnly && (
                       <span className="text-[10px] bg-muted/70 text-muted-foreground rounded-full px-2 py-0.5 leading-none">
                         {freqEmoji(t.frequency)} {freqLabel(t.frequency)}
@@ -545,8 +557,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                       onClick={() => setViewSubmission(s)}
                       className="inline-flex items-center gap-1 text-[10px] bg-muted/40 hover:bg-muted/70 rounded-full px-2 py-0.5 transition-colors"
                     >
-                      <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+                      <CheckCircle2 className={`h-2.5 w-2.5 ${((s.workflow_status||'draft')==='draft') ? 'text-amber-500' : 'text-emerald-500'}`} />
                       {new Date(s.created_at).toLocaleDateString("ar")}
+                      {(s.workflow_status||'draft')==='draft' && <span className="text-amber-700">(مسودة)</span>}
                     </button>
                   ))}
                 </div>
