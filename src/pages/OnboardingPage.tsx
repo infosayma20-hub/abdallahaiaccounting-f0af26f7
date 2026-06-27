@@ -211,7 +211,7 @@ const OnboardingPage = () => {
           ]);
 
         try {
-          await withTimeout(saveProgress({ company_name: trimmedCompanyName }, 1));
+          await withTimeout(saveProgress({ company_name: trimmedCompanyName }, 2));
         } catch (err: any) {
           console.error("Critical onboarding step 1 saveProgress failed:", err);
           toast.error("تعذّر حفظ اسم الشركة، تحقق من الاتصال وحاول مرة أخرى");
@@ -246,7 +246,7 @@ const OnboardingPage = () => {
           return;
         }
         try {
-          await saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 2);
+          await saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 3);
         } catch (err) {
           console.error("Step 2 save failed:", err);
           toast.error("تعذّر الحفظ، حاول مرة أخرى");
@@ -257,7 +257,7 @@ const OnboardingPage = () => {
       
       if (step === 3) {
         try {
-          await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 3);
+          await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4);
         } catch (err) {
           console.error("Step 3 save failed:", err);
           toast.error("تعذّر الحفظ، حاول مرة أخرى");
@@ -268,7 +268,7 @@ const OnboardingPage = () => {
       
       if (step === 4) {
         try {
-          await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 4);
+          await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5);
         } catch (err) {
           console.error("Step 4 save failed:", err);
           toast.error("تعذّر الحفظ، حاول مرة أخرى");
