@@ -318,6 +318,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             <DynamicFormRenderer
               schema={activeTemplate.schema}
               draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+              initialData={activeDraft?.form_data}
               submitting={submitting}
               onSubmit={handleSubmit}
               onSaveDraft={() => {}}
@@ -351,6 +352,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               <DynamicFormRenderer
                 schema={activeTemplate.schema}
                 draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                initialData={activeDraft?.form_data}
                 submitting={submitting}
                 onSubmit={handleSubmit}
                 onSaveDraft={() => {}}
