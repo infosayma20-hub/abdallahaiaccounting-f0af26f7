@@ -1422,7 +1422,7 @@ const AccountStatementV2Page = () => {
                         );
                       }
                       return (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) { setDrawerRow(row); setDrawerOpen(true); } }}>
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: navigatingRowId === row.transaction_id ? 0.6 : (row.isCancelled ? 0.7 : 1) }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) openRowDocument(row); }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
@@ -1434,7 +1434,7 @@ const AccountStatementV2Page = () => {
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
                           {row.reference ? (
                              <button
-                               onClick={(e) => { e.stopPropagation(); setDrawerRow(row); setDrawerOpen(true); }}
+                               onClick={(e) => { e.stopPropagation(); openRowDocument(row); }}
                                className="hover:underline text-left"
                                title={row.reference}
                                style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace", textDecoration: row.isCancelled ? "line-through" : "none", whiteSpace: "nowrap" }}
