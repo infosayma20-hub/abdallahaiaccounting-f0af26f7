@@ -1858,6 +1858,7 @@ const InvoiceCreatePage = () => {
       taxInclusive: false,
       warehouseId: null,
       workshopId: null,
+      costCenterId: null,
       items: [{ ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }],
     });
     setContactSearch("");
