@@ -152,6 +152,7 @@ export default function FeedbackPage() {
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [queueRefreshKey, setQueueRefreshKey] = useState(0);
   const [pendingFocusTab, setPendingFocusTab] = useState<"orders" | "call" | "info">("orders");
+  const [activeMainTab, setActiveMainTab] = useState<"queue" | "manager">("queue");
   const { can } = usePermission("call_center_feedback");
   const canCreate = can("customers", "create");
   const canEdit = can("customers", "edit");
