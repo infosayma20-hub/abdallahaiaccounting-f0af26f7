@@ -76,6 +76,7 @@ export function StockoutAlertButton({
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [myActive, setMyActive] = useState<AlertRow[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
 
   // Load product + modifier names for the picker
   useEffect(() => {
@@ -261,16 +262,45 @@ export function StockoutAlertButton({
           )}
 
           <div className="space-y-3">
+            {/* Primary: manual alert text — this is what's used 99% of the time */}
             <div>
-              <Label className="text-xs">بحث عن الصنف أو المكوّن</Label>
+              <Label className="text-xs font-semibold">نص التنبيه</Label>
+              <Input
+                autoFocus
+                value={customText}
+                onChange={(e) => { setCustomText(e.target.value); if (e.target.value) setSelected({ kind: "custom", label: e.target.value }); }}
+                placeholder="مثال: خلص الفرن — لا تأخذوا طلبات بيتزا"
+                className="text-sm"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs">ملاحظة (اختياري)</Label>
+              <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="تفاصيل إضافية…" />
+            </div>
+
+            {/* Optional: pick a specific product/component (collapsed by default) */}
+            <button
+              type="button"
+              onClick={() => setShowPicker(v => !v)}
+              className="text-[11px] text-amber-700 hover:underline flex items-center gap-1"
+            >
+              <ChevronRight className={`w-3 h-3 transition-transform ${showPicker ? "rotate-90" : ""}`} />
+              {showPicker ? "إخفاء" : "اختيار صنف/مكوّن محدد (اختياري)"}
+            </button>
+
+            {showPicker && (
+            <>
+            <div>
               <Input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); if (e.target.value) setActiveCategoryId(null); }}
                 placeholder="ابحث باسم صنف أو تصنيف…"
+                className="text-sm"
               />
             </div>
 
-            <div className="max-h-64 overflow-auto rounded-md border p-2 space-y-2">
+            <div className="max-h-44 overflow-auto rounded-md border p-2 space-y-2">
               {/* Browse mode: show categories list, or items of selected category */}
               {!isSearching && !activeCategoryId && (
                 <div>
@@ -390,20 +420,8 @@ export function StockoutAlertButton({
                 </div>
               )}
             </div>
-
-            <div className="rounded-md border p-2">
-              <Label className="text-xs">أو اكتب تنبيه يدوي</Label>
-              <Input
-                value={customText}
-                onChange={(e) => { setCustomText(e.target.value); if (e.target.value) setSelected({ kind: "custom", label: e.target.value }); }}
-                placeholder="مثال: خلص الفرن — لا تأخذوا طلبات بيتزا"
-              />
-            </div>
-
-            <div>
-              <Label className="text-xs">ملاحظة (اختياري)</Label>
-              <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="تفاصيل إضافية…" />
-            </div>
+            </>
+            )}
           </div>
 
           <DialogFooter>
