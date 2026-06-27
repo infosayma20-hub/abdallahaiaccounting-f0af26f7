@@ -278,11 +278,26 @@ export default function FeedbackPage() {
           initialTab={pendingFocusTab}
         />
       ) : (
-        <FollowupQueueShell
-          branches={branches}
-          onOpenCustomer={openFromQueueRow}
-          refreshKey={queueRefreshKey}
-        />
+        <div className="space-y-4">
+          <Tabs value={activeMainTab} onValueChange={(v: any) => setActiveMainTab(v)} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 h-11 bg-slate-100 p-1 rounded-xl">
+              <TabsTrigger value="queue" className="rounded-lg font-bold text-xs sm:text-sm">قائمة المتابعة والاتصالات</TabsTrigger>
+              <TabsTrigger value="manager" className="rounded-lg font-bold text-xs sm:text-sm">نتائج المكالمات (المدير)</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="queue" className="mt-3 outline-none">
+              <FollowupQueueShell
+                branches={branches}
+                onOpenCustomer={openFromQueueRow}
+                refreshKey={queueRefreshKey}
+              />
+            </TabsContent>
+            
+            <TabsContent value="manager" className="mt-3 outline-none animate-in fade-in-50 duration-200">
+              <ManagerCallResults branches={branches} />
+            </TabsContent>
+          </Tabs>
+        </div>
       )}
     </div>
   );
