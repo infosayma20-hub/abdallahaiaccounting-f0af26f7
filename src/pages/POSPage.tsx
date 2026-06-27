@@ -1629,7 +1629,20 @@ const POSPage = () => {
         }
         setTerminal(term ? { id: term.id, name: term.name, company_id: term.company_id } : null);
 
-        const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+        // Prefer the name stored in pos_users (synced from HR / Employees list)
+        // over auth user_metadata, which can become stale after a rename.
+        let displayName = "";
+        try {
+          const { data: puName } = await supabase
+            .from("pos_users")
+            .select("name")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          displayName = (puName as any)?.name || "";
+        } catch {}
+        if (!displayName) {
+          displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+        }
 
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
