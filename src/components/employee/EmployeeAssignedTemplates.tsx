@@ -72,6 +72,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const [templates, setTemplates] = useState<Template[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
+  const [activeDraft, setActiveDraft] = useState<Submission | null>(null);
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -152,23 +153,38 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     if (!activeTemplate) return;
     setSubmitting(true);
     try {
-      const { data: inserted, error } = await supabase.from("employee_forms").insert({
-        employee_id: employeeId,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        form_type: "dynamic_template",
-        template_id: activeTemplate.id,
-        title: activeTemplate.name,
-        form_data: formData,
-        status: "pending",
-      })
-      .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
-      .single();
-      if (error) throw error;
+      let inserted: any = null;
+      if (activeDraft) {
+        // Update existing draft instead of creating a duplicate
+        const { data, error } = await supabase
+          .from("employee_forms")
+          .update({ form_data: formData, title: activeTemplate.name })
+          .eq("id", activeDraft.id)
+          .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+          .single();
+        if (error) throw error;
+        inserted = data;
+      } else {
+        const { data, error } = await supabase.from("employee_forms").insert({
+          employee_id: employeeId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          form_type: "dynamic_template",
+          template_id: activeTemplate.id,
+          title: activeTemplate.name,
+          form_data: formData,
+          status: "pending",
+        })
+        .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+        .single();
+        if (error) throw error;
+        inserted = data;
+      }
       toast({
         title: "تم حفظ النموذج",
         description: "يمكنك تنزيله كـ Word أو إرساله للمراجعة.",
       });
       setActiveTemplate(null);
+      setActiveDraft(null);
       if (inserted) setViewSubmission(inserted as Submission);
       fetchData();
     } catch (err: any) {
@@ -283,13 +299,16 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
             <button
               type="button"
-              onClick={() => setActiveTemplate(null)}
+              onClick={() => { setActiveTemplate(null); setActiveDraft(null); }}
               className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
               aria-label="إغلاق"
             >
               <X className="h-5 w-5" />
             </button>
-            <h1 className="text-base font-bold truncate px-2">{activeTemplate.name}</h1>
+            <h1 className="text-base font-bold truncate px-2">
+              {activeTemplate.name}
+              {activeDraft && <span className="mr-2 text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">استكمال مسودة</span>}
+            </h1>
             <div className="w-9" />
           </header>
           <div
@@ -302,6 +321,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             <DynamicFormRenderer
               schema={activeTemplate.schema}
               draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+              initialData={activeDraft?.form_data}
               submitting={submitting}
               onSubmit={handleSubmit}
               onSaveDraft={() => {}}
@@ -322,7 +342,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         </div>
       )}
 
-      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => !o && setActiveTemplate(null)}>
+      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => { if (!o) { setActiveTemplate(null); setActiveDraft(null); } }}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-right">{activeTemplate?.name}</DialogTitle>
@@ -335,6 +355,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               <DynamicFormRenderer
                 schema={activeTemplate.schema}
                 draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                initialData={activeDraft?.form_data}
                 submitting={submitting}
                 onSubmit={handleSubmit}
                 onSaveDraft={() => {}}
@@ -474,6 +495,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           const meta = categoryMeta(t.category);
           const Icon = meta.icon;
           const mySubs = submissions.filter((s) => s.template_id === t.id);
+          const draftSub = mySubs.find((s) => (s.workflow_status || "draft") === "draft");
           return (
             <div key={t.id} className="space-y-1">
               <button
@@ -482,6 +504,12 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     // open most-recent submission if any, else just no-op
                     if (mySubs[0]) setViewSubmission(mySubs[0]);
                   } else {
+                    // If there's an existing draft, resume it instead of creating a new blank form
+                    if (draftSub) {
+                      setActiveDraft(draftSub);
+                    } else {
+                      setActiveDraft(null);
+                    }
                     setActiveTemplate(t);
                   }
                 }}
@@ -493,6 +521,11 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm font-medium">{t.name}</span>
+                    {!viewOnly && draftSub && (
+                      <span className="text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 leading-none">
+                        📝 مسودة محفوظة
+                      </span>
+                    )}
                     {!viewOnly && (
                       <span className="text-[10px] bg-muted/70 text-muted-foreground rounded-full px-2 py-0.5 leading-none">
                         {freqEmoji(t.frequency)} {freqLabel(t.frequency)}
@@ -524,8 +557,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                       onClick={() => setViewSubmission(s)}
                       className="inline-flex items-center gap-1 text-[10px] bg-muted/40 hover:bg-muted/70 rounded-full px-2 py-0.5 transition-colors"
                     >
-                      <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+                      <CheckCircle2 className={`h-2.5 w-2.5 ${((s.workflow_status||'draft')==='draft') ? 'text-amber-500' : 'text-emerald-500'}`} />
                       {new Date(s.created_at).toLocaleDateString("ar")}
+                      {(s.workflow_status||'draft')==='draft' && <span className="text-amber-700">(مسودة)</span>}
                     </button>
                   ))}
                 </div>
