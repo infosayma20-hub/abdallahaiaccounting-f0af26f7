@@ -48,6 +48,7 @@ import DraftsHistoryDialog from "@/components/invoice/DraftsHistoryDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
 import { fetchManyContactStatementBalances, fetchContactStatementBalance } from "@/lib/contact-balance";
 import { formatDbError } from "@/lib/db-error-toast";
+import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -375,6 +376,7 @@ const InvoiceCreatePage = () => {
     taxInclusive: false,
     warehouseId: null as string | null,
     workshopId: null as string | null,
+    costCenterId: null as string | null,
     items: [createEmptyItem()] as InvoiceItem[],
   });
 
@@ -807,6 +809,7 @@ const InvoiceCreatePage = () => {
           billingAddress: data.billing_address || "",
           taxInclusive: Boolean(data.tax_inclusive),
           workshopId: data.workshop_id || null,
+          costCenterId: (data as any).cost_center_id || null,
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
         }));
 
@@ -1227,6 +1230,7 @@ const InvoiceCreatePage = () => {
         terms: invoiceTerms.trim() || null,
         warehouse_id: form.warehouseId || null,
         workshop_id: form.workshopId || null,
+        cost_center_id: form.costCenterId || null,
         cash_account_code: form.invoiceKind === "cash" ? form.cashAccountCode : null,
       } as any;
 
@@ -1282,6 +1286,7 @@ const InvoiceCreatePage = () => {
               total_amount: lineRevenue,
               unit_of_measure: item.unitOfMeasure,
               workshop_id: item.workshopId || form.workshopId || null,
+              cost_center_id: form.costCenterId || null,
               cost_price,
               line_profit,
             };
@@ -1351,6 +1356,7 @@ const InvoiceCreatePage = () => {
             is_deleted: false,
             workshop_id: form.workshopId || null,
             cost_center_name: headerWorkshopEdit?.name || null,
+            cost_center_id: form.costCenterId || null,
           };
 
           let linkedTransactionId = originalInvoiceRef.current?.linkedTransactionId || null;
@@ -1611,6 +1617,7 @@ const InvoiceCreatePage = () => {
           idempotency_key: `INV-${dbInv.id}`,
           workshop_id: form.workshopId || null,
           cost_center_name: headerWorkshop?.name || null,
+          cost_center_id: form.costCenterId || null,
         } as any).select("id").single();
         if (txError) throw txError;
           txDataId = txData.id;
@@ -1857,6 +1864,7 @@ const InvoiceCreatePage = () => {
       taxInclusive: false,
       warehouseId: null,
       workshopId: null,
+      costCenterId: null,
       items: [{ ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }],
     });
     setContactSearch("");
@@ -2353,32 +2361,42 @@ const InvoiceCreatePage = () => {
                   </Select>
                 </div>
               )}
-              {workshops.length > 0 && (
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                    مركز التكلفة (الورشة)
-                    <span className="text-[9.5px] text-muted-foreground/70 mr-1">(اختياري — لتقارير الربحية)</span>
-                  </label>
-                  <Select
-                    value={form.workshopId || "__none__"}
-                    onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
-                  >
-                    <SelectTrigger className="rounded-xl text-sm">
-                      <SelectValue placeholder="اختر الورشة..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">بدون مركز تكلفة</SelectItem>
-                      {workshops
-                        .filter(w => w.status === "active" || w.id === form.workshopId)
-                        .map(w => (
-                          <SelectItem key={w.id} value={w.id}>
-                            {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                  مركز التكلفة
+                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">(اختياري — لتقارير الربحية)</span>
+                </label>
+                <CostCenterCombobox
+                  value={form.costCenterId}
+                  onChange={(id) => setForm(p => ({ ...p, costCenterId: id }))}
+                  placeholder="بدون مركز تكلفة"
+                />
+                {workshops.length > 0 && (
+                  <div className="mt-2">
+                    <label className="text-[10px] text-muted-foreground mb-1 block">
+                      أو ربط بورشة (اختياري)
+                    </label>
+                    <Select
+                      value={form.workshopId || "__none__"}
+                      onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
+                    >
+                      <SelectTrigger className="rounded-xl text-xs h-8">
+                        <SelectValue placeholder="بدون ورشة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">بدون ورشة</SelectItem>
+                        {workshops
+                          .filter(w => w.status === "active" || w.id === form.workshopId)
+                          .map(w => (
+                            <SelectItem key={w.id} value={w.id}>
+                              {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
               {/* Invoice kind: explicit cash vs credit segmented control */}
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
