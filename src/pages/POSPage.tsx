@@ -557,7 +557,7 @@ const POSPage = () => {
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
-  }, [updateActiveOrder, posFeatPerm]);
+  }, [updateActiveOrder]);
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent", opts?: { bypassPermission?: boolean }) => {
     if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
@@ -565,7 +565,7 @@ const POSPage = () => {
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
-  }, [updateActiveOrder, posFeatPerm]);
+  }, [updateActiveOrder]);
 
   const setOrderNote = useCallback((n: string) => {
     updateActiveOrder(o => ({ ...o, orderNote: n }));
