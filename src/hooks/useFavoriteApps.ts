@@ -15,14 +15,21 @@ export function useFavoriteApps() {
 
   const fetchFavorites = useCallback(async () => {
     if (!user?.id) { setFavorites([]); setLoading(false); return; }
-    const { data } = await supabase
-      .from("user_favorite_apps")
-      .select("app_id, sort_order")
-      .eq("user_id", user.id)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
-    setFavorites((data || []).map((r: any) => r.app_id));
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("user_favorite_apps")
+        .select("app_id, sort_order")
+        .eq("user_id", user.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      setFavorites((data || []).map((r: any) => r.app_id));
+    } catch (err) {
+      console.warn("[useFavoriteApps] load failed:", err);
+      setFavorites([]);
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id]);
 
   useEffect(() => {
@@ -32,8 +39,9 @@ export function useFavoriteApps() {
   // Realtime sync across tabs/devices
   useEffect(() => {
     if (!user?.id) return;
+    const channelInstanceId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel(`favorite-apps-${user.id}`)
+      .channel(`favorite-apps-${user.id}-${channelInstanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_favorite_apps", filter: `user_id=eq.${user.id}` },

@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { getAppSections, type NavItem } from "@/config/navigationConfig";
 import { multiWordMatchAny } from "@/lib/utils";
-import { APPS_VISUAL_META, getAppMeta, type AppSection as SectionKey } from "@/pages/Apps/data/appsRegistry";
+import { getAppMeta, type AppSection as SectionKey } from "@/pages/Apps/data/appsRegistry";
 import AppCardV2 from "@/pages/Apps/components/AppCardV2";
 import AppSectionBlock from "@/pages/Apps/components/AppSection";
 import AppsHero from "@/pages/Apps/components/AppsHero";
@@ -26,6 +26,13 @@ import { useFavoriteApps } from "@/hooks/useFavoriteApps";
 import { Star, Command, ChevronDown } from "lucide-react";
 
 const appSections = getAppSections();
+
+const getSafeAppMeta = (app: NavItem) =>
+  getAppMeta(app.id) ?? {
+    id: app.id,
+    iconColor: "#0D1B2E",
+    section: "operations" as SectionKey,
+  };
 
 /* ── Module-level cache to prevent skeleton flicker on revisits ──
    Roles + employee-redirect decision are stable per user within a
@@ -253,8 +260,7 @@ const AppsLauncher = () => {
       filtered = filtered.filter(app => favorites.includes(app.id));
     } else if (categoryFilter !== "all") {
       filtered = filtered.filter(app => {
-        const meta = getAppMeta(app.id);
-        if (!meta) return false;
+        const meta = getSafeAppMeta(app);
         const effectiveSection = isAppDisabled(app) ? "premium" : meta.section;
         return effectiveSection === categoryFilter;
       });
@@ -272,8 +278,7 @@ const AppsLauncher = () => {
     // Group by section — disabled apps move to "premium"
     const groups: Record<SectionKey, NavItem[]> = { core: [], operations: [], premium: [] };
     for (const app of filtered) {
-      const meta = getAppMeta(app.id);
-      if (!meta) continue;
+      const meta = getSafeAppMeta(app);
       const targetSection: SectionKey = isAppDisabled(app) ? "premium" : meta.section;
       groups[targetSection].push(app);
     }
@@ -299,7 +304,7 @@ const AppsLauncher = () => {
       ? allVisibleApps.filter(a => multiWordMatchAny(q, a.label, a.description, ...(a.keywords || [])))
       : allVisibleApps;
     const effectiveSection = (a: NavItem) =>
-      isAppDisabled(a) ? "premium" : getAppMeta(a.id)?.section;
+      isAppDisabled(a) ? "premium" : getSafeAppMeta(a).section;
     const counts: Record<CategoryFilter, number> = {
       all: base.length,
       favorites: base.filter(a => favorites.includes(a.id)).length,
@@ -391,7 +396,7 @@ const AppsLauncher = () => {
                 </button>
                 {!favCollapsed && <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                   {groupedApps.favoritesList.map((app, idx) => {
-                    const meta = getAppMeta(app.id)!;
+                    const meta = getSafeAppMeta(app);
                     const pendingActivation = isAppDisabled(app);
                     return (
                       <AppCardV2
@@ -420,7 +425,7 @@ const AppsLauncher = () => {
               return (
                 <AppSectionBlock key={sec} section={sec} isPremium={sec === "premium"}>
                   {apps.map((app, idx) => {
-                    const meta = getAppMeta(app.id)!;
+                    const meta = getSafeAppMeta(app);
                     const pendingActivation = isAppDisabled(app);
                     return (
                       <AppCardV2

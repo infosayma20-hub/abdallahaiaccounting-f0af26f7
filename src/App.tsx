@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
 import GlobalFormFocusProvider from "@/components/forms/GlobalFormFocusProvider";
 import { useSearchParams } from "react-router-dom";
@@ -488,6 +489,7 @@ const isMenuDomain = typeof window !== "undefined" && (
 );
 
 const App = () => (
+  <AppErrorBoundary>
   <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -988,6 +990,7 @@ const App = () => (
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>
+  </AppErrorBoundary>
 );
 
 export default App;
