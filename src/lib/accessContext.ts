@@ -73,15 +73,18 @@ export function defaultRouteFor(
         ? { route: "/apps" }
         : { route: "/blocked/company-not-ready", blockingReason: "company_setup_incomplete" };
     case "company_owner":
-      // Only a real company_owner with explicit DB permission may reach /setup.
+      // Only a real company_owner with explicit DB permission may reach the
+      // canonical onboarding wizard. Keep this aligned with useRoleRedirect
+      // and OnboardingGate; /setup is the legacy wizard and must not be the
+      // default bootstrap destination anymore.
       if (companySetupComplete) return { route: "/apps" };
-      if (canSetup) return { route: "/setup" };
+      if (canSetup) return { route: "/onboarding" };
       return { route: "/blocked/no-setup-permission", blockingReason: "not_allowed_setup" };
     case "unlinked":
-      // Unlinked users must NOT silently slide into Setup. Setup is only
+      // Unlinked users must NOT silently slide into onboarding. Setup is only
       // permitted when the DB explicitly authorised this user (canSetup=true)
       // AND they own no company yet — which is exactly the bootstrap case.
-      if (canSetup) return { route: "/setup" };
+      if (canSetup) return { route: "/onboarding" };
       return { route: "/blocked/unlinked", blockingReason: "unlinked_account" };
   }
   // Any unknown/garbage account type — NEVER fall through to /setup.
