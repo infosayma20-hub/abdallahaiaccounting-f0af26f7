@@ -582,11 +582,16 @@ function InvoiceSummary({
   //   sales invoice → INCREASES customer debit (they owe more)
   //   purchase invoice → INCREASES our liability to supplier (their credit grows)
   //   credit note (sales) → REDUCES customer debit
-  const before = balanceBefore ?? 0;
+  // When isPosted=true (viewing a saved/posted invoice) the passed balance
+  // already INCLUDES this invoice's effect. Back it out so the user sees
+  // the historical "before" and the real current "after" — not a
+  // double-counted projection.
+  const rawBalance = balanceBefore ?? 0;
   const delta = isCreditNote
     ? (isSales ? -total : total)
     : (isPurchase ? -total : total);
-  const after = before + delta;
+  const before = isPosted ? rawBalance - delta : rawBalance;
+  const after = isPosted ? rawBalance : rawBalance + delta;
 
   // Warnings
   const noItems = !itemsCount || total <= 0;
@@ -694,7 +699,7 @@ function InvoiceSummary({
               onOpenStatement={onOpenStatement}
             />
             <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">أثر هذا المستند</span>
+              <span className="text-muted-foreground">{isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}</span>
               <span
                 className={`font-bold ${delta >= 0 ? (isPurchase ? "text-emerald-600" : "text-rose-600") : "text-emerald-600"}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
@@ -702,7 +707,7 @@ function InvoiceSummary({
                 {delta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(delta))}
               </span>
             </div>
-            <BalanceRow label={isPosted ? "الرصيد بعد القيد" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
+            <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
           </div>
         </div>
       )}
