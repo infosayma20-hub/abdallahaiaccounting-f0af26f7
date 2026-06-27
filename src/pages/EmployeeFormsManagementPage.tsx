@@ -286,7 +286,7 @@ export default function EmployeeFormsManagementPage() {
           if (d.education) patch.education = d.education;
           if (d.name) patch.full_name = d.name;
           if (Object.keys(patch).length > 0) {
-            const { error: upErr } = await supabase.from("employees").update(patch).eq("id", form.employee_id);
+            const { error: upErr } = await supabase.from("employees").update(patch as any).eq("id", form.employee_id);
             if (upErr) toast.error("تم اعتماد الطلب لكن فشل تحديث ملف الموظف: " + upErr.message);
           }
         } catch (e: any) {

@@ -296,7 +296,7 @@ const UsersSettingsSection = () => {
     );
     const { error } = await supabase
       .from("role_permissions")
-      .update({ [field]: value, updated_at: new Date().toISOString() })
+      .update({ [field]: value, updated_at: new Date().toISOString() } as any)
       .eq("role", role as any)
       .eq("module", module);
     if (error) {

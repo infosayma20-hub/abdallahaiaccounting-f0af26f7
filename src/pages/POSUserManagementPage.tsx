@@ -309,7 +309,7 @@ export default function POSUserManagementPage() {
           is_call_center: isCC,
         };
 
-        await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
+        await supabase.from("pos_users").update(updates as any).eq("id", editingUser.id);
 
         await supabase.from("pos_user_permissions").upsert({
           user_id: user!.id,

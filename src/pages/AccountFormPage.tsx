@@ -370,7 +370,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         };
         if (!isProtected) updateData.account_code = code;
 
-        const { error } = await supabase.from("accounts").update(updateData).eq("id", accountId!);
+        const { error } = await supabase.from("accounts").update(updateData as any).eq("id", accountId!);
         if (error) throw error;
         toast({ title: "✅ تم حفظ التغييرات" });
       }
