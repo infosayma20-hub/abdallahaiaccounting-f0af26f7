@@ -1326,6 +1326,13 @@ export default function HRAttendancePage() {
         "المسمى": r.employees?.job_title || "—",
         "الفرع": branches.find(b => b.id === r.branch_id)?.name || "—",
         "التاريخ": r.attendance_date,
+        "اليوم": (() => {
+          const s = r.attendance_date as string | null;
+          if (!s) return "—";
+          const [y, m, d] = s.split("-").map(Number);
+          if (!y || !m || !d) return "—";
+          return ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"][new Date(y, m - 1, d).getDay()];
+        })(),
         "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
         "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
         "الساعات": r.total_hours || 0,
@@ -1337,7 +1344,7 @@ export default function HRAttendancePage() {
       }));
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
-      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 30 }];
+      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 30 }];
       const sheetName = { daily: "الحضور اليومي", late: "متأخرون", absent: "غائبون", incomplete: "بصمات ناقصة" }[kind];
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       setNextExportBranding({ title: sheetName });

@@ -42,6 +42,16 @@ type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "ab
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 
+const AR_WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+function fmtWeekday(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  // parse as local date (YYYY-MM-DD) to avoid TZ shift
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  const dt = new Date(y, m - 1, d);
+  return AR_WEEKDAYS[dt.getDay()] || "—";
+}
+
 function monthBounds(year: number, month1to12: number) {
   const from = `${year}-${pad2(month1to12)}-01`;
   const lastDay = new Date(year, month1to12, 0).getDate();
@@ -299,6 +309,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               <TableRow className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
                 <TableHead className="text-white text-right">الموظف</TableHead>
                 <TableHead className="text-white text-right">التاريخ</TableHead>
+                <TableHead className="text-white text-right">اليوم</TableHead>
                 <TableHead className="text-white text-right">دخول</TableHead>
                 <TableHead className="text-white text-right">خروج</TableHead>
                 <TableHead className="text-white text-right">ساعات</TableHead>
@@ -319,6 +330,7 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                   <TableRow key={r.id} className="hover:bg-muted/40">
                     <TableCell className="font-medium">{r.employees?.full_name || "—"}</TableCell>
                     <TableCell className="tabular-nums">{fmtDateDisplay(r.attendance_date)}</TableCell>
+                    <TableCell className="text-muted-foreground">{fmtWeekday(r.attendance_date)}</TableCell>
                     <TableCell className="tabular-nums">{fmtTime(r.first_check_in)}</TableCell>
                     <TableCell className="tabular-nums">{fmtTime(r.last_check_out)}</TableCell>
                     <TableCell className="tabular-nums">{(r.total_hours ?? 0).toFixed(1)}</TableCell>
