@@ -545,24 +545,27 @@ const POSPage = () => {
     }));
   }, [updateActiveOrder]);
 
-  const setOrderDiscount = useCallback((d: number) => {
+  const setOrderDiscount = useCallback((d: number, opts?: { bypassPermission?: boolean }) => {
     // Safe setter — enforces pos.sell.discount permission (defense-in-depth).
     // Allow d === 0 always (used for resetting after sales).
-    if (d !== 0 && !posFeatPerm.can("sell", "discount")) {
+    // bypassPermission=true is used when a branch manager has approved the
+    // discount via ManagerDiscountDialog — the cashier doesn't need the
+    // permission in that case.
+    if (d !== 0 && !opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
       toast.error("لا تملك صلاحية تطبيق الخصم");
       updateActiveOrder(o => ({ ...o, orderDiscount: 0 }));
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
-  }, [updateActiveOrder]);
+  }, [updateActiveOrder, posFeatPerm]);
 
-  const setOrderDiscountType = useCallback((t: "fixed" | "percent") => {
-    if (!posFeatPerm.can("sell", "discount")) {
+  const setOrderDiscountType = useCallback((t: "fixed" | "percent", opts?: { bypassPermission?: boolean }) => {
+    if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
       toast.error("لا تملك صلاحية تطبيق الخصم");
       return;
     }
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
-  }, [updateActiveOrder]);
+  }, [updateActiveOrder, posFeatPerm]);
 
   const setOrderNote = useCallback((n: string) => {
     updateActiveOrder(o => ({ ...o, orderNote: n }));
