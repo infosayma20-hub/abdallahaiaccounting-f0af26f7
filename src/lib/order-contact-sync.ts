@@ -77,7 +77,7 @@ export async function syncContactFromOrder(order: {
       if (existing && !existing.address && order.customer_address) updates.address = order.customer_address;
     }
     if (Object.keys(updates).length > 0) {
-      await supabase.from("contacts").update(updates).eq("id", contactId);
+      await supabase.from("contacts").update(updates as any).eq("id", contactId);
     }
   }
 
