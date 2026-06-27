@@ -1636,7 +1636,7 @@ const POSPage = () => {
           const { data: puName } = await supabase
             .from("pos_users")
             .select("name")
-            .eq("user_id", user.id)
+            .eq("auth_user_id", user.id)
             .maybeSingle();
           displayName = (puName as any)?.name || "";
         } catch {}
@@ -2945,7 +2945,7 @@ const POSPage = () => {
       const { data: puName } = await supabase
         .from("pos_users")
         .select("name")
-        .eq("user_id", user.id)
+        .eq("auth_user_id", user.id)
         .maybeSingle();
       displayName = (puName as any)?.name || "";
     } catch {}
