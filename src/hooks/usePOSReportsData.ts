@@ -29,6 +29,11 @@ export interface POSOrder {
   delivery_fee?: number | null;
 }
 
+// Helper: return the restaurant-only portion of an order's total.
+// `total` may either be items-only (new orders, total_includes_delivery_fee=false)
+// OR include delivery (legacy orders). Subtracting delivery_fee
+// unconditionally would double-deduct it on new orders.
+
 export interface POSOrderLine {
   id: string;
   order_id: string;
