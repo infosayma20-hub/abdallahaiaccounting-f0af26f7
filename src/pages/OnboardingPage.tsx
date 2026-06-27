@@ -195,51 +195,103 @@ const OnboardingPage = () => {
     if (saving) return;
     setSaving(true);
     try {
-    if (step === 1) {
-      const trimmedCompanyName = companyName.trim();
-      if (!trimmedCompanyName) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-
-      try {
-        await saveProgress({ company_name: trimmedCompanyName }, 1);
-      } catch {
-        toast.error("تعذّر حفظ اسم الشركة، حاول مرة أخرى");
-        return;
-      }
-
-      if (user) {
-        const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
-        const ownerId = (ownerIdData as string | null) || user.id;
-        const { data: company } = await supabase.from("companies").select("id").eq("owner_id", ownerId).maybeSingle();
-        if (company) {
-          await supabase.from("companies").update({ name: trimmedCompanyName }).eq("id", company.id);
-        } else if (ownerId === user.id) {
-          await supabase.from("companies").insert({ owner_id: ownerId, name: trimmedCompanyName });
+      if (step === 1) {
+        const trimmedCompanyName = companyName.trim();
+        if (!trimmedCompanyName) {
+          toast.error("هذا الحقل مطلوب للمتابعة");
+          setSaving(false);
+          return;
         }
 
-        await Promise.all([
-          supabase.from("profiles").update({ company_name: trimmedCompanyName }).eq("user_id", user.id),
-          supabase.from("company_settings" as never).upsert({ user_id: user.id, company_name: trimmedCompanyName } as never, { onConflict: "user_id" }),
-          supabase.auth.updateUser({ data: { company_name: trimmedCompanyName } }),
-        ]);
-      }
-    }
-    if (step === 2) {
-      if (selectedTypes.length === 0) { toast.error("هذا الحقل مطلوب للمتابعة"); return; }
-      // نحفظ business_type + city (إن وُجدت) في خطوة واحدة بعد دمج خطوتي
-      // "طبيعة العمل" و"القطاع/المدينة".
-      try { await saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 2); }
-      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
-    }
-    if (step === 3) {
-      try { await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 3); }
-      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
-    }
-    if (step === 4) {
-      try { await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 4); }
-      catch { toast.error("تعذّر الحفظ، حاول مرة أخرى"); return; }
-    }
+        try {
+          await saveProgress({ company_name: trimmedCompanyName }, 1);
+        } catch (err: any) {
+          console.error("Critical onboarding step 1 saveProgress failed:", err);
+          toast.error("تعذّر حفظ اسم الشركة، حاول مرة أخرى");
+          setSaving(false);
+          return;
+        }
 
-    if (step < TOTAL_STEPS) setStep(step + 1);
+        if (user) {
+          try {
+            const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+            const ownerId = (ownerIdData as string | null) || user.id;
+            const { data: company } = await supabase.from("companies").select("id").eq("owner_id", ownerId).maybeSingle();
+            
+            if (company) {
+              await supabase.from("companies").update({ name: trimmedCompanyName }).eq("id", company.id);
+            } else if (ownerId === user.id) {
+              await supabase.from("companies").insert({ owner_id: ownerId, name: trimmedCompanyName });
+            }
+          } catch (err) {
+            console.warn("Non-critical company table sync warning:", err);
+          }
+
+          // Safe execution of profile/settings/metadata updates so they never block the wizard
+          try {
+            await supabase.from("profiles").update({ company_name: trimmedCompanyName }).eq("user_id", user.id);
+          } catch (err) {
+            console.warn("Non-critical profiles sync warning:", err);
+          }
+
+          try {
+            await supabase.from("company_settings" as never).upsert({ user_id: user.id, company_name: trimmedCompanyName } as never, { onConflict: "user_id" });
+          } catch (err) {
+            console.warn("Non-critical company_settings sync warning:", err);
+          }
+
+          try {
+            await supabase.auth.updateUser({ data: { company_name: trimmedCompanyName } });
+          } catch (err) {
+            console.warn("Non-critical auth metadata sync warning:", err);
+          }
+        }
+      }
+      
+      if (step === 2) {
+        if (selectedTypes.length === 0) {
+          toast.error("هذا الحقل مطلوب للمتابعة");
+          setSaving(false);
+          return;
+        }
+        try {
+          await saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 2);
+        } catch (err) {
+          console.error("Step 2 save failed:", err);
+          toast.error("تعذّر الحفظ، حاول مرة أخرى");
+          setSaving(false);
+          return;
+        }
+      }
+      
+      if (step === 3) {
+        try {
+          await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 3);
+        } catch (err) {
+          console.error("Step 3 save failed:", err);
+          toast.error("تعذّر الحفظ، حاول مرة أخرى");
+          setSaving(false);
+          return;
+        }
+      }
+      
+      if (step === 4) {
+        try {
+          await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 4);
+        } catch (err) {
+          console.error("Step 4 save failed:", err);
+          toast.error("تعذّر الحفظ، حاول مرة أخرى");
+          setSaving(false);
+          return;
+        }
+      }
+
+      if (step < TOTAL_STEPS) {
+        setStep(step + 1);
+      }
+    } catch (err: any) {
+      console.error("General nextStep execution error:", err);
+      toast.error(err?.message || "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً");
     } finally {
       setSaving(false);
     }
