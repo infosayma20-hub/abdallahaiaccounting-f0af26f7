@@ -242,6 +242,23 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
     return branches.find((b) => b.id === id)?.name || id;
   };
 
+  const formatArabicDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return new Intl.DateTimeFormat("ar-SA", {
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Jerusalem",
+        numberingSystem: "arab",
+      }).format(d);
+    } catch {
+      return dateStr;
+    }
+  };
+
   const whatsappHref = (phone: string | null) => {
     if (!phone) return null;
     const digits = phone.replace(/[^\d]/g, "");
