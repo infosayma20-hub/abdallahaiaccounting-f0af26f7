@@ -252,11 +252,11 @@ export function usePOSReportsData(branchId: string | null = null) {
   // Restaurant sales = customer total − delivery fee. Delivery is money the
   // restaurant collects on behalf of the delivery company, NOT its own revenue.
   const totalSales = useMemo(
-    () => paidOrders.reduce((s, o) => s + (Number(o.total) || 0) - (Number(o.delivery_fee) || 0), 0),
+    () => paidOrders.reduce((s, o) => s + netSalesOf(o), 0),
     [paidOrders],
   );
   const totalReturns = useMemo(
-    () => returnOrders.reduce((s, o) => s + (Number(o.total) || 0) - (Number(o.delivery_fee) || 0), 0),
+    () => returnOrders.reduce((s, o) => s + netSalesOf(o), 0),
     [returnOrders],
   );
   // Separate "money collected from customers for delivery" KPI so the UI can
@@ -287,14 +287,14 @@ export function usePOSReportsData(branchId: string | null = null) {
       const d = format(new Date(o.created_at), "yyyy-MM-dd");
       if (!map[d]) map[d] = { date: d, orders: 0, sales: 0, returns: 0, net: 0 };
       map[d].orders++;
-      const net = (Number(o.total) || 0) - (Number(o.delivery_fee) || 0);
+      const net = netSalesOf(o);
       map[d].sales += net;
       map[d].net += net;
     });
     returnOrders.forEach(o => {
       const d = format(new Date(o.created_at), "yyyy-MM-dd");
       if (!map[d]) map[d] = { date: d, orders: 0, sales: 0, returns: 0, net: 0 };
-      const net = (Number(o.total) || 0) - (Number(o.delivery_fee) || 0);
+      const net = netSalesOf(o);
       map[d].returns += net;
       map[d].net -= net;
     });
@@ -338,10 +338,7 @@ export function usePOSReportsData(branchId: string | null = null) {
       const sessionIds = new Set(sess.map(s => s.id));
       const cashierOrders = paidOrders.filter(o => sessionIds.has(o.session_id));
       const cashierReturns = returnOrders.filter(o => sessionIds.has(o.session_id));
-      const sales = cashierOrders.reduce(
-        (s, o) => s + (Number(o.total) || 0) - (Number(o.delivery_fee) || 0),
-        0,
-      );
+      const sales = cashierOrders.reduce((s, o) => s + netSalesOf(o), 0);
       const discounts = cashierOrders.reduce((s, o) => s + o.discount_amount, 0);
       const variance = sess.reduce((s, se) => s + (se.cash_variance || 0), 0);
 
@@ -366,7 +363,7 @@ export function usePOSReportsData(branchId: string | null = null) {
       const day = getDay(d); // 0=Sun
       const hour = getHours(d);
       const key = `${day}-${hour}`;
-      heatmap[key] = (heatmap[key] || 0) + (Number(o.total) || 0) - (Number(o.delivery_fee) || 0);
+      heatmap[key] = (heatmap[key] || 0) + netSalesOf(o);
     });
     return heatmap;
   }, [paidOrders]);
