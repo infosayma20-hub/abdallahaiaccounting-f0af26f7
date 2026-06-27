@@ -545,10 +545,13 @@ const POSPage = () => {
     }));
   }, [updateActiveOrder]);
 
-  const setOrderDiscount = useCallback((d: number) => {
+  const setOrderDiscount = useCallback((d: number, opts?: { bypassPermission?: boolean }) => {
     // Safe setter — enforces pos.sell.discount permission (defense-in-depth).
     // Allow d === 0 always (used for resetting after sales).
-    if (d !== 0 && !posFeatPerm.can("sell", "discount")) {
+    // bypassPermission=true is used when a branch manager has approved the
+    // discount via ManagerDiscountDialog — the cashier doesn't need the
+    // permission in that case.
+    if (d !== 0 && !opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
       toast.error("لا تملك صلاحية تطبيق الخصم");
       updateActiveOrder(o => ({ ...o, orderDiscount: 0 }));
       return;
@@ -556,8 +559,8 @@ const POSPage = () => {
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
   }, [updateActiveOrder]);
 
-  const setOrderDiscountType = useCallback((t: "fixed" | "percent") => {
-    if (!posFeatPerm.can("sell", "discount")) {
+  const setOrderDiscountType = useCallback((t: "fixed" | "percent", opts?: { bypassPermission?: boolean }) => {
+    if (!opts?.bypassPermission && !posFeatPerm.can("sell", "discount")) {
       toast.error("لا تملك صلاحية تطبيق الخصم");
       return;
     }
@@ -2879,7 +2882,11 @@ const POSPage = () => {
     const taxAmount = cart.reduce((sum, item) => sum + (safe(item.total) * safe(item.tax_rate) / 100), 0);
     // Enforce pos.sell.discount at calculation level — if user lacks permission,
     // the order-level discount is ignored even if state somehow holds a value.
-    const canOrderDiscount = posFeatPerm.can("sell", "discount");
+    // EXCEPTION: a discount approved by a branch manager (managerDiscountMeta)
+    // is always honored — the manager's authority overrides the cashier's
+    // missing permission. Without this bypass, a 100% manager discount would
+    // silently print the full price on the customer receipt.
+    const canOrderDiscount = posFeatPerm.can("sell", "discount") || !!managerDiscountMeta;
     const effOrderDiscount = canOrderDiscount ? safe(orderDiscount) : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
     // 🚚 Delivery fee is COMPLETELY OUTSIDE the restaurant cash flow.
@@ -2898,7 +2905,7 @@ const POSPage = () => {
       total: Math.round(total * 100) / 100,
       itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
     };
-  }, [cart, orderDiscount, orderDiscountType, posFeatPerm, activeOrder?.callCenterDeliveryFee]);
+  }, [cart, orderDiscount, orderDiscountType, posFeatPerm, activeOrder?.callCenterDeliveryFee, managerDiscountMeta]);
 
   // Open session
   const handleOpenShift = async () => {
@@ -8888,8 +8895,9 @@ const POSPage = () => {
         onClose={() => setShowManagerDiscountDialog(false)}
         onApproved={(data) => {
           setManagerDiscountMeta(data);
-          setOrderDiscountType(data.type);
-          setOrderDiscount(data.amount);
+          // Bypass cashier permission — this is a manager-authorized discount.
+          setOrderDiscountType(data.type, { bypassPermission: true });
+          setOrderDiscount(data.amount, { bypassPermission: true });
           setShowManagerDiscountDialog(false);
           toast.success(
             data.type === "percent"
