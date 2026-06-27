@@ -1,7 +1,7 @@
 {
-  "latestBuild": 2,
-  "minSupportedBuild": 2,
+  "latestBuild": 3,
+  "minSupportedBuild": 3,
   "forceUpdate": true,
-  "message": "تم إصدار تحديث مهم لتحديث معلومات الموظفين، يرجى تحديث الصفحة للمتابعة.",
-  "updatedAt": "2026-06-04T13:00:00Z"
+  "message": "تم إصدار تحديث طارئ لإصلاح مشكلة الشاشة البيضاء، يرجى الانتظار حتى يتم التحديث.",
+  "updatedAt": "2026-06-27T13:35:00Z"
 }
