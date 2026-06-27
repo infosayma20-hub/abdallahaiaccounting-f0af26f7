@@ -58,7 +58,7 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
     .select("onboarding_completed")
     .eq("company_id", company.id)
     .maybeSingle());
-  if (profile?.onboarding_completed) {
+  const readAccountsReady = async () => {
     const { count: accountsCount, error: accountsError } = await supabase
       .from("accounts")
       .select("id", { count: "exact", head: true })
@@ -68,6 +68,20 @@ async function readOwnerOnboardingCompleted(userId: string): Promise<boolean | n
       throw accountsError;
     }
     return (accountsCount ?? 0) > 0;
+  };
+  if (profile?.onboarding_completed) {
+    return readAccountsReady();
+  }
+
+  // Compatibility with the older /setup wizard: it writes completion into
+  // company_settings, while the newer /onboarding gate reads company_profiles.
+  const settings = assertQueryOk(await supabase
+    .from("company_settings" as any)
+    .select("onboarding_completed")
+    .eq("user_id", ownerId)
+    .maybeSingle()) as { onboarding_completed?: boolean } | null;
+  if (settings?.onboarding_completed) {
+    return readAccountsReady();
   }
   // Fallback for legacy tenants who own a company but never went through the
   // 6-step wizard: if they already have substantive data, treat as completed

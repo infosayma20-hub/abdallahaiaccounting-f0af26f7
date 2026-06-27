@@ -35,7 +35,9 @@ export const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (authLoading || !user) return;
     const cached = sessionStatusCache.get(user.id);
-    const mustRevalidate = location.pathname === "/onboarding" && cached !== "completed";
+    const mustRevalidate =
+      (location.pathname === "/onboarding" && cached !== "completed") ||
+      ((location.pathname === "/apps" || location.pathname === "/") && cached === "incomplete");
     if (cached && !mustRevalidate) {
       setStatus(cached);
       return;

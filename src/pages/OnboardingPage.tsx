@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { clearOnboardingStatusCache } from "@/components/auth/OnboardingGate";
 import { fetchOnboardingStatus } from "@/lib/authRedirect";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
+import { clearAccessContextCache } from "@/lib/accessContext";
 
 // ─── 5 خطوات (سابقاً 6؛ تم حذف خطوة "ما هو قطاعك" لأنها كانت مكررة
 // مع "ما طبيعة عملك") ───
@@ -269,13 +270,17 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     if (finishing) return;
+    if (!user?.id) {
+      toast.error("انتهت الجلسة، يرجى تسجيل الدخول من جديد");
+      return;
+    }
     setFinishing(true);
     try {
       await withTimeout(supabase.auth.refreshSession(), 8000, "refresh_session");
 
       const setupPromise = supabase.functions.invoke("setup-accounts", {
         body: {
-          userId: user!.id,
+          userId: user.id,
           businessType: selectedTypes.includes("restaurant") ? "مطعم" : selectedTypes.includes("services") ? "خدمات" : "تجارة",
           hasInventory: selectedTypes.some((type) => ["products", "restaurant"].includes(type)),
           hasReceivables: true,
@@ -302,31 +307,35 @@ const OnboardingPage = () => {
     // persisted before navigating. If not, surface a clear error instead
     // of dropping the user into /apps where the gate will bounce them back.
     try {
-      const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user!.id });
-      const ownerId = (ownerIdData as string | null) || user!.id;
+      const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const ownerId = (ownerIdData as string | null) || user.id;
       const { data: company } = await supabase
         .from("companies")
         .select("id")
         .eq("owner_id", ownerId)
         .maybeSingle();
-      if (company?.id) {
-        const [{ data: profile }, { count: accountsCount }] = await Promise.all([
-          supabase
-            .from("company_profiles")
-            .select("onboarding_completed")
-            .eq("company_id", company.id)
-            .maybeSingle(),
-          supabase
-            .from("accounts")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", ownerId),
-        ]);
-        if (!profile?.onboarding_completed || (accountsCount ?? 0) === 0) {
-          console.error("[finishOnboarding] read-back failed:", { profile, accountsCount });
-          toast.error("لم يتم تأكيد حفظ الإعداد، حاول مرة أخرى");
-          setFinishing(false);
-          return;
-        }
+      if (!company?.id) {
+        console.error("[finishOnboarding] company missing after setup", { ownerId });
+        toast.error("لم يتم إنشاء الشركة، حاول مرة أخرى");
+        setFinishing(false);
+        return;
+      }
+      const [{ data: profile }, { count: accountsCount }] = await Promise.all([
+        supabase
+          .from("company_profiles")
+          .select("onboarding_completed")
+          .eq("company_id", company.id)
+          .maybeSingle(),
+        supabase
+          .from("accounts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", ownerId),
+      ]);
+      if (!profile?.onboarding_completed || (accountsCount ?? 0) === 0) {
+        console.error("[finishOnboarding] read-back failed:", { profile, accountsCount });
+        toast.error("لم يتم تأكيد حفظ الإعداد، حاول مرة أخرى");
+        setFinishing(false);
+        return;
       }
     } catch (err) {
       console.error("[finishOnboarding] read-back error:", err);
@@ -359,6 +368,7 @@ const OnboardingPage = () => {
       }
       clearOnboardingStatusCache(user.id);
       clearRoleRedirectCache(user.id);
+      clearAccessContextCache(user.id);
     }
     toast.success("أهلاً بك في AMWALI أموالي! 🎉");
     navigate("/apps");
