@@ -1355,6 +1355,7 @@ const InvoiceCreatePage = () => {
             is_deleted: false,
             workshop_id: form.workshopId || null,
             cost_center_name: headerWorkshopEdit?.name || null,
+            cost_center_id: form.costCenterId || null,
           };
 
           let linkedTransactionId = originalInvoiceRef.current?.linkedTransactionId || null;
