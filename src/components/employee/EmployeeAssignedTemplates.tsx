@@ -299,13 +299,16 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 sticky top-0">
             <button
               type="button"
-              onClick={() => setActiveTemplate(null)}
+              onClick={() => { setActiveTemplate(null); setActiveDraft(null); }}
               className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-95 transition"
               aria-label="إغلاق"
             >
               <X className="h-5 w-5" />
             </button>
-            <h1 className="text-base font-bold truncate px-2">{activeTemplate.name}</h1>
+            <h1 className="text-base font-bold truncate px-2">
+              {activeTemplate.name}
+              {activeDraft && <span className="mr-2 text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">استكمال مسودة</span>}
+            </h1>
             <div className="w-9" />
           </header>
           <div
@@ -339,7 +342,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
         </div>
       )}
 
-      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => !o && setActiveTemplate(null)}>
+      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => { if (!o) { setActiveTemplate(null); setActiveDraft(null); } }}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-right">{activeTemplate?.name}</DialogTitle>
