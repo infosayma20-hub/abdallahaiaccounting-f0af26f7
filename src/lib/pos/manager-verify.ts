@@ -68,7 +68,7 @@ export async function verifyManagerCredentials(
       // for their assigned branch — keeps Manager Mode in sync with the HR toggle.
       probe
         .from("employees")
-        .select("branch_id, is_manager, full_name")
+        .select("id, branch_id, is_manager, full_name")
         .eq("auth_user_id", managerUserId),
     ]);
 
@@ -79,7 +79,29 @@ export async function verifyManagerCredentials(
     const employeeBranchIds = (empRows || [])
       .filter((e: any) => e.is_manager && e.branch_id)
       .map((e: any) => e.branch_id);
-    const branchIds = Array.from(new Set([...assignmentBranchIds, ...employeeBranchIds]));
+
+    // Also include any branches granted via employee_allowed_branches —
+    // multi-branch managers (e.g. roaming branch supervisors) are configured
+    // there, not in branch_manager_assignments.
+    let allowedBranchIds: string[] = [];
+    const managerEmployeeIds = (empRows || [])
+      .filter((e: any) => e.is_manager)
+      .map((e: any) => e.id);
+    if (managerEmployeeIds.length > 0) {
+      try {
+        const { data: allowed } = await probe
+          .from("employee_allowed_branches")
+          .select("branch_id")
+          .in("employee_id", managerEmployeeIds);
+        allowedBranchIds = (allowed || []).map((a: any) => a.branch_id).filter(Boolean);
+      } catch {
+        /* ignore — fall back to primary branch only */
+      }
+    }
+
+    const branchIds = Array.from(
+      new Set([...assignmentBranchIds, ...employeeBranchIds, ...allowedBranchIds]),
+    );
     const employeeName = (empRows || []).find((e: any) => e.is_manager)?.full_name;
 
     if (!isAdmin && branchIds.length === 0) {
