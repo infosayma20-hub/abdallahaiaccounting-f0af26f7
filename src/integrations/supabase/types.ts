@@ -24285,6 +24285,16 @@ export type Database = {
         }
         Returns: Json
       }
+      save_onboarding_progress: {
+        Args: {
+          _company_name?: string
+          _mark_completed?: boolean
+          _profile?: Json
+          _target_step?: number
+          _user_id: string
+        }
+        Returns: Json
+      }
       seed_company_coa: {
         Args: { p_owner_id: string; p_profile?: string }
         Returns: Json
