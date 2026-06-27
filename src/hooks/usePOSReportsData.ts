@@ -141,7 +141,7 @@ export function usePOSReportsData(branchId: string | null = null) {
       const [ordersRes, linesRes, paymentsRes, sessionsRes, productsRes] = await Promise.all([
         supabase
           .from("pos_orders")
-          .select("id, created_at, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, transaction_id")
+          .select("id, created_at, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id")
           .eq("user_id", dataOwnerId)
           .gte("created_at", from)
           .lte("created_at", to)
