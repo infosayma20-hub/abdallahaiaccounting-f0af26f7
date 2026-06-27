@@ -1616,6 +1616,7 @@ const InvoiceCreatePage = () => {
           idempotency_key: `INV-${dbInv.id}`,
           workshop_id: form.workshopId || null,
           cost_center_name: headerWorkshop?.name || null,
+          cost_center_id: form.costCenterId || null,
         } as any).select("id").single();
         if (txError) throw txError;
           txDataId = txData.id;
