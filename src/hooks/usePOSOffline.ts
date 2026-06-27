@@ -132,7 +132,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     if (!userId) return;
     try {
       const productsRes: any = await (supabase.from('products') as any)
-        .select('id, name_ar, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
+        .select('id, name, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
         .eq('user_id', userId)
         .eq('is_active', true);
       const customersRes: any = await (supabase.from('contacts') as any)
