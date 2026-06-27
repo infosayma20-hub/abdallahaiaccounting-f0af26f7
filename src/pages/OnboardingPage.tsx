@@ -203,48 +203,39 @@ const OnboardingPage = () => {
           return;
         }
 
+        // ── Critical path with 8s timeout — never let the wizard hang. ──
+        const withTimeout = <T,>(p: Promise<T>, ms = 8000): Promise<T> =>
+          Promise.race([
+            p,
+            new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
+          ]);
+
         try {
-          await saveProgress({ company_name: trimmedCompanyName }, 1);
+          await withTimeout(saveProgress({ company_name: trimmedCompanyName }, 1));
         } catch (err: any) {
           console.error("Critical onboarding step 1 saveProgress failed:", err);
-          toast.error("تعذّر حفظ اسم الشركة، حاول مرة أخرى");
+          toast.error("تعذّر حفظ اسم الشركة، تحقق من الاتصال وحاول مرة أخرى");
           setSaving(false);
           return;
         }
 
+        // ── Non-critical background sync — never blocks the UI. ──
         if (user) {
-          try {
-            const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
-            const ownerId = (ownerIdData as string | null) || user.id;
-            const { data: company } = await supabase.from("companies").select("id").eq("owner_id", ownerId).maybeSingle();
-            
-            if (company) {
-              await supabase.from("companies").update({ name: trimmedCompanyName }).eq("id", company.id);
-            } else if (ownerId === user.id) {
-              await supabase.from("companies").insert({ owner_id: ownerId, name: trimmedCompanyName });
+          const uid = user.id;
+          void (async () => {
+            try {
+              await Promise.allSettled([
+                supabase.from("profiles").update({ company_name: trimmedCompanyName }).eq("user_id", uid),
+                supabase.from("company_settings" as never).upsert(
+                  { user_id: uid, company_name: trimmedCompanyName } as never,
+                  { onConflict: "user_id" }
+                ),
+                supabase.auth.updateUser({ data: { company_name: trimmedCompanyName } }),
+              ]);
+            } catch (err) {
+              console.warn("Non-critical onboarding sync warning:", err);
             }
-          } catch (err) {
-            console.warn("Non-critical company table sync warning:", err);
-          }
-
-          // Safe execution of profile/settings/metadata updates so they never block the wizard
-          try {
-            await supabase.from("profiles").update({ company_name: trimmedCompanyName }).eq("user_id", user.id);
-          } catch (err) {
-            console.warn("Non-critical profiles sync warning:", err);
-          }
-
-          try {
-            await supabase.from("company_settings" as never).upsert({ user_id: user.id, company_name: trimmedCompanyName } as never, { onConflict: "user_id" });
-          } catch (err) {
-            console.warn("Non-critical company_settings sync warning:", err);
-          }
-
-          try {
-            await supabase.auth.updateUser({ data: { company_name: trimmedCompanyName } });
-          } catch (err) {
-            console.warn("Non-critical auth metadata sync warning:", err);
-          }
+          })();
         }
       }
       
