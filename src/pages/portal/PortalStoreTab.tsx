@@ -89,15 +89,10 @@ export default function PortalStoreTab({ theme = 'light' }: Props) {
   useEffect(() => { fetchData(); }, [dateFrom, dateTo]);
 
   const fetchData = async () => {
-    setLoading(true);
-    const [ordersRes, prevRes, itemsRes] = await Promise.all([
-      supabase.from('qamar_orders' as any).select('*').gte('created_at', dateFrom).lt('created_at', dateTo).order('created_at', { ascending: false }),
-      supabase.from('qamar_orders' as any).select('*').gte('created_at', prevFrom).lt('created_at', prevTo),
-      supabase.from('qamar_order_items' as any).select('order_id, product_name, price, quantity, line_total'),
-    ]);
-    setOrders((ordersRes.data as any[]) || []);
-    setPrevOrders((prevRes.data as any[]) || []);
-    setItems((itemsRes.data as any[]) || []);
+    // Qamar integration removed — store tab disabled
+    setOrders([]);
+    setPrevOrders([]);
+    setItems([]);
     setLoading(false);
   };
 

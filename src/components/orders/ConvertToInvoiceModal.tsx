@@ -46,7 +46,6 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
     setSaving(true);
     try {
       // 1. Auto-sync contact
-      const sourceTable = (order as any)._source_table === "qamar_orders" ? "qamar_orders" : "orders";
       const contactId = await syncContactFromOrder({
         id: order.id,
         user_id: order.user_id || userId,
@@ -55,7 +54,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         customer_address: order.customer_address,
         order_number: order.order_number,
         source: order.source,
-      }, sourceTable as any);
+      });
 
       // 2. Auto-sync products
       await syncProductsFromOrderItems(order.id, userId);
@@ -90,7 +89,7 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         payment_status: paidAmount >= Number(order.total) ? "مدفوع" : paidAmount > 0 ? "مدفوع جزئياً" : "غير مدفوع",
         payment_method: pmMap[paymentMethod] || "آجل",
         status: "posted",
-        source: "qamar_brand",
+        source: order.source || "manual",
         notes: noteParts.filter(Boolean).join(" | "),
         currency: "ILS",
       } as any).select().single();
@@ -192,13 +191,6 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
         payment_status: paidAmount >= Number(order.total) ? "مدفوع" : paidAmount > 0 ? "مدفوع جزئياً" : "غير مدفوع",
       };
 
-      if (sourceTable === "qamar_orders") {
-        await supabase.from("qamar_orders").update({
-          status: "مفوتر",
-          payment_status: orderUpdate.payment_status,
-          amount_paid: paidAmount,
-        } as any).eq("id", order.id);
-      }
       await supabase.from("orders").update(orderUpdate as any).eq("id", order.id);
 
       toast.success(`تم إنشاء الفاتورة ${inv.invoice_number} مع ${orderItems.length || 1} صنف ✅`);

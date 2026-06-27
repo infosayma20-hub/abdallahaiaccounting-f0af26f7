@@ -117,7 +117,7 @@ const AuthPage = () => {
     }
     if (roles.includes("super_admin")) return "/super-admin/dashboard";
     if (roles.includes("portal") && !roles.includes("admin")) return "/portal/dashboard";
-    if (roles.includes("store_tracker") && !roles.includes("admin")) return "/store-tracker";
+    if (roles.includes("store_tracker") && !roles.includes("admin")) return "/apps";
     if (roles.includes("worker") && roles.length === 1) return "/worker/procurement";
     if (roles.includes("employee") && roles.length === 1) return "/employee";
     if (roles.includes("cashier") && !roles.includes("admin")) return "/pos";

@@ -123,55 +123,12 @@ const OrdersPage = () => {
   const fetchOrders = async () => {
     if (!user) return;
     setLoading(true);
-    const [ordRes, qamarRes, prodRes] = await Promise.all([
+    const [ordRes, prodRes] = await Promise.all([
       supabase.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("qamar_orders" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("products").select("*").eq("user_id", user.id),
     ]);
     if (ordRes.error) console.error("Orders fetch error:", ordRes.error);
-    
-    const legacyOrders = ((ordRes.data as any[]) || []) as Order[];
-    
-    // Map qamar_orders to Order type and merge, avoiding duplicates by reference_number
-    const qamarOrders: Order[] = ((qamarRes.data as any[]) || []).map((q: any) => ({
-      id: q.id,
-      order_number: q.reference_number,
-      customer_name: q.customer_name || "",
-      customer_phone: q.customer_phone,
-      customer_address: q.customer_address,
-      order_date: q.created_at,
-      delivery_date: null,
-      status: q.status || "جديد",
-      subtotal: q.subtotal || 0,
-      discount: q.discount || 0,
-      shipping_cost: q.shipping_cost || 0,
-      total: q.total || 0,
-      payment_status: q.payment?.method === "partial" ? "مدفوع جزئياً" : q.payment_status === "paid" ? "مدفوع كاملاً" : q.payment_status === "partial" ? "مدفوع جزئياً" : "غير مدفوع",
-      payment_method: q.payment_method,
-      shipping_method: null,
-      tracking_number: null,
-      source: q.source || "قمر براند",
-      notes: q.all_notes || q.customer_notes || null,
-      created_at: q.created_at,
-      user_id: q.user_id,
-      linked_invoice_id: q.linked_invoice_id,
-      paid_amount: q.amount_paid || q.deposit_amount || 0,
-      remaining_amount: q.remaining_amount || ((q.total || 0) - (q.amount_paid || 0)),
-      deposit_amount: q.deposit_amount || 0,
-      deposit_paid_at: q.deposit_paid_at || null,
-      _payment: q.payment || {},
-      _source_table: "qamar_orders",
-    } as any));
-    
-    // Deduplicate: if a legacy order has the same order_number as a qamar order, keep only the qamar one
-    const qamarNumbers = new Set(qamarOrders.map(q => q.order_number).filter(Boolean));
-    const filteredLegacy = legacyOrders.filter(o => !o.order_number || !qamarNumbers.has(o.order_number));
-    
-    const merged = [...filteredLegacy, ...qamarOrders].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-    
-    setOrders(merged);
+    setOrders(((ordRes.data as any[]) || []) as Order[]);
     setProducts((prodRes.data as any[]) || []);
     setLoading(false);
   };
@@ -179,19 +136,8 @@ const OrdersPage = () => {
   useEffect(() => { fetchOrders(); }, [user]);
 
   const fetchOrderItems = async (orderId: string) => {
-    // Try order_items first, then qamar_order_items
     const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
-    if (data && data.length > 0) {
-      setOrderItems(data as any[]);
-      return;
-    }
-    // Fallback: qamar_order_items
-    const { data: qamarItems } = await supabase.from("qamar_order_items").select("*").eq("order_id", orderId);
-    setOrderItems(((qamarItems as any[]) || []).map((q: any) => ({
-      ...q,
-      unit_price: q.price || q.unit_price || 0,
-      total: q.line_total || q.total || (q.quantity || 1) * (q.price || 0),
-    })));
+    setOrderItems((data as any[]) || []);
   };
 
   const recalcTotal = (updatedItems: typeof items) => {
@@ -260,7 +206,6 @@ const OrdersPage = () => {
     if (!user) return;
     
     // Auto-sync contact before invoicing
-    const sourceTable = (order as any)._source_table === "qamar_orders" ? "qamar_orders" : "orders";
     const contactId = await syncContactFromOrder({
       id: order.id,
       user_id: order.user_id,
@@ -269,7 +214,7 @@ const OrdersPage = () => {
       customer_address: order.customer_address,
       order_number: order.order_number,
       source: order.source,
-    }, sourceTable as any);
+    });
     
     // Auto-sync products
     await syncProductsFromOrderItems(order.id, user.id);

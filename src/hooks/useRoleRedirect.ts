@@ -218,7 +218,7 @@ export function useRoleRedirect() {
         } else if (roles.includes("portal") && !roles.includes("admin")) {
           nextPath = "/portal/dashboard";
         } else if (roles.includes("store_tracker") && !roles.includes("admin")) {
-          nextPath = "/store-tracker";
+          nextPath = "/apps";
         } else if (roles.includes("worker") && roles.length === 1) {
           nextPath = "/worker/procurement";
         } else if (roles.includes("cashier") && !roles.includes("admin")) {
