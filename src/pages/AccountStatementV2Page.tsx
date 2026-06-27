@@ -133,6 +133,7 @@ const AccountStatementV2Page = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { taxEnabled } = useTaxEnabled();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
   const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
