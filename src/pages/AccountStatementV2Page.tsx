@@ -171,6 +171,7 @@ const AccountStatementV2Page = () => {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerRow, setDrawerRow] = useState<StatementRow | null>(null);
+  const [navigatingRowId, setNavigatingRowId] = useState<string | null>(null);
   const [statementOptions, setStatementOptions] = useState<StatementViewOptions>(() => loadViewOptions());
   const [detailsMap, setDetailsMap] = useState<StatementDetailsMap>(() => emptyDetailsMap());
   const isAccountsTab = activeTab === "accounts";
