@@ -200,15 +200,40 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
   };
 
   const getOutcomeBadge = (outcome: string) => {
+    const outcomeMap: Record<string, string> = {
+      answered: "تم الرد",
+      no_answer: "لم يرد",
+      busy: "مشغول",
+      wrong_number: "رقم خاطئ",
+      callback_requested: "طلب معاودة الاتصال",
+      refused: "رفض المكالمة",
+      voicemail: "تم ترك رسالة صوتية",
+      disconnected: "انقطع الاتصال",
+      invalid: "رقم غير صالح",
+      unavailable: "غير متاح",
+      blocked: "محظور",
+      dnd: "عدم الإزعاج",
+      scheduled: "مجدول للمتابعة",
+      transferred: "تم تحويل المكالمة",
+    };
+    const label = outcomeMap[outcome] || "نتيجة أخرى";
     switch (outcome) {
       case "answered":
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200" variant="outline">تم الرد</Badge>;
+      case "transferred":
+        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200" variant="outline">{label}</Badge>;
       case "no_answer":
-        return <Badge className="bg-amber-50 text-amber-700 border-amber-200" variant="outline">لم يرد</Badge>;
       case "busy":
-        return <Badge className="bg-slate-50 text-slate-700 border-slate-200" variant="outline">مشغول</Badge>;
+      case "callback_requested":
+      case "scheduled":
+        return <Badge className="bg-amber-50 text-amber-700 border-amber-200" variant="outline">{label}</Badge>;
+      case "wrong_number":
+      case "invalid":
+      case "blocked":
+      case "refused":
+      case "dnd":
+        return <Badge className="bg-rose-50 text-rose-700 border-rose-200" variant="outline">{label}</Badge>;
       default:
-        return <Badge variant="outline">{outcome}</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
     }
   };
 
