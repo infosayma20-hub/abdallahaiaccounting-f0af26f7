@@ -338,23 +338,47 @@ export function useNotifications() {
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
-      .channel(`notif-qamar-orders-${user.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "qamar_orders" }, () => {
+    let active = true;
+    const previousChannel = channelRef.current;
+    if (previousChannel) {
+      try { supabase.removeChannel(previousChannel); } catch {}
+      channelRef.current = null;
+    }
+
+    try {
+      const channelInstanceId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const channel = supabase.channel(`notif-qamar-orders-${user.id}-${channelInstanceId}`);
+
+      channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "qamar_orders" }, () => {
+        if (!active) return;
         // Play notification sound
         try { new Audio("/notification.mp3").play().catch(() => {}); } catch {}
         generateNotifications();
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "qamar_orders" }, () => {
+      });
+      channel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "qamar_orders" }, () => {
+        if (!active) return;
         generateNotifications();
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "order_status_log" }, () => {
+      });
+      channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "order_status_log" }, () => {
+        if (!active) return;
         generateNotifications();
-      })
-      .subscribe();
+      });
+      channel.subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          console.warn("[NotificationsPanel] realtime channel error");
+        }
+      });
 
-    channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
+      channelRef.current = channel;
+      return () => {
+        active = false;
+        if (channelRef.current === channel) channelRef.current = null;
+        try { supabase.removeChannel(channel); } catch {}
+      };
+    } catch (err) {
+      console.warn("[NotificationsPanel] realtime setup skipped:", err);
+      return () => { active = false; };
+    }
   }, [user, generateNotifications]);
 
   useEffect(() => { generateNotifications(); }, [generateNotifications]);
