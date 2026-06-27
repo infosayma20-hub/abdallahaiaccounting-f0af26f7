@@ -293,7 +293,7 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
             <div className="text-base font-bold text-slate-800">{stats.total}</div>
           </div>
           <div className="bg-emerald-50/50 p-2.5 rounded-lg text-center border border-emerald-100">
-            <div className="text-[10px] text-emerald-600 font-semibold mb-0.5">الراضين 😊</div>
+            <div className="text-[10px] text-emerald-600 font-semibold mb-0.5">الراضين</div>
             <div className="text-base font-bold text-emerald-700">{stats.satisfied}</div>
           </div>
           <div className="bg-amber-50/50 p-2.5 rounded-lg text-center border border-amber-100">
