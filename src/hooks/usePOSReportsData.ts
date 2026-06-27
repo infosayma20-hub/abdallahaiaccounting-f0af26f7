@@ -22,17 +22,21 @@ export interface POSOrder {
   transaction_id?: string | null;
   /**
    * Delivery fee collected on behalf of a 3rd-party delivery company.
-   * It IS included in `total` (so customer-facing totals stay accurate),
-   * but it must be SUBTRACTED from any "restaurant sales" KPI — the money
-   * is owed to the delivery company, not the restaurant.
+   * Money is owed to the driver, NOT restaurant revenue.
+   * - New orders: `total` is already items-only (`total_includes_delivery_fee=false`).
+   * - Legacy orders: `total` bundles the fee (`total_includes_delivery_fee=true`).
+   * Always use `netSalesOf(o)` below to read restaurant-only revenue safely.
    */
   delivery_fee?: number | null;
+  total_includes_delivery_fee?: boolean | null;
 }
 
-// Helper: return the restaurant-only portion of an order's total.
-// `total` may either be items-only (new orders, total_includes_delivery_fee=false)
-// OR include delivery (legacy orders). Subtracting delivery_fee
-// unconditionally would double-deduct it on new orders.
+/** Restaurant-only portion of an order's total (handles legacy + new). */
+export const netSalesOf = (o: { total: number; delivery_fee?: number | null; total_includes_delivery_fee?: boolean | null }) => {
+  const t = Number(o.total) || 0;
+  if (o.total_includes_delivery_fee) return Math.max(0, t - (Number(o.delivery_fee) || 0));
+  return t;
+};
 
 export interface POSOrderLine {
   id: string;
