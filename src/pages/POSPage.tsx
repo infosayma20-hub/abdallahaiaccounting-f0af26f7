@@ -5564,7 +5564,7 @@ const POSPage = () => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod, showPayment, processing, customerName, selectedEmployee]);
+  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod, showPayment, processing, customerName, selectedEmployee, mealDiscountType, mealDiscountMode, handleCompleteOrder]);
 
   if (loading) {
     return (
