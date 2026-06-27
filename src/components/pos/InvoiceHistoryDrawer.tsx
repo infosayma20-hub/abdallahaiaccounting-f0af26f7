@@ -864,7 +864,9 @@ export default function InvoiceHistoryDrawer({
     // Cashier grace window: within N minutes of issuance, allow cancel without
     // manager override. Outside the window → fall back to manager approval.
     const inGrace = cashierMode && cancellingOrder && isWithinCancelGrace(cancellingOrder);
-    if (needsManagerForCancel && !inGrace) {
+    // Manager Mode already authenticated → bypass manager override prompt
+    const managerActive = managerMode.active;
+    if (needsManagerForCancel && !inGrace && !managerActive) {
       setPendingManagerAction("cancel");
       setManagerOverrideVariant("destructive");
       setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
@@ -872,9 +874,11 @@ export default function InvoiceHistoryDrawer({
       setShowManagerOverride(true);
     } else {
       if (cancellingOrder) {
-        const approver = inGrace
-          ? `الكاشير (ضمن مهلة ${cancelWindowMinutes} دقيقة)`
-          : "بدون موافقة مدير";
+        const approver = managerActive
+          ? (managerMode.managerName || "وضع المدير")
+          : inGrace
+            ? `الكاشير (ضمن مهلة ${cancelWindowMinutes} دقيقة)`
+            : "بدون موافقة مدير";
         executeCancel(cancellingOrder, cancelReason, approver);
       }
     }
