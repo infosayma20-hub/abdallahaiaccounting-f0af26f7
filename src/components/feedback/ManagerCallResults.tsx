@@ -412,12 +412,7 @@ export default function ManagerCallResults({ branches }: ManagerCallResultsProps
                   {/* Mid Line: Call metadata and Rating */}
                   <div className="flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2 pt-1 border-t border-slate-50">
                     <span className="inline-flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md text-slate-700">
-                      <Clock className="h-3 w-3" /> {new Date(call.created_at).toLocaleString("ar-EG", {
-                        month: "short",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      <Clock className="h-3 w-3" /> {formatArabicDate(call.created_at)}
                     </span>
                     <div className="flex items-center gap-0.5">
                       {call.rating ? (
