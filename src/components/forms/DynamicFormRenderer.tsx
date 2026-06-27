@@ -285,11 +285,25 @@ export default function DynamicFormRenderer({
 
   // Auto-load draft from localStorage on mount
   useEffect(() => {
-    if (!draftKey || initialData) return;
+    if (!draftKey) return;
     try {
       const raw = localStorage.getItem(`dyn-form-draft:${draftKey}`);
-      if (raw) {
-        const parsed = JSON.parse(raw);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (initialData) {
+        // We already loaded a draft from the server. Offer to restore unsaved
+        // local edits (e.g. user clicked "Save" but it never reached the DB).
+        try {
+          const serverStr = JSON.stringify(initialData);
+          const localStr = JSON.stringify(parsed);
+          if (localStr && localStr !== serverStr && localStr.length > 5) {
+            const ok = window.confirm(
+              "في تعديلات محلية غير محفوظة على السيرفر لهذا النموذج.\nهل تريد استرجاعها؟\n(اضغط إلغاء لاستخدام النسخة المحفوظة على السيرفر)"
+            );
+            if (ok) setData(buildInitialData(schema, parsed));
+          }
+        } catch {}
+      } else {
         setData(buildInitialData(schema, parsed));
       }
     } catch {}
