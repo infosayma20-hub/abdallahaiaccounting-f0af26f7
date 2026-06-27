@@ -534,19 +534,6 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Thermal tickets are rendered as SVG then rasterized. Mixed Arabic + leading
-// numbers / plus signs need explicit RTL isolation, otherwise printers may show
-// notes like "10 ملفوف" as "ملفوف 10" and move "+" to the visual end.
-const RTL_SVG_TEXT_ATTRS = ' direction="rtl" unicode-bidi="plaintext"';
-const ARABIC_LETTER_MARK = '\u061C';
-function rtlSafeText(s) {
-  const raw = String(s == null ? '' : s);
-  if (!raw.trim()) return raw;
-  return (ARABIC_LETTER_MARK + raw)
-    .replace(/(^|[\s([{،,؛;:+\-/])([+-]?\d)/g, `$1${ARABIC_LETTER_MARK}$2`)
-    .replace(/\+/g, `${ARABIC_LETTER_MARK}+${ARABIC_LETTER_MARK}`);
-}
-
 function wrapTextForSvg(text, maxChars) {
   const max = Math.max(1, Number(maxChars) || 1);
   // First split on whitespace, then HARD-break any token longer than max.
@@ -628,13 +615,6 @@ function renderReceiptSVG(order, logoTopMargin) {
   if (order.tableNumber) push(30, (cy) => `
     <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الطاولة</text>
     <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="800" font-family="Tahoma">${esc(order.tableNumber)}</text>`);
-  // ── Customer info — always shown when present (dine-in / takeaway / delivery)
-  if (order.customerName) push(30, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">الزبون</text>
-    <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="800" font-family="Tahoma">${esc(order.customerName)}</text>`);
-  if (order.customerPhone) push(30, (cy) => `
-    <text x="${W - padX}" y="${cy}" text-anchor="end" font-size="22" font-weight="700" font-family="Tahoma">الهاتف</text>
-    <text x="${padX}" y="${cy}" text-anchor="start" font-size="22" font-weight="700" font-family="Tahoma" direction="ltr">${esc(order.customerPhone)}</text>`);
   push(14, (cy) => `<line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" stroke="#000" stroke-width="2"/>`);
 
   // ── ITEMS GRID (v6.3.7-clean items-table) ────────────────────────────
@@ -675,10 +655,10 @@ function renderReceiptSVG(order, logoTopMargin) {
     push(rowH, (cy) => {
       const nameY0 = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${colNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma"${RTL_SVG_TEXT_ATTRS}>${esc(rtlSafeText(ln))}</text>`).join('');
+        `<text x="${colNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
       const noteY0 = nameY0 + nameLines.length * nameLineH + 2;
       const noteSvg = noteLinesArr.map((ln, i) =>
-        `<text x="${colNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma"${RTL_SVG_TEXT_ATTRS}>${esc(rtlSafeText(`${i === 0 ? '+ ' : ''}${ln}`))}</text>`).join('');
+        `<text x="${colNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
       const qtySvg   = `<text x="${colQtyMid}"   y="${nameY0}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">${qty}</text>`;
       const priceSvg = `<text x="${colPriceMid}" y="${nameY0}" text-anchor="middle" font-size="20" font-weight="700" font-family="Tahoma">₪${price}</text>`;
       const totalSvg = `<text x="${colTotalMid}" y="${nameY0}" text-anchor="middle" font-size="20" font-weight="800" font-family="Tahoma">₪${total}</text>`;
@@ -862,10 +842,10 @@ function renderKitchenSVG(order, stationLabel) {
     push(rowH, (cy) => {
       const nameY0 = cy;
       const nameSvg = nameLines.map((ln, i) =>
-        `<text x="${kColNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma"${RTL_SVG_TEXT_ATTRS}>${esc(rtlSafeText(ln))}</text>`).join('');
+        `<text x="${kColNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
       const noteY0 = nameY0 + nameLines.length * nameLineH + 2;
       const noteSvg = noteLinesArr.map((ln, i) =>
-        `<text x="${kColNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma"${RTL_SVG_TEXT_ATTRS}>${esc(rtlSafeText(`${i === 0 ? '+ ' : ''}${ln}`))}</text>`).join('');
+        `<text x="${kColNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
       const qtySvg = `<text x="${kColQtyMid}" y="${nameY0}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">${qty}</text>`;
       const bottomY = cy + rowH - kRowTopOff;
       const sepLine = `<line x1="${padX}" y1="${bottomY}" x2="${W - padX}" y2="${bottomY}" stroke="#000" stroke-width="0.7"/>`;
@@ -888,7 +868,7 @@ function renderKitchenSVG(order, stationLabel) {
     push(10, () => '');
     push(boxH + 6, (cy) => `
       <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="1"/>
-      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma"${RTL_SVG_TEXT_ATTRS}>${esc(rtlSafeText(`${i === 0 ? label + ' ' : ''}${ln}`))}</text>`).join('')}`);
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
   };
   // Internal banner (replacement / cancellation) — printed FIRST so the
   // kitchen notices the operational change before reading the customer note.
