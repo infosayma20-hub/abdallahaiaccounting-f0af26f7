@@ -2939,7 +2939,19 @@ const POSPage = () => {
       return;
     }
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
-    const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+    // Prefer pos_users.name (synced with HR / Employees list) over stale auth metadata.
+    let displayName = "";
+    try {
+      const { data: puName } = await supabase
+        .from("pos_users")
+        .select("name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      displayName = (puName as any)?.name || "";
+    } catch {}
+    if (!displayName) {
+      displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+    }
 
     const actualCashBoxId = isCallCenter ? null : (selectedCashBoxId || null);
 
