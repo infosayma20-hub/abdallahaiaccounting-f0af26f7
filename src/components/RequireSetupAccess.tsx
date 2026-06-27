@@ -48,5 +48,8 @@ export default function RequireSetupAccess({ children }: { children: React.React
   if (ctx && !ctx.canAccessSetup) {
     return <Navigate to={ctx.defaultRoute} replace />;
   }
+  if (ctx?.canAccessSetup && ctx.defaultRoute === "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
   return <>{children}</>;
 }
