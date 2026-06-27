@@ -124,8 +124,14 @@ function ReceiptPaymentSummary({
   // For receipts: amount REDUCES debit (customer pays us → balance decreases)
   // For payments: amount REDUCES our debt (we pay supplier → their credit decreases / employee balance decreases)
   // We treat balanceBefore as positive=debit (they owe us), negative=credit (we owe them)
-  const before = balanceBefore ?? 0;
-  const after = isReceipt ? before - amount : before + amount;
+  // When isPosted=true (viewing an existing posted voucher), the passed
+  // balance already INCLUDES this document. We must back it out so the
+  // "before / impact / after" trio shows the historic state, not a
+  // double-counted projection.
+  const rawBalance = balanceBefore ?? 0;
+  const docDelta = isReceipt ? -amount : amount;
+  const before = isPosted ? rawBalance - docDelta : rawBalance;
+  const after = isPosted ? rawBalance : rawBalance + docDelta;
   const balanceDelta = after - before;
 
   // Warnings
@@ -202,8 +208,8 @@ function ReceiptPaymentSummary({
               isReceipt={isReceipt}
               onOpenStatement={onOpenStatement}
             />
-            <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">أثر هذا المستند</span>
+          <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
+            <span className="text-muted-foreground">{isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}</span>
               <span
                 className={`font-bold ${accentText}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
@@ -211,7 +217,7 @@ function ReceiptPaymentSummary({
                 {balanceDelta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(balanceDelta))}
               </span>
             </div>
-            <BalanceRow label={isPosted ? "الرصيد بعد القيد" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
+          <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
           </div>
         </div>
       )}
