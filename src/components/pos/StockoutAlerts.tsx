@@ -42,6 +42,8 @@ interface ProductOption { id: string; name: string; }
 interface ProductWithCat { id: string; name: string; pos_category_id: string | null; }
 interface CategoryOption { id: string; name: string; color: string | null; }
 
+const uniqueRealtimeSuffix = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
 function describeAlert(a: AlertRow, productMap: Map<string, string>, modMap: Map<string, string>): string {
   if (a.custom_label && a.custom_label.trim()) return a.custom_label.trim();
   if (a.product_id) return productMap.get(a.product_id) || "صنف";
@@ -107,6 +109,7 @@ export function StockoutAlertButton({
   // regardless of dialog open state and stay live via realtime.
   useEffect(() => {
     if (!dataOwnerId) return;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
     const load = async () => {
       let q = supabase
         .from("stockout_alerts")
@@ -120,11 +123,15 @@ export function StockoutAlertButton({
       setMyActive(((data as any[]) || []) as AlertRow[]);
     };
     load();
-    const ch = supabase
-      .channel(`stockout-btn-${dataOwnerId}-${branchId || "all"}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    try {
+      ch = supabase
+        .channel(`stockout-btn-${dataOwnerId}-${branchId || "all"}-${uniqueRealtimeSuffix()}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
+        .subscribe();
+    } catch (error) {
+      console.warn("[stockout] realtime subscription skipped", error);
+    }
+    return () => { if (ch) supabase.removeChannel(ch); };
   }, [dataOwnerId, branchId]);
 
   const searchTerm = search.trim();
@@ -428,6 +435,7 @@ export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string })
   useEffect(() => {
     if (!dataOwnerId) return;
     let cancelled = false;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
     const load = async () => {
       const { data } = await supabase
         .from("stockout_alerts")
@@ -455,11 +463,15 @@ export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string })
       firstLoadRef.current = true;
     };
     load();
-    const ch = supabase
-      .channel(`stockout-listener-${dataOwnerId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
+    try {
+      ch = supabase
+        .channel(`stockout-listener-${dataOwnerId}-${uniqueRealtimeSuffix()}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
+        .subscribe();
+    } catch (error) {
+      console.warn("[stockout] realtime listener skipped", error);
+    }
+    return () => { cancelled = true; if (ch) supabase.removeChannel(ch); };
   }, [dataOwnerId]);
 
   return null;
@@ -529,11 +541,16 @@ export function StockoutAlertsBanner({
   // Realtime subscription
   useEffect(() => {
     if (!dataOwnerId) return;
-    const ch = supabase
-      .channel(`stockout-${dataOwnerId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      ch = supabase
+        .channel(`stockout-${dataOwnerId}-${uniqueRealtimeSuffix()}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "stockout_alerts", filter: `user_id=eq.${dataOwnerId}` }, () => load())
+        .subscribe();
+    } catch (error) {
+      console.warn("[stockout] realtime banner skipped", error);
+    }
+    return () => { if (ch) supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataOwnerId]);
 
