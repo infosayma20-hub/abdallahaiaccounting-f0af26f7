@@ -59,6 +59,12 @@ type OnboardingStepData = Partial<{
   onboarding_completed: boolean;
 }>;
 
+const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label}_timeout`)), ms)),
+  ]);
+
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -139,51 +145,20 @@ const OnboardingPage = () => {
     return () => { cancelled = true; };
   }, [user?.id, navigate]);
 
-  const saveProgress = async (stepData: OnboardingStepData, stepNum: number) => {
+  const saveProgress = async (stepData: OnboardingStepData, stepNum: number, markCompleted = false) => {
     if (!user) return;
     try {
-      // Resolve the *real* tenant owner — a team admin invited into an
-      // existing tenant must write into the owner's company, not create a
-      // duplicate one under their own auth uid (that was the source of the
-      // "wizard restarts after finish" loop).
-      const { data: ownerIdData } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
-      const ownerId = (ownerIdData as string | null) || user.id;
-
-      const { data: company } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", ownerId)
-        .maybeSingle();
-
-      let companyId = company?.id;
-
-      // Only the real owner is allowed to create a brand-new company. A team
-      // admin without a tenant should never silently spawn one.
-      if (!companyId && stepNum === 1 && stepData.company_name && ownerId === user.id) {
-        const { data: newCompany } = await supabase
-          .from("companies")
-          .insert({ name: stepData.company_name, owner_id: ownerId })
-          .select("id")
-          .single();
-        companyId = newCompany?.id;
-      }
-
-      if (companyId) {
-        // `company_name` lives on `companies`, not on `company_profiles` — never
-        // pass it through here or the upsert 400s and onboarding_completed
-        // never persists.
-        const { company_name: _omit, ...profileData } = stepData ?? {};
-        const { error: profileErr } = await supabase
-          .from("company_profiles")
-          .upsert({
-            company_id: companyId,
-            ...profileData,
-            onboarding_step: stepNum,
-          }, { onConflict: "company_id" });
-        if (profileErr) {
-          console.error("[onboarding] company_profiles upsert failed:", profileErr);
-          throw profileErr;
-        }
+      const { company_name, onboarding_completed: _omitCompleted, ...profileData } = stepData ?? {};
+      const { error } = await (supabase.rpc as any)("save_onboarding_progress", {
+        _user_id: user.id,
+        _company_name: company_name ?? null,
+        _profile: profileData,
+        _target_step: stepNum,
+        _mark_completed: markCompleted,
+      });
+      if (error) {
+        console.error("[onboarding] save_onboarding_progress failed:", error);
+        throw error;
       }
     } catch (err) {
       console.error("Save progress error:", err);
@@ -203,15 +178,8 @@ const OnboardingPage = () => {
           return;
         }
 
-        // ── Critical path with 8s timeout — never let the wizard hang. ──
-        const withTimeout = <T,>(p: Promise<T>, ms = 8000): Promise<T> =>
-          Promise.race([
-            p,
-            new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
-          ]);
-
         try {
-          await withTimeout(saveProgress({ company_name: trimmedCompanyName }, 2));
+          await withTimeout(saveProgress({ company_name: trimmedCompanyName }, 2), 8000, "save_company_name");
         } catch (err: any) {
           console.error("Critical onboarding step 1 saveProgress failed:", err);
           toast.error("تعذّر حفظ اسم الشركة، تحقق من الاتصال وحاول مرة أخرى");
@@ -246,7 +214,7 @@ const OnboardingPage = () => {
           return;
         }
         try {
-          await saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 3);
+          await withTimeout(saveProgress({ business_type: selectedTypes.join(","), city, country: "PS" }, 3), 8000, "save_business_type");
         } catch (err) {
           console.error("Step 2 save failed:", err);
           toast.error("تعذّر الحفظ، حاول مرة أخرى");
@@ -257,7 +225,7 @@ const OnboardingPage = () => {
       
       if (step === 3) {
         try {
-          await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4);
+          await withTimeout(saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4), 8000, "save_scale");
         } catch (err) {
           console.error("Step 3 save failed:", err);
           toast.error("تعذّر الحفظ، حاول مرة أخرى");
@@ -268,7 +236,7 @@ const OnboardingPage = () => {
       
       if (step === 4) {
         try {
-          await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5);
+          await withTimeout(saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5), 8000, "save_accounting_background");
         } catch (err) {
           console.error("Step 4 save failed:", err);
           toast.error("تعذّر الحفظ، حاول مرة أخرى");
@@ -294,10 +262,29 @@ const OnboardingPage = () => {
     if (finishing) return;
     setFinishing(true);
     try {
-      await saveProgress({ onboarding_completed: true }, 5);
+      await withTimeout(supabase.auth.refreshSession(), 8000, "refresh_session");
+
+      const setupPromise = supabase.functions.invoke("setup-accounts", {
+        body: {
+          userId: user!.id,
+          businessType: selectedTypes.includes("restaurant") ? "مطعم" : selectedTypes.includes("services") ? "خدمات" : "تجارة",
+          hasInventory: selectedTypes.some((type) => ["products", "restaurant"].includes(type)),
+          hasReceivables: true,
+          hasEmployees: hasEmployees ?? false,
+        },
+      });
+      const { data: setupData, error: setupError } = await withTimeout(setupPromise, 30000, "setup_accounts");
+      if (setupError || (setupData as any)?.error) {
+        console.error("[finishOnboarding] setup-accounts failed:", setupError || setupData);
+        toast.error((setupError as any)?.message || (setupData as any)?.error || "تعذّر إنشاء شجرة الحسابات، حاول مرة أخرى");
+        setFinishing(false);
+        return;
+      }
+
+      await withTimeout(saveProgress({ onboarding_completed: true }, 5, true), 8000, "complete_onboarding");
     } catch (err) {
       console.error("[finishOnboarding] failed:", err);
-      toast.error("تعذّر إكمال الإعداد، حاول مرة أخرى");
+      toast.error(err instanceof Error && err.message.includes("timeout") ? "الاتصال بطيء جداً، حاول مرة أخرى" : "تعذّر إكمال الإعداد، حاول مرة أخرى");
       setFinishing(false);
       return;
     }
