@@ -185,9 +185,19 @@ export default function CostCenterFormDialog({ open, onOpenChange, editing }: Pr
           </div>
 
           <div>
-            <Label className="text-xs mb-1.5 block">الفرع</Label>
+            <Label className="text-xs mb-1.5 block">
+              الفرع {centerType === "branch" && <span className="text-destructive">*</span>}
+            </Label>
             <Select value={branchId} onValueChange={setBranchId}>
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger
+                className={
+                  centerType === "branch" && branchId === "__none__"
+                    ? "border-destructive/60"
+                    : ""
+                }
+              >
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">— بدون فرع —</SelectItem>
                 {(branchesQ.data || []).map((b: any) => (
@@ -195,6 +205,11 @@ export default function CostCenterFormDialog({ open, onOpenChange, editing }: Pr
                 ))}
               </SelectContent>
             </Select>
+            {centerType === "branch" && branchId === "__none__" && (
+              <p className="text-[10px] text-destructive mt-1">
+                عند اختيار نوع "فرع" يجب ربط مركز التكلفة بفرع فعلي حتى تظهر تقاريره ضمن الفرع.
+              </p>
+            )}
           </div>
 
           <div>
