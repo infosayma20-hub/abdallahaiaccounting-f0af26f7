@@ -2882,7 +2882,11 @@ const POSPage = () => {
     const taxAmount = cart.reduce((sum, item) => sum + (safe(item.total) * safe(item.tax_rate) / 100), 0);
     // Enforce pos.sell.discount at calculation level — if user lacks permission,
     // the order-level discount is ignored even if state somehow holds a value.
-    const canOrderDiscount = posFeatPerm.can("sell", "discount");
+    // EXCEPTION: a discount approved by a branch manager (managerDiscountMeta)
+    // is always honored — the manager's authority overrides the cashier's
+    // missing permission. Without this bypass, a 100% manager discount would
+    // silently print the full price on the customer receipt.
+    const canOrderDiscount = posFeatPerm.can("sell", "discount") || !!managerDiscountMeta;
     const effOrderDiscount = canOrderDiscount ? safe(orderDiscount) : 0;
     let discountAmt = orderDiscountType === "percent" ? subtotal * effOrderDiscount / 100 : effOrderDiscount;
     // 🚚 Delivery fee is COMPLETELY OUTSIDE the restaurant cash flow.
@@ -2901,7 +2905,7 @@ const POSPage = () => {
       total: Math.round(total * 100) / 100,
       itemCount: cart.reduce((sum, item) => sum + item.qty, 0),
     };
-  }, [cart, orderDiscount, orderDiscountType, posFeatPerm, activeOrder?.callCenterDeliveryFee]);
+  }, [cart, orderDiscount, orderDiscountType, posFeatPerm, activeOrder?.callCenterDeliveryFee, managerDiscountMeta]);
 
   // Open session
   const handleOpenShift = async () => {
