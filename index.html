@@ -79,6 +79,45 @@
         var RECOVERY_KEY = "amwali_chunk_recovery_ts";
         var COOLDOWN_MS = 60 * 1000;
 
+        // On boot: if the URL carries __recover, make sure no Service Worker
+        // is still controlling this page (it may be serving the stale HTML
+        // that referenced the dead bundle). If so, unregister + clear caches
+        // and do ONE more hard reload bypassing SW so the next navigation
+        // gets a fresh document from the network.
+        try {
+          var u = new URL(window.location.href);
+          if (u.searchParams.has("__recover")) {
+            var BOOT_KEY = "amwali_recover_boot_ts";
+            var lastBoot = Number(sessionStorage.getItem(BOOT_KEY) || "0");
+            if (Date.now() - lastBoot > 10 * 1000 && navigator.serviceWorker && navigator.serviceWorker.controller) {
+              sessionStorage.setItem(BOOT_KEY, String(Date.now()));
+              (async function () {
+                try {
+                  if (window.caches && caches.keys) {
+                    var ks = await caches.keys();
+                    await Promise.all(ks.map(function (k) { return caches.delete(k); }));
+                  }
+                  var regs = await navigator.serviceWorker.getRegistrations();
+                  await Promise.all(regs.map(function (r) { return r.unregister().catch(function () {}); }));
+                } catch (e) {}
+                window.location.replace(u.pathname + u.hash);
+              })();
+              return;
+            }
+            // Already controller-free — strip the marker after a short delay
+            // so a successful boot leaves a clean URL.
+            setTimeout(function () {
+              try {
+                if (document.getElementById("root") && document.getElementById("root").childElementCount > 0) {
+                  var clean = new URL(window.location.href);
+                  clean.searchParams.delete("__recover");
+                  window.history.replaceState({}, "", clean.pathname + clean.search + clean.hash);
+                }
+              } catch (e) {}
+            }, 4000);
+          }
+        } catch (e) {}
+
         function shouldRecover(msg, src) {
           if (!msg && !src) return false;
           var m = (msg || "") + " " + (src || "");
