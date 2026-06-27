@@ -72,6 +72,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
   const [templates, setTemplates] = useState<Template[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
+  const [activeDraft, setActiveDraft] = useState<Submission | null>(null);
   const [viewSubmission, setViewSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -152,23 +153,38 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     if (!activeTemplate) return;
     setSubmitting(true);
     try {
-      const { data: inserted, error } = await supabase.from("employee_forms").insert({
-        employee_id: employeeId,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        form_type: "dynamic_template",
-        template_id: activeTemplate.id,
-        title: activeTemplate.name,
-        form_data: formData,
-        status: "pending",
-      })
-      .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
-      .single();
-      if (error) throw error;
+      let inserted: any = null;
+      if (activeDraft) {
+        // Update existing draft instead of creating a duplicate
+        const { data, error } = await supabase
+          .from("employee_forms")
+          .update({ form_data: formData, title: activeTemplate.name })
+          .eq("id", activeDraft.id)
+          .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+          .single();
+        if (error) throw error;
+        inserted = data;
+      } else {
+        const { data, error } = await supabase.from("employee_forms").insert({
+          employee_id: employeeId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          form_type: "dynamic_template",
+          template_id: activeTemplate.id,
+          title: activeTemplate.name,
+          form_data: formData,
+          status: "pending",
+        })
+        .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+        .single();
+        if (error) throw error;
+        inserted = data;
+      }
       toast({
         title: "تم حفظ النموذج",
         description: "يمكنك تنزيله كـ Word أو إرساله للمراجعة.",
       });
       setActiveTemplate(null);
+      setActiveDraft(null);
       if (inserted) setViewSubmission(inserted as Submission);
       fetchData();
     } catch (err: any) {
