@@ -665,7 +665,7 @@ function renderReceiptSVG(order, logoTopMargin) {
         `<text x="${colNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
       const noteY0 = nameY0 + nameLines.length * nameLineH + 2;
       const noteSvg = noteLinesArr.map((ln, i) =>
-        `<text x="${colNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
+        `<text x="${colNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">\u200F${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
       const qtySvg   = `<text x="${colQtyMid}"   y="${nameY0}" text-anchor="middle" font-size="22" font-weight="800" font-family="Tahoma">${qty}</text>`;
       const priceSvg = `<text x="${colPriceMid}" y="${nameY0}" text-anchor="middle" font-size="20" font-weight="700" font-family="Tahoma">₪${price}</text>`;
       const totalSvg = `<text x="${colTotalMid}" y="${nameY0}" text-anchor="middle" font-size="20" font-weight="800" font-family="Tahoma">₪${total}</text>`;
@@ -723,7 +723,7 @@ function renderReceiptSVG(order, logoTopMargin) {
     const boxH = 16 + lines.length * 28;
     push(boxH + 12, (cy) => `
       <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="2"/>
-      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 28 + i*28}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 28 + i*28}" text-anchor="end" font-size="20" font-weight="700" font-family="Tahoma">\u200F${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
   };
   renderNoteBox(customerNoteText, 'ملاحظة:');
   renderNoteBox(deliveryNoteText, 'توصيل:');
@@ -852,7 +852,7 @@ function renderKitchenSVG(order, stationLabel) {
         `<text x="${kColNameRight - 6}" y="${nameY0 + i * nameLineH}" text-anchor="end" font-size="22" font-weight="800" font-family="Tahoma">${esc(ln)}</text>`).join('');
       const noteY0 = nameY0 + nameLines.length * nameLineH + 2;
       const noteSvg = noteLinesArr.map((ln, i) =>
-        `<text x="${kColNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
+        `<text x="${kColNameRight - 14}" y="${noteY0 + i * noteLineH}" text-anchor="end" font-size="18" font-weight="600" font-family="Tahoma">\u200F${i === 0 ? '+ ' : ''}${esc(ln)}</text>`).join('');
       const qtySvg = `<text x="${kColQtyMid}" y="${nameY0}" text-anchor="middle" font-size="22" font-weight="900" font-family="Tahoma">${qty}</text>`;
       const bottomY = cy + rowH - kRowTopOff;
       const sepLine = `<line x1="${padX}" y1="${bottomY}" x2="${W - padX}" y2="${bottomY}" stroke="#000" stroke-width="0.7"/>`;
@@ -875,7 +875,7 @@ function renderKitchenSVG(order, stationLabel) {
     push(10, () => '');
     push(boxH + 6, (cy) => `
       <rect x="${padX}" y="${cy + 2}" width="${W - padX*2}" height="${boxH}" fill="none" stroke="#000" stroke-width="1"/>
-      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
+      ${lines.map((ln, i) => `<text x="${W - padX - 8}" y="${cy + 26 + i*noteLineH}" text-anchor="end" font-size="${noteFont}" font-weight="700" font-family="Tahoma">\u200F${i === 0 ? label + ' ' : ''}${esc(ln)}</text>`).join('')}`);
   };
   // Internal banner (replacement / cancellation) — printed FIRST so the
   // kitchen notices the operational change before reading the customer note.
