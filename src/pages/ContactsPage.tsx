@@ -307,7 +307,7 @@ const ContactsPage = () => {
     if (!newContact.name.trim() || !user) return;
     setAdding(true);
     try {
-      const { error } = await supabase.from('contacts').insert({
+      const { data: insertedRows, error } = await supabase.from('contacts').insert({
         user_id: user.id,
         contact_name: newContact.name.trim(),
         contact_type: newContact.type,
@@ -321,17 +321,21 @@ const ContactsPage = () => {
         industry: newContact.industry || null,
         website: newContact.website || null,
         notes: newContact.notes || null,
-      });
+      }).select('id').single();
       if (error) throw error;
       
       // Create opening balance transaction if amount provided
       const obAmount = parseFloat(newContact.opening_balance);
       if (obAmount > 0) {
-        // Get the newly created contact ID
-        const { data: newC } = await supabase.from('contacts').select('id').eq('user_id', user.id).eq('contact_name', newContact.name.trim()).order('created_at', { ascending: false }).limit(1).single();
-        if (newC) {
+        const newC = insertedRows as { id: string } | null;
+        if (!newC?.id) {
+          throw new Error("تعذر استرجاع معرّف جهة الاتصال بعد الإنشاء — لم يتم تسجيل الرصيد الافتتاحي");
+        }
+        {
           const isDebit = newContact.balance_direction === "debit";
-          const contactAccountCode = newContact.type === "مورد" ? "2110" : "1130";
+          // عميل ومورد → نعتمد اتجاه الرصيد لتحديد الحساب الصحيح
+          const isSupplierSide = newContact.type === "مورد" || (newContact.type === "عميل ومورد" && !isDebit);
+          const contactAccountCode = isSupplierSide ? "2110" : "1130";
           const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
             p_user_id: user.id,
             p_debit_account_code: isDebit ? contactAccountCode : "3400",
@@ -343,7 +347,7 @@ const ContactsPage = () => {
             p_contact_id: newC.id,
             p_reference: `OB-CONTACT-${newC.id}`,
             p_replace_existing: true,
-            p_idempotency_key: `OB-CONTACT-${newC.id}`,
+            p_idempotency_key: `OB-CONTACT-${newC.id}-${Date.now()}`,
           });
           const obResult = obRes as { success?: boolean; error?: string } | null;
           if (obErr || (obResult && obResult.success === false)) {
@@ -401,7 +405,8 @@ const ContactsPage = () => {
       }
       if (obAmount > 0) {
         const isDebit = editData.balance_direction === "debit";
-        const contactAccountCode = editData.contact_type === "مورد" ? "2110" : "1130";
+        const isSupplierSide = editData.contact_type === "مورد" || (editData.contact_type === "عميل ومورد" && !isDebit);
+        const contactAccountCode = isSupplierSide ? "2110" : "1130";
         const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
           p_user_id: user!.id,
           p_debit_account_code: isDebit ? contactAccountCode : "3400",
