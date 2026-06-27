@@ -194,6 +194,44 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
     }
   };
 
+  // Persist DRAFT to DB (not just localStorage). Critical: previous behaviour
+  // only stored draft locally → if user changed device/browser or cleared cache,
+  // edits were lost even though a "تم الحفظ" toast appeared.
+  const handleSaveDraft = async (formData: Record<string, any>) => {
+    if (!activeTemplate) return;
+    try {
+      if (activeDraft) {
+        const { data, error } = await supabase
+          .from("employee_forms")
+          .update({ form_data: formData, title: activeTemplate.name, workflow_status: "draft" })
+          .eq("id", activeDraft.id)
+          .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+          .single();
+        if (error) throw error;
+        if (data) setActiveDraft(data as Submission);
+      } else {
+        const { data, error } = await supabase.from("employee_forms").insert({
+          employee_id: employeeId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          form_type: "dynamic_template",
+          template_id: activeTemplate.id,
+          title: activeTemplate.name,
+          form_data: formData,
+          status: "pending",
+          workflow_status: "draft",
+        })
+        .select("id, template_id, title, status, workflow_status, pdf_url, company_id, created_at, form_data")
+        .single();
+        if (error) throw error;
+        if (data) setActiveDraft(data as Submission);
+      }
+      toast({ title: "تم حفظ المسودة في السيرفر ✅", description: "تقدر تكمّل من أي جهاز." });
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "تعذر حفظ المسودة", description: err.message, variant: "destructive" });
+    }
+  };
+
   const exportWord = (sub: Submission) => {
     const tpl = templates.find((t) => t.id === sub.template_id);
     downloadEmployeeFormWord({
@@ -324,7 +362,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               initialData={activeDraft?.form_data}
               submitting={submitting}
               onSubmit={handleSubmit}
-              onSaveDraft={() => {}}
+              onSaveDraft={handleSaveDraft}
               onPreviewWord={previewWordFromDraft}
               renderSectionExtras={
                 isManager
@@ -358,7 +396,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                 initialData={activeDraft?.form_data}
                 submitting={submitting}
                 onSubmit={handleSubmit}
-                onSaveDraft={() => {}}
+                onSaveDraft={handleSaveDraft}
                 onPreviewWord={previewWordFromDraft}
                 renderSectionExtras={
                   isManager
