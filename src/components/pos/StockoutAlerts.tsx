@@ -444,7 +444,7 @@ export function StockoutAlertButton({
  * without rendering any UI. Mount once at a global POS scope so call-center
  * users hear the alert even when the "سجل المحوّلة" sheet is closed.
  */
-export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string }) {
+export function StockoutAlertsListener({ dataOwnerId, ignoreBranchId }: { dataOwnerId: string; ignoreBranchId?: string | null }) {
   const seenRef = useRef<Set<string>>(new Set());
   const firstLoadRef = useRef(false);
 
@@ -457,7 +457,7 @@ export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string })
     const load = async () => {
       const { data } = await supabase
         .from("stockout_alerts")
-        .select("id,custom_label,product_id,modifier_option_id,status")
+        .select("id,custom_label,product_id,modifier_option_id,status,branch_id")
         .eq("user_id", dataOwnerId)
         .eq("status", "active")
         .order("raised_at", { ascending: false })
@@ -469,7 +469,9 @@ export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string })
       const seen = seenRef.current;
       rows.forEach(r => {
         if (!seen.has(r.id)) {
-          if (firstLoadRef.current) { beep = true; if (!newest) newest = r; }
+          // Don't beep the branch that raised the alert.
+          const isOwn = ignoreBranchId && r.branch_id && r.branch_id === ignoreBranchId;
+          if (firstLoadRef.current && !isOwn) { beep = true; if (!newest) newest = r; }
           seen.add(r.id);
         }
       });
@@ -490,7 +492,7 @@ export function StockoutAlertsListener({ dataOwnerId }: { dataOwnerId: string })
       console.warn("[stockout] realtime listener skipped", error);
     }
     return () => { cancelled = true; if (ch) supabase.removeChannel(ch); };
-  }, [dataOwnerId]);
+  }, [dataOwnerId, ignoreBranchId]);
 
   return null;
 }
