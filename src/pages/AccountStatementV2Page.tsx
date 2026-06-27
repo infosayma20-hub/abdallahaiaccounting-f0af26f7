@@ -792,7 +792,7 @@ const AccountStatementV2Page = () => {
       date: r.date,
       description: r.description,
       transaction_type: r.transaction_type,
-      reference: r.reference,
+      reference: formatReferenceLabel(r.reference),
       debit: r.debit,
       credit: r.credit,
       balance: r.balance,
@@ -812,11 +812,12 @@ const AccountStatementV2Page = () => {
     invoiceDetailsByRef: detailsMap.invoiceDetailsById || {},
     showReference: !!statementOptions.showReference,
     showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
+    taxEnabled,
   }), [
     companyInfo, selectedEntityName, selectedContact, isEmployeesTab, isAccountsTab,
     selectedEntityCode, filteredRows, openingBalance, totalDebit, totalCredit,
     closingBalance, dateFrom, dateTo, stableSOANumber, statementCurrency,
-    statementOptions, detailsMap.invoiceDetailsById,
+    statementOptions, detailsMap.invoiceDetailsById, taxEnabled,
   ]);
 
   const handlePreviewPDF = useCallback(() => {
