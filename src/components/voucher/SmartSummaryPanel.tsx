@@ -726,7 +726,7 @@ function InvoiceSummary({
         )}
         {!noItems && !overCreditLimit && (
           <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-            الفاتورة جاهزة للحفظ والترحيل
+            {isPosted ? "الفاتورة مُرحَّلة ومُسجَّلة محاسبياً" : "الفاتورة جاهزة للحفظ والترحيل"}
           </Warning>
         )}
       </div>
