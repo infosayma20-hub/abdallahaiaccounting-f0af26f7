@@ -14,6 +14,7 @@ import { Loader2, Search, PhoneOff, ChevronLeft, UserPlus, Save, PhoneCall, Ban,
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
 import FollowupQueueShell, { type FollowupRow } from "@/components/feedback/FollowupQueueShell";
+import ManagerCallResults from "@/components/feedback/ManagerCallResults";
 
 interface CustomerRow {
   id: string;
