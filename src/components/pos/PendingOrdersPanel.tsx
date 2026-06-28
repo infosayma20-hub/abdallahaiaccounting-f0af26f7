@@ -56,10 +56,14 @@ interface Props {
   onAcceptOrder: (order: CallCenterOrder) => void;
 }
 
-// Notification sound — preload AudioContext on first user interaction
+// Notification sound — preload AudioContext on first user interaction.
+// Uses the shared audio-unlock helpers so pointerdown/keydown/touchstart
+// anywhere in the app all unlock playback (cashiers often start on the
+// keyboard, not the mouse).
 let audioCtx: AudioContext | null = null;
 
 const ensureAudioCtx = () => {
+  if (typeof window === "undefined") return null as any;
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
@@ -69,30 +73,59 @@ const ensureAudioCtx = () => {
   return audioCtx;
 };
 
-// Preload on first click anywhere
 if (typeof window !== "undefined") {
-  const preload = () => { ensureAudioCtx(); window.removeEventListener("click", preload); };
-  window.addEventListener("click", preload, { once: true });
+  const preload = () => { try { ensureAudioCtx(); } catch { /* noop */ } };
+  window.addEventListener("pointerdown", preload, { once: true, capture: true });
+  window.addEventListener("keydown", preload, { once: true, capture: true });
+  window.addEventListener("touchstart", preload, { once: true, capture: true, passive: true });
 }
 
 const playNotificationSound = () => {
   try {
     const ctx = ensureAudioCtx();
-    const playTone = (freq: number, start: number, duration: number) => {
+    if (!ctx) return;
+    // Master limiter so the louder square+sine mix doesn't clip on cheap
+    // POS speakers while still being noticeably louder than before.
+    const master = ctx.createGain();
+    master.gain.value = 1.0;
+    master.connect(ctx.destination);
+
+    const playTone = (freq: number, start: number, duration: number, peak = 1.0) => {
+      const t0 = ctx.currentTime + start;
+      // Square wave cuts through kitchen noise much better than pure sine.
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      osc.type = "square";
       osc.frequency.value = freq;
-      osc.type = "sine";
-      gain.gain.setValueAtTime(0.8, ctx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
-      osc.start(ctx.currentTime + start);
-      osc.stop(ctx.currentTime + start + duration);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.01);
+      gain.gain.setValueAtTime(peak, t0 + duration - 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.connect(gain).connect(master);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.02);
+
+      // Sine layer on top to round the timbre so it sounds like a chime,
+      // not a buzzer. Slightly quieter than the square.
+      const sine = ctx.createOscillator();
+      const sgain = ctx.createGain();
+      sine.type = "sine";
+      sine.frequency.value = freq;
+      sgain.gain.setValueAtTime(0.0001, t0);
+      sgain.gain.exponentialRampToValueAtTime(peak * 0.7, t0 + 0.01);
+      sgain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      sine.connect(sgain).connect(master);
+      sine.start(t0);
+      sine.stop(t0 + duration + 0.02);
     };
-    playTone(880, 0, 0.15);
-    playTone(1100, 0.18, 0.15);
-    playTone(1320, 0.36, 0.2);
+
+    // First chime
+    playTone(880, 0, 0.18);
+    playTone(1100, 0.20, 0.18);
+    playTone(1320, 0.40, 0.24);
+    // Second chime so cashiers who looked away still catch it.
+    playTone(880, 0.85, 0.18);
+    playTone(1320, 1.05, 0.24);
   } catch (e) {
     // Fallback: do nothing if AudioContext unavailable
   }
