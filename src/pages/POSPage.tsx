@@ -759,14 +759,22 @@ const POSPage = () => {
     return m === "cash" ? "cash" : "card";
   })();
   const isPaymentLockedByCC = ccLockedMethod !== null;
+  // When the call-center agent picked a specific visa source (Wheels/Yummy/FoodOnTime/Shini Go),
+  // pre-select that exact source button in the cashier dialog instead of generic "card".
+  const ccLockedFullMethod: string | null = (() => {
+    if (!ccLockedMethod) return null;
+    const gl = activeOrder?.callCenterVisaGlAccountCode;
+    if (ccLockedMethod === "card" && gl) return `card:${gl}`;
+    return ccLockedMethod;
+  })();
   useEffect(() => {
-    if (!ccLockedMethod) return;
+    if (!ccLockedFullMethod) return;
     // Force the cashier UI to reflect the agent's choice. Also disable split.
-    setPaymentMethod(prev => (prev === ccLockedMethod ? prev : ccLockedMethod));
+    setPaymentMethod(prev => (prev === ccLockedFullMethod ? prev : ccLockedFullMethod));
     setPaymentCurrency("ILS");
     setSplitMode(false);
     setSplitTenders([]);
-  }, [ccLockedMethod, activeOrderIndex]);
+  }, [ccLockedFullMethod, activeOrderIndex]);
 
   const currencies = [
     { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
