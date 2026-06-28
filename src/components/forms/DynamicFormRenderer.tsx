@@ -303,6 +303,7 @@ export default function DynamicFormRenderer({
       const primaryKey = `dyn-form-draft:${draftKey}`;
       const backupKey = `dyn-form-draft-backup:${draftKey}`;
       const decisionKey = `dyn-form-draft-decision:${draftKey}`;
+      const serverSaveKey = `dyn-form-draft-server-save:${draftKey}`;
       let raw = localStorage.getItem(primaryKey);
       let fromBackup = false;
       if (!raw) {
@@ -331,7 +332,6 @@ export default function DynamicFormRenderer({
               setData(restored);
               dirtyRef.current = true;
               try { localStorage.setItem(primaryKey, JSON.stringify(restored)); } catch {}
-              onSaveDraft?.(restored);
               restoreDecidedRef.current = true;
               return;
             }
@@ -359,7 +359,11 @@ export default function DynamicFormRenderer({
               } catch {}
               // Push the recovered local copy to the server immediately. The
               // backup remains locally even if the network save fails.
-              onSaveDraft?.(restored);
+              const previousServerSave = localStorage.getItem(serverSaveKey);
+              if (previousServerSave !== signature) {
+                try { localStorage.setItem(serverSaveKey, signature); } catch {}
+                onSaveDraft?.(restored);
+              }
             } else {
               // SAFETY: don't lose the draft. Move it to a backup slot so the
               // user (or support) can still recover it later.
@@ -450,6 +454,7 @@ export default function DynamicFormRenderer({
         localStorage.removeItem(`dyn-form-draft:${draftKey}`);
         localStorage.removeItem(`dyn-form-draft-backup:${draftKey}`);
         localStorage.removeItem(`dyn-form-draft-decision:${draftKey}`);
+        localStorage.removeItem(`dyn-form-draft-server-save:${draftKey}`);
       } catch {}
     }
   };
