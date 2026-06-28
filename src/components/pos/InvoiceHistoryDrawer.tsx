@@ -1679,6 +1679,122 @@ export default function InvoiceHistoryDrawer({
                     <option key={n} value={n}>{n} نسخة</option>
                   ))}
                 </select>
+                {/* ─── Reprint KITCHEN ticket (does NOT touch the receipt, the
+                    invoice, the cash drawer, or any accounting record. Pure
+                    re-render to the chosen station printer). ─── */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  title="طباعة تذكرة المطبخ (نسخة فقط — لا تؤثر على الفاتورة ولا على العهدة)"
+                  onClick={() => {
+                    if (loadingDetail) {
+                      toast.error("جاري تحميل تفاصيل الفاتورة…");
+                      return;
+                    }
+                    if (!orderLines.length) {
+                      toast.error("لا توجد بنود لطباعة تذكرة المطبخ");
+                      return;
+                    }
+                    const snap = {
+                      id: selectedOrder.id,
+                      order_number: selectedOrder.order_number,
+                      printed_order_number: getPrintedOrderNumber(selectedOrder),
+                      queue_number: selectedOrder.daily_display_number ?? selectedOrder.queue_number ?? null,
+                      created_at: (selectedOrder as any).created_at,
+                      order_note: (selectedOrder as any).order_note || (selectedOrder as any).notes,
+                      order_type: (selectedOrder as any).order_type,
+                      table_name: (selectedOrder as any).table_name,
+                      customer_name: (selectedOrder as any).customer_name || (selectedOrder as any).guest_name || null,
+                      customer_phone: ccoPhone || (selectedOrder as any)?.contacts?.phone || null,
+                      delivery_address: (selectedOrder as any).delivery_address || (selectedOrder as any).customer_address || null,
+                      lines: orderLines.slice(),
+                    };
+                    const parsedPrintedNumber = Number(snap.printed_order_number);
+                    const createdAtIso: string | undefined = snap.created_at;
+                    let origDate: string | undefined;
+                    let origTime: string | undefined;
+                    if (createdAtIso) {
+                      const d = new Date(createdAtIso);
+                      if (!isNaN(d.getTime())) {
+                        const pad = (n: number) => String(n).padStart(2, '0');
+                        origDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                        origTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      }
+                    }
+                    const kitchenItems = snap.lines.map((line: any) => ({
+                      id: line.product_id || line.product_name,
+                      name: line.product_name,
+                      quantity: line.qty,
+                      price: line.unit_price,
+                      note: line.notes || undefined,
+                      modifiers: line.modifiers && line.modifiers.length > 0
+                        ? line.modifiers.map((m: any) => ({ option_name: m.option_name, extra_price: m.extra_price ?? 0 }))
+                        : undefined,
+                    }));
+                    const baseOrder: any = {
+                      orderNumber: snap.order_number,
+                      queueNumber: snap.queue_number ?? (Number.isFinite(parsedPrintedNumber) ? parsedPrintedNumber : undefined),
+                      branchName: terminalName || "نقطة البيع",
+                      cashier: cashierName,
+                      date: origDate,
+                      time: origTime,
+                      items: kitchenItems,
+                      orderNote: [
+                        "⚠️ نسخة تذكرة — أُعيد طباعتها من سجل الفواتير",
+                        snap.order_note,
+                      ].filter(Boolean).join(" | "),
+                      orderType: (snap.order_type as any) || undefined,
+                      tableNumber: snap.table_name || undefined,
+                      customerName: snap.customer_name || undefined,
+                      customerPhone: snap.customer_phone || undefined,
+                      deliveryAddress: snap.order_type === "delivery" ? (snap.delivery_address || undefined) : undefined,
+                    };
+                    // Resolve station selection to actual printerKey(s).
+                    const STATION_UUID_BY_KEY: Record<string, string> = {
+                      kitchen: 'a09ebd1b-392c-42b2-a8a7-d180fdde1f97',
+                      grill:   '4f64e6b4-89ab-4e22-b935-52f3ec665e54',
+                      pizza:   '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516',
+                    };
+                    const STATION_LABEL: Record<string, string> = {
+                      kitchen: 'المطبخ', grill: 'السخان', pizza: 'البيتزا', all: 'كل المحطات',
+                    };
+                    const copies = Math.max(1, Math.min(5, Number(reprintCopies) || 1));
+                    (async () => {
+                      for (let i = 0; i < copies; i++) {
+                        const copyOrder: any = { ...baseOrder, id: `${snap.id || ""}-ktx-${Date.now()}-${i}` };
+                        try {
+                          if (reprintStation === "all") {
+                            await printKitchenTicketsImage(copyOrder);
+                          } else {
+                            const stationId = STATION_UUID_BY_KEY[reprintStation];
+                            await printStationTicketImage(copyOrder, stationId, kitchenItems);
+                          }
+                        } catch {
+                          console.warn("Kitchen reprint bridge unavailable");
+                        }
+                        if (i + 1 < copies) await new Promise(r => setTimeout(r, 350));
+                      }
+                    })();
+                    toast.success(
+                      `تم إرسال تذكرة ${STATION_LABEL[reprintStation]} للطلب #${snap.printed_order_number}` +
+                      (copies > 1 ? ` (${copies} نسخ)` : "")
+                    );
+                  }}
+                >
+                  <Printer className="h-3.5 w-3.5" /> تذكرة المطبخ
+                </Button>
+                <select
+                  value={reprintStation}
+                  onChange={(e) => setReprintStation(e.target.value as any)}
+                  className="h-8 rounded-md border bg-background px-2 text-xs"
+                  title="اختر محطة الطباعة"
+                >
+                  <option value="all">كل المحطات</option>
+                  <option value="kitchen">المطبخ</option>
+                  <option value="grill">السخان</option>
+                  <option value="pizza">البيتزا</option>
+                </select>
                 </>
                 )}
 
