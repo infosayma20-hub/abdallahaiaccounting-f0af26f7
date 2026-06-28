@@ -4172,7 +4172,9 @@ const POSPage = () => {
       // Build payments array. If split mode is active, send one entry per tender.
       const useSplit = splitMode && splitTenders.length > 1;
       const paymentsPayload = useSplit
-        ? splitTenders.map((t) => ({
+        ? splitTenders
+            .filter((t) => Number(t.amount) > 0)
+            .map((t) => ({
             method: t.method,
             amount: Math.round(t.amount * 100) / 100,
             tendered: t.amount, // no over-tender concept in split mode
@@ -4205,10 +4207,20 @@ const POSPage = () => {
             ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
           }];
 
+      // ✋ حماية إضافية: قاعدة البيانات ترفض amount=0 (pos_payments_amount_positive).
+      // قد يحصل هذا في الطلبات المجانية (خصم 100%) أو عند بقاء صف split صفري.
+      const safePaymentsPayload = (paymentsPayload as any[]).filter(
+        (p) => Number(p?.amount) > 0
+      );
+      if (safePaymentsPayload.length === 0) {
+        toast.error("لا يوجد مبلغ للدفع — تحقق من قيمة الفاتورة وطريقة الدفع");
+        return;
+      }
+
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
-        p_payments: paymentsPayload,
+        p_payments: safePaymentsPayload,
         // Optional: company-paid portion of an employee meal (dual mode).
         // Stays 0 for every other tender / mode, keeping all other call paths unchanged.
         p_meal_subsidy: mealSubsidy,
