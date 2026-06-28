@@ -400,6 +400,26 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
     loadMembers();
   };
 
+  /** Persist POS-audit changes (toggle + branch list) for an existing member. */
+  const updatePosAudit = async (
+    member: any,
+    patch: Partial<{ enabled: boolean; branchIds: string[] }>,
+  ) => {
+    const nextEnabled = patch.enabled ?? !!member.can_audit_pos_shifts;
+    const nextBranches = patch.branchIds ?? (member.pos_allowed_branch_ids || []);
+    const { error } = await supabase
+      .from(tableName as any)
+      .update({
+        can_audit_pos_shifts: nextEnabled,
+        // Clearing the toggle wipes the branch restriction so we don't keep stale data.
+        pos_allowed_branch_ids: nextEnabled ? nextBranches : [],
+      } as any)
+      .eq("id", member.id);
+    if (error) { toast.error("فشل تحديث صلاحية تدقيق POS"); return; }
+    toast.success("تم الحفظ");
+    loadMembers();
+  };
+
   return (
     <div>
       <Separator className="my-6" />
