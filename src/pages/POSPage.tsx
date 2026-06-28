@@ -2894,7 +2894,7 @@ const POSPage = () => {
   const removeFromCart = useCallback((index: number) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
     if (selectedCartIndex === index) setSelectedCartIndex(null);
-  }, [selectedCartIndex]);
+  }, [selectedCartIndex, setCart, setSelectedCartIndex]);
 
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
     // Enforce price editing permission (legacy posPerms + feature override)
