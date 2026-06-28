@@ -431,6 +431,11 @@ const AccountStatementV2Page = () => {
       };
       related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
       resolveDebitCredit = (tx) => ({ isDebit: matchesContactAccount(tx.debit_account_code), isCredit: matchesContactAccount(tx.credit_account_code) });
+      // Hybrid helper exposed via closure for the row-builder below: cash sales / cash payments
+      // touch the contact_id but don't post to AR/AP. We surface them as INFO rows (debit & credit
+      // both equal to the amount → balance unchanged) so the user sees the activity in the ledger.
+      (resolveDebitCredit as any).__isContactBranch = true;
+      (resolveDebitCredit as any).__sameNameIds = sameNameIds;
     }
 
     const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
@@ -484,9 +489,21 @@ const AccountStatementV2Page = () => {
 
     let openBal = 0;
     const periodTx: Transaction[] = [];
+    const infoTxIds = new Set<string>(); // tx that affect contact info but not balance (cash sale/pay)
     for (const tx of related) {
       const { isDebit, isCredit } = resolveDebitCredit(tx);
-      if (!isDebit && !isCredit) continue;
+      if (!isDebit && !isCredit) {
+        // Contact-branch only: include as info row when contact_id matches (cash sales/payments)
+        if ((resolveDebitCredit as any).__isContactBranch && tx.contact_id && (resolveDebitCredit as any).__sameNameIds?.has(tx.contact_id)) {
+          if (!dateFrom || tx.transaction_date >= dateFrom) {
+            if (!dateTo || tx.transaction_date <= dateTo) {
+              periodTx.push(tx);
+              infoTxIds.add(tx.id);
+            }
+          }
+        }
+        continue;
+      }
       const { amount: amt } = getDisplayAmt(tx);
       if (dateFrom && tx.transaction_date < dateFrom) { if (isDebit) openBal += amt; if (isCredit) openBal -= amt; }
       else if (!dateTo || tx.transaction_date <= dateTo) periodTx.push(tx);
@@ -496,13 +513,17 @@ const AccountStatementV2Page = () => {
     const result: StatementRow[] = periodTx.map(tx => {
       const { isDebit } = resolveDebitCredit(tx);
       const { amount: amt, isConverted, isMismatch, conversionRate, usedHistoricRate } = getDisplayAmt(tx);
-      const debit = isDebit ? amt : 0;
-      const credit = !isDebit ? amt : 0;
-      running += debit - credit; sD += debit; sC += credit;
+      const isInfo = infoTxIds.has(tx.id);
+      const debit = isInfo ? amt : (isDebit ? amt : 0);
+      const credit = isInfo ? amt : (!isDebit ? amt : 0);
+      // Info rows (cash sales/payments) do NOT change the running balance.
+      if (!isInfo) { running += debit - credit; sD += debit; sC += credit; }
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
       const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, cost_center_id: tx.cost_center_id || null };
+      const descBase = tx.description || tx.transaction_type || "—";
+      const description = isInfo ? `${descBase} — معاملة نقدية (لا تؤثر على الذمة)` : descBase;
+      return { date: tx.transaction_date, description, transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted, cost_center_id: tx.cost_center_id || null };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
