@@ -208,6 +208,7 @@ const defaultSettings: CompanySettings = {
   max_discount_percent: 20,
   e_invoice_enabled: false,
   invoice_header_layout: "logo_center",
+  invoice_logo_size: "medium",
   invoice_primary_color: "#1B3A5C",
   invoice_show_signature: true,
   invoice_show_tax_summary: false,
@@ -468,7 +469,7 @@ export function useCompanySettings() {
     "onboarding_completed","onboarding_step","business_type","has_employees",
     "employee_count_range","has_pos","pos_count","inventory_method",
     "onboarding_skipped","onboarding_completed_at",
-    "invoice_header_layout","invoice_primary_color","invoice_show_signature",
+    "invoice_header_layout","invoice_logo_size","invoice_primary_color","invoice_show_signature",
     "invoice_show_tax_summary","invoice_show_amount_words","invoice_show_due_date","invoice_footer_message",
     "can_edit_posted","can_delete_posted","card_bank_account_id",
     // Inventory
