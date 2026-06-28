@@ -584,6 +584,7 @@ const App = () => (
                 <Route path="accounting/fiscal-years" element={<SpartaFiscalYearsPage />} />
                 <Route path="accounting/budget" element={<SpartaBudgetPage />} />
                 <Route path="accounting/cash-flow" element={<SpartaCashFlowPage />} />
+                <Route path="admin" element={<SpartaAdminPage />} />
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />
