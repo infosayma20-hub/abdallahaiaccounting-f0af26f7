@@ -38,6 +38,9 @@ interface InvoiceData {
   terms?: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
   taxInclusive?: boolean;
+  /** الرصيد الختامي للزبون/المورد بعد ترحيل هذه الفاتورة — يُعرض أسفل يمين الفاتورة عند توفره. */
+  contactClosingBalance?: number;
+  contactClosingBalanceLabel?: string; // مثلاً "رصيد الزبون بعد الفاتورة" أو "رصيد المورد"
 }
 
 interface InvoicePrintViewProps {
@@ -674,6 +677,35 @@ const InvoicePrintView = ({
                 </div>
               )}
             </>
+          )}
+          {/* ━━━ رصيد الجهة الختامي (اختياري) ━━━ */}
+          {typeof invoice.contactClosingBalance === "number" && (
+            <div style={{
+              marginTop: "10px",
+              padding: "8px 10px",
+              borderTop: "2px solid #1B3A5C",
+              background: "#F8FAFC",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#0D1B2E",
+              borderRadius: "0 0 6px 6px",
+            }}>
+              <span>
+                {invoice.contactClosingBalanceLabel
+                  || (invoice.type === "sales" ? "رصيد الزبون بعد الفاتورة" : "رصيد المورد بعد الفاتورة")}
+              </span>
+              <span style={{
+                fontFeatureSettings: "'tnum'",
+                direction: "ltr",
+                color: invoice.contactClosingBalance > 0 ? "#DC2626" : invoice.contactClosingBalance < 0 ? "#16A34A" : "#0D1B2E",
+              }}>
+                {fmtAmount(Math.abs(invoice.contactClosingBalance))}
+                {invoice.contactClosingBalance > 0 ? " (مدين)" : invoice.contactClosingBalance < 0 ? " (دائن)" : ""}
+              </span>
+            </div>
           )}
         </div>
       </div>

@@ -2270,6 +2270,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       ? selectedGlAccount.account_name
       : selectedContact?.contact_name || "";
     const amt = amountNum;
+    // ─── حماية: لا تطبع سند فارغ (بدون مبلغ أو بدون طرف) ───
+    if (amt <= 0 || !partyName) {
+      toast.error("لا يمكن الطباعة", {
+        description: amt <= 0
+          ? "يرجى إدخال مبلغ السند قبل الطباعة."
+          : "يرجى اختيار الجهة (الزبون/المورد/الموظف) قبل الطباعة.",
+      });
+      return;
+    }
     const fmtAmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtDate = (d: string | Date) => { const dt = new Date(d); const dd = String(dt.getDate()).padStart(2, '0'); const mm = String(dt.getMonth() + 1).padStart(2, '0'); const yyyy = dt.getFullYear(); return `${dd}/${mm}/${yyyy}`; };
     const dateFormatted = fmtDate(paymentDate);
