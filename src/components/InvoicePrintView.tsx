@@ -127,6 +127,14 @@ const InvoicePrintView = ({
   const taxEnabled = isDelivery ? false : (settings.vat_enabled ?? true);
   const showPrices = !isDelivery;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
+  // ── حجم الشعار القابل للتخصيص من الإعدادات (لا يكسر باقي المستخدمين: القيمة الافتراضية = medium = القيم القديمة) ──
+  const logoSizeKey: "small" | "medium" | "large" | "xlarge" =
+    ((settings as any).invoice_logo_size as any) || "medium";
+  const centerHeightMap: Record<string, number> = { small: 70, medium: 110, large: 150, xlarge: 200 };
+  const centerMaxWidthMap: Record<string, number> = { small: 200, medium: 320, large: 420, xlarge: 540 };
+  const centerWideMap: Record<string, number> = { small: 240, medium: 360, large: 480, xlarge: 600 };
+  const sideHeightMap: Record<string, number> = { small: 36, medium: 56, large: 80, xlarge: 110 };
+  const sideWideMap: Record<string, number> = { small: 180, medium: 260, large: 340, xlarge: 440 };
   const displayContactName = (invoice.contactName || "").trim()
     || (invoice.paymentMethod === "cash" ? "عميل نقدي" : "—");
   // Bonus columns (بونص / المسلم) are rendered only when at least one line has bonus.
