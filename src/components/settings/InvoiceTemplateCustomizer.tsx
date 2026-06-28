@@ -26,9 +26,17 @@ const LAYOUT_OPTIONS = [
   { value: "no_logo", label: "بدون شعار" },
 ];
 
+const LOGO_SIZE_OPTIONS = [
+  { value: "small", label: "صغير" },
+  { value: "medium", label: "وسط" },
+  { value: "large", label: "كبير" },
+  { value: "xlarge", label: "كبير جداً" },
+];
+
 const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
   const color = settings.invoice_primary_color || "#1B3A5C";
   const layout = settings.invoice_header_layout || "logo_right";
+  const logoSize = (settings as any).invoice_logo_size || "medium";
   const isCustomColor = !COLOR_PRESETS.some(p => p.value === color);
   const [showCustomPicker, setShowCustomPicker] = useState(isCustomColor);
 
@@ -123,6 +131,28 @@ const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
               </button>
             ))}
           </div>
+
+          {/* Logo size — appears only when a logo is shown */}
+          {layout !== "no_logo" && (
+            <div className="mt-4">
+              <Label className="text-xs text-muted-foreground mb-2 block">حجم الشعار</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {LOGO_SIZE_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => onChange({ invoice_logo_size: opt.value } as any)}
+                    className={`px-2 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      logoSize === opt.value
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border hover:border-primary/30"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <Separator />
@@ -168,7 +198,7 @@ const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
         <div className="sticky top-0">
           <div className="bg-muted/30 rounded-xl p-4 border border-border">
             <p className="text-xs text-muted-foreground mb-3 text-center">معاينة حية</p>
-            <InvoicePreview settings={settings} color={color} layout={layout} />
+            <InvoicePreview settings={settings} color={color} layout={layout} logoSize={logoSize} />
           </div>
         </div>
       </div>
@@ -207,8 +237,11 @@ const LayoutIcon = ({ type, color }: { type: string; color: string }) => (
 );
 
 /* ─── Live Invoice Preview ─── */
-const InvoicePreview = ({ settings, color, layout }: { settings: CompanySettings; color: string; layout: string }) => {
+const LOGO_PX: Record<string, number> = { small: 28, medium: 40, large: 56, xlarge: 76 };
+
+const InvoicePreview = ({ settings, color, layout, logoSize }: { settings: CompanySettings; color: string; layout: string; logoSize: string }) => {
   const companyName = settings.company_name || "اسم الشركة";
+  const logoPx = LOGO_PX[logoSize] ?? 40;
 
   return (
     <AnimatePresence mode="wait">
@@ -224,9 +257,12 @@ const InvoicePreview = ({ settings, color, layout }: { settings: CompanySettings
         <div className="px-4 py-3" style={{ backgroundColor: color }}>
           <div className={`flex items-center gap-3 ${layout === "logo_left" ? "flex-row-reverse" : ""}`}>
             {layout !== "no_logo" && (
-              <div className="w-10 h-10 bg-white/20 rounded-md flex items-center justify-center shrink-0">
+              <div
+                className="bg-white/20 rounded-md flex items-center justify-center shrink-0"
+                style={{ width: logoPx, height: logoPx }}
+              >
                 {settings.logo_url ? (
-                  <img src={settings.logo_url} alt="" className="w-8 h-8 object-contain" />
+                  <img src={settings.logo_url} alt="" style={{ width: logoPx - 4, height: logoPx - 4, objectFit: "contain" }} />
                 ) : (
                   <span className="text-white/60 text-[10px] font-medium">LOGO</span>
                 )}

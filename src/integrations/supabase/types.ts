@@ -2546,6 +2546,7 @@ export type Database = {
           invoice_footer: string | null
           invoice_footer_message: string | null
           invoice_header_layout: string | null
+          invoice_logo_size: string
           invoice_prefix: string | null
           invoice_primary_color: string | null
           invoice_show_amount_words: boolean | null
@@ -2714,6 +2715,7 @@ export type Database = {
           invoice_footer?: string | null
           invoice_footer_message?: string | null
           invoice_header_layout?: string | null
+          invoice_logo_size?: string
           invoice_prefix?: string | null
           invoice_primary_color?: string | null
           invoice_show_amount_words?: boolean | null
@@ -2882,6 +2884,7 @@ export type Database = {
           invoice_footer?: string | null
           invoice_footer_message?: string | null
           invoice_header_layout?: string | null
+          invoice_logo_size?: string
           invoice_prefix?: string | null
           invoice_primary_color?: string | null
           invoice_show_amount_words?: boolean | null
