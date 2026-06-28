@@ -38,6 +38,9 @@ interface InvoiceData {
   terms?: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
   taxInclusive?: boolean;
+  /** الرصيد الختامي للزبون/المورد بعد ترحيل هذه الفاتورة — يُعرض أسفل يمين الفاتورة عند توفره. */
+  contactClosingBalance?: number;
+  contactClosingBalanceLabel?: string; // مثلاً "رصيد الزبون بعد الفاتورة" أو "رصيد المورد"
 }
 
 interface InvoicePrintViewProps {
