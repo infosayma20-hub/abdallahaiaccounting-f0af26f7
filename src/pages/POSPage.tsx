@@ -4056,10 +4056,17 @@ const POSPage = () => {
 
       // Link call center order to POS order if applicable
       if (activeOrder.callCenterOrderId && orderId) {
-        await supabase
+        // Fire-and-forget — non-critical link write. Awaiting it here was
+        // adding 100-400ms to every call-center order before the heavy
+        // `complete_pos_order` RPC. Failure is harmless: the order is still
+        // saved and posted, only the back-link is missing (recoverable).
+        supabase
           .from("call_center_orders" as any)
           .update({ pos_order_id: orderId } as any)
-          .eq("id", activeOrder.callCenterOrderId);
+          .eq("id", activeOrder.callCenterOrderId)
+          .then(({ error }) => {
+            if (error) console.warn("[POS] link call-center order failed:", error);
+          });
       }
 
       const rate = exchangeRates[paymentCurrency] || 1;
