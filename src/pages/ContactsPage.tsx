@@ -499,6 +499,31 @@ const ContactsPage = () => {
     }
   };
 
+  const [reverseContact, setReverseContact] = useState<Contact | null>(null);
+  const [reversing, setReversing] = useState(false);
+  const handleArchiveWithReversals = async () => {
+    if (!reverseContact) return;
+    setReversing(true);
+    try {
+      const { data, error } = await supabase.rpc('archive_contact_with_reversals' as any, {
+        p_contact_id: reverseContact.id,
+        p_reason: `أرشفة "${reverseContact.contact_name}" مع عكس الحركات`,
+      });
+      if (error) throw error;
+      const res = data as any;
+      toast({
+        title: `تم أرشفة "${reverseContact.contact_name}"`,
+        description: `تم عكس ${res?.reversed ?? 0} حركة${res?.skipped ? ` (تخطّي ${res.skipped})` : ''}.`,
+      });
+      setReverseContact(null);
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setReversing(false);
+    }
+  };
+
   const markAlertRead = async (alertId: string) => {
     await supabase.from('contact_alerts').update({ is_read: true }).eq('id', alertId);
     setAlerts(prev => prev.filter(a => a.id !== alertId));
@@ -1004,6 +1029,9 @@ const ContactsPage = () => {
                                 <DropdownMenuItem onClick={() => setArchiveContact(contact)}>
                                   <Archive className="h-4 w-4 ml-2" /> أرشفة
                                 </DropdownMenuItem>
+                                <DropdownMenuItem className="text-orange-600" onClick={() => setReverseContact(contact)}>
+                                  <ArchiveRestore className="h-4 w-4 ml-2" /> أرشفة + عكس الحركات
+                                </DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive" onClick={() => setDeleteContact(contact)}>
                                   <Trash2 className="h-4 w-4 ml-2" /> حذف نهائي
                                 </DropdownMenuItem>
@@ -1363,6 +1391,30 @@ const ContactsPage = () => {
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogAction onClick={handleArchiveContact} disabled={archiving}>
               {archiving ? <Loader2 className="h-4 w-4 animate-spin" /> : "أرشفة"}
+            </AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Archive + Reverse Confirmation */}
+      <AlertDialog open={!!reverseContact} onOpenChange={(o) => !o && setReverseContact(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-orange-600">أرشفة مع عكس كامل الحركات</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                سيتم إنشاء قيد عكسي IFRS لكل حركة مالية مرتبطة بـ "{reverseContact?.contact_name}" (الفواتير، السندات، إلخ)،
+                ثم أرشفة الجهة. الحركات الأصلية تبقى محفوظة بختم "عكس قيد" للتدقيق.
+              </span>
+              <span className="block text-destructive font-semibold">
+                ⚠️ هذا الإجراء يصفّر رصيد الجهة محاسبياً ولا يمكن التراجع عنه إلا يدوياً. يتطلب صلاحية مدير أو محاسب أول.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction onClick={handleArchiveWithReversals} disabled={reversing} className="bg-orange-600 text-white hover:bg-orange-700">
+              {reversing ? <Loader2 className="h-4 w-4 animate-spin" /> : "تأكيد الأرشفة والعكس"}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>

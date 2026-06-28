@@ -22497,6 +22497,10 @@ export type Database = {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
       }
+      archive_contact_with_reversals: {
+        Args: { p_contact_id: string; p_reason?: string }
+        Returns: Json
+      }
       auto_close_open_attendance_sessions: {
         Args: {
           p_close_time?: string
