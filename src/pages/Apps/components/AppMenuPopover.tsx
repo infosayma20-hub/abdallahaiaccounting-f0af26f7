@@ -22,7 +22,7 @@ export default function AppMenuPopover({
   anchorEl, open, onClose, title, groups, accentColor, onNavigate,
 }: Props) {
   const popRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
 
   // Position popover under anchor (uses viewport coords + position:fixed)
   useEffect(() => {
@@ -30,10 +30,23 @@ export default function AppMenuPopover({
 
     const update = () => {
       const rect = anchorEl.getBoundingClientRect();
+      const vh = window.innerHeight;
       const width = Math.max(280, rect.width);
       const left = rect.left + rect.width / 2 - width / 2;
-      const top = rect.bottom + 8;
-      setPos({ top, left: Math.max(8, left), width });
+      const margin = 12;
+      const spaceBelow = vh - rect.bottom - margin;
+      const spaceAbove = rect.top - margin;
+      let top: number;
+      let maxHeight: number;
+      // Prefer below; flip above if much more room there
+      if (spaceBelow >= 240 || spaceBelow >= spaceAbove) {
+        top = rect.bottom + 8;
+        maxHeight = Math.max(200, spaceBelow);
+      } else {
+        maxHeight = Math.max(200, spaceAbove);
+        top = Math.max(margin, rect.top - 8 - maxHeight);
+      }
+      setPos({ top, left: Math.max(8, left), width, maxHeight });
     };
 
     update();
@@ -79,7 +92,7 @@ export default function AppMenuPopover({
         top: pos.top,
         left: pos.left,
         width: pos.width,
-        maxHeight: "70vh",
+        maxHeight: pos.maxHeight,
         overflowY: "auto",
         zIndex: 60,
         background: "#ffffff",
