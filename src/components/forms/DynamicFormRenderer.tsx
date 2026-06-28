@@ -282,13 +282,27 @@ export default function DynamicFormRenderer({
   const [data, setData] = useState<Record<string, any>>(() =>
     buildInitialData(schema, initialData)
   );
+  // Track whether the user has actually edited the form. Auto-save must NOT
+  // run until then, otherwise opening the form would silently overwrite a
+  // previously-saved local draft with the server snapshot.
+  const dirtyRef = React.useRef(false);
+  const restoreDecidedRef = React.useRef(false);
 
   // Auto-load draft from localStorage on mount
   useEffect(() => {
     if (!draftKey) return;
     try {
-      const raw = localStorage.getItem(`dyn-form-draft:${draftKey}`);
-      if (!raw) return;
+      const primaryKey = `dyn-form-draft:${draftKey}`;
+      const backupKey = `dyn-form-draft-backup:${draftKey}`;
+      let raw = localStorage.getItem(primaryKey);
+      let fromBackup = false;
+      if (!raw) {
+        // Fall back to the safety backup (kept when the user previously
+        // dismissed the restore prompt).
+        raw = localStorage.getItem(backupKey);
+        fromBackup = !!raw;
+      }
+      if (!raw) { restoreDecidedRef.current = true; return; }
       const parsed = JSON.parse(raw);
       if (initialData) {
         // We already loaded a draft from the server. Offer to restore unsaved
@@ -298,21 +312,39 @@ export default function DynamicFormRenderer({
           const localStr = JSON.stringify(parsed);
           if (localStr && localStr !== serverStr && localStr.length > 5) {
             const ok = window.confirm(
-              "في تعديلات محلية غير محفوظة على السيرفر لهذا النموذج.\nهل تريد استرجاعها؟\n(اضغط إلغاء لاستخدام النسخة المحفوظة على السيرفر)"
+              (fromBackup
+                ? "تم العثور على نسخة احتياطية من تعديلاتك المحلية السابقة.\n"
+                : "في تعديلات محلية غير محفوظة على السيرفر لهذا النموذج.\n") +
+              "هل تريد استرجاعها؟\n(اضغط إلغاء لاستخدام النسخة المحفوظة على السيرفر — وسيتم الاحتفاظ بنسخة احتياطية)"
             );
-            if (ok) setData(buildInitialData(schema, parsed));
+            if (ok) {
+              setData(buildInitialData(schema, parsed));
+              dirtyRef.current = true; // keep it persisted
+            } else {
+              // SAFETY: don't lose the draft. Move it to a backup slot so the
+              // user (or support) can still recover it later.
+              try {
+                localStorage.setItem(backupKey, JSON.stringify(parsed));
+                localStorage.removeItem(primaryKey);
+              } catch {}
+            }
           }
         } catch {}
       } else {
         setData(buildInitialData(schema, parsed));
+        dirtyRef.current = true;
       }
     } catch {}
+    finally { restoreDecidedRef.current = true; }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftKey]);
 
   // Debounced auto-save to localStorage
   useEffect(() => {
     if (!draftKey || readOnly) return;
+    // Don't write until the user has actually interacted AND the restore
+    // prompt has been resolved — otherwise we'd clobber the existing draft.
+    if (!dirtyRef.current || !restoreDecidedRef.current) return;
     const t = setTimeout(() => {
       try { localStorage.setItem(`dyn-form-draft:${draftKey}`, JSON.stringify(data)); } catch {}
     }, 800);
@@ -320,6 +352,7 @@ export default function DynamicFormRenderer({
   }, [data, draftKey, readOnly]);
 
   const setSectionFieldValue = (sectionKey: string, fieldKey: string, value: any) => {
+    dirtyRef.current = true;
     setData((prev) => ({
       ...prev,
       [sectionKey]: { ...(prev[sectionKey] || {}), [fieldKey]: value },
@@ -327,6 +360,7 @@ export default function DynamicFormRenderer({
   };
 
   const setRepeaterValue = (sectionKey: string, idx: number, fieldKey: string, value: any) => {
+    dirtyRef.current = true;
     setData((prev) => {
       const rows = [...(prev[sectionKey] || [])];
       rows[idx] = { ...(rows[idx] || {}), [fieldKey]: value };
