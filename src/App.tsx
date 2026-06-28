@@ -200,6 +200,7 @@ const SpartaFinancialReportsPage = lazy(() => import("./pages/sparta/accounting/
 const SpartaFiscalYearsPage = lazy(() => import("./pages/sparta/accounting/SpartaFiscalYearsPage"));
 const SpartaBudgetPage = lazy(() => import("./pages/sparta/accounting/SpartaBudgetPage"));
 const SpartaCashFlowPage = lazy(() => import("./pages/sparta/accounting/SpartaCashFlowPage"));
+const SpartaAdminPage = lazy(() => import("./pages/sparta/SpartaAdminPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
