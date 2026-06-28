@@ -350,7 +350,13 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
           email: form.email,
           password: form.password,
           role: form.role,
-          permissions: perms,
+          permissions: type === "accountant"
+            ? {
+                ...perms,
+                can_audit_pos_shifts: posAudit.enabled,
+                pos_allowed_branch_ids: posAudit.enabled ? posAudit.branchIds : [],
+              }
+            : perms,
         },
       });
 
@@ -362,6 +368,7 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
       toast.success(data.message);
       setShowForm(false);
       setForm({ full_name: "", email: "", password: "", role: type === "accountant" ? "accountant_senior" : "hr_manager" });
+      setPosAudit({ enabled: false, branchIds: [] });
       loadMembers();
     } catch (err: any) {
       toast.error(err.message);
