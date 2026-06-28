@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Eye, EyeOff, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { UserPlus, Eye, EyeOff, Trash2, ChevronDown, ChevronUp, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -254,6 +254,22 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
     role: type === "accountant" ? "accountant_senior" : "hr_manager",
   });
   const [perms, setPerms] = useState<Record<string, boolean>>({});
+  /* POS-audit: separate state (boolean toggle + array of allowed branches).
+     Sent to the edge function inside `permissions` alongside the booleans. */
+  const [posAudit, setPosAudit] = useState<{ enabled: boolean; branchIds: string[] }>({
+    enabled: false,
+    branchIds: [],
+  });
+  const [branchesList, setBranchesList] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (type !== "accountant") return;
+    supabase
+      .from("branches")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setBranchesList((data as any[]) || []));
+  }, [type]);
 
   const permGroups = type === "accountant" ? ACCOUNTANT_PERMS : HR_PERMS;
   const tableName = type === "accountant" ? "accountant_permissions" : "hr_manager_permissions";
