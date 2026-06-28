@@ -7663,6 +7663,56 @@ const POSPage = () => {
                 })}
               </div>
 
+              {/* Company-Visa sub-options — appear only when "بطاقة" is selected */}
+              {!splitMode && (paymentMethod === "card" || paymentMethod.startsWith("card:")) && posVisaApps.length > 0 && (
+                <div className="mx-4 mt-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#605E5C', letterSpacing: '0.06em' }}>
+                    مصدر الفيزا · Visa source
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {/* Regular customer visa = the configured default bank card */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("card")}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-sm transition-all"
+                      style={{
+                        background: paymentMethod === "card" ? '#DEECF9' : '#ffffff',
+                        border: paymentMethod === "card" ? '1px solid #0078D4' : '1px solid #d1d5db',
+                        color: paymentMethod === "card" ? '#0078D4' : '#323130',
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      فيزا عادية
+                    </button>
+                    {posVisaApps.map((app) => {
+                      const key = `card:${app.gl}`;
+                      const active = paymentMethod === key;
+                      return (
+                        <button
+                          key={app.id}
+                          type="button"
+                          onClick={() => setPaymentMethod(key)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-sm transition-all"
+                          style={{
+                            background: active ? '#DEECF9' : '#ffffff',
+                            border: active ? '1px solid #0078D4' : '1px solid #d1d5db',
+                            color: active ? '#0078D4' : '#323130',
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                          title={`الحساب: ${app.gl}`}
+                        >
+                          <span>{app.icon}</span>
+                          فيزا {app.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {splitMode && (
                 <SplitPaymentPanel
                   total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
