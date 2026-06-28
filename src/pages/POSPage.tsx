@@ -4216,7 +4216,9 @@ const POSPage = () => {
 
       // Fallback: manually release table if trigger didn't fire
       if (activeOrder.tableId) {
-        await supabase
+        // Fire-and-forget — the DB trigger normally handles this; the manual
+        // update is just a safety net and must not delay the printout.
+        supabase
           .from("restaurant_tables")
           .update({
             status: "available",
@@ -4224,7 +4226,10 @@ const POSPage = () => {
             current_guests: 0,
             occupied_at: null,
           })
-          .eq("id", activeOrder.tableId);
+          .eq("id", activeOrder.tableId)
+          .then(({ error }) => {
+            if (error) console.warn("[POS] release table failed:", error);
+          });
       }
 
       // 🔒 Atomic delta — replaces the previous read-modify-write that caused
