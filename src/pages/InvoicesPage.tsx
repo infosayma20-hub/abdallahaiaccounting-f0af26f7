@@ -760,6 +760,12 @@ const InvoicesPage = () => {
     try { await assertPermission(app, feature, "print"); } catch { return; }
     const win = window.open("", "_blank");
     if (!win) return;
+    // اجلب الرصيد الختامي للجهة من الحالة المحملة (contacts withBalances)
+    const contactRow = (contacts as any[]).find(c => c.id === (selectedInvoice as any).contactId);
+    const closingBalance = contactRow && typeof contactRow.balance === "number" ? contactRow.balance : undefined;
+    const invoiceForPrint = closingBalance != null
+      ? { ...selectedInvoice, contactClosingBalance: closingBalance }
+      : selectedInvoice;
     
     win.document.write(`<html dir="rtl"><head>
       <title>فاتورة ${selectedInvoice.invoiceNumber}</title>
@@ -778,7 +784,7 @@ const InvoicesPage = () => {
       if (container) {
         const root = createRoot(container);
         root.render(
-          <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
+          <InvoicePrintView invoice={invoiceForPrint} settings={companySettings} copyLabel="أصلية" />
         );
         setTimeout(() => win.print(), 500);
       }
