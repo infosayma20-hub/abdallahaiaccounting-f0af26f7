@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Eye, EyeOff, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { UserPlus, Eye, EyeOff, Trash2, ChevronDown, ChevronUp, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -254,6 +254,22 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
     role: type === "accountant" ? "accountant_senior" : "hr_manager",
   });
   const [perms, setPerms] = useState<Record<string, boolean>>({});
+  /* POS-audit: separate state (boolean toggle + array of allowed branches).
+     Sent to the edge function inside `permissions` alongside the booleans. */
+  const [posAudit, setPosAudit] = useState<{ enabled: boolean; branchIds: string[] }>({
+    enabled: false,
+    branchIds: [],
+  });
+  const [branchesList, setBranchesList] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (type !== "accountant") return;
+    supabase
+      .from("branches")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setBranchesList((data as any[]) || []));
+  }, [type]);
 
   const permGroups = type === "accountant" ? ACCOUNTANT_PERMS : HR_PERMS;
   const tableName = type === "accountant" ? "accountant_permissions" : "hr_manager_permissions";
@@ -334,7 +350,13 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
           email: form.email,
           password: form.password,
           role: form.role,
-          permissions: perms,
+          permissions: type === "accountant"
+            ? {
+                ...perms,
+                can_audit_pos_shifts: posAudit.enabled,
+                pos_allowed_branch_ids: posAudit.enabled ? posAudit.branchIds : [],
+              }
+            : perms,
         },
       });
 
@@ -346,6 +368,7 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
       toast.success(data.message);
       setShowForm(false);
       setForm({ full_name: "", email: "", password: "", role: type === "accountant" ? "accountant_senior" : "hr_manager" });
+      setPosAudit({ enabled: false, branchIds: [] });
       loadMembers();
     } catch (err: any) {
       toast.error(err.message);
@@ -374,6 +397,26 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
       return;
     }
     toast.success(value ? "تم تفعيل الصلاحية" : "تم إلغاء الصلاحية");
+    loadMembers();
+  };
+
+  /** Persist POS-audit changes (toggle + branch list) for an existing member. */
+  const updatePosAudit = async (
+    member: any,
+    patch: Partial<{ enabled: boolean; branchIds: string[] }>,
+  ) => {
+    const nextEnabled = patch.enabled ?? !!member.can_audit_pos_shifts;
+    const nextBranches = patch.branchIds ?? (member.pos_allowed_branch_ids || []);
+    const { error } = await supabase
+      .from(tableName as any)
+      .update({
+        can_audit_pos_shifts: nextEnabled,
+        // Clearing the toggle wipes the branch restriction so we don't keep stale data.
+        pos_allowed_branch_ids: nextEnabled ? nextBranches : [],
+      } as any)
+      .eq("id", member.id);
+    if (error) { toast.error("فشل تحديث صلاحية تدقيق POS"); return; }
+    toast.success("تم الحفظ");
     loadMembers();
   };
 
@@ -470,6 +513,14 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
                 </div>
               ))}
             </div>
+            {type === "accountant" && (
+              <POSAuditPanel
+                enabled={posAudit.enabled}
+                branchIds={posAudit.branchIds}
+                allBranches={branchesList}
+                onChange={(next) => setPosAudit(next)}
+              />
+            )}
           </div>
 
           <div className="flex gap-2 justify-end">
@@ -549,10 +600,114 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
                       </div>
                     ))}
                   </div>
+                  {type === "accountant" && (
+                    <div className="mt-3">
+                      <POSAuditPanel
+                        enabled={!!m.can_audit_pos_shifts}
+                        branchIds={(m.pos_allowed_branch_ids as string[]) || []}
+                        allBranches={branchesList}
+                        onChange={(next) =>
+                          updatePosAudit(m, { enabled: next.enabled, branchIds: next.branchIds })
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── POS audit sub-panel ──
+   Boolean master toggle + multi-select of branches whose monetary figures
+   the accountant is allowed to see. Empty list = all branches visible. */
+function POSAuditPanel({
+  enabled,
+  branchIds,
+  allBranches,
+  onChange,
+}: {
+  enabled: boolean;
+  branchIds: string[];
+  allBranches: { id: string; name: string }[];
+  onChange: (next: { enabled: boolean; branchIds: string[] }) => void;
+}) {
+  const toggleBranch = (id: string) => {
+    const set = new Set(branchIds);
+    set.has(id) ? set.delete(id) : set.add(id);
+    onChange({ enabled, branchIds: Array.from(set) });
+  };
+
+  return (
+    <div className="border border-primary/30 rounded-lg p-3 bg-primary/5 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <Store className="h-3.5 w-3.5" /> تدقيق نقطة البيع (عرض فقط)
+          </p>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            يتيح للمحاسب فتح بطاقة «تدقيق نقطة البيع» لمراجعة الورديات والمبيعات والمدفوعات بدون تعديل أو تصدير.
+          </p>
+        </div>
+        <Switch
+          checked={enabled}
+          onCheckedChange={(v) => onChange({ enabled: v, branchIds })}
+        />
+      </div>
+      {enabled && (
+        <div className="space-y-2 border-t border-primary/20 pt-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium text-muted-foreground">
+              الفروع المسموح للمحاسب رؤية أرقامها
+              <span className="mr-1 text-[10px]">
+                ({branchIds.length === 0 ? "كل الفروع" : `${branchIds.length} فرع`})
+              </span>
+            </p>
+            {branchIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange({ enabled, branchIds: [] })}
+                className="text-[10px] text-muted-foreground hover:text-foreground underline"
+              >
+                إلغاء التقييد (كل الفروع)
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground leading-snug">
+            الفروع غير المحددة ستظهر بالاسم فقط، مع إخفاء جميع الأرقام لحماية بيانات الفروع الأخرى.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 max-h-40 overflow-auto pr-1">
+            {allBranches.length === 0 ? (
+              <p className="col-span-full text-[11px] text-muted-foreground">لا توجد فروع معرّفة بعد.</p>
+            ) : (
+              allBranches.map(b => {
+                const checked = branchIds.includes(b.id);
+                return (
+                  <label
+                    key={b.id}
+                    className={
+                      "flex items-center gap-2 px-2 py-1 rounded border text-[12px] cursor-pointer " +
+                      (checked
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      className="accent-primary"
+                      checked={checked}
+                      onChange={() => toggleBranch(b.id)}
+                    />
+                    <span className="truncate">{b.name}</span>
+                  </label>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
     </div>

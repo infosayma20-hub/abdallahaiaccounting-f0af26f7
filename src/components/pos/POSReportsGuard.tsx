@@ -65,6 +65,22 @@ export default function POSReportsGuard({ children }: { children: React.ReactNod
           }
         }
 
+        // Accountant with explicit POS-audit permission → allow (view-only).
+        try {
+          const { data: acc } = await supabase
+            .from("accountant_permissions")
+            .select("can_audit_pos_shifts, is_active")
+            .eq("accountant_auth_id", uid)
+            .eq("is_active", true)
+            .maybeSingle();
+          if ((acc as any)?.can_audit_pos_shifts === true) {
+            if (!cancelled) setStatus("allowed");
+            return;
+          }
+        } catch {
+          /* ignore — fall through to denied */
+        }
+
         // Denied → log + toast
         try {
           await (supabase.from("pos_sensitive_actions_log" as any) as any).insert({

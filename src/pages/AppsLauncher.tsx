@@ -42,9 +42,9 @@ const rolesCache = new Map<string, { roles: string[]; employeeOnly: boolean }>()
 
 /* ── Role-based app visibility ── */
 const ROLE_ALLOWED_APPS: Record<string, string[]> = {
-  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "tax"],
-  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports"],
-  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports"],
+  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "tax", "pos-audit"],
+  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports", "pos-audit"],
+  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports", "pos-audit"],
   hr_manager: ["hr"],
 };
 
@@ -75,6 +75,27 @@ const AppsLauncher = () => {
   const [rolesLoading, setRolesLoading] = useState(!cachedRoles);
   const [employeeOnlyRedirect, setEmployeeOnlyRedirect] = useState(cachedRoles?.employeeOnly ?? false);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
+
+  /* POS-audit gate for accountants: only show the dedicated "تدقيق نقطة البيع"
+     card when the accountant has `can_audit_pos_shifts=true` in their
+     accountant_permissions row. Owners / admins / non-accountants never see
+     this card (they use the regular POS app instead). */
+  const [accountantPosAuditAllowed, setAccountantPosAuditAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) { setAccountantPosAuditAllowed(false); return; }
+    let cancelled = false;
+    supabase
+      .from("accountant_permissions")
+      .select("can_audit_pos_shifts, is_active")
+      .eq("accountant_auth_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setAccountantPosAuditAllowed(((data as any)?.can_audit_pos_shifts as boolean) === true);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // 🛡️ Watchdog: even if a future hook regression leaves a loading flag stuck
   // (e.g. someone re-adds settingsLoading to the gate), force-render the grid
@@ -233,13 +254,15 @@ const AppsLauncher = () => {
     let allApps = appSections.flatMap(s => s.items);
     // Per-user deny: hide entirely from launcher
     allApps = allApps.filter(app => !denyOverrides.has(app.id));
+    // POS-audit card is reserved for accountants who were explicitly granted it.
+    allApps = allApps.filter(app => app.id !== "pos-audit" || accountantPosAuditAllowed === true);
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
       const allowed = ROLE_ALLOWED_APPS[restrictedRole];
       // explicit allow override unlocks an app even if role would block it
       allApps = allApps.filter(app => allowed.includes(app.id) || allowOverrides.has(app.id));
     }
     return allApps;
-  }, [restrictedRole, allowOverrides, denyOverrides]);
+  }, [restrictedRole, allowOverrides, denyOverrides, accountantPosAuditAllowed]);
 
   /* Filter apps by role + search + category; group by section.
      التطبيقات المعطّلة (hidden_apps) تُعرض ضمن قسم Premium كبطاقات
