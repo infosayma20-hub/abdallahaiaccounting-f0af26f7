@@ -42,9 +42,9 @@ const rolesCache = new Map<string, { roles: string[]; employeeOnly: boolean }>()
 
 /* ── Role-based app visibility ── */
 const ROLE_ALLOWED_APPS: Record<string, string[]> = {
-  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "tax"],
-  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports"],
-  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports"],
+  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "tax", "pos-audit"],
+  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports", "pos-audit"],
+  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports", "pos-audit"],
   hr_manager: ["hr"],
 };
 
