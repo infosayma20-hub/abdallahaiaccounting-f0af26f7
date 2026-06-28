@@ -116,15 +116,15 @@ const ChequeActionModal = ({
   const [recoverReason, setRecoverReason] = useState("");
   const [notes, setNotes] = useState("");
 
-  if (!action) return null;
-  const config = ACTION_CONFIGS[action];
-  const Icon = config.icon;
-
   const allContacts = useMemo(() => [...extraContacts, ...contacts], [extraContacts, contacts]);
   const supplierContacts = useMemo(
     () => allContacts.filter(c => c.contact_type === 'مورد' || c.contact_type === 'عميل ومورد'),
     [allContacts],
   );
+
+  if (!action) return null;
+  const config = ACTION_CONFIGS[action];
+  const Icon = config.icon;
   const endorsedQuery = endorsedSearch.trim().toLowerCase();
   const filteredEndorsed = endorsedQuery.length >= 2
     ? supplierContacts.filter(c => c.contact_name.toLowerCase().includes(endorsedQuery)).slice(0, 20)
