@@ -743,6 +743,9 @@ const POSPage = () => {
   const [splitMode, setSplitMode] = useState(false);
   const [splitTenders, setSplitTenders] = useState<SplitTender[]>([]);
   const [defaultCardGl, setDefaultCardGl] = useState<string | null>(null);
+  // Company-visa sub-options (delivery_apps with a visa GL account) — purely UI helper.
+  // Selecting one sets paymentMethod to "card:<gl_code>" which the existing payment path already handles.
+  const [posVisaApps, setPosVisaApps] = useState<Array<{ id: string; name: string; icon: string; gl: string }>>([]);
 
   // ── Call-center payment lock ──────────────────────────────────────────────
   // When the active order originated from the call center with a fixed payment
@@ -1213,6 +1216,27 @@ const POSPage = () => {
         setDefaultCardGl((ba as any)?.gl_account_code || null);
       } catch (e) {
         console.warn("[POS] failed to load default card GL", e);
+      }
+    })();
+  }, [dataOwnerId]);
+
+  // Load company-visa apps (Wheels App Visa, Yummy, FoodOnTime, Shini Go, ...)
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("delivery_apps" as any)
+          .select("id, name, icon, visa_gl_account_code, is_active, display_order")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true)
+          .order("display_order");
+        const list = ((data as any[]) || [])
+          .filter((a) => a.visa_gl_account_code)
+          .map((a) => ({ id: a.id, name: a.name, icon: a.icon || "💳", gl: a.visa_gl_account_code as string }));
+        setPosVisaApps(list);
+      } catch (e) {
+        console.warn("[POS] failed to load company visa apps", e);
       }
     })();
   }, [dataOwnerId]);
