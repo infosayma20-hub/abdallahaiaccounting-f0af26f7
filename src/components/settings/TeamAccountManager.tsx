@@ -513,6 +513,14 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
                 </div>
               ))}
             </div>
+            {type === "accountant" && (
+              <POSAuditPanel
+                enabled={posAudit.enabled}
+                branchIds={posAudit.branchIds}
+                allBranches={branchesList}
+                onChange={(next) => setPosAudit(next)}
+              />
+            )}
           </div>
 
           <div className="flex gap-2 justify-end">
