@@ -499,6 +499,31 @@ const ContactsPage = () => {
     }
   };
 
+  const [reverseContact, setReverseContact] = useState<Contact | null>(null);
+  const [reversing, setReversing] = useState(false);
+  const handleArchiveWithReversals = async () => {
+    if (!reverseContact) return;
+    setReversing(true);
+    try {
+      const { data, error } = await supabase.rpc('archive_contact_with_reversals' as any, {
+        p_contact_id: reverseContact.id,
+        p_reason: `أرشفة "${reverseContact.contact_name}" مع عكس الحركات`,
+      });
+      if (error) throw error;
+      const res = data as any;
+      toast({
+        title: `تم أرشفة "${reverseContact.contact_name}"`,
+        description: `تم عكس ${res?.reversed ?? 0} حركة${res?.skipped ? ` (تخطّي ${res.skipped})` : ''}.`,
+      });
+      setReverseContact(null);
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setReversing(false);
+    }
+  };
+
   const markAlertRead = async (alertId: string) => {
     await supabase.from('contact_alerts').update({ is_read: true }).eq('id', alertId);
     setAlerts(prev => prev.filter(a => a.id !== alertId));
