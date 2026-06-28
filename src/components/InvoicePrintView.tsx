@@ -251,8 +251,8 @@ const InvoicePrintView = ({
                 src={settings.logo_url}
                 alt="Logo"
                 style={hasExtraWideLogo
-                  ? { width: "360px", height: "auto", objectFit: "contain" as const, display: "inline-block" }
-                  : { height: "110px", maxWidth: "320px", objectFit: "contain" as const, display: "inline-block" }
+                  ? { width: `${(centerWideMap[logoSizeKey])}px`, height: "auto", objectFit: "contain" as const, display: "inline-block" }
+                  : { height: `${centerHeightMap[logoSizeKey]}px`, maxWidth: `${centerMaxWidthMap[logoSizeKey]}px`, objectFit: "contain" as const, display: "inline-block" }
                 }
               />
             ) : (
@@ -317,8 +317,8 @@ const InvoicePrintView = ({
                 src={settings.logo_url}
                 alt="Logo"
                 style={hasExtraWideLogo
-                  ? { width: "260px", height: "auto", objectFit: "contain" as const, display: "inline-block" }
-                  : { height: "56px", objectFit: "contain" as const, display: "inline-block" }
+                  ? { width: `${sideWideMap[logoSizeKey]}px`, height: "auto", objectFit: "contain" as const, display: "inline-block" }
+                  : { height: `${sideHeightMap[logoSizeKey]}px`, objectFit: "contain" as const, display: "inline-block" }
                 }
               />
             ) : (
