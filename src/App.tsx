@@ -200,6 +200,7 @@ const SpartaFinancialReportsPage = lazy(() => import("./pages/sparta/accounting/
 const SpartaFiscalYearsPage = lazy(() => import("./pages/sparta/accounting/SpartaFiscalYearsPage"));
 const SpartaBudgetPage = lazy(() => import("./pages/sparta/accounting/SpartaBudgetPage"));
 const SpartaCashFlowPage = lazy(() => import("./pages/sparta/accounting/SpartaCashFlowPage"));
+const SpartaAdminPage = lazy(() => import("./pages/sparta/SpartaAdminPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
@@ -583,6 +584,7 @@ const App = () => (
                 <Route path="accounting/fiscal-years" element={<SpartaFiscalYearsPage />} />
                 <Route path="accounting/budget" element={<SpartaBudgetPage />} />
                 <Route path="accounting/cash-flow" element={<SpartaCashFlowPage />} />
+                <Route path="admin" element={<SpartaAdminPage />} />
                 {/* legacy alias */}
                 <Route path="sales" element={<SpartaInvoicesPage />} />
                 <Route path="m" element={<SpartaMobileHome />} />

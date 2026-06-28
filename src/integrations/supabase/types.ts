@@ -16096,6 +16096,44 @@ export type Database = {
           },
         ]
       }
+      sparta_audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          details: Json | null
+          entity: string | null
+          holding_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          details?: Json | null
+          entity?: string | null
+          holding_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          details?: Json | null
+          entity?: string | null
+          holding_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sparta_audit_log_holding_id_fkey"
+            columns: ["holding_id"]
+            isOneToOne: false
+            referencedRelation: "holdings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sparta_bank_accounts: {
         Row: {
           account_id: string | null
