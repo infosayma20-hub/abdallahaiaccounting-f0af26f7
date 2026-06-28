@@ -90,6 +90,7 @@ export type Database = {
         Row: {
           accountant_auth_id: string
           can_approve_ai_drafts: boolean | null
+          can_audit_pos_shifts: boolean
           can_close_fiscal_period: boolean | null
           can_create_credit_note: boolean | null
           can_create_debit_note: boolean | null
@@ -142,12 +143,14 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean | null
+          pos_allowed_branch_ids: string[]
           updated_at: string | null
           user_id: string
         }
         Insert: {
           accountant_auth_id: string
           can_approve_ai_drafts?: boolean | null
+          can_audit_pos_shifts?: boolean
           can_close_fiscal_period?: boolean | null
           can_create_credit_note?: boolean | null
           can_create_debit_note?: boolean | null
@@ -200,12 +203,14 @@ export type Database = {
           full_name: string
           id?: string
           is_active?: boolean | null
+          pos_allowed_branch_ids?: string[]
           updated_at?: string | null
           user_id: string
         }
         Update: {
           accountant_auth_id?: string
           can_approve_ai_drafts?: boolean | null
+          can_audit_pos_shifts?: boolean
           can_close_fiscal_period?: boolean | null
           can_create_credit_note?: boolean | null
           can_create_debit_note?: boolean | null
@@ -258,6 +263,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean | null
+          pos_allowed_branch_ids?: string[]
           updated_at?: string | null
           user_id?: string
         }
