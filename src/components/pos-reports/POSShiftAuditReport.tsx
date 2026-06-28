@@ -431,11 +431,69 @@ function ShiftDetail({ session }: { session: POSSession }) {
 
   return (
     <div className="space-y-4">
-      {/* Section A: Summary */}
-      <div className="border border-border rounded">
-        <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border">
-          ملخص الوردية
+      {/* Section C: Actual numbers (moved to top, always open) */}
+      <div className="border border-primary/40 rounded shadow-sm">
+        <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-primary bg-primary/5 border-b border-border">
+          الأرقام الفعلية (بعد استبعاد المحذوفات)
         </div>
+        <div className="divide-y divide-border text-[13px]">
+          <Row label="صافي المبيعات">
+            <span className="font-mono font-semibold text-foreground">
+              ₪{totals.netSales.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+          </Row>
+          {Object.entries(totals.byMethod).map(([m, v]) => (
+            <ExpandableMethodRow
+              key={m}
+              method={m}
+              count={v.count}
+              amount={v.amount}
+              rows={v.rows}
+              onOpenOrder={(id) => setOpenOrderId(id)}
+            />
+          ))}
+          <Row label={`ملغي (${totals.cancelled.length} فاتورة)`}>
+            <span className="font-mono text-muted-foreground">
+              ₪{totals.cancelled.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
+            </span>
+          </Row>
+          <Row label="كاش متوقع (مجمّد عند الإغلاق)">
+            <span className="font-mono text-muted-foreground line-through">
+              {session.expected_cash != null ? `₪${session.expected_cash.toLocaleString()}` : "—"}
+            </span>
+          </Row>
+          <Row label="كاش متوقع (محسوب الآن)">
+            <span className="font-mono font-semibold text-foreground">
+              ₪{totals.recalcExpected.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+          </Row>
+          <Row label="كاش فعلي عند الإغلاق">
+            <span className="font-mono">
+              {session.closing_cash != null ? `₪${session.closing_cash.toLocaleString()}` : "لم تُغلق"}
+            </span>
+          </Row>
+          <Row label="فرق الكاش (مجمّد)">
+            <span className={cn("font-mono", varianceColor)}>
+              {varianceLabel != null ? `${varianceLabel >= 0 ? "+" : ""}₪${varianceLabel.toLocaleString()}` : "—"}
+            </span>
+          </Row>
+          <Row label="فرق الكاش الفعلي (بعد الاستبعاد)">
+            <span className={cn(
+              "font-mono font-semibold",
+              totals.recalcVariance == null ? "text-muted-foreground"
+                : Math.abs(totals.recalcVariance) < 0.5 ? "text-emerald-600"
+                : totals.recalcVariance < 0 ? "text-destructive" : "text-amber-600",
+            )}>
+              {totals.recalcVariance != null
+                ? `${totals.recalcVariance >= 0 ? "+" : ""}₪${totals.recalcVariance.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                : "—"}
+            </span>
+          </Row>
+        </div>
+      </div>
+
+      {/* Section A: Summary (collapsible, closed by default) */}
+      <CollapsibleSection title="ملخص الوردية">
         <div className="divide-y divide-border text-[13px]">
           <Row label="رقم الوردية">
             <div className="flex items-center gap-1.5">
@@ -459,14 +517,13 @@ function ShiftDetail({ session }: { session: POSSession }) {
             <span className="font-mono">₪{(session.opening_cash ?? 0).toLocaleString()}</span>
           </Row>
         </div>
-      </div>
+      </CollapsibleSection>
 
-      {/* Section B: Server truth */}
-      <div className="border border-border rounded">
-        <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border flex items-center justify-between">
-          <span>الفواتير على السيرفر (الحقيقة الكاملة)</span>
-          <span className="font-mono text-foreground/70">{orders.length} سجل</span>
-        </div>
+      {/* Section B: Server truth (collapsible, closed by default) */}
+      <CollapsibleSection
+        title="الفواتير على السيرفر (الحقيقة الكاملة)"
+        right={<span className="font-mono text-foreground/70">{orders.length} سجل</span>}
+      >
         {loading ? (
           <div className="p-3"><Skeleton className="h-32" /></div>
         ) : (
@@ -558,68 +615,7 @@ function ShiftDetail({ session }: { session: POSSession }) {
             </div>
           </>
         )}
-      </div>
-
-      {/* Section C: Actual numbers */}
-      <div className="border border-border rounded">
-        <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border">
-          الأرقام الفعلية (بعد استبعاد المحذوفات)
-        </div>
-        <div className="divide-y divide-border text-[13px]">
-          <Row label="صافي المبيعات">
-            <span className="font-mono font-semibold text-foreground">
-              ₪{totals.netSales.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </span>
-          </Row>
-          {Object.entries(totals.byMethod).map(([m, v]) => (
-            <ExpandableMethodRow
-              key={m}
-              method={m}
-              count={v.count}
-              amount={v.amount}
-              rows={v.rows}
-              onOpenOrder={(id) => setOpenOrderId(id)}
-            />
-          ))}
-          <Row label={`ملغي (${totals.cancelled.length} فاتورة)`}>
-            <span className="font-mono text-muted-foreground">
-              ₪{totals.cancelled.reduce((s, o) => s + Number(o.total || 0), 0).toLocaleString()}
-            </span>
-          </Row>
-          <Row label="كاش متوقع (مجمّد عند الإغلاق)">
-            <span className="font-mono text-muted-foreground line-through">
-              {session.expected_cash != null ? `₪${session.expected_cash.toLocaleString()}` : "—"}
-            </span>
-          </Row>
-          <Row label="كاش متوقع (محسوب الآن)">
-            <span className="font-mono font-semibold text-foreground">
-              ₪{totals.recalcExpected.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </span>
-          </Row>
-          <Row label="كاش فعلي عند الإغلاق">
-            <span className="font-mono">
-              {session.closing_cash != null ? `₪${session.closing_cash.toLocaleString()}` : "لم تُغلق"}
-            </span>
-          </Row>
-          <Row label="فرق الكاش (مجمّد)">
-            <span className={cn("font-mono", varianceColor)}>
-              {varianceLabel != null ? `${varianceLabel >= 0 ? "+" : ""}₪${varianceLabel.toLocaleString()}` : "—"}
-            </span>
-          </Row>
-          <Row label="فرق الكاش الفعلي (بعد الاستبعاد)">
-            <span className={cn(
-              "font-mono font-semibold",
-              totals.recalcVariance == null ? "text-muted-foreground"
-                : Math.abs(totals.recalcVariance) < 0.5 ? "text-emerald-600"
-                : totals.recalcVariance < 0 ? "text-destructive" : "text-amber-600",
-            )}>
-              {totals.recalcVariance != null
-                ? `${totals.recalcVariance >= 0 ? "+" : ""}₪${totals.recalcVariance.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                : "—"}
-            </span>
-          </Row>
-        </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Order details dialog */}
       <OrderDetailsDialog
@@ -627,6 +623,34 @@ function ShiftDetail({ session }: { session: POSSession }) {
         onClose={() => setOpenOrderId(null)}
         order={openOrderId ? orders.find(o => o.id === openOrderId) || null : null}
       />
+    </div>
+  );
+}
+
+// ── Collapsible section (closed by default) ──
+function CollapsibleSection({
+  title, right, children, defaultOpen = false,
+}: {
+  title: string;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-border rounded">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border flex items-center justify-between hover:bg-muted/50 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          {open ? <ChevronDown className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+          {title}
+        </span>
+        {right}
+      </button>
+      {open && <div>{children}</div>}
     </div>
   );
 }
