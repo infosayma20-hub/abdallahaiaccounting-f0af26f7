@@ -4668,8 +4668,24 @@ const POSPage = () => {
               ];
               for (const job of targets) {
                 for (const gi of grilledItems) {
+                  // Build a stable signature that INCLUDES modifiers, so two
+                  // "قطعتين بروست مشوي" with different toppings (عادي vs حار)
+                  // are NOT collapsed into a single line on the pizza ticket.
+                  const giModsKey = (gi.modifiers || [])
+                    .map((m: any) => `${m.option_name || ''}:${m.extra_price || 0}`)
+                    .sort()
+                    .join('|');
                   const dup = job.items.some(
-                    (x: any) => x.name === gi.name && x.quantity === gi.quantity && (x.note || '') === (gi.note || ''),
+                    (x: any) => {
+                      if (x.name !== gi.name) return false;
+                      if (x.quantity !== gi.quantity) return false;
+                      if ((x.note || '') !== (gi.note || '')) return false;
+                      const xModsKey = (x.modifiers || [])
+                        .map((m: any) => `${m.option_name || ''}:${m.extra_price || 0}`)
+                        .sort()
+                        .join('|');
+                      return xModsKey === giModsKey;
+                    },
                   );
                   if (!dup) job.items.push(gi);
                 }
