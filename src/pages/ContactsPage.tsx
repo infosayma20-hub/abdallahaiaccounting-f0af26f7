@@ -1397,6 +1397,30 @@ const ContactsPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Archive + Reverse Confirmation */}
+      <AlertDialog open={!!reverseContact} onOpenChange={(o) => !o && setReverseContact(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-orange-600">أرشفة مع عكس كامل الحركات</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                سيتم إنشاء قيد عكسي IFRS لكل حركة مالية مرتبطة بـ "{reverseContact?.contact_name}" (الفواتير، السندات، إلخ)،
+                ثم أرشفة الجهة. الحركات الأصلية تبقى محفوظة بختم "عكس قيد" للتدقيق.
+              </span>
+              <span className="block text-destructive font-semibold">
+                ⚠️ هذا الإجراء يصفّر رصيد الجهة محاسبياً ولا يمكن التراجع عنه إلا يدوياً. يتطلب صلاحية مدير أو محاسب أول.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction onClick={handleArchiveWithReversals} disabled={reversing} className="bg-orange-600 text-white hover:bg-orange-700">
+              {reversing ? <Loader2 className="h-4 w-4 animate-spin" /> : "تأكيد الأرشفة والعكس"}
+            </AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
         <AlertDialogContent dir="rtl">
