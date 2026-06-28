@@ -75,7 +75,9 @@ export type AccountantPermKey =
   // Currencies & AI
   | "can_manage_currencies"
   | "can_manage_exchange_rates"
-  | "can_approve_ai_drafts";
+  | "can_approve_ai_drafts"
+  // POS audit (view-only)
+  | "can_audit_pos_shifts";
 
 export type AccountantPerms = Record<AccountantPermKey, boolean>;
 
