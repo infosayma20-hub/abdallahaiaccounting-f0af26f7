@@ -600,10 +600,114 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
                       </div>
                     ))}
                   </div>
+                  {type === "accountant" && (
+                    <div className="mt-3">
+                      <POSAuditPanel
+                        enabled={!!m.can_audit_pos_shifts}
+                        branchIds={(m.pos_allowed_branch_ids as string[]) || []}
+                        allBranches={branchesList}
+                        onChange={(next) =>
+                          updatePosAudit(m, { enabled: next.enabled, branchIds: next.branchIds })
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── POS audit sub-panel ──
+   Boolean master toggle + multi-select of branches whose monetary figures
+   the accountant is allowed to see. Empty list = all branches visible. */
+function POSAuditPanel({
+  enabled,
+  branchIds,
+  allBranches,
+  onChange,
+}: {
+  enabled: boolean;
+  branchIds: string[];
+  allBranches: { id: string; name: string }[];
+  onChange: (next: { enabled: boolean; branchIds: string[] }) => void;
+}) {
+  const toggleBranch = (id: string) => {
+    const set = new Set(branchIds);
+    set.has(id) ? set.delete(id) : set.add(id);
+    onChange({ enabled, branchIds: Array.from(set) });
+  };
+
+  return (
+    <div className="border border-primary/30 rounded-lg p-3 bg-primary/5 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <Store className="h-3.5 w-3.5" /> تدقيق نقطة البيع (عرض فقط)
+          </p>
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            يتيح للمحاسب فتح بطاقة «تدقيق نقطة البيع» لمراجعة الورديات والمبيعات والمدفوعات بدون تعديل أو تصدير.
+          </p>
+        </div>
+        <Switch
+          checked={enabled}
+          onCheckedChange={(v) => onChange({ enabled: v, branchIds })}
+        />
+      </div>
+      {enabled && (
+        <div className="space-y-2 border-t border-primary/20 pt-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium text-muted-foreground">
+              الفروع المسموح للمحاسب رؤية أرقامها
+              <span className="mr-1 text-[10px]">
+                ({branchIds.length === 0 ? "كل الفروع" : `${branchIds.length} فرع`})
+              </span>
+            </p>
+            {branchIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange({ enabled, branchIds: [] })}
+                className="text-[10px] text-muted-foreground hover:text-foreground underline"
+              >
+                إلغاء التقييد (كل الفروع)
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground leading-snug">
+            الفروع غير المحددة ستظهر بالاسم فقط، مع إخفاء جميع الأرقام لحماية بيانات الفروع الأخرى.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 max-h-40 overflow-auto pr-1">
+            {allBranches.length === 0 ? (
+              <p className="col-span-full text-[11px] text-muted-foreground">لا توجد فروع معرّفة بعد.</p>
+            ) : (
+              allBranches.map(b => {
+                const checked = branchIds.includes(b.id);
+                return (
+                  <label
+                    key={b.id}
+                    className={
+                      "flex items-center gap-2 px-2 py-1 rounded border text-[12px] cursor-pointer " +
+                      (checked
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      className="accent-primary"
+                      checked={checked}
+                      onChange={() => toggleBranch(b.id)}
+                    />
+                    <span className="truncate">{b.name}</span>
+                  </label>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
     </div>
