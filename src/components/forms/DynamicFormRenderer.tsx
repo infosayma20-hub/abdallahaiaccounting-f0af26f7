@@ -446,7 +446,11 @@ export default function DynamicFormRenderer({
     }
     onSubmit?.(sanitized);
     if (draftKey) {
-      try { localStorage.removeItem(`dyn-form-draft:${draftKey}`); } catch {}
+      try {
+        localStorage.removeItem(`dyn-form-draft:${draftKey}`);
+        localStorage.removeItem(`dyn-form-draft-backup:${draftKey}`);
+        localStorage.removeItem(`dyn-form-draft-decision:${draftKey}`);
+      } catch {}
     }
   };
 
