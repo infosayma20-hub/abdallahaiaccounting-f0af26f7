@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -285,8 +285,8 @@ export default function DynamicFormRenderer({
   // Track whether the user has actually edited the form. Auto-save must NOT
   // run until then, otherwise opening the form would silently overwrite a
   // previously-saved local draft with the server snapshot.
-  const dirtyRef = React.useRef(false);
-  const restoreDecidedRef = React.useRef(false);
+  const dirtyRef = useRef(false);
+  const restoreDecidedRef = useRef(false);
 
   // Auto-load draft from localStorage on mount
   useEffect(() => {
