@@ -76,6 +76,27 @@ const AppsLauncher = () => {
   const [employeeOnlyRedirect, setEmployeeOnlyRedirect] = useState(cachedRoles?.employeeOnly ?? false);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
+  /* POS-audit gate for accountants: only show the dedicated "تدقيق نقطة البيع"
+     card when the accountant has `can_audit_pos_shifts=true` in their
+     accountant_permissions row. Owners / admins / non-accountants never see
+     this card (they use the regular POS app instead). */
+  const [accountantPosAuditAllowed, setAccountantPosAuditAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user) { setAccountantPosAuditAllowed(false); return; }
+    let cancelled = false;
+    supabase
+      .from("accountant_permissions")
+      .select("can_audit_pos_shifts, is_active")
+      .eq("accountant_auth_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setAccountantPosAuditAllowed(((data as any)?.can_audit_pos_shifts as boolean) === true);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // 🛡️ Watchdog: even if a future hook regression leaves a loading flag stuck
   // (e.g. someone re-adds settingsLoading to the gate), force-render the grid
   // after a hard timeout so a new user NEVER sees endless skeletons.
