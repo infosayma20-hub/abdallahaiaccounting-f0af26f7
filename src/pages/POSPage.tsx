@@ -2915,7 +2915,7 @@ const POSPage = () => {
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
     });
-  }, [isAdmin, posPerms, posFeatPerm]);
+  }, [isAdmin, posPerms, posFeatPerm, setCart]);
 
   // Totals
   const cartTotals = useMemo(() => {
