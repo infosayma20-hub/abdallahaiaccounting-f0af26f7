@@ -4056,10 +4056,17 @@ const POSPage = () => {
 
       // Link call center order to POS order if applicable
       if (activeOrder.callCenterOrderId && orderId) {
-        await supabase
+        // Fire-and-forget — non-critical link write. Awaiting it here was
+        // adding 100-400ms to every call-center order before the heavy
+        // `complete_pos_order` RPC. Failure is harmless: the order is still
+        // saved and posted, only the back-link is missing (recoverable).
+        supabase
           .from("call_center_orders" as any)
           .update({ pos_order_id: orderId } as any)
-          .eq("id", activeOrder.callCenterOrderId);
+          .eq("id", activeOrder.callCenterOrderId)
+          .then(({ error }) => {
+            if (error) console.warn("[POS] link call-center order failed:", error);
+          });
       }
 
       const rate = exchangeRates[paymentCurrency] || 1;
@@ -4209,7 +4216,9 @@ const POSPage = () => {
 
       // Fallback: manually release table if trigger didn't fire
       if (activeOrder.tableId) {
-        await supabase
+        // Fire-and-forget — the DB trigger normally handles this; the manual
+        // update is just a safety net and must not delay the printout.
+        supabase
           .from("restaurant_tables")
           .update({
             status: "available",
@@ -4217,7 +4226,10 @@ const POSPage = () => {
             current_guests: 0,
             occupied_at: null,
           })
-          .eq("id", activeOrder.tableId);
+          .eq("id", activeOrder.tableId)
+          .then(({ error }) => {
+            if (error) console.warn("[POS] release table failed:", error);
+          });
       }
 
       // 🔒 Atomic delta — replaces the previous read-modify-write that caused
@@ -4362,34 +4374,47 @@ const POSPage = () => {
       if (rateEdited && paymentCurrency !== "ILS" && rate !== 1) {
         const currencyDetail = exchangeRateDetails[paymentCurrency];
         if (currencyDetail) {
-          await supabase
+          // Fire-and-forget — saving the override must not block the receipt.
+          supabase
             .from("exchange_rates")
             .update({ pos_rate_override: rate } as any)
             .eq("user_id", dataOwnerId)
             .order("rate_date", { ascending: false })
-            .limit(1);
+            .limit(1)
+            .then(({ error }) => {
+              if (error) console.warn("[POS] save rate override failed:", error);
+            });
         }
       }
 
       // Update pos_customer visits and spending
       const posCustomerId = activeOrder.posCustomerId || (customerDataDiscount?.customerId);
       if (posCustomerId) {
-        const { data: pcData } = await supabase
-          .from("pos_customers")
-          .select("total_visits, total_spent, total_discounts")
-          .eq("id", posCustomerId)
-          .single();
-        if (pcData) {
-          await supabase
-            .from("pos_customers")
-            .update({
-              total_visits: ((pcData as any).total_visits || 0) + 1,
-              total_spent: ((pcData as any).total_spent || 0) + effectiveTotal,
-              total_discounts: ((pcData as any).total_discounts || 0) + effectiveDiscount,
-              last_visit: new Date().toISOString(),
-            } as any)
-            .eq("id", posCustomerId);
-        }
+        // Fire-and-forget — visit counters are display stats only. The
+        // sequential SELECT-then-UPDATE was adding ~150-300ms before the
+        // receipt print. Errors are logged but never block the cashier.
+        (async () => {
+          try {
+            const { data: pcData } = await supabase
+              .from("pos_customers")
+              .select("total_visits, total_spent, total_discounts")
+              .eq("id", posCustomerId)
+              .single();
+            if (pcData) {
+              await supabase
+                .from("pos_customers")
+                .update({
+                  total_visits: ((pcData as any).total_visits || 0) + 1,
+                  total_spent: ((pcData as any).total_spent || 0) + effectiveTotal,
+                  total_discounts: ((pcData as any).total_discounts || 0) + effectiveDiscount,
+                  last_visit: new Date().toISOString(),
+                } as any)
+                .eq("id", posCustomerId);
+            }
+          } catch (e) {
+            console.warn("[POS] update pos_customer stats failed:", e);
+          }
+        })();
       }
 
       loadProducts();
