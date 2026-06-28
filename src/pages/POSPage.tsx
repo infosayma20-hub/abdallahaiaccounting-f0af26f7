@@ -7600,7 +7600,13 @@ const POSPage = () => {
                   return true;
                 }).map((m) => {
                   const isSplitTile = m.key === "__split";
-                  const isActive = isSplitTile ? splitMode : (!splitMode && paymentMethod === m.key);
+                  const isActive = isSplitTile
+                    ? splitMode
+                    : (!splitMode && (
+                        m.key === "card"
+                          ? (paymentMethod === "card" || paymentMethod.startsWith("card:"))
+                          : paymentMethod === m.key
+                      ));
                   const lockedOut = isPaymentLockedByCC && (isSplitTile || m.key !== ccLockedMethod);
                   return (
                     <motion.button
