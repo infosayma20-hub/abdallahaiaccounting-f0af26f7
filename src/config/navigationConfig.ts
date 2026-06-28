@@ -209,6 +209,22 @@ export const navigationSections: NavSection[] = [
         ],
       },
       {
+        /* بطاقة مخصّصة للمحاسب — مفعّلة فقط حين يمنحه المالك صلاحية
+           «تدقيق ورديات نقطة البيع» في إعدادات المحاسبين. الفلترة الفعلية
+           تتم في AppsLauncher عبر فحص accountant_permissions، ولا تظهر
+           البطاقة لباقي المستخدمين. */
+        id: "pos-audit",
+        label: "تدقيق نقطة البيع",
+        description: "مراجعة ورديات ومبيعات ومدفوعات نقطة البيع (عرض فقط)",
+        module: "pos",
+        icon: ClipboardList,
+        color: "text-emerald-300",
+        bgColor: "bg-emerald-500/10",
+        path: "/pos-reports",
+        isDirect: true,
+        keywords: ["تدقيق", "ورديات", "تقارير", "محاسب", "pos"],
+      },
+      {
         id: "inventory", label: "المخزون", description: "منتجات، مستودعات، حركات، وتقييم", module: "inventory", icon: Package,
         color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
         enableSetting: "has_inventory",
