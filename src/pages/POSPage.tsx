@@ -4214,7 +4214,6 @@ const POSPage = () => {
       );
       if (safePaymentsPayload.length === 0) {
         toast.error("لا يوجد مبلغ للدفع — تحقق من قيمة الفاتورة وطريقة الدفع");
-        setIsProcessingCheckout(false);
         return;
       }
 
