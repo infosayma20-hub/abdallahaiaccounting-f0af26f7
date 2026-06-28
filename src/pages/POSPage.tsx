@@ -2894,7 +2894,7 @@ const POSPage = () => {
   const removeFromCart = useCallback((index: number) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
     if (selectedCartIndex === index) setSelectedCartIndex(null);
-  }, [selectedCartIndex]);
+  }, [selectedCartIndex, setCart, setSelectedCartIndex]);
 
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
     // Enforce price editing permission (legacy posPerms + feature override)
@@ -2915,7 +2915,7 @@ const POSPage = () => {
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
     });
-  }, [isAdmin, posPerms, posFeatPerm]);
+  }, [isAdmin, posPerms, posFeatPerm, setCart]);
 
   // Totals
   const cartTotals = useMemo(() => {
