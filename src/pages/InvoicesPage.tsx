@@ -1709,7 +1709,15 @@ const InvoicesPage = () => {
               />
 
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
-                <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
+                <InvoicePrintView
+                  invoice={(() => {
+                    const c = (contacts as any[]).find(x => x.id === (selectedInvoice as any).contactId);
+                    const bal = c && typeof c.balance === "number" ? c.balance : undefined;
+                    return bal != null ? { ...selectedInvoice, contactClosingBalance: bal } : selectedInvoice;
+                  })()}
+                  settings={companySettings}
+                  copyLabel="أصلية"
+                />
               </div>
             </div>
           )}
