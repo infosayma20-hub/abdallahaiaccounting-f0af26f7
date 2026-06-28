@@ -2272,12 +2272,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const amt = amountNum;
     // ─── حماية: لا تطبع سند فارغ (بدون مبلغ أو بدون طرف) ───
     if (amt <= 0 || !partyName) {
-      toast({
-        title: "لا يمكن الطباعة",
+      toast.error("لا يمكن الطباعة", {
         description: amt <= 0
           ? "يرجى إدخال مبلغ السند قبل الطباعة."
           : "يرجى اختيار الجهة (الزبون/المورد/الموظف) قبل الطباعة.",
-        variant: "destructive",
       });
       return;
     }
