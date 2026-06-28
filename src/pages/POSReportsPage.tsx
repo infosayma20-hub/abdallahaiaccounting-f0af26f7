@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { usePOSReportsData, type DatePreset } from "@/hooks/usePOSReportsData";
+import { useAccountantPOSAudit } from "@/hooks/useAccountantPOSAudit";
+import { EyeOff } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,6 +72,9 @@ const POSReportsPage = () => {
   const data = usePOSReportsData(branchId);
   const [activeTab, setActiveTab] = useState("sales");
   const navigate = useNavigate();
+  const audit = useAccountantPOSAudit();
+  const amountsMasked = audit.shouldMaskBranchAmounts(branchId);
+  const viewOnly = audit.isViewOnly;
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -151,9 +156,19 @@ const POSReportsPage = () => {
       <div className="bg-card border-b border-border px-5 print:hidden">
         <div className="max-w-full mx-auto flex items-center h-9 gap-1 text-[11px]">
           <CmdButton onClick={data.refetch} icon={RefreshCw} label="تحديث" />
-          <Divider />
-          <CmdButton onClick={handleExportExcel} icon={Download} label="تصدير Excel" />
-          <CmdButton onClick={handlePrint} icon={Printer} label="طباعة" />
+          {!viewOnly && (
+            <>
+              <Divider />
+              <CmdButton onClick={handleExportExcel} icon={Download} label="تصدير Excel" />
+              <CmdButton onClick={handlePrint} icon={Printer} label="طباعة" />
+            </>
+          )}
+          {viewOnly && (
+            <span className="ml-2 text-[11px] text-muted-foreground inline-flex items-center gap-1">
+              <EyeOff className="w-3 h-3" />
+              وضع التدقيق · عرض فقط
+            </span>
+          )}
         </div>
       </div>
 
@@ -211,12 +226,12 @@ const POSReportsPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-            <KPITile title="مبيعات المطعم" value={data.totalSales} prefix="₪" hint="بدون التوصيل" />
-            <KPITile title="عدد الطلبات" value={data.totalOrders} />
-            <KPITile title="متوسط الفاتورة" value={Math.round(data.avgOrderValue)} prefix="₪" />
-            <KPITile title="هامش الربح" value={data.grossMargin} suffix="%" decimals={1} />
-            <KPITile title="رسوم التوصيل" value={data.deliveryCollected} prefix="₪" hint="لشركة التوصيل" />
-            <KPITile title="إجمالي التحصيل" value={data.customerCollected} prefix="₪" hint="مبيعات + توصيل" />
+            <KPITile title="مبيعات المطعم" value={data.totalSales} prefix="₪" hint="بدون التوصيل" masked={amountsMasked} />
+            <KPITile title="عدد الطلبات" value={data.totalOrders} masked={amountsMasked} />
+            <KPITile title="متوسط الفاتورة" value={Math.round(data.avgOrderValue)} prefix="₪" masked={amountsMasked} />
+            <KPITile title="هامش الربح" value={data.grossMargin} suffix="%" decimals={1} masked={amountsMasked} />
+            <KPITile title="رسوم التوصيل" value={data.deliveryCollected} prefix="₪" hint="لشركة التوصيل" masked={amountsMasked} />
+            <KPITile title="إجمالي التحصيل" value={data.customerCollected} prefix="₪" hint="مبيعات + توصيل" masked={amountsMasked} />
           </div>
         )}
 
@@ -247,6 +262,14 @@ const POSReportsPage = () => {
             <Skeleton className="h-[300px] rounded-lg" />
             <Skeleton className="h-[200px] rounded-lg" />
           </div>
+        ) : amountsMasked ? (
+          <MaskedAmountsNotice
+            branchName={data.branches.find(b => b.id === branchId)?.name || null}
+            allowedBranchNames={audit.allowedBranchIds
+              .map(id => data.branches.find(b => b.id === id)?.name)
+              .filter(Boolean) as string[]}
+            cashierNames={Array.from(new Set(data.cashierPerformance.map(c => c.name).filter(Boolean)))}
+          />
         ) : (
           <div className="mt-0">
             {activeTab === "sales" && <POSSalesReport dailySales={data.dailySales} orders={[...data.paidOrders, ...data.returnOrders]} onRefetch={data.refetch} />}
@@ -279,17 +302,71 @@ const POSReportsPage = () => {
 };
 
 // ── KPI Tile (Dynamics-style, dense) ──
-const KPITile = ({ title, value, prefix, suffix, decimals = 0, hint }: {
-  title: string; value: number; prefix?: string; suffix?: string; decimals?: number; hint?: string;
+const KPITile = ({ title, value, prefix, suffix, decimals = 0, hint, masked = false }: {
+  title: string; value: number; prefix?: string; suffix?: string; decimals?: number; hint?: string; masked?: boolean;
 }) => (
   <div className="bg-card border border-border rounded px-3 py-2">
     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">{title}</p>
     <p className="text-[18px] font-semibold text-foreground mt-0.5 font-mono tabular-nums leading-tight">
-      {prefix && <span className="text-[12px] ml-0.5 text-muted-foreground">{prefix}</span>}
-      {decimals > 0 ? value.toFixed(decimals) : value.toLocaleString()}
-      {suffix && <span className="text-[12px] mr-0.5 text-muted-foreground">{suffix}</span>}
+      {masked ? (
+        <span className="text-muted-foreground">— — —</span>
+      ) : (
+        <>
+          {prefix && <span className="text-[12px] ml-0.5 text-muted-foreground">{prefix}</span>}
+          {decimals > 0 ? value.toFixed(decimals) : value.toLocaleString()}
+          {suffix && <span className="text-[12px] mr-0.5 text-muted-foreground">{suffix}</span>}
+        </>
+      )}
     </p>
     {hint && <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug truncate">{hint}</p>}
+  </div>
+);
+
+/* ── Notice shown when an accountant views a restricted branch ──
+   Names visible, monetary figures hidden. Allows the accountant to verify
+   coverage (branch list + cashier roster) without leaking any sales data. */
+const MaskedAmountsNotice = ({
+  branchName,
+  allowedBranchNames,
+  cashierNames,
+}: {
+  branchName: string | null;
+  allowedBranchNames: string[];
+  cashierNames: string[];
+}) => (
+  <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+    <div className="flex items-start gap-3">
+      <EyeOff className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground">الأرقام مخفية لهذا الفرع</h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {branchName
+            ? <>فرع <span className="font-medium text-foreground">«{branchName}»</span> غير ضمن الفروع المسموح لك بمراجعة أرقامها. تظهر الأسماء فقط — راجع الإدارة لطلب توسيع الصلاحية.</>
+            : <>اخترت «كل الفروع». لحماية بيانات الفروع غير المخصصة لك، يجب اختيار فرع محدد من قائمتك لعرض الأرقام.</>
+          }
+        </p>
+      </div>
+    </div>
+    {allowedBranchNames.length > 0 && (
+      <div className="border-t border-border pt-3">
+        <p className="text-[11px] font-medium text-muted-foreground mb-1.5">الفروع المسموحة لك:</p>
+        <div className="flex flex-wrap gap-1.5">
+          {allowedBranchNames.map(n => (
+            <span key={n} className="text-[11px] px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{n}</span>
+          ))}
+        </div>
+      </div>
+    )}
+    {cashierNames.length > 0 && (
+      <div className="border-t border-border pt-3">
+        <p className="text-[11px] font-medium text-muted-foreground mb-1.5">الكاشيرون النشطون في الفترة:</p>
+        <div className="flex flex-wrap gap-1.5">
+          {cashierNames.map(n => (
+            <span key={n} className="text-[11px] px-2 py-0.5 rounded bg-muted text-foreground border border-border">{n}</span>
+          ))}
+        </div>
+      </div>
+    )}
   </div>
 );
 
