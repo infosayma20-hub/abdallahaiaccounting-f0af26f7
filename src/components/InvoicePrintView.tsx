@@ -681,30 +681,49 @@ const InvoicePrintView = ({
           {/* ━━━ رصيد الجهة الختامي (اختياري) ━━━ */}
           {typeof invoice.contactClosingBalance === "number" && (
             <div style={{
-              marginTop: "10px",
-              padding: "8px 10px",
-              borderTop: "2px solid #1B3A5C",
-              background: "#F8FAFC",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "#0D1B2E",
-              borderRadius: "0 0 6px 6px",
+              marginTop: "14px",
+              border: "1.5px solid #1B3A5C",
+              borderRadius: "10px",
+              overflow: "hidden",
+              background: "white",
+              boxShadow: "0 1px 2px rgba(13,27,46,0.06)",
             }}>
-              <span>
-                {invoice.contactClosingBalanceLabel
-                  || (invoice.type === "sales" ? "رصيد الزبون بعد الفاتورة" : "رصيد المورد بعد الفاتورة")}
-              </span>
-              <span style={{
-                fontFeatureSettings: "'tnum'",
-                direction: "ltr",
-                color: invoice.contactClosingBalance > 0 ? "#DC2626" : invoice.contactClosingBalance < 0 ? "#16A34A" : "#0D1B2E",
+              <div style={{
+                background: "#1B3A5C",
+                color: "white",
+                padding: "7px 12px",
+                fontSize: "12px",
+                fontWeight: 700,
+                letterSpacing: "0.3px",
+                textAlign: "right",
               }}>
-                {fmtAmount(Math.abs(invoice.contactClosingBalance))}
-                {invoice.contactClosingBalance > 0 ? " (مدين)" : invoice.contactClosingBalance < 0 ? " (دائن)" : ""}
-              </span>
+                {invoice.contactClosingBalanceLabel
+                  || (invoice.type === "sales" ? "رصيد العميل بعد الفاتورة" : "رصيد المورد بعد الفاتورة")}
+              </div>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 14px",
+                background: "#F8FAFC",
+              }}>
+                <span style={{ fontSize: "12px", color: "#6B7280", fontWeight: 600 }}>
+                  {invoice.contactClosingBalance > 0
+                    ? (invoice.type === "sales" ? "مستحق على العميل" : "مستحق لنا")
+                    : invoice.contactClosingBalance < 0
+                      ? (invoice.type === "sales" ? "رصيد للعميل (دائن)" : "مستحق للمورد")
+                      : "الرصيد صفر"}
+                </span>
+                <span style={{
+                  fontFeatureSettings: "'tnum'",
+                  direction: "ltr",
+                  fontSize: "17px",
+                  fontWeight: 800,
+                  color: invoice.contactClosingBalance > 0 ? "#DC2626" : invoice.contactClosingBalance < 0 ? "#16A34A" : "#0D1B2E",
+                }}>
+                  {fmtAmount(Math.abs(invoice.contactClosingBalance))}
+                </span>
+              </div>
             </div>
           )}
         </div>
