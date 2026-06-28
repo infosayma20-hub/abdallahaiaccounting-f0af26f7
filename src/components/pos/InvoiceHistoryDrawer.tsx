@@ -21,7 +21,7 @@ import { multiWordMatchAny } from "@/lib/utils";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
-import { printReceiptImage } from "@/lib/image-print-service";
+import { printReceiptImage, printStationTicketImage, printKitchenTicketsImage } from "@/lib/image-print-service";
 import { getServerNow, initServerClock, isClockSkewed, getClockSkewMs } from "@/lib/pos/server-clock";
 
 // ── Types ──
@@ -261,6 +261,8 @@ export default function InvoiceHistoryDrawer({
   const [orderPayments, setOrderPayments] = useState<InvoicePayment[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [reprintCopies, setReprintCopies] = useState<number>(1);
+  // Kitchen reprint: which station to send the copy to ("all" = every station)
+  const [reprintStation, setReprintStation] = useState<"all" | "kitchen" | "grill" | "pizza">("all");
   // Fallback phone fetched from linked call_center_orders when pos_orders has no contact phone
   const [ccoPhone, setCcoPhone] = useState<string | null>(null);
   const [ccoDispatcher, setCcoDispatcher] = useState<string | null>(null);
