@@ -92,6 +92,14 @@ function buildInitialData(schema: FormSchema, initial?: Record<string, any>): Re
   return data;
 }
 
+function draftSignature(value: string): string {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(i);
+  }
+  return `${value.length}:${(hash >>> 0).toString(36)}`;
+}
+
 function FieldInput({
   field, value, onChange, disabled,
 }: { field: FieldDef; value: any; onChange: (v: any) => void; disabled?: boolean }) {
@@ -294,6 +302,8 @@ export default function DynamicFormRenderer({
     try {
       const primaryKey = `dyn-form-draft:${draftKey}`;
       const backupKey = `dyn-form-draft-backup:${draftKey}`;
+      const decisionKey = `dyn-form-draft-decision:${draftKey}`;
+      const serverSaveKey = `dyn-form-draft-server-save:${draftKey}`;
       let raw = localStorage.getItem(primaryKey);
       let fromBackup = false;
       if (!raw) {
@@ -311,6 +321,25 @@ export default function DynamicFormRenderer({
           const serverStr = JSON.stringify(initialData);
           const localStr = JSON.stringify(parsed);
           if (localStr && localStr !== serverStr && localStr.length > 5) {
+            // Always preserve a safety copy before showing any prompt. This is
+            // the user's only copy if the server draft is stale.
+            const signature = draftSignature(localStr);
+            try { localStorage.setItem(backupKey, localStr); } catch {}
+
+            const previousDecision = localStorage.getItem(decisionKey);
+            if (previousDecision === `restore:${signature}`) {
+              const restored = buildInitialData(schema, parsed);
+              setData(restored);
+              dirtyRef.current = true;
+              try { localStorage.setItem(primaryKey, JSON.stringify(restored)); } catch {}
+              restoreDecidedRef.current = true;
+              return;
+            }
+            if (previousDecision === `server:${signature}`) {
+              restoreDecidedRef.current = true;
+              return;
+            }
+
             const ok = window.confirm(
               (fromBackup
                 ? "تم العثور على نسخة احتياطية من تعديلاتك المحلية السابقة.\n"
@@ -318,13 +347,29 @@ export default function DynamicFormRenderer({
               "هل تريد استرجاعها؟\n(اضغط إلغاء لاستخدام النسخة المحفوظة على السيرفر — وسيتم الاحتفاظ بنسخة احتياطية)"
             );
             if (ok) {
-              setData(buildInitialData(schema, parsed));
+              const restored = buildInitialData(schema, parsed);
+              setData(restored);
               dirtyRef.current = true; // keep it persisted
+              // Remember this exact local draft was accepted so React remounts
+              // or StrictMode cannot show the same browser dialog repeatedly.
+              try {
+                localStorage.setItem(decisionKey, `restore:${signature}`);
+                localStorage.setItem(primaryKey, JSON.stringify(restored));
+                localStorage.setItem(backupKey, JSON.stringify(restored));
+              } catch {}
+              // Push the recovered local copy to the server immediately. The
+              // backup remains locally even if the network save fails.
+              const previousServerSave = localStorage.getItem(serverSaveKey);
+              if (previousServerSave !== signature) {
+                try { localStorage.setItem(serverSaveKey, signature); } catch {}
+                onSaveDraft?.(restored);
+              }
             } else {
               // SAFETY: don't lose the draft. Move it to a backup slot so the
               // user (or support) can still recover it later.
               try {
-                localStorage.setItem(backupKey, JSON.stringify(parsed));
+                localStorage.setItem(decisionKey, `server:${signature}`);
+                localStorage.setItem(backupKey, localStr);
                 localStorage.removeItem(primaryKey);
               } catch {}
             }
@@ -369,6 +414,7 @@ export default function DynamicFormRenderer({
   };
 
   const addRepeaterRow = (section: Extract<SectionDef, { type: "repeater" }>) => {
+    dirtyRef.current = true;
     setData((prev) => ({
       ...prev,
       [section.key]: [...(prev[section.key] || []), makeEmptyRow(section.fields)],
@@ -376,6 +422,7 @@ export default function DynamicFormRenderer({
   };
 
   const removeRepeaterRow = (sectionKey: string, idx: number) => {
+    dirtyRef.current = true;
     setData((prev) => {
       const rows = [...(prev[sectionKey] || [])];
       rows.splice(idx, 1);
@@ -403,7 +450,12 @@ export default function DynamicFormRenderer({
     }
     onSubmit?.(sanitized);
     if (draftKey) {
-      try { localStorage.removeItem(`dyn-form-draft:${draftKey}`); } catch {}
+      try {
+        localStorage.removeItem(`dyn-form-draft:${draftKey}`);
+        localStorage.removeItem(`dyn-form-draft-backup:${draftKey}`);
+        localStorage.removeItem(`dyn-form-draft-decision:${draftKey}`);
+        localStorage.removeItem(`dyn-form-draft-server-save:${draftKey}`);
+      } catch {}
     }
   };
 
