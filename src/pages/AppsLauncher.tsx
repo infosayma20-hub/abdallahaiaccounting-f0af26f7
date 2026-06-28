@@ -254,13 +254,15 @@ const AppsLauncher = () => {
     let allApps = appSections.flatMap(s => s.items);
     // Per-user deny: hide entirely from launcher
     allApps = allApps.filter(app => !denyOverrides.has(app.id));
+    // POS-audit card is reserved for accountants who were explicitly granted it.
+    allApps = allApps.filter(app => app.id !== "pos-audit" || accountantPosAuditAllowed === true);
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
       const allowed = ROLE_ALLOWED_APPS[restrictedRole];
       // explicit allow override unlocks an app even if role would block it
       allApps = allApps.filter(app => allowed.includes(app.id) || allowOverrides.has(app.id));
     }
     return allApps;
-  }, [restrictedRole, allowOverrides, denyOverrides]);
+  }, [restrictedRole, allowOverrides, denyOverrides, accountantPosAuditAllowed]);
 
   /* Filter apps by role + search + category; group by section.
      التطبيقات المعطّلة (hidden_apps) تُعرض ضمن قسم Premium كبطاقات
