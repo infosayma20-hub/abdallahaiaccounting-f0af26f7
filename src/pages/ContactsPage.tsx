@@ -1029,6 +1029,9 @@ const ContactsPage = () => {
                                 <DropdownMenuItem onClick={() => setArchiveContact(contact)}>
                                   <Archive className="h-4 w-4 ml-2" /> أرشفة
                                 </DropdownMenuItem>
+                                <DropdownMenuItem className="text-orange-600" onClick={() => setReverseContact(contact)}>
+                                  <ArchiveRestore className="h-4 w-4 ml-2" /> أرشفة + عكس الحركات
+                                </DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive" onClick={() => setDeleteContact(contact)}>
                                   <Trash2 className="h-4 w-4 ml-2" /> حذف نهائي
                                 </DropdownMenuItem>
