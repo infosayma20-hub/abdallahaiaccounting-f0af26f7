@@ -1732,7 +1732,20 @@ const InvoiceCreatePage = () => {
   });
 
   const handlePrint = (previewOnly: boolean = false) => {
-    const previewInvoice = buildPrintInvoice();
+    const baseInvoice = buildPrintInvoice();
+    // الرصيد الختامي للجهة بعد احتساب الفاتورة الحالية
+    const baselineBalance = contactStatementBalance ?? selectedContact?.balance ?? (selectedContact as any)?.current_balance ?? null;
+    let closingBalance: number | undefined;
+    if (baselineBalance != null) {
+      const remaining = Number(baseInvoice.remainingAmount || 0);
+      // مبيعات: تزيد ذمة العميل (مدين). مشتريات: تزيد ذمة المورد (دائن => سالب).
+      const delta = baseInvoice.type === "sales" ? remaining : -remaining;
+      // إن كنا في وضع تعديل فاتورة محفوظة، الرصيد الأصلي يشملها فعلاً، فلا نضيف delta.
+      closingBalance = isEditMode ? Number(baselineBalance) : Number(baselineBalance) + delta;
+    }
+    const previewInvoice = closingBalance != null
+      ? { ...baseInvoice, contactClosingBalance: closingBalance, contactClosingBalanceLabel: baseInvoice.type === "sales" ? "رصيد العميل بعد الفاتورة" : "رصيد المورد بعد الفاتورة" }
+      : baseInvoice;
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`<html dir="rtl"><head><title>فاتورة ${previewInvoice.invoiceNumber}</title>
