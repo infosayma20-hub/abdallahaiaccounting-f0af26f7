@@ -431,6 +431,11 @@ const AccountStatementV2Page = () => {
       };
       related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
       resolveDebitCredit = (tx) => ({ isDebit: matchesContactAccount(tx.debit_account_code), isCredit: matchesContactAccount(tx.credit_account_code) });
+      // Hybrid helper exposed via closure for the row-builder below: cash sales / cash payments
+      // touch the contact_id but don't post to AR/AP. We surface them as INFO rows (debit & credit
+      // both equal to the amount → balance unchanged) so the user sees the activity in the ledger.
+      (resolveDebitCredit as any).__isContactBranch = true;
+      (resolveDebitCredit as any).__sameNameIds = sameNameIds;
     }
 
     const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
