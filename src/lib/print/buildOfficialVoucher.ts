@@ -314,8 +314,8 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     .doc-logo-big { object-fit: contain; display: inline-block; }
     .doc-company-name-big { font-size: 28px; font-weight: 800; color: ${PRIMARY}; letter-spacing: 0.5px; }
     .doc-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-    .doc-company-info { text-align: left; font-size: 10px; color: ${MUTED}; line-height: 1.6; max-width: 260px; }
-    .doc-company-info .doc-company-name { font-size: 12px; font-weight: 700; color: ${PRIMARY}; margin-bottom: 2px; }
+    .doc-company-info { text-align: right; font-size: 10px; color: ${MUTED}; line-height: 1.6; max-width: 260px; }
+    .doc-company-info .doc-company-name { font-size: 14px; font-weight: 800; color: ${PRIMARY}; margin-bottom: 2px; }
     .doc-company-info .doc-company-sub { font-size: 10px; color: ${MUTED}; }
     .doc-company { display: flex; gap: 12px; align-items: center; min-width: 0; }
     .doc-logo { height: 46px; width: auto; object-fit: contain; }
