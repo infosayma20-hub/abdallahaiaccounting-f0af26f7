@@ -361,6 +361,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             {(activeTemplate.schema as any)?.kind === "monthly_inventory" ? (
               <MonthlyInventoryRenderer
                 employeeId={employeeId}
+                draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
                 initialData={activeDraft?.form_data}
                 submitting={submitting}
                 onSubmit={handleSubmit}
@@ -405,6 +406,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               {(activeTemplate.schema as any)?.kind === "monthly_inventory" ? (
                 <MonthlyInventoryRenderer
                   employeeId={employeeId}
+                  draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
                   initialData={activeDraft?.form_data}
                   submitting={submitting}
                   onSubmit={handleSubmit}
