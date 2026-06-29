@@ -229,17 +229,34 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
   const balanceBoxHtml = o.balanceBox
     ? (() => {
         const b = o.balanceBox!;
-        const card = (label: string, value: string, nature: string | undefined, accent: boolean) => `
-          <div class="bal-card ${accent ? "bal-card-now" : ""}">
-            <div class="bal-head ${accent ? "bal-head-now" : ""}">${escapeHtml(label)}</div>
-            <div class="bal-body">
-              <span class="bal-nature">${escapeHtml(nature || "")}</span>
-              <span class="bal-amount">${escapeHtml(value)}</span>
+        const signSymbol = b.movementSign === "-" ? "−" : "+";
+        const signClass = b.movementSign === "-" ? "bal-sign-neg" : "bal-sign-pos";
+        const movementRow = b.movementValue
+          ? `<div class="bal-row bal-row-move">
+               <div class="bal-row-l">
+                 <span class="bal-sign ${signClass}">${signSymbol}</span>
+                 <span>${escapeHtml(b.movementLabel || "قيمة السند")}</span>
+               </div>
+               <div class="bal-row-v ${signClass}">${escapeHtml(b.movementValue)}</div>
+             </div>`
+          : "";
+        return `<section class="doc-balance-card">
+          <div class="bal-card-head">
+            <span>كشف حركة الرصيد</span>
+            ${b.partyName ? `<span class="bal-card-party">${escapeHtml(b.partyName)}</span>` : ""}
+          </div>
+          <div class="bal-card-body">
+            <div class="bal-row">
+              <div class="bal-row-l">${escapeHtml(b.beforeLabel || "الرصيد السابق")}<span class="bal-nature-pill">${escapeHtml(b.beforeNature || "")}</span></div>
+              <div class="bal-row-v">${escapeHtml(b.beforeValue)}</div>
             </div>
-          </div>`;
-        return `<section class="doc-balance-wrap">
-          ${card(b.beforeLabel || "الرصيد السابق", b.beforeValue, b.beforeNature, false)}
-          ${card(b.afterLabel || "الرصيد الحالي", b.afterValue, b.afterNature, true)}
+            ${movementRow}
+            <div class="bal-divider"></div>
+            <div class="bal-row bal-row-final">
+              <div class="bal-row-l">${escapeHtml(b.afterLabel || "الرصيد الحالي")}<span class="bal-nature-pill bal-nature-pill-now">${escapeHtml(b.afterNature || "")}</span></div>
+              <div class="bal-row-v">${escapeHtml(b.afterValue)}</div>
+            </div>
+          </div>
         </section>`;
       })()
     : "";
