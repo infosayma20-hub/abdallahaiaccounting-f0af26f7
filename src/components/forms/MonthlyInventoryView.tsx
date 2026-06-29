@@ -1,5 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, FileSpreadsheet } from "lucide-react";
+import { exportMonthlyInventoryToExcel } from "./monthlyInventoryExcel";
+import { toast } from "@/hooks/use-toast";
 
 type Line = { category: string; item: string; unit: string; qty: number };
 type CatSummary = { category: string; qty: number; filled: number; total: number };
@@ -34,10 +37,27 @@ export default function MonthlyInventoryView({ data }: Props) {
         <CardContent className="p-4 flex flex-wrap items-center gap-3 text-sm">
           <div><span className="text-muted-foreground">الفرع:</span> <b>{branchName || "—"}</b></div>
           <div><span className="text-muted-foreground">الشهر:</span> <b>{month || "—"}</b></div>
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs mr-auto">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs">
             <Package className="h-3.5 w-3.5" />
             مجموع الكميات: <b>{totalQty}</b>
           </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-1.5 mr-auto"
+            onClick={() => {
+              try {
+                exportMonthlyInventoryToExcel(data);
+                toast({ title: "تم تنزيل ملف Excel" });
+              } catch (e: any) {
+                toast({ title: "تعذر التصدير", description: e.message, variant: "destructive" });
+              }
+            }}
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            تنزيل Excel
+          </Button>
         </CardContent>
       </Card>
 
