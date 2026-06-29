@@ -2386,7 +2386,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const after = before + delta;
             const sign = (n: number) => n > 0 ? "مدين" : n < 0 ? "دائن" : "متوازن";
             return {
-              partyName: selectedContact.name,
+              partyName: selectedContact.contact_name,
               beforeLabel: "الرصيد السابق",
               beforeValue: `${currencySymbol}${fmtAmt(Math.abs(before))}`,
               beforeNature: sign(before),
