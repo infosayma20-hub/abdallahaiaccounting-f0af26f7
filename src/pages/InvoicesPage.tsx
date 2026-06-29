@@ -766,8 +766,11 @@ const InvoicesPage = () => {
     // اجلب الرصيد الختامي للجهة من الحالة المحملة (contacts withBalances)
     const contactRow = (contacts as any[]).find(c => c.id === (selectedInvoice as any).contactId);
     const closingBalance = contactRow && typeof contactRow.balance === "number" ? contactRow.balance : undefined;
+    const openingBalance = closingBalance != null
+      ? closingBalance - (selectedInvoice.type === "sales" ? Number(selectedInvoice.remainingAmount || 0) : -Number(selectedInvoice.remainingAmount || 0))
+      : undefined;
     const invoiceForPrint = closingBalance != null
-      ? { ...selectedInvoice, contactClosingBalance: closingBalance }
+      ? { ...selectedInvoice, contactClosingBalance: closingBalance, contactOpeningBalance: openingBalance }
       : selectedInvoice;
     
     win.document.write(`<html dir="rtl"><head>
