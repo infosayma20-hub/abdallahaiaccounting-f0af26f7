@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Save, Send, Package } from "lucide-react";
+import { Loader2, Save, Send, Package, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { exportMonthlyInventoryToExcel } from "./monthlyInventoryExcel";
 
 /**
  * Monthly Inventory Renderer
@@ -64,6 +65,8 @@ interface Props {
   onSubmit?: (data: Record<string, any>) => void;
   onSaveDraft?: (data: Record<string, any>) => void;
   readOnly?: boolean;
+  /** Optional key for local-storage auto-draft (per template + employee). */
+  draftKey?: string;
 }
 
 function currentMonthValue(): string {
@@ -79,18 +82,30 @@ export default function MonthlyInventoryRenderer({
   onSubmit,
   onSaveDraft,
   readOnly,
+  draftKey,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [autoBranchKey, setAutoBranchKey] = useState<string | null>(null);
-  const [branchKey, setBranchKey] = useState<string>(initialData?.branch_key || "");
-  const [month, setMonth] = useState<string>(initialData?.month || currentMonthValue());
+  // Restore local draft when no explicit initial data is provided.
+  const localDraft = useMemo(() => {
+    if (!draftKey || initialData) return null;
+    try {
+      const raw = localStorage.getItem(`mi-draft:${draftKey}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, [draftKey, initialData]);
+  const seed = initialData || localDraft || {};
+  const [branchKey, setBranchKey] = useState<string>(seed.branch_key || "");
+  const [month, setMonth] = useState<string>(seed.month || currentMonthValue());
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, string>>(() => {
-    const q = initialData?.quantities || {};
+    const q = seed.quantities || {};
     const out: Record<string, string> = {};
     Object.keys(q).forEach((k) => { out[k] = String(q[k] ?? ""); });
     return out;
   });
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [restoredFromDraft] = useState<boolean>(!!localDraft && !initialData);
 
   // Auto-detect manager's branch from their employee record.
   useEffect(() => {
@@ -148,6 +163,9 @@ export default function MonthlyInventoryRenderer({
     return Array.from(map.entries()); // preserves catalog order
   }, [catalog]);
 
+  // Flat order of items (used to move focus to the next input on Enter).
+  const flatOrder = useMemo(() => catalog.map((c) => c.id), [catalog]);
+
   const summaryByCategory = useMemo(() => {
     return grouped.map(([cat, items]) => {
       let qty = 0, filled = 0;
@@ -191,10 +209,33 @@ export default function MonthlyInventoryRenderer({
     };
   };
 
+  // Auto-save draft to localStorage (debounced) so manager can resume after closing the page.
+  useEffect(() => {
+    if (!draftKey || readOnly) return;
+    const t = setTimeout(() => {
+      try {
+        const payload = {
+          branch_key: branchKey,
+          month,
+          quantities: Object.fromEntries(
+            Object.entries(quantities).filter(([, v]) => v !== "" && v != null)
+          ),
+        };
+        localStorage.setItem(`mi-draft:${draftKey}`, JSON.stringify(payload));
+      } catch { /* ignore quota */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [draftKey, readOnly, branchKey, month, quantities]);
+
   const handleSubmit = () => {
     if (!branchKey) { toast({ title: "اختر الفرع أولاً", variant: "destructive" }); return; }
     if (!month) { toast({ title: "اختر الشهر أولاً", variant: "destructive" }); return; }
-    onSubmit?.(buildPayload());
+    const payload = buildPayload();
+    onSubmit?.(payload);
+    // Clear local draft after a successful submit dispatch.
+    if (draftKey) {
+      try { localStorage.removeItem(`mi-draft:${draftKey}`); } catch { /* noop */ }
+    }
   };
   const handleSaveDraft = () => {
     if (!branchKey || !month) {
@@ -204,11 +245,42 @@ export default function MonthlyInventoryRenderer({
     onSaveDraft?.(buildPayload());
   };
 
+  const handleExportExcel = () => {
+    if (!branchKey || !month) {
+      toast({ title: "اختر الفرع والشهر قبل التصدير", variant: "destructive" });
+      return;
+    }
+    if (!catalog.length) {
+      toast({ title: "لا توجد أصناف للتصدير", variant: "destructive" });
+      return;
+    }
+    try {
+      exportMonthlyInventoryToExcel(buildPayload());
+      toast({ title: "تم تنزيل ملف Excel" });
+    } catch (e: any) {
+      toast({ title: "تعذر التصدير", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const focusNext = (currentId: string) => {
+    const idx = flatOrder.indexOf(currentId);
+    if (idx < 0) return;
+    for (let i = idx + 1; i < flatOrder.length; i++) {
+      const el = inputRefs.current[flatOrder[i]];
+      if (el) { el.focus(); el.select(); return; }
+    }
+  };
+
   return (
     <div className="space-y-4" dir="rtl">
       {/* Header: branch + month */}
       <Card>
         <CardContent className="p-4 space-y-3">
+          {restoredFromDraft && (
+            <div className="text-[11px] bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-1">
+              تم استرجاع مسودة محفوظة محلياً على هذا الجهاز.
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">الفرع</Label>
@@ -217,7 +289,7 @@ export default function MonthlyInventoryRenderer({
                 onValueChange={(v) => setBranchKey(v)}
                 disabled={readOnly || (!!autoBranchKey && !!initialData?.branch_key === false && false)}
               >
-                <SelectTrigger className="text-right">
+                <SelectTrigger className="text-right h-11">
                   <SelectValue placeholder="اختر الفرع" />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,7 +309,7 @@ export default function MonthlyInventoryRenderer({
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
                 disabled={readOnly}
-                className="text-right"
+                className="text-right h-11"
               />
             </div>
           </div>
@@ -293,20 +365,27 @@ export default function MonthlyInventoryRenderer({
                       <tbody>
                         {items.map((it) => (
                           <tr key={it.id} className="border-b last:border-0">
-                            <td className="p-2 align-middle">{it.item_name}</td>
-                            <td className="p-2 align-middle text-muted-foreground">{it.unit}</td>
+                            <td className="p-2 align-middle text-[13px]">{it.item_name}</td>
+                            <td className="p-2 align-middle text-muted-foreground text-[12px]">{it.unit}</td>
                             <td className="p-1.5">
                               <Input
+                                ref={(el) => { inputRefs.current[it.id] = el; }}
                                 type="number"
                                 inputMode="decimal"
+                                enterKeyHint="next"
                                 min={0}
                                 step="any"
                                 value={quantities[it.id] ?? ""}
                                 onChange={(e) =>
                                   setQuantities((q) => ({ ...q, [it.id]: e.target.value }))
                                 }
+                                onFocus={(e) => e.currentTarget.select()}
+                                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); focusNext(it.id); }
+                                }}
                                 disabled={readOnly}
-                                className="h-8 text-right"
+                                className="h-10 text-right text-base font-semibold"
                                 placeholder="0"
                               />
                             </td>
@@ -324,14 +403,23 @@ export default function MonthlyInventoryRenderer({
 
       {!readOnly && (
         <div className="sticky bottom-0 -mx-2 sm:mx-0 px-2 sm:px-0 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-background via-background to-transparent">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExportExcel}
+              disabled={submitting || !branchKey || !catalog.length}
+              className="gap-2 flex-1 min-w-[120px]"
+            >
+              <FileSpreadsheet className="h-4 w-4" /> Excel
+            </Button>
             {onSaveDraft && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleSaveDraft}
                 disabled={submitting}
-                className="flex-1 gap-2"
+                className="flex-1 min-w-[120px] gap-2"
               >
                 <Save className="h-4 w-4" /> حفظ مسودة
               </Button>
@@ -340,7 +428,7 @@ export default function MonthlyInventoryRenderer({
               type="button"
               onClick={handleSubmit}
               disabled={submitting || !branchKey || !month}
-              className="flex-1 gap-2"
+              className="flex-[2] min-w-[160px] gap-2"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               حفظ النموذج
