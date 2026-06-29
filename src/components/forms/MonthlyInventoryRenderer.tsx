@@ -312,7 +312,7 @@ export default function MonthlyInventoryRenderer({
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0" dir="rtl">
+    <div className="flex flex-col flex-1 min-h-0" dir="rtl">
       <div className="flex-1 overflow-y-auto min-h-0 space-y-4 px-0 pb-4">
       {/* Header: branch + month */}
       <Card>
