@@ -41,6 +41,8 @@ interface InvoiceData {
   /** الرصيد الختامي للزبون/المورد بعد ترحيل هذه الفاتورة — يُعرض أسفل يمين الفاتورة عند توفره. */
   contactClosingBalance?: number;
   contactClosingBalanceLabel?: string; // مثلاً "رصيد الزبون بعد الفاتورة" أو "رصيد المورد"
+  contactOpeningBalance?: number;
+  contactOpeningBalanceLabel?: string;
 }
 
 interface InvoicePrintViewProps {
@@ -687,6 +689,51 @@ const InvoicePrintView = ({
             </>
           )}
           {/* ━━━ رصيد الجهة الختامي (اختياري) ━━━ */}
+          {typeof invoice.contactOpeningBalance === "number" && (
+            <div style={{
+              marginTop: "14px",
+              border: "1px solid #94A3B8",
+              borderRadius: "10px",
+              overflow: "hidden",
+              background: "white",
+            }}>
+              <div style={{
+                background: "#64748B",
+                color: "white",
+                padding: "7px 12px",
+                fontSize: "12px",
+                fontWeight: 700,
+                textAlign: "right",
+              }}>
+                {invoice.contactOpeningBalanceLabel
+                  || (invoice.type === "sales" ? "رصيد العميل قبل الفاتورة" : "رصيد المورد قبل الفاتورة")}
+              </div>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 14px",
+                background: "#F8FAFC",
+              }}>
+                <span style={{ fontSize: "12px", color: "#6B7280", fontWeight: 600 }}>
+                  {invoice.contactOpeningBalance > 0
+                    ? (invoice.type === "sales" ? "مستحق على العميل" : "مستحق لنا")
+                    : invoice.contactOpeningBalance < 0
+                      ? (invoice.type === "sales" ? "رصيد للعميل (دائن)" : "مستحق للمورد")
+                      : "الرصيد صفر"}
+                </span>
+                <span style={{
+                  fontFeatureSettings: "'tnum'",
+                  direction: "ltr",
+                  fontSize: "15px",
+                  fontWeight: 800,
+                  color: invoice.contactOpeningBalance > 0 ? "#DC2626" : invoice.contactOpeningBalance < 0 ? "#16A34A" : "#0D1B2E",
+                }}>
+                  {fmtAmount(Math.abs(invoice.contactOpeningBalance))}
+                </span>
+              </div>
+            </div>
+          )}
           {typeof invoice.contactClosingBalance === "number" && (
             <div style={{
               marginTop: "14px",

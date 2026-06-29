@@ -278,6 +278,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // ActionPane tabs are memoized and would otherwise capture a stale
   // handleSave closure with amount="" → "الرجاء إدخال المبلغ" bug.
   const handleSaveRef = useRef<((asDraft?: boolean) => void) | null>(null);
+  const handlePrintRef = useRef<(() => void) | null>(null);
   const [highlightAmount, setHighlightAmount] = useState(false);
   // Focus + highlight helper used by contact pickers
   const focusAmountField = useCallback(() => {
@@ -400,8 +401,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             onClick: () => handleSaveRef.current?.(false) },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
-      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrint() },
-      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrint() },
+      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrintRef.current?.() },
+      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrintRef.current?.() },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
       { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
@@ -2390,6 +2391,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       watermark: isCancelled ? "ملغي" : undefined,
     });
   };
+  handlePrintRef.current = handlePrint;
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const getInvSymbol = (inv: Invoice) => {
