@@ -8779,6 +8779,45 @@ export type Database = {
           },
         ]
       }
+      inventory_catalog_items: {
+        Row: {
+          branch_key: string
+          branch_name: string
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          item_name: string
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          branch_key: string
+          branch_name: string
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          item_name: string
+          sort_order?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          branch_key?: string
+          branch_name?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          item_name?: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_activity_log: {
         Row: {
           action: string
