@@ -53,6 +53,20 @@ export interface OfficialVoucherOptions {
   /** Pre-formatted date string (dd/mm/yyyy). */
   date: string;
   company?: OfficialVoucherCompany;
+  /** Header layout — "logo_center" mimics the invoice (big centered logo). */
+  logoLayout?: "logo_right" | "logo_center";
+  /** Logo size when logo_center layout is used. */
+  logoSize?: "small" | "medium" | "large" | "xlarge";
+  /** Optional party balance box (previous / current). */
+  balanceBox?: {
+    partyName?: string;
+    beforeLabel?: string;
+    beforeValue: string;
+    beforeNature?: string;
+    afterLabel?: string;
+    afterValue: string;
+    afterNature?: string;
+  };
   /** Top info strip (date / type / party / method / currency / status…) */
   info?: OfficialVoucherInfo[];
   /** Optional free-text description block (e.g. وصف القيد). */
@@ -93,7 +107,31 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     ? o.signatures
     : [{ label: "المحاسب" }, { label: "المراجع" }, { label: "المدير المالي" }];
 
-  const headerHtml = `
+  const logoSize = o.logoSize || "medium";
+  const centerHeightMap: Record<string, number> = { small: 70, medium: 100, large: 130, xlarge: 160 };
+  const centerMaxWidthMap: Record<string, number> = { small: 220, medium: 320, large: 420, xlarge: 520 };
+  const useCenter = o.logoLayout === "logo_center";
+
+  const headerHtml = useCenter
+    ? `
+    <header class="doc-header doc-header-center">
+      <div class="doc-center-logo">
+        ${company.logoUrl
+          ? `<img src="${escapeHtml(company.logoUrl)}" alt="" class="doc-logo-big" style="height:${centerHeightMap[logoSize]}px;max-width:${centerMaxWidthMap[logoSize]}px;" />`
+          : `<div class="doc-company-name-big">${escapeHtml(company.name || "")}</div>`}
+        ${company.logoUrl && company.name ? `<div class="doc-company-name-sub">${escapeHtml(company.name)}</div>` : ""}
+      </div>
+      <div class="doc-title-block doc-title-block-center">
+        <h1 class="doc-title">${escapeHtml(o.docTypeLabel)}</h1>
+        ${o.docTypeLabelEn ? `<div class="doc-title-en">${escapeHtml(o.docTypeLabelEn)}</div>` : ""}
+        <div class="doc-meta">
+          ${o.refNumber ? `<div><span class="doc-meta-l">رقم السند:</span> <strong>${escapeHtml(o.refNumber)}</strong></div>` : ""}
+          <div><span class="doc-meta-l">التاريخ:</span> <strong>${escapeHtml(o.date)}</strong></div>
+        </div>
+      </div>
+    </header>
+  `
+    : `
     <header class="doc-header">
       <div class="doc-company">
         ${company.logoUrl ? `<img src="${escapeHtml(company.logoUrl)}" alt="" class="doc-logo" />` : ""}
@@ -175,6 +213,22 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
           .join("")}</section>`
       : "";
 
+  const balanceBoxHtml = o.balanceBox
+    ? `<section class="doc-balance-box">
+         ${o.balanceBox.partyName ? `<div class="doc-balance-party">${escapeHtml(o.balanceBox.partyName)}</div>` : ""}
+         <div class="doc-balance-grid">
+           <div class="doc-balance-cell">
+             <div class="doc-balance-l">${escapeHtml(o.balanceBox.beforeLabel || "الرصيد السابق")}</div>
+             <div class="doc-balance-v">${escapeHtml(o.balanceBox.beforeValue)}${o.balanceBox.beforeNature ? ` <span class="doc-balance-nat">(${escapeHtml(o.balanceBox.beforeNature)})</span>` : ""}</div>
+           </div>
+           <div class="doc-balance-cell doc-balance-cell-now">
+             <div class="doc-balance-l">${escapeHtml(o.balanceBox.afterLabel || "الرصيد الحالي")}</div>
+             <div class="doc-balance-v">${escapeHtml(o.balanceBox.afterValue)}${o.balanceBox.afterNature ? ` <span class="doc-balance-nat">(${escapeHtml(o.balanceBox.afterNature)})</span>` : ""}</div>
+           </div>
+         </div>
+       </section>`
+    : "";
+
   const warningHtml = o.warningNote
     ? `<div class="doc-warning">${escapeHtml(o.warningNote)}</div>`
     : "";
@@ -238,6 +292,15 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
       gap: 16px; padding-bottom: 12px; border-bottom: 2px solid ${PRIMARY};
       margin-bottom: 14px;
     }
+    .doc-header-center {
+      flex-direction: column; align-items: center; text-align: center; gap: 10px;
+    }
+    .doc-center-logo { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .doc-logo-big { object-fit: contain; display: inline-block; }
+    .doc-company-name-big { font-size: 28px; font-weight: 800; color: ${PRIMARY}; letter-spacing: 0.5px; }
+    .doc-company-name-sub { font-size: 13px; font-weight: 700; color: ${PRIMARY}; }
+    .doc-title-block-center { text-align: center; }
+    .doc-title-block-center .doc-meta { display: flex; gap: 18px; justify-content: center; }
     .doc-company { display: flex; gap: 12px; align-items: center; min-width: 0; }
     .doc-logo { height: 46px; width: auto; object-fit: contain; }
     .doc-company-name { font-size: 16px; font-weight: 700; color: ${PRIMARY}; }
@@ -296,6 +359,17 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     .doc-total-l { color: ${MUTED}; }
     .doc-total-v { font-weight: 700; color: ${TEXT}; font-variant-numeric: tabular-nums; }
     .doc-total-v.warn { color: #B91C1C; }
+    .doc-balance-box {
+      margin: 0 0 14px; padding: 12px 14px;
+      border: 1.5px solid ${PRIMARY}; border-radius: 6px; background: ${SURFACE_ALT};
+    }
+    .doc-balance-party { font-size: 12px; font-weight: 700; color: ${PRIMARY}; margin-bottom: 8px; }
+    .doc-balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .doc-balance-cell { padding: 8px 10px; background: #fff; border: 1px solid ${BORDER}; border-radius: 4px; }
+    .doc-balance-cell-now { border-color: ${PRIMARY}; }
+    .doc-balance-l { font-size: 10.5px; color: ${MUTED}; margin-bottom: 4px; }
+    .doc-balance-v { font-size: 14px; font-weight: 800; color: ${TEXT}; font-variant-numeric: tabular-nums; }
+    .doc-balance-nat { font-size: 10.5px; color: ${MUTED}; font-weight: 600; }
     .doc-warning {
       margin-bottom: 14px; padding: 8px 12px;
       border-right: 3px solid #B91C1C; background: #FEF2F2;
@@ -344,6 +418,7 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     ${descHtml}
     ${tablesHtml}
     ${totalsHtml}
+    ${balanceBoxHtml}
     ${warningHtml}
     ${notesHtml}
     ${signaturesHtml}
