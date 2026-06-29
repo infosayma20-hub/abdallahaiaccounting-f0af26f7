@@ -329,20 +329,26 @@ export default function MonthlyInventoryRenderer({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">الفرع</Label>
-              <Select
-                value={branchKey}
-                onValueChange={(v) => setBranchKey(v)}
-                disabled={readOnly}
-              >
-                <SelectTrigger className="text-right h-11">
-                  <SelectValue placeholder="اختر الفرع" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BRANCH_OPTIONS.map((b) => (
-                    <SelectItem key={b.key} value={b.key}>{b.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-2">
+                {BRANCH_OPTIONS.map((b) => {
+                  const selected = branchKey === b.key;
+                  return (
+                    <button
+                      key={b.key}
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => setBranchKey(b.key)}
+                      className={`h-12 rounded-lg border text-sm font-semibold transition-colors text-center px-2 ${
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                          : "border-border bg-card hover:bg-muted/50 text-foreground"
+                      } ${readOnly ? "opacity-60 cursor-not-allowed" : "active:scale-[0.98]"}`}
+                    >
+                      {b.label}
+                    </button>
+                  );
+                })}
+              </div>
               {autoBranchKey && autoBranchKey === branchKey && (
                 <p className="text-[10px] text-muted-foreground">تم اكتشاف الفرع تلقائياً من سجلك.</p>
               )}
