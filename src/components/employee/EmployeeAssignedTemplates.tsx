@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer, { type FormSchema } from "@/components/forms/DynamicFormRenderer";
 import MonthlyInventoryRenderer from "@/components/forms/MonthlyInventoryRenderer";
+import MonthlyInventoryView from "@/components/forms/MonthlyInventoryView";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
@@ -472,7 +473,11 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
-                  <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
+                  {(tpl.schema as any)?.kind === "monthly_inventory" ? (
+                    <MonthlyInventoryView data={viewSubmission.form_data} />
+                  ) : (
+                    <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">القالب غير متاح.</p>
@@ -501,7 +506,11 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
-                  <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
+                  {(tpl.schema as any)?.kind === "monthly_inventory" ? (
+                    <MonthlyInventoryView data={viewSubmission.form_data} />
+                  ) : (
+                    <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
+                  )}
                 </div>
                 {renderSubmissionActions(viewSubmission)}
               </>
