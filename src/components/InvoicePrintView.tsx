@@ -41,6 +41,8 @@ interface InvoiceData {
   /** الرصيد الختامي للزبون/المورد بعد ترحيل هذه الفاتورة — يُعرض أسفل يمين الفاتورة عند توفره. */
   contactClosingBalance?: number;
   contactClosingBalanceLabel?: string; // مثلاً "رصيد الزبون بعد الفاتورة" أو "رصيد المورد"
+  contactOpeningBalance?: number;
+  contactOpeningBalanceLabel?: string;
 }
 
 interface InvoicePrintViewProps {
