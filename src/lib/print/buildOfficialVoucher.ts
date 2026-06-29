@@ -66,6 +66,11 @@ export interface OfficialVoucherOptions {
     afterLabel?: string;
     afterValue: string;
     afterNature?: string;
+    /** Movement amount line shown between before/after (e.g. "+ ₪1,000.00"). */
+    movementLabel?: string;
+    movementValue?: string;
+    /** "+" increases debtor balance, "-" decreases it. Controls arrow color. */
+    movementSign?: "+" | "-";
   };
   /** Top info strip (date / type / party / method / currency / status…) */
   info?: OfficialVoucherInfo[];
@@ -121,6 +126,13 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
           : `<div class="doc-company-name-big">${escapeHtml(company.name || "")}</div>`}
       </div>
       <div class="doc-header-row">
+        <div class="doc-company-info">
+          <div class="doc-company-name">${escapeHtml(company.name || "")}</div>
+          ${company.address ? `<div class="doc-company-sub">📍 ${escapeHtml(company.address)}</div>` : ""}
+          ${company.phone ? `<div class="doc-company-sub">📞 ${escapeHtml(company.phone)}</div>` : ""}
+          ${company.email ? `<div class="doc-company-sub">✉️ ${escapeHtml(company.email)}</div>` : ""}
+          ${company.taxNumber ? `<div class="doc-company-sub">🔢 ${escapeHtml(company.taxNumber)}</div>` : ""}
+        </div>
         <div class="doc-title-block">
           <h1 class="doc-title">${escapeHtml(o.docTypeLabel)}</h1>
           ${o.docTypeLabelEn ? `<div class="doc-title-en">${escapeHtml(o.docTypeLabelEn)}</div>` : ""}
@@ -128,13 +140,6 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
             ${o.refNumber ? `<div><span class="doc-meta-l">رقم السند:</span> <strong>${escapeHtml(o.refNumber)}</strong></div>` : ""}
             <div><span class="doc-meta-l">التاريخ:</span> <strong>${escapeHtml(o.date)}</strong></div>
           </div>
-        </div>
-        <div class="doc-company-info">
-          <div class="doc-company-name">${escapeHtml(company.name || "")}</div>
-          ${company.address ? `<div class="doc-company-sub">📍 ${escapeHtml(company.address)}</div>` : ""}
-          ${company.phone ? `<div class="doc-company-sub">📞 ${escapeHtml(company.phone)}</div>` : ""}
-          ${company.email ? `<div class="doc-company-sub">✉️ ${escapeHtml(company.email)}</div>` : ""}
-          ${company.taxNumber ? `<div class="doc-company-sub">🔢 ${escapeHtml(company.taxNumber)}</div>` : ""}
         </div>
       </div>
     </header>
@@ -224,17 +229,34 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
   const balanceBoxHtml = o.balanceBox
     ? (() => {
         const b = o.balanceBox!;
-        const card = (label: string, value: string, nature: string | undefined, accent: boolean) => `
-          <div class="bal-card ${accent ? "bal-card-now" : ""}">
-            <div class="bal-head ${accent ? "bal-head-now" : ""}">${escapeHtml(label)}</div>
-            <div class="bal-body">
-              <span class="bal-nature">${escapeHtml(nature || "")}</span>
-              <span class="bal-amount">${escapeHtml(value)}</span>
+        const signSymbol = b.movementSign === "-" ? "−" : "+";
+        const signClass = b.movementSign === "-" ? "bal-sign-neg" : "bal-sign-pos";
+        const movementRow = b.movementValue
+          ? `<div class="bal-row bal-row-move">
+               <div class="bal-row-l">
+                 <span class="bal-sign ${signClass}">${signSymbol}</span>
+                 <span>${escapeHtml(b.movementLabel || "قيمة السند")}</span>
+               </div>
+               <div class="bal-row-v ${signClass}">${escapeHtml(b.movementValue)}</div>
+             </div>`
+          : "";
+        return `<section class="doc-balance-card">
+          <div class="bal-card-head">
+            <span>كشف حركة الرصيد</span>
+            ${b.partyName ? `<span class="bal-card-party">${escapeHtml(b.partyName)}</span>` : ""}
+          </div>
+          <div class="bal-card-body">
+            <div class="bal-row">
+              <div class="bal-row-l">${escapeHtml(b.beforeLabel || "الرصيد السابق")}<span class="bal-nature-pill">${escapeHtml(b.beforeNature || "")}</span></div>
+              <div class="bal-row-v">${escapeHtml(b.beforeValue)}</div>
             </div>
-          </div>`;
-        return `<section class="doc-balance-wrap">
-          ${card(b.beforeLabel || "الرصيد السابق", b.beforeValue, b.beforeNature, false)}
-          ${card(b.afterLabel || "الرصيد الحالي", b.afterValue, b.afterNature, true)}
+            ${movementRow}
+            <div class="bal-divider"></div>
+            <div class="bal-row bal-row-final">
+              <div class="bal-row-l">${escapeHtml(b.afterLabel || "الرصيد الحالي")}<span class="bal-nature-pill bal-nature-pill-now">${escapeHtml(b.afterNature || "")}</span></div>
+              <div class="bal-row-v">${escapeHtml(b.afterValue)}</div>
+            </div>
+          </div>
         </section>`;
       })()
     : "";
@@ -309,8 +331,8 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     .doc-logo-big { object-fit: contain; display: inline-block; }
     .doc-company-name-big { font-size: 28px; font-weight: 800; color: ${PRIMARY}; letter-spacing: 0.5px; }
     .doc-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-    .doc-company-info { text-align: left; font-size: 10px; color: ${MUTED}; line-height: 1.6; max-width: 260px; }
-    .doc-company-info .doc-company-name { font-size: 12px; font-weight: 700; color: ${PRIMARY}; margin-bottom: 2px; }
+    .doc-company-info { text-align: right; font-size: 10px; color: ${MUTED}; line-height: 1.6; max-width: 260px; }
+    .doc-company-info .doc-company-name { font-size: 14px; font-weight: 800; color: ${PRIMARY}; margin-bottom: 2px; }
     .doc-company-info .doc-company-sub { font-size: 10px; color: ${MUTED}; }
     .doc-company { display: flex; gap: 12px; align-items: center; min-width: 0; }
     .doc-logo { height: 46px; width: auto; object-fit: contain; }
@@ -370,25 +392,41 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     .doc-total-l { color: ${MUTED}; }
     .doc-total-v { font-weight: 700; color: ${TEXT}; font-variant-numeric: tabular-nums; }
     .doc-total-v.warn { color: #B91C1C; }
-    .doc-balance-wrap {
-      margin: 4px 0 14px; display: flex; flex-direction: column; gap: 10px; align-items: stretch;
+    .doc-balance-card {
+      margin: 6px 0 16px; width: 100%; max-width: 460px; margin-left: auto;
+      border: 1.5px solid ${PRIMARY}; border-radius: 12px; overflow: hidden;
+      background: #fff; box-shadow: 0 1px 3px rgba(13,27,46,0.08);
     }
-    .bal-card {
-      border: 1px solid #94A3B8; border-radius: 10px; overflow: hidden; background: #fff;
-      width: 100%; max-width: 360px; margin-left: auto;
-    }
-    .bal-card-now { border: 1.5px solid ${PRIMARY}; box-shadow: 0 1px 2px rgba(13,27,46,0.06); }
-    .bal-head {
-      background: #64748B; color: #fff; padding: 7px 12px;
-      font-size: 12px; font-weight: 700; text-align: right; letter-spacing: 0.3px;
-    }
-    .bal-head-now { background: ${PRIMARY}; }
-    .bal-body {
+    .bal-card-head {
+      background: ${PRIMARY}; color: #fff; padding: 9px 14px;
+      font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 14px; background: ${SURFACE_ALT};
     }
-    .bal-nature { font-size: 11.5px; color: ${MUTED}; font-weight: 600; }
-    .bal-amount { font-size: 16px; font-weight: 800; color: ${TEXT}; font-variant-numeric: tabular-nums; direction: ltr; }
+    .bal-card-party { font-size: 11px; font-weight: 600; opacity: 0.9; }
+    .bal-card-body { padding: 4px 14px; background: ${SURFACE_ALT}; }
+    .bal-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 0; font-size: 12.5px; color: ${TEXT};
+    }
+    .bal-row + .bal-row { border-top: 1px dashed #CBD5E1; }
+    .bal-row-l { display: flex; align-items: center; gap: 8px; color: ${MUTED}; font-weight: 600; }
+    .bal-row-v { font-size: 14px; font-weight: 800; color: ${TEXT}; font-variant-numeric: tabular-nums; direction: ltr; }
+    .bal-nature-pill {
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      background: #E2E8F0; color: ${PRIMARY};
+    }
+    .bal-nature-pill-now { background: ${PRIMARY}; color: #fff; }
+    .bal-sign {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%; font-weight: 900; font-size: 13px;
+    }
+    .bal-sign-pos { background: #DCFCE7; color: #166534; }
+    .bal-sign-neg { background: #FEE2E2; color: #991B1B; }
+    .bal-row-move .bal-row-v.bal-sign-pos { color: #166534; background: transparent; }
+    .bal-row-move .bal-row-v.bal-sign-neg { color: #991B1B; background: transparent; }
+    .bal-divider { height: 0; border-top: 1.5px solid ${PRIMARY}; margin: 2px 0; }
+    .bal-row-final .bal-row-v { font-size: 16px; color: ${PRIMARY}; }
+    .bal-row-final .bal-row-l { color: ${PRIMARY}; font-weight: 800; }
     .doc-warning {
       margin-bottom: 14px; padding: 8px 12px;
       border-right: 3px solid #B91C1C; background: #FEF2F2;
