@@ -688,99 +688,47 @@ const InvoicePrintView = ({
               )}
             </>
           )}
-          {/* ━━━ رصيد الجهة الختامي (اختياري) ━━━ */}
-          {settings.invoice_show_balance_box !== false && typeof invoice.contactOpeningBalance === "number" && (
-            <div style={{
-              marginTop: "14px",
-              border: "1px solid #94A3B8",
-              borderRadius: "10px",
-              overflow: "hidden",
-              background: "white",
-            }}>
-              <div style={{
-                background: "#64748B",
-                color: "white",
-                padding: "7px 12px",
-                fontSize: "12px",
-                fontWeight: 700,
-                textAlign: "right",
-              }}>
-                {invoice.contactOpeningBalanceLabel
-                  || (invoice.type === "sales" ? "رصيد العميل قبل الفاتورة" : "رصيد المورد قبل الفاتورة")}
+          {/* ━━━ كشف حركة الرصيد (مينيمال موحد مع السندات) ━━━ */}
+          {settings.invoice_show_balance_box !== false &&
+           (typeof invoice.contactOpeningBalance === "number" || typeof invoice.contactClosingBalance === "number") && (() => {
+            const before = typeof invoice.contactOpeningBalance === "number" ? invoice.contactOpeningBalance : undefined;
+            const after = typeof invoice.contactClosingBalance === "number" ? invoice.contactClosingBalance : undefined;
+            const delta = (typeof before === "number" && typeof after === "number") ? (after - before) : undefined;
+            const sign = (n?: number) => typeof n !== "number" ? "" : n > 0 ? (invoice.type === "sales" ? "مدين" : "دائن") : n < 0 ? (invoice.type === "sales" ? "دائن" : "مدين") : "متوازن";
+            const moveSym = typeof delta === "number" ? (delta > 0 ? "+" : delta < 0 ? "−" : "") : "";
+            const rowStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: "11.5px", color: "#0F172A" };
+            const labelStyle: React.CSSProperties = { color: "#64748B", fontWeight: 500, display: "flex", gap: "6px", alignItems: "center" };
+            const valStyle: React.CSSProperties = { fontWeight: 700, fontFeatureSettings: "'tnum'", direction: "ltr", fontSize: "12px" };
+            const pill: React.CSSProperties = { fontSize: "9.5px", fontWeight: 600, padding: "1px 6px", borderRadius: "3px", background: "#F1F5F9", color: "#64748B", border: "1px solid #E2E8F0" };
+            return (
+              <div style={{ marginTop: "12px", border: "1px solid #CBD5E1", borderRadius: "6px", overflow: "hidden", background: "white", maxWidth: "340px", marginLeft: "auto" }}>
+                <div style={{ padding: "6px 10px", fontSize: "11px", fontWeight: 700, color: "#0F172A", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between" }}>
+                  <span>كشف حركة الرصيد</span>
+                  {invoice.contactName && <span style={{ fontSize: "10.5px", fontWeight: 500, color: "#64748B" }}>{invoice.contactName}</span>}
+                </div>
+                <div style={{ padding: "2px 10px" }}>
+                  {typeof before === "number" && (
+                    <div style={rowStyle}>
+                      <span style={labelStyle}>الرصيد السابق<span style={pill}>{sign(before)}</span></span>
+                      <span style={valStyle}>{fmtAmount(Math.abs(before))}</span>
+                    </div>
+                  )}
+                  {typeof delta === "number" && delta !== 0 && (
+                    <div style={{ ...rowStyle, borderTop: "1px solid #F1F5F9" }}>
+                      <span style={labelStyle}><span style={{ width: "14px", textAlign: "center", color: "#64748B", fontWeight: 700 }}>{moveSym}</span>قيمة الفاتورة</span>
+                      <span style={valStyle}>{fmtAmount(Math.abs(delta))}</span>
+                    </div>
+                  )}
+                  {typeof after === "number" && (
+                    <div style={{ ...rowStyle, borderTop: "1px solid #CBD5E1", padding: "7px 0" }}>
+                      <span style={{ ...labelStyle, color: "#0F172A", fontWeight: 700 }}>الرصيد الحالي<span style={{ ...pill, background: "#fff", color: "#0F172A", borderColor: "#CBD5E1" }}>{sign(after)}</span></span>
+                      <span style={{ ...valStyle, fontSize: "13px" }}>{fmtAmount(Math.abs(after))}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "10px 14px",
-                background: "#F8FAFC",
-              }}>
-                <span style={{ fontSize: "12px", color: "#6B7280", fontWeight: 600 }}>
-                  {invoice.contactOpeningBalance > 0
-                    ? (invoice.type === "sales" ? "مستحق على العميل" : "مستحق لنا")
-                    : invoice.contactOpeningBalance < 0
-                      ? (invoice.type === "sales" ? "رصيد للعميل (دائن)" : "مستحق للمورد")
-                      : "الرصيد صفر"}
-                </span>
-                <span style={{
-                  fontFeatureSettings: "'tnum'",
-                  direction: "ltr",
-                  fontSize: "15px",
-                  fontWeight: 800,
-                  color: invoice.contactOpeningBalance > 0 ? "#DC2626" : invoice.contactOpeningBalance < 0 ? "#16A34A" : "#0D1B2E",
-                }}>
-                  {fmtAmount(Math.abs(invoice.contactOpeningBalance))}
-                </span>
-              </div>
-            </div>
-          )}
-          {settings.invoice_show_balance_box !== false && typeof invoice.contactClosingBalance === "number" && (
-            <div style={{
-              marginTop: "14px",
-              border: "1.5px solid #1B3A5C",
-              borderRadius: "10px",
-              overflow: "hidden",
-              background: "white",
-              boxShadow: "0 1px 2px rgba(13,27,46,0.06)",
-            }}>
-              <div style={{
-                background: "#1B3A5C",
-                color: "white",
-                padding: "7px 12px",
-                fontSize: "12px",
-                fontWeight: 700,
-                letterSpacing: "0.3px",
-                textAlign: "right",
-              }}>
-                {invoice.contactClosingBalanceLabel
-                  || (invoice.type === "sales" ? "رصيد العميل بعد الفاتورة" : "رصيد المورد بعد الفاتورة")}
-              </div>
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "12px 14px",
-                background: "#F8FAFC",
-              }}>
-                <span style={{ fontSize: "12px", color: "#6B7280", fontWeight: 600 }}>
-                  {invoice.contactClosingBalance > 0
-                    ? (invoice.type === "sales" ? "مستحق على العميل" : "مستحق لنا")
-                    : invoice.contactClosingBalance < 0
-                      ? (invoice.type === "sales" ? "رصيد للعميل (دائن)" : "مستحق للمورد")
-                      : "الرصيد صفر"}
-                </span>
-                <span style={{
-                  fontFeatureSettings: "'tnum'",
-                  direction: "ltr",
-                  fontSize: "17px",
-                  fontWeight: 800,
-                  color: invoice.contactClosingBalance > 0 ? "#DC2626" : invoice.contactClosingBalance < 0 ? "#16A34A" : "#0D1B2E",
-                }}>
-                  {fmtAmount(Math.abs(invoice.contactClosingBalance))}
-                </span>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
       ) : (
