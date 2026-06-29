@@ -392,25 +392,41 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     .doc-total-l { color: ${MUTED}; }
     .doc-total-v { font-weight: 700; color: ${TEXT}; font-variant-numeric: tabular-nums; }
     .doc-total-v.warn { color: #B91C1C; }
-    .doc-balance-wrap {
-      margin: 4px 0 14px; display: flex; flex-direction: column; gap: 10px; align-items: stretch;
+    .doc-balance-card {
+      margin: 6px 0 16px; width: 100%; max-width: 460px; margin-left: auto;
+      border: 1.5px solid ${PRIMARY}; border-radius: 12px; overflow: hidden;
+      background: #fff; box-shadow: 0 1px 3px rgba(13,27,46,0.08);
     }
-    .bal-card {
-      border: 1px solid #94A3B8; border-radius: 10px; overflow: hidden; background: #fff;
-      width: 100%; max-width: 360px; margin-left: auto;
-    }
-    .bal-card-now { border: 1.5px solid ${PRIMARY}; box-shadow: 0 1px 2px rgba(13,27,46,0.06); }
-    .bal-head {
-      background: #64748B; color: #fff; padding: 7px 12px;
-      font-size: 12px; font-weight: 700; text-align: right; letter-spacing: 0.3px;
-    }
-    .bal-head-now { background: ${PRIMARY}; }
-    .bal-body {
+    .bal-card-head {
+      background: ${PRIMARY}; color: #fff; padding: 9px 14px;
+      font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 14px; background: ${SURFACE_ALT};
     }
-    .bal-nature { font-size: 11.5px; color: ${MUTED}; font-weight: 600; }
-    .bal-amount { font-size: 16px; font-weight: 800; color: ${TEXT}; font-variant-numeric: tabular-nums; direction: ltr; }
+    .bal-card-party { font-size: 11px; font-weight: 600; opacity: 0.9; }
+    .bal-card-body { padding: 4px 14px; background: ${SURFACE_ALT}; }
+    .bal-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 0; font-size: 12.5px; color: ${TEXT};
+    }
+    .bal-row + .bal-row { border-top: 1px dashed #CBD5E1; }
+    .bal-row-l { display: flex; align-items: center; gap: 8px; color: ${MUTED}; font-weight: 600; }
+    .bal-row-v { font-size: 14px; font-weight: 800; color: ${TEXT}; font-variant-numeric: tabular-nums; direction: ltr; }
+    .bal-nature-pill {
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      background: #E2E8F0; color: ${PRIMARY};
+    }
+    .bal-nature-pill-now { background: ${PRIMARY}; color: #fff; }
+    .bal-sign {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%; font-weight: 900; font-size: 13px;
+    }
+    .bal-sign-pos { background: #DCFCE7; color: #166534; }
+    .bal-sign-neg { background: #FEE2E2; color: #991B1B; }
+    .bal-row-move .bal-row-v.bal-sign-pos { color: #166534; background: transparent; }
+    .bal-row-move .bal-row-v.bal-sign-neg { color: #991B1B; background: transparent; }
+    .bal-divider { height: 0; border-top: 1.5px solid ${PRIMARY}; margin: 2px 0; }
+    .bal-row-final .bal-row-v { font-size: 16px; color: ${PRIMARY}; }
+    .bal-row-final .bal-row-l { color: ${PRIMARY}; font-weight: 800; }
     .doc-warning {
       margin-bottom: 14px; padding: 8px 12px;
       border-right: 3px solid #B91C1C; background: #FEF2F2;
