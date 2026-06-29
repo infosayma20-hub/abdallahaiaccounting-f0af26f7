@@ -241,7 +241,7 @@ const InvoicesPage = () => {
       // Fetch from database
       const { data: dbInvoices } = await supabase
         .from("invoices")
-        .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address)")
+        .select("*, invoice_items(*, products(sku, barcode)), contacts(tax_number, phone, email, address), cost_centers(name)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -286,6 +286,7 @@ const InvoicesPage = () => {
         remainingAmount: Number(inv.remaining_amount) || 0,
         currency: inv.currency || 'شيكل',
         taxInclusive: Boolean(inv.tax_inclusive),
+        costCenterName: inv.cost_centers?.name || '',
       }));
 
       // Also load legacy localStorage invoices
