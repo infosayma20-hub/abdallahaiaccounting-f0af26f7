@@ -1743,8 +1743,18 @@ const InvoiceCreatePage = () => {
       // إن كنا في وضع تعديل فاتورة محفوظة، الرصيد الأصلي يشملها فعلاً، فلا نضيف delta.
       closingBalance = isEditMode ? Number(baselineBalance) : Number(baselineBalance) + delta;
     }
+    // الرصيد قبل الفاتورة = الختامي مطروحاً منه أثر هذه الفاتورة
+    const openingBalance = closingBalance != null
+      ? closingBalance - (baseInvoice.type === "sales" ? Number(baseInvoice.remainingAmount || 0) : -Number(baseInvoice.remainingAmount || 0))
+      : null;
     const previewInvoice = closingBalance != null
-      ? { ...baseInvoice, contactClosingBalance: closingBalance, contactClosingBalanceLabel: baseInvoice.type === "sales" ? "رصيد العميل بعد الفاتورة" : "رصيد المورد بعد الفاتورة" }
+      ? {
+          ...baseInvoice,
+          contactClosingBalance: closingBalance,
+          contactClosingBalanceLabel: baseInvoice.type === "sales" ? "رصيد العميل بعد الفاتورة" : "رصيد المورد بعد الفاتورة",
+          contactOpeningBalance: openingBalance ?? undefined,
+          contactOpeningBalanceLabel: baseInvoice.type === "sales" ? "رصيد العميل قبل الفاتورة" : "رصيد المورد قبل الفاتورة",
+        }
       : baseInvoice;
     const win = window.open("", "_blank");
     if (!win) return;
