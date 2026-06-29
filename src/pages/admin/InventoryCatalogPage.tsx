@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,8 +127,10 @@ export default function InventoryCatalogPage() {
     }
     setSaving(true);
     try {
+      const branchLabel = BRANCHES.find((b) => b.key === form.branch_key)?.label || form.branch_key;
       const payload = {
         branch_key: form.branch_key,
+        branch_name: branchLabel,
         category: form.category.trim(),
         item_name: form.item_name.trim(),
         unit: form.unit.trim() || "وحدة",
@@ -190,10 +191,12 @@ export default function InventoryCatalogPage() {
       const startSort = rows
         .filter((r) => r.category === bulkCategory.trim())
         .reduce((m, r) => Math.max(m, r.sort_order || 0), 0);
+      const branchLabel = BRANCHES.find((b) => b.key === branch)?.label || branch;
       const payload = lines.map((line, i) => {
         const [name, unit] = line.split("|").map((s) => s?.trim() ?? "");
         return {
           branch_key: branch,
+          branch_name: branchLabel,
           category: bulkCategory.trim(),
           item_name: name,
           unit: unit || "وحدة",
@@ -219,11 +222,6 @@ export default function InventoryCatalogPage() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Helmet>
-        <title>كتالوج الجرد الشهري - الإدارة</title>
-        <meta name="description" content="إدارة أصناف الجرد الشهري لكل فرع" />
-      </Helmet>
-
       <div className="container mx-auto p-4 space-y-4">
         <Card>
           <CardHeader className="pb-3">
