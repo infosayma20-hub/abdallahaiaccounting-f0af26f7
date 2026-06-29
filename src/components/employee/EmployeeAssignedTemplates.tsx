@@ -358,7 +358,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
             }}
           >
-            {(activeTemplate.schema as any)?.kind === "monthly_inventory" ? (
+            {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
               <MonthlyInventoryRenderer
                 employeeId={employeeId}
                 templateId={activeTemplate.id}
@@ -404,7 +404,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           </DialogHeader>
           {activeTemplate && (
             <>
-              {(activeTemplate.schema as any)?.kind === "monthly_inventory" ? (
+              {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
                 <MonthlyInventoryRenderer
                   employeeId={employeeId}
                   templateId={activeTemplate.id}
