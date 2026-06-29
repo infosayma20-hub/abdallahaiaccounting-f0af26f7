@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer, { type FormSchema } from "@/components/forms/DynamicFormRenderer";
+import MonthlyInventoryRenderer from "@/components/forms/MonthlyInventoryRenderer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import FormStatusBadge from "@/components/employee/forms/FormStatusBadge";
@@ -356,40 +357,15 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
               paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
             }}
           >
-            <DynamicFormRenderer
-              schema={activeTemplate.schema}
-              draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
-              initialData={activeDraft?.form_data}
-              submitting={submitting}
-              onSubmit={handleSubmit}
-              onSaveDraft={handleSaveDraft}
-              onPreviewWord={previewWordFromDraft}
-              renderSectionExtras={
-                isManager
-                  ? (sec) => (
-                      <InlineSectionAssign
-                        templateId={activeTemplate.id}
-                        sectionKey={sec.key}
-                        sectionTitle={sec.title}
-                      />
-                    )
-                  : undefined
-              }
-            />
-          </div>
-        </div>
-      )}
-
-      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => { if (!o) { setActiveTemplate(null); setActiveDraft(null); } }}>
-        <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-right">{activeTemplate?.name}</DialogTitle>
-            {activeTemplate?.description && (
-              <p className="text-xs text-muted-foreground text-right">{activeTemplate.description}</p>
-            )}
-          </DialogHeader>
-          {activeTemplate && (
-            <>
+            {(activeTemplate.schema as any)?.kind === "monthly_inventory" ? (
+              <MonthlyInventoryRenderer
+                employeeId={employeeId}
+                initialData={activeDraft?.form_data}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onSaveDraft={handleSaveDraft}
+              />
+            ) : (
               <DynamicFormRenderer
                 schema={activeTemplate.schema}
                 draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
@@ -410,6 +386,51 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     : undefined
                 }
               />
+            )}
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => { if (!o) { setActiveTemplate(null); setActiveDraft(null); } }}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">{activeTemplate?.name}</DialogTitle>
+            {activeTemplate?.description && (
+              <p className="text-xs text-muted-foreground text-right">{activeTemplate.description}</p>
+            )}
+          </DialogHeader>
+          {activeTemplate && (
+            <>
+              {(activeTemplate.schema as any)?.kind === "monthly_inventory" ? (
+                <MonthlyInventoryRenderer
+                  employeeId={employeeId}
+                  initialData={activeDraft?.form_data}
+                  submitting={submitting}
+                  onSubmit={handleSubmit}
+                  onSaveDraft={handleSaveDraft}
+                />
+              ) : (
+                <DynamicFormRenderer
+                  schema={activeTemplate.schema}
+                  draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                  initialData={activeDraft?.form_data}
+                  submitting={submitting}
+                  onSubmit={handleSubmit}
+                  onSaveDraft={handleSaveDraft}
+                  onPreviewWord={previewWordFromDraft}
+                  renderSectionExtras={
+                    isManager
+                      ? (sec) => (
+                          <InlineSectionAssign
+                            templateId={activeTemplate.id}
+                            sectionKey={sec.key}
+                            sectionTitle={sec.title}
+                          />
+                        )
+                      : undefined
+                  }
+                />
+              )}
             </>
           )}
         </DialogContent>
