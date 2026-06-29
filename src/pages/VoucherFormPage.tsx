@@ -401,8 +401,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             onClick: () => handleSaveRef.current?.(false) },
         ]};
     const viewGroup = { key: "view", label: "عرض", items: [
-      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrint() },
-      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrint() },
+      { key: "preview", label: "معاينة", icon: Eye, onClick: () => handlePrintRef.current?.() },
+      { key: "print", label: "طباعة", icon: Printer, onClick: () => handlePrintRef.current?.() },
     ]};
     const navGroup = { key: "nav", label: "تنقل", items: [
       { key: "prev", label: "السابق", icon: ChevronRight, onClick: () => goToAdjacentVoucher("prev") },
