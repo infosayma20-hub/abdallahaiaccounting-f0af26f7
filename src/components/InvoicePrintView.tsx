@@ -689,7 +689,7 @@ const InvoicePrintView = ({
             </>
           )}
           {/* ━━━ رصيد الجهة الختامي (اختياري) ━━━ */}
-          {typeof invoice.contactOpeningBalance === "number" && (
+          {settings.invoice_show_balance_box !== false && typeof invoice.contactOpeningBalance === "number" && (
             <div style={{
               marginTop: "14px",
               border: "1px solid #94A3B8",
@@ -734,7 +734,7 @@ const InvoicePrintView = ({
               </div>
             </div>
           )}
-          {typeof invoice.contactClosingBalance === "number" && (
+          {settings.invoice_show_balance_box !== false && typeof invoice.contactClosingBalance === "number" && (
             <div style={{
               marginTop: "14px",
               border: "1.5px solid #1B3A5C",
