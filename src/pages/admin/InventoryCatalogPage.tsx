@@ -52,6 +52,11 @@ const EMPTY_FORM = {
 };
 
 export default function InventoryCatalogPage() {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = "كتالوج الجرد الشهري";
+    return () => { document.title = prev; };
+  }, []);
   const [branch, setBranch] = useState<string>("ramallah");
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
