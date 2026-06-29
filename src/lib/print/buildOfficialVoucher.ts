@@ -126,6 +126,13 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
           : `<div class="doc-company-name-big">${escapeHtml(company.name || "")}</div>`}
       </div>
       <div class="doc-header-row">
+        <div class="doc-company-info">
+          <div class="doc-company-name">${escapeHtml(company.name || "")}</div>
+          ${company.address ? `<div class="doc-company-sub">📍 ${escapeHtml(company.address)}</div>` : ""}
+          ${company.phone ? `<div class="doc-company-sub">📞 ${escapeHtml(company.phone)}</div>` : ""}
+          ${company.email ? `<div class="doc-company-sub">✉️ ${escapeHtml(company.email)}</div>` : ""}
+          ${company.taxNumber ? `<div class="doc-company-sub">🔢 ${escapeHtml(company.taxNumber)}</div>` : ""}
+        </div>
         <div class="doc-title-block">
           <h1 class="doc-title">${escapeHtml(o.docTypeLabel)}</h1>
           ${o.docTypeLabelEn ? `<div class="doc-title-en">${escapeHtml(o.docTypeLabelEn)}</div>` : ""}
@@ -133,13 +140,6 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
             ${o.refNumber ? `<div><span class="doc-meta-l">رقم السند:</span> <strong>${escapeHtml(o.refNumber)}</strong></div>` : ""}
             <div><span class="doc-meta-l">التاريخ:</span> <strong>${escapeHtml(o.date)}</strong></div>
           </div>
-        </div>
-        <div class="doc-company-info">
-          <div class="doc-company-name">${escapeHtml(company.name || "")}</div>
-          ${company.address ? `<div class="doc-company-sub">📍 ${escapeHtml(company.address)}</div>` : ""}
-          ${company.phone ? `<div class="doc-company-sub">📞 ${escapeHtml(company.phone)}</div>` : ""}
-          ${company.email ? `<div class="doc-company-sub">✉️ ${escapeHtml(company.email)}</div>` : ""}
-          ${company.taxNumber ? `<div class="doc-company-sub">🔢 ${escapeHtml(company.taxNumber)}</div>` : ""}
         </div>
       </div>
     </header>
