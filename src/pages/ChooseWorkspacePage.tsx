@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Briefcase, Truck, LogOut, ShoppingCart, Headphones, Lock, RefreshCw, PhoneCall } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearRoleRedirectCache } from "@/hooks/useRoleRedirect";
 import { useBridgeAuthorized } from "@/hooks/useBridgeAuthorized";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 import { usePermission } from "@/hooks/usePermission";
+import { useAccountantPOSAudit } from "@/hooks/useAccountantPOSAudit";
 
 export default function ChooseWorkspacePage() {
   const navigate = useNavigate();
@@ -22,6 +24,8 @@ export default function ChooseWorkspacePage() {
   const { isDeviceAdmin } = useIsDeviceAdmin();
   const feedbackPerms = usePermission("call_center_feedback");
   const canFeedback = !feedbackPerms.loading && feedbackPerms.can("customers", "view");
+  const posAudit = useAccountantPOSAudit();
+  const canPosAudit = !posAudit.loading && posAudit.isAccountant && posAudit.enabled;
 
   // Cashier may enter /pos only when Bridge is reachable.
   // Admins are allowed in (read-only mode is enforced inside POS).
@@ -70,7 +74,7 @@ export default function ChooseWorkspacePage() {
     })();
   }, [user?.id]);
 
-  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback") => {
+  const choose = (path: "/employee" | "/rep" | "/pos" | "/feedback" | "/pos-reports") => {
     try {
       if (user?.id) {
         sessionStorage.setItem(`workspace-choice:${user.id}`, path);
@@ -86,11 +90,14 @@ export default function ChooseWorkspacePage() {
   // Auto-redirect if exactly one workspace is available (e.g. feedback-only).
   useEffect(() => {
     if (!rolesLoaded || feedbackPerms.loading) return;
-    if (canFeedback && !hasRep && !hasCashier && !hasEmployee) {
+    if (canFeedback && !hasRep && !hasCashier && !hasEmployee && !canPosAudit) {
       choose("/feedback");
     }
+    if (canPosAudit && !hasRep && !hasCashier && !hasEmployee && !canFeedback) {
+      choose("/pos-reports");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback]);
+  }, [rolesLoaded, feedbackPerms.loading, hasRep, hasCashier, hasEmployee, canFeedback, canPosAudit]);
 
   const signOut = async () => {
     try {
