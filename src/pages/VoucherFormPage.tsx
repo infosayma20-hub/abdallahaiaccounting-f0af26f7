@@ -2376,6 +2376,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         email: settings.email || undefined,
         taxNumber: settings.tax_number || undefined,
       },
+      logoLayout: ((settings as any).invoice_header_layout === "logo_center" ? "logo_center" : "logo_center") as any,
+      logoSize: (((settings as any).invoice_logo_size as any) || "large"),
+      balanceBox: (((settings as any).voucher_show_balance_box !== false) && partyType === "contact" && selectedContact)
+        ? (() => {
+            const before = (computedBalance ?? selectedContact.ledger_balance ?? selectedContact.current_balance ?? 0)
+              + (isEditMode ? (isReceipt ? originalAmount : -originalAmount) : 0);
+            const delta = isReceipt ? -amt : amt;
+            const after = before + delta;
+            const sign = (n: number) => n > 0 ? "مدين" : n < 0 ? "دائن" : "متوازن";
+            return {
+              partyName: selectedContact.name,
+              beforeLabel: "الرصيد السابق",
+              beforeValue: `${currencySymbol}${fmtAmt(Math.abs(before))}`,
+              beforeNature: sign(before),
+              afterLabel: "الرصيد الحالي",
+              afterValue: `${currencySymbol}${fmtAmt(Math.abs(after))}`,
+              afterNature: sign(after),
+            };
+          })()
+        : undefined,
       info,
       tables,
       totals: (() => {
@@ -2383,15 +2403,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           { label: amountLabel, value: `${currencySymbol}${fmtAmt(amt)}` },
           { label: "المبلغ بالكلمات", value: amountInWords },
         ];
-        if ((settings as any).voucher_show_balance_box && partyType === "contact" && selectedContact) {
-          const before = (computedBalance ?? selectedContact.ledger_balance ?? selectedContact.current_balance ?? 0)
-            + (isEditMode ? (isReceipt ? originalAmount : -originalAmount) : 0);
-          const delta = isReceipt ? -amt : amt;
-          const after = before + delta;
-          const sign = (n: number) => n > 0 ? "مدين" : n < 0 ? "دائن" : "صفر";
-          t.push({ label: "رصيد الجهة قبل السند", value: `${currencySymbol}${fmtAmt(Math.abs(before))} (${sign(before)})` });
-          t.push({ label: "رصيد الجهة بعد السند", value: `${currencySymbol}${fmtAmt(Math.abs(after))} (${sign(after)})` });
-        }
         return t;
       })(),
       notes: notes || undefined,
