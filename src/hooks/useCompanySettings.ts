@@ -217,6 +217,8 @@ const defaultSettings: CompanySettings = {
   invoice_show_amount_words: true,
   invoice_show_due_date: true,
   invoice_footer_message: "شكراً لتعاملكم معنا",
+  invoice_show_balance_box: true,
+  voucher_show_balance_box: false,
   pos_name: "نقطة البيع الرئيسية",
   pos_branch_id: "",
   pos_payment_methods: ["cash", "network", "transfer", "credit"],
@@ -473,6 +475,7 @@ export function useCompanySettings() {
     "onboarding_skipped","onboarding_completed_at",
     "invoice_header_layout","invoice_logo_size","invoice_primary_color","invoice_show_signature",
     "invoice_show_tax_summary","invoice_show_amount_words","invoice_show_due_date","invoice_footer_message",
+    "invoice_show_balance_box","voucher_show_balance_box",
     "can_edit_posted","can_delete_posted","card_bank_account_id",
     // Inventory
     "inventory_costing_method","inventory_default_unit","inventory_low_stock_alert",
