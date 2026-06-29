@@ -4576,7 +4576,17 @@ const POSPage = () => {
           // stations, making the category print rules dead code.
           const stationItems: Record<string, any[]> = {};
           const allStationIds = (stationsData as any[]).map((s: any) => s.id);
-          cart.forEach(item => {
+          // Track which (printerKey, cartIndex) pairs are already routed,
+          // so the shared-keywords broadcast below can add missing lines
+          // WITHOUT collapsing genuinely duplicate cart rows (e.g. two
+          // identical "قطع بروست مشوي" lines must both print).
+          const routedByPrinter = new Map<string, Set<number>>();
+          const markRouted = (printerKey: string, idx: number) => {
+            let s = routedByPrinter.get(printerKey);
+            if (!s) { s = new Set(); routedByPrinter.set(printerKey, s); }
+            s.add(idx);
+          };
+          cart.forEach((item, cartIdx) => {
             const assigned = stationMap.get(item.product_id);
             let targets: string[] = assigned
               ? [assigned as string]
@@ -4594,11 +4604,14 @@ const POSPage = () => {
             for (const stationId of targets) {
               if (!stationItems[stationId]) stationItems[stationId] = [];
               stationItems[stationId].push({
+                _cartIdx: cartIdx,
                 name: item.name,
                 qty: item.qty,
                 note: item.note,
                 modifiers: item.modifiers || [],
               });
+              const printer = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
+              markRouted(printer.key, cartIdx);
             }
           });
 
@@ -4642,9 +4655,12 @@ const POSPage = () => {
             const SHARED_KEYWORDS = ['مشوي', 'كرنشي', 'حلقات بصل', 'حلقات البصل', 'خبز متوم', 'خبز ثوم', 'هاش بروان', 'هاشبروان', 'هاش براون', 'هاشبراون', 'براون', 'بروان'];
             const matchesShared = (name: string) =>
               SHARED_KEYWORDS.some((kw) => name.includes(kw));
+            // Keep cart index attached so we can detect what's already routed.
             const grilledItems = cart
-              .filter((it: any) => typeof it.name === 'string' && matchesShared(it.name))
-              .map((it: any) => ({
+              .map((it: any, idx: number) => ({ it, idx }))
+              .filter(({ it }) => typeof it.name === 'string' && matchesShared(it.name))
+              .map(({ it, idx }) => ({
+                _cartIdx: idx,
                 id: it.name,
                 name: it.name,
                 quantity: it.qty,
@@ -4666,33 +4682,23 @@ const POSPage = () => {
                 }
                 return j;
               };
-              const targets = [
-                ensureJob('pizza', 'البيتزا'),
-                ensureJob('kitchen', 'المطبخ'),
+              const targetSpecs: { key: string; label: string }[] = [
+                { key: 'pizza', label: 'البيتزا' },
+                { key: 'kitchen', label: 'المطبخ' },
               ];
-              for (const job of targets) {
+              for (const spec of targetSpecs) {
+                const job = ensureJob(spec.key, spec.label);
+                const alreadyRouted = routedByPrinter.get(spec.key) || new Set<number>();
                 for (const gi of grilledItems) {
-                  // Build a stable signature that INCLUDES modifiers, so two
-                  // "قطعتين بروست مشوي" with different toppings (عادي vs حار)
-                  // are NOT collapsed into a single line on the pizza ticket.
-                  const giModsKey = (gi.modifiers || [])
-                    .map((m: any) => `${m.option_name || ''}:${m.extra_price || 0}`)
-                    .sort()
-                    .join('|');
-                  const dup = job.items.some(
-                    (x: any) => {
-                      if (x.name !== gi.name) return false;
-                      if (x.quantity !== gi.quantity) return false;
-                      if ((x.note || '') !== (gi.note || '')) return false;
-                      const xModsKey = (x.modifiers || [])
-                        .map((m: any) => `${m.option_name || ''}:${m.extra_price || 0}`)
-                        .sort()
-                        .join('|');
-                      return xModsKey === giModsKey;
-                    },
-                  );
-                  if (!dup) job.items.push(gi);
+                  // Skip ONLY if this exact cart line was already routed to
+                  // this printer via normal station mapping. Two identical
+                  // cart lines have different _cartIdx and must both print.
+                  if (alreadyRouted.has(gi._cartIdx)) continue;
+                  const { _cartIdx, ...clean } = gi;
+                  job.items.push(clean);
+                  alreadyRouted.add(gi._cartIdx);
                 }
+                routedByPrinter.set(spec.key, alreadyRouted);
               }
               // أزل السنتنل الفاضي إذا انضاف عمل فعلي
               kitchenJobs = kitchenJobs.filter(
