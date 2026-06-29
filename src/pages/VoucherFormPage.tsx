@@ -2393,6 +2393,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               afterLabel: "الرصيد الحالي",
               afterValue: `${currencySymbol}${fmtAmt(Math.abs(after))}`,
               afterNature: sign(after),
+              movementLabel: isReceipt ? "قيمة سند القبض" : "قيمة سند الصرف",
+              movementValue: `${currencySymbol}${fmtAmt(amt)}`,
+              movementSign: isReceipt ? "-" : "+",
             };
           })()
         : undefined,
