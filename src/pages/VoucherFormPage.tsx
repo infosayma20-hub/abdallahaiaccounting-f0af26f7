@@ -2391,6 +2391,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       watermark: isCancelled ? "ملغي" : undefined,
     });
   };
+  handlePrintRef.current = handlePrint;
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const getInvSymbol = (inv: Invoice) => {
