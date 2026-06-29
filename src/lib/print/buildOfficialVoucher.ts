@@ -119,14 +119,22 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
         ${company.logoUrl
           ? `<img src="${escapeHtml(company.logoUrl)}" alt="" class="doc-logo-big" style="height:${centerHeightMap[logoSize]}px;max-width:${centerMaxWidthMap[logoSize]}px;" />`
           : `<div class="doc-company-name-big">${escapeHtml(company.name || "")}</div>`}
-        ${company.logoUrl && company.name ? `<div class="doc-company-name-sub">${escapeHtml(company.name)}</div>` : ""}
       </div>
-      <div class="doc-title-block doc-title-block-center">
-        <h1 class="doc-title">${escapeHtml(o.docTypeLabel)}</h1>
-        ${o.docTypeLabelEn ? `<div class="doc-title-en">${escapeHtml(o.docTypeLabelEn)}</div>` : ""}
-        <div class="doc-meta">
-          ${o.refNumber ? `<div><span class="doc-meta-l">رقم السند:</span> <strong>${escapeHtml(o.refNumber)}</strong></div>` : ""}
-          <div><span class="doc-meta-l">التاريخ:</span> <strong>${escapeHtml(o.date)}</strong></div>
+      <div class="doc-header-row">
+        <div class="doc-title-block">
+          <h1 class="doc-title">${escapeHtml(o.docTypeLabel)}</h1>
+          ${o.docTypeLabelEn ? `<div class="doc-title-en">${escapeHtml(o.docTypeLabelEn)}</div>` : ""}
+          <div class="doc-meta">
+            ${o.refNumber ? `<div><span class="doc-meta-l">رقم السند:</span> <strong>${escapeHtml(o.refNumber)}</strong></div>` : ""}
+            <div><span class="doc-meta-l">التاريخ:</span> <strong>${escapeHtml(o.date)}</strong></div>
+          </div>
+        </div>
+        <div class="doc-company-info">
+          <div class="doc-company-name">${escapeHtml(company.name || "")}</div>
+          ${company.address ? `<div class="doc-company-sub">📍 ${escapeHtml(company.address)}</div>` : ""}
+          ${company.phone ? `<div class="doc-company-sub">📞 ${escapeHtml(company.phone)}</div>` : ""}
+          ${company.email ? `<div class="doc-company-sub">✉️ ${escapeHtml(company.email)}</div>` : ""}
+          ${company.taxNumber ? `<div class="doc-company-sub">🔢 ${escapeHtml(company.taxNumber)}</div>` : ""}
         </div>
       </div>
     </header>
@@ -214,19 +222,21 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
       : "";
 
   const balanceBoxHtml = o.balanceBox
-    ? `<section class="doc-balance-box">
-         ${o.balanceBox.partyName ? `<div class="doc-balance-party">${escapeHtml(o.balanceBox.partyName)}</div>` : ""}
-         <div class="doc-balance-grid">
-           <div class="doc-balance-cell">
-             <div class="doc-balance-l">${escapeHtml(o.balanceBox.beforeLabel || "الرصيد السابق")}</div>
-             <div class="doc-balance-v">${escapeHtml(o.balanceBox.beforeValue)}${o.balanceBox.beforeNature ? ` <span class="doc-balance-nat">(${escapeHtml(o.balanceBox.beforeNature)})</span>` : ""}</div>
-           </div>
-           <div class="doc-balance-cell doc-balance-cell-now">
-             <div class="doc-balance-l">${escapeHtml(o.balanceBox.afterLabel || "الرصيد الحالي")}</div>
-             <div class="doc-balance-v">${escapeHtml(o.balanceBox.afterValue)}${o.balanceBox.afterNature ? ` <span class="doc-balance-nat">(${escapeHtml(o.balanceBox.afterNature)})</span>` : ""}</div>
-           </div>
-         </div>
-       </section>`
+    ? (() => {
+        const b = o.balanceBox!;
+        const card = (label: string, value: string, nature: string | undefined, accent: boolean) => `
+          <div class="bal-card ${accent ? "bal-card-now" : ""}">
+            <div class="bal-head ${accent ? "bal-head-now" : ""}">${escapeHtml(label)}</div>
+            <div class="bal-body">
+              <span class="bal-nature">${escapeHtml(nature || "")}</span>
+              <span class="bal-amount">${escapeHtml(value)}</span>
+            </div>
+          </div>`;
+        return `<section class="doc-balance-wrap">
+          ${card(b.beforeLabel || "الرصيد السابق", b.beforeValue, b.beforeNature, false)}
+          ${card(b.afterLabel || "الرصيد الحالي", b.afterValue, b.afterNature, true)}
+        </section>`;
+      })()
     : "";
 
   const warningHtml = o.warningNote
@@ -293,14 +303,15 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
       margin-bottom: 14px;
     }
     .doc-header-center {
-      flex-direction: column; align-items: center; text-align: center; gap: 10px;
+      flex-direction: column; align-items: stretch; gap: 10px;
     }
-    .doc-center-logo { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .doc-center-logo { display: flex; justify-content: center; align-items: center; }
     .doc-logo-big { object-fit: contain; display: inline-block; }
     .doc-company-name-big { font-size: 28px; font-weight: 800; color: ${PRIMARY}; letter-spacing: 0.5px; }
-    .doc-company-name-sub { font-size: 13px; font-weight: 700; color: ${PRIMARY}; }
-    .doc-title-block-center { text-align: center; }
-    .doc-title-block-center .doc-meta { display: flex; gap: 18px; justify-content: center; }
+    .doc-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .doc-company-info { text-align: left; font-size: 10px; color: ${MUTED}; line-height: 1.6; max-width: 260px; }
+    .doc-company-info .doc-company-name { font-size: 12px; font-weight: 700; color: ${PRIMARY}; margin-bottom: 2px; }
+    .doc-company-info .doc-company-sub { font-size: 10px; color: ${MUTED}; }
     .doc-company { display: flex; gap: 12px; align-items: center; min-width: 0; }
     .doc-logo { height: 46px; width: auto; object-fit: contain; }
     .doc-company-name { font-size: 16px; font-weight: 700; color: ${PRIMARY}; }
@@ -359,17 +370,25 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
     .doc-total-l { color: ${MUTED}; }
     .doc-total-v { font-weight: 700; color: ${TEXT}; font-variant-numeric: tabular-nums; }
     .doc-total-v.warn { color: #B91C1C; }
-    .doc-balance-box {
-      margin: 0 0 14px; padding: 12px 14px;
-      border: 1.5px solid ${PRIMARY}; border-radius: 6px; background: ${SURFACE_ALT};
+    .doc-balance-wrap {
+      margin: 4px 0 14px; display: flex; flex-direction: column; gap: 10px; align-items: stretch;
     }
-    .doc-balance-party { font-size: 12px; font-weight: 700; color: ${PRIMARY}; margin-bottom: 8px; }
-    .doc-balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .doc-balance-cell { padding: 8px 10px; background: #fff; border: 1px solid ${BORDER}; border-radius: 4px; }
-    .doc-balance-cell-now { border-color: ${PRIMARY}; }
-    .doc-balance-l { font-size: 10.5px; color: ${MUTED}; margin-bottom: 4px; }
-    .doc-balance-v { font-size: 14px; font-weight: 800; color: ${TEXT}; font-variant-numeric: tabular-nums; }
-    .doc-balance-nat { font-size: 10.5px; color: ${MUTED}; font-weight: 600; }
+    .bal-card {
+      border: 1px solid #94A3B8; border-radius: 10px; overflow: hidden; background: #fff;
+      width: 100%; max-width: 360px; margin-left: auto;
+    }
+    .bal-card-now { border: 1.5px solid ${PRIMARY}; box-shadow: 0 1px 2px rgba(13,27,46,0.06); }
+    .bal-head {
+      background: #64748B; color: #fff; padding: 7px 12px;
+      font-size: 12px; font-weight: 700; text-align: right; letter-spacing: 0.3px;
+    }
+    .bal-head-now { background: ${PRIMARY}; }
+    .bal-body {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; background: ${SURFACE_ALT};
+    }
+    .bal-nature { font-size: 11.5px; color: ${MUTED}; font-weight: 600; }
+    .bal-amount { font-size: 16px; font-weight: 800; color: ${TEXT}; font-variant-numeric: tabular-nums; direction: ltr; }
     .doc-warning {
       margin-bottom: 14px; padding: 8px 12px;
       border-right: 3px solid #B91C1C; background: #FEF2F2;
