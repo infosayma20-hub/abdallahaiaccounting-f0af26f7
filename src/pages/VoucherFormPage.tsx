@@ -2290,7 +2290,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
     const categoryLabel = !isReceipt && partyType === "employee" && empCategory ? empCategory : "";
 
-    const linkedInvs = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
+    // ملاحظة: لا نطبع تفاصيل الفواتير المرتبطة داخل السند — السند مستند مستقل
+    // وعرض الفواتير داخله يربك القارئ. نكتفي بسطر واحد يلخّص قيمة السند.
     const depositLabel = paymentMethod === "شيك" && selectedChequeBankAccount
       ? (bankAccounts.find(b => b.id === selectedChequeBankAccount)?.name || "دفتر الشيكات")
       : depositType === "cash_box"
@@ -2311,24 +2312,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
     const tables: any[] = [];
 
-    // Main amount/details table
-    const linkedRows = linkedInvs.length
-      ? linkedInvs.map((inv) => [
-          inv.invoice_date,
-          inv.invoice_number || "—",
-          notes || typeLabel,
-          typeLabel,
-          isReceipt ? "" : `${currencySymbol}${fmtAmt(inv.allocatedAmount || 0)}`,
-          isReceipt ? `${currencySymbol}${fmtAmt(inv.allocatedAmount || 0)}` : "—",
-        ])
-      : [[
-          dateFormatted,
-          savedReceiptNumber || refNumber || "—",
-          notes || (categoryLabel ? `${categoryLabel} - ${partyName}` : typeLabel),
-          typeLabel,
-          isReceipt ? "" : `${currencySymbol}${fmtAmt(amt)}`,
-          isReceipt ? `${currencySymbol}${fmtAmt(amt)}` : "",
-        ]];
+    // سطر واحد فقط يمثل قيمة السند نفسه (لا نعرض الفواتير المرتبطة)
+    const linkedRows = [[
+      dateFormatted,
+      savedReceiptNumber || refNumber || "—",
+      notes || (categoryLabel ? `${categoryLabel} - ${partyName}` : typeLabel),
+      typeLabel,
+      isReceipt ? "" : `${currencySymbol}${fmtAmt(amt)}`,
+      isReceipt ? `${currencySymbol}${fmtAmt(amt)}` : "",
+    ]];
 
     tables.push({
       columns: [
