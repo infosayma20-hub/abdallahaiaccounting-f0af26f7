@@ -71,6 +71,7 @@ const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
 const FormTemplatesAdminPage = lazy(() => import("./pages/hr/FormTemplatesAdminPage"));
 const EmployeeFormsManagementPage = lazy(() => import("./pages/EmployeeFormsManagementPage"));
 const AdminFormsInboxPage = lazy(() => import("./pages/admin/AdminFormsInboxPage"));
+const InventoryCatalogPage = lazy(() => import("./pages/admin/InventoryCatalogPage"));
 const NotificationsAdminPage = lazy(() => import("./pages/admin/NotificationsAdminPage"));
 const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentativesPage"));
 const WarehousesPage = lazy(() => import("./pages/WarehousesPage"));
@@ -788,6 +789,7 @@ const App = () => (
                       <Route path="/hr/meal-deductions" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><MealDeductionsDashboardPage /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/employee-forms-management" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_forms", "can_approve_requests"]}><EmployeeFormsManagementPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/admin/forms-inbox" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdminFormsInboxPage /></RoleGuard>} />
+                      <Route path="/admin/inventory-catalog" element={<RoleGuard allowedRoles={["admin"]}><InventoryCatalogPage /></RoleGuard>} />
                       <Route path="/admin/notifications" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><NotificationsAdminPage /></RoleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/admin/sales-reps-live" element={<RoleGuard allowedRoles={["admin"]}><SalesRepsLivePage /></RoleGuard>} />
