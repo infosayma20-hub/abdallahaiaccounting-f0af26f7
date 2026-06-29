@@ -69,6 +69,8 @@ export interface CompanySettings {
   invoice_show_amount_words: boolean;
   invoice_show_due_date: boolean;
   invoice_footer_message: string;
+  invoice_show_balance_box: boolean;
+  voucher_show_balance_box: boolean;
   // POS
   pos_name: string;
   pos_branch_id: string;
