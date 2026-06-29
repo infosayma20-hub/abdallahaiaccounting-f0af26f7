@@ -119,14 +119,22 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
         ${company.logoUrl
           ? `<img src="${escapeHtml(company.logoUrl)}" alt="" class="doc-logo-big" style="height:${centerHeightMap[logoSize]}px;max-width:${centerMaxWidthMap[logoSize]}px;" />`
           : `<div class="doc-company-name-big">${escapeHtml(company.name || "")}</div>`}
-        ${company.logoUrl && company.name ? `<div class="doc-company-name-sub">${escapeHtml(company.name)}</div>` : ""}
       </div>
-      <div class="doc-title-block doc-title-block-center">
-        <h1 class="doc-title">${escapeHtml(o.docTypeLabel)}</h1>
-        ${o.docTypeLabelEn ? `<div class="doc-title-en">${escapeHtml(o.docTypeLabelEn)}</div>` : ""}
-        <div class="doc-meta">
-          ${o.refNumber ? `<div><span class="doc-meta-l">رقم السند:</span> <strong>${escapeHtml(o.refNumber)}</strong></div>` : ""}
-          <div><span class="doc-meta-l">التاريخ:</span> <strong>${escapeHtml(o.date)}</strong></div>
+      <div class="doc-header-row">
+        <div class="doc-title-block">
+          <h1 class="doc-title">${escapeHtml(o.docTypeLabel)}</h1>
+          ${o.docTypeLabelEn ? `<div class="doc-title-en">${escapeHtml(o.docTypeLabelEn)}</div>` : ""}
+          <div class="doc-meta">
+            ${o.refNumber ? `<div><span class="doc-meta-l">رقم السند:</span> <strong>${escapeHtml(o.refNumber)}</strong></div>` : ""}
+            <div><span class="doc-meta-l">التاريخ:</span> <strong>${escapeHtml(o.date)}</strong></div>
+          </div>
+        </div>
+        <div class="doc-company-info">
+          <div class="doc-company-name">${escapeHtml(company.name || "")}</div>
+          ${company.address ? `<div class="doc-company-sub">📍 ${escapeHtml(company.address)}</div>` : ""}
+          ${company.phone ? `<div class="doc-company-sub">📞 ${escapeHtml(company.phone)}</div>` : ""}
+          ${company.email ? `<div class="doc-company-sub">✉️ ${escapeHtml(company.email)}</div>` : ""}
+          ${company.taxNumber ? `<div class="doc-company-sub">🔢 ${escapeHtml(company.taxNumber)}</div>` : ""}
         </div>
       </div>
     </header>
@@ -214,19 +222,21 @@ export function buildOfficialVoucherHtml(o: OfficialVoucherOptions): string {
       : "";
 
   const balanceBoxHtml = o.balanceBox
-    ? `<section class="doc-balance-box">
-         ${o.balanceBox.partyName ? `<div class="doc-balance-party">${escapeHtml(o.balanceBox.partyName)}</div>` : ""}
-         <div class="doc-balance-grid">
-           <div class="doc-balance-cell">
-             <div class="doc-balance-l">${escapeHtml(o.balanceBox.beforeLabel || "الرصيد السابق")}</div>
-             <div class="doc-balance-v">${escapeHtml(o.balanceBox.beforeValue)}${o.balanceBox.beforeNature ? ` <span class="doc-balance-nat">(${escapeHtml(o.balanceBox.beforeNature)})</span>` : ""}</div>
-           </div>
-           <div class="doc-balance-cell doc-balance-cell-now">
-             <div class="doc-balance-l">${escapeHtml(o.balanceBox.afterLabel || "الرصيد الحالي")}</div>
-             <div class="doc-balance-v">${escapeHtml(o.balanceBox.afterValue)}${o.balanceBox.afterNature ? ` <span class="doc-balance-nat">(${escapeHtml(o.balanceBox.afterNature)})</span>` : ""}</div>
-           </div>
-         </div>
-       </section>`
+    ? (() => {
+        const b = o.balanceBox!;
+        const card = (label: string, value: string, nature: string | undefined, accent: boolean) => `
+          <div class="bal-card ${accent ? "bal-card-now" : ""}">
+            <div class="bal-head ${accent ? "bal-head-now" : ""}">${escapeHtml(label)}</div>
+            <div class="bal-body">
+              <span class="bal-nature">${escapeHtml(nature || "")}</span>
+              <span class="bal-amount">${escapeHtml(value)}</span>
+            </div>
+          </div>`;
+        return `<section class="doc-balance-wrap">
+          ${card(b.beforeLabel || "الرصيد السابق", b.beforeValue, b.beforeNature, false)}
+          ${card(b.afterLabel || "الرصيد الحالي", b.afterValue, b.afterNature, true)}
+        </section>`;
+      })()
     : "";
 
   const warningHtml = o.warningNote
