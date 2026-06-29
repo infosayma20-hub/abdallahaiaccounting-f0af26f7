@@ -1406,6 +1406,7 @@ const InvoicesPage = () => {
                   {show("status") && <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>}
                   {show("paymentMethod") && <TableHead className="text-right">الدفع</TableHead>}
                   {show("notes") && <TableHead className="text-right">الملاحظات</TableHead>}
+                  {show("costCenter") && <TableHead className="text-right">مركز التكلفة</TableHead>}
                   {show("total") && <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>}
                   {show("remaining") && <TableHead className="text-right">المتبقي</TableHead>}
                   {show("actions") && <TableHead className="text-right">أفعال</TableHead>}
@@ -1442,6 +1443,7 @@ const InvoicesPage = () => {
                       </TableCell>}
                       {show("paymentMethod") && <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>}
                       {show("notes") && <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate" title={inv.notes || ""}>{inv.notes || "—"}</TableCell>}
+                      {show("costCenter") && <TableCell className="text-xs text-muted-foreground">{inv.costCenterName || "—"}</TableCell>}
                       {show("total") && <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>}
                       {show("remaining") && <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
