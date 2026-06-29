@@ -332,7 +332,7 @@ export default function MonthlyInventoryRenderer({
               <Select
                 value={branchKey}
                 onValueChange={(v) => setBranchKey(v)}
-                disabled={readOnly || (!!autoBranchKey && !!initialData?.branch_key === false && false)}
+                disabled={readOnly}
               >
                 <SelectTrigger className="text-right h-11">
                   <SelectValue placeholder="اختر الفرع" />
