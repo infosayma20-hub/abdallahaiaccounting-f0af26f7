@@ -1721,7 +1721,9 @@ const InvoicesPage = () => {
                   invoice={(() => {
                     const c = (contacts as any[]).find(x => x.id === (selectedInvoice as any).contactId);
                     const bal = c && typeof c.balance === "number" ? c.balance : undefined;
-                    return bal != null ? { ...selectedInvoice, contactClosingBalance: bal } : selectedInvoice;
+                    if (bal == null) return selectedInvoice;
+                    const opening = bal - (selectedInvoice.type === "sales" ? Number(selectedInvoice.remainingAmount || 0) : -Number(selectedInvoice.remainingAmount || 0));
+                    return { ...selectedInvoice, contactClosingBalance: bal, contactOpeningBalance: opening };
                   })()}
                   settings={companySettings}
                   copyLabel="أصلية"
