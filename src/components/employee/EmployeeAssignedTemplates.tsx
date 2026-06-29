@@ -352,7 +352,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             <div className="w-9" />
           </header>
           <div
-            className="flex-1 flex flex-col overflow-hidden overscroll-contain px-4 pt-4"
+            className="flex-1 flex flex-col overflow-hidden overscroll-contain px-4 pt-4 min-h-0"
             style={{
               WebkitOverflowScrolling: "touch",
             }}
@@ -406,7 +406,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
           {activeTemplate && (
             <>
               {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden min-h-0">
                   <MonthlyInventoryRenderer
                     employeeId={employeeId}
                     templateId={activeTemplate.id}
