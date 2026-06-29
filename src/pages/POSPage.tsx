@@ -4212,7 +4212,11 @@ const POSPage = () => {
       const safePaymentsPayload = (paymentsPayload as any[]).filter(
         (p) => Number(p?.amount) > 0
       );
-      if (safePaymentsPayload.length === 0) {
+      // ✅ السماح بالطلبات المجانية (خصم مدير 100% → الإجمالي = 0):
+      //   نمرر مصفوفة فارغة للـ RPC وهي تتعامل معها بأمان (تتخطى تسجيل
+      //   صفوف pos_payments وقيد الصندوق، وتُبقي قيد خصم المبيعات/COGS).
+      const isFreeOrder = Number(cartTotals.total) <= 0;
+      if (safePaymentsPayload.length === 0 && !isFreeOrder) {
         toast.error("لا يوجد مبلغ للدفع — تحقق من قيمة الفاتورة وطريقة الدفع");
         return;
       }
