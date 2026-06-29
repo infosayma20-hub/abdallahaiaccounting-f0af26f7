@@ -60,6 +60,8 @@ type CatalogItem = {
 
 interface Props {
   employeeId: string;
+  /** Form template id, used for duplicate-month detection. */
+  templateId?: string;
   initialData?: Record<string, any>;
   submitting?: boolean;
   onSubmit?: (data: Record<string, any>) => void;
@@ -77,6 +79,7 @@ function currentMonthValue(): string {
 
 export default function MonthlyInventoryRenderer({
   employeeId,
+  templateId,
   initialData,
   submitting,
   onSubmit,
@@ -106,6 +109,7 @@ export default function MonthlyInventoryRenderer({
   });
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [restoredFromDraft] = useState<boolean>(!!localDraft && !initialData);
+  const [duplicateForm, setDuplicateForm] = useState<{ id: string; status: string; created_at: string } | null>(null);
 
   // Auto-detect manager's branch from their employee record.
   useEffect(() => {
@@ -152,6 +156,34 @@ export default function MonthlyInventoryRenderer({
     })();
     return () => { alive = false; };
   }, [branchKey]);
+
+  // Detect existing submitted form for same template + employee + branch + month.
+  // Helps avoid double-submission of the same monthly inventory.
+  useEffect(() => {
+    let alive = true;
+    setDuplicateForm(null);
+    if (!templateId || !employeeId || !branchKey || !month || readOnly) return;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("employee_forms")
+          .select("id, status, created_at, form_data")
+          .eq("template_id", templateId)
+          .eq("employee_id", employeeId)
+          .in("status", ["submitted", "approved", "draft"])
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (!alive || !data) return;
+        const dup = data.find((row: any) => {
+          const fd = row.form_data || {};
+          // ignore the form currently being edited (initialData carries no id here)
+          return fd?.branch_key === branchKey && fd?.month === month;
+        });
+        if (dup) setDuplicateForm({ id: (dup as any).id, status: (dup as any).status, created_at: (dup as any).created_at });
+      } catch { /* ignore */ }
+    })();
+    return () => { alive = false; };
+  }, [templateId, employeeId, branchKey, month, readOnly]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, CatalogItem[]>();
@@ -230,6 +262,14 @@ export default function MonthlyInventoryRenderer({
   const handleSubmit = () => {
     if (!branchKey) { toast({ title: "اختر الفرع أولاً", variant: "destructive" }); return; }
     if (!month) { toast({ title: "اختر الشهر أولاً", variant: "destructive" }); return; }
+    if (duplicateForm && duplicateForm.status !== "draft") {
+      toast({
+        title: "يوجد جرد مسجل لنفس الفرع والشهر",
+        description: "تم رفع نموذج سابق لنفس الفرع والشهر. راجع المحاسب قبل إرسال نسخة جديدة.",
+        variant: "destructive",
+      });
+      return;
+    }
     const payload = buildPayload();
     onSubmit?.(payload);
     // Clear local draft after a successful submit dispatch.
@@ -279,6 +319,11 @@ export default function MonthlyInventoryRenderer({
           {restoredFromDraft && (
             <div className="text-[11px] bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-1">
               تم استرجاع مسودة محفوظة محلياً على هذا الجهاز.
+            </div>
+          )}
+          {duplicateForm && (
+            <div className="text-[11px] bg-red-50 text-red-700 border border-red-200 rounded px-2 py-1.5">
+              تنبيه: يوجد جرد سابق لنفس الفرع/الشهر بحالة «{duplicateForm.status === "approved" ? "معتمد" : duplicateForm.status === "submitted" ? "مرسل" : "مسودة"}» بتاريخ {new Date(duplicateForm.created_at).toLocaleDateString("ar-EG")}. تأكد قبل الإرسال.
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
