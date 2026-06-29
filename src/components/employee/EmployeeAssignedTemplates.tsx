@@ -477,7 +477,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
-                  {(tpl.schema as any)?.kind === "monthly_inventory" ? (
+                  {((tpl.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(tpl.name || "")) ? (
                     <MonthlyInventoryView data={viewSubmission.form_data} />
                   ) : (
                     <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
@@ -510,7 +510,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                     <h2 className="text-xl font-bold text-foreground">{viewSubmission.title || tpl.name}</h2>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(viewSubmission.created_at).toLocaleDateString("ar")}</p>
                   </div>
-                  {(tpl.schema as any)?.kind === "monthly_inventory" ? (
+                  {((tpl.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(tpl.name || "")) ? (
                     <MonthlyInventoryView data={viewSubmission.form_data} />
                   ) : (
                     <DynamicTemplateView schema={tpl.schema as any} data={viewSubmission.form_data} />
