@@ -312,7 +312,8 @@ export default function MonthlyInventoryRenderer({
   };
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="flex flex-col flex-1 min-h-0" dir="rtl">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-4 px-0 pb-4">
       {/* Header: branch + month */}
       <Card>
         <CardContent className="p-4 space-y-3">
@@ -452,8 +453,9 @@ export default function MonthlyInventoryRenderer({
         </Accordion>
       )}
 
+      </div>
       {!readOnly && (
-        <div className="sticky bottom-0 -mx-2 sm:mx-0 px-2 sm:px-0 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-background via-background to-transparent">
+        <div className="shrink-0 border-t bg-background px-0 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"

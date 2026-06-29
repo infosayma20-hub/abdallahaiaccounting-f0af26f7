@@ -352,10 +352,9 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
             <div className="w-9" />
           </header>
           <div
-            className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4"
+            className="flex-1 flex flex-col overflow-hidden overscroll-contain px-4 pt-4 min-h-0"
             style={{
               WebkitOverflowScrolling: "touch",
-              paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
             }}
           >
             {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
@@ -369,52 +368,7 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                 onSaveDraft={handleSaveDraft}
               />
             ) : (
-              <DynamicFormRenderer
-                schema={activeTemplate.schema}
-                draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
-                initialData={activeDraft?.form_data}
-                submitting={submitting}
-                onSubmit={handleSubmit}
-                onSaveDraft={handleSaveDraft}
-                onPreviewWord={previewWordFromDraft}
-                renderSectionExtras={
-                  isManager
-                    ? (sec) => (
-                        <InlineSectionAssign
-                          templateId={activeTemplate.id}
-                          sectionKey={sec.key}
-                          sectionTitle={sec.title}
-                        />
-                      )
-                    : undefined
-                }
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => { if (!o) { setActiveTemplate(null); setActiveDraft(null); } }}>
-        <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-right">{activeTemplate?.name}</DialogTitle>
-            {activeTemplate?.description && (
-              <p className="text-xs text-muted-foreground text-right">{activeTemplate.description}</p>
-            )}
-          </DialogHeader>
-          {activeTemplate && (
-            <>
-              {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
-                <MonthlyInventoryRenderer
-                  employeeId={employeeId}
-                  templateId={activeTemplate.id}
-                  draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
-                  initialData={activeDraft?.form_data}
-                  submitting={submitting}
-                  onSubmit={handleSubmit}
-                  onSaveDraft={handleSaveDraft}
-                />
-              ) : (
+              <div className="flex-1 overflow-y-auto min-h-0">
                 <DynamicFormRenderer
                   schema={activeTemplate.schema}
                   draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
@@ -435,6 +389,57 @@ export default function EmployeeAssignedTemplates({ employeeId, jobTitle, jobTit
                       : undefined
                   }
                 />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!isMobile && !!activeTemplate} onOpenChange={(o) => { if (!o) { setActiveTemplate(null); setActiveDraft(null); } }}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] flex flex-col overflow-hidden" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">{activeTemplate?.name}</DialogTitle>
+            {activeTemplate?.description && (
+              <p className="text-xs text-muted-foreground text-right">{activeTemplate.description}</p>
+            )}
+          </DialogHeader>
+          {activeTemplate && (
+            <>
+              {((activeTemplate.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(activeTemplate.name || "")) ? (
+                <div className="flex-1 overflow-hidden min-h-0">
+                  <MonthlyInventoryRenderer
+                    employeeId={employeeId}
+                    templateId={activeTemplate.id}
+                    draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                    initialData={activeDraft?.form_data}
+                    submitting={submitting}
+                    onSubmit={handleSubmit}
+                    onSaveDraft={handleSaveDraft}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <DynamicFormRenderer
+                    schema={activeTemplate.schema}
+                    draftKey={`tpl-${activeTemplate.id}-emp-${employeeId}`}
+                    initialData={activeDraft?.form_data}
+                    submitting={submitting}
+                    onSubmit={handleSubmit}
+                    onSaveDraft={handleSaveDraft}
+                    onPreviewWord={previewWordFromDraft}
+                    renderSectionExtras={
+                      isManager
+                        ? (sec) => (
+                            <InlineSectionAssign
+                              templateId={activeTemplate.id}
+                              sectionKey={sec.key}
+                              sectionTitle={sec.title}
+                            />
+                          )
+                        : undefined
+                    }
+                  />
+                </div>
               )}
             </>
           )}
