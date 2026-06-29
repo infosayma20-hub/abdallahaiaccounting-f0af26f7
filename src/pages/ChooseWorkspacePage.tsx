@@ -221,6 +221,25 @@ export default function ChooseWorkspacePage() {
             </Button>
           </Card>
           )}
+
+          {canPosAudit && (
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => choose("/pos-reports")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && choose("/pos-reports")}
+            className="p-6 cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col items-center text-center gap-3"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <BarChart3 className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold">تدقيق ورديات نقطة البيع</h2>
+            <p className="text-sm text-muted-foreground">عرض الورديات والمبيعات للفروع المسموحة (للقراءة فقط)</p>
+            <Button className="w-full mt-2" onClick={(e) => { e.stopPropagation(); choose("/pos-reports"); }}>
+              دخول التدقيق
+            </Button>
+          </Card>
+          )}
         </div>
 
         <div className="flex justify-center">
