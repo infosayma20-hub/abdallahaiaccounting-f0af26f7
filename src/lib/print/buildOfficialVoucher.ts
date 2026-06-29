@@ -66,6 +66,11 @@ export interface OfficialVoucherOptions {
     afterLabel?: string;
     afterValue: string;
     afterNature?: string;
+    /** Movement amount line shown between before/after (e.g. "+ ₪1,000.00"). */
+    movementLabel?: string;
+    movementValue?: string;
+    /** "+" increases debtor balance, "-" decreases it. Controls arrow color. */
+    movementSign?: "+" | "-";
   };
   /** Top info strip (date / type / party / method / currency / status…) */
   info?: OfficialVoucherInfo[];
