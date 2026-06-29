@@ -2378,10 +2378,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       },
       info,
       tables,
-      totals: [
-        { label: amountLabel, value: `${currencySymbol}${fmtAmt(amt)}` },
-        { label: "المبلغ بالكلمات", value: amountInWords },
-      ],
+      totals: (() => {
+        const t: { label: string; value: string; warn?: boolean }[] = [
+          { label: amountLabel, value: `${currencySymbol}${fmtAmt(amt)}` },
+          { label: "المبلغ بالكلمات", value: amountInWords },
+        ];
+        if ((settings as any).voucher_show_balance_box && partyType === "contact" && selectedContact) {
+          const before = (computedBalance ?? selectedContact.ledger_balance ?? selectedContact.current_balance ?? 0)
+            + (isEditMode ? (isReceipt ? originalAmount : -originalAmount) : 0);
+          const delta = isReceipt ? -amt : amt;
+          const after = before + delta;
+          const sign = (n: number) => n > 0 ? "مدين" : n < 0 ? "دائن" : "صفر";
+          t.push({ label: "رصيد الجهة قبل السند", value: `${currencySymbol}${fmtAmt(Math.abs(before))} (${sign(before)})` });
+          t.push({ label: "رصيد الجهة بعد السند", value: `${currencySymbol}${fmtAmt(Math.abs(after))} (${sign(after)})` });
+        }
+        return t;
+      })(),
       notes: notes || undefined,
       signatures: [
         { label: "المحاسب" },

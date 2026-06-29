@@ -170,6 +170,8 @@ const InvoiceTemplateCustomizer = ({ settings, onChange }: Props) => {
               { key: "invoice_show_tax_summary" as const, label: "أظهر ملخص الضريبة (Tax Summary)" },
               { key: "invoice_show_amount_words" as const, label: "أظهر المبلغ كتابةً" },
               { key: "invoice_show_due_date" as const, label: "أظهر تاريخ الاستحقاق" },
+              { key: "invoice_show_balance_box" as const, label: "أظهر بوكس رصيد الجهة على الفاتورة" },
+              { key: "voucher_show_balance_box" as const, label: "أظهر بوكس رصيد الجهة على سندات القبض/الصرف" },
             ].map(item => (
               <div key={item.key} className="flex items-center justify-between py-1.5">
                 <span className="text-xs">{item.label}</span>
