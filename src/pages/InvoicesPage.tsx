@@ -93,6 +93,7 @@ interface Invoice {
   chequeDetails?: { number: string; bank: string; dueDate: string };
   transferDetails?: { reference: string; bank: string };
   taxInclusive?: boolean;
+  costCenterName?: string;
 }
 
 const createEmptyItem = (): InvoiceItem => ({
