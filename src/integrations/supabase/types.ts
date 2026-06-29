@@ -2556,6 +2556,7 @@ export type Database = {
           invoice_prefix: string | null
           invoice_primary_color: string | null
           invoice_show_amount_words: boolean | null
+          invoice_show_balance_box: boolean
           invoice_show_due_date: boolean | null
           invoice_show_signature: boolean | null
           invoice_show_tax_summary: boolean | null
@@ -2653,6 +2654,7 @@ export type Database = {
           vat_purchases_account: string | null
           vat_rate: number | null
           vat_sales_account: string | null
+          voucher_show_balance_box: boolean
           website: string | null
         }
         Insert: {
@@ -2725,6 +2727,7 @@ export type Database = {
           invoice_prefix?: string | null
           invoice_primary_color?: string | null
           invoice_show_amount_words?: boolean | null
+          invoice_show_balance_box?: boolean
           invoice_show_due_date?: boolean | null
           invoice_show_signature?: boolean | null
           invoice_show_tax_summary?: boolean | null
@@ -2822,6 +2825,7 @@ export type Database = {
           vat_purchases_account?: string | null
           vat_rate?: number | null
           vat_sales_account?: string | null
+          voucher_show_balance_box?: boolean
           website?: string | null
         }
         Update: {
@@ -2894,6 +2898,7 @@ export type Database = {
           invoice_prefix?: string | null
           invoice_primary_color?: string | null
           invoice_show_amount_words?: boolean | null
+          invoice_show_balance_box?: boolean
           invoice_show_due_date?: boolean | null
           invoice_show_signature?: boolean | null
           invoice_show_tax_summary?: boolean | null
@@ -2991,6 +2996,7 @@ export type Database = {
           vat_purchases_account?: string | null
           vat_rate?: number | null
           vat_sales_account?: string | null
+          voucher_show_balance_box?: boolean
           website?: string | null
         }
         Relationships: [
