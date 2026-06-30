@@ -11,7 +11,7 @@ interface PosMealRow {
   reference_number: string | null;
   amount: number;
   original_full_amount: number | null;
-  meal_discount_type: "family" | "individual" | null;
+  meal_discount_type: "family" | "individual" | "none" | null;
   meal_discount_pct: number | null;
   description: string | null;
   notes: string | null;
@@ -50,15 +50,17 @@ export function PosMealsTab({ employeeId }: { employeeId: string }) {
   }, [employeeId, year, month]);
 
   const totals = useMemo(() => {
-    let family = 0, individual = 0, full = 0;
+    let family = 0, individual = 0, none = 0, full = 0;
     for (const r of rows) {
       const t = r.meal_discount_type;
       const a = Number(r.amount) || 0;
       full += Number(r.original_full_amount) || 0;
       if (t === "family") family += a;
       else if (t === "individual") individual += a;
+      else if (t === "none") none += a;
     }
-    return { family, individual, total: family + individual, fullCompanyPaid: full, companyShare: full - (family + individual) };
+    const totalDeducted = family + individual + none;
+    return { family, individual, none, total: totalDeducted, fullCompanyPaid: full, companyShare: Math.max(0, full - totalDeducted) };
   }, [rows]);
 
   const exportCsv = () => {
@@ -66,7 +68,7 @@ export function PosMealsTab({ employeeId }: { employeeId: string }) {
     const body = rows.map(r => [
       r.movement_date,
       r.reference_number || "",
-      r.meal_discount_type === "family" ? "عائلي" : r.meal_discount_type === "individual" ? "فردي" : "",
+      r.meal_discount_type === "family" ? "عائلي" : r.meal_discount_type === "individual" ? "فردي" : r.meal_discount_type === "none" ? "بدون خصم" : "",
       r.meal_discount_pct ? `${r.meal_discount_pct}%` : "",
       (Number(r.original_full_amount) || 0).toFixed(2),
       (Number(r.amount) || 0).toFixed(2),
@@ -96,20 +98,20 @@ export function PosMealsTab({ employeeId }: { employeeId: string }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3">
-          <div className="text-[11px] text-muted-foreground">خصم عائلي (10%)</div>
+          <div className="text-[11px] text-muted-foreground">عائلي (يدفع 90%)</div>
           <div className="text-lg font-bold text-violet-600">₪{totals.family.toFixed(2)}</div>
         </Card>
         <Card className="p-3">
-          <div className="text-[11px] text-muted-foreground">خصم فردي (50%)</div>
+          <div className="text-[11px] text-muted-foreground">فردي (يدفع 50%)</div>
           <div className="text-lg font-bold text-violet-600">₪{totals.individual.toFixed(2)}</div>
         </Card>
         <Card className="p-3">
-          <div className="text-[11px] text-muted-foreground">إجمالي المخصوم من الموظف</div>
-          <div className="text-lg font-bold text-red-600">₪{totals.total.toFixed(2)}</div>
+          <div className="text-[11px] text-muted-foreground">بدون خصم (يدفع 100%)</div>
+          <div className="text-lg font-bold text-slate-700">₪{totals.none.toFixed(2)}</div>
         </Card>
         <Card className="p-3">
-          <div className="text-[11px] text-muted-foreground">حصة الشركة</div>
-          <div className="text-lg font-bold text-emerald-600">₪{totals.companyShare.toFixed(2)}</div>
+          <div className="text-[11px] text-muted-foreground">إجمالي المخصوم</div>
+          <div className="text-lg font-bold text-red-600">₪{totals.total.toFixed(2)}</div>
         </Card>
       </div>
 
@@ -142,6 +144,7 @@ export function PosMealsTab({ employeeId }: { employeeId: string }) {
                     <td className="p-2">
                       {r.meal_discount_type === "family" && <Badge variant="secondary">عائلي</Badge>}
                       {r.meal_discount_type === "individual" && <Badge variant="secondary">فردي</Badge>}
+                      {r.meal_discount_type === "none" && <Badge variant="outline">بدون خصم</Badge>}
                       {!r.meal_discount_type && <span className="text-muted-foreground">-</span>}
                     </td>
                     <td className="p-2">{r.meal_discount_pct ? `${r.meal_discount_pct}%` : "-"}</td>
