@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
+import PaymentAdjustmentDialog from "./PaymentAdjustmentDialog";
 import ManagerHistoryUnlockDialog from "./ManagerHistoryUnlockDialog";
 import ChangePaymentMethodDialog from "./ChangePaymentMethodDialog";
 import { usePOSManagerMode } from "@/hooks/usePOSManagerMode";
@@ -292,6 +293,9 @@ export default function InvoiceHistoryDrawer({
   const [returningOrder, setReturningOrder] = useState<InvoiceOrder | null>(null);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ USD: 3.6, JOD: 5.0, ILS: 1 });
   const [orderCurrency, setOrderCurrency] = useState<string>("ILS");
+
+  // Payment adjustment (partial refund without item return) — manager-mode only
+  const [showAdjustment, setShowAdjustment] = useState(false);
 
   // Transfer flow
   const [showTransferDialog, setShowTransferDialog] = useState(false);
