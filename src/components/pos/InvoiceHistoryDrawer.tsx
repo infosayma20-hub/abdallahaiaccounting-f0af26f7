@@ -2141,6 +2141,23 @@ export default function InvoiceHistoryDrawer({
           onSuccess={() => { fetchOrders(); /* refetch payments */ setSelectedOrder({ ...selectedOrder }); }}
         />
       )}
+
+      {/* ══════ PAYMENT ADJUSTMENT DIALOG (Manager Mode only) ══════ */}
+      {selectedOrder && showAdjustment && sessionId && (
+        <PaymentAdjustmentDialog
+          open={showAdjustment}
+          onClose={() => setShowAdjustment(false)}
+          orderId={selectedOrder.id}
+          orderNumber={selectedOrder.order_number}
+          orderTotal={selectedOrder.total}
+          sessionId={sessionId}
+          dataOwnerId={dataOwnerId}
+          managerUserId={managerMode.managerUserId}
+          managerName={managerMode.managerName}
+          exchangeRates={exchangeRates}
+          onSuccess={() => { fetchOrders(); setSelectedOrder({ ...selectedOrder, total: selectedOrder.total }); }}
+        />
+      )}
     </>
   );
 }
