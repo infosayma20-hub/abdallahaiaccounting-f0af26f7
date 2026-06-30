@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -19,9 +18,8 @@ import {
   Plus, Search, ShoppingCart, Package, Truck, CheckCircle, Trash2, Eye,
   MessageCircle, CreditCard, BarChart3, TrendingUp, DollarSign, CalendarDays,
   Send, Gift, Star, Phone, ArrowUpDown, ChevronLeft, ChevronRight, X,
-  Download, Printer, Hash, FileText, Pencil, Banknote, Factory, LayoutGrid, LayoutList
+  Download, Printer, Hash, FileText, Pencil, Banknote, Factory, LayoutGrid, LayoutList, RefreshCw
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
 
@@ -30,6 +28,7 @@ import ProductionCostSection from "@/components/orders/ProductionCostSection";
 import { syncContactFromOrder, syncProductsFromOrderItems, retroactiveSyncOrders } from "@/lib/order-contact-sync";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
   "جديد":        { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE", dot: "#3B82F6" },
