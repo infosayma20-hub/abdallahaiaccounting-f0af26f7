@@ -4743,6 +4743,14 @@ const POSPage = () => {
       setReceiptData(receiptInfo);
       setShowPayment(false);
       setShowReceipt(true); // Show receipt for viewing (print is still silent via bridge)
+      // Clean up any leftover staged draft that wasn't reused (e.g. cashier
+      // switched to employee_account or split mode after opening the modal).
+      if (stagedOrderIdRef.current && stagedOrderIdRef.current !== orderId) {
+        discardStagedOrder();
+      } else {
+        stagedOrderIdRef.current = null;
+        stagedHashRef.current = null;
+      }
 
       // Create kitchen tickets (split by station) + print via bridge
       let kitchenJobs: KitchenJob[] = [];
