@@ -7834,7 +7834,7 @@ const POSPage = () => {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowPayment(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) { discardStagedOrderRef.current?.(); setShowPayment(false); } }}
         >
           <div
             className="w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
@@ -7856,7 +7856,7 @@ const POSPage = () => {
                 <span className="text-[15px] font-semibold" style={{ color: '#201F1E' }}>طريقة الدفع</span>
               </div>
               <button
-                onClick={() => setShowPayment(false)}
+                onClick={() => { discardStagedOrderRef.current?.(); setShowPayment(false); }}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
                 style={{ background: 'transparent', color: '#605E5C', borderRadius: 2 }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#F3F2F1'; }}
