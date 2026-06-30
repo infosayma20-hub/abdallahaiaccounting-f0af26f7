@@ -76,6 +76,16 @@ export default function OrderFormPage() {
 
   const region = form.customer_address?.split(" - ")[0] || "";
   const city = form.customer_address?.split(" - ")[1] || "";
+  const [cityOpen, setCityOpen] = useState(false);
+  const cityOptions = REGIONS[region] || [];
+  const platformInfo = PROFILE_PLATFORMS.find(p => p.value === form.customer_profile_platform);
+  const profileFullUrl = (() => {
+    const v = form.customer_profile_url?.trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    if (platformInfo?.prefix) return platformInfo.prefix + v.replace(/^@/, "");
+    return v;
+  })();
 
   useEffect(() => {
     if (!user) return;
