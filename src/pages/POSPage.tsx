@@ -480,7 +480,7 @@ const POSPage = () => {
   const [employeeNote, setEmployeeNote] = useState("");
   // Cashier picks family (10%) or individual (50%) meal discount.
   // Default null forces explicit choice when mode = 'dual' (no silent default).
-  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual" | null>(null);
+  const [mealDiscountType, setMealDiscountType] = useState<"family" | "individual" | "none" | null>(null);
   // Tenant-level meal discount mode loaded from payroll_settings.
   // 'single' = legacy behavior (uses payroll_settings.food_individual_percentage).
   // 'dual'   = show family/individual buttons; cashier must pick.
@@ -3896,7 +3896,7 @@ const POSPage = () => {
       mealDiscountMode === "dual" &&
       !mealDiscountType
     ) {
-      toast.error("يرجى اختيار نوع الخصم (عائلي 10% أو فردي 50%)");
+      toast.error("يرجى اختيار نوع الخصم (بدون خصم / عائلي 10% / فردي 50%)");
       return;
     }
 
@@ -3905,6 +3905,7 @@ const POSPage = () => {
       effectivePaymentMethod === "employee_account" &&
       mealDiscountMode === "dual" &&
       mealDiscountType &&
+      mealDiscountType !== "none" &&
       selectedEmployee
     ) {
       const fullPreview = Number(cartTotals.total) || 0;
@@ -4115,7 +4116,7 @@ const POSPage = () => {
         mealDiscountMode === "dual" &&
         !!mealDiscountType;
       const companySharePct = isDualMealOrder
-        ? (mealDiscountType === "family" ? 10 : 50)
+        ? (mealDiscountType === "family" ? 10 : mealDiscountType === "individual" ? 50 : 0)
         : 0;
       const mealSubsidy = isDualMealOrder
         ? Math.round((effectiveTotal * companySharePct / 100) * 100) / 100
@@ -4514,7 +4515,7 @@ const POSPage = () => {
         // Dual-mode tenants (e.g. Malaky): override % strictly based on cashier's choice (10% family / 50% individual).
         const isDualMode = mealDiscountMode === "dual";
         if (isDualMode && mealDiscountType) {
-          employeeSharePct = mealDiscountType === "family" ? 10 : 50;
+          employeeSharePct = mealDiscountType === "family" ? 10 : mealDiscountType === "individual" ? 50 : 100;
         } else {
         try {
           const { data: company } = await supabase
@@ -4550,7 +4551,7 @@ const POSPage = () => {
         // Only record a deduction if the employee actually owes something.
         if (calculatedAmount > 0) {
           const discountLabel = isDualMode && mealDiscountType
-            ? (mealDiscountType === "family" ? "خصم عائلي" : "خصم فردي")
+            ? (mealDiscountType === "family" ? "خصم عائلي" : mealDiscountType === "individual" ? "خصم فردي" : "بدون خصم")
             : null;
           const transparencyNote =
             `${discountLabel ? `نوع الخصم: ${discountLabel} | ` : ""}` +
@@ -4594,7 +4595,7 @@ const POSPage = () => {
           // Phase 3.3: include this-month accumulated total for the chosen type.
           const monthlyForType =
             isDualMode && mealDiscountType
-              ? (mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual)
+              ? (mealDiscountType === "family" ? employeeMealMonthly.family : mealDiscountType === "individual" ? employeeMealMonthly.individual : 0)
               : 0;
           const monthlyTotalAfter = monthlyForType + calculatedAmount;
           try {
@@ -4611,7 +4612,7 @@ const POSPage = () => {
                 monthly_total_after: monthlyTotalAfter,
                 monthly_cap:
                   isDualMode && mealDiscountType
-                    ? (mealDiscountType === "family" ? mealCapFamily : mealCapIndividual)
+                    ? (mealDiscountType === "family" ? mealCapFamily : mealDiscountType === "individual" ? mealCapIndividual : 0)
                     : 0,
               },
             }).catch((e) => console.warn("[POS] notify-employee-meal failed:", e));
@@ -8362,7 +8363,20 @@ const POSPage = () => {
                           <div className="text-[11px] mb-1.5 font-medium" style={{ color: mealDiscountType ? '#6b21a8' : '#dc2626' }}>
                             نوع الخصم {mealDiscountType ? '' : '(مطلوب)'}
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setMealDiscountType('none')}
+                              className="h-10 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center"
+                              style={{
+                                background: mealDiscountType === 'none' ? '#475569' : '#ffffff',
+                                color: mealDiscountType === 'none' ? '#ffffff' : '#374151',
+                                border: `1px solid ${mealDiscountType === 'none' ? '#475569' : '#cbd5e1'}`,
+                              }}
+                            >
+                              <span>بدون خصم</span>
+                              <span className="text-[10px] opacity-80">100%</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => setMealDiscountType('family')}
@@ -8392,18 +8406,18 @@ const POSPage = () => {
                           </div>
                           {mealDiscountType && (() => {
                             const full = Number(cartTotals.total) || 0;
-                            const pct = mealDiscountType === "family" ? 10 : 50;
-                            const ded = Math.round((full * pct / 100) * 100) / 100;
+                            const empPct = mealDiscountType === "family" ? 90 : mealDiscountType === "individual" ? 50 : 100;
+                            const ded = Math.round((full * empPct / 100) * 100) / 100;
                             const company = Math.max(0, full - ded);
-                            const used = mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual;
-                            const cap = mealDiscountType === "family" ? mealCapFamily : mealCapIndividual;
+                            const used = mealDiscountType === "family" ? employeeMealMonthly.family : mealDiscountType === "individual" ? employeeMealMonthly.individual : 0;
+                            const cap = mealDiscountType === "family" ? mealCapFamily : mealDiscountType === "individual" ? mealCapIndividual : 0;
                             const projected = used + ded;
                             const overCap = cap > 0 && projected > cap;
                             const nearCap = cap > 0 && projected >= cap * (mealWarnAtPct / 100);
                             return (
                               <div className="mt-2 p-2 rounded-lg text-[11px] space-y-0.5" style={{ background: '#ffffff', border: '1px solid #ddd6fe' }}>
                                 <div className="flex justify-between"><span style={{ color: '#6b7280' }}>إجمالي الفاتورة</span><span className="font-semibold">₪{full.toFixed(2)}</span></div>
-                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>سيُخصم من حسابك ({pct}%)</span><span className="font-semibold" style={{ color: '#dc2626' }}>₪{ded.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>سيُخصم من حسابك ({empPct}%)</span><span className="font-semibold" style={{ color: '#dc2626' }}>₪{ded.toFixed(2)}</span></div>
                                 <div className="flex justify-between"><span style={{ color: '#6b7280' }}>تتحمّل الشركة</span><span className="font-semibold" style={{ color: '#16a34a' }}>₪{company.toFixed(2)}</span></div>
                                 {(used > 0 || cap > 0) && (
                                   <div className="flex justify-between pt-1 mt-1" style={{ borderTop: '1px dashed #e5e7eb' }}>
