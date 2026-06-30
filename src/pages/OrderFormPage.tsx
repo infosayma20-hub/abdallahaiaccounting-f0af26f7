@@ -41,6 +41,8 @@ const defaultForm = {
   customer_name: "",
   customer_phone: "",
   customer_address: "",
+  customer_profile_url: "",
+  customer_profile_platform: "none",
   order_date: new Date().toISOString().split("T")[0],
   delivery_date: "",
   status: "جديد",
