@@ -1031,6 +1031,10 @@ const POSPage = () => {
     if (!enforceDeviceGuard()) return;
     if (!requireOrderTypeChosen()) return;
     setShowPayment(true);
+    // 🚀 Pre-stage the order in the background while the cashier picks a
+    // payment method. This moves ~1.2s of INSERTs off the critical path of
+    // the "تأكيد الدفع" click. See stageOrderInBackground() for safety guards.
+    void stageOrderInBackgroundRef.current?.();
   }, [enforceDeviceGuard, activeOrder?.orderTypeChosen, activeOrder?.tableId]);
 
   /**
