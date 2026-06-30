@@ -5247,6 +5247,11 @@ const POSPage = () => {
       }
     } catch (err: any) {
       toast.error(err.message || "خطأ في إتمام الطلب");
+      // 🧹 Cleanup: if the failure happened before we consumed/converted the
+      // pre-staged draft, the order would otherwise show up as "معلقة" forever
+      // in InvoiceHistoryDrawer. discardStagedOrder() only deletes rows still
+      // in `state='draft'`, so it's safe — completed orders are never touched.
+      try { if (stagedOrderIdRef.current) discardStagedOrder(); } catch {}
     } finally {
       setProcessing(false);
     }
