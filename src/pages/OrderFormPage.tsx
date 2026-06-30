@@ -262,6 +262,7 @@ export default function OrderFormPage() {
                 <Button
                   type="button"
                   variant="outline"
+                  role="combobox"
                   aria-haspopup="listbox"
                   aria-expanded={cityOpen}
                   onClick={() => setCityOpen((o) => !o)}
