@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Save, X, Plus, Trash2, ShoppingCart, User, MapPin, CalendarDays, CreditCard, Package, FileText } from "lucide-react";
+import { Save, X, Plus, Trash2, ShoppingCart, User, MapPin, CalendarDays, CreditCard, Package, FileText, Check, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { FinanceShell, FastTabs, type FastTabItem } from "@/components/finance/shell";
 import { syncContactFromOrder, syncProductsFromOrderItems } from "@/lib/order-contact-sync";
 
@@ -15,6 +18,17 @@ const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إل
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
 const STATUSES = ["جديد", "مؤكد", "قيد التجهيز", "جاهز للفوترة", "مفوتر", "جاهز للشحن", "تم الشحن", "تم التسليم", "مؤجل", "ملغي"];
 const PAYMENT_STATUSES = ["غير مدفوع", "مدفوع جزئياً", "مدفوع كاملاً"];
+
+const PROFILE_PLATFORMS: { value: string; label: string; prefix?: string }[] = [
+  { value: "none", label: "— بدون —" },
+  { value: "instagram", label: "إنستجرام", prefix: "https://instagram.com/" },
+  { value: "facebook", label: "فيسبوك", prefix: "https://facebook.com/" },
+  { value: "tiktok", label: "تيك توك", prefix: "https://tiktok.com/@" },
+  { value: "snapchat", label: "سناب شات", prefix: "https://snapchat.com/add/" },
+  { value: "whatsapp", label: "واتساب", prefix: "https://wa.me/" },
+  { value: "x", label: "X (تويتر)", prefix: "https://x.com/" },
+  { value: "website", label: "موقع/رابط آخر" },
+];
 
 const REGIONS: Record<string, string[]> = {
   "الداخل 48": ["حيفا", "يافا", "عكا", "الناصرة", "اللد", "الرملة", "أم الفحم", "الطيبة", "باقة الغربية", "سخنين", "شفاعمرو", "طمرة", "عرعرة", "كفر قاسم", "كفر كنا", "المغار", "دبورية", "عرابة", "كفر ياسيف"],
@@ -27,6 +41,8 @@ const defaultForm = {
   customer_name: "",
   customer_phone: "",
   customer_address: "",
+  customer_profile_url: "",
+  customer_profile_platform: "none",
   order_date: new Date().toISOString().split("T")[0],
   delivery_date: "",
   status: "جديد",
@@ -60,6 +76,16 @@ export default function OrderFormPage() {
 
   const region = form.customer_address?.split(" - ")[0] || "";
   const city = form.customer_address?.split(" - ")[1] || "";
+  const [cityOpen, setCityOpen] = useState(false);
+  const cityOptions = REGIONS[region] || [];
+  const platformInfo = PROFILE_PLATFORMS.find(p => p.value === form.customer_profile_platform);
+  const profileFullUrl = (() => {
+    const v = form.customer_profile_url?.trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    if (platformInfo?.prefix) return platformInfo.prefix + v.replace(/^@/, "");
+    return v;
+  })();
 
   useEffect(() => {
     if (!user) return;
@@ -78,6 +104,8 @@ export default function OrderFormPage() {
             customer_name: o.customer_name || "",
             customer_phone: o.customer_phone || "",
             customer_address: o.customer_address || "",
+            customer_profile_url: o.customer_profile_url || "",
+            customer_profile_platform: o.customer_profile_platform || "none",
             order_date: o.order_date,
             delivery_date: o.delivery_date || "",
             status: o.status || "جديد",
@@ -139,7 +167,12 @@ export default function OrderFormPage() {
     if (!form.customer_name.trim()) { toast.error("اسم العميل مطلوب"); return; }
     setSaving(true);
     try {
-      const payload: any = { ...form, user_id: user.id };
+      const payload: any = {
+        ...form,
+        user_id: user.id,
+        customer_profile_platform: form.customer_profile_platform === "none" ? null : form.customer_profile_platform,
+        customer_profile_url: form.customer_profile_url?.trim() || null,
+      };
 
       if (isEdit && editId) {
         const { error } = await supabase.from("orders").update(payload).eq("id", editId);
@@ -224,10 +257,95 @@ export default function OrderFormPage() {
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">المدينة</label>
-            <Select value={city} onValueChange={v => setForm({ ...form, customer_address: `${region} - ${v}` })}>
-              <SelectTrigger><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
-              <SelectContent>{(REGIONS[region] || []).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            <Popover open={cityOpen} onOpenChange={setCityOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  disabled={!region}
+                  className={cn("w-full justify-between font-normal h-10", !city && "text-muted-foreground")}
+                >
+                  {city || (region ? "ابحث أو اختر المدينة..." : "اختر المنطقة أولاً")}
+                  <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="ابحث عن مدينة..." />
+                  <CommandList>
+                    <CommandEmpty>
+                      <div className="text-xs space-y-2 py-2">
+                        <div>لا توجد نتائج مطابقة</div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs h-7"
+                          onClick={() => {
+                            const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
+                            const v = input?.value?.trim();
+                            if (v) {
+                              setForm({ ...form, customer_address: `${region} - ${v}` });
+                              setCityOpen(false);
+                            }
+                          }}
+                        >
+                          استخدام النص كمدينة جديدة
+                        </Button>
+                      </div>
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {cityOptions.map(c => (
+                        <CommandItem
+                          key={c}
+                          value={c}
+                          onSelect={() => {
+                            setForm({ ...form, customer_address: `${region} - ${c}` });
+                            setCityOpen(false);
+                          }}
+                        >
+                          <Check className={cn("ml-2 h-3.5 w-3.5", city === c ? "opacity-100" : "opacity-0")} />
+                          {c}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">منصة البروفايل</label>
+            <Select value={form.customer_profile_platform} onValueChange={v => setForm({ ...form, customer_profile_platform: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PROFILE_PLATFORMS.map(p => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block flex items-center justify-between">
+              <span>رابط/معرّف البروفايل</span>
+              {profileFullUrl && (
+                <a
+                  href={profileFullUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary inline-flex items-center gap-1 hover:underline"
+                >
+                  فتح <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </label>
+            <Input
+              dir="ltr"
+              className="text-left"
+              placeholder={platformInfo?.prefix ? `${platformInfo.prefix}username` : "username أو رابط كامل"}
+              value={form.customer_profile_url}
+              onChange={e => setForm({ ...form, customer_profile_url: e.target.value })}
+              disabled={form.customer_profile_platform === "none"}
+            />
           </div>
         </div>
       ),
