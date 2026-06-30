@@ -5042,6 +5042,9 @@ const POSPage = () => {
               const src = activeOrder.callCenterSourceApp?.trim();
               return src ? `فيزا - ${src}` : "بطاقة";
             }
+            if (effectivePaymentMethod === "employee_account") return "حساب موظف";
+            if (effectivePaymentMethod === "credit") return "آجل";
+            if (splitMode) return "دفع مختلط";
             return "تحويل";
           })(),
           currency: paymentCurrency,
