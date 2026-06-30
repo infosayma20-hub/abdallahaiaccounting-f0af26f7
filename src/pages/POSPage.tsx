@@ -3829,6 +3829,40 @@ const POSPage = () => {
     void stageOrderInBackground();
   }, [showPayment, cart, customerName, orderNote, stageOrderInBackground]);
 
+  // 🧹 Tab/window close cleanup — if the cashier closes the tab while a
+  // pre-staged draft is still open (modal up, no completion yet), use
+  // sendBeacon to delete it via PostgREST so it doesn't appear as "معلقة".
+  // Uses VITE supabase URL + anon key already shipped with the client. RLS
+  // still applies via the cashier's session cookie / token. Best-effort only.
+  useEffect(() => {
+    const onUnload = () => {
+      const id = stagedOrderIdRef.current;
+      if (!id) return;
+      try {
+        const url = (import.meta as any).env?.VITE_SUPABASE_URL;
+        const key = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY
+          || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+        if (!url || !key) return;
+        // Synchronous fetch-on-unload via keepalive — safer than sendBeacon
+        // because we need DELETE with auth headers.
+        fetch(`${url}/rest/v1/pos_orders?id=eq.${id}&state=eq.draft`, {
+          method: "DELETE",
+          keepalive: true,
+          headers: {
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+          },
+        }).catch(() => {});
+      } catch {}
+    };
+    window.addEventListener("beforeunload", onUnload);
+    window.addEventListener("pagehide", onUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      window.removeEventListener("pagehide", onUnload);
+    };
+  }, []);
+
   // Complete order
   const handleCompleteOrder = async (overridePaymentMethod?: string, opts?: { skipPrint?: boolean }) => {
     // [staging block injected just above — see useEffect below]
