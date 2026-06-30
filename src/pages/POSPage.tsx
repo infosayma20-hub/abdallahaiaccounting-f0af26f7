@@ -3829,6 +3829,45 @@ const POSPage = () => {
     void stageOrderInBackground();
   }, [showPayment, cart, customerName, orderNote, stageOrderInBackground]);
 
+  // 🧹 Tab/window close cleanup — if the cashier closes the tab while a
+  // pre-staged draft is still open (modal up, no completion yet), use
+  // sendBeacon to delete it via PostgREST so it doesn't appear as "معلقة".
+  // Uses VITE supabase URL + anon key already shipped with the client. RLS
+  // still applies via the cashier's session cookie / token. Best-effort only.
+  useEffect(() => {
+    const onUnload = async () => {
+      const id = stagedOrderIdRef.current;
+      if (!id) return;
+      try {
+        const url = (import.meta as any).env?.VITE_SUPABASE_URL;
+        const key = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY
+          || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+        if (!url || !key) return;
+        // Pull current access token synchronously from supabase storage so
+        // RLS on pos_orders accepts the DELETE. Best-effort only.
+        let access: string | null = null;
+        try {
+          const { data } = await supabase.auth.getSession();
+          access = data?.session?.access_token || null;
+        } catch {}
+        fetch(`${url}/rest/v1/pos_orders?id=eq.${id}&state=eq.draft`, {
+          method: "DELETE",
+          keepalive: true,
+          headers: {
+            apikey: key,
+            Authorization: `Bearer ${access || key}`,
+          },
+        }).catch(() => {});
+      } catch {}
+    };
+    window.addEventListener("beforeunload", onUnload);
+    window.addEventListener("pagehide", onUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      window.removeEventListener("pagehide", onUnload);
+    };
+  }, []);
+
   // Complete order
   const handleCompleteOrder = async (overridePaymentMethod?: string, opts?: { skipPrint?: boolean }) => {
     // [staging block injected just above — see useEffect below]
@@ -5247,6 +5286,11 @@ const POSPage = () => {
       }
     } catch (err: any) {
       toast.error(err.message || "خطأ في إتمام الطلب");
+      // 🧹 Cleanup: if the failure happened before we consumed/converted the
+      // pre-staged draft, the order would otherwise show up as "معلقة" forever
+      // in InvoiceHistoryDrawer. discardStagedOrder() only deletes rows still
+      // in `state='draft'`, so it's safe — completed orders are never touched.
+      try { if (stagedOrderIdRef.current) discardStagedOrder(); } catch {}
     } finally {
       setProcessing(false);
     }
