@@ -265,7 +265,7 @@ export default function OrderFormPage() {
                   role="combobox"
                   aria-haspopup="listbox"
                   aria-expanded={cityOpen}
-                  onClick={() => setCityOpen((o) => !o)}
+                  onClick={() => { console.log('CITYBTN clicked, prev=', cityOpen); setCityOpen((o) => !o); }}
                   className={cn("w-full justify-between font-normal h-10", !city && "text-muted-foreground")}
                 >
                   {city || (region ? "ابحث أو اختر المدينة..." : "اختر المنطقة أولاً")}
