@@ -4137,7 +4137,43 @@ const POSPage = () => {
       })();
 
       // Check if there's an existing draft/open order for this table (saved earlier)
-      if (activeOrder.tableId) {
+      // 🚀 FAST PATH: reuse the pre-staged order if it matches the current cart.
+      // Limited to the simple online path (no table / no CC / no employee account).
+      const stagedId = stagedOrderIdRef.current;
+      const stagedHash = stagedHashRef.current;
+      const liveHash = computeStageHash();
+      const canReuseStaged =
+        !!stagedId &&
+        !!stagedHash &&
+        stagedHash === liveHash &&
+        !activeOrder.tableId &&
+        !activeOrder.callCenterOrderId &&
+        effectivePaymentMethod !== "employee_account" &&
+        !(splitMode && splitTenders.length > 1);
+
+      if (canReuseStaged) {
+        orderId = stagedId!;
+        orderObj = { id: stagedId };
+        // Apply replacement metadata if the cashier marked this as a replacement
+        // (it cannot be set at stage time because it depends on user action
+        // taken inside the payment modal).
+        if (markAsReplacement && lastCancelledOrder) {
+          await supabase
+            .from("pos_orders")
+            .update({
+              is_replacement: true,
+              replaces_order_id: lastCancelledOrder.id,
+              replaces_order_number: lastCancelledOrder.order_number,
+            } as any)
+            .eq("id", stagedId!);
+        }
+        // Clear the ref so cleanup won't double-fire after payment succeeds.
+        stagedOrderIdRef.current = null;
+        stagedHashRef.current = null;
+      } else if (activeOrder.tableId) {
+        // If we had a stale stage from before the cashier picked a table,
+        // discard it (fire-and-forget) — the table path manages its own draft.
+        if (stagedOrderIdRef.current) discardStagedOrder();
         const { data: existingOrder } = await supabase
           .from("pos_orders")
           .select("id")
