@@ -1031,7 +1031,19 @@ const POSPage = () => {
     if (!enforceDeviceGuard()) return;
     if (!requireOrderTypeChosen()) return;
     setShowPayment(true);
+    // 🚀 Pre-stage the order in the background while the cashier picks a
+    // payment method. This moves ~1.2s of INSERTs off the critical path of
+    // the "تأكيد الدفع" click. See stageOrderInBackground() for safety guards.
+    void stageOrderInBackgroundRef.current?.();
   }, [enforceDeviceGuard, activeOrder?.orderTypeChosen, activeOrder?.tableId]);
+
+  // Pre-staging refs (full implementation lives just before handleCompleteOrder,
+  // after all state hooks like cartTotals/userId/etc are declared).
+  const stagedOrderIdRef = useRef<string | null>(null);
+  const stagedHashRef = useRef<string | null>(null);
+  const stagingInFlightRef = useRef<boolean>(false);
+  const stageOrderInBackgroundRef = useRef<(() => Promise<void>) | null>(null);
+  const discardStagedOrderRef = useRef<(() => void) | null>(null);
 
   /**
    * يمنع المتابعة (دفع/طباعة) قبل أن يختار الكاشير صراحةً نوع الطلب:
@@ -3657,8 +3669,163 @@ const POSPage = () => {
     }
   };
 
+  // ──────────────────────────────────────────────────────────────────
+  // PRE-STAGING — background INSERT pos_orders + lines when the payment
+  // modal opens, so the "تأكيد" click only fires complete_pos_order.
+  // Safe by construction: limited eligibility, hash-validated reuse,
+  // auto-discard on cancel/cart-edit. No DB/RPC/accounting changes.
+  // ──────────────────────────────────────────────────────────────────
+  const computeStageHash = useCallback((): string => {
+    try {
+      const cartSig = cart.map((i) => ({
+        p: i.product_id,
+        n: i.name,
+        q: i.qty,
+        u: i.unit_price,
+        d: i.discount_pct,
+        t: i.total,
+        no: i.note || "",
+        m: (i.modifiers || [])
+          .map((m: any) => `${m.group_id || ""}:${m.option_id || ""}:${m.option_name || ""}:${m.extra_price || 0}`)
+          .join("|"),
+      }));
+      const sig = {
+        c: cartSig,
+        cn: customerName || "",
+        ci: activeOrder.customerId || "",
+        ot: activeOrder.orderType || "",
+        da: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress || "" : "",
+        zc: activeOrder.zoneCode || "",
+        an: activeOrder.areaName || "",
+        pc: activeOrder.posCustomerId || "",
+        df: Number(activeOrder.callCenterDeliveryFee || 0),
+        on: orderNote || "",
+        st: cartTotals.subtotal,
+        ds: cartTotals.discount,
+        tx: cartTotals.tax,
+        tt: cartTotals.total,
+        cd: customerDataDiscount?.discountAmount || 0,
+        cdi: customerDataDiscount?.customerId || "",
+      };
+      return JSON.stringify(sig);
+    } catch {
+      return "";
+    }
+  }, [cart, customerName, activeOrder, orderNote, cartTotals, customerDataDiscount]);
+
+  const discardStagedOrder = useCallback(() => {
+    const id = stagedOrderIdRef.current;
+    if (!id) return;
+    stagedOrderIdRef.current = null;
+    stagedHashRef.current = null;
+    supabase
+      .from("pos_orders")
+      .delete()
+      .eq("id", id)
+      .eq("state", "draft" as any)
+      .then(({ error }) => {
+        if (error) console.warn("[POS stage] discard failed:", error);
+      });
+  }, []);
+
+  const stageOrderInBackground = useCallback(async () => {
+    if (!userId || !session || !company || !dataOwnerId) return;
+    if (cart.length === 0) return;
+    if (!offlineMode.isOnline) return;
+    if (activeOrder.tableId) return;
+    if (activeOrder.callCenterOrderId) return;
+    if (paymentMethod === "employee_account") return;
+    if (splitMode) return;
+    if (stagingInFlightRef.current) return;
+
+    const hash = computeStageHash();
+    if (!hash) return;
+    if (stagedOrderIdRef.current && stagedHashRef.current === hash) return;
+    if (stagedOrderIdRef.current) discardStagedOrder();
+
+    stagingInFlightRef.current = true;
+    try {
+      const effectiveTotal = customerDataDiscount
+        ? cartTotals.total - customerDataDiscount.discountAmount
+        : cartTotals.total;
+      const effectiveDiscount = cartTotals.discount + (customerDataDiscount?.discountAmount || 0);
+      const composedOrderNote: string | null = orderNote?.trim() || null;
+
+      const { data: order, error: orderError } = await supabase
+        .from("pos_orders")
+        .insert({
+          user_id: dataOwnerId,
+          company_id: company.id,
+          session_id: session.id,
+          customer_name: customerName || null,
+          customer_id: activeOrder.customerId || null,
+          subtotal: cartTotals.subtotal,
+          discount_amount: effectiveDiscount,
+          tax_amount: cartTotals.tax,
+          total: effectiveTotal,
+          state: "draft",
+          order_type: activeOrder.orderType,
+          delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+          is_delivery: activeOrder.orderType === "delivery",
+          customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+          zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+          area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
+          pos_customer_id: activeOrder.posCustomerId || null,
+          order_note: composedOrderNote,
+          delivery_fee: Number(activeOrder.callCenterDeliveryFee || 0),
+          ...(customerDataDiscount
+            ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any
+            : {}),
+        } as any)
+        .select()
+        .single();
+      if (orderError) throw orderError;
+
+      await persistOrderLinesWithModifiers(order.id, cart);
+
+      const finalHash = computeStageHash();
+      if (finalHash !== hash) {
+        supabase
+          .from("pos_orders")
+          .delete()
+          .eq("id", order.id)
+          .eq("state", "draft" as any)
+          .then(({ error }) => {
+            if (error) console.warn("[POS stage] stale cleanup failed:", error);
+          });
+        return;
+      }
+
+      stagedOrderIdRef.current = order.id;
+      stagedHashRef.current = hash;
+    } catch (err) {
+      console.warn("[POS stage] background stage failed:", err);
+      stagedOrderIdRef.current = null;
+      stagedHashRef.current = null;
+    } finally {
+      stagingInFlightRef.current = false;
+    }
+  }, [
+    userId, session, company, dataOwnerId, cart, offlineMode.isOnline,
+    activeOrder, paymentMethod, splitMode, computeStageHash,
+    discardStagedOrder, customerDataDiscount, cartTotals, customerName,
+    orderNote,
+  ]);
+
+  useEffect(() => {
+    stageOrderInBackgroundRef.current = stageOrderInBackground;
+    discardStagedOrderRef.current = discardStagedOrder;
+  }, [stageOrderInBackground, discardStagedOrder]);
+
+  // Re-stage if the cart drifts while the payment modal is open.
+  useEffect(() => {
+    if (!showPayment) return;
+    void stageOrderInBackground();
+  }, [showPayment, cart, customerName, orderNote, stageOrderInBackground]);
+
   // Complete order
   const handleCompleteOrder = async (overridePaymentMethod?: string, opts?: { skipPrint?: boolean }) => {
+    // [staging block injected just above — see useEffect below]
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
@@ -3970,7 +4137,43 @@ const POSPage = () => {
       })();
 
       // Check if there's an existing draft/open order for this table (saved earlier)
-      if (activeOrder.tableId) {
+      // 🚀 FAST PATH: reuse the pre-staged order if it matches the current cart.
+      // Limited to the simple online path (no table / no CC / no employee account).
+      const stagedId = stagedOrderIdRef.current;
+      const stagedHash = stagedHashRef.current;
+      const liveHash = computeStageHash();
+      const canReuseStaged =
+        !!stagedId &&
+        !!stagedHash &&
+        stagedHash === liveHash &&
+        !activeOrder.tableId &&
+        !activeOrder.callCenterOrderId &&
+        effectivePaymentMethod !== "employee_account" &&
+        !(splitMode && splitTenders.length > 1);
+
+      if (canReuseStaged) {
+        orderId = stagedId!;
+        orderObj = { id: stagedId };
+        // Apply replacement metadata if the cashier marked this as a replacement
+        // (it cannot be set at stage time because it depends on user action
+        // taken inside the payment modal).
+        if (markAsReplacement && lastCancelledOrder) {
+          await supabase
+            .from("pos_orders")
+            .update({
+              is_replacement: true,
+              replaces_order_id: lastCancelledOrder.id,
+              replaces_order_number: lastCancelledOrder.order_number,
+            } as any)
+            .eq("id", stagedId!);
+        }
+        // Clear the ref so cleanup won't double-fire after payment succeeds.
+        stagedOrderIdRef.current = null;
+        stagedHashRef.current = null;
+      } else if (activeOrder.tableId) {
+        // If we had a stale stage from before the cashier picked a table,
+        // discard it (fire-and-forget) — the table path manages its own draft.
+        if (stagedOrderIdRef.current) discardStagedOrder();
         const { data: existingOrder } = await supabase
           .from("pos_orders")
           .select("id")
@@ -4084,7 +4287,10 @@ const POSPage = () => {
         orderObj = order;
       }
 
-      await persistOrderLinesWithModifiers(orderId, cart);
+      // Skip when the staged-order fast path was used (lines were persisted at stage time).
+      if (!canReuseStaged) {
+        await persistOrderLinesWithModifiers(orderId, cart);
+      }
 
       // Link call center order to POS order if applicable
       if (activeOrder.callCenterOrderId && orderId) {
@@ -4537,6 +4743,14 @@ const POSPage = () => {
       setReceiptData(receiptInfo);
       setShowPayment(false);
       setShowReceipt(true); // Show receipt for viewing (print is still silent via bridge)
+      // Clean up any leftover staged draft that wasn't reused (e.g. cashier
+      // switched to employee_account or split mode after opening the modal).
+      if (stagedOrderIdRef.current && stagedOrderIdRef.current !== orderId) {
+        discardStagedOrder();
+      } else {
+        stagedOrderIdRef.current = null;
+        stagedHashRef.current = null;
+      }
 
       // Create kitchen tickets (split by station) + print via bridge
       let kitchenJobs: KitchenJob[] = [];
@@ -7628,7 +7842,7 @@ const POSPage = () => {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowPayment(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) { discardStagedOrderRef.current?.(); setShowPayment(false); } }}
         >
           <div
             className="w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
@@ -7650,7 +7864,7 @@ const POSPage = () => {
                 <span className="text-[15px] font-semibold" style={{ color: '#201F1E' }}>طريقة الدفع</span>
               </div>
               <button
-                onClick={() => setShowPayment(false)}
+                onClick={() => { discardStagedOrderRef.current?.(); setShowPayment(false); }}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
                 style={{ background: 'transparent', color: '#605E5C', borderRadius: 2 }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#F3F2F1'; }}
