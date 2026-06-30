@@ -455,18 +455,7 @@ const OrdersPage = () => {
   ];
 
   const openEdit = (o: Order) => {
-    setEditingId(o.id);
-    setForm({
-      customer_name: o.customer_name, customer_phone: o.customer_phone || "",
-      customer_address: o.customer_address || "", order_date: o.order_date,
-      delivery_date: o.delivery_date || "", status: o.status, subtotal: o.subtotal,
-      discount: o.discount, shipping_cost: o.shipping_cost, total: o.total,
-      payment_status: o.payment_status, payment_method: o.payment_method || "كاش",
-      shipping_method: o.shipping_method || "", tracking_number: o.tracking_number || "",
-      source: o.source || "يدوي", notes: o.notes || "",
-    });
-    setItems([]);
-    setShowForm(true);
+    navigate(`/orders/${o.id}/edit`);
   };
 
   return (
@@ -492,7 +481,7 @@ const OrdersPage = () => {
               </button>
             </>
           )}
-          <button onClick={() => { setForm({ ...defaultForm }); setItems([]); setEditingId(null); setShowForm(true); }} style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #1e3a5f 100%)`, color: "white", border: "none", borderRadius: "12px", padding: "12px 24px", fontSize: "14px", fontWeight: "700", fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", boxShadow: "0 4px 12px rgba(13,27,46,0.2)", transition: "all 0.2s ease" }}>
+          <button onClick={() => { navigate("/orders/new"); }} style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #1e3a5f 100%)`, color: "white", border: "none", borderRadius: "12px", padding: "12px 24px", fontSize: "14px", fontWeight: "700", fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", boxShadow: "0 4px 12px rgba(13,27,46,0.2)", transition: "all 0.2s ease" }}>
             <Plus style={{ width: 16, height: 16 }} /> طلبية جديدة
           </button>
         </div>
@@ -606,7 +595,7 @@ const OrdersPage = () => {
               <Package style={{ width: 48, height: 48, margin: "0 auto 16px", opacity: 0.3, color: "#94A3B8" }} />
               <p style={{ fontSize: "18px", fontWeight: "700", color: "#64748B", fontFamily: F, marginBottom: "8px" }}>لا توجد طلبيات</p>
               <p style={{ fontSize: "14px", color: "#94A3B8", fontFamily: F, marginBottom: "16px" }}>جرب إنشاء طلبية جديدة</p>
-              <button onClick={() => { setForm({ ...defaultForm }); setItems([]); setEditingId(null); setShowForm(true); }} style={{ background: `linear-gradient(135deg, ${NAVY}, #1e3a5f)`, color: "white", border: "none", borderRadius: "12px", padding: "12px 24px", fontSize: "14px", fontWeight: "700", fontFamily: F, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              <button onClick={() => { navigate("/orders/new"); }} style={{ background: `linear-gradient(135deg, ${NAVY}, #1e3a5f)`, color: "white", border: "none", borderRadius: "12px", padding: "12px 24px", fontSize: "14px", fontWeight: "700", fontFamily: F, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
                 <Plus style={{ width: 16, height: 16 }} /> طلبية جديدة
               </button>
             </div>
