@@ -3835,7 +3835,7 @@ const POSPage = () => {
   // Uses VITE supabase URL + anon key already shipped with the client. RLS
   // still applies via the cashier's session cookie / token. Best-effort only.
   useEffect(() => {
-    const onUnload = () => {
+    const onUnload = async () => {
       const id = stagedOrderIdRef.current;
       if (!id) return;
       try {
@@ -3843,14 +3843,19 @@ const POSPage = () => {
         const key = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY
           || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
         if (!url || !key) return;
-        // Synchronous fetch-on-unload via keepalive — safer than sendBeacon
-        // because we need DELETE with auth headers.
+        // Pull current access token synchronously from supabase storage so
+        // RLS on pos_orders accepts the DELETE. Best-effort only.
+        let access: string | null = null;
+        try {
+          const { data } = await supabase.auth.getSession();
+          access = data?.session?.access_token || null;
+        } catch {}
         fetch(`${url}/rest/v1/pos_orders?id=eq.${id}&state=eq.draft`, {
           method: "DELETE",
           keepalive: true,
           headers: {
             apikey: key,
-            Authorization: `Bearer ${key}`,
+            Authorization: `Bearer ${access || key}`,
           },
         }).catch(() => {});
       } catch {}
