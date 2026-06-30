@@ -252,10 +252,95 @@ export default function OrderFormPage() {
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">المدينة</label>
-            <Select value={city} onValueChange={v => setForm({ ...form, customer_address: `${region} - ${v}` })}>
-              <SelectTrigger><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
-              <SelectContent>{(REGIONS[region] || []).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            <Popover open={cityOpen} onOpenChange={setCityOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  disabled={!region}
+                  className={cn("w-full justify-between font-normal h-10", !city && "text-muted-foreground")}
+                >
+                  {city || (region ? "ابحث أو اختر المدينة..." : "اختر المنطقة أولاً")}
+                  <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="ابحث عن مدينة..." />
+                  <CommandList>
+                    <CommandEmpty>
+                      <div className="text-xs space-y-2 py-2">
+                        <div>لا توجد نتائج مطابقة</div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs h-7"
+                          onClick={() => {
+                            const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
+                            const v = input?.value?.trim();
+                            if (v) {
+                              setForm({ ...form, customer_address: `${region} - ${v}` });
+                              setCityOpen(false);
+                            }
+                          }}
+                        >
+                          استخدام النص كمدينة جديدة
+                        </Button>
+                      </div>
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {cityOptions.map(c => (
+                        <CommandItem
+                          key={c}
+                          value={c}
+                          onSelect={() => {
+                            setForm({ ...form, customer_address: `${region} - ${c}` });
+                            setCityOpen(false);
+                          }}
+                        >
+                          <Check className={cn("ml-2 h-3.5 w-3.5", city === c ? "opacity-100" : "opacity-0")} />
+                          {c}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">منصة البروفايل</label>
+            <Select value={form.customer_profile_platform} onValueChange={v => setForm({ ...form, customer_profile_platform: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PROFILE_PLATFORMS.map(p => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block flex items-center justify-between">
+              <span>رابط/معرّف البروفايل</span>
+              {profileFullUrl && (
+                <a
+                  href={profileFullUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary inline-flex items-center gap-1 hover:underline"
+                >
+                  فتح <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </label>
+            <Input
+              dir="ltr"
+              className="text-left"
+              placeholder={platformInfo?.prefix ? `${platformInfo.prefix}username` : "username أو رابط كامل"}
+              value={form.customer_profile_url}
+              onChange={e => setForm({ ...form, customer_profile_url: e.target.value })}
+              disabled={form.customer_profile_platform === "none"}
+            />
           </div>
         </div>
       ),
