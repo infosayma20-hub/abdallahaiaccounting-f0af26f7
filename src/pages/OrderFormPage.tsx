@@ -167,7 +167,12 @@ export default function OrderFormPage() {
     if (!form.customer_name.trim()) { toast.error("اسم العميل مطلوب"); return; }
     setSaving(true);
     try {
-      const payload: any = { ...form, user_id: user.id };
+      const payload: any = {
+        ...form,
+        user_id: user.id,
+        customer_profile_platform: form.customer_profile_platform === "none" ? null : form.customer_profile_platform,
+        customer_profile_url: form.customer_profile_url?.trim() || null,
+      };
 
       if (isEdit && editId) {
         const { error } = await supabase.from("orders").update(payload).eq("id", editId);
