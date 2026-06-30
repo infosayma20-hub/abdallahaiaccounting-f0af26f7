@@ -265,7 +265,6 @@ export default function OrderFormPage() {
                   role="combobox"
                   aria-haspopup="listbox"
                   aria-expanded={cityOpen}
-                  onClick={() => { console.log('CITYBTN clicked, prev=', cityOpen); setCityOpen((o) => !o); }}
                   className={cn("w-full justify-between font-normal h-10", !city && "text-muted-foreground")}
                 >
                   {city || (region ? "ابحث أو اختر المدينة..." : "اختر المنطقة أولاً")}
@@ -499,7 +498,7 @@ export default function OrderFormPage() {
         </div>
       ),
     },
-  ], [form, items, products, region, city]);
+  ], [form, items, products, region, city, cityOpen]);
 
   if (loading) {
     return <div className="p-8 text-center text-sm text-muted-foreground" dir="rtl">جاري تحميل الطلبية...</div>;
