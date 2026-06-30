@@ -3663,9 +3663,9 @@ const POSPage = () => {
       }
     }
     
-    // Send to kitchen first
-    await handleSendToKitchen();
-    
+    // ✅ لا ننادي handleSendToKitchen() هنا — handleCompleteOrder يطبع تذاكر
+    //    المطبخ تلقائياً ضمن مسار الدفع. الاستدعاء المسبق كان يطبع تذكرتين
+    //    لكل طلب كول‑سنتر/ويلز (#اسم الزبون ثم #الرقم اليومي).
     // Complete with the correct payment method
     setQuickProcessing(true);
     try {
