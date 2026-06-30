@@ -54,6 +54,209 @@ serve(async (req) => {
     const { text, mentionedContactName, mentionedContactId, editIntent, lastTransactionId } = await req.json();
     if (!text) throw new Error('Transaction text is required');
 
+    // ═══ E-COMMERCE ORDER INTENT (طلبية متجر إلكتروني) ═══
+    // يُنشئ سجل في جدول orders + order_items بدون قيد محاسبي.
+    // الطلبية ليست مستند محاسبي حتى تتحول لفاتورة لاحقاً.
+    {
+      const t = String(text).trim();
+      const orderTriggers = /(طلبي[ةه]|أوردر|اوردر|اعمل\s*طلب|سجّل\s*طلب|سجل\s*طلب|order)/i;
+      const platformHint = /(إنستجرام|انستجرام|انستغرام|instagram|فيسبوك|facebook|واتساب|واتس\s*اب|whatsapp|تيك\s*توك|tiktok|متجر|website|موقع)/i;
+      const isOrderIntent = orderTriggers.test(t) || (platformHint.test(t) && /(بده|بدها|بدو|طلب|اشتر|اشترى)/i.test(t));
+      const looksAccounting = /(فاتورة\s*(مبيعات|مشتريات)|سند\s*(قبض|صرف)|قيد\s*يومية|قبضت|دفعت|صرفت|اشتريت|بعت)/i.test(t);
+
+      if (isOrderIntent && !looksAccounting) {
+        const today = new Date().toISOString().split('T')[0];
+        const orderPrompt = `أنت مساعد لاستخراج معلومات طلبية متجر إلكتروني من نص عربي دارج (فلسطيني).
+مهمتك: ارجع JSON فقط بدون أي شرح، يحتوي الحقول التالية بالضبط:
+{
+  "اسم_الزبون": "",
+  "هاتف_الزبون": "",
+  "المدينة": "",
+  "العنوان": "",
+  "المنصة": "",
+  "رابط_البروفايل": "",
+  "بنود": [ { "اسم_الصنف": "", "الكمية": 1, "السعر": 0 } ],
+  "طريقة_الدفع": "",
+  "تاريخ_التوصيل": "",
+  "رسوم_التوصيل": 0,
+  "ملاحظات": "",
+  "الحقول_الناقصة": []
+}
+قواعد:
+- "المنصة" واحدة من: instagram, facebook, whatsapp, tiktok, website, phone, ""
+- استنتج المنصة من السياق (انستجرام → instagram، واتساب → whatsapp، إلخ).
+- "طريقة_الدفع" واحدة من: كاش, فيزا, تحويل, cod, ""
+- "تاريخ_التوصيل" بصيغة YYYY-MM-DD أو "" (بكرا = ${new Date(Date.now()+86400000).toISOString().split('T')[0]}، اليوم = ${today}).
+- الكمية والسعر أرقام فقط. لو السعر غير مذكور حطّه 0.
+- "الحقول_الناقصة" قائمة بأسماء الحقول الإلزامية الناقصة فقط من بين: ["اسم_الزبون","بنود","سعر_صنف"].
+- "سعر_صنف" تُضاف لو في صنف واحد على الأقل سعره 0.
+- لا تخترع معلومات. اترك الفارغ "".
+`;
+
+        const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: orderPrompt },
+              { role: 'user', content: t },
+            ],
+            temperature: 0.1,
+          }),
+        });
+
+        if (!aiResp.ok) {
+          const errText = await aiResp.text();
+          console.error('Order AI error:', errText);
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: 'صار خطأ بتحليل الطلبية. جرّبي تاني أو افتحي شاشة الطلبيات يدوياً.\n\n[action:فتح الطلبيات:/orders]',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        const aiJson = await aiResp.json();
+        const aiContent = aiJson.choices?.[0]?.message?.content || '';
+        let order: any;
+        try { order = extractJsonFromResponse(aiContent); } catch {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: 'ما قدرت أفهم تفاصيل الطلبية. اكتبيها بشكل أوضح: اسم الزبون + الأصناف والكميات والسعر.',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        const customerName = String(order['اسم_الزبون'] || '').trim();
+        const customerPhone = String(order['هاتف_الزبون'] || '').trim();
+        const customerCity = String(order['المدينة'] || '').trim();
+        const customerAddress = String(order['العنوان'] || '').trim();
+        const platform = String(order['المنصة'] || '').trim().toLowerCase();
+        const profileUrl = String(order['رابط_البروفايل'] || '').trim();
+        const paymentMethod = String(order['طريقة_الدفع'] || 'كاش').trim() || 'كاش';
+        const deliveryDate = String(order['تاريخ_التوصيل'] || '').trim();
+        const shippingCost = Number(order['رسوم_التوصيل'] || 0) || 0;
+        const orderNotes = String(order['ملاحظات'] || '').trim();
+        const items: any[] = Array.isArray(order['بنود']) ? order['بنود'] : [];
+        const missing: string[] = Array.isArray(order['الحقول_الناقصة']) ? order['الحقول_الناقصة'] : [];
+
+        // التحقق من الحقول الإلزامية
+        if (!customerName) {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: 'تمام، رح أعمل طلبية 👍\nبس قوليلي اسم الزبون أولاً.',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        if (!items.length || items.every(i => !String(i?.['اسم_الصنف'] || '').trim())) {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: `تمام لـ ${customerName} ✅\nشو بده يطلب؟ اكتبيلي الأصناف والكميات (مثال: 3 قمصان بـ 50 شيكل).`,
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const missingPrices = items.filter(i => Number(i?.['السعر'] || 0) <= 0).map(i => String(i?.['اسم_الصنف'] || '').trim()).filter(Boolean);
+        if (missingPrices.length) {
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: `كم سعر ${missingPrices.join('، ')}؟`,
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        // حساب الإجماليات
+        const normalizedItems = items
+          .filter(i => String(i?.['اسم_الصنف'] || '').trim())
+          .map(i => {
+            const qty = Math.max(1, Number(i['الكمية'] || 1) || 1);
+            const price = Math.max(0, Number(i['السعر'] || 0) || 0);
+            return {
+              product_name: String(i['اسم_الصنف']).trim(),
+              quantity: qty,
+              unit_price: price,
+              total: qty * price,
+            };
+          });
+        const subtotal = normalizedItems.reduce((s, x) => s + x.total, 0);
+        const total = subtotal + shippingCost;
+
+        // ربط/إنشاء جهة الاتصال
+        let contactId: string | null = null;
+        const { data: existingContact } = await supabaseAdmin.from('contacts')
+          .select('id').eq('user_id', userId).eq('contact_name', customerName).maybeSingle();
+        if (existingContact) {
+          contactId = existingContact.id;
+        } else {
+          const { data: newC } = await supabaseAdmin.from('contacts').insert({
+            user_id: userId,
+            contact_name: customerName,
+            contact_type: 'عميل',
+            phone: customerPhone || null,
+            address: customerAddress || null,
+            source: 'ai_accountant_order',
+          }).select('id').single();
+          if (newC) contactId = newC.id;
+        }
+
+        // استنتاج source
+        const sourceMap: Record<string, string> = {
+          instagram: 'انستجرام', facebook: 'فيسبوك', whatsapp: 'واتساب',
+          tiktok: 'تيك توك', website: 'متجر', phone: 'هاتف',
+        };
+        const source = sourceMap[platform] || 'يدوي';
+        const orderNumber = `ORD-${Date.now()}`;
+
+        const { data: orderRow, error: orderErr } = await supabaseAdmin.from('orders').insert({
+          user_id: userId,
+          order_number: orderNumber,
+          customer_name: customerName,
+          customer_phone: customerPhone || null,
+          customer_address: [customerCity, customerAddress].filter(Boolean).join(' - ') || null,
+          order_date: today,
+          delivery_date: deliveryDate && /^\d{4}-\d{2}-\d{2}$/.test(deliveryDate) ? deliveryDate : null,
+          status: 'جديد',
+          subtotal,
+          discount: 0,
+          shipping_cost: shippingCost,
+          total,
+          payment_status: 'غير مدفوع',
+          payment_method: paymentMethod,
+          source,
+          notes: orderNotes || null,
+          contact_id: contactId,
+          customer_profile_url: profileUrl || null,
+          customer_profile_platform: platform || null,
+        }).select('id, order_number').single();
+
+        if (orderErr || !orderRow) {
+          console.error('Order insert error:', orderErr);
+          return new Response(JSON.stringify({
+            type: 'chat_response',
+            message: 'ما قدرت أحفظ الطلبية. افتحي الشاشة وأكمليها يدوياً.\n\n[action:فتح الطلبيات:/orders]',
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        // إدراج البنود
+        await supabaseAdmin.from('order_items').insert(
+          normalizedItems.map(it => ({
+            user_id: userId,
+            order_id: orderRow.id,
+            product_name: it.product_name,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            total: it.total,
+          }))
+        );
+
+        // ملخص مختصر
+        const itemsSummary = normalizedItems.map(i => `• ${i.product_name} × ${i.quantity} = ₪${i.total}`).join('\n');
+        const optionalMissing: string[] = [];
+        if (!customerPhone) optionalMissing.push('رقم الهاتف');
+        if (!customerCity && !customerAddress) optionalMissing.push('المدينة/العنوان');
+        const optionalNote = optionalMissing.length ? `\n\n⚠️ ما حدّدتي: ${optionalMissing.join('، ')} — فيكي تكمّليها من شاشة الطلبية.` : '';
+
+        return new Response(JSON.stringify({
+          type: 'chat_response',
+          message: `✅ تم إنشاء الطلبية ${orderRow.order_number}\n\n👤 ${customerName}${source !== 'يدوي' ? ` (${source})` : ''}\n${itemsSummary}\n\n💰 الإجمالي: ₪${total}${optionalNote}\n\n[action:فتح الطلبية:/orders/${orderRow.id}]  [action:كل الطلبيات:/orders]`,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
     // ═══ DELIVERY NOTE INTENT (إرساليات مبيعات داخلية/خارجية) ═══
     // نمنع تمرير هذه الجمل لمحرّك القيود حتى لا يُنشئ حساباً باسم "ارسالية ..."
     // وبدلاً من ذلك نوجّه المستخدم لشاشة إنشاء الإرسالية الصحيحة.
