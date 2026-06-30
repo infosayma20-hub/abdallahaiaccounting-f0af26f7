@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
+import PaymentAdjustmentDialog from "./PaymentAdjustmentDialog";
 import ManagerHistoryUnlockDialog from "./ManagerHistoryUnlockDialog";
 import ChangePaymentMethodDialog from "./ChangePaymentMethodDialog";
 import { usePOSManagerMode } from "@/hooks/usePOSManagerMode";
@@ -292,6 +293,9 @@ export default function InvoiceHistoryDrawer({
   const [returningOrder, setReturningOrder] = useState<InvoiceOrder | null>(null);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ USD: 3.6, JOD: 5.0, ILS: 1 });
   const [orderCurrency, setOrderCurrency] = useState<string>("ILS");
+
+  // Payment adjustment (partial refund without item return) — manager-mode only
+  const [showAdjustment, setShowAdjustment] = useState(false);
 
   // Transfer flow
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -1810,7 +1814,7 @@ export default function InvoiceHistoryDrawer({
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
                     )}
-                    {!cashierMode && selectedOrder.state === "paid" && !selectedOrder.is_return && (
+                    {((!cashierMode) || managerMode.active) && selectedOrder.state === "paid" && !selectedOrder.is_return && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1877,6 +1881,21 @@ export default function InvoiceHistoryDrawer({
                     </Button>
                   );
                 })()}
+
+                {/* استرداد جزئي / تعديل دفعة — وضع المدير فقط */}
+                {managerMode.active && selectedOrder.state === "paid" && !selectedOrder.is_return && !isTransferredOut(selectedOrder) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs"
+                    style={{ borderColor: "#B45309", color: "#92400E", background: "#FEF3C7" }}
+                    onClick={() => setShowAdjustment(true)}
+                    title="استرداد جزئي بعد الدفع (مثلاً تعديل سعر) — يخفّض الإجمالي ويسجّل قيد استرداد"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    تعديل دفعة / استرداد جزئي
+                  </Button>
+                )}
               </div>
 
               {/* Manager approval note */}
@@ -2120,6 +2139,23 @@ export default function InvoiceHistoryDrawer({
           windowMinutes={30}
           managerUserId={managerMode.active ? managerMode.managerUserId : null}
           onSuccess={() => { fetchOrders(); /* refetch payments */ setSelectedOrder({ ...selectedOrder }); }}
+        />
+      )}
+
+      {/* ══════ PAYMENT ADJUSTMENT DIALOG (Manager Mode only) ══════ */}
+      {selectedOrder && showAdjustment && sessionId && (
+        <PaymentAdjustmentDialog
+          open={showAdjustment}
+          onClose={() => setShowAdjustment(false)}
+          orderId={selectedOrder.id}
+          orderNumber={selectedOrder.order_number}
+          orderTotal={selectedOrder.total}
+          sessionId={sessionId}
+          dataOwnerId={dataOwnerId}
+          managerUserId={managerMode.managerUserId}
+          managerName={managerMode.managerName}
+          exchangeRates={exchangeRates}
+          onSuccess={() => { fetchOrders(); setSelectedOrder({ ...selectedOrder, total: selectedOrder.total }); }}
         />
       )}
     </>
