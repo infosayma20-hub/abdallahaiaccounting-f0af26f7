@@ -1261,7 +1261,7 @@ const OrdersPage = () => {
 
       <ConvertToInvoiceModal open={!!showInvoiceModal} onClose={() => setShowInvoiceModal(null)} order={showInvoiceModal} orderItems={orderItems} userId={user?.id || ""} onSuccess={fetchOrders} />
       <RecordReceiptModal open={!!showReceiptModal} onClose={() => setShowReceiptModal(null)} order={showReceiptModal} userId={user?.id || ""} onSuccess={fetchOrders} />
-    </div>
+    </>
   );
 };
 
