@@ -4711,6 +4711,69 @@ const POSPage = () => {
           } catch (e) {
             console.warn('[grilled→pizza] skipped:', e);
           }
+
+          // ── أصناف يجب أن تطبع دائماً على طابعة المطبخ ──
+          // طلب الإدارة (الملكي): الأصناف التالية لازم تظهر على تذكرة المطبخ
+          // حتى لو الـ category/station ما بوجهها لهناك. تطبع على المطبخ
+          // فقط (ليس على البيتزا)، ولا تكرر إذا كانت موجهة أصلاً للمطبخ.
+          try {
+            const KITCHEN_FORCE_KEYWORDS = [
+              'اجنحة مقلية', 'أجنحة مقلية',
+              'بطاطا أصابع', 'بطاطا اصابع', 'بطاطس أصابع', 'بطاطس اصابع',
+              'بطاطا تويستر', 'بطاطس تويستر', 'تويستر',
+              'بطاطا ويدجز', 'بطاطس ويدجز', 'ويدجز',
+              'كريس كيتس', 'كريسكيتس', 'كريسبي كيتس',
+              'تشكن فرايز', 'شيكن فرايز', 'فرايز',
+              'ديناميت',
+              'حلقات بصل', 'حلقات البصل',
+              'كرنشي',
+              'هاش بروان', 'هاشبروان', 'هاش براون', 'هاشبراون',
+              'بومر هاش', 'بومر هاش براون', 'بومر هاش بروان',
+              'شنتسل', 'شنيتسل',
+              'سمك فيليه', 'فيليه سمك', 'فيليه',
+              'برغر', 'برجر', 'برغرز', 'برجرز',
+            ];
+            const matchesKitchenForce = (name: string) =>
+              KITCHEN_FORCE_KEYWORDS.some((kw) => name.includes(kw));
+            const kitchenForceItems = cart
+              .map((it: any, idx: number) => ({ it, idx }))
+              .filter(({ it }) => typeof it.name === 'string' && matchesKitchenForce(it.name))
+              .map(({ it, idx }) => ({
+                _cartIdx: idx,
+                id: it.name,
+                name: it.name,
+                quantity: it.qty,
+                price: 0,
+                note: it.note || undefined,
+                modifiers: (it.modifiers || []).map((m: any) => ({
+                  option_name: m.option_name,
+                  extra_price: m.extra_price,
+                })),
+              }));
+            if (kitchenForceItems.length > 0) {
+              let kitchenJob = kitchenJobs.find((x) => x.printerKey === 'kitchen');
+              if (!kitchenJob) {
+                kitchenJob = { printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] };
+                kitchenJobs.push(kitchenJob);
+              }
+              const alreadyRouted = routedByPrinter.get('kitchen') || new Set<number>();
+              for (const ki of kitchenForceItems) {
+                if (alreadyRouted.has(ki._cartIdx)) continue;
+                const { _cartIdx, ...clean } = ki;
+                kitchenJob.items.push(clean);
+                alreadyRouted.add(ki._cartIdx);
+              }
+              routedByPrinter.set('kitchen', alreadyRouted);
+              kitchenJobs = kitchenJobs.filter(
+                (j) => j.items.length > 0 || j.printerKey !== 'kitchen',
+              );
+              if (kitchenJobs.length === 0) {
+                kitchenJobs = [{ printerKey: 'kitchen', stationLabel: 'المطبخ', items: [] }];
+              }
+            }
+          } catch (e) {
+            console.warn('[force→kitchen] skipped:', e);
+          }
         }
       } catch (err) {
         console.error("Kitchen ticket creation error:", err);
