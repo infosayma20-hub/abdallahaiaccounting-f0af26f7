@@ -10624,6 +10624,8 @@ export type Database = {
           customer_address: string | null
           customer_name: string
           customer_phone: string | null
+          customer_profile_platform: string | null
+          customer_profile_url: string | null
           delivery_date: string | null
           discount: number
           id: string
@@ -10658,6 +10660,8 @@ export type Database = {
           customer_address?: string | null
           customer_name: string
           customer_phone?: string | null
+          customer_profile_platform?: string | null
+          customer_profile_url?: string | null
           delivery_date?: string | null
           discount?: number
           id?: string
@@ -10692,6 +10696,8 @@ export type Database = {
           customer_address?: string | null
           customer_name?: string
           customer_phone?: string | null
+          customer_profile_platform?: string | null
+          customer_profile_url?: string | null
           delivery_date?: string | null
           discount?: number
           id?: string
