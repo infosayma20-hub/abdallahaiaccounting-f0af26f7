@@ -94,6 +94,8 @@ export default function OrderFormPage() {
             customer_name: o.customer_name || "",
             customer_phone: o.customer_phone || "",
             customer_address: o.customer_address || "",
+            customer_profile_url: o.customer_profile_url || "",
+            customer_profile_platform: o.customer_profile_platform || "none",
             order_date: o.order_date,
             delivery_date: o.delivery_date || "",
             status: o.status || "جديد",
