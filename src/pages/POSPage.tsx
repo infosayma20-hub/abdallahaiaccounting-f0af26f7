@@ -3388,7 +3388,13 @@ const POSPage = () => {
     if (!requireOrderTypeChosen()) return;
 
     const time = new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
-    const tableName = activeOrder.tableName || activeOrder.customerName || "بدون طاولة";
+    // ⚠️ لا نستعمل اسم الزبون كاسم طاولة لطلبات التوصيل/السفري —
+    //    يُسبّب تذاكر مثل "طاولة: <اسم الزبون>" وهو خطأ دلالي.
+    const _ot = (activeOrder as any).orderType;
+    const tableName = activeOrder.tableName
+      || (_ot === "delivery" ? "توصيل"
+        : _ot === "takeaway" ? "سفري"
+        : activeOrder.customerName || "بدون طاولة");
     const cashierName = session?.cashier_name || "";
 
     // Build product→station map from loaded products
@@ -3657,9 +3663,9 @@ const POSPage = () => {
       }
     }
     
-    // Send to kitchen first
-    await handleSendToKitchen();
-    
+    // ✅ لا ننادي handleSendToKitchen() هنا — handleCompleteOrder يطبع تذاكر
+    //    المطبخ تلقائياً ضمن مسار الدفع. الاستدعاء المسبق كان يطبع تذكرتين
+    //    لكل طلب كول‑سنتر/ويلز (#اسم الزبون ثم #الرقم اليومي).
     // Complete with the correct payment method
     setQuickProcessing(true);
     try {
