@@ -260,9 +260,9 @@ export default function OrderFormPage() {
             <Popover open={cityOpen} onOpenChange={setCityOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  type="button"
                   variant="outline"
                   role="combobox"
-                  disabled={!region}
                   className={cn("w-full justify-between font-normal h-10", !city && "text-muted-foreground")}
                 >
                   {city || (region ? "ابحث أو اختر المدينة..." : "اختر المنطقة أولاً")}
@@ -271,19 +271,20 @@ export default function OrderFormPage() {
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="ابحث عن مدينة..." />
+                  <CommandInput placeholder={region ? "ابحث عن مدينة..." : "اختر المنطقة أولاً ثم اكتب اسم المدينة"} />
                   <CommandList>
                     <CommandEmpty>
                       <div className="text-xs space-y-2 py-2">
-                        <div>لا توجد نتائج مطابقة</div>
+                        <div>{region ? "لا توجد نتائج مطابقة" : "لا تتوفر مدن — اختر المنطقة أولاً"}</div>
                         <Button
+                          type="button"
                           size="sm"
                           variant="ghost"
                           className="text-xs h-7"
                           onClick={() => {
                             const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
                             const v = input?.value?.trim();
-                            if (v) {
+                            if (v && region) {
                               setForm({ ...form, customer_address: `${region} - ${v}` });
                               setCityOpen(false);
                             }
