@@ -4492,13 +4492,16 @@ const POSPage = () => {
       // 🧾 تسجيل سجل التدقيق لخصم المدير — يُكتب بعد إتمام الدفع فقط حتى لا
       // نسجل خصومات لطلبات لم تُغلق. الحفظ المحاسبي الفعلي (Contra-Revenue)
       // يتم داخل دالة complete_pos_order عبر discount_account_code.
+      // ⚡ Perf: fire-and-forget — audit log only. لا يؤثر على المحاسبة (الحفظ
+      // المحاسبي تم داخل complete_pos_order) ولا على الإيصال. كان يأخذ ~50ms
+      // قبل عرض الفاتورة للكاشير. الفشل يُسجَّل في الكونسول فقط.
       if (managerDiscountMeta && cartTotals.discount > 0) {
-        try {
-          const equivalent =
-            managerDiscountMeta.type === "percent"
-              ? Math.round((cartTotals.subtotal * managerDiscountMeta.amount) / 100 * 100) / 100
-              : managerDiscountMeta.amount;
-          await (supabase.from("pos_order_discounts" as any) as any).insert({
+        const equivalent =
+          managerDiscountMeta.type === "percent"
+            ? Math.round((cartTotals.subtotal * managerDiscountMeta.amount) / 100 * 100) / 100
+            : managerDiscountMeta.amount;
+        (supabase.from("pos_order_discounts" as any) as any)
+          .insert({
             user_id: dataOwnerId,
             order_id: orderId,
             applied_by_user_id: userId,
@@ -4508,10 +4511,10 @@ const POSPage = () => {
             discount_amount: equivalent,
             subtotal_before: cartTotals.subtotal,
             reason: managerDiscountMeta.reason,
+          })
+          .then(({ error }: { error: any }) => {
+            if (error) console.warn("[POS] failed to log manager discount audit:", error);
           });
-        } catch (e) {
-          console.warn("[POS] failed to log manager discount audit:", e);
-        }
       }
 
       // Fallback: manually release table if trigger didn't fire
@@ -4535,18 +4538,43 @@ const POSPage = () => {
       // 🔒 Atomic delta — replaces the previous read-modify-write that caused
       // Lost Updates when the same cashier was open on two devices. The RPC
       // returns the authoritative totals post-increment.
-      const updated = await incrementSessionTotals(session.id, effectiveTotal, 1);
-      const newTotalSales = updated?.total_sales ?? ((session?.total_sales || 0) + effectiveTotal);
-      const newTotalOrders = updated?.total_orders ?? ((session?.total_orders || 0) + 1);
+      // ⚡ Perf: optimistic update + fire-and-forget reconciliation.
+      // العداد يظهر فوراً للكاشير بقيمة محسوبة محلياً، والـ RPC الذرّي يُشغّل
+      // بالخلفية ويصحّح القيمة الرسمية لاحقاً (الكاشير عادةً ما ينظر للعداد
+      // قبل تأكيد الدفع التالي بثوانٍ، فلا فرق محسوس). كان يأخذ ~80ms قبل
+      // ظهور الإيصال. لا أثر محاسبي — المحاسبة معتمدة على pos_orders وليس
+      // على عدّاد الجلسة.
+      const optimisticSales = (session?.total_sales || 0) + effectiveTotal;
+      const optimisticOrders = (session?.total_orders || 0) + 1;
       setSession((prev) =>
         prev
           ? {
               ...prev,
-              total_sales: newTotalSales,
-              total_orders: newTotalOrders,
+              total_sales: optimisticSales,
+              total_orders: optimisticOrders,
             }
           : null
       );
+      incrementSessionTotals(session.id, effectiveTotal, 1)
+        .then((updated) => {
+          if (!updated) return;
+          // Reconcile only if server value differs from optimistic (e.g. concurrent device).
+          if (
+            updated.total_sales !== optimisticSales ||
+            updated.total_orders !== optimisticOrders
+          ) {
+            setSession((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    total_sales: updated.total_sales,
+                    total_orders: updated.total_orders,
+                  }
+                : null
+            );
+          }
+        })
+        .catch((e) => console.warn("[POS] incrementSessionTotals failed (optimistic kept):", e));
 
       // Record employee account movement
       if (effectivePaymentMethod === "employee_account" && selectedEmployee) {
