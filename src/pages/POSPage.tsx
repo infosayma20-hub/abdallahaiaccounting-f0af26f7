@@ -3671,6 +3671,7 @@ const POSPage = () => {
 
   // Complete order
   const handleCompleteOrder = async (overridePaymentMethod?: string, opts?: { skipPrint?: boolean }) => {
+    // [staging block injected just above — see useEffect below]
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (!enforceDeviceGuard()) return;
