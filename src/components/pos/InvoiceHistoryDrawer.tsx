@@ -1814,7 +1814,7 @@ export default function InvoiceHistoryDrawer({
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
                     )}
-                    {!cashierMode && selectedOrder.state === "paid" && !selectedOrder.is_return && (
+                    {((!cashierMode) || managerMode.active) && selectedOrder.state === "paid" && !selectedOrder.is_return && (
                       <Button
                         size="sm"
                         variant="outline"
