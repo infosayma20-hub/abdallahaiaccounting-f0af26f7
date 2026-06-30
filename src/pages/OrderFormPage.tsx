@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Save, X, Plus, Trash2, ShoppingCart, User, MapPin, CalendarDays, CreditCard, Package, FileText } from "lucide-react";
+import { Save, X, Plus, Trash2, ShoppingCart, User, MapPin, CalendarDays, CreditCard, Package, FileText, Check, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { FinanceShell, FastTabs, type FastTabItem } from "@/components/finance/shell";
 import { syncContactFromOrder, syncProductsFromOrderItems } from "@/lib/order-contact-sync";
 
@@ -15,6 +18,17 @@ const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إل
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
 const STATUSES = ["جديد", "مؤكد", "قيد التجهيز", "جاهز للفوترة", "مفوتر", "جاهز للشحن", "تم الشحن", "تم التسليم", "مؤجل", "ملغي"];
 const PAYMENT_STATUSES = ["غير مدفوع", "مدفوع جزئياً", "مدفوع كاملاً"];
+
+const PROFILE_PLATFORMS: { value: string; label: string; prefix?: string }[] = [
+  { value: "none", label: "— بدون —" },
+  { value: "instagram", label: "إنستجرام", prefix: "https://instagram.com/" },
+  { value: "facebook", label: "فيسبوك", prefix: "https://facebook.com/" },
+  { value: "tiktok", label: "تيك توك", prefix: "https://tiktok.com/@" },
+  { value: "snapchat", label: "سناب شات", prefix: "https://snapchat.com/add/" },
+  { value: "whatsapp", label: "واتساب", prefix: "https://wa.me/" },
+  { value: "x", label: "X (تويتر)", prefix: "https://x.com/" },
+  { value: "website", label: "موقع/رابط آخر" },
+];
 
 const REGIONS: Record<string, string[]> = {
   "الداخل 48": ["حيفا", "يافا", "عكا", "الناصرة", "اللد", "الرملة", "أم الفحم", "الطيبة", "باقة الغربية", "سخنين", "شفاعمرو", "طمرة", "عرعرة", "كفر قاسم", "كفر كنا", "المغار", "دبورية", "عرابة", "كفر ياسيف"],
