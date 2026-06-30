@@ -488,26 +488,57 @@ export default function PortalStoreTab({ theme = 'light' }: Props) {
         </div>
       </div>
 
-      {/* Recent Orders */}
+      {/* Weekday distribution chart */}
+      <div style={{ ...cardStyle, marginBottom: 12 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 12 }}>📅 توزيع الطلبيات حسب أيام الأسبوع</h3>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={weekdayDist}>
+            <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
+            <XAxis dataKey="day" tick={{ fontSize: 11, fill: t.muted }} />
+            <YAxis tick={{ fontSize: 10, fill: t.muted }} />
+            <Tooltip contentStyle={{ fontFamily: F, fontSize: 12, direction: 'rtl', borderRadius: 8 }}
+              formatter={(v: number, name: string) => [name === 'total' ? `₪${fmt(v)}` : v, name === 'total' ? 'المبيعات' : 'العدد']} />
+            <Legend wrapperStyle={{ fontFamily: F, fontSize: 11 }} formatter={v => v === 'count' ? 'عدد الطلبيات' : 'المبيعات (₪)'} />
+            <Bar dataKey="count" fill={ACCENT} radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Filtered orders list (controlled by selected card) */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 12 }}>🕐 آخر الطلبيات</h3>
-        {orders.length === 0 ? (
-          <div style={{ textAlign: 'center', color: t.muted, fontSize: 13, padding: 20 }}>لا توجد طلبيات</div>
-        ) : orders.slice(0, 5).map(o => {
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: 0 }}>
+            🕐 {cardDefs.find(c => c.key === activeCard)?.label} ({visibleOrders.length})
+          </h3>
+          <button onClick={() => navigate('/orders')}
+            style={{ background: 'transparent', border: `1px solid ${t.border}`, color: ACCENT, fontFamily: F, fontSize: 12, padding: '4px 12px', borderRadius: 20, cursor: 'pointer' }}>
+            عرض الكل ←
+          </button>
+        </div>
+        {visibleOrders.length === 0 ? (
+          <div style={{ textAlign: 'center', color: t.muted, fontSize: 13, padding: 20 }}>لا توجد طلبيات في هذه الفئة</div>
+        ) : visibleOrders.slice(0, 12).map(o => {
           const statusColor = STATUS_COLORS[o.status] || '#94A3B8';
+          const region = regionOf(o.customer_address);
           return (
-            <div key={o.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
-              borderBottom: `1px solid ${t.border}`, fontSize: 13,
+            <div key={o.id} onClick={() => openOrder(o.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px',
+              borderBottom: `1px solid ${t.border}`, fontSize: 13, cursor: 'pointer',
             }}>
-              <span style={{ color: ACCENT, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', width: 90, flexShrink: 0 }}>{o.reference_number}</span>
-              <span style={{ flex: 1, color: t.text, fontWeight: 500 }}>{o.customer_name || '—'}</span>
+              <span style={{ color: ACCENT, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', width: 90, flexShrink: 0 }}>{o.order_number || '—'}</span>
+              <span style={{ flex: 1, color: t.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name || '—'}</span>
+              <span style={{ color: t.muted, fontSize: 11, width: 90, textAlign: 'center', whiteSpace: 'nowrap' }}>📍 {region}</span>
               <span style={{ color: t.text, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', width: 80, textAlign: 'center' }}>₪{fmt(o.total || 0)}</span>
               <span style={{
                 padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                 background: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}30`,
                 whiteSpace: 'nowrap',
               }}>● {o.status}</span>
+              <span style={{
+                padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 600,
+                background: isCollected(o) ? '#22C55E15' : '#F59E0B15',
+                color: isCollected(o) ? '#16A34A' : '#D97706', whiteSpace: 'nowrap',
+              }}>{isCollected(o) ? '✔ محصّلة' : '⏳ غير محصّلة'}</span>
               <span style={{ color: t.faint, fontSize: 11, width: 60, textAlign: 'left', whiteSpace: 'nowrap' }}>{relativeTime(o.created_at)}</span>
             </div>
           );
