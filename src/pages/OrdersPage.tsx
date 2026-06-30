@@ -457,53 +457,91 @@ const OrdersPage = () => {
     navigate(`/orders/${o.id}/edit`);
   };
 
+  const actionTabs: ActionTab[] = [
+    {
+      key: "home",
+      label: "عام",
+      groups: [
+        {
+          key: "new",
+          label: "إنشاء",
+          items: [
+            { key: "new-order", label: "طلبية جديدة", icon: Plus, variant: "primary", onClick: () => navigate("/orders/new") },
+          ],
+        },
+        {
+          key: "actions",
+          label: "إجراءات",
+          items: [
+            { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: () => fetchOrders(), disabled: loading },
+            ...(user?.email === "alaaabedps1987@gmail.com" ? [{
+              key: "sync", label: syncing ? "جاري المزامنة..." : "مزامنة الزبائن والأصناف",
+              icon: RefreshCw, onClick: handleRetroactiveSync, disabled: syncing,
+            }] : []),
+          ],
+        },
+        {
+          key: "export",
+          label: "تصدير وطباعة",
+          items: [
+            { key: "excel", label: "Excel", icon: Download, onClick: exportToExcel, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined },
+            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات" : undefined },
+          ],
+        },
+        {
+          key: "view",
+          label: "العرض",
+          items: [
+            { key: "list", label: "جدول", icon: LayoutList, onClick: () => setViewMode("table"), variant: viewMode === "table" ? "primary" : "default" },
+            { key: "cards", label: "بطاقات", icon: LayoutGrid, onClick: () => setViewMode("cards"), variant: viewMode === "cards" ? "primary" : "default" },
+          ],
+        },
+      ],
+    },
+    {
+      key: "reports",
+      label: "التقارير والتحليلات",
+      groups: [
+        {
+          key: "switch",
+          label: "العرض",
+          items: [
+            { key: "orders-view", label: "قائمة الطلبيات", icon: ShoppingCart, onClick: () => setActiveTab("orders"), variant: activeTab === "orders" ? "primary" : "default" },
+            { key: "reports-view", label: "لوحة التقارير", icon: BarChart3, onClick: () => setActiveTab("reports"), variant: activeTab === "reports" ? "primary" : "default" },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const rightSlot = (
+    <div className="relative">
+      <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="بحث بالاسم أو رقم الطلبية..."
+        className="h-8 w-64 pr-8 text-[12.5px]"
+        dir="rtl"
+      />
+      {search && (
+        <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <div style={{ direction: "rtl", textAlign: "right", fontFamily: F, padding: "16px 24px 96px", maxWidth: "1400px", margin: "0 auto" }}>
-      <PageHeader title="الطلبيات" breadcrumb={["المبيعات", "الطلبيات"]} />
-
-      {/* ─── Actions bar ─── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "20px", marginTop: "12px" }}>
-        <p style={{ fontSize: "12px", color: "#94A3B8", fontFamily: F }}>إدارة الطلبيات والمبيعات</p>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {user?.email === "alaaabedps1987@gmail.com" && (
-            <button onClick={handleRetroactiveSync} disabled={syncing} style={{ background: "#ECFDF5", color: "#065F46", border: "1.5px solid #A7F3D0", borderRadius: "12px", padding: "10px 18px", fontSize: "13px", fontWeight: "600", fontFamily: F, cursor: syncing ? "wait" : "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease", opacity: syncing ? 0.6 : 1 }}>
-              🔄 {syncing ? "جاري المزامنة..." : "مزامنة الزبائن والأصناف"}
-            </button>
-          )}
-          {filtered.length > 0 && (
-            <>
-              <button onClick={handlePrint} style={{ background: "white", color: "#475569", border: "1.5px solid #E2E8F0", borderRadius: "12px", padding: "10px 18px", fontSize: "13px", fontWeight: "600", fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease" }}>
-                <Printer style={{ width: 14, height: 14 }} /> طباعة
-              </button>
-              <button onClick={exportToExcel} style={{ background: "white", color: "#475569", border: "1.5px solid #E2E8F0", borderRadius: "12px", padding: "10px 18px", fontSize: "13px", fontWeight: "600", fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease" }}>
-                <Download style={{ width: 14, height: 14 }} /> تصدير Excel
-              </button>
-            </>
-          )}
-          <button onClick={() => { navigate("/orders/new"); }} style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #1e3a5f 100%)`, color: "white", border: "none", borderRadius: "12px", padding: "12px 24px", fontSize: "14px", fontWeight: "700", fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", boxShadow: "0 4px 12px rgba(13,27,46,0.2)", transition: "all 0.2s ease" }}>
-            <Plus style={{ width: 16, height: 16 }} /> طلبية جديدة
-          </button>
-        </div>
-      </div>
-
-      {/* ─── Tabs ─── */}
-      <div style={{ display: "flex", gap: "4px", direction: "rtl", background: "#F1F5F9", borderRadius: "12px", padding: "4px", marginBottom: "24px", width: "fit-content" }}>
-        {[
-          { id: "orders", label: "الطلبيات", icon: <ShoppingCart style={{ width: 14, height: 14 }} /> },
-          { id: "reports", label: "التقارير", icon: <BarChart3 style={{ width: 14, height: 14 }} /> },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-            padding: "10px 24px", borderRadius: "10px", border: "none", cursor: "pointer",
-            fontFamily: F, fontSize: "14px", display: "flex", alignItems: "center", gap: "6px",
-            transition: "all 0.2s ease",
-            ...(activeTab === tab.id
-              ? { background: "white", color: NAVY, fontWeight: "700", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
-              : { background: "transparent", color: "#94A3B8", fontWeight: "500" }),
-          }}>
-            {tab.icon} {tab.label}
-          </button>
-        ))}
-      </div>
+    <>
+      <FinanceShell
+        title="الطلبيات"
+        subtitle="إدارة دورة حياة طلبيات البيع والتحصيل"
+        breadcrumb={[{ label: "الرئيسية", href: "/" }, { label: "المبيعات" }, { label: "الطلبيات" }]}
+        actionTabs={actionTabs}
+        rightSlot={rightSlot}
+      >
+        <div style={{ direction: "rtl", textAlign: "right", fontFamily: F }}>
 
       {/* ═══════ Orders Tab ═══════ */}
       {activeTab === "orders" && (
