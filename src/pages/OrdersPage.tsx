@@ -455,18 +455,7 @@ const OrdersPage = () => {
   ];
 
   const openEdit = (o: Order) => {
-    setEditingId(o.id);
-    setForm({
-      customer_name: o.customer_name, customer_phone: o.customer_phone || "",
-      customer_address: o.customer_address || "", order_date: o.order_date,
-      delivery_date: o.delivery_date || "", status: o.status, subtotal: o.subtotal,
-      discount: o.discount, shipping_cost: o.shipping_cost, total: o.total,
-      payment_status: o.payment_status, payment_method: o.payment_method || "كاش",
-      shipping_method: o.shipping_method || "", tracking_number: o.tracking_number || "",
-      source: o.source || "يدوي", notes: o.notes || "",
-    });
-    setItems([]);
-    setShowForm(true);
+    navigate(`/orders/${o.id}/edit`);
   };
 
   return (
