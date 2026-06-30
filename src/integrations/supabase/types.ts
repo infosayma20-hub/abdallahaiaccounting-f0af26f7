@@ -12429,6 +12429,7 @@ export type Database = {
           currency: string
           exchange_rate: number | null
           id: string
+          is_refund: boolean
           notes: string | null
           order_id: string
           original_payment_method: string | null
@@ -12438,6 +12439,8 @@ export type Database = {
           payment_edited_by_pos_user_id: string | null
           payment_method: string
           reference: string | null
+          refund_manager_user_id: string | null
+          refund_reason: string | null
           tendered: number
           user_id: string
         }
@@ -12454,6 +12457,7 @@ export type Database = {
           currency?: string
           exchange_rate?: number | null
           id?: string
+          is_refund?: boolean
           notes?: string | null
           order_id: string
           original_payment_method?: string | null
@@ -12463,6 +12467,8 @@ export type Database = {
           payment_edited_by_pos_user_id?: string | null
           payment_method?: string
           reference?: string | null
+          refund_manager_user_id?: string | null
+          refund_reason?: string | null
           tendered?: number
           user_id: string
         }
@@ -12479,6 +12485,7 @@ export type Database = {
           currency?: string
           exchange_rate?: number | null
           id?: string
+          is_refund?: boolean
           notes?: string | null
           order_id?: string
           original_payment_method?: string | null
@@ -12488,6 +12495,8 @@ export type Database = {
           payment_edited_by_pos_user_id?: string | null
           payment_method?: string
           reference?: string | null
+          refund_manager_user_id?: string | null
+          refund_reason?: string | null
           tendered?: number
           user_id?: string
         }
@@ -22545,6 +22554,10 @@ export type Database = {
         Args: { p_is_return: boolean; p_order_id: string; p_user_id: string }
         Returns: undefined
       }
+      _pos_user_is_manager: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
       accept_order_edit: { Args: { p_edit_id: string }; Returns: boolean }
       ack_call_center_order: {
@@ -22562,6 +22575,20 @@ export type Database = {
       add_holding_member_by_email: {
         Args: { p_email: string; p_holding_id: string; p_role?: string }
         Returns: string
+      }
+      adjust_pos_payment_manager: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_exchange_rate: number
+          p_manager_user_id: string
+          p_method: string
+          p_order_id: string
+          p_reason: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       admin_list_companies: {
         Args: never
