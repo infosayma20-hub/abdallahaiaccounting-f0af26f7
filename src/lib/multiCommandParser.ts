@@ -98,11 +98,15 @@ export function splitMultipleCommands(message: string): string[] {
   return commands.length > 0 ? commands : [trimmed];
 }
 
-export type CommandType = 'sale' | 'purchase' | 'expense' | 'receipt' | 'transfer' | 'deposit' | 'withdrawal' | 'unknown';
+export type CommandType = 'sale' | 'purchase' | 'expense' | 'receipt' | 'transfer' | 'deposit' | 'withdrawal' | 'order' | 'unknown';
 
 export function classifyCommand(command: string): CommandType {
   const c = command.trim();
   
+  // Order intent — e-commerce orders, must come before "sale" since "بعت" might overlap
+  if (/(طلبي[ةه]|أوردر|اوردر|اعمل\s*طلب|سجّل\s*طلب|سجل\s*طلب)/i.test(c)) return 'order';
+  if (/(إنستجرام|انستجرام|انستغرام|instagram|فيسبوك|facebook|واتساب|واتس\s*اب|whatsapp|تيك\s*توك|tiktok)/i.test(c) && /(بده|بدها|بدو|طلب|اشتر)/i.test(c)) return 'order';
+
   if (/^(بعت|بيعت|مبيعات)/i.test(c)) return 'sale';
   if (/^(شريت|اشتريت|مشتريات)/i.test(c)) return 'purchase';
   if (/^(صرفت|دفعت|اصرف|ادفع)/i.test(c) && !/(لمورد|للمورد|فاتورة)/i.test(c)) return 'expense';
@@ -123,6 +127,7 @@ export function getCommandTypeLabel(type: CommandType): string {
     case 'transfer': return 'تحويل';
     case 'deposit': return 'إيداع';
     case 'withdrawal': return 'سحب';
+    case 'order': return 'طلبية متجر';
     default: return 'عملية';
   }
 }
@@ -136,6 +141,7 @@ export function getCommandTypeIcon(type: CommandType): string {
     case 'transfer': return '🔄';
     case 'deposit': return '🏦';
     case 'withdrawal': return '🏧';
+    case 'order': return '🛒';
     default: return '📋';
   }
 }
