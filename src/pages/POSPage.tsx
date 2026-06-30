@@ -8363,7 +8363,20 @@ const POSPage = () => {
                           <div className="text-[11px] mb-1.5 font-medium" style={{ color: mealDiscountType ? '#6b21a8' : '#dc2626' }}>
                             نوع الخصم {mealDiscountType ? '' : '(مطلوب)'}
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setMealDiscountType('none')}
+                              className="h-10 rounded-lg text-xs font-semibold transition flex flex-col items-center justify-center"
+                              style={{
+                                background: mealDiscountType === 'none' ? '#475569' : '#ffffff',
+                                color: mealDiscountType === 'none' ? '#ffffff' : '#374151',
+                                border: `1px solid ${mealDiscountType === 'none' ? '#475569' : '#cbd5e1'}`,
+                              }}
+                            >
+                              <span>بدون خصم</span>
+                              <span className="text-[10px] opacity-80">100%</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => setMealDiscountType('family')}
@@ -8393,18 +8406,18 @@ const POSPage = () => {
                           </div>
                           {mealDiscountType && (() => {
                             const full = Number(cartTotals.total) || 0;
-                            const pct = mealDiscountType === "family" ? 10 : 50;
-                            const ded = Math.round((full * pct / 100) * 100) / 100;
+                            const empPct = mealDiscountType === "family" ? 90 : mealDiscountType === "individual" ? 50 : 100;
+                            const ded = Math.round((full * empPct / 100) * 100) / 100;
                             const company = Math.max(0, full - ded);
-                            const used = mealDiscountType === "family" ? employeeMealMonthly.family : employeeMealMonthly.individual;
-                            const cap = mealDiscountType === "family" ? mealCapFamily : mealCapIndividual;
+                            const used = mealDiscountType === "family" ? employeeMealMonthly.family : mealDiscountType === "individual" ? employeeMealMonthly.individual : 0;
+                            const cap = mealDiscountType === "family" ? mealCapFamily : mealDiscountType === "individual" ? mealCapIndividual : 0;
                             const projected = used + ded;
                             const overCap = cap > 0 && projected > cap;
                             const nearCap = cap > 0 && projected >= cap * (mealWarnAtPct / 100);
                             return (
                               <div className="mt-2 p-2 rounded-lg text-[11px] space-y-0.5" style={{ background: '#ffffff', border: '1px solid #ddd6fe' }}>
                                 <div className="flex justify-between"><span style={{ color: '#6b7280' }}>إجمالي الفاتورة</span><span className="font-semibold">₪{full.toFixed(2)}</span></div>
-                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>سيُخصم من حسابك ({pct}%)</span><span className="font-semibold" style={{ color: '#dc2626' }}>₪{ded.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span style={{ color: '#6b7280' }}>سيُخصم من حسابك ({empPct}%)</span><span className="font-semibold" style={{ color: '#dc2626' }}>₪{ded.toFixed(2)}</span></div>
                                 <div className="flex justify-between"><span style={{ color: '#6b7280' }}>تتحمّل الشركة</span><span className="font-semibold" style={{ color: '#16a34a' }}>₪{company.toFixed(2)}</span></div>
                                 {(used > 0 || cap > 0) && (
                                   <div className="flex justify-between pt-1 mt-1" style={{ borderTop: '1px dashed #e5e7eb' }}>
