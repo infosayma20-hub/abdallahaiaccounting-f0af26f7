@@ -1881,6 +1881,21 @@ export default function InvoiceHistoryDrawer({
                     </Button>
                   );
                 })()}
+
+                {/* استرداد جزئي / تعديل دفعة — وضع المدير فقط */}
+                {managerMode.active && selectedOrder.state === "paid" && !selectedOrder.is_return && !isTransferredOut(selectedOrder) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs"
+                    style={{ borderColor: "#B45309", color: "#92400E", background: "#FEF3C7" }}
+                    onClick={() => setShowAdjustment(true)}
+                    title="استرداد جزئي بعد الدفع (مثلاً تعديل سعر) — يخفّض الإجمالي ويسجّل قيد استرداد"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    تعديل دفعة / استرداد جزئي
+                  </Button>
+                )}
               </div>
 
               {/* Manager approval note */}
