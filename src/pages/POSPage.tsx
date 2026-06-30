@@ -4287,7 +4287,10 @@ const POSPage = () => {
         orderObj = order;
       }
 
-      await persistOrderLinesWithModifiers(orderId, cart);
+      // Skip when the staged-order fast path was used (lines were persisted at stage time).
+      if (!canReuseStaged) {
+        await persistOrderLinesWithModifiers(orderId, cart);
+      }
 
       // Link call center order to POS order if applicable
       if (activeOrder.callCenterOrderId && orderId) {
