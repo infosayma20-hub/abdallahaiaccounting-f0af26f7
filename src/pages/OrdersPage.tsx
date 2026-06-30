@@ -1054,6 +1054,9 @@ const OrdersPage = () => {
         </div>
       )}
 
+        </div>
+      </FinanceShell>
+
       {/* ═══════ Detail Dialog ═══════ */}
       <Dialog open={!!showDetail} onOpenChange={() => setShowDetail(null)}>
         <DialogContent dir="rtl" className="max-w-lg max-h-[85vh] overflow-y-auto">
