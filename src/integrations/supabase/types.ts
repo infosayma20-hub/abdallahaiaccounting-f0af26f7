@@ -22556,6 +22556,14 @@ export type Database = {
             }
             Returns: Json
           }
+      _pos_resolve_cash_gl: {
+        Args: {
+          p_currency: string
+          p_default: string
+          p_session_box_id: string
+        }
+        Returns: string
+      }
       _pos_sync_stock_movements: {
         Args: { p_is_return: boolean; p_order_id: string; p_user_id: string }
         Returns: undefined
