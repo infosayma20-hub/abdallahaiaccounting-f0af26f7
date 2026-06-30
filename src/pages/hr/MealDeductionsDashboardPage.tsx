@@ -14,7 +14,7 @@ interface Row {
   employee_id: string;
   amount: number;
   original_full_amount: number | null;
-  meal_discount_type: "family" | "individual" | null;
+  meal_discount_type: "family" | "individual" | "none" | null;
   movement_date: string;
   reference_number: string | null;
   employee_name?: string;
@@ -75,17 +75,19 @@ export default function MealDeductionsDashboardPage() {
   }, [user, year, month]);
 
   const totals = useMemo(() => {
-    let family = 0, individual = 0, full = 0;
-    const perEmp = new Map<string, { name: string; family: number; individual: number; total: number }>();
+    let family = 0, individual = 0, none = 0, full = 0;
+    const perEmp = new Map<string, { name: string; family: number; individual: number; none: number; total: number }>();
     for (const r of rows) {
       const a = Number(r.amount) || 0;
       full += Number(r.original_full_amount) || 0;
       if (r.meal_discount_type === "family") family += a;
       else if (r.meal_discount_type === "individual") individual += a;
+      else if (r.meal_discount_type === "none") none += a;
       const key = r.employee_id;
-      const cur = perEmp.get(key) || { name: r.employee_name || "—", family: 0, individual: 0, total: 0 };
+      const cur = perEmp.get(key) || { name: r.employee_name || "—", family: 0, individual: 0, none: 0, total: 0 };
       if (r.meal_discount_type === "family") cur.family += a;
       else if (r.meal_discount_type === "individual") cur.individual += a;
+      else if (r.meal_discount_type === "none") cur.none += a;
       cur.total += a;
       perEmp.set(key, cur);
     }
@@ -93,7 +95,8 @@ export default function MealDeductionsDashboardPage() {
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
-    return { family, individual, total: family + individual, fullCompanyPaid: full, companyShare: full - (family + individual), topEmployees, perEmp };
+    const totalDeducted = family + individual + none;
+    return { family, individual, none, total: totalDeducted, fullCompanyPaid: full, companyShare: Math.max(0, full - totalDeducted), topEmployees, perEmp };
   }, [rows]);
 
   const overCap = useMemo(() => {
