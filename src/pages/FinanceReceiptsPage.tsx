@@ -7,6 +7,7 @@ import {
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
@@ -64,6 +65,8 @@ export default function FinanceReceiptsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
   const { settings } = useCompanySettings();
   const { canEdit, canDelete } = useDocumentPermissions();
@@ -102,11 +105,11 @@ export default function FinanceReceiptsPage() {
     if (!user) return;
     setLoading(true);
     const [rvRes, cRes, cbRes, baRes] = await Promise.all([
-      supabase.from("receipt_vouchers").select("*").eq("user_id", user.id)
+      supabase.from("receipt_vouchers").select("*").eq("user_id", ownerId)
         .order("payment_date", { ascending: false }),
-      supabase.from("contacts").select("id, contact_name").eq("user_id", user.id),
-      supabase.from("cash_boxes").select("id, name, currency").eq("user_id", user.id),
-      supabase.from("bank_accounts").select("id, name, currency").eq("user_id", user.id),
+      supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId),
+      supabase.from("cash_boxes").select("id, name, currency").eq("user_id", ownerId),
+      supabase.from("bank_accounts").select("id, name, currency").eq("user_id", ownerId),
     ]);
     const cMap = new Map<string, string>((cRes.data || []).map((c: any) => [c.id, c.contact_name]));
     const cbMap = new Map<string, any>((cbRes.data || []).map((b: any) => [b.id, b]));
@@ -302,7 +305,7 @@ export default function FinanceReceiptsPage() {
       supabase.from("document_edit_history" as any).insert({
         document_id: warnTarget.id, document_type: "receipt",
         old_data: warnTarget.raw, edit_reason: "فتح تعديل مستند مرحّل",
-        edited_by: user.id, user_id: user.id,
+        edited_by: user.id, user_id: ownerId,
       } as any);
     }
     setWarnOpen(false);
@@ -340,7 +343,7 @@ export default function FinanceReceiptsPage() {
       await supabase.from("document_edit_history" as any).insert({
         document_id: delTarget.id, document_type: "receipt",
         old_data: delTarget.raw, edit_reason: reason,
-        edited_by: user.id, user_id: user.id,
+        edited_by: user.id, user_id: ownerId,
         changes: { action: "delete", reason },
       } as any);
       toast({ title: "تم إلغاء السند وعكس تأثيره ✅" });
