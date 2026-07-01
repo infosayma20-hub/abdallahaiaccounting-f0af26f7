@@ -249,6 +249,11 @@ Deno.serve(async (req) => {
     let zone: { wheels_area_id: number | null; wheels_fixed_price: number | null } | null = null;
     let matchedArea: string | null = null;
     let matchedVia: string | null = null;
+    // Set when the call center explicitly picked an area for this branch.
+    // If that area has no wheels_area_id, we MUST NOT silently fuzzy-match to
+    // a different area (e.g. "المستشفى الاستشاري" → "مستشفى المستقبل" @0.409).
+    let preSelectedAreaName: string | null = null;
+    let preSelectedHasWheelsId = false;
 
     // Pass 0 — pre-resolved area from call_center_orders.delivery_info.
     // The Call-Center DeliveryZonePicker writes { area, branch_id, ... } into
@@ -265,6 +270,18 @@ Deno.serve(async (req) => {
       const preArea = di && typeof di.area === "string" ? di.area.trim() : null;
       const preBranch = di && typeof di.branch_id === "string" ? di.branch_id : null;
       if (preArea && preBranch && preBranch === branchId) {
+        preSelectedAreaName = preArea;
+        // Look up the exact pre-selected row regardless of wheels_area_id so we
+        // can tell "not mapped" (data gap) apart from "not found" (typo).
+        const { data: zAny } = await admin
+          .from("delivery_zones")
+          .select("wheels_area_id")
+          .eq("user_id", order.user_id)
+          .eq("branch_id", branchId)
+          .eq("area_name", preArea)
+          .maybeSingle();
+        preSelectedHasWheelsId = !!(zAny as any)?.wheels_area_id;
+
         const { data: zPre } = await admin
           .from("delivery_zones")
           .select("wheels_area_id, wheels_fixed_price, area_name")
@@ -280,6 +297,17 @@ Deno.serve(async (req) => {
         }
       }
     } catch (_) { /* non-fatal — fall through to address parsing */ }
+
+    // Guard: call center picked a specific area but it has no wheels_area_id.
+    // Refuse to guess — return a precise, actionable error instead of silently
+    // sending the order to the wrong Wheels zone.
+    if (!zone?.wheels_area_id && preSelectedAreaName && !preSelectedHasWheelsId) {
+      return new Response(JSON.stringify({
+        error: `المنطقة "${preSelectedAreaName}" غير مربوطة بمنطقة Wheels. الرجاء ربطها من إعدادات مناطق التوصيل قبل الإرسال.`,
+      }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Normalize for fuzzy comparison:
     //  - strip leading definite article "ال"
