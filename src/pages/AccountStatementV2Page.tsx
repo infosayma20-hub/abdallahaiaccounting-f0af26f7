@@ -33,6 +33,7 @@ import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 import { useTaxEnabled } from "@/hooks/useTaxEnabled";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -348,15 +349,33 @@ const AccountStatementV2Page = () => {
 
   // ─── Realtime: auto-refresh on transaction changes ───
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
+    // Perf hardening (Solution A):
+    //   1) Scope Realtime by tenant (user_id=eq.<owner>) so other tenants' POS
+    //      writes never trigger a full 8k-row refetch here.
+    //   2) Throttle refetches to at most once per 3s to survive POS bursts
+    //      (300–500 inserts/day per branch) without the "loading…" flicker
+    //      users reported.
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
-      .channel(`account_statement_realtime-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
-        fetchData();
-      })
+      .channel(`account_statement_realtime-${dataOwnerId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${dataOwnerId}` },
+        () => {
+          if (timeoutId) return; // coalesce bursts
+          timeoutId = setTimeout(() => {
+            timeoutId = null;
+            fetchData();
+          }, 3000);
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
+    };
+  }, [user, dataOwnerId]);
 
   // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
   useEffect(() => {
