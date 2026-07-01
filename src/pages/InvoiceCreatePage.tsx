@@ -1578,11 +1578,11 @@ const InvoiceCreatePage = () => {
         const headerWorkshop = form.workshopId
           ? workshops.find(w => w.id === form.workshopId)
           : null;
-        // Force the legacy direct-insert path for cash invoices: the RPC does
-        // not support overriding the cash leg with the user-selected
-        // gl_account_code, so we route cash invoices through the direct path
-        // where we can set debit/credit codes explicitly.
-        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings) && !isCashInvoice;
+        // Force the legacy direct-insert path for cash invoices when we are
+        // still overriding the cash leg (edit mode) — the RPC doesn't support
+        // that. When we route through AR/AP + auto voucher (useVoucherAutoFlow),
+        // the RPC is safe to use because codes are the standard AR/AP.
+        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings) && (!isCashInvoice || useVoucherAutoFlow);
         let txDataId: string;
         if (useInvoiceRpc) {
           const rpcRes = await callCreateInvoiceLedgerRpc({
