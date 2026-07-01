@@ -98,6 +98,15 @@ export interface PrintOrder {
   mealSubsidy?: number;
   /** Employee name (when paid via حساب موظف) — shown on receipt + kitchen ticket */
   employeeName?: string;
+  /**
+   * Per-shift sequential number (1..N within the cashier's own session).
+   * Displayed on the printed receipt as a small suffix next to the cashier
+   * name — helps cashiers see their own contiguous shift numbering without
+   * changing the branch-wide `queueNumber`/`orderNumber` (which the KDS,
+   * customer display and accounting rely on).
+   * Optional — omitted for pre-session_seq orders.
+   */
+  shiftSeq?: number;
 }
 
 export function usePrintBridge() {

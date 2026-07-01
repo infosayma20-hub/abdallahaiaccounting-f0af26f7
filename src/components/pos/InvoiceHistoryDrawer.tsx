@@ -1565,6 +1565,7 @@ export default function InvoiceHistoryDrawer({
                       order_number: selectedOrder.order_number,
                       printed_order_number: getPrintedOrderNumber(selectedOrder),
                       queue_number: selectedOrder.daily_display_number ?? selectedOrder.queue_number ?? null,
+                      session_seq: selectedOrder.session_seq ?? null,
                       created_at: (selectedOrder as any).created_at,
                       total: selectedOrder.total,
                       subtotal: selectedOrder.subtotal,
@@ -1614,6 +1615,7 @@ export default function InvoiceHistoryDrawer({
                       // on the original sale (daily_display_number / queue_number).
                       orderNumber: snap.order_number,
                       queueNumber: snap.queue_number ?? (Number.isFinite(parsedPrintedNumber) ? parsedPrintedNumber : undefined),
+                      shiftSeq: snap.session_seq != null ? Number(snap.session_seq) : undefined,
                       branchName: terminalName || "نقطة البيع",
                       cashier: cashierName,
                       date: origDate,

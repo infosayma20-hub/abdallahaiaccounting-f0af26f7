@@ -195,6 +195,12 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
             <td style={{ padding: '3px 0', fontSize: '30px', fontWeight: 900, textAlign: 'right' }}>رقم الطلب</td>
             <td style={{ padding: '3px 0', fontSize: '30px', fontWeight: 900, textAlign: 'left' }}>{qNum}</td>
           </tr>
+          {order.shiftSeq != null && (
+            <tr>
+              <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'right', color: '#333' }}>رقم الوردية</td>
+              <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'left', color: '#333' }}>{order.shiftSeq}</td>
+            </tr>
+          )}
           {order.cashier && (
             <tr>
               <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>الكاشير</td>

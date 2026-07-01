@@ -308,7 +308,12 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     companyName: companyInfo?.name || order.branchName,
     companyPhone: companyInfo?.phone,
     taxNumber: companyInfo?.taxNumber,
-    cashierName: order.cashier,
+    // Append per-shift number to cashier name so the printed receipt shows
+    // the cashier's contiguous shift counter (e.g. "عاصم مخلوف · وردية 2")
+    // without changing the branch-wide order/queue number the KDS uses.
+    cashierName: order.shiftSeq
+      ? `${order.cashier || ''}${order.cashier ? ' · ' : ''}وردية ${order.shiftSeq}`.trim()
+      : order.cashier,
     orderType: normalizedType,
     orderTypeLabel: orderTypeLabel(normalizedType, order.tableNumber),
     tableNumber: order.tableNumber,

@@ -4769,10 +4769,11 @@ const POSPage = () => {
       // number so customers wait for "their" number on the display.
       let displayNumber = '';
       let queueNumber: number | undefined;
+      let shiftSeq: number | undefined;
       try {
         const { data: orderRow } = await supabase
           .from("pos_orders")
-          .select("display_number, queue_number, daily_display_number")
+          .select("display_number, queue_number, daily_display_number, session_seq")
           .eq("id", orderId)
           .single();
         if (orderRow) {
@@ -4785,6 +4786,8 @@ const POSPage = () => {
           queueNumber = daily != null
             ? Number(daily)
             : (orderRow as any).queue_number;
+          const seq = (orderRow as any).session_seq;
+          if (seq != null) shiftSeq = Number(seq);
         }
       } catch {}
 
@@ -5095,6 +5098,7 @@ const POSPage = () => {
           id: orderId,
           orderNumber: res.order_number,
           queueNumber: queueNumber || undefined,
+          shiftSeq: shiftSeq,
           branchName: company?.name || "مطعم الملكي",
           cashier: session.cashier_name,
           tableNumber: activeOrder.tableName || undefined,
