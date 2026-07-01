@@ -27,6 +27,7 @@ import {
 } from "@/components/finance/shell";
 import type { ActionTab, ColumnDef, FilterField, FilterCondition } from "@/components/finance/shell";
 import EmptyState from "@/components/EmptyState";
+import { usePageSessionState, usePageScrollRestoration } from "@/hooks/usePageSessionState";
 
 interface Product {
   id: string;
@@ -108,11 +109,11 @@ const InventoryPage = () => {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [stockFilter, setStockFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [searchQuery, setSearchQuery] = usePageSessionState<string>("searchQuery", "");
+  const [filterCategory, setFilterCategory] = usePageSessionState<string>("filterCategory", "all");
+  const [stockFilter, setStockFilter] = usePageSessionState<string>("stockFilter", "all");
+  const [dateFrom, setDateFrom] = usePageSessionState<string>("dateFrom", "");
+  const [dateTo, setDateTo] = usePageSessionState<string>("dateTo", "");
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showMovementsDialog, setShowMovementsDialog] = useState(false);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -125,13 +126,14 @@ const InventoryPage = () => {
   const [customUnitInput, setCustomUnitInput] = useState("");
   const [showCustomUnit, setShowCustomUnit] = useState(false);
 
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(15);
+  const [sortKey, setSortKey] = usePageSessionState<SortKey>("sortKey", "name");
+  const [sortDir, setSortDir] = usePageSessionState<SortDir>("sortDir", "asc");
+  const [page, setPage] = usePageSessionState<number>("page", 1);
+  const [perPage, setPerPage] = usePageSessionState<number>("perPage", 15);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [kitchenStations, setKitchenStations] = useState<KitchenStation[]>([]);
-  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
+  const [shellFilters, setShellFilters] = usePageSessionState<FilterCondition[]>("shellFilters", []);
+  usePageScrollRestoration();
 
   const [form, setForm] = useState({
     name: "", category: "بضاعة عامة", skuPrefix: "GEN",

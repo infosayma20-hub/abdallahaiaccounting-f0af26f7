@@ -26,6 +26,7 @@ import { ColumnVisibilityMenu } from "@/components/finance/shell/ColumnVisibilit
 import { useColumnVisibility, type ColumnDef } from "@/components/finance/shell/useColumnVisibility";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
+import { usePageSessionState, usePageScrollRestoration } from "@/hooks/usePageSessionState";
 
 interface JournalLine {
   id: string;
@@ -52,17 +53,18 @@ const FinanceJournalPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("active");
+  const [searchQuery, setSearchQuery] = usePageSessionState<string>("searchQuery", "");
+  const [filterStatus, setFilterStatus] = usePageSessionState<string>("filterStatus", "active");
   const [saving, setSaving] = useState(false);
 
   // Advanced filters
-  const [filterDateFrom, setFilterDateFrom] = useState("");
-  const [filterDateTo, setFilterDateTo] = useState("");
-  const [filterSubtype, setFilterSubtype] = useState("all");
-  const [filterContactId, setFilterContactId] = useState("all");
-  const [filterAmountMin, setFilterAmountMin] = useState("");
-  const [filterAmountMax, setFilterAmountMax] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = usePageSessionState<string>("filterDateFrom", "");
+  const [filterDateTo, setFilterDateTo] = usePageSessionState<string>("filterDateTo", "");
+  const [filterSubtype, setFilterSubtype] = usePageSessionState<string>("filterSubtype", "all");
+  const [filterContactId, setFilterContactId] = usePageSessionState<string>("filterContactId", "all");
+  const [filterAmountMin, setFilterAmountMin] = usePageSessionState<string>("filterAmountMin", "");
+  const [filterAmountMax, setFilterAmountMax] = usePageSessionState<string>("filterAmountMax", "");
+  usePageScrollRestoration();
 
   // Column visibility (notes, contact, subtype hideable)
   const columnDefs: ColumnDef[] = [
