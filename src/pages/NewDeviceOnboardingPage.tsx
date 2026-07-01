@@ -716,9 +716,11 @@ export default function NewDeviceOnboardingPage() {
     if (!user) return;
     setAssigningIp(d.ip);
     try {
+      const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const ownerId = (ownerIdRaw as string) || user.id;
       const roleLabel = PRINTER_ROLES.find(r => r.value === role)?.label || role;
       const row: any = {
-        user_id: user.id,
+        user_id: ownerId,
         name: `${roleLabel} (${d.ip})`,
         ip_address: d.ip,
         port: d.port || 9100,

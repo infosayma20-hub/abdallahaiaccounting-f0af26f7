@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import useDataOwnerId from "@/hooks/useDataOwnerId";
 import { fmtDateDisplay } from "@/lib/utils";
 import AccountingShell from "@/components/layout/AccountingShell";
 
@@ -19,6 +20,7 @@ const CashTransferPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
 
   const [boxes, setBoxes] = useState<any[]>([]);
@@ -38,12 +40,12 @@ const CashTransferPage = () => {
   const [transferCurrency, setTransferCurrency] = useState("ILS");
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
     const [bRes, tRes, txRes] = await Promise.all([
-      supabase.from("cash_boxes").select("*").eq("user_id", user.id).eq("is_active", true),
-      supabase.from("cash_transfers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("transactions").select("amount, debit_account_code, credit_account_code, foreign_amount, exchange_rate, currency").eq("user_id", user.id).eq("is_deleted", false),
+      supabase.from("cash_boxes").select("*").eq("user_id", dataOwnerId).eq("is_active", true),
+      supabase.from("cash_transfers").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(50),
+      supabase.from("transactions").select("amount, debit_account_code, credit_account_code, foreign_amount, exchange_rate, currency").eq("user_id", dataOwnerId).eq("is_deleted", false),
     ]);
     const boxesData = bRes.data || [];
     setBoxes(boxesData);
@@ -97,7 +99,7 @@ const CashTransferPage = () => {
     if (mainBox) setToBoxId(mainBox.id);
 
     setLoading(false);
-  }, [user, searchParams]);
+  }, [user, dataOwnerId, searchParams]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -140,7 +142,7 @@ const CashTransferPage = () => {
   const typeIcons: Record<string, string> = { main: "🏛️", branch: "🏪", pos: "🖥️" };
 
   const handleTransfer = async () => {
-    if (!user || !fromBox || !toBox || amountNum <= 0) return;
+    if (!user || !dataOwnerId || !fromBox || !toBox || amountNum <= 0) return;
     if (fromBoxId === toBoxId) { toast({ title: "خطأ", description: "لا يمكن التحويل لنفس الصندوق", variant: "destructive" }); return; }
     if (exceeds) { toast({ title: "خطأ", description: "المبلغ يتجاوز رصيد الصندوق", variant: "destructive" }); return; }
     if (!fromBox.gl_account_code) { toast({ title: "خطأ", description: "الصندوق المصدر غير مرتبط بحساب محاسبي", variant: "destructive" }); return; }
@@ -162,7 +164,7 @@ const CashTransferPage = () => {
 
       // Atomic RPC: cash transfer (FX leg uses currency_exchange RPC for proper bookkeeping)
       const { data: rpcRes, error: txErr } = await supabase.rpc("create_cash_transfer_atomic", {
-        p_user_id: user.id,
+        p_user_id: dataOwnerId,
         p_from_account_code: fromBox.gl_account_code,
         p_to_account_code: targetAccount,
         p_amount: ilsEquivalent,
@@ -181,7 +183,7 @@ const CashTransferPage = () => {
 
       // Create transfer record
       await supabase.from("cash_transfers").insert({
-        user_id: user.id,
+        user_id: dataOwnerId,
         from_box_id: fromBoxId,
         to_box_id: toBoxId,
         amount: amountNum,
@@ -197,7 +199,7 @@ const CashTransferPage = () => {
     } else {
       // Atomic RPC for ILS transfer
       const { data: rpcRes, error: txErr } = await supabase.rpc("create_cash_transfer_atomic", {
-        p_user_id: user.id,
+        p_user_id: dataOwnerId,
         p_from_account_code: fromBox.gl_account_code,
         p_to_account_code: toBox.gl_account_code,
         p_amount: amountNum,
@@ -215,7 +217,7 @@ const CashTransferPage = () => {
       }
 
       await supabase.from("cash_transfers").insert({
-        user_id: user.id,
+        user_id: dataOwnerId,
         from_box_id: fromBoxId,
         to_box_id: toBoxId,
         amount: amountNum,
