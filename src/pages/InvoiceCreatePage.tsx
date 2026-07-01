@@ -1247,13 +1247,18 @@ const InvoiceCreatePage = () => {
       // Credit purchase: Dr 5110             / Cr 2110 (AP)
       const isCashInvoice = form.invoiceKind === "cash";
       const cashCode = form.cashAccountCode || null;
-      const salesDebitCode = isCashInvoice && cashCode ? cashCode : "1130";
+      // ─── Cash invoice policy (v2) ───
+      // القاعدة المحاسبية الصحيحة (QuickBooks/Xero + طلب المحاسب):
+      //   1) الفاتورة دائماً تُقيَّد على الذمم (Dr 1130 / Cr 4100 للمبيعات، Dr 5110 / Cr 2110 للمشتريات).
+      //   2) إذا كانت نقدية، يُنشأ سند قبض/صرف تلقائي منفصل يُقيّد الحركة النقدية
+      //      (Dr Cash / Cr AR للمبيعات، Dr AP / Cr Cash للمشتريات) بحيث يظهر كمستند
+      //      في سجل السندات ويطبع بشكل مستقل.
+      // ملاحظة: مسار التعديل (isEditMode) يحتفظ بالسلوك القديم لعدم كسر الفواتير التاريخية.
+      const salesDebitCode = "1130";
       const salesCreditCode = "4100";
       const purchaseDebitCode = "5110";
-      const purchaseCreditCode = isCashInvoice && cashCode ? cashCode : "2110";
-      const transactionType = isCashInvoice
-        ? (form.type === "sales" ? "sale_cash" : "purchase_cash")
-        : (form.type === "sales" ? "sale_credit" : "purchase_credit");
+      const purchaseCreditCode = "2110";
+      const transactionType = form.type === "sales" ? "sale_credit" : "sale_credit".replace("sale", "purchase");
       const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
       const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
 
