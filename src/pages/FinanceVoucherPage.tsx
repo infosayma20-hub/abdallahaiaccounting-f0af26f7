@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Can } from "@/components/permissions/Can";
 import { assertPermission } from "@/lib/permissions/assertPermission";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
@@ -42,6 +43,8 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { canEdit, canDelete } = useDocumentPermissions();
   const { settings } = useCompanySettings();
 
@@ -101,7 +104,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         old_data: editTarget,
         edit_reason: "فتح تعديل مستند مرحّل",
         edited_by: user.id,
-        user_id: user.id,
+        user_id: ownerId,
       } as any);
     }
     setEditWarning(false);
@@ -167,7 +170,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         old_data: deleteTarget,
         edit_reason: reason,
         edited_by: user.id,
-        user_id: user.id,
+        user_id: ownerId,
         changes: { action: "delete", reason },
       } as any);
 
@@ -206,8 +209,8 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
     if (isReceipt) {
       const [rvRes, cRes, linksRes] = await Promise.all([
-        supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+        supabase.from("receipt_vouchers").select("*").eq("user_id", ownerId).order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", ownerId).neq("is_archived", true),
         supabase.from("payment_invoice_links").select("payment_id, allocated_amount"),
       ]);
       // Build allocated map
@@ -229,9 +232,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       setContacts(cRes.data || []);
     } else {
       const [vRes, cRes, txRes] = await Promise.all([
-        supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }),
-        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
-        supabase.from("transactions").select("id, debit_account_code").eq("user_id", user.id).eq("is_deleted", false),
+        supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "payment").order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", ownerId).neq("is_archived", true),
+        supabase.from("transactions").select("id, debit_account_code").eq("user_id", ownerId).eq("is_deleted", false),
       ]);
       const txMap = new Map<string, string>();
       for (const tx of (txRes.data || [])) {
