@@ -33,6 +33,7 @@ import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 import { useTaxEnabled } from "@/hooks/useTaxEnabled";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -173,6 +174,7 @@ const AccountStatementV2Page = () => {
   );
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId || pick<string>("selectedEntityId", ""));
   const [txSearch, setTxSearch] = useState(pick<string>("txSearch", ""));
+  const debouncedTxSearch = useDebouncedValue(txSearch, 300);
   const [dateFrom, setDateFrom] = useState(pick<string>("dateFrom", format(startOfYear(new Date()), "yyyy-MM-dd")));
   const [dateTo, setDateTo] = useState(pick<string>("dateTo", format(endOfMonth(new Date()), "yyyy-MM-dd")));
   const [activePeriod, setActivePeriod] = useState(pick<string>("activePeriod", ""));
@@ -348,15 +350,33 @@ const AccountStatementV2Page = () => {
 
   // ─── Realtime: auto-refresh on transaction changes ───
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
+    // Perf hardening (Solution A):
+    //   1) Scope Realtime by tenant (user_id=eq.<owner>) so other tenants' POS
+    //      writes never trigger a full 8k-row refetch here.
+    //   2) Throttle refetches to at most once per 3s to survive POS bursts
+    //      (300–500 inserts/day per branch) without the "loading…" flicker
+    //      users reported.
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
-      .channel(`account_statement_realtime-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
-        fetchData();
-      })
+      .channel(`account_statement_realtime-${dataOwnerId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${dataOwnerId}` },
+        () => {
+          if (timeoutId) return; // coalesce bursts
+          timeoutId = setTimeout(() => {
+            timeoutId = null;
+            fetchData();
+          }, 3000);
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
+    };
+  }, [user, dataOwnerId]);
 
   // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
   useEffect(() => {
@@ -607,9 +627,12 @@ const AccountStatementV2Page = () => {
         ? r.filter(x => !x.cost_center_id)
         : r.filter(x => x.cost_center_id === txCostCenter);
     }
-    if (txSearch.trim()) r = r.filter(x => multiWordMatchAny(txSearch, x.description, x.reference));
+    // Perf hardening (Solution D): debounce the search term so every keystroke
+    // does NOT rebuild filteredRows + statementRowsWithDetails for thousands of
+    // rows. The input stays instantly responsive; results settle after 300ms.
+    if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
     return r;
-  }, [rows, txSearch, txTypeFilter, txCostCenter]);
+  }, [rows, debouncedTxSearch, txTypeFilter, txCostCenter]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
