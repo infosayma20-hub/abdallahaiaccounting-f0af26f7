@@ -174,6 +174,7 @@ const AccountStatementV2Page = () => {
   );
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId || pick<string>("selectedEntityId", ""));
   const [txSearch, setTxSearch] = useState(pick<string>("txSearch", ""));
+  const debouncedTxSearch = useDebouncedValue(txSearch, 300);
   const [dateFrom, setDateFrom] = useState(pick<string>("dateFrom", format(startOfYear(new Date()), "yyyy-MM-dd")));
   const [dateTo, setDateTo] = useState(pick<string>("dateTo", format(endOfMonth(new Date()), "yyyy-MM-dd")));
   const [activePeriod, setActivePeriod] = useState(pick<string>("activePeriod", ""));
