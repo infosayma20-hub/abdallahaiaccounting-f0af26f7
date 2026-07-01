@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { loadReturnsByContact } from "./returns-helper";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 type SetData = (data: any[]) => void;
 

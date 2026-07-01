@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format, subDays, subMonths, startOfMonth, endOfMonth, getHours, getDay } from "date-fns";
 import { fmtAmt } from "./report-helpers";
 import { loadReturnsByContact, loadReturnsByProduct } from "./returns-helper";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 type SetData = (data: any[]) => void;
 
