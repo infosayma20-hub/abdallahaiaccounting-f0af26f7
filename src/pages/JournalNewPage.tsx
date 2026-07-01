@@ -11,6 +11,7 @@ import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Card, CardContent } from "@/components/ui/card";
