@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
+import MonthlyInventoryView from "@/components/forms/MonthlyInventoryView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -799,6 +800,10 @@ export default function EmployeeFormsManagementPage() {
               if (selectedForm.form_type === "dynamic_template") {
                 const tid = (selectedForm as any).template_id as string | undefined;
                 const tpl = tid ? templateSchemas[tid] : undefined;
+                const isMonthly = (tpl?.schema as any)?.kind === "monthly_inventory" || /جرد\s*شهري/.test(tpl?.name || (selectedForm as any)?.title || "");
+                if (isMonthly) {
+                  return <MonthlyInventoryView data={selectedForm.form_data} />;
+                }
                 return (
                   <DynamicTemplateView
                     schema={tpl?.schema}
