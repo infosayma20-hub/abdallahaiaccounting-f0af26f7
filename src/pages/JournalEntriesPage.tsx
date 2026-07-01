@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/usePermission";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
 import {
@@ -217,11 +218,13 @@ const JournalEntriesPage = () => {
     setLoading(true);
     try {
       const [txRes, accRes, profileRes] = await Promise.all([
-        supabase.from("transactions")
-          .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, cost_center_name, is_deleted")
-          .eq("user_id", user.id)
-          .order("transaction_date", { ascending: false })
-          .limit(1000),
+        fetchAllRows<any>((from, to) =>
+          supabase.from("transactions")
+            .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, cost_center_name, is_deleted")
+            .eq("user_id", user.id)
+            .order("transaction_date", { ascending: false })
+            .range(from, to)
+        ).then((data) => ({ data, error: null as any })).catch((error) => ({ data: [] as any[], error })),
         supabase.from("accounts")
           .select("id, account_name, account_code, account_type")
           .eq("user_id", user.id)

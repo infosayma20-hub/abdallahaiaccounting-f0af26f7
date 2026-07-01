@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { loadReturnsByContact } from "./returns-helper";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 type SetData = (data: any[]) => void;
 
@@ -51,7 +52,7 @@ export async function loadDSOReport(uid: string, dateFrom: string, dateTo: strin
   const contactTypes = ["عميل", "customer", "زبون"];
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).in("contact_type", contactTypes);
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true });
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true }).range(from, to)).catch(() => [] as any[]);
   const today = new Date();
   setData(contacts.map(c => {
     const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale") || t.transaction_type === "pos_sale")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
@@ -198,7 +199,7 @@ export async function loadCustomerStatementAll(uid: string, dateFrom: string, da
   const contactTypes = ["عميل", "customer", "زبون"];
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).in("contact_type", contactTypes);
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date").range(from, to)).catch(() => [] as any[]);
   const rows: any[] = [];
   contacts.forEach(c => {
     const cTxns = (txns || []).filter(t => t.contact_id === c.id);
@@ -265,7 +266,7 @@ export async function loadAPAgingDetail(uid: string, setData: SetData) {
 export async function loadDPOReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true });
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true }).range(from, to)).catch(() => [] as any[]);
   setData(contacts.map(c => {
     const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
     const payments = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type === "payment").sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
@@ -299,7 +300,7 @@ export async function loadChecksPayable(uid: string, setData: SetData) {
 export async function loadSupplierPurchaseAnalysis(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).range(from, to)).catch(() => [] as any[]);
   // Subtract purchase returns by contact_id (P1 fix). Flag rows where the
   // returns table is unavailable so the UI can surface a warning.
   const ret = await loadReturnsByContact(uid, "purchase", dateFrom, dateTo);
@@ -325,7 +326,7 @@ export async function loadSupplierStatementAll(uid: string, dateFrom: string, da
   // 22xx long-term liabilities leaking in.
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date").range(from, to)).catch(() => [] as any[]);
   const rows: any[] = [];
   contacts.forEach(c => {
     const cTxns = (txns || []).filter(t => t.contact_id === c.id);

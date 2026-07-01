@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 /**
  * P5 — Executive KPIs.
@@ -46,12 +47,15 @@ export async function loadExecutiveKPIs(uid: string, opts?: { from?: string; to?
   const from = opts?.from;
   const to = opts?.to;
 
-  const [{ data: txs }, { data: prods }] = await Promise.all([
-    supabase
-      .from("transactions")
-      .select("debit_account_code, credit_account_code, amount, transaction_date, is_deleted")
-      .eq("user_id", uid)
-      .eq("is_deleted", false),
+  const [txs, { data: prods }] = await Promise.all([
+    fetchAllRows<any>((from, to) =>
+      supabase
+        .from("transactions")
+        .select("debit_account_code, credit_account_code, amount, transaction_date, is_deleted")
+        .eq("user_id", uid)
+        .eq("is_deleted", false)
+        .range(from, to),
+    ).catch(() => [] as any[]),
     supabase
       .from("products")
       .select("quantity, buy_price")

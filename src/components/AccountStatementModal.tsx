@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface Account {
@@ -101,16 +102,18 @@ const AccountStatementModal = ({ open, onClose }: Props) => {
     setLoading(true);
     try {
       const range = period === "custom" ? { from: dateFrom, to: dateTo } : getDateRange(period);
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code, reference")
-        .eq("user_id", user.id)
-        .eq("is_deleted", false)
-        .gte("transaction_date", range.from)
-        .lte("transaction_date", range.to)
-        .or(`debit_account_code.eq.${selectedAccount.account_code},credit_account_code.eq.${selectedAccount.account_code}`)
-        .order("transaction_date", { ascending: true });
-      if (error) throw error;
+      const data = await fetchAllRows<any>((from, to) =>
+        supabase
+          .from("transactions")
+          .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code, reference")
+          .eq("user_id", user.id)
+          .eq("is_deleted", false)
+          .gte("transaction_date", range.from)
+          .lte("transaction_date", range.to)
+          .or(`debit_account_code.eq.${selectedAccount.account_code},credit_account_code.eq.${selectedAccount.account_code}`)
+          .order("transaction_date", { ascending: true })
+          .range(from, to)
+      );
 
       let balance = 0;
       const mapped = (data || []).map(tx => {

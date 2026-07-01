@@ -21,6 +21,7 @@
  *     negative  → we owe contact (AP credit > debit) OR customer overpaid
  */
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 export interface ContactBalanceResult {
   contact_id: string;
@@ -77,22 +78,23 @@ export async function fetchContactStatementBalance(options: {
   currency?: string | null;
 }): Promise<number> {
   if (!options.contactId || !options.userId) return 0;
-  let query = supabase
-    .from("transactions")
-    .select("amount, debit_account_code, credit_account_code")
-    .eq("user_id", options.userId)
-    .eq("contact_id", options.contactId)
-    .or("is_deleted.eq.false,reversed_by_id.not.is.null");
-
-  if (options.asOfDate) query = query.lte("transaction_date", options.asOfDate);
-  if (options.currency) query = query.eq("currency", options.currency);
-
-  const { data, error } = await query;
-  if (error) {
-    console.warn("[contact-balance] statement query error:", error.message);
+  try {
+    const data = await fetchAllRows<LedgerBalanceTx>((from, to) => {
+      let q = supabase
+        .from("transactions")
+        .select("amount, debit_account_code, credit_account_code")
+        .eq("user_id", options.userId)
+        .eq("contact_id", options.contactId)
+        .or("is_deleted.eq.false,reversed_by_id.not.is.null");
+      if (options.asOfDate) q = q.lte("transaction_date", options.asOfDate);
+      if (options.currency) q = q.eq("currency", options.currency);
+      return q.range(from, to) as any;
+    });
+    return calculateStatementBalanceFromTransactions(data, options.contactType);
+  } catch (e: any) {
+    console.warn("[contact-balance] statement query error:", e?.message);
     return 0;
   }
-  return calculateStatementBalanceFromTransactions((data || []) as LedgerBalanceTx[], options.contactType);
 }
 
 export async function fetchManyContactStatementBalances(
@@ -100,25 +102,27 @@ export async function fetchManyContactStatementBalances(
   options: { userId: string; asOfDate?: string; currency?: string | null },
 ): Promise<Record<string, number>> {
   if (!contacts.length || !options.userId) return {};
-  let query = supabase
-    .from("transactions")
-    .select("contact_id, amount, debit_account_code, credit_account_code")
-    .eq("user_id", options.userId)
-    .in("contact_id", contacts.map((c) => c.id))
-    .or("is_deleted.eq.false,reversed_by_id.not.is.null");
-
-  if (options.asOfDate) query = query.lte("transaction_date", options.asOfDate);
-  if (options.currency) query = query.eq("currency", options.currency);
-
-  const { data, error } = await query;
-  if (error) {
-    console.warn("[contact-balance] batch statement query error:", error.message);
+  let data: LedgerBalanceTx[] = [];
+  try {
+    data = await fetchAllRows<LedgerBalanceTx>((from, to) => {
+      let q = supabase
+        .from("transactions")
+        .select("contact_id, amount, debit_account_code, credit_account_code")
+        .eq("user_id", options.userId)
+        .in("contact_id", contacts.map((c) => c.id))
+        .or("is_deleted.eq.false,reversed_by_id.not.is.null");
+      if (options.asOfDate) q = q.lte("transaction_date", options.asOfDate);
+      if (options.currency) q = q.eq("currency", options.currency);
+      return q.range(from, to) as any;
+    });
+  } catch (e: any) {
+    console.warn("[contact-balance] batch statement query error:", e?.message);
     return {};
   }
 
   const typeById = Object.fromEntries(contacts.map((c) => [c.id, c.contact_type]));
   const grouped: Record<string, LedgerBalanceTx[]> = {};
-  for (const tx of ((data || []) as LedgerBalanceTx[])) {
+  for (const tx of data) {
     if (!tx.contact_id) continue;
     (grouped[tx.contact_id] ||= []).push(tx);
   }
