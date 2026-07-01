@@ -91,8 +91,9 @@ export default function POSShiftAuditReport({ sessions }: Props) {
   const [shiftKind, setShiftKind] = useState<ShiftKind>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [branchFilter, setBranchFilter] = useState<string>("");
-  const [dateFrom, setDateFrom] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
-  const [dateTo, setDateTo] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
+  // Leave date filters empty by default — accountant chooses the range explicitly
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   // Build unique branch list from sessions
   const branchesInData = useMemo(() => {
