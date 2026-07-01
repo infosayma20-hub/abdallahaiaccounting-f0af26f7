@@ -371,6 +371,14 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
+  // Postable-only accounts (exclude parents — any code referenced as parent_code)
+  const postableAccounts = useMemo(() => {
+    const parentCodes = new Set(
+      accounts.map((a: any) => a.parent_code).filter(Boolean)
+    );
+    return accounts.filter((a: any) => !parentCodes.has(a.account_code));
+  }, [accounts]);
+
   // Form state
   const [entryType, setEntryType] = useState("عادي");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
