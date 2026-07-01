@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { isInvoicesRpcEnabled, callCreateInvoiceLedgerRpc } from "@/lib/invoice-rpc";
+import { callCreateReceiptRpc, callCreatePaymentRpc } from "@/lib/voucher-rpc";
 import { useCompany } from "@/hooks/useCompanyContext";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
@@ -1246,11 +1247,17 @@ const InvoiceCreatePage = () => {
       // Credit purchase: Dr 5110             / Cr 2110 (AP)
       const isCashInvoice = form.invoiceKind === "cash";
       const cashCode = form.cashAccountCode || null;
-      const salesDebitCode = isCashInvoice && cashCode ? cashCode : "1130";
+      // ─── Cash invoice policy (v2) ───
+      // على مسار الإنشاء (create) نجبر التقييد المحاسبي أن يمر عبر الذمم (AR/AP)
+      // ثم ننشئ سند قبض/صرف تلقائي مربوط بالفاتورة — يظهر كمستند في سجل السندات
+      // ويطبع بشكل مستقل (طلب المحاسب: 30/06/2026).
+      // على مسار التعديل (isEditMode) نُبقي السلوك القديم كي لا نكسر الفواتير التاريخية.
+      const useVoucherAutoFlow = isCashInvoice && !!cashCode && !isEditMode;
+      const salesDebitCode = (isCashInvoice && cashCode && !useVoucherAutoFlow) ? cashCode : "1130";
       const salesCreditCode = "4100";
       const purchaseDebitCode = "5110";
-      const purchaseCreditCode = isCashInvoice && cashCode ? cashCode : "2110";
-      const transactionType = isCashInvoice
+      const purchaseCreditCode = (isCashInvoice && cashCode && !useVoucherAutoFlow) ? cashCode : "2110";
+      const transactionType = (isCashInvoice && !useVoucherAutoFlow)
         ? (form.type === "sales" ? "sale_cash" : "purchase_cash")
         : (form.type === "sales" ? "sale_credit" : "purchase_credit");
       const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
@@ -1571,11 +1578,11 @@ const InvoiceCreatePage = () => {
         const headerWorkshop = form.workshopId
           ? workshops.find(w => w.id === form.workshopId)
           : null;
-        // Force the legacy direct-insert path for cash invoices: the RPC does
-        // not support overriding the cash leg with the user-selected
-        // gl_account_code, so we route cash invoices through the direct path
-        // where we can set debit/credit codes explicitly.
-        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings) && !isCashInvoice;
+        // Force the legacy direct-insert path for cash invoices when we are
+        // still overriding the cash leg (edit mode) — the RPC doesn't support
+        // that. When we route through AR/AP + auto voucher (useVoucherAutoFlow),
+        // the RPC is safe to use because codes are the standard AR/AP.
+        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings) && (!isCashInvoice || useVoucherAutoFlow);
         let txDataId: string;
         if (useInvoiceRpc) {
           const rpcRes = await callCreateInvoiceLedgerRpc({
@@ -1626,7 +1633,11 @@ const InvoiceCreatePage = () => {
         const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", user.id);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
-          await syncContactBalance(contactId, Number(summary.remainingAmount || 0));
+          // للفاتورة النقدية سيتم إلغاء أثر AR بواسطة سند القبض التلقائي أدناه،
+          // لكن نمرّر القيمة الكاملة لأن نموذج الرأس هنا يظهر remaining=0 للفاتورة
+          // النقدية أصلاً، وستبقى العملية متسقة.
+          const contactDelta = useVoucherAutoFlow ? 0 : Number(summary.remainingAmount || 0);
+          await syncContactBalance(contactId, contactDelta);
         }
         originalInvoiceRef.current = {
           linkedTransactionId: txDataId,
@@ -1634,6 +1645,48 @@ const InvoiceCreatePage = () => {
           remainingAmount: Number(summary.remainingAmount || 0),
           invoiceNumber: dbInv.invoice_number,
         };
+
+        // ─── Auto-create receipt/payment voucher for cash invoices ───
+        // Sales cash → سند قبض (Dr Cash / Cr AR 1130) with allocation to this invoice
+        // Purchase cash → سند صرف (Dr AP 2110 / Cr Cash) with allocation to this invoice
+        // This makes the cash movement appear as a proper voucher document in
+        // the vouchers list and prints as سند قبض / سند صرف رسمي.
+        if (useVoucherAutoFlow && contactId) {
+          try {
+            const isSales = form.type === "sales";
+            const voucherParams = {
+              userId: user.id,
+              contactId,
+              contactName: form.contactName,
+              amount: amountILS,
+              paymentMethod: "نقدي",
+              description: `${isSales ? "سند قبض تلقائي" : "سند صرف تلقائي"} — فاتورة ${dbInv.invoice_number}`,
+              currency: form.currency,
+              voucherDate: form.date,
+              exchangeRate: isForeign ? form.exchangeRate : null,
+              reference: dbInv.invoice_number,
+              cashAccountCode: cashCode!,
+              idempotencyKey: `INV-VOUCHER-${dbInv.id}`,
+              allocations: [{ invoice_id: dbInv.id, amount: amountILS }],
+              workshopId: form.workshopId || null,
+              costCenterId: form.costCenterId || null,
+            };
+            if (isSales) {
+              await callCreateReceiptRpc(voucherParams);
+            } else {
+              await callCreatePaymentRpc(voucherParams);
+            }
+          } catch (voucherErr: any) {
+            // لا نُفشل الفاتورة إذا فشل إنشاء السند التلقائي — نعطي تحذير للمستخدم
+            // ونطلب منه إنشاء السند يدوياً من شاشة السندات.
+            console.error("Auto voucher creation failed:", voucherErr);
+            toast({
+              title: "تم حفظ الفاتورة لكن فشل إنشاء السند التلقائي",
+              description: voucherErr?.message || "أنشئ سند قبض/صرف يدوياً من شاشة السندات",
+              variant: "destructive",
+            });
+          }
+        }
       }
 
       // Tax ledger integration
