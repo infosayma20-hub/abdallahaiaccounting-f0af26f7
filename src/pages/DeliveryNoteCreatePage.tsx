@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +51,8 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
 
 const DeliveryNoteCreatePage = () => {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { settings: companySettings } = useCompanySettings();
   const navigate = useNavigate();
   const { id: editingId } = useParams<{ id: string }>();
@@ -94,10 +97,10 @@ const DeliveryNoteCreatePage = () => {
   const fetchLookups = useCallback(async () => {
     if (!user) return;
     const [cRes, pRes, wRes, bRes] = await Promise.all([
-      (supabase.from("contacts").select("id, contact_name").eq("user_id", user.id) as any).eq("is_archived", false).order("contact_name"),
-      supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", user.id).order("name"),
-      supabase.from("warehouses").select("id, name").eq("user_id", user.id).order("name"),
-      supabase.from("branches").select("id, name").eq("user_id", user.id).order("name"),
+      (supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId) as any).eq("is_archived", false).order("contact_name"),
+      supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", ownerId).order("name"),
+      supabase.from("warehouses").select("id, name").eq("user_id", ownerId).order("name"),
+      supabase.from("branches").select("id, name").eq("user_id", ownerId).order("name"),
     ]);
     setContacts(cRes.data || []);
     setProducts(pRes.data || []);
@@ -183,7 +186,7 @@ const DeliveryNoteCreatePage = () => {
       const { data } = await supabase
         .from("delivery_notes")
         .select("delivery_number")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .like("delivery_number", `DN-${currentYear}-%`)
         .order("delivery_number", { ascending: false })
         .limit(1);
@@ -245,7 +248,7 @@ const DeliveryNoteCreatePage = () => {
   };
 
   const buildPayload = (issueAfterSave: boolean) => ({
-    user_id: user!.id,
+    user_id: ownerId,
     delivery_type: deliveryType,
     contact_id: deliveryType === "external" ? (contactId || null) : null,
     contact_name: deliveryType === "external" ? contactName : null,
@@ -430,7 +433,7 @@ const DeliveryNoteCreatePage = () => {
       let q = supabase
         .from("delivery_notes")
         .select("id, created_at")
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
       const cursor = createdAtRef.current;
       if (isEdit && cursor) {
         if (direction === "prev") {

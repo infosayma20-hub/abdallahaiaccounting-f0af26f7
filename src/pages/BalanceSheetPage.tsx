@@ -101,6 +101,7 @@ const BalanceSheetPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const companyInfo = useCompanyInfo();
   const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
   const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
@@ -115,7 +116,7 @@ const BalanceSheetPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("company_name").eq("user_id", user.id).maybeSingle()
+    supabase.from("profiles").select("company_name").eq("user_id", ownerId).maybeSingle()
       .then(({ data }) => { if (data?.company_name) setCompanyName(data.company_name); });
   }, [user]);
 

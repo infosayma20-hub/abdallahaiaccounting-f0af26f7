@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { usePermission } from "@/hooks/usePermission";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,6 +175,8 @@ const PAGE_SIZE = 20;
 const JournalEntriesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
 
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
@@ -221,17 +224,17 @@ const JournalEntriesPage = () => {
         fetchAllRows<any>((from, to) =>
           supabase.from("transactions")
             .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, cost_center_name, is_deleted")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .order("transaction_date", { ascending: false })
             .range(from, to)
         ).then((data) => ({ data, error: null as any })).catch((error) => ({ data: [] as any[], error })),
         supabase.from("accounts")
           .select("id, account_name, account_code, account_type")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .order("account_code"),
         supabase.from("profiles")
           .select("display_name, company_name")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .maybeSingle(),
       ]);
 
@@ -353,7 +356,7 @@ const JournalEntriesPage = () => {
         const { data: v } = await supabase
           .from("vouchers")
           .select("id, ref_number, type, status")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .eq("type", "journal")
           .eq("ref_number", ref)
           .maybeSingle();

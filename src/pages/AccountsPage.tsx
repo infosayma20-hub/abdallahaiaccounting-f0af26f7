@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { cn, multiWordMatchAny } from "@/lib/utils";
 import { FinanceShell, type ActionTab, type FilterField, type FilterCondition, applyFilters } from "@/components/finance/shell";
@@ -173,6 +174,8 @@ const filterTabs = [
 const AccountsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,7 +197,7 @@ const AccountsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.from('accounts').select('*').eq('user_id', user.id).order('account_code');
+      const { data, error } = await supabase.from('accounts').select('*').eq('user_id', ownerId).order('account_code');
       if (error) throw error;
       setAccounts(data || []);
       return data || [];
@@ -225,7 +228,7 @@ const AccountsPage = () => {
       if (!res.ok) throw new Error(result.error || "فشل الإعداد");
       if (!silent) toast({ title: "✅ تم الإعداد", description: result.message });
       await fetchAccounts();
-      await supabase.from('profiles').update({ setup_completed: true }).eq('user_id', user.id);
+      await supabase.from('profiles').update({ setup_completed: true }).eq('user_id', ownerId);
     } catch (err: any) {
       if (!silent) toast({ title: "خطأ", description: err.message, variant: "destructive" });
       console.error("Setup accounts error:", err);
@@ -251,7 +254,7 @@ const AccountsPage = () => {
     supabase
       .from("profiles")
       .select("company_name, display_name")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .maybeSingle()
       .then(({ data }) => setProfileData(data as any));
   }, [user]);
@@ -279,7 +282,7 @@ const AccountsPage = () => {
     const { count } = await supabase
       .from("transactions")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("is_deleted", false)
       .or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`);
     
@@ -294,7 +297,7 @@ const AccountsPage = () => {
       .from("accounts")
       .delete()
       .eq("id", acc.id)
-      .eq("user_id", user.id);
+      .eq("user_id", ownerId);
 
     if (error) {
       toast({ title: "خطأ في الحذف", description: error.message, variant: "destructive" });

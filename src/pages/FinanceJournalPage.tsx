@@ -18,6 +18,7 @@ import useFocusHighlight from "@/hooks/useFocusHighlight";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
@@ -40,6 +41,8 @@ const FinanceJournalPage = () => {
   // Phase 5J.1 — focus & highlight from ?focus=<voucher_id>
   const focusedVoucherId = useFocusHighlight();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
   const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
 
@@ -160,9 +163,9 @@ const FinanceJournalPage = () => {
     if (!user) return;
     setLoading(true);
     const [vRes, aRes, cRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).neq("is_archived", true),
+      supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", ownerId).neq("is_archived", true),
     ]);
     setVouchers(vRes.data || []);
     setAccounts(aRes.data || []);
@@ -183,7 +186,7 @@ const FinanceJournalPage = () => {
   // Auto-generate ref number when modal opens
   const generateRefNumber = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
     const lastRef = (data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);
     const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
@@ -275,7 +278,7 @@ const FinanceJournalPage = () => {
     if (!user || !quickName.trim()) return;
     setQuickSaving(true);
     const { data, error } = await supabase.from("contacts").insert({
-      user_id: user.id,
+      user_id: ownerId,
       contact_name: quickName.trim(),
       contact_type: quickType,
       phone: quickPhone || null,

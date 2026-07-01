@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,6 +60,8 @@ const typeLabel = (t: string) => t === "internal" ? "داخلية" : "خارجي
 
 const DeliveryNotesPage = () => {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { settings: companySettings } = useCompanySettings();
   const navigate = useNavigate();
   const [notes, setNotes] = useState<DeliveryNote[]>([]);
@@ -72,7 +75,7 @@ const DeliveryNotesPage = () => {
     const { data } = await supabase
       .from("delivery_notes")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("created_at", { ascending: false });
     setNotes((data as any[]) || []);
     setLoading(false);
@@ -80,7 +83,7 @@ const DeliveryNotesPage = () => {
 
   const fetchWarehouses = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("warehouses").select("id, name").eq("user_id", user.id).order("name");
+    const { data } = await supabase.from("warehouses").select("id, name").eq("user_id", ownerId).order("name");
     setWarehouses(data || []);
   }, [user]);
 

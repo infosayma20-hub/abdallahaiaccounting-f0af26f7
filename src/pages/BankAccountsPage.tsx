@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
 
@@ -102,6 +103,8 @@ const BankAccountsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
 
   const [banks, setBanks] = useState<any[]>([]);
@@ -130,8 +133,8 @@ const BankAccountsPage = () => {
     if (!user) return;
     setLoading(true);
     const [{ data: bankData }, { data: accData }] = await Promise.all([
-      supabase.from("bank_accounts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+      supabase.from("bank_accounts").select("*").eq("user_id", ownerId).order("created_at", { ascending: false }),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
     ]);
     setBanks(bankData || []);
     setAccounts(accData || []);
@@ -194,8 +197,8 @@ const BankAccountsPage = () => {
 
     const isNew = !editingBankId;
     const { error } = isNew
-      ? await supabase.from("bank_accounts").insert({ ...payload, user_id: user.id })
-      : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", user.id);
+      ? await supabase.from("bank_accounts").insert({ ...payload, user_id: ownerId })
+      : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", ownerId);
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
@@ -204,7 +207,7 @@ const BankAccountsPage = () => {
       if (isNew && Number(openingBalance) > 0 && glAccountCode) {
         const obDate = openingBalanceDate || new Date().toISOString().split("T")[0];
         await supabase.rpc("create_opening_balance_entry", {
-          p_user_id: user.id,
+          p_user_id: ownerId,
           p_debit_account_code: glAccountCode,
           p_credit_account_code: "3200",
           p_amount: Number(openingBalance),

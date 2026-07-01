@@ -136,6 +136,7 @@ const AccountStatementV2Page = () => {
   const { user } = useAuth();
   const { taxEnabled } = useTaxEnabled();
   const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
   const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
 
@@ -305,7 +306,7 @@ const AccountStatementV2Page = () => {
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
         fetchAllTransactions(),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
-        supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", user.id).maybeSingle(),
+        supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", ownerId).maybeSingle(),
         supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
         supabase.from("companies").select("id, name, logo_url, address, phone, email, tax_number").eq("owner_id", user.id).maybeSingle(),
       ]);
