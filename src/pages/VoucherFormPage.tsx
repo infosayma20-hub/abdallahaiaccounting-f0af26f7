@@ -113,6 +113,7 @@ interface GLAccount {
 const PAYMENT_METHODS = [
   { value: "نقدي", label: "نقدي", icon: Banknote },
   { value: "شيك", label: "شيك", icon: ReceiptIcon },
+  { value: "مختلط", label: "نقدي + شيكات", icon: ReceiptIcon },
   { value: "تحويل", label: "تحويل بنكي", icon: Building2 },
   { value: "بطاقة", label: "بطاقة", icon: CreditCard },
 ];
