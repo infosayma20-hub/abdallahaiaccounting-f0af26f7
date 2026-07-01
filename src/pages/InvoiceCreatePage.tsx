@@ -193,6 +193,8 @@ const InvoiceCreatePage = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { company } = useCompany();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
