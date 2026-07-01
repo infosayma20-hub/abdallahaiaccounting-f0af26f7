@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Briefcase, TrendingUp, TrendingDown, Droplets, Scale, PieChart, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -37,11 +38,14 @@ const CFODashboard = () => {
   const fetchFinancialData = async () => {
     setLoading(true);
     try {
-      const [{ data: accounts }, { data: txs }] = await Promise.all([
+      const [{ data: accounts }, txs] = await Promise.all([
         supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user!.id),
-        supabase.from("transactions")
-          .select("amount, debit_account_code, credit_account_code, transaction_date, description, is_deleted, is_opening_balance, transaction_type")
-          .eq("user_id", user!.id).eq("is_deleted", false),
+        fetchAllRows<any>((from, to) =>
+          supabase.from("transactions")
+            .select("amount, debit_account_code, credit_account_code, transaction_date, description, is_deleted, is_opening_balance, transaction_type")
+            .eq("user_id", user!.id).eq("is_deleted", false)
+            .range(from, to)
+        ).catch(() => [] as any[]),
       ]);
 
       if (!accounts || !txs) { setLoading(false); return; }
