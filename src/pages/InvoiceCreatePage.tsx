@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { isInvoicesRpcEnabled, callCreateInvoiceLedgerRpc } from "@/lib/invoice-rpc";
+import { callCreateReceiptRpc, callCreatePaymentRpc } from "@/lib/voucher-rpc";
 import { useCompany } from "@/hooks/useCompanyContext";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
