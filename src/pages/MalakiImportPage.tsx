@@ -178,6 +178,7 @@ const advanceCount = MALAKY_EMPLOYEES.filter(e => e.ab > 0).length;
 
 export default function MalakiImportPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -190,7 +191,8 @@ export default function MalakiImportPage() {
   const total = MALAKY_EMPLOYEES.length;
 
   const startImport = useCallback(async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
+    const ownerId = dataOwnerId;
     setImporting(true);
     setCurrent(0);
     setDone(false);
