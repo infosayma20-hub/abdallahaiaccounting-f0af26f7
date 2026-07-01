@@ -18,6 +18,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { formatDbError } from "@/lib/db-error-toast";
 import {
   isVouchersRpcEnabled,
@@ -316,17 +317,23 @@ async function fetchVouchersRpcFlag(userId: string): Promise<boolean> {
 
 export function useSaveJournalVoucher() {
   const { user } = useAuth();
+  // Tenant owner. Team-member accounts (e.g. accountant/sub-users) MUST write
+  // vouchers + transactions under the OWNER's id so they surface in the same
+  // tenant-scoped screens (Account Statement, GL, Trial Balance, etc.).
+  // Using auth.user.id here breaks tenant isolation and hides posted entries.
+  const { dataOwnerId } = useDataOwnerId();
   const [saving, setSaving] = useState(false);
 
   const save = async (input: JournalSaveInput): Promise<JournalSaveResult> => {
     if (!user) return { success: false, error: "غير مسجل الدخول" };
+    const ownerId = dataOwnerId || user.id;
 
     const mode = input.mode || "posted";
     const validationError = validateJournalInput({ ...input, mode });
     if (validationError) return { success: false, error: validationError };
 
     // ── (0) حماية الفترة المقفلة (fiscal period lock) ──
-    const lockError = await checkFiscalPeriodLock(user.id, input.date);
+    const lockError = await checkFiscalPeriodLock(ownerId, input.date);
     if (lockError) return { success: false, error: lockError };
 
     setSaving(true);
@@ -344,7 +351,7 @@ export function useSaveJournalVoucher() {
       const totalDebitIls = totalDebit * masterRate;
 
       // ── (2) رقم السند ──
-      const refNumber = input.ref_number?.trim() || (await generateRefNumber(user.id));
+      const refNumber = input.ref_number?.trim() || (await generateRefNumber(ownerId));
 
       // ── (3) إنشاء voucher master ──
       // ⚠️ نُنشئ السند دائماً بحالة draft أولاً، ثم نُرحّله بعد إنشاء
@@ -356,7 +363,7 @@ export function useSaveJournalVoucher() {
       const { data: voucher, error: vErr } = await supabase
         .from("vouchers")
         .insert({
-          user_id: user.id,
+          user_id: ownerId,
           type: "journal",
           subtype: input.subtype,
           ref_number: refNumber,
@@ -405,7 +412,7 @@ export function useSaveJournalVoucher() {
         const currencyLabel = input.currency_label || "شيكل";
         const rate = currencyCode === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
         const { txns, usedClearing } = buildTransactionsFromLines({
-          userId: user.id,
+          userId: ownerId,
           date: input.date,
           description: input.description.trim(),
           lines: validLines,
@@ -420,13 +427,13 @@ export function useSaveJournalVoucher() {
         });
         if (usedClearing) {
           await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
-            p_user_id: user.id,
+            p_user_id: ownerId,
           });
         }
 
         // Phase 5E: route through canonical multi-party RPC when the flag
         // is ON. Same pair-matching algorithm — only the writer changes.
-        const vouchersRpcOn = await fetchVouchersRpcFlag(user.id);
+        const vouchersRpcOn = await fetchVouchersRpcFlag(ownerId);
         if (vouchersRpcOn && txns.length > 0) {
           const rpcLines: RpcJournalLine[] = txns.map((t) => ({
             debit_account_code: t.debit_account_code,
@@ -437,7 +444,7 @@ export function useSaveJournalVoucher() {
             cost_center_id: t.cost_center_id,
           }));
           const result = await callCreateJournalMultiPartyRpc({
-            userId: user.id,
+            userId: ownerId,
             entryDate: input.date,
             description: input.description.trim(),
             lines: rpcLines,
@@ -495,7 +502,7 @@ export function useSaveJournalVoucher() {
       // ── Rollback يدوي: لو فشلنا بعد إنشاء voucher نحذفه (cascade ينظف voucher_lines) ──
       if (createdVoucherId) {
         await supabase.from("voucher_lines").delete().eq("voucher_id", createdVoucherId);
-        await supabase.from("transactions").delete().eq("reference", input.ref_number || "").eq("user_id", user.id);
+        await supabase.from("transactions").delete().eq("reference", input.ref_number || "").eq("user_id", ownerId);
         await supabase.from("vouchers").delete().eq("id", createdVoucherId);
       }
       setSaving(false);
@@ -516,13 +523,14 @@ export function useSaveJournalVoucher() {
     input: JournalSaveInput
   ): Promise<JournalSaveResult> => {
     if (!user) return { success: false, error: "غير مسجل الدخول" };
+    const ownerId = dataOwnerId || user.id;
 
     const mode = input.mode || "posted";
     const validationError = validateJournalInput({ ...input, mode });
     if (validationError) return { success: false, error: validationError };
 
     // فحص الفترة المقفلة على التاريخ الجديد
-    const lockError = await checkFiscalPeriodLock(user.id, input.date);
+    const lockError = await checkFiscalPeriodLock(ownerId, input.date);
     if (lockError) return { success: false, error: lockError };
 
     setSaving(true);
@@ -532,12 +540,12 @@ export function useSaveJournalVoucher() {
         .from("vouchers")
         .select("id, ref_number, date, user_id, type")
         .eq("id", voucherId)
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .maybeSingle();
       if (fetchErr || !existing) throw new Error("السند غير موجود أو ليس لديك صلاحية");
 
       // فحص الفترة على التاريخ القديم أيضاً (منع تحريك سند خارج فترة مقفلة)
-      const oldDateLock = await checkFiscalPeriodLock(user.id, existing.date);
+      const oldDateLock = await checkFiscalPeriodLock(ownerId, existing.date);
       if (oldDateLock) {
         setSaving(false);
         return { success: false, error: oldDateLock.replace("الحفظ", "التعديل") };
@@ -549,7 +557,7 @@ export function useSaveJournalVoucher() {
         .from("transactions")
         .delete()
         .eq("reference", existing.ref_number)
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
 
       // (3) إعادة بناء lines + transactions باستخدام نفس منطق save
       const validLines = input.lines.filter(
@@ -611,7 +619,7 @@ export function useSaveJournalVoucher() {
         const currencyLabel = input.currency_label || "شيكل";
         const rate = currencyCode === "ILS" ? 1 : (Number(input.exchange_rate) || 1);
         const { txns, usedClearing } = buildTransactionsFromLines({
-          userId: user.id,
+          userId: ownerId,
           date: input.date,
           description: input.description.trim(),
           lines: validLines,
@@ -626,14 +634,14 @@ export function useSaveJournalVoucher() {
         });
         if (usedClearing) {
           await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
-            p_user_id: user.id,
+            p_user_id: ownerId,
           });
         }
 
         // Phase 5E: same RPC routing for the update path. The legacy delete
         // by reference above already cleaned the old txns, so the RPC will
         // recreate them atomically with stable idempotency keys.
-        const vouchersRpcOnU = await fetchVouchersRpcFlag(user.id);
+        const vouchersRpcOnU = await fetchVouchersRpcFlag(ownerId);
         if (vouchersRpcOnU && txns.length > 0) {
           const rpcLines: RpcJournalLine[] = txns.map((t) => ({
             debit_account_code: t.debit_account_code,
@@ -644,7 +652,7 @@ export function useSaveJournalVoucher() {
             cost_center_id: t.cost_center_id,
           }));
           const result = await callCreateJournalMultiPartyRpc({
-            userId: user.id,
+            userId: ownerId,
             entryDate: input.date,
             description: input.description.trim(),
             lines: rpcLines,
@@ -708,17 +716,18 @@ export function useSaveJournalVoucher() {
    */
   const remove = async (voucherId: string): Promise<JournalSaveResult> => {
     if (!user) return { success: false, error: "غير مسجل الدخول" };
+    const ownerId = dataOwnerId || user.id;
     setSaving(true);
     try {
       const { data: existing, error: fetchErr } = await supabase
         .from("vouchers")
         .select("id, ref_number, date, user_id")
         .eq("id", voucherId)
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .maybeSingle();
       if (fetchErr || !existing) throw new Error("السند غير موجود أو ليس لديك صلاحية");
 
-      const lockError = await checkFiscalPeriodLock(user.id, existing.date);
+      const lockError = await checkFiscalPeriodLock(ownerId, existing.date);
       if (lockError) {
         setSaving(false);
         return { success: false, error: lockError.replace("الحفظ", "الحذف") };
@@ -729,7 +738,7 @@ export function useSaveJournalVoucher() {
         .from("transactions")
         .delete()
         .eq("reference", existing.ref_number)
-        .eq("user_id", user.id);
+        .eq("user_id", ownerId);
       const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
       if (dErr) throw dErr;
 
