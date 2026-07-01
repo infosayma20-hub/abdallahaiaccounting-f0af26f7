@@ -52,7 +52,7 @@ export async function loadDSOReport(uid: string, dateFrom: string, dateTo: strin
   const contactTypes = ["عميل", "customer", "زبون"];
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).in("contact_type", contactTypes);
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true });
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true }).range(from, to)).catch(() => [] as any[]);
   const today = new Date();
   setData(contacts.map(c => {
     const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale") || t.transaction_type === "pos_sale")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
