@@ -46,9 +46,16 @@ const matchesAccountRoot = (code: string | null | undefined, roots: string[]) =>
   !!code && roots.some((root) => code === root || code.startsWith(root));
 
 export const getStatementBalanceAccountRoots = (contactType: ContactBalanceContactType): string[] => {
-  const t = String(contactType || "").toLowerCase();
-  if (contactType === "مورد" || t === "supplier" || t === "purchase") return ["211", "1146"];
-  return ["113", "2115"];
+  // Unified roots matching AccountStatementV2Page (SOA) — must stay in sync so
+  // side-panels, drawers, and summary boxes never diverge from the printed statement.
+  //   113%  → Accounts Receivable + sub-accounts
+  //   211%  → Accounts Payable + customer prepayments (2115)
+  //   1146% → Supplier prepayments (Advances to Suppliers)
+  //   2180% → Employee/related-party clearing accounts
+  // Hybrid contacts ("عميل ومورد") MUST include both AR and AP families or the
+  // summary panel silently drops half of the ledger.
+  void contactType; // kept for API stability; nature is inferred from the ledger sign
+  return ["113", "211", "2180", "1146"];
 };
 
 export function calculateStatementBalanceFromTransactions(
