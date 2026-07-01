@@ -626,9 +626,12 @@ const AccountStatementV2Page = () => {
         ? r.filter(x => !x.cost_center_id)
         : r.filter(x => x.cost_center_id === txCostCenter);
     }
-    if (txSearch.trim()) r = r.filter(x => multiWordMatchAny(txSearch, x.description, x.reference));
+    // Perf hardening (Solution D): debounce the search term so every keystroke
+    // does NOT rebuild filteredRows + statementRowsWithDetails for thousands of
+    // rows. The input stays instantly responsive; results settle after 300ms.
+    if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
     return r;
-  }, [rows, txSearch, txTypeFilter, txCostCenter]);
+  }, [rows, debouncedTxSearch, txTypeFilter, txCostCenter]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
