@@ -699,12 +699,21 @@ function InvoiceSummary({
               onOpenStatement={onOpenStatement}
             />
             <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">{isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}</span>
+              <span className="text-muted-foreground">
+                {isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}
+                <span className="mx-1 text-[10px] text-muted-foreground/70">
+                  {isPurchase
+                    ? "(زيادة على المورد — دائن)"
+                    : isCreditNote
+                      ? "(تخفيض على الزبون — دائن)"
+                      : "(زيادة على الزبون — مدين)"}
+                </span>
+              </span>
               <span
-                className={`font-bold ${delta >= 0 ? (isPurchase ? "text-emerald-600" : "text-rose-600") : "text-emerald-600"}`}
+                className={`font-bold ${isPurchase || isCreditNote ? "text-rose-600" : "text-emerald-600"}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
               >
-                {delta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(delta))}
+                +{symbol}{fmt(Math.abs(total))}
               </span>
             </div>
             <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
