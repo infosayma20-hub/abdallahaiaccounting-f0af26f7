@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
@@ -249,13 +250,14 @@ const TransactionsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [txRes, accRes] = await Promise.all([
-        supabase.from('transactions').select('*').eq('user_id', dataOwnerId).eq('is_deleted', false).order('transaction_date', { ascending: false }),
+      const [txData, accRes] = await Promise.all([
+        fetchAllRows<any>((from, to) =>
+          supabase.from('transactions').select('*').eq('user_id', dataOwnerId).eq('is_deleted', false).order('transaction_date', { ascending: false }).range(from, to)
+        ),
         supabase.from('accounts').select('*').eq('user_id', dataOwnerId).order('account_code'),
       ]);
-      if (txRes.error) throw txRes.error;
       if (accRes.error) throw accRes.error;
-      setTransactions(txRes.data || []);
+      setTransactions(txData || []);
       setAccounts(accRes.data || []);
     } catch (err: any) {
       setError(err.message || "خطأ في جلب البيانات");
@@ -268,8 +270,9 @@ const TransactionsPage = () => {
     if (!user || !dataOwnerId) return;
     setLoadingTrash(true);
     try {
-      const { data, error } = await supabase.from('transactions').select('*').eq('user_id', dataOwnerId).eq('is_deleted', true).order('transaction_date', { ascending: false });
-      if (error) throw error;
+      const data = await fetchAllRows<any>((from, to) =>
+        supabase.from('transactions').select('*').eq('user_id', dataOwnerId).eq('is_deleted', true).order('transaction_date', { ascending: false }).range(from, to)
+      );
       setDeletedTransactions(data || []);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });

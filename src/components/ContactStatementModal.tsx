@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface Contact {
@@ -140,16 +141,18 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
         const accountCode = contact?.linked_account_code;
 
         if (accountCode) {
-          const { data, error } = await supabase
-            .from("transactions")
-            .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
-            .eq("user_id", user.id)
-            .eq("is_deleted", false)
-            .gte("transaction_date", range.from)
-            .lte("transaction_date", range.to)
-            .or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`)
-            .order("transaction_date", { ascending: true });
-          if (error) throw error;
+          const data = await fetchAllRows<any>((from, to) =>
+            supabase
+              .from("transactions")
+              .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
+              .eq("user_id", user.id)
+              .eq("is_deleted", false)
+              .gte("transaction_date", range.from)
+              .lte("transaction_date", range.to)
+              .or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`)
+              .order("transaction_date", { ascending: true })
+              .range(from, to)
+          );
 
           const isSupplier = tab === "supplier";
           let balance = 0;
@@ -163,16 +166,18 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
           setRows(mapped);
         } else {
           // Fallback: search by contact_id
-          const { data, error } = await supabase
-            .from("transactions")
-            .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
-            .eq("user_id", user.id)
-            .eq("contact_id", selectedId)
-            .eq("is_deleted", false)
-            .gte("transaction_date", range.from)
-            .lte("transaction_date", range.to)
-            .order("transaction_date", { ascending: true });
-          if (error) throw error;
+          const data = await fetchAllRows<any>((from, to) =>
+            supabase
+              .from("transactions")
+              .select("id, transaction_date, description, transaction_type, amount, currency, debit_account_code, credit_account_code")
+              .eq("user_id", user.id)
+              .eq("contact_id", selectedId)
+              .eq("is_deleted", false)
+              .gte("transaction_date", range.from)
+              .lte("transaction_date", range.to)
+              .order("transaction_date", { ascending: true })
+              .range(from, to)
+          );
 
           // Determine debit/credit by matching the contact's AR/AP account families
           // (handles AR accounts like 1130/1131/1135 and AP accounts like 2110/2111/2115).
