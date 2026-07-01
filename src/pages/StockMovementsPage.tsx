@@ -228,6 +228,88 @@ const StockMovementsPage = () => {
     toast({ title: "تم تصدير التقرير" });
   };
 
+  const handlePrint = useCallback(async () => {
+    if (filtered.length === 0) return;
+    // Load company info for header (align with account statement print)
+    let company = { name: "AMWALI", logo_url: "", address: "", phone: "", email: "", tax_number: "" };
+    try {
+      const [csRes, compRes] = await Promise.all([
+        supabase.from("company_settings").select("company_name, logo_url, address, phone, email, tax_number").eq("user_id", dataOwnerId).maybeSingle(),
+        supabase.from("companies").select("name, logo_url, address, phone, email, tax_number").eq("owner_id", user?.id).maybeSingle(),
+      ]);
+      const cs: any = csRes.data;
+      const comp: any = compRes.data;
+      company = {
+        name: cs?.company_name || comp?.name || "AMWALI",
+        logo_url: cs?.logo_url || comp?.logo_url || "",
+        address: cs?.address || comp?.address || "",
+        phone: cs?.phone || comp?.phone || "",
+        email: cs?.email || comp?.email || "",
+        tax_number: cs?.tax_number || comp?.tax_number || "",
+      };
+    } catch (e) {
+      console.warn("company info fetch failed for print", e);
+    }
+
+    const printRows: StockPrintRow[] = sorted.map(mv => {
+      const prod = productMap.get(mv.product_id);
+      const wh = mv.warehouse_id ? warehouseMap.get(mv.warehouse_id) : null;
+      return {
+        date: mv.created_at,
+        productName: prod?.name || "غير معروف",
+        unit: prod?.unit || null,
+        movementType: mv.movement_type,
+        direction: getMovementDirection(mv.movement_type),
+        quantity: mv.quantity,
+        balanceAfter: balancesById.get(mv.id) ?? null,
+        reference: extractInvoiceNumber(mv.reference_note) || null,
+        note: mv.reference_note || null,
+        warehouse: wh?.name || null,
+      };
+    });
+
+    const reportNumber = `INV-MOV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
+    const selectedProduct = productFilter !== "all" ? productMap.get(productFilter)?.name : null;
+    const selectedWh = warehouseFilter === "all" ? null
+      : warehouseFilter === "__none__" ? "بدون مستودع"
+      : warehouseMap.get(warehouseFilter)?.name || null;
+
+    const html = buildStockMovementsPrintHTML({
+      company,
+      rows: printRows,
+      totalIn,
+      totalOut,
+      netDelta,
+      reportNumber,
+      productLabel: selectedProduct || "جميع المنتجات",
+      warehouseLabel: selectedWh || "جميع المستودعات",
+      typeLabel: typeFilter !== "all" ? typeFilter : undefined,
+    });
+
+    // Print via hidden iframe (matches account statement pattern)
+    const existing = document.getElementById("__stock_print_iframe__");
+    if (existing) existing.remove();
+    const iframe = document.createElement("iframe");
+    iframe.id = "__stock_print_iframe__";
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(() => {
+      try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); }
+      catch (e) { console.error("print error", e); }
+    }, 700);
+  }, [filtered.length, sorted, productMap, warehouseMap, balancesById, totalIn, totalOut, netDelta, productFilter, warehouseFilter, typeFilter, dataOwnerId, user?.id]);
+
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
     <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
       {label}
