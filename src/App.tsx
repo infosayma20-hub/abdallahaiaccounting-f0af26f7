@@ -424,6 +424,32 @@ const RoleResolveFallback = ({ onRetry }: { onRetry: () => void }) => (
   </div>
 );
 
+/**
+ * Lightweight fallback for route/chunk suspense INSIDE the app shell.
+ * Instead of blanking the whole screen with a big spinner (which reads
+ * as "full page reload"), we render a thin animated top-bar + keep the
+ * shell visible. This is used only for the inner <Suspense> under
+ * WebLayout — top-level auth suspense keeps AuthCheckSpinner.
+ */
+const RouteChunkFallback = () => (
+  <div className="relative w-full min-h-[40vh]">
+    <div
+      aria-hidden
+      className="absolute top-0 left-0 right-0 h-0.5 overflow-hidden bg-primary/10"
+    >
+      <div
+        className="h-full w-1/3 bg-primary"
+        style={{ animation: "navChunkBar 1.1s ease-in-out infinite" }}
+      />
+    </div>
+    <style>{`@keyframes navChunkBar {
+      0%   { transform: translateX(-100%); }
+      50%  { transform: translateX(150%); }
+      100% { transform: translateX(400%); }
+    }`}</style>
+  </div>
+);
+
 const ProtectedRoute = ({ children, blockCashier, blockSalesRep }: { children: React.ReactNode; blockCashier?: boolean; blockSalesRep?: boolean }) => {
   const { user, loading } = useAuth();
   const { targetPath, checking, stalled, retry } = useRoleRedirect();
@@ -686,7 +712,7 @@ const App = () => (
                 <ProtectedRoute blockCashier blockSalesRep>
                   <OnboardingGate>
                   <WebLayout>
-                    <Suspense fallback={<AuthCheckSpinner />}>
+                    <Suspense fallback={<RouteChunkFallback />}>
                     <Routes>
                       <Route path="/" element={<SmartRedirect />} />
                       <Route path="/apps" element={<AppsLauncher />} />
