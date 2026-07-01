@@ -230,15 +230,15 @@ const JournalNewPage = () => {
 
   // Load data
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     Promise.all([
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).neq("is_archived", true),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId).neq("is_archived", true),
     ]).then(([aRes, cRes]) => {
       setAccounts(aRes.data || []);
       setContacts(cRes.data || []);
     }).finally(() => setDraftReady(true));
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   // Auto-generate ref number
   useEffect(() => {
