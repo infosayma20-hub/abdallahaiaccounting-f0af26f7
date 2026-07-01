@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -192,6 +193,8 @@ const InvoiceCreatePage = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { company } = useCompany();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
@@ -497,20 +500,20 @@ const InvoiceCreatePage = () => {
     if (!user) return;
     const fetchAll = async () => {
       const [cRes, pRes, sRes, bRes, cbRes, salesNumbersRes, purchaseNumbersRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
-        supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
-        supabase.from("products").select("*").eq("user_id", user.id).order("name"),
-        supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", ownerId).neq("is_archived", true).order("contact_name"),
+        supabase.from("products").select("*").eq("user_id", ownerId).order("name"),
+        supabase.from("sales_representatives").select("id, full_name").eq("user_id", ownerId).eq("is_active", true),
+        supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         // Cash boxes — combined with bank accounts in the cash-invoice picker so
         // users can choose either to receive (sales) / pay (purchases) cash.
-        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", ownerId).eq("is_active", true),
         // Include cancelled/voided invoices — the DB unique index covers them too,
         // so the next sequence must skip past any existing number regardless of status.
-        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "sale"),
-        supabase.from("invoices").select("invoice_number").eq("user_id", user.id).eq("invoice_type", "purchase"),
-        supabase.from("tax_settings").select("registration_type").eq("user_id", user.id).maybeSingle(),
+        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "sale"),
+        supabase.from("invoices").select("invoice_number").eq("user_id", ownerId).eq("invoice_type", "purchase"),
+        supabase.from("tax_settings").select("registration_type").eq("user_id", ownerId).maybeSingle(),
         supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
-        (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", user.id).maybeSingle() as any),
+        (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", ownerId).maybeSingle() as any),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
       
@@ -530,7 +533,7 @@ const InvoiceCreatePage = () => {
       const { data: whData } = await supabase
         .from("warehouses")
         .select("id, name, is_default")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("is_active", true)
         .order("is_default", { ascending: false })
         .order("name");
@@ -547,7 +550,7 @@ const InvoiceCreatePage = () => {
       const { data: wshData } = await supabase
         .from("workshops")
         .select("id, name, status")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .order("name");
       const wshList = (wshData as any[]) || [];
       setWorkshops(wshList);
@@ -657,7 +660,7 @@ const InvoiceCreatePage = () => {
       const { data } = await supabase
         .from("product_warehouse_stock" as any)
         .select("product_id, quantity_on_hand")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("warehouse_id", form.warehouseId);
       if (cancelled) return;
       const map: Record<string, number> = {};
@@ -680,7 +683,7 @@ const InvoiceCreatePage = () => {
       const { data } = await supabase
         .from("invoice_items")
         .select("product_id, unit_price, created_at, invoices!inner(invoice_type, user_id)")
-        .eq("invoices.user_id", user.id)
+        .eq("invoices.user_id", ownerId)
         .eq("invoices.invoice_type", targetType)
         .not("product_id", "is", null)
         .order("created_at", { ascending: false })
@@ -740,7 +743,7 @@ const InvoiceCreatePage = () => {
           .from("invoices")
           .select("*, invoice_items(*)")
           .eq("id", editInvoiceId)
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .maybeSingle();
 
         if (error || !data) {
@@ -881,7 +884,7 @@ const InvoiceCreatePage = () => {
         supabase
           .from("invoices")
           .select("remaining_amount, invoice_type, status")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .eq("contact_id", form.contactId)
           .eq("invoice_type", form.type === "sales" ? "sale" : "purchase")
           .neq("status", "cancelled")
@@ -890,7 +893,7 @@ const InvoiceCreatePage = () => {
         supabase
           .from("transactions")
           .select("amount, transaction_type, debit_account_code, credit_account_code")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .eq("contact_id", form.contactId)
           .eq("is_deleted", false)
           .in("transaction_type", form.type === "sales"
@@ -1107,7 +1110,7 @@ const InvoiceCreatePage = () => {
       service_direction: isService
         ? (quickAddForm.service_direction || (form.type === "sales" ? "provided" : "received"))
         : null,
-      user_id: user.id,
+      user_id: ownerId,
     };
     const { error } = await supabase.from("products").insert(payload);
     if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
@@ -1116,7 +1119,7 @@ const InvoiceCreatePage = () => {
     setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0, product_type: "product", service_direction: "" });
     clearProductDraft();
     // Refresh products
-    const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
+    const { data } = await supabase.from("products").select("*").eq("user_id", ownerId).order("name");
     setProducts((data as any[]) || []);
   };
 
@@ -1128,7 +1131,7 @@ const InvoiceCreatePage = () => {
       phone: quickRepForm.phone || null,
       region: quickRepForm.region || null,
       sales_commission_rate: quickRepForm.sales_commission_rate || 0,
-      user_id: user.id,
+      user_id: ownerId,
     } as any).select("id, full_name").single();
     if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
     toast({ title: `تمت إضافة المندوب "${quickRepForm.full_name}" ✅` });
@@ -1179,7 +1182,7 @@ const InvoiceCreatePage = () => {
         const { data: existing } = await supabase
           .from("contacts")
           .select("id")
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .eq("contact_name", trimmedName)
           .maybeSingle();
 
@@ -1190,7 +1193,7 @@ const InvoiceCreatePage = () => {
             .from("contacts")
             .upsert(
               {
-                user_id: user.id,
+                user_id: ownerId,
                 contact_name: trimmedName,
                 contact_type: form.type === "sales" ? "عميل" : "مورد",
               } as any,
@@ -1305,14 +1308,14 @@ const InvoiceCreatePage = () => {
           .from("contacts")
           .select("current_balance")
           .eq("id", targetContactId)
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .maybeSingle();
         if (!contactRow) return;
         await supabase
           .from("contacts")
           .update({ current_balance: Number(contactRow.current_balance || 0) + delta } as any)
           .eq("id", targetContactId)
-          .eq("user_id", user.id);
+          .eq("user_id", ownerId);
       };
 
       if (isEditMode && editInvoiceId) {
@@ -1324,7 +1327,7 @@ const InvoiceCreatePage = () => {
           .from("invoices")
           .update(updatePayload as any)
           .eq("id", editInvoiceId)
-          .eq("user_id", user.id);
+          .eq("user_id", ownerId);
 
         if (updateError) throw updateError;
 
@@ -1346,7 +1349,7 @@ const InvoiceCreatePage = () => {
             ? workshops.find(w => w.id === form.workshopId)
             : null;
           const txPayload = {
-            user_id: user.id,
+            user_id: ownerId,
             transaction_date: form.date,
             description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} - ${form.contactName}`,
             debit_account_code: form.type === "sales" ? salesDebitCode : purchaseDebitCode,
@@ -1372,7 +1375,7 @@ const InvoiceCreatePage = () => {
             const { data: existingTx } = await supabase
               .from("transactions")
               .select("id")
-              .eq("user_id", user.id)
+              .eq("user_id", ownerId)
               .eq("idempotency_key", `INV-${editInvoiceId}`)
               .eq("is_deleted", false)
               .maybeSingle();
@@ -1384,7 +1387,7 @@ const InvoiceCreatePage = () => {
             const { data: refTx } = await supabase
               .from("transactions")
               .select("id")
-              .eq("user_id", user.id)
+              .eq("user_id", ownerId)
               .eq("reference", invoiceRef)
               .eq("is_deleted", false)
               .order("created_at", { ascending: false })
@@ -1398,7 +1401,7 @@ const InvoiceCreatePage = () => {
               .from("transactions")
               .update(txPayload as any)
               .eq("id", linkedTransactionId)
-              .eq("user_id", user.id);
+              .eq("user_id", ownerId);
             if (txUpdateError) throw txUpdateError;
           } else {
             const { data: insertedTx, error: txInsertError } = await supabase
@@ -1414,7 +1417,7 @@ const InvoiceCreatePage = () => {
             .from("invoices")
             .update({ linked_transaction_id: linkedTransactionId } as any)
             .eq("id", editInvoiceId)
-            .eq("user_id", user.id);
+            .eq("user_id", ownerId);
 
           if (form.type === "sales") {
             const oldContactId = originalInvoiceRef.current?.contactId || null;
@@ -1495,7 +1498,7 @@ const InvoiceCreatePage = () => {
 
         await supabase.from("invoice_activity_log").insert({
           invoice_id: editInvoiceId,
-          user_id: user.id,
+          user_id: ownerId,
           action: asDraft ? "updated_draft" : "updated",
           details: { total: summary.total, payment_method: paymentMethodDb },
         } as any);
@@ -1510,7 +1513,7 @@ const InvoiceCreatePage = () => {
         .from("invoices")
         .insert({
           ...invoicePayload,
-          user_id: user.id,
+          user_id: ownerId,
           source: "manual",
           status: asDraft ? "draft" : "sent",
         } as any)
@@ -1608,7 +1611,7 @@ const InvoiceCreatePage = () => {
           txDataId = rpcRes.transaction_id;
         } else {
         const { data: txData, error: txError } = await supabase.from("transactions").insert({
-          user_id: user.id,
+          user_id: ownerId,
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
           debit_account_code: form.type === "sales" ? salesDebitCode : purchaseDebitCode,
@@ -1630,7 +1633,7 @@ const InvoiceCreatePage = () => {
           txDataId = txData.id;
         }
 
-        const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", user.id);
+        const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", ownerId);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
           // للفاتورة النقدية سيتم إلغاء أثر AR بواسطة سند القبض التلقائي أدناه،
@@ -1693,7 +1696,7 @@ const InvoiceCreatePage = () => {
       if (!asDraft && summary.totalTax > 0) {
         const invoiceDate = new Date(form.date);
         await supabase.from("tax_ledger" as any).insert({
-          user_id: user.id,
+          user_id: ownerId,
           tax_type: form.type === "sales" ? "output" : "input",
           net_amount: summary.subtotal - summary.totalDiscount,
           tax_rate: 16,
@@ -1712,7 +1715,7 @@ const InvoiceCreatePage = () => {
 
       await supabase.from("invoice_activity_log").insert({
         invoice_id: dbInv.id,
-        user_id: user.id,
+        user_id: ownerId,
         action: asDraft ? "created_draft" : "created",
         details: { total: summary.total, payment_method: paymentMethodDb },
       } as any);
@@ -1982,7 +1985,7 @@ const InvoiceCreatePage = () => {
       let q = supabase
         .from("invoices")
         .select("id, invoice_number, created_at")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("invoice_type", form.type === "sales" ? "sale" : "purchase");
       const cursor = (window as any).__invoiceCreatedAt as string | undefined;
       if (isEditMode && cursor) {
@@ -2217,9 +2220,9 @@ const InvoiceCreatePage = () => {
                   const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
                   const code = codeMap[v];
                   if (code) {
-                    const { data: curr } = await supabase.from("currencies").select("id").eq("code", code).eq("user_id", user.id).maybeSingle();
+                    const { data: curr } = await supabase.from("currencies").select("id").eq("code", code).eq("user_id", ownerId).maybeSingle();
                     if (curr) {
-                      const { data: rate } = await supabase.from("exchange_rates").select("sell_rate").eq("currency_id", curr.id).eq("user_id", user.id).order("rate_date", { ascending: false }).limit(1).maybeSingle();
+                      const { data: rate } = await supabase.from("exchange_rates").select("sell_rate").eq("currency_id", curr.id).eq("user_id", ownerId).order("rate_date", { ascending: false }).limit(1).maybeSingle();
                       if (rate?.sell_rate) setForm(p => ({ ...p, exchangeRate: Number(rate.sell_rate) }));
                     }
                   }
