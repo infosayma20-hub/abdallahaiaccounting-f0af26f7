@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
+import { usePageSessionState, usePageScrollRestoration } from "@/hooks/usePageSessionState";
 import {
   FinanceShell,
   applyFilters,
@@ -185,10 +186,11 @@ const JournalEntriesPage = () => {
   const [companyName, setCompanyName] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
-  const [sortKey, setSortKey] = useState<string>("transaction_date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = usePageSessionState<number>("currentPage", 1);
+  const [shellFilters, setShellFilters] = usePageSessionState<FilterCondition[]>("shellFilters", []);
+  const [sortKey, setSortKey] = usePageSessionState<string>("sortKey", "transaction_date");
+  const [sortDir, setSortDir] = usePageSessionState<"asc" | "desc">("sortDir", "desc");
+  usePageScrollRestoration();
 
   // ─── Visual permission gating (UI hides what backend already blocks) ───
   const perms = usePermission("finance");
