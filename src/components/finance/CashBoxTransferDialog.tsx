@@ -36,10 +36,14 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("ILS");
   const [notes, setNotes] = useState("");
+  const [transferDate, setTransferDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!open) { setFromId(""); setToId(""); setAmount(""); setNotes(""); setCurrency("ILS"); }
+    if (!open) {
+      setFromId(""); setToId(""); setAmount(""); setNotes(""); setCurrency("ILS");
+      setTransferDate(new Date().toISOString().split("T")[0]);
+    }
   }, [open]);
 
   const fromBox = boxes.find(b => b.id === fromId);
@@ -52,6 +56,10 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
   const handleSubmit = async () => {
     if (!fromBox || !toBox || fromId === toId || !amount || Number(amount) <= 0) {
       toast.error("يرجى تعبئة جميع الحقول بشكل صحيح");
+      return;
+    }
+    if (!transferDate) {
+      toast.error("يرجى تحديد تاريخ التحويل");
       return;
     }
     setSaving(true);
@@ -67,7 +75,7 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
         p_to_account_code: toBox.gl_account_code,
         p_amount: amt,
         p_currency: currency === "ILS" ? "شيكل" : currency === "USD" ? "دولار" : currency === "JOD" ? "دينار" : currency,
-        p_transfer_date: new Date().toISOString().split("T")[0],
+        p_transfer_date: transferDate,
         p_description: desc,
         p_idempotency_key: `TRF-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
         p_source: "manual",
@@ -82,7 +90,7 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
         to_box_id: toId,
         amount: amt,
         currency,
-        transfer_date: new Date().toISOString().split("T")[0],
+        transfer_date: transferDate,
         description: desc,
         transfer_type: "manual",
       });
@@ -159,6 +167,17 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">تاريخ التحويل</Label>
+            <Input
+              type="date"
+              className="h-9 text-sm"
+              value={transferDate}
+              onChange={e => setTransferDate(e.target.value)}
+              max={new Date().toISOString().split("T")[0]}
+            />
           </div>
 
           {/* Preview journal entry */}
