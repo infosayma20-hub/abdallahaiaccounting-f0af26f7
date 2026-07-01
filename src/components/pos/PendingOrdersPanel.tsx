@@ -249,6 +249,20 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
             !newRow?.is_editing &&
             !newRow?.delivered_at
           ) {
+            // 🔊 Fire the alert chime immediately on the realtime INSERT event
+            // (independent of the count-based check inside loadPendingOrders,
+            // which can miss cases where the cashier just accepted another
+            // order at the exact same moment). Also try to resume the
+            // AudioContext in case the browser suspended it while the tab
+            // was in the background — the sound is what tells the cashier
+            // to look at the screen in the first place.
+            try { ensureAudioCtx(); } catch { /* noop */ }
+            playNotificationSound();
+            toast.info(`📞 طلب جديد من الكول سنتر: ${newRow.customer_name || ""}`.trim(), {
+              duration: 10000,
+              description: `${newRow.source_app || ""} • ₪${newRow.total ?? ""}`,
+              action: { label: "عرض", onClick: () => setOpen(true) },
+            });
             const deviceTag =
               (typeof window !== "undefined" && (window as any).__deviceFingerprint) ||
               localStorage.getItem("pos_device_fingerprint") ||
