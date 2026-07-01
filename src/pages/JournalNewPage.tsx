@@ -1282,7 +1282,8 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-3.5 text-white font-semibold text-[13px] w-12">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "36%" }}>الحساب أو الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "10%" }}>رقم الحساب</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "26%" }}>الحساب أو الجهة</th>
                   <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>مدين ₪</th>
                   <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>دائن ₪</th>
                   <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "22%" }}>تعليق</th>
@@ -1303,6 +1304,52 @@ const JournalNewPage = () => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
+                    <td className="p-3">
+                      <Input
+                        type="text"
+                        value={line.account_code || ""}
+                        onChange={e => {
+                          const raw = e.target.value.trim();
+                          setLines(prev => prev.map(l => {
+                            if (l.id !== line.id) return l;
+                            const acct = postableAccounts.find((a: any) => a.account_code === raw);
+                            return acct
+                              ? { ...l, account_code: acct.account_code, account_name: acct.account_name, contact_id: "", contact_name: "" }
+                              : { ...l, account_code: raw };
+                          }));
+                        }}
+                        onBlur={e => {
+                          const raw = e.target.value.trim();
+                          if (!raw) return;
+                          const acct = postableAccounts.find((a: any) => a.account_code === raw);
+                          if (!acct) {
+                            toast.error(`رقم الحساب ${raw} غير موجود أو غير قابل للترحيل`);
+                            setLines(prev => prev.map(l => l.id !== line.id ? l : { ...l, account_code: "", account_name: "" }));
+                          }
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            const raw = (e.target as HTMLInputElement).value.trim();
+                            const acct = postableAccounts.find((a: any) => a.account_code === raw);
+                            if (raw && acct) {
+                              setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                                ...l, account_code: acct.account_code, account_name: acct.account_name, contact_id: "", contact_name: "",
+                              }));
+                              // Skip to debit
+                              setTimeout(() => {
+                                const el = document.querySelector<HTMLInputElement>(`[data-journal-debit="${line.id}"]`);
+                                el?.focus();
+                                el?.select();
+                              }, 0);
+                            }
+                          }
+                        }}
+                        className="h-11 font-mono text-sm text-center"
+                        placeholder="1110"
+                        title="اكتب رقم الحساب مباشرة (مثال 1110) ثم Enter"
+                      />
+                    </td>
                     <td className="p-3">
                       <JournalEntityCombobox
                         lineId={line.id}
