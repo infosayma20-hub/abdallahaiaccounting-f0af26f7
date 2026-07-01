@@ -67,6 +67,7 @@ const CashBoxesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
 
   const [boxes, setBoxes] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
