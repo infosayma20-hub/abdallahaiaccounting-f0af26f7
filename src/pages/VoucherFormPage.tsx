@@ -3307,6 +3307,43 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
           </div>
 
+          {paymentMethod === "مختلط" && (
+            <div className="pt-2 border-t border-border/30 space-y-2">
+              <Label className="text-xs font-bold flex items-center gap-1.5">
+                <Banknote className="h-3.5 w-3.5 text-primary" />
+                توزيع المبلغ (نقدي + شيكات)
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                <div>
+                  <Label className="text-[11px] mb-1 block">المبلغ النقدي</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={mixedCashAmount}
+                    onChange={(e) => setMixedCashAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="text-left font-mono"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-md px-3 py-2">
+                  إجمالي الشيكات: <span className="font-bold text-foreground font-mono">
+                    {cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className={`text-[11px] rounded-md px-3 py-2 font-mono ${
+                  Math.abs((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) - amountNum) < 0.01
+                    ? "bg-emerald-500/10 text-emerald-600"
+                    : "bg-destructive/10 text-destructive"
+                }`}>
+                  المجموع: {((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)).toFixed(2)}
+                  {" / "}{amountNum.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cheque details - Multi cheque */}
           {(paymentMethod === "شيك" || paymentMethod === "مختلط") && (
             <div className="pt-2 border-t border-border/30 space-y-3">
