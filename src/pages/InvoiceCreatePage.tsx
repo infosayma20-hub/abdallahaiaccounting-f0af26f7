@@ -1633,7 +1633,11 @@ const InvoiceCreatePage = () => {
         const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", user.id);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
-          await syncContactBalance(contactId, Number(summary.remainingAmount || 0));
+          // للفاتورة النقدية سيتم إلغاء أثر AR بواسطة سند القبض التلقائي أدناه،
+          // لكن نمرّر القيمة الكاملة لأن نموذج الرأس هنا يظهر remaining=0 للفاتورة
+          // النقدية أصلاً، وستبقى العملية متسقة.
+          const contactDelta = useVoucherAutoFlow ? 0 : Number(summary.remainingAmount || 0);
+          await syncContactBalance(contactId, contactDelta);
         }
         originalInvoiceRef.current = {
           linkedTransactionId: txDataId,
@@ -1641,6 +1645,48 @@ const InvoiceCreatePage = () => {
           remainingAmount: Number(summary.remainingAmount || 0),
           invoiceNumber: dbInv.invoice_number,
         };
+
+        // ─── Auto-create receipt/payment voucher for cash invoices ───
+        // Sales cash → سند قبض (Dr Cash / Cr AR 1130) with allocation to this invoice
+        // Purchase cash → سند صرف (Dr AP 2110 / Cr Cash) with allocation to this invoice
+        // This makes the cash movement appear as a proper voucher document in
+        // the vouchers list and prints as سند قبض / سند صرف رسمي.
+        if (useVoucherAutoFlow && contactId) {
+          try {
+            const isSales = form.type === "sales";
+            const voucherParams = {
+              userId: user.id,
+              contactId,
+              contactName: form.contactName,
+              amount: amountILS,
+              paymentMethod: "نقدي",
+              description: `${isSales ? "سند قبض تلقائي" : "سند صرف تلقائي"} — فاتورة ${dbInv.invoice_number}`,
+              currency: form.currency,
+              voucherDate: form.date,
+              exchangeRate: isForeign ? form.exchangeRate : null,
+              reference: dbInv.invoice_number,
+              cashAccountCode: cashCode!,
+              idempotencyKey: `INV-VOUCHER-${dbInv.id}`,
+              allocations: [{ invoice_id: dbInv.id, amount: amountILS }],
+              workshopId: form.workshopId || null,
+              costCenterId: form.costCenterId || null,
+            };
+            if (isSales) {
+              await callCreateReceiptRpc(voucherParams);
+            } else {
+              await callCreatePaymentRpc(voucherParams);
+            }
+          } catch (voucherErr: any) {
+            // لا نُفشل الفاتورة إذا فشل إنشاء السند التلقائي — نعطي تحذير للمستخدم
+            // ونطلب منه إنشاء السند يدوياً من شاشة السندات.
+            console.error("Auto voucher creation failed:", voucherErr);
+            toast({
+              title: "تم حفظ الفاتورة لكن فشل إنشاء السند التلقائي",
+              description: voucherErr?.message || "أنشئ سند قبض/صرف يدوياً من شاشة السندات",
+              variant: "destructive",
+            });
+          }
+        }
       }
 
       // Tax ledger integration
