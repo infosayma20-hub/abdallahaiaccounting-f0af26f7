@@ -18,13 +18,38 @@ import { useAuth } from "@/hooks/useAuth";
  * Do NOT use this to read per-user UI tables like profiles or
  * company_settings — those should still key off auth.user.id.
  */
+const OWNER_CACHE_PREFIX = "amwali:data-owner:";
+
+function readCachedOwner(userId: string): string | null {
+  try {
+    const v = sessionStorage.getItem(OWNER_CACHE_PREFIX + userId);
+    return v && v.length > 0 ? v : null;
+  } catch { return null; }
+}
+function writeCachedOwner(userId: string, ownerId: string) {
+  try { sessionStorage.setItem(OWNER_CACHE_PREFIX + userId, ownerId); } catch { /* ignore */ }
+}
+
 export function useDataOwnerId(): { dataOwnerId: string | null; userId: string | null } {
   const { user } = useAuth();
-  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+  // Seed from sessionStorage synchronously so the first render already has
+  // the owner id — avoids the null→uuid flip that caused every dependent
+  // useEffect to fire twice on every page mount.
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(() => {
+    if (!user?.id) return null;
+    return readCachedOwner(user.id);
+  });
 
   useEffect(() => {
     if (!user) {
       setDataOwnerId(null);
+      return;
+    }
+    // If we already have a cached value for this user, keep serving it and
+    // skip the network round-trip entirely on this mount.
+    const cached = readCachedOwner(user.id);
+    if (cached) {
+      if (cached !== dataOwnerId) setDataOwnerId(cached);
       return;
     }
     let cancelled = false;
@@ -34,6 +59,7 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
 
       if (!error && data) {
         setDataOwnerId(data as string);
+        writeCachedOwner(user.id, data as string);
         return;
       }
 
@@ -47,7 +73,9 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
 
       if (cancelled) return;
       if (profileError) console.error("[useDataOwnerId] owner resolution failed", { error, profileError });
-      setDataOwnerId(((profile as any)?.invited_by as string | null) || user.id);
+      const resolved = ((profile as any)?.invited_by as string | null) || user.id;
+      setDataOwnerId(resolved);
+      writeCachedOwner(user.id, resolved);
     })();
     return () => {
       cancelled = true;
