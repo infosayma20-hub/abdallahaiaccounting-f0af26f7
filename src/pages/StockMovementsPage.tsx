@@ -24,6 +24,7 @@ import type { ActionTab } from "@/components/finance/shell";
 import EmptyState from "@/components/EmptyState";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import { buildStockMovementsPrintHTML, type StockPrintRow } from "@/lib/reports/stock-movements-print";
 interface Product {
   id: string;
   name: string;
