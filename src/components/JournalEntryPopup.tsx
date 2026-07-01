@@ -371,6 +371,14 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
+  // Postable-only accounts (exclude parents — any code referenced as parent_code)
+  const postableAccounts = useMemo(() => {
+    const parentCodes = new Set(
+      accounts.map((a: any) => a.parent_code).filter(Boolean)
+    );
+    return accounts.filter((a: any) => !parentCodes.has(a.account_code));
+  }, [accounts]);
+
   // Form state
   const [entryType, setEntryType] = useState("عادي");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -397,7 +405,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
       setLoadingAccounts(true);
       const { data } = await supabase
         .from("accounts")
-        .select("id, account_code, account_name, account_type")
+        .select("id, account_code, account_name, account_type, parent_code")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .order("account_code");
@@ -778,7 +786,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
               <div key={line.id} data-journal-line-id={line.id} className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 px-2 py-1.5 border-t border-border/20 items-center hover:bg-muted/10">
                 <span className="text-[10px] text-muted-foreground text-center">{idx + 1}</span>
                 <AccountCombobox
-                  accounts={accounts}
+                  accounts={postableAccounts}
                   value={line.account_code}
                   onSelect={(acc) => handleAccountSelect(idx, acc)}
                   onAddAccount={() => { setActiveLineIdx(idx); setShowAddAccount(true); }}
