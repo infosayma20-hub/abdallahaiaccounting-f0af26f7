@@ -1044,6 +1044,12 @@ const POSPage = () => {
   const stagingInFlightRef = useRef<boolean>(false);
   const stageOrderInBackgroundRef = useRef<(() => Promise<void>) | null>(null);
   const discardStagedOrderRef = useRef<(() => void) | null>(null);
+  // Tracks the currently-running background staging promise so that
+  // handleCompleteOrder can `await` it and avoid a race where a stale
+  // staged draft lands in `pos_orders` AFTER we've already created the
+  // real order — which produced a phantom "معلقة" row alongside the
+  // real "مكتملة" one in the invoice history.
+  const stagingPromiseRef = useRef<Promise<void> | null>(null);
 
   /**
    * يمنع المتابعة (دفع/طباعة) قبل أن يختار الكاشير صراحةً نوع الطلب:
@@ -3750,7 +3756,8 @@ const POSPage = () => {
     if (stagedOrderIdRef.current) discardStagedOrder();
 
     stagingInFlightRef.current = true;
-    try {
+    const runner = (async () => {
+     try {
       const effectiveTotal = customerDataDiscount
         ? cartTotals.total - customerDataDiscount.discountAmount
         : cartTotals.total;
@@ -3804,12 +3811,17 @@ const POSPage = () => {
 
       stagedOrderIdRef.current = order.id;
       stagedHashRef.current = hash;
-    } catch (err) {
+     } catch (err) {
       console.warn("[POS stage] background stage failed:", err);
       stagedOrderIdRef.current = null;
       stagedHashRef.current = null;
-    } finally {
+     } finally {
       stagingInFlightRef.current = false;
+     }
+    })();
+    stagingPromiseRef.current = runner;
+    try { await runner; } finally {
+      if (stagingPromiseRef.current === runner) stagingPromiseRef.current = null;
     }
   }, [
     userId, session, company, dataOwnerId, cart, offlineMode.isOnline,
@@ -4185,6 +4197,11 @@ const POSPage = () => {
       // Check if there's an existing draft/open order for this table (saved earlier)
       // 🚀 FAST PATH: reuse the pre-staged order if it matches the current cart.
       // Limited to the simple online path (no table / no CC / no employee account).
+      // Wait for any in-flight background stage to settle so we either reuse it
+      // (fast path) or discard it — never orphan it as a stray "معلقة" row.
+      if (stagingPromiseRef.current) {
+        try { await stagingPromiseRef.current; } catch {}
+      }
       const stagedId = stagedOrderIdRef.current;
       const stagedHash = stagedHashRef.current;
       const liveHash = computeStageHash();
@@ -4818,13 +4835,18 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true); // Show receipt for viewing (print is still silent via bridge)
       // Clean up any leftover staged draft that wasn't reused (e.g. cashier
-      // switched to employee_account or split mode after opening the modal).
-      if (stagedOrderIdRef.current && stagedOrderIdRef.current !== orderId) {
-        discardStagedOrder();
-      } else {
-        stagedOrderIdRef.current = null;
-        stagedHashRef.current = null;
-      }
+      // switched to employee_account or split mode after opening the modal,
+      // or a background stage landed after we chose the "create new order"
+      // path). Await pending staging first to catch late arrivals.
+      (async () => {
+        try { if (stagingPromiseRef.current) await stagingPromiseRef.current; } catch {}
+        if (stagedOrderIdRef.current && stagedOrderIdRef.current !== orderId) {
+          discardStagedOrder();
+        } else {
+          stagedOrderIdRef.current = null;
+          stagedHashRef.current = null;
+        }
+      })();
 
       // Create kitchen tickets (split by station) + print via bridge
       let kitchenJobs: KitchenJob[] = [];
