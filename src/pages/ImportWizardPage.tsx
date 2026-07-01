@@ -130,7 +130,6 @@ const ImportWizardPage = () => {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const ownerId = dataOwnerId || user?.id;
-  const { dataOwnerId } = useDataOwnerId();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
