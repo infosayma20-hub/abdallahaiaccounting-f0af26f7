@@ -207,6 +207,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [endorsedCheques, setEndorsedCheques] = useState<EndorsedCheque[]>([]);
   const [showEndorseModal, setShowEndorseModal] = useState(false);
 
+  // For "مختلط" (نقدي + شيكات) — how much of the total is cash
+  const [mixedCashAmount, setMixedCashAmount] = useState<string>("");
+
   const addCheque = () => setCheques(prev => {
     const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
     const lastDate = prev.length > 0 ? prev[prev.length - 1].date : "";
