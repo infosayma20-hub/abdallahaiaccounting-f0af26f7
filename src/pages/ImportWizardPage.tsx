@@ -129,6 +129,8 @@ const ImportWizardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
+  const { dataOwnerId } = useDataOwnerId();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -173,7 +175,7 @@ const ImportWizardPage = () => {
     setAddingSupplier(true);
     try {
       const { data, error } = await supabase.from("contacts").insert({
-        user_id: user.id,
+        user_id: ownerId,
         contact_name: newSupplierName.trim(),
         contact_type: "مورد",
       }).select("id").single();
@@ -487,7 +489,7 @@ const ImportWizardPage = () => {
       const status = post ? "posted" : items.length > 0 ? (costs.length > 0 ? "distributed" : "items_entered") : "draft";
       
       const { data: shipment, error: shipErr } = await supabase.from("import_shipments").insert({
-        user_id: user.id,
+        user_id: ownerId,
         shipment_number: "",
         shipment_name: shipmentName,
         supplier_id: supplierId || null,
@@ -557,7 +559,7 @@ const ImportWizardPage = () => {
       if (post) {
         const { data: rpcRes, error: rpcErr } = await supabase.rpc(
           'post_import_shipment_atomic' as any,
-          { p_shipment_id: shipment.id, p_user_id: user.id }
+          { p_shipment_id: shipment.id, p_user_id: ownerId }
         );
         if (rpcErr) throw rpcErr;
         const result = rpcRes as any;
