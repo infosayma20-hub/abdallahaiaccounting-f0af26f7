@@ -397,7 +397,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
       setLoadingAccounts(true);
       const { data } = await supabase
         .from("accounts")
-        .select("id, account_code, account_name, account_type")
+        .select("id, account_code, account_name, account_type, parent_code")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .order("account_code");
