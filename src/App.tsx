@@ -712,7 +712,7 @@ const App = () => (
                 <ProtectedRoute blockCashier blockSalesRep>
                   <OnboardingGate>
                   <WebLayout>
-                    <Suspense fallback={<AuthCheckSpinner />}>
+                    <Suspense fallback={<RouteChunkFallback />}>
                     <Routes>
                       <Route path="/" element={<SmartRedirect />} />
                       <Route path="/apps" element={<AppsLauncher />} />
