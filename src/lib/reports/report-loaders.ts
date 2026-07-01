@@ -130,10 +130,9 @@ export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: 
   //   Anything else → Unclassified (no silent default to operating).
   // - operating + investing + financing + unclassified = net change in cash
   //   (internal transfers are excluded from the net by design).
-  const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
-
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).range(from, to)).catch(() => [] as any[]);
   // Opening cash from prior periods (always computed even if period is empty)
-  const { data: openTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or("debit_account_code.like.111%,credit_account_code.like.111%,debit_account_code.like.112%,credit_account_code.like.112%");
+  const openTxns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or("debit_account_code.like.111%,credit_account_code.like.111%,debit_account_code.like.112%,credit_account_code.like.112%").range(from, to)).catch(() => [] as any[]);
   let openingCash = 0;
   (openTxns || []).forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
@@ -187,13 +186,13 @@ export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: 
 
 export async function loadAccountMovement(uid: string, accountCodePrefix: string, dateFrom: string, dateTo: string, setData: SetData) {
   // Use like filter to capture sub-accounts (e.g. 1110 captures 1111, 1112...)
-  const { data: openTxns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`);
+  const openTxns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`).range(from, to)).catch(() => [] as any[]);
   let openBal = 0;
   (openTxns || []).forEach(tx => {
     if ((tx.debit_account_code || "").startsWith(accountCodePrefix)) openBal += tx.amount;
     if ((tx.credit_account_code || "").startsWith(accountCodePrefix)) openBal -= tx.amount;
   });
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`).order("transaction_date", { ascending: true });
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`).order("transaction_date", { ascending: true }).range(from, to)).catch(() => [] as any[]);
   let running = openBal;
   const rows = (txns || []).map(tx => {
     const inflow = (tx.debit_account_code || "").startsWith(accountCodePrefix) ? tx.amount : 0;
@@ -258,7 +257,7 @@ export async function loadTotalSales(uid: string, dateFrom: string, dateTo: stri
 export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
   const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
   const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date").range(from, to)).catch(() => [] as any[]);
   const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id) || t.transaction_type === "return") : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
   dbg("dailySales", { source, total: filtered.length });
   const dayMap: Record<string, { date: string; count: number; sales: number; returns: number }> = {};
@@ -363,7 +362,7 @@ export async function loadCollections(uid: string, dateFrom: string, dateTo: str
   // Source of truth: transactions where transaction_type='receipt' AND is_deleted=false.
   // Reverse entries flip is_deleted on both rows, so this filter excludes voided/reversed receipts.
   // Cash/bank account = debit side of the receipt (1110/111x cash, 1120/112x bank, 1150/115x cheques under collection).
-  const { data: txns } = await supabase
+  const txns = await fetchAllRows<any>((from, to) => (supabase
     .from("transactions")
     .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code")
     .eq("user_id", uid)
@@ -371,7 +370,7 @@ export async function loadCollections(uid: string, dateFrom: string, dateTo: str
     .eq("transaction_type", "receipt")
     .gte("transaction_date", dateFrom)
     .lte("transaction_date", dateTo)
-    .order("transaction_date", { ascending: false });
+    .order("transaction_date", { ascending: false })).range(from, to)).catch(() => [] as any[]);
   const contactIds = Array.from(new Set((txns || []).map(t => t.contact_id).filter(Boolean) as string[]));
   const { data: contacts } = contactIds.length
     ? await supabase.from("contacts").select("id, contact_name").in("id", contactIds)
@@ -415,14 +414,14 @@ export async function loadSalesReturns(uid: string, dateFrom: string, dateTo: st
 export async function loadSalesPerformance(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
   const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
   const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
-  const { data: txns } = await supabase.from("transactions").select("id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).range(from, to)).catch(() => [] as any[]);
   const cur = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
   const daysDiff = differenceInDays(new Date(dateTo), new Date(dateFrom));
   const prevFrom = format(subDays(new Date(dateFrom), daysDiff + 1), "yyyy-MM-dd");
   const prevTo = format(subDays(new Date(dateFrom), 1), "yyyy-MM-dd");
   const prevIds = await getInvoiceTxnIdsBySource(uid, source, prevFrom, prevTo);
   const prevVoidedTxnIds = await getVoidedInvoiceTxnIds(uid, prevFrom, prevTo);
-  const { data: prevTxns } = await supabase.from("transactions").select("id, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", prevFrom).lte("transaction_date", prevTo);
+  const prevTxns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", prevFrom).lte("transaction_date", prevTo).range(from, to)).catch(() => [] as any[]);
   const prev = (prevIds ? (prevTxns || []).filter(t => prevIds.has(t.id)) : (prevTxns || [])).filter(t => !prevVoidedTxnIds.has(t.id));
   const total = cur.reduce((s, t) => s + t.amount, 0);
   const prevTotal = prev.reduce((s, t) => s + t.amount, 0);
@@ -786,7 +785,7 @@ export async function loadProductProfitability(uid: string, setData: SetData, da
 }
 
 export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).range(from, to)).catch(() => [] as any[]);
   let revenue = 0, cogs = 0, expenses = 0;
   (txns || []).forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
@@ -801,7 +800,7 @@ export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: s
   const netMargin = revenue > 0 ? ((revenue - cogs - expenses) / revenue * 100) : 0;
 
   // Current ratio: current assets / current liabilities
-  const { data: allTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false);
+  const allTxns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).range(from, to)).catch(() => [] as any[]);
   let currentAssets = 0, currentLiabilities = 0;
   (allTxns || []).forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
@@ -828,7 +827,7 @@ export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: s
 export async function loadMonthComparison(uid: string, setData: SetData) {
   const months = [];
   for (let i = 5; i >= 0; i--) { const m = subMonths(new Date(), i); months.push({ label: format(m, "yyyy-MM"), from: format(startOfMonth(m), "yyyy-MM-dd"), to: format(endOfMonth(m), "yyyy-MM-dd") }); }
-  const { data: txns } = await supabase.from("transactions").select("transaction_date, debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", months[0].from).lte("transaction_date", months[5].to);
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("transaction_date, debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", months[0].from).lte("transaction_date", months[5].to).range(from, to)).catch(() => [] as any[]);
   setData(months.map(m => {
     let rev = 0, exp = 0;
     (txns || []).forEach(tx => {
@@ -848,7 +847,7 @@ export async function loadForeignBalances(uid: string, setData: SetData) {
   if (!accounts?.length) { setData([]); return; }
   const result = [];
   for (const acc of accounts) {
-    const { data: txns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code, foreign_amount, currency").eq("user_id", uid).eq("is_deleted", false).or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`);
+    const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("amount, debit_account_code, credit_account_code, foreign_amount, currency").eq("user_id", uid).eq("is_deleted", false).or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`).range(from, to)).catch(() => [] as any[]);
     let balance = 0, foreignBalance = 0;
     let detectedCurrency = "ILS";
     (txns || []).forEach(tx => {
@@ -992,7 +991,7 @@ export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo
   // Source of truth: transactions where transaction_type='payment' AND is_deleted=false.
   // Reverse entries flip is_deleted on both rows, so this filter excludes voided/reversed payments.
   // Cash/bank account = credit side of the payment (1110/111x cash, 1120/112x bank, 1160/116x outbound cheques).
-  const { data: txns } = await supabase
+  const txns = await fetchAllRows<any>((from, to) => (supabase
     .from("transactions")
     .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code")
     .eq("user_id", uid)
@@ -1000,7 +999,7 @@ export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo
     .eq("transaction_type", "payment")
     .gte("transaction_date", dateFrom)
     .lte("transaction_date", dateTo)
-    .order("transaction_date", { ascending: false });
+    .order("transaction_date", { ascending: false })).range(from, to)).catch(() => [] as any[]);
   const contactIds = Array.from(new Set((txns || []).map(t => t.contact_id).filter(Boolean) as string[]));
   const { data: contacts } = contactIds.length
     ? await supabase.from("contacts").select("id, contact_name").in("id", contactIds)
@@ -1160,11 +1159,11 @@ export async function loadEmployeeWithdrawals(uid: string, dateFrom: string, dat
     .select("id, full_name")
     .eq("user_id", uid);
 
-  const { data: transactions } = await supabase
+  const transactions = await fetchAllRows<any>((from, to) => (supabase
     .from("transactions")
     .select("id, expense_category")
     .eq("user_id", uid)
-    .eq("is_deleted", false);
+    .eq("is_deleted", false)).range(from, to)).catch(() => [] as any[]);
 
   const empMap = Object.fromEntries((employees || []).map(e => [e.id, e.full_name]));
   const txMap = Object.fromEntries((transactions || []).map(t => [t.id, (t as any).expense_category]));
@@ -1246,14 +1245,14 @@ export async function loadExchangeRates(uid: string, dateFrom: string, dateTo: s
 }
 
 export async function loadCurrencyConversions(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount").eq("user_id", uid).eq("is_deleted", false).eq("transaction_type", "currency_exchange").gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, transaction_date, description, amount").eq("user_id", uid).eq("is_deleted", false).eq("transaction_type", "currency_exchange").gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false }).range(from, to)).catch(() => [] as any[]);
   setData(txns || []);
 }
 
 export async function loadExchangeGainLoss(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   // Forex gains (7xxx) and forex losses (69xx or description-based)
   // Account-code based filter only — description LIKE removed (heuristic)
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("debit_account_code.like.71%,credit_account_code.like.71%,debit_account_code.like.69%,credit_account_code.like.69%,transaction_type.eq.currency_exchange").order("transaction_date", { ascending: false });
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("debit_account_code.like.71%,credit_account_code.like.71%,debit_account_code.like.69%,credit_account_code.like.69%,transaction_type.eq.currency_exchange").order("transaction_date", { ascending: false }).range(from, to)).catch(() => [] as any[]);
   setData((txns || []).map(tx => {
     const cc = tx.credit_account_code || "";
     const dc = tx.debit_account_code || "";
@@ -1268,6 +1267,6 @@ export async function loadAllOrders(uid: string, dateFrom: string, dateTo: strin
 }
 
 export async function loadGenericTransactions(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, transaction_type, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false }).limit(200);
+  const txns = await fetchAllRows<any>((from, to) => supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, transaction_type, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false }).limit(200).range(from, to)).catch(() => [] as any[]);
   setData(txns || []);
 }
