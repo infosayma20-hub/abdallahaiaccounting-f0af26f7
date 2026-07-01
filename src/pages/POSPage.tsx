@@ -1044,6 +1044,12 @@ const POSPage = () => {
   const stagingInFlightRef = useRef<boolean>(false);
   const stageOrderInBackgroundRef = useRef<(() => Promise<void>) | null>(null);
   const discardStagedOrderRef = useRef<(() => void) | null>(null);
+  // Tracks the currently-running background staging promise so that
+  // handleCompleteOrder can `await` it and avoid a race where a stale
+  // staged draft lands in `pos_orders` AFTER we've already created the
+  // real order — which produced a phantom "معلقة" row alongside the
+  // real "مكتملة" one in the invoice history.
+  const stagingPromiseRef = useRef<Promise<void> | null>(null);
 
   /**
    * يمنع المتابعة (دفع/طباعة) قبل أن يختار الكاشير صراحةً نوع الطلب:
