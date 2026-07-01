@@ -72,6 +72,7 @@ const JournalNewPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { company } = useCompany();
   const { settings } = useCompanySettings();
   const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
