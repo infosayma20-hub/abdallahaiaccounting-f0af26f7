@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { fetchManyContactBalances } from "@/lib/contact-balance";
@@ -160,6 +161,8 @@ const ContactsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
   const { settings } = useCompanySettings();
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -217,7 +220,7 @@ const ContactsPage = () => {
     setOverdueLoading(true);
     supabase.from("invoices")
       .select("id, invoice_number, due_date, remaining_amount")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("contact_name", overdueContact.contact_name)
       .not("due_date", "is", null)
       .lt("due_date", new Date().toISOString().split("T")[0])
@@ -231,9 +234,9 @@ const ContactsPage = () => {
     setLoading(true);
     try {
       const [{ data: contactData, error }, { data: txData }] = await Promise.all([
-        supabase.from('contacts').select('*').eq('user_id', user.id).order('contact_name'),
+        supabase.from('contacts').select('*').eq('user_id', ownerId).order('contact_name'),
         supabase.from('transactions').select('id, amount, debit_account_code, credit_account_code, contact_id, transaction_date, description')
-          .eq('user_id', user.id).eq('is_deleted', false),
+          .eq('user_id', ownerId).eq('is_deleted', false),
       ]);
       if (error) throw error;
       const txs = txData || [];
@@ -273,7 +276,7 @@ const ContactsPage = () => {
 
   const fetchAlerts = async () => {
     if (!user) return;
-    const { data } = await supabase.from('contact_alerts').select('*').eq('user_id', user.id).eq('is_read', false).order('created_at', { ascending: false }).limit(50);
+    const { data } = await supabase.from('contact_alerts').select('*').eq('user_id', ownerId).eq('is_read', false).order('created_at', { ascending: false }).limit(50);
     setAlerts((data as any[]) || []);
   };
 
@@ -288,7 +291,7 @@ const ContactsPage = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'contact_alerts',
-        filter: `user_id=eq.${user.id}`
+        filter: `user_id=eq.${ownerId}`
       }, (payload) => {
         const alert = payload.new as ContactAlert;
         setAlerts(prev => [alert, ...prev]);
@@ -308,7 +311,7 @@ const ContactsPage = () => {
     setAdding(true);
     try {
       const { data: insertedRows, error } = await supabase.from('contacts').insert({
-        user_id: user.id,
+        user_id: ownerId,
         contact_name: newContact.name.trim(),
         contact_type: newContact.type,
         phone: newContact.phone || null,
@@ -337,7 +340,7 @@ const ContactsPage = () => {
           const isSupplierSide = newContact.type === "مورد" || (newContact.type === "عميل ومورد" && !isDebit);
           const contactAccountCode = isSupplierSide ? "2110" : "1130";
           const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
-            p_user_id: user.id,
+            p_user_id: ownerId,
             p_debit_account_code: isDebit ? contactAccountCode : "3400",
             p_credit_account_code: isDebit ? "3400" : contactAccountCode,
             p_amount: obAmount,
@@ -408,7 +411,7 @@ const ContactsPage = () => {
         const isSupplierSide = editData.contact_type === "مورد" || (editData.contact_type === "عميل ومورد" && !isDebit);
         const contactAccountCode = isSupplierSide ? "2110" : "1130";
         const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
-          p_user_id: user!.id,
+          p_user_id: ownerId,
           p_debit_account_code: isDebit ? contactAccountCode : "3400",
           p_credit_account_code: isDebit ? "3400" : contactAccountCode,
           p_amount: obAmount,
@@ -531,7 +534,7 @@ const ContactsPage = () => {
 
   const markAllAlertsRead = async () => {
     if (!user) return;
-    await supabase.from('contact_alerts').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
+    await supabase.from('contact_alerts').update({ is_read: true }).eq('user_id', ownerId).eq('is_read', false);
     setAlerts([]);
   };
 

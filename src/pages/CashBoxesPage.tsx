@@ -113,7 +113,7 @@ const CashBoxesPage = () => {
     setLoading(true);
     const [boxRes, bankRes] = await Promise.all([
       supabase.from("cash_boxes").select("*").order("type", { ascending: true }),
-      supabase.from("bank_accounts").select("*").eq("user_id", user.id),
+      supabase.from("bank_accounts").select("*").eq("user_id", ownerId),
     ]);
     setBoxes(boxRes.data || []);
     setBankAccounts(bankRes.data || []);

@@ -73,6 +73,7 @@ const JournalNewPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { company } = useCompany();
   const { settings } = useCompanySettings();
   const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
@@ -243,7 +244,7 @@ const JournalNewPage = () => {
   // Auto-generate ref number
   useEffect(() => {
     if (!user) return;
-    supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1)
+    supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1)
       .then(({ data }) => {
         const lastRef = (data || [])[0]?.ref_number || "";
         const match = lastRef.match(/(\d+)$/);
@@ -313,7 +314,7 @@ const JournalNewPage = () => {
           .from("vouchers")
           .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type")
           .eq("id", editingVoucherId)
-          .eq("user_id", user.id)
+          .eq("user_id", ownerId)
           .maybeSingle();
         if (vErr || !v) {
           toast.error("السند غير موجود أو ليس لديك صلاحية");
@@ -525,7 +526,7 @@ const JournalNewPage = () => {
     try {
       const contactType = quickAddType === "customer" ? "عميل" : "مورد";
       const { data, error } = await supabase.from("contacts").insert({
-        user_id: user.id,
+        user_id: ownerId,
         contact_name: quickAddName.trim(),
         contact_type: contactType,
         current_balance: 0,
@@ -837,7 +838,7 @@ const JournalNewPage = () => {
       let q = supabase
         .from("vouchers")
         .select("id, ref_number, created_at")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .eq("type", "journal");
       if (editingCreatedAt) {
         if (direction === "prev") {
@@ -945,7 +946,7 @@ const JournalNewPage = () => {
     if (!user) return;
     // Generate a new ref number
     const { data } = await supabase
-      .from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal")
+      .from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "journal")
       .order("created_at", { ascending: false }).limit(1);
     const lastRef = (data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);
