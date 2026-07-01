@@ -3308,7 +3308,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </div>
 
           {/* Cheque details - Multi cheque */}
-          {paymentMethod === "شيك" && (
+          {(paymentMethod === "شيك" || paymentMethod === "مختلط") && (
             <div className="pt-2 border-t border-border/30 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-xs font-bold flex items-center gap-1.5">
