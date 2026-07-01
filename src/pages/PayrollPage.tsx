@@ -36,6 +36,7 @@ const PayrollPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const queryClient = useQueryClient();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -395,7 +396,7 @@ const PayrollPage = () => {
         }
 
         records.push({
-          user_id: user.id,
+          user_id: ownerId,
           employee_id: emp.id,
           company_id: emp.company_id || null,
           period_month: selectedMonth,

@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
@@ -61,6 +62,8 @@ function savePrefs(p: any) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)
 
 const PurchaseOrderCreatePage = () => {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { suppliers, refetch: refetchSuppliers } = useSuppliers();
   const { categories: rawCategories } = useItemCategories();
   const { items: procurementItems } = useProcurementItems();
@@ -192,10 +195,10 @@ const PurchaseOrderCreatePage = () => {
     const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null });
     if (ok && user) {
       const { data: existing } = await supabase.from("contacts")
-        .select("id").eq("user_id", user.id).eq("contact_name", newSupplier.name.trim()).eq("contact_type", "مورد").maybeSingle();
+        .select("id").eq("user_id", ownerId).eq("contact_name", newSupplier.name.trim()).eq("contact_type", "مورد").maybeSingle();
       if (!existing) {
         await supabase.from("contacts").insert({
-          user_id: user.id, contact_name: newSupplier.name.trim(), contact_type: "مورد",
+          user_id: ownerId, contact_name: newSupplier.name.trim(), contact_type: "مورد",
           phone: newSupplier.phone || null, is_active: true, linked_account_code: "2110",
         } as any);
       }
@@ -233,7 +236,7 @@ const PurchaseOrderCreatePage = () => {
     if (ok && user) {
       const catName = categories.find((c: any) => c.id === newItem.category_id)?.name || "بضاعة عامة";
       await supabase.from("products").insert({
-        user_id: user.id, name: newItem.name, unit: newItem.unit,
+        user_id: ownerId, name: newItem.name, unit: newItem.unit,
         buy_price: newItem.default_price || 0, sell_price: 0, quantity: 0, min_quantity: 0, category: catName,
         is_pos_available: false,
       } as any);

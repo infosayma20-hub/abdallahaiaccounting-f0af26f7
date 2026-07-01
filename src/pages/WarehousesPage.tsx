@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -38,6 +39,8 @@ const TYPE_META: Record<WarehouseType, { label: string; icon: any; color: string
 const WarehousesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
 
   const [rows, setRows] = useState<WarehouseRow[]>([]);
@@ -65,10 +68,10 @@ const WarehousesPage = () => {
     if (!user) return;
     setLoading(true);
     const [w, b, r, e] = await Promise.all([
-      supabase.from("warehouses" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
-      supabase.from("branches").select("id, name").eq("user_id", user.id).eq("is_active", true).order("name"),
-      supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true).order("full_name"),
-      supabase.from("employees" as any).select("id, full_name").eq("user_id", user.id).order("full_name").limit(200),
+      supabase.from("warehouses" as any).select("*").eq("user_id", ownerId).order("created_at", { ascending: true }),
+      supabase.from("branches").select("id, name").eq("user_id", ownerId).eq("is_active", true).order("name"),
+      supabase.from("sales_representatives").select("id, full_name").eq("user_id", ownerId).eq("is_active", true).order("full_name"),
+      supabase.from("employees" as any).select("id, full_name").eq("user_id", ownerId).order("full_name").limit(200),
     ]);
     setRows(((w.data as any) || []) as WarehouseRow[]);
     setBranches(b.data || []);
@@ -78,8 +81,8 @@ const WarehousesPage = () => {
 
     // ensure default warehouse exists
     if (((w.data as any) || []).length === 0) {
-      await supabase.rpc("ensure_default_warehouse" as any, { p_user_id: user.id });
-      const refresh = await supabase.from("warehouses" as any).select("*").eq("user_id", user.id).order("created_at");
+      await supabase.rpc("ensure_default_warehouse" as any, { p_user_id: ownerId });
+      const refresh = await supabase.from("warehouses" as any).select("*").eq("user_id", ownerId).order("created_at");
       setRows(((refresh.data as any) || []) as WarehouseRow[]);
     }
   };
@@ -115,7 +118,7 @@ const WarehousesPage = () => {
       return;
     }
     const payload = {
-      user_id: user.id,
+      user_id: ownerId,
       code: form.code.trim(),
       name: form.name.trim(),
       warehouse_type: form.warehouse_type,

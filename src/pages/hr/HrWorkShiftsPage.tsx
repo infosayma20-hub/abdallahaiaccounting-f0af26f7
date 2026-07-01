@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import PageHeader from "@/components/layout/PageHeader";
 import BackButton from "@/components/BackButton";
@@ -57,6 +58,8 @@ const DEFAULT_SHIFTS: Array<Omit<WorkShift, "id" | "user_id">> = [
 
 export default function HrWorkShiftsPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const [loading, setLoading] = useState(true);
   const [shifts, setShifts] = useState<WorkShift[]>([]);
   const [editing, setEditing] = useState<WorkShift | null>(null);
@@ -69,7 +72,7 @@ export default function HrWorkShiftsPage() {
     const { data } = await supabase
       .from("work_shifts")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .order("start_time", { ascending: true });
     setShifts((data as any) || []);
 
@@ -77,7 +80,7 @@ export default function HrWorkShiftsPage() {
     const { data: emps } = await supabase
       .from("employees")
       .select("shift_id")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .eq("is_terminated", false)
       .not("shift_id", "is", null);
     const map: Record<string, number> = {};
@@ -95,7 +98,7 @@ export default function HrWorkShiftsPage() {
       toast.info("الشفتات موجودة بالفعل — لم يتم تغيير شيء");
       return;
     }
-    const rows = DEFAULT_SHIFTS.map(s => ({ ...s, user_id: user.id }));
+    const rows = DEFAULT_SHIFTS.map(s => ({ ...s, user_id: ownerId }));
     const { error } = await supabase.from("work_shifts").insert(rows as any);
     if (error) return toast.error(error.message);
     toast.success("تمت تهيئة 3 شفتات افتراضية (صباحي/ميد/مسائي)");
@@ -119,7 +122,7 @@ export default function HrWorkShiftsPage() {
     };
 
     if (isAdd) {
-      const { error } = await supabase.from("work_shifts").insert({ ...payload, user_id: user.id } as any);
+      const { error } = await supabase.from("work_shifts").insert({ ...payload, user_id: ownerId } as any);
       if (error) return toast.error(error.message);
       toast.success("تمت إضافة الشفت");
     } else {

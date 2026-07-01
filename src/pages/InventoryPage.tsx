@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +101,8 @@ const fmtPrice = (n: number) => n === 0 ? "—" : `₪${n.toLocaleString()}`;
 const InventoryPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
+  const ownerId = dataOwnerId || user?.id;
   const { toast } = useToast();
   const { settings } = useCompanySettings();
 
@@ -180,7 +183,7 @@ const InventoryPage = () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("products").select("*").eq("user_id", user.id)
+      .from("products").select("*").eq("user_id", ownerId)
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
@@ -205,7 +208,7 @@ const InventoryPage = () => {
     const { data } = await supabase
       .from("accounts")
       .select("account_code, account_name, account_type")
-      .eq("user_id", user.id)
+      .eq("user_id", ownerId)
       .in("account_type", ["إيرادات", "مصاريف", "أصول"])
       .eq("is_active", true)
       .order("account_code");
@@ -305,7 +308,7 @@ const InventoryPage = () => {
     const autoSKU = editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix);
     const taxRate = form.tax_rate === "أخرى" ? parseFloat(form.custom_tax_rate) || 0 : parseFloat(form.tax_rate) || 0;
     const payload: any = {
-      user_id: user.id, name: form.name.trim(), category: form.category as any,
+      user_id: ownerId, name: form.name.trim(), category: form.category as any,
       sku: autoSKU, buy_price: parseFloat(form.buy_price) || 0,
       sell_price: parseFloat(form.sell_price) || 0, quantity: parseFloat(form.quantity) || 0,
       min_quantity: parseFloat(form.min_quantity) || 0, unit: form.unit,
@@ -348,12 +351,12 @@ const InventoryPage = () => {
           const { data: defWh } = await supabase
             .from("warehouses")
             .select("id")
-            .eq("user_id", user.id)
+            .eq("user_id", ownerId)
             .eq("is_default", true)
             .maybeSingle();
           if (defWh?.id) {
             await supabase.from("stock_movements").insert({
-              user_id: user.id,
+              user_id: ownerId,
               product_id: inserted.id,
               warehouse_id: defWh.id,
               movement_type: "وارد" as any,
