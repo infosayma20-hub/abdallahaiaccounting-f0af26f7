@@ -1334,6 +1334,89 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
       // رقم حساب صاحب الشيك أصبح اختيارياً للوارد والصادر معاً
     }
+
+    // ─── MIXED path (نقدي + شيكات في نفس السند) ───
+    if (paymentMethod === "مختلط" && !asDraft) {
+      if (isEditMode) {
+        toast.error("تعديل السند المختلط غير مدعوم بعد — أنشئ سنداً جديداً");
+        return;
+      }
+      if (partyType !== "contact" || !selectedContact) {
+        toast.error("السند المختلط متاح للزبون/المورد فقط");
+        return;
+      }
+      const cashPart = Number(mixedCashAmount) || 0;
+      const validCheques = cheques.filter(
+        c => c.number && String(c.number).trim() !== "" && c.bank && Number(c.amount) > 0
+      );
+      if (cashPart <= 0 && validCheques.length === 0) {
+        toast.error("أدخل مبلغاً نقدياً أو أضف شيكاً واحداً على الأقل");
+        return;
+      }
+      if (validCheques.length > 0) {
+        try { validateChequeRows(validCheques as any, currency); }
+        catch (e: any) { toast.error(e?.message || "بيانات الشيك غير مكتملة"); return; }
+      }
+      const chequesTotal = validCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      const grand = cashPart + chequesTotal;
+      if (Math.abs(grand - amountNum) > 0.01) {
+        toast.error(`مجموع (نقدي ${cashPart.toFixed(2)} + شيكات ${chequesTotal.toFixed(2)}) = ${grand.toFixed(2)} لا يساوي مبلغ السند ${amountNum.toFixed(2)}`);
+        return;
+      }
+      // Determine cash account
+      let cashAcct: string | null = null;
+      if (cashPart > 0) {
+        if (depositType === "cash_box" && selectedCashBox) {
+          cashAcct = cashBoxes.find(c => c.id === selectedCashBox)?.gl_account_code || "1110";
+        } else if (depositType === "bank" && selectedBankAccount) {
+          cashAcct = bankAccounts.find(b => b.id === selectedBankAccount)?.gl_account_code || "1120";
+        } else {
+          toast.error("اختر صندوق أو بنك للجزء النقدي"); return;
+        }
+      }
+      setSaving(true);
+      try {
+        const result = await callCreateMixedVoucherRpc({
+          userId: ownerId,
+          kind: isReceipt ? "receipt" : "payment",
+          contactId: selectedContact.id,
+          contactName: selectedContact.contact_name,
+          voucherDate: paymentDate,
+          currency: CURRENCIES.find(c => c.value === currency)?.label || "شيكل",
+          exchangeRate: currency !== "ILS" ? exchangeRate : null,
+          description: notes || `${isReceipt ? "سند قبض" : "سند صرف"} مختلط - ${selectedContact.contact_name}`,
+          notes: notes || null,
+          cashAmount: cashPart,
+          cashAccountCode: cashAcct,
+          cheques: validCheques.map(c => ({
+            number: c.number,
+            date: c.date,
+            bank: c.bank,
+            amount: Number(c.amount) || 0,
+            account_number: c.accountNumber || null,
+            notes: c.notes || null,
+          })),
+          allocations: (invoices || [])
+            .filter((inv: any) => Number(inv.paidNow || 0) > 0)
+            .map((inv: any) => ({ invoice_id: inv.id, amount: Number(inv.paidNow) })),
+          idempotencyKey: `MIX-${Date.now()}`,
+          workshopId: selectedWorkshop?.id || null,
+          costCenterId: costCenterId,
+        });
+        if ((result as any)?.success === false) {
+          throw new Error((result as any).error || "فشل حفظ السند المختلط");
+        }
+        toast.success("تم حفظ السند المختلط بنجاح ✅");
+        navigate(listPath);
+        return;
+      } catch (e: any) {
+        toast.error(e?.message || "فشل حفظ السند المختلط");
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
     setSaving(true);
 
     try {
