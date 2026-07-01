@@ -41,6 +41,7 @@ import {
   callCreateReceiptRpc,
   callCreatePaymentRpc,
   callAllocateVoucherRpc,
+  callCreateMixedVoucherRpc,
 } from "@/lib/voucher-rpc";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import {
