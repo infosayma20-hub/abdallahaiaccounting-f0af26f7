@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
 import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDialog";
 import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog";
@@ -64,6 +66,7 @@ const fmt = (n: number) =>
 const CashBoxesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
 
   const [boxes, setBoxes] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
@@ -130,10 +133,24 @@ const CashBoxesPage = () => {
     if (allCodes.length === 0) return;
 
     (async () => {
-      const { data: txs } = await supabase
-        .from("transactions")
-        .select("amount, debit_account_code, credit_account_code, transaction_date, foreign_amount, exchange_rate, currency")
-        .eq("is_deleted", false);
+      // ── Parity with AccountStatementV2 ──
+      // 1) Scope by tenant owner (team-member sub-accounts must read the OWNER's ledger).
+      // 2) Paginate — PostgREST caps at 1000 rows/request; without it the tail
+      //    silently disappears and the box balance diverges from SOA.
+      // 3) Include reversed-linked rows so the original + reversal net to zero
+      //    exactly like the printed statement.
+      // 4) Filter server-side by the actual account codes to keep the payload small.
+      const ownerId = dataOwnerId || user.id;
+      const codesCsv = allCodes.map((c) => `"${c}"`).join(",");
+      const txs = await fetchAllRows<any>((from, to) =>
+        supabase
+          .from("transactions")
+          .select("amount, debit_account_code, credit_account_code, transaction_date, foreign_amount, exchange_rate, currency")
+          .eq("user_id", ownerId)
+          .or("is_deleted.eq.false,reversed_by_id.not.is.null")
+          .or(`debit_account_code.in.(${codesCsv}),credit_account_code.in.(${codesCsv})`)
+          .range(from, to) as any,
+      );
 
       const now = new Date();
       const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -177,7 +194,7 @@ const CashBoxesPage = () => {
       }
       setBalances(result);
     })();
-  }, [user, boxes, bankAccounts]);
+  }, [user, dataOwnerId, boxes, bankAccounts]);
 
   const getBalance = (code: string) => balances[code]?.balance || 0;
 
