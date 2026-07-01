@@ -4197,6 +4197,11 @@ const POSPage = () => {
       // Check if there's an existing draft/open order for this table (saved earlier)
       // 🚀 FAST PATH: reuse the pre-staged order if it matches the current cart.
       // Limited to the simple online path (no table / no CC / no employee account).
+      // Wait for any in-flight background stage to settle so we either reuse it
+      // (fast path) or discard it — never orphan it as a stray "معلقة" row.
+      if (stagingPromiseRef.current) {
+        try { await stagingPromiseRef.current; } catch {}
+      }
       const stagedId = stagedOrderIdRef.current;
       const stagedHash = stagedHashRef.current;
       const liveHash = computeStageHash();
