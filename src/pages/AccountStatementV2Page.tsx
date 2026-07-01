@@ -143,6 +143,22 @@ const AccountStatementV2Page = () => {
   const urlEmployeeName = searchParams.get("employee_name") || "";
   const urlAccountCode = searchParams.get("code") || "";
 
+  // ─── Persistent view state (survives tab switches / navigation) ───
+  // Stored in sessionStorage so filters, selected entity, dates and tab are
+  // restored on return without touching URL semantics or reloading data twice.
+  const PERSIST_KEY = "soa:v2:view-state";
+  const hasUrlSelection = Boolean(urlContactId || urlEmployeeName || urlAccountCode);
+  const persisted = (() => {
+    if (typeof window === "undefined") return null as any;
+    if (hasUrlSelection) return null; // URL params always win
+    try {
+      const raw = sessionStorage.getItem(PERSIST_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+  const pick = <T,>(key: string, fallback: T): T =>
+    persisted && persisted[key] !== undefined && persisted[key] !== null ? (persisted[key] as T) : fallback;
+
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -153,18 +169,18 @@ const AccountStatementV2Page = () => {
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
   const [activeTab, setActiveTab] = useState<EntityTab>(
-    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : urlContactId ? "customers" : "contacts"
+    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : urlContactId ? "customers" : pick<EntityTab>("activeTab", "contacts")
   );
-  const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
-  const [txSearch, setTxSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
-  const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
-  const [activePeriod, setActivePeriod] = useState("");
-  const [displayCurrency, setDisplayCurrency] = useState("ILS");
+  const [selectedEntityId, setSelectedEntityId] = useState(urlContactId || pick<string>("selectedEntityId", ""));
+  const [txSearch, setTxSearch] = useState(pick<string>("txSearch", ""));
+  const [dateFrom, setDateFrom] = useState(pick<string>("dateFrom", format(startOfYear(new Date()), "yyyy-MM-dd")));
+  const [dateTo, setDateTo] = useState(pick<string>("dateTo", format(endOfMonth(new Date()), "yyyy-MM-dd")));
+  const [activePeriod, setActivePeriod] = useState(pick<string>("activePeriod", ""));
+  const [displayCurrency, setDisplayCurrency] = useState(pick<string>("displayCurrency", "ILS"));
   const [currentExchangeRate, setCurrentExchangeRate] = useState<Record<string, number>>({});
-  const [txTypeFilter, setTxTypeFilter] = useState("all");
-  const [txCostCenter, setTxCostCenter] = useState("all");
-  const [showYearComparison, setShowYearComparison] = useState(false);
+  const [txTypeFilter, setTxTypeFilter] = useState(pick<string>("txTypeFilter", "all"));
+  const [txCostCenter, setTxCostCenter] = useState(pick<string>("txCostCenter", "all"));
+  const [showYearComparison, setShowYearComparison] = useState(pick<boolean>("showYearComparison", false));
   const [chequesOpen, setChequesOpen] = useState(false);
   const [agingOpen, setAgingOpen] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -176,6 +192,17 @@ const AccountStatementV2Page = () => {
   const [detailsMap, setDetailsMap] = useState<StatementDetailsMap>(() => emptyDetailsMap());
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
+
+  // Persist relevant view state so returning to the page restores exact context.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
+        activeTab, selectedEntityId, txSearch, dateFrom, dateTo, activePeriod,
+        displayCurrency, txTypeFilter, txCostCenter, showYearComparison,
+      }));
+    } catch { /* quota — ignore */ }
+  }, [activeTab, selectedEntityId, txSearch, dateFrom, dateTo, activePeriod, displayCurrency, txTypeFilter, txCostCenter, showYearComparison]);
 
   // ─── Smart row navigation ───
   // Resolves a statement row to its source document and navigates directly to
