@@ -349,7 +349,7 @@ const StockMovementsPage = () => {
         {
           key: "export", label: "تصدير وطباعة", items: [
             { key: "excel", label: "Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للتصدير" : undefined },
-            { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
+            { key: "print", label: "طباعة", icon: Printer, onClick: handlePrint, disabled: filtered.length === 0, tooltip: filtered.length === 0 ? "لا توجد بيانات للطباعة" : undefined },
           ],
         },
       ],
