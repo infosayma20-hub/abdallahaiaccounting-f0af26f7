@@ -41,6 +41,7 @@ import {
   callCreateReceiptRpc,
   callCreatePaymentRpc,
   callAllocateVoucherRpc,
+  callCreateMixedVoucherRpc,
 } from "@/lib/voucher-rpc";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import {
@@ -113,6 +114,7 @@ interface GLAccount {
 const PAYMENT_METHODS = [
   { value: "نقدي", label: "نقدي", icon: Banknote },
   { value: "شيك", label: "شيك", icon: ReceiptIcon },
+  { value: "مختلط", label: "نقدي + شيكات", icon: ReceiptIcon },
   { value: "تحويل", label: "تحويل بنكي", icon: Building2 },
   { value: "بطاقة", label: "بطاقة", icon: CreditCard },
 ];
@@ -205,6 +207,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string; accountNumber: string; notes: string }[]>([]);
   const [endorsedCheques, setEndorsedCheques] = useState<EndorsedCheque[]>([]);
   const [showEndorseModal, setShowEndorseModal] = useState(false);
+
+  // For "مختلط" (نقدي + شيكات) — how much of the total is cash
+  const [mixedCashAmount, setMixedCashAmount] = useState<string>("");
 
   const addCheque = () => setCheques(prev => {
     const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
@@ -1329,6 +1334,89 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
       // رقم حساب صاحب الشيك أصبح اختيارياً للوارد والصادر معاً
     }
+
+    // ─── MIXED path (نقدي + شيكات في نفس السند) ───
+    if (paymentMethod === "مختلط" && !asDraft) {
+      if (isEditMode) {
+        toast.error("تعديل السند المختلط غير مدعوم بعد — أنشئ سنداً جديداً");
+        return;
+      }
+      if (partyType !== "contact" || !selectedContact) {
+        toast.error("السند المختلط متاح للزبون/المورد فقط");
+        return;
+      }
+      const cashPart = Number(mixedCashAmount) || 0;
+      const validCheques = cheques.filter(
+        c => c.number && String(c.number).trim() !== "" && c.bank && Number(c.amount) > 0
+      );
+      if (cashPart <= 0 && validCheques.length === 0) {
+        toast.error("أدخل مبلغاً نقدياً أو أضف شيكاً واحداً على الأقل");
+        return;
+      }
+      if (validCheques.length > 0) {
+        try { validateChequeRows(validCheques as any, currency); }
+        catch (e: any) { toast.error(e?.message || "بيانات الشيك غير مكتملة"); return; }
+      }
+      const chequesTotal = validCheques.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      const grand = cashPart + chequesTotal;
+      if (Math.abs(grand - amountNum) > 0.01) {
+        toast.error(`مجموع (نقدي ${cashPart.toFixed(2)} + شيكات ${chequesTotal.toFixed(2)}) = ${grand.toFixed(2)} لا يساوي مبلغ السند ${amountNum.toFixed(2)}`);
+        return;
+      }
+      // Determine cash account
+      let cashAcct: string | null = null;
+      if (cashPart > 0) {
+        if (depositType === "cash_box" && selectedCashBox) {
+          cashAcct = cashBoxes.find(c => c.id === selectedCashBox)?.gl_account_code || "1110";
+        } else if (depositType === "bank" && selectedBankAccount) {
+          cashAcct = bankAccounts.find(b => b.id === selectedBankAccount)?.gl_account_code || "1120";
+        } else {
+          toast.error("اختر صندوق أو بنك للجزء النقدي"); return;
+        }
+      }
+      setSaving(true);
+      try {
+        const result = await callCreateMixedVoucherRpc({
+          userId: ownerId,
+          kind: isReceipt ? "receipt" : "payment",
+          contactId: selectedContact.id,
+          contactName: selectedContact.contact_name,
+          voucherDate: paymentDate,
+          currency: CURRENCIES.find(c => c.value === currency)?.label || "شيكل",
+          exchangeRate: currency !== "ILS" ? exchangeRate : null,
+          description: notes || `${isReceipt ? "سند قبض" : "سند صرف"} مختلط - ${selectedContact.contact_name}`,
+          notes: notes || null,
+          cashAmount: cashPart,
+          cashAccountCode: cashAcct,
+          cheques: validCheques.map(c => ({
+            number: c.number,
+            date: c.date,
+            bank: c.bank,
+            amount: Number(c.amount) || 0,
+            account_number: c.accountNumber || null,
+            notes: c.notes || null,
+          })),
+          allocations: (invoices || [])
+            .filter((inv: any) => Number(inv.paidNow || 0) > 0)
+            .map((inv: any) => ({ invoice_id: inv.id, amount: Number(inv.paidNow) })),
+          idempotencyKey: `MIX-${Date.now()}`,
+          workshopId: selectedWorkshop?.id || null,
+          costCenterId: costCenterId,
+        });
+        if ((result as any)?.success === false) {
+          throw new Error((result as any).error || "فشل حفظ السند المختلط");
+        }
+        toast.success("تم حفظ السند المختلط بنجاح ✅");
+        navigate(listPath);
+        return;
+      } catch (e: any) {
+        toast.error(e?.message || "فشل حفظ السند المختلط");
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -3219,8 +3307,45 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
           </div>
 
+          {paymentMethod === "مختلط" && (
+            <div className="pt-2 border-t border-border/30 space-y-2">
+              <Label className="text-xs font-bold flex items-center gap-1.5">
+                <Banknote className="h-3.5 w-3.5 text-primary" />
+                توزيع المبلغ (نقدي + شيكات)
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                <div>
+                  <Label className="text-[11px] mb-1 block">المبلغ النقدي</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={mixedCashAmount}
+                    onChange={(e) => setMixedCashAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="text-left font-mono"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-md px-3 py-2">
+                  إجمالي الشيكات: <span className="font-bold text-foreground font-mono">
+                    {cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className={`text-[11px] rounded-md px-3 py-2 font-mono ${
+                  Math.abs((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0) - amountNum) < 0.01
+                    ? "bg-emerald-500/10 text-emerald-600"
+                    : "bg-destructive/10 text-destructive"
+                }`}>
+                  المجموع: {((Number(mixedCashAmount) || 0) + cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)).toFixed(2)}
+                  {" / "}{amountNum.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cheque details - Multi cheque */}
-          {paymentMethod === "شيك" && (
+          {(paymentMethod === "شيك" || paymentMethod === "مختلط") && (
             <div className="pt-2 border-t border-border/30 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-xs font-bold flex items-center gap-1.5">

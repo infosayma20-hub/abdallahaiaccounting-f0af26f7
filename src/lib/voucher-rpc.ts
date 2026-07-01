@@ -133,6 +133,65 @@ export async function callCreatePaymentRpc(
   return data as unknown as VoucherRpcResult;
 }
 
+/* ---------- Mixed voucher (نقدي + شيكات في سند واحد) ---------- */
+
+export interface MixedChequeInput {
+  number: string;
+  date: string;
+  bank: string;
+  amount: number;
+  account_number?: string | null;
+  notes?: string | null;
+}
+
+export interface MixedVoucherRpcParams {
+  userId: string;
+  kind: "receipt" | "payment";
+  contactId?: string | null;
+  contactName?: string | null;
+  voucherDate: string;
+  currency?: string;
+  exchangeRate?: number | null;
+  description?: string | null;
+  notes?: string | null;
+  reference?: string | null;
+  cashAmount: number;
+  cashAccountCode?: string | null;
+  cheques: MixedChequeInput[];
+  allocations?: VoucherAllocation[] | null;
+  idempotencyKey?: string | null;
+  employeeId?: string | null;
+  workshopId?: string | null;
+  costCenterId?: string | null;
+}
+
+export async function callCreateMixedVoucherRpc(
+  p: MixedVoucherRpcParams,
+): Promise<VoucherRpcResult & { cash_transaction_id?: string | null; cheque_transaction_id?: string | null; }> {
+  const { data, error } = await supabase.rpc("create_mixed_voucher_atomic", {
+    p_user_id: p.userId,
+    p_kind: p.kind,
+    p_contact_id: p.contactId ?? null,
+    p_contact_name: p.contactName ?? null,
+    p_voucher_date: p.voucherDate,
+    p_currency: p.currency ?? "شيكل",
+    p_exchange_rate: p.exchangeRate ?? null,
+    p_description: p.description ?? null,
+    p_notes: p.notes ?? null,
+    p_reference: p.reference ?? null,
+    p_cash_amount: p.cashAmount || 0,
+    p_cash_account_code: p.cashAccountCode ?? null,
+    p_cheques: (p.cheques ?? []) as any,
+    p_allocations: (p.allocations ?? null) as any,
+    p_idempotency_key: p.idempotencyKey ?? null,
+    p_employee_id: p.employeeId ?? null,
+    p_workshop_id: p.workshopId ?? null,
+    p_cost_center_id: p.costCenterId ?? null,
+  });
+  if (error) throw error;
+  return data as any;
+}
+
 /* ---------- Journal voucher (سند قيد متعدد الأطراف) ---------- */
 
 export interface JournalLine {
