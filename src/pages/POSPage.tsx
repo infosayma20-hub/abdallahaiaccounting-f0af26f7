@@ -3756,7 +3756,8 @@ const POSPage = () => {
     if (stagedOrderIdRef.current) discardStagedOrder();
 
     stagingInFlightRef.current = true;
-    try {
+    const runner = (async () => {
+     try {
       const effectiveTotal = customerDataDiscount
         ? cartTotals.total - customerDataDiscount.discountAmount
         : cartTotals.total;
@@ -3810,12 +3811,17 @@ const POSPage = () => {
 
       stagedOrderIdRef.current = order.id;
       stagedHashRef.current = hash;
-    } catch (err) {
+     } catch (err) {
       console.warn("[POS stage] background stage failed:", err);
       stagedOrderIdRef.current = null;
       stagedHashRef.current = null;
-    } finally {
+     } finally {
       stagingInFlightRef.current = false;
+     }
+    })();
+    stagingPromiseRef.current = runner;
+    try { await runner; } finally {
+      if (stagingPromiseRef.current === runner) stagingPromiseRef.current = null;
     }
   }, [
     userId, session, company, dataOwnerId, cart, offlineMode.isOnline,
