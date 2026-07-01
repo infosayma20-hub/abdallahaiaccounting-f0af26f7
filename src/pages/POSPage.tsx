@@ -5098,6 +5098,7 @@ const POSPage = () => {
           id: orderId,
           orderNumber: res.order_number,
           queueNumber: queueNumber || undefined,
+          shiftSeq: shiftSeq,
           branchName: company?.name || "مطعم الملكي",
           cashier: session.cashier_name,
           tableNumber: activeOrder.tableName || undefined,
