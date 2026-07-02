@@ -2541,6 +2541,92 @@ export default function SuperAdminDashboard() {
           <TabsContent value="notifications">
             <NotificationsQueuePanel />
           </TabsContent>
+
+          <TabsContent value="finance_integrity" className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
+                <AlertTriangle className="h-5 w-5 text-amber-400" /> سجل تدقيق المالية
+              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  placeholder="فلترة الدفعة (batch)"
+                  value={fiFilterBatch}
+                  onChange={(e) => { setFiFilterBatch(e.target.value); setFiPage(0); }}
+                  className="w-40 text-xs"
+                  style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
+                />
+                <select
+                  value={fiFilterEntity}
+                  onChange={(e) => { setFiFilterEntity(e.target.value); setFiPage(0); }}
+                  className="h-9 rounded-md px-2 text-xs"
+                  style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)", border: "1px solid" }}
+                >
+                  <option value="">كل الأنواع</option>
+                  <option value="voucher">سند (voucher)</option>
+                  <option value="transaction">حركة (transaction)</option>
+                  <option value="invoice">فاتورة (invoice)</option>
+                  <option value="cash_transfer">تحويل نقدي (cash_transfer)</option>
+                </select>
+                <Button variant="ghost" size="sm" onClick={() => loadFiLogs(0)} disabled={fiLoading} style={{ color: "var(--sa-text-muted)" }}>
+                  <RefreshCw className={`h-4 w-4 ${fiLoading ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                      {["التاريخ", "الدفعة", "النوع", "الكيان", "السبب", "القيمة القديمة", "القيمة الجديدة"].map(h => (
+                        <th key={h} className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fiLogs.map((log) => (
+                      <tr key={log.id} style={{ borderBottom: "1px solid var(--sa-divider)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                        <td className="px-4 py-3 tabular-nums text-xs font-mono" style={{ color: "var(--sa-text-muted)" }}>
+                          {format(new Date(log.fixed_at), "dd/MM/yy HH:mm:ss")}
+                        </td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.fix_batch}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.entity_type}</td>
+                        <td className="px-4 py-3 text-xs font-mono truncate max-w-[150px]" style={{ color: "var(--sa-text-muted)" }}>
+                          {log.entity_id ? `${log.entity_id.substring(0, 18)}...` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.reason || "—"}</td>
+                        <td className="px-4 py-3 text-xs font-mono truncate max-w-[180px]" style={{ color: "var(--sa-text-faint)" }}>
+                          {log.old_value ? JSON.stringify(log.old_value).substring(0, 40) : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-mono truncate max-w-[180px]" style={{ color: "var(--sa-text-faint)" }}>
+                          {log.new_value ? JSON.stringify(log.new_value).substring(0, 40) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                    {fiLogs.length === 0 && (
+                      <tr><td colSpan={7} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد سجلات</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {fiTotal > 50 && (
+                <div className="px-4 py-3 flex items-center justify-between" style={{ borderTop: "1px solid var(--sa-divider)" }}>
+                  <span className="text-xs" style={{ color: "var(--sa-text-faint)" }}>{fiTotal} سجل</span>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="ghost" disabled={fiPage === 0} onClick={() => loadFiLogs(fiPage - 1)} style={{ color: "var(--sa-text-muted)" }}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs flex items-center" style={{ color: "var(--sa-text-muted)" }}>صفحة {fiPage + 1}</span>
+                    <Button size="sm" variant="ghost" disabled={(fiPage + 1) * 50 >= fiTotal} onClick={() => loadFiLogs(fiPage + 1)} style={{ color: "var(--sa-text-muted)" }}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
