@@ -1181,6 +1181,10 @@ export default function NewDeviceOnboardingPage() {
                     onConvertToWindows={() => setConvertTarget(p)}
                     onDelete={() => setPrinterToDelete(p)}
                     onResyncAll={() => handleSyncDevice()}
+                    onLinkStations={() => {
+                      setLinkStationsFor(p);
+                      setLinkSelected(Array.isArray(p.station_ids) ? [...p.station_ids] : []);
+                    }}
                   />
                 );
               })}
