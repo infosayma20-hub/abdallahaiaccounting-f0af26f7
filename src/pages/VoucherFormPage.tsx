@@ -2815,8 +2815,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       )}
 
       {/* Row 1: Basic Info */}
-      <Card className="border-2 border-border shadow-sm">
-        <CardContent className="p-4 space-y-3">
+      <Card className="border-2 border-border shadow-md bg-card">
+        <CardContent className="p-3 space-y-2.5">
           {/* Party Type Toggle */}
           <div>
             <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
@@ -3162,10 +3162,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           always has content beside it (no more "floating" feel). */}
 
       {/* Row 2: Payment Method, Currency & Amount */}
-      <Card className="border-2 border-border shadow-sm">
-        <CardContent className="p-4 space-y-3">
+      <Card className="border-2 border-border shadow-md bg-card">
+        <CardContent className="p-3 space-y-2.5">
           {/* ─── Row 1: AMOUNT FIRST (dominant) + Currency ─── */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
             <div className="md:col-span-8">
               <Label className="text-xs mb-1.5 block font-bold text-foreground">{amountLabel}</Label>
               <div className="relative">
@@ -3175,7 +3175,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   type="number"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
-                  className={`pr-9 text-left font-mono text-2xl font-bold h-14 transition-all ${highlightAmount ? "ring-4 ring-primary/60 ring-offset-2 ring-offset-background" : ""}`}
+                  className={`pr-9 text-left font-mono text-xl font-bold h-12 border-2 bg-background transition-all ${highlightAmount ? "ring-4 ring-primary/60 ring-offset-2 ring-offset-background" : ""}`}
                   placeholder="0.00"
                   min="0"
                   step="0.01"
@@ -3189,7 +3189,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             <div className="md:col-span-4">
               <Label className="text-xs mb-1.5 block">العملة</Label>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="h-14" data-testid={isReceipt ? "receipt-currency" : "payment-currency"}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-12 border-2 bg-background" data-testid={isReceipt ? "receipt-currency" : "payment-currency"}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CURRENCIES.map(c => (
                     <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
@@ -3214,11 +3214,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </div>
 
           {/* ─── Row 2: Payment Method + Source toggle ─── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border/40">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2.5 border-t-2 border-border">
             <div>
               <Label className="text-xs mb-1.5 block">طريقة الدفع</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
+                <SelectTrigger className="border-2 bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
