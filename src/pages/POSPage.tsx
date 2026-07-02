@@ -5708,82 +5708,46 @@ const POSPage = () => {
       } as any)
       .eq("id", session.id);
 
-    // Record variance as employee deduction/surplus in HR if employee exists
-    if (variance !== 0) {
-      // Find employee linked to this auth user
-      const { data: emp } = await supabase
+    // 🆕 Phase 1 — Accountant Audit Gate
+    // Instead of directly posting variance to employee (deduction + journal
+    // + financial movement), we now create a DRAFT audit row (status=pending).
+    // The final posting happens only after an accountant reviews & approves it
+    // from "تدقيق ورديات POS" screen via RPC `approve_pos_shift_audit`.
+    // The legacy 3 inserts have been moved into that RPC (employee_wallet
+    // resolution) so the accounting effect is identical when approved.
+    try {
+      // Try to resolve employee id for future convenience (optional).
+      let empIdForAudit: string | null = null;
+      const { data: empRow } = await supabase
         .from("employees")
-        .select("id, full_name")
+        .select("id")
         .eq("auth_user_id", userId)
         .eq("is_active", true)
         .maybeSingle();
+      empIdForAudit = empRow?.id || null;
 
-      // Find contact linked to employee name for account statement
-      let contactId: string | null = null;
-      if (emp) {
-        const { data: contact } = await supabase
-          .from("contacts")
-          .select("id")
-          .eq("user_id", dataOwnerId)
-          .eq("contact_name", emp.full_name)
-          .maybeSingle();
-        contactId = contact?.id || null;
-      }
-
-      if (emp) {
-        const isShortage = variance < 0;
-        // Add to employee_deductions
-        await supabase.from("employee_deductions").insert({
-          user_id: dataOwnerId,
-          employee_id: emp.id,
-          deduction_type: isShortage ? "عجز صندوق" : "فائض صندوق",
-          amount: Math.abs(variance),
-          description: `${isShortage ? "عجز" : "فائض"} وردية POS - ${session.cashier_name} - ${new Date().toLocaleDateString("ar-PS")}`,
-          deduction_date: new Date().toISOString().split("T")[0],
-          notes: `جلسة: ${session.id}`,
-        });
-
-        // Create accounting entry linked to employee contact
-        await supabase.from("transactions").insert({
-          user_id: dataOwnerId,
-          transaction_date: accountingDate,
-          description: `${isShortage ? "عجز" : "فائض"} صندوق - ${session.cashier_name}`,
-          debit_account_code: isShortage ? "1130" : "1110",
-          credit_account_code: isShortage ? "1110" : "1130",
-          amount: Math.abs(variance),
-          currency: "شيكل",
-          transaction_type: isShortage ? "cash_shortage" : "cash_surplus",
-          contact_id: contactId,
-          reference: `SHIFT-${session.id.slice(0, 8)}`,
-          idempotency_key: `SHIFT-VAR-${session.id}`,
-        });
-
-        // Also record in centralized financial movements
-        const now = new Date();
-        const shiftRef = `SHIFT-${session.id.slice(0, 8)}`;
-        const variancePct = Math.round((Math.abs(variance) / (expected || 1)) * 10000) / 100;
-        const transparencyNote =
-          `وردية ${session.cashier_name || ""} | المتوقع: ${expected.toFixed(2)} | الفعلي: ${cash.toFixed(2)} | ` +
-          `${isShortage ? "عجز" : "فائض"}: ${Math.abs(variance).toFixed(2)} (${variancePct}%)`;
-        await supabase.from("employee_financial_movements").insert({
-          user_id: dataOwnerId,
-          employee_id: emp.id,
-          source_type: "pos_shortage",
-          source_id: session.id,
-          source_reference: shiftRef,
-          reference_number: shiftRef,
-          category: isShortage ? "cash_shortage" : "cash_surplus",
-          description: `${isShortage ? "عجز" : "فائض"} صندوق - وردية ${new Date(session.opened_at).toLocaleDateString("ar-PS")}`,
-          amount: Math.abs(variance),
-          movement_type: isShortage ? "debit" : "credit",
-          status: "approved",
-          movement_date: now.toISOString().split("T")[0],
-          salary_month: now.getMonth() + 1,
-          salary_year: now.getFullYear(),
-          created_by: userId,
-          notes: transparencyNote,
-        } as any);
-      }
+      await supabase.from("pos_shift_audits" as any).upsert({
+        user_id: dataOwnerId,
+        session_id: session.id,
+        terminal_id: (session as any).terminal_id ?? null,
+        cashier_name: session.cashier_name,
+        cashier_auth_user_id: userId,
+        cashier_employee_id: empIdForAudit,
+        opened_at: session.opened_at,
+        closed_at: closedAt,
+        variance_ils: varianceILS,
+        variance_usd: varianceUSD,
+        variance_jod: varianceJOD,
+        variance_total_ils: totalVariance,
+        expected_cash_ils: expectedILS,
+        actual_cash_ils: cash,
+        status: "pending",
+        resolution_type: "employee_wallet",
+      }, { onConflict: "session_id" });
+    } catch (e) {
+      console.error("[shift-audit] failed to create audit row", e);
+      // Non-fatal: shift is still closed; accountant can create the audit
+      // row later from the pending list.
     }
 
     // Batch transfer: move sales per currency from box GL to main accounts
