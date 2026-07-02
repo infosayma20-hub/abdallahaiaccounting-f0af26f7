@@ -3403,7 +3403,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       <ArrowLeftRight className="h-3 w-3" /> تجيير شيك مستلم
                     </button>
                   )}
-                  <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (paymentMethod !== "شيك" && paymentMethod !== "مختلط") setPaymentMethod("شيك");
+                      addCheque();
+                    }}
+                    className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium"
+                  >
                     <Plus className="h-3 w-3" /> إضافة شيك
                   </button>
                 </div>
