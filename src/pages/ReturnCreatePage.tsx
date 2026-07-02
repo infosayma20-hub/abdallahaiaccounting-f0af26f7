@@ -350,7 +350,30 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       let returnNumber = "";
 
       if (editId) {
-        // Update existing (always start as draft to allow item replacement, then re-confirm)
+        // Update existing: unpost first (status→draft triggers stock reversal),
+        // then wipe prior journal + tax ledger so re-confirm can post cleanly.
+        // This follows the "Delete & Recreate" integrity policy — no in-place mutation of posted lines.
+        const { data: prevRow } = await supabase
+          .from("returns" as any)
+          .select("status, journal_entry_id")
+          .eq("id", editId)
+          .single();
+        const wasConfirmed = (prevRow as any)?.status === "confirmed";
+        if (wasConfirmed) {
+          // Reverse stock via status flip
+          await supabase.from("returns" as any).update({ status: "draft" } as any).eq("id", editId);
+          // Remove previous accounting transaction (linked by return_id and idempotency_key)
+          await supabase.from("transactions").delete().eq("return_id", editId);
+          await supabase.from("transactions").delete().eq("idempotency_key", `RETURN-${editId}`);
+          // Remove previous tax ledger reversal entry
+          await supabase
+            .from("tax_ledger")
+            .delete()
+            .eq("reference_id", editId)
+            .in("reference_type", ["sales_return", "purchase_return"]);
+          // Clear stale journal link
+          await supabase.from("returns" as any).update({ journal_entry_id: null } as any).eq("id", editId);
+        }
         const { error } = await supabase.from("returns" as any).update({ ...payload, status: "draft" } as any).eq("id", editId).eq("user_id", user.id);
         if (error) throw error;
         await supabase.from("return_items" as any).delete().eq("return_id", editId);
