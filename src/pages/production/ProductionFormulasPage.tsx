@@ -39,7 +39,7 @@ export default function ProductionFormulasPage() {
     setLoading(true);
     const [{ data: fData }, { data: pData }] = await Promise.all([
       supabase.from("production_formulas" as any).select("*").eq("is_deleted", false).order("created_at", { ascending: false }),
-      supabase.from("products").select("id,name,sku").eq("is_deleted" as any, false).limit(2000),
+      supabase.from("products").select("id,name,sku").limit(2000) as any,
     ]);
     const list = (fData ?? []) as any as Formula[];
     if (list.length) {
