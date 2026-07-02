@@ -480,7 +480,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم تأكيد ${titleAr} ${returnNumber} ✅` });
       // Notify other tabs (e.g. Account Statement, Returns list) to refresh silently.
-      broadcastChange("transaction", "update", returnId || undefined);
+      broadcastChange("transaction", "updated", returnId || undefined);
       navigate(listPath);
     } catch (err: any) {
       console.error(err);
@@ -529,7 +529,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       // 4) Clear stale journal link
       await supabase.from("returns" as any).update({ journal_entry_id: null } as any).eq("id", recordId);
 
-      broadcastChange("transaction", "delete", recordId);
+      broadcastChange("transaction", "deleted", recordId);
       toast({ title: `تم إلغاء ${titleAr} ✅`, description: "تم عكس القيد وحركة المخزون" });
       navigate(listPath);
     } catch (err: any) {
