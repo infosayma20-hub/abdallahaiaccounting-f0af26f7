@@ -232,6 +232,26 @@ export default function PrinterRow(props: PrinterRowProps) {
             ) : (
               <ConnTypeBadge kind="Network IP" />
             )}
+            {isKitchenRole && (
+              linkedStations.length > 0 ? (
+                linkedStations.map(s => (
+                  <span
+                    key={s.id}
+                    className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-primary/10 text-primary border-primary/30"
+                    title="محطة المطبخ المرتبطة"
+                  >
+                    🍳 {s.name}
+                  </span>
+                ))
+              ) : (
+                <span
+                  className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800"
+                  title="لن تصلها تذاكر لأنها غير مربوطة بأي محطة"
+                >
+                  ⚠️ غير مربوطة بمحطة
+                </span>
+              )
+            )}
           </div>
           <div className="text-[11px] text-muted-foreground font-mono truncate" dir="ltr">
             {target}
