@@ -280,6 +280,7 @@ const JournalEntriesPage = () => {
           accountMap[tx.debit_account_code || ""],
           accountMap[tx.credit_account_code || ""],
           tx.reference,
+          String(tx.amount || ""),
         ),
       );
     }
@@ -388,6 +389,7 @@ const JournalEntriesPage = () => {
         salary: "راتب", employee_salary: "راتب", employee_payment: "دفعة موظف",
         employee_advance: "سلفة موظف", employee_deduction: "خصم موظف",
         loan_payment: "قسط قرض", loan_disbursement: "صرف قرض",
+        cash_transfer: "تحويل بين الصناديق", currency_exchange: "صرف عملة",
         cheque_collection: "تحصيل شيك", cheque_register: "تسجيل شيك",
         cheque_deposit: "إيداع شيك", cheque_bounce: "شيك مرتجع",
         cheque_endorsement: "تظهير شيك", cheque_return: "إرجاع شيك",

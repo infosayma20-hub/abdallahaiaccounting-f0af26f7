@@ -295,6 +295,62 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }, 50);
   }, []);
   const [fastEntryEnabled] = useFastEntryMode();
+  const reserveVoucherRefNumber = useCallback(async () => {
+    if (!ownerId) return refNumber || "";
+    const table = isReceipt ? "receipt_vouchers" : "vouchers";
+    const prefix = isReceipt ? "REC" : "PV";
+    const numberColumn = isReceipt ? "receipt_number" : "ref_number";
+    const year = new Date(paymentDate || new Date()).getFullYear();
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const { data } = isReceipt
+        ? await supabase
+            .from(table as any)
+            .select(numberColumn)
+            .eq("user_id", ownerId)
+            .like(numberColumn, `${prefix}-${year}-%`)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : await supabase
+            .from(table as any)
+            .select(numberColumn)
+            .eq("user_id", ownerId)
+            .eq("type", "payment")
+            .like(numberColumn, `${prefix}-${year}-%`)
+            .order("created_at", { ascending: false })
+            .limit(50);
+
+      const maxNum = (data || []).reduce((max: number, row: any) => {
+        const match = String(row?.[numberColumn] || "").match(/(\d+)$/);
+        return match ? Math.max(max, parseInt(match[1], 10) || 0) : max;
+      }, 0);
+      const candidate = `${prefix}-${year}-${String(maxNum + 1 + attempt).padStart(4, "0")}`;
+
+      const { data: exists } = isReceipt
+        ? await supabase
+            .from(table as any)
+            .select("id")
+            .eq("user_id", ownerId)
+            .eq(numberColumn, candidate)
+            .maybeSingle()
+        : await supabase
+            .from(table as any)
+            .select("id")
+            .eq("user_id", ownerId)
+            .eq("type", "payment")
+            .eq(numberColumn, candidate)
+            .maybeSingle();
+      if (!exists) {
+        setRefNumber(candidate);
+        return candidate;
+      }
+    }
+
+    const fallback = `${prefix}-${year}-${Date.now().toString().slice(-6)}`;
+    setRefNumber(fallback);
+    return fallback;
+  }, [ownerId, isReceipt, paymentDate, refNumber]);
+
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
@@ -510,6 +566,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     setEmpCategory("سلفة");
     setEmpCategoryCustom("");
     setViolationReason("");
+    setSavedReceiptNumber("");
+    void reserveVoucherRefNumber();
     // Keep: paymentDate, currency, exchangeRate, paymentMethod, depositType,
     //       selectedCashBox, selectedBankAccount, partyType — these are the
     //       "last-used context" the accountant typically reuses.
@@ -518,7 +576,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       const first = document.querySelector<HTMLElement>("[data-smart-first]");
       first?.focus();
     });
-  }, []);
+  }, [reserveVoucherRefNumber]);
 
   // Click-outside handler for all dropdowns
   useEffect(() => {
@@ -1536,6 +1594,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
+      const finalRefNumber = isEditMode ? refNumber : (await reserveVoucherRefNumber());
+
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
         if (isReceipt) {
@@ -1598,7 +1658,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               workshop_id: selectedWorkshop?.id || null,
               cost_center_name: selectedWorkshop?.name || null,
               cost_center_id: costCenterId,
-              reference: refNumber || null,
+              reference: finalRefNumber || null,
             } as any).select("id").single();
 
             // Update receipt voucher with new linked_transaction_id
@@ -1749,7 +1809,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               workshop_id: selectedWorkshop?.id || null,
               cost_center_name: selectedWorkshop?.name || null,
               cost_center_id: costCenterId,
-              reference: refNumber || null,
+              reference: finalRefNumber || null,
             } as any).select("id").single();
 
             // Update voucher with new linked_transaction_id
@@ -1860,7 +1920,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             paymentMethod: paymentMethod === "تحويل" ? "بنك" : "نقدي",
             description: notes || `سند قبض من ${selectedContact!.contact_name}`,
             currency: currencyLabel,
-            idempotencyKey: `RCV-NEW-${Date.now()}`,
+            idempotencyKey: `RCV-${finalRefNumber}`,
+            reference: finalRefNumber,
             voucherDate: paymentDate,
             cashAccountCode: depositAccountCode,
             notes: notes || null,
@@ -1881,9 +1942,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             p_payment_method: paymentMethod === "شيك" ? "شيك" : paymentMethod === "تحويل" ? "بنك" : "نقدي",
             p_description: notes || `سند قبض من ${selectedContact!.contact_name}`,
             p_currency: currencyLabel,
-            p_idempotency_key: `RCV-NEW-${Date.now()}`,
+            p_idempotency_key: `RCV-${finalRefNumber}`,
             p_voucher_date: paymentDate,
             p_exchange_rate: currency !== "ILS" ? exchangeRate : null,
+            p_reference: finalRefNumber,
             p_cash_account_code: depositAccountCode,
             p_contact_account_code: counterAccountCode,
             p_notes: notes || null,
@@ -1921,7 +1983,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           transaction_type: "receipt",
           contact_id: selectedContact?.id || null,
           payment_method: paymentMethod,
-          idempotency_key: `RCV-NEW-${Date.now()}`,
+          idempotency_key: `RCV-${finalRefNumber}`,
+          reference: finalRefNumber || null,
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
           workshop_id: selectedWorkshop?.id || null,
@@ -2005,7 +2068,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             paymentMethod: paymentMethod === "تحويل" ? "بنك" : "نقدي",
             description: txDescription,
             currency: currencyLabel,
-            idempotencyKey: `PAY-NEW-${Date.now()}`,
+            idempotencyKey: `PAY-${finalRefNumber}`,
+            reference: finalRefNumber,
             voucherDate: paymentDate,
             cashAccountCode: depositAccountCode,
             notes: notes || null,
@@ -2028,7 +2092,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           transaction_type: isEmployeePayment ? (empCategory === "رواتب" ? "employee_salary" : empCategory === "سلفة" ? "employee_advance" : "employee_payment") : isAccountPayment ? "journal" : "payment",
           contact_id: txContactId,
           payment_method: payMethodMap[paymentMethod] || "نقدي",
-          idempotency_key: `PAY-NEW-${Date.now()}`,
+          idempotency_key: `PAY-${finalRefNumber}`,
+          reference: finalRefNumber || null,
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
           expense_category: isEmployeePayment ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
@@ -2046,6 +2111,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .from("receipt_vouchers")
           .insert({
             user_id: ownerId,
+            receipt_number: finalRefNumber || null,
             contact_id: selectedContact?.id || null,
             contact_name: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
             payment_date: paymentDate,
@@ -2159,7 +2225,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .insert({
             user_id: ownerId,
             type: "payment" as const,
-            ref_number: refNumber || `PV-${new Date().getFullYear()}-0001`,
+            ref_number: finalRefNumber || `PV-${new Date().getFullYear()}-0001`,
             date: paymentDate,
             contact_id: (isEmpPay || isAccountPayment) ? null : selectedContact?.id,
             payment_method: payMethodMap[paymentMethod] || "cash",
