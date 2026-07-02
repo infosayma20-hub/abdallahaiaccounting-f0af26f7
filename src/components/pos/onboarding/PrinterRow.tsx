@@ -38,6 +38,7 @@ export interface PrinterRowPrinter {
   printer_type: string;
   print_categories: string[];
   settings?: Record<string, unknown>;
+  station_ids?: string[] | null;
 }
 
 /** Subset of Windows printer info from bridge /windows-printers. */
@@ -101,6 +102,8 @@ export interface PrinterRowProps {
   testStatus?: boolean | null;
   /** Windows printers list from /windows-printers (only used for Windows printers). */
   windowsPrinters?: WindowsPrinterMeta[];
+  /** Kitchen stations lookup (id → name) for showing the routing link. */
+  stations?: Array<{ id: string; name: string }>;
 
   onTest: () => void | Promise<void>;
   onConvertToWindows: () => void;
@@ -119,8 +122,16 @@ export default function PrinterRow(props: PrinterRowProps) {
     printer: p, roleLabel, roleEmoji,
     bridgeConnected, bridgeSubnetMismatch, notSynced, bridgeOnline,
     testStatus, windowsPrinters,
+    stations,
     onTest, onConvertToWindows, onDelete, onEdit, onResyncAll,
   } = props;
+
+  // Kitchen-role printer → show which station it's routed to.
+  const isKitchenRole = !((p.print_categories || []).includes("receipt")) &&
+    (p.printer_type === "kitchen_ticket" || (p.print_categories || []).some(c => c !== "receipt"));
+  const linkedStations = (p.station_ids || [])
+    .map(sid => (stations || []).find(s => s.id === sid))
+    .filter(Boolean) as Array<{ id: string; name: string }>;
 
   const settings = (p.settings || {}) as Record<string, unknown>;
   const winName = String(settings.windows_printer_name || "");
