@@ -804,6 +804,8 @@ const App = () => (
                       <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
                       <Route path="/finance/cash-boxes/currency-exchange" element={<CurrencyExchangePage />} />
                       <Route path="/finance/cost-centers" element={<CostCentersPage />} />
+                      <Route path="/production/formulas" element={<ProductionFormulasPage />} />
+                      <Route path="/production/orders" element={<ProductionOrdersPage />} />
                       <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
