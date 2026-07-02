@@ -1282,6 +1282,24 @@ const AccountStatementV2Page = () => {
             <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
           </div>
           <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
+          {isPosBox && posShifts.size > 0 && (
+            <button
+              onClick={() => setPosGroupMode(m => m === 'grouped' ? 'detailed' : 'grouped')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors"
+              style={{
+                background: posGroupMode === 'grouped' ? '#0D1B2E' : 'white',
+                color: posGroupMode === 'grouped' ? 'white' : '#0D1B2E',
+                borderColor: '#0D1B2E',
+              }}
+              title={posGroupMode === 'grouped' ? 'انقر للعرض المفصّل (كل طلب سطر)' : 'انقر للتجميع بالوردية'}
+            >
+              <Package className="w-3.5 h-3.5" />
+              {posGroupMode === 'grouped'
+                ? `مُجمّع بالوردية (${posShifts.size})`
+                : 'عرض مفصّل'}
+              {posShiftLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+            </button>
+          )}
           {selectedEntityId && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/40">
               <span className="text-sm">{selectedEntityEmoji}</span>
