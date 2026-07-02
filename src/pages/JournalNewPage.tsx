@@ -39,6 +39,9 @@ import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown"
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
+import { useJournalBooks } from "@/hooks/useJournalBooks";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Settings2, BookOpen as BookOpenIcon } from "lucide-react";
 
 const CURRENCIES = [
   { value: "ILS", label: "شيكل", symbol: "₪" },
@@ -92,6 +95,13 @@ const JournalNewPage = () => {
   const [formSubtype, setFormSubtype] = useState("normal");
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formBookId, setFormBookId] = useState<string | null>(null);
+  const { books: journalBooks, defaultBook } = useJournalBooks();
+  // اضبط الدفتر الافتراضي تلقائياً عند التحميل الأول
+  useEffect(() => {
+    if (!formBookId && defaultBook) setFormBookId(defaultBook.id);
+  }, [defaultBook, formBookId]);
+  const currentBook = journalBooks.find((b) => b.id === formBookId) || defaultBook || null;
   const [formContactId, setFormContactId] = useState("");
   const [formCostCenterId, setFormCostCenterId] = useState<string | null>(null);
   const [contactSearch, setContactSearch] = useState("");
@@ -372,6 +382,7 @@ const JournalNewPage = () => {
         setFormCostCenterId(v.cost_center_id || null);
         setFormDescription(v.description || "");
         setFormNotes(v.notes || "");
+        if ((v as any).book_id) setFormBookId((v as any).book_id);
         setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
         setLineSortOrder((v.line_sort_order as any) || "original");
 
