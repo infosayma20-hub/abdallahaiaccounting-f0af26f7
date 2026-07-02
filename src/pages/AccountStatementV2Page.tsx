@@ -247,6 +247,11 @@ const AccountStatementV2Page = () => {
   // no source document can be matched (e.g. opening balances, POS lines).
   const openRowDocument = useCallback(async (row: StatementRow) => {
     if (row.isLineItem) return;
+    // Shift summary rows expand/collapse instead of navigating.
+    if (row.isShiftSummary && row.shiftSessionId) {
+      toggleShiftExpanded(row.shiftSessionId);
+      return;
+    }
     if (!dataOwnerId) { setDrawerRow(row); setDrawerOpen(true); return; }
     const ref = (row.reference || "").trim();
     const txType = (row.transaction_type || "").toLowerCase();
