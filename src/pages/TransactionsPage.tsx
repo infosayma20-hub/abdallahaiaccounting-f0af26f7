@@ -352,7 +352,7 @@ const TransactionsPage = () => {
       if (dateFrom && tx.transaction_date < dateFrom) return false;
       if (dateTo && tx.transaction_date > dateTo) return false;
       if (searchQuery.trim()) {
-        if (!multiWordMatchAny(searchQuery, tx.description, tx.reference, getAccountName(tx.debit_account_code), getAccountName(tx.credit_account_code))) return false;
+        if (!multiWordMatchAny(searchQuery, tx.description, tx.reference, getAccountName(tx.debit_account_code), getAccountName(tx.credit_account_code), String(tx.amount || ""))) return false;
       }
       return true;
     });
