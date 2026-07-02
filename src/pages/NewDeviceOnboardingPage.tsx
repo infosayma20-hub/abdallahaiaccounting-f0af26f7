@@ -59,7 +59,10 @@ interface Printer  {
   id: string; name: string; ip_address: string; port: number;
   printer_type: string; print_categories: string[]; branch_id: string | null;
   is_default: boolean; is_active: boolean; settings?: Record<string, unknown>;
+  station_ids?: string[] | null;
 }
+
+interface KitchenStation { id: string; name: string; }
 
 export interface WindowsPrinterInfo {
   name: string;
