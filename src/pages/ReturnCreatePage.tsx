@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight } from "lucide-react";
+import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
+import { broadcastChange } from "@/lib/crossTabSync";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
@@ -126,6 +127,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const [invoicePopover, setInvoicePopover] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const [form, setForm] = useState({
     contactId: null as string | null,
@@ -477,6 +479,8 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       }
 
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم تأكيد ${titleAr} ${returnNumber} ✅` });
+      // Notify other tabs (e.g. Account Statement, Returns list) to refresh silently.
+      broadcastChange("transaction", "update", returnId || undefined);
       navigate(listPath);
     } catch (err: any) {
       console.error(err);
@@ -486,12 +490,63 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     }
   };
 
+  // ─── CANCEL POSTED RETURN ───
+  // Fully reverses a confirmed return without deleting it (audit-safe, matches
+  // invoice cancel policy). Steps:
+  //   1) Flip status → 'cancelled' (DB trigger reverses stock automatically).
+  //   2) Purge the linked accounting transaction so it disappears from the
+  //      account statement (matched by return_id + idempotency key fallback).
+  //   3) Purge the tax-ledger reversal entry.
+  //   4) Clear the stale journal_entry_id link.
+  const handleCancel = async () => {
+    if (!user || !recordId) return;
+    if (form.status !== "confirmed") {
+      toast({ title: "لا يمكن الإلغاء", description: "المردود ليس مرحّلاً", variant: "destructive" });
+      return;
+    }
+    if (!confirm(`إلغاء المردود؟\nسيتم عكس القيد المحاسبي وحركة المخزون تلقائياً.\nهذا الإجراء لا يحذف السجل — يبقى للمراجعة كـ"ملغى".`)) return;
+    setCancelling(true);
+    try {
+      // 1) Reverse stock via status flip (trigger handles it)
+      const { error: statusErr } = await supabase
+        .from("returns" as any)
+        .update({ status: "cancelled" } as any)
+        .eq("id", recordId)
+        .eq("user_id", user.id);
+      if (statusErr) throw statusErr;
+
+      // 2) Purge accounting transaction (both by return_id and by idempotency key)
+      await supabase.from("transactions").delete().eq("return_id", recordId);
+      await supabase.from("transactions").delete().eq("idempotency_key", `RETURN-${recordId}`);
+
+      // 3) Purge tax-ledger reversal row
+      await supabase
+        .from("tax_ledger")
+        .delete()
+        .eq("reference_id", recordId)
+        .in("reference_type", ["sales_return", "purchase_return"]);
+
+      // 4) Clear stale journal link
+      await supabase.from("returns" as any).update({ journal_entry_id: null } as any).eq("id", recordId);
+
+      broadcastChange("transaction", "delete", recordId);
+      toast({ title: `تم إلغاء ${titleAr} ✅`, description: "تم عكس القيد وحركة المخزون" });
+      navigate(listPath);
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "خطأ في الإلغاء", description: err?.message || "حدث خطأ", variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
   const wasPosted = form.status === "confirmed" && !!recordId;
-  const readonly = isView;
+  const isCancelled = form.status === "cancelled";
+  const readonly = isView || isCancelled;
 
   return (
     <FinanceShell
@@ -517,6 +572,13 @@ const ReturnCreatePage = ({ returnType }: Props) => {
                 { key: "confirm", label: wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل", icon: Send, variant: "primary", onClick: () => handleSave(false), disabled: saving },
               ],
             },
+            ...(wasPosted ? [{
+              key: "cancel",
+              label: "إلغاء",
+              items: [
+                { key: "cancel-return", label: "إلغاء المردود", icon: XCircle, variant: "danger" as const, onClick: handleCancel, disabled: cancelling || saving },
+              ],
+            }] : []),
             {
               key: "nav",
               label: "تنقّل",
@@ -529,6 +591,12 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       ] satisfies ActionTab[]) : []}
     >
     <div className="space-y-4 pb-32" dir="rtl">
+      {isCancelled && (
+        <div className="flex items-center gap-2 p-3 rounded-md bg-rose-50 border border-rose-200 text-rose-900 text-sm">
+          <XCircle className="h-4 w-4" />
+          هذا المردود ملغى. تم عكس القيد المحاسبي وحركة المخزون. للعرض فقط.
+        </div>
+      )}
       {wasPosted && !isView && (
         <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm">
           <AlertTriangle className="h-4 w-4" />
