@@ -1654,9 +1654,23 @@ export default function SuperAdminDashboard() {
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const themeFromUrl = searchParams.get("tab");
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("sa-theme") as "dark" | "light") || "light";
   });
+
+  // Sync active tab with URL ?tab=...
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && [
+      "dashboard", "users", "database", "live", "audit", "user_security",
+      "settings", "tools", "subscriptions", "leads", "revenue", "notifications",
+      "finance_integrity",
+    ].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // Dashboard state
   const [stats, setStats] = useState<DashboardStats | null>(null);
