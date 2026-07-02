@@ -1384,6 +1384,15 @@ const AccountStatementV2Page = () => {
             <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
           </div>
           <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
+          <button
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors bg-white hover:bg-muted"
+            style={{ borderColor: '#0D1B2E', color: '#0D1B2E' }}
+            title={isFullscreen ? 'الخروج من ملء الشاشة (Esc)' : 'ملء الشاشة'}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {isFullscreen ? 'خروج' : 'ملء الشاشة'}
+          </button>
           {isPosBox && posShifts.size > 0 && (
             <button
               onClick={() => setPosGroupMode(m => m === 'grouped' ? 'detailed' : 'grouped')}
