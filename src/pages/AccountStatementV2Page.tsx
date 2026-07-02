@@ -1277,6 +1277,23 @@ const AccountStatementV2Page = () => {
               </div>
             </div>
 
+            {hasTransactionsAfterDateTo && (
+              <div className="rounded-lg mb-4 flex items-start gap-2" style={{ background: "#FFFBEB", border: "1px solid #FDE68A", padding: "10px 16px" }}>
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#D97706" }} />
+                <div className="text-xs leading-6" style={{ color: "#92400E" }}>
+                  يوجد حركات أحدث لهذه الجهة بتاريخ {fmtDate(selectedEntityLatestTxDate)}، لكن فلتر "إلى" الحالي ينتهي في {fmtDate(dateTo)}.
+                  <button
+                    type="button"
+                    onClick={() => { setDateTo(selectedEntityLatestTxDate); setActivePeriod(""); }}
+                    className="underline font-semibold mx-1"
+                    style={{ color: "#92400E" }}
+                  >
+                    اعرض حتى آخر حركة
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ─── FILTER BAR ─── */}
             <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "10px 16px" }}>
               <div className="flex items-center gap-3 flex-wrap">
