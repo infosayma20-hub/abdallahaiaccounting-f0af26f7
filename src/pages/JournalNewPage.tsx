@@ -1659,7 +1659,7 @@ const JournalNewPage = () => {
                 </span>
               </div>
             </div>
-            <div className="pt-2 mt-1 border-t border-border/50 space-y-1.5 text-[11px] text-muted-foreground">
+            <div className="pt-2 mt-1 border-t border-border space-y-1.5 text-[11px] text-muted-foreground">
               <div className="flex items-center justify-between">
                 <span>عدد الأسطر</span>
                 <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
@@ -1686,7 +1686,7 @@ const JournalNewPage = () => {
 
       {/* ═══ Bottom Action Bar (inline, in-flow) ═══ */}
       {!editingVoucherId && (
-      <div className="mt-4 rounded-2xl border border-border/60 bg-card/60 px-3 sm:px-4 py-2.5">
+      <div className="mt-4 rounded-2xl border border-border bg-card/60 px-3 sm:px-4 py-2.5">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Mini status pill */}
           <div className={`hidden md:flex items-center gap-2 px-3 h-11 rounded-xl text-[11px] font-semibold tabular-nums ${isBalanced && totalDebit > 0 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : totalDebit > 0 ? "bg-destructive/10 text-destructive" : "bg-muted/40 text-muted-foreground"}`}>
@@ -1705,7 +1705,7 @@ const JournalNewPage = () => {
 
           {/* Ghost: Notes/Attachments toggle */}
           <button onClick={() => setExtrasOpen(v => !v)}
-            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border/60"
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border"
             title="ملاحظات ومرفقات">
             <Paperclip className="h-4 w-4" />
             {(formNotes || attachments.length > 0) ? (
@@ -1726,7 +1726,7 @@ const JournalNewPage = () => {
 
           {/* Secondary: Draft */}
           <button onClick={() => handleSave("draft")} disabled={saving}
-            className="px-4 h-11 rounded-xl border border-border/60 text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            className="px-4 h-11 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
             حفظ كمسودة
           </button>
 
