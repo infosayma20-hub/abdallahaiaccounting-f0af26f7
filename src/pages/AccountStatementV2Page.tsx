@@ -724,7 +724,7 @@ const AccountStatementV2Page = () => {
   const ccLabel = useCallback((id?: string | null) => id ? (ccMap.get(id) || "—") : "بدون مركز تكلفة", [ccMap]);
 
   const filteredRows = useMemo(() => {
-    let r = rows;
+    let r = groupedRows;
     if (txTypeFilter !== "all") r = r.filter(x => txTypeMatchesFilter(x.transaction_type, txTypeFilter));
     if (txCostCenter !== "all") {
       r = txCostCenter === "__none__"
@@ -736,7 +736,7 @@ const AccountStatementV2Page = () => {
     // rows. The input stays instantly responsive; results settle after 300ms.
     if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
     return r;
-  }, [rows, debouncedTxSearch, txTypeFilter, txCostCenter]);
+  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
