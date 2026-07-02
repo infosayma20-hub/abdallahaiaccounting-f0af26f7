@@ -723,6 +723,35 @@ const AccountStatementV2Page = () => {
   }, [costCenters]);
   const ccLabel = useCallback((id?: string | null) => id ? (ccMap.get(id) || "—") : "بدون مركز تكلفة", [ccMap]);
 
+  // ─── POS Shift Data (loaded when a POS cash-box account is selected) ───
+  const posShiftEnabled = !!(isAccountsTab && selectedAccount);
+  const {
+    shifts: posShifts,
+    orderToSession: posOrderToSession,
+    isPosBox,
+    loading: posShiftLoading,
+  } = usePosShiftData(
+    dataOwnerId || undefined,
+    posShiftEnabled ? (selectedAccount?.account_code || undefined) : undefined,
+    dateFrom,
+    dateTo,
+    posShiftEnabled,
+  );
+
+  // ─── Grouped rows (POS shift collapsing) ───
+  // Runs AFTER the raw rows are built and BEFORE filtering/rendering, so all
+  // downstream code (search, cost-center filter, print, export) transparently
+  // sees the collapsed representation.
+  const groupedRows = useMemo<StatementRow[]>(() => {
+    if (!isPosBox || posGroupMode !== 'grouped' || posShifts.size === 0) return rows;
+    return groupRowsByShift(rows as any, {
+      shifts: posShifts,
+      orderToSession: posOrderToSession,
+      expandedSessions: expandedShifts,
+      enabled: true,
+    }) as StatementRow[];
+  }, [rows, isPosBox, posGroupMode, posShifts, posOrderToSession, expandedShifts]);
+
   const filteredRows = useMemo(() => {
     let r = groupedRows;
     if (txTypeFilter !== "all") r = r.filter(x => txTypeMatchesFilter(x.transaction_type, txTypeFilter));
