@@ -151,6 +151,7 @@ const SupportAdminPage = lazy(() => import("./pages/SupportAdminPage"));
 const POSPage = lazy(() => import("./pages/POSPage"));
 const POSUserManagementPage = lazy(() => import("./pages/POSUserManagementPage"));
 const POSReportsPage = lazy(() => import("./pages/POSReportsPage"));
+const POSShiftAuditPage = lazy(() => import("./pages/POSShiftAuditPage"));
 import POSReportsGuard from "./components/pos/POSReportsGuard";
 const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
@@ -961,6 +962,7 @@ const App = () => (
                       <Route path="/pos-users" element={<ModuleGuard><FeatureGuard app="settings" feature="users" perm="manage" label="إدارة مستخدمي نقطة البيع"><POSUserManagementPage /></FeatureGuard></ModuleGuard>} />
                       <Route path="/pos-customers" element={<ModuleGuard><POSCustomerDatabasePage /></ModuleGuard>} />
                       <Route path="/pos-reports" element={<ModuleGuard><POSReportsGuard><POSReportsPage /></POSReportsGuard></ModuleGuard>} />
+                      <Route path="/pos-shift-audit" element={<ModuleGuard><POSShiftAuditPage /></ModuleGuard>} />
                       <Route path="/printer-settings" element={<PrinterSettingsPage />} />
                       <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />

@@ -12863,6 +12863,99 @@ export type Database = {
           },
         ]
       }
+      pos_shift_audits: {
+        Row: {
+          accountant_notes: string | null
+          actual_cash_ils: number | null
+          approved_at: string | null
+          approved_by: string | null
+          cashier_auth_user_id: string | null
+          cashier_employee_id: string | null
+          cashier_name: string | null
+          closed_at: string | null
+          created_at: string
+          expected_cash_ils: number | null
+          id: string
+          opened_at: string | null
+          resolution_payload: Json
+          resolution_type: string
+          session_id: string
+          status: string
+          terminal_id: string | null
+          updated_at: string
+          user_id: string
+          variance_ils: number
+          variance_jod: number
+          variance_total_ils: number
+          variance_usd: number
+        }
+        Insert: {
+          accountant_notes?: string | null
+          actual_cash_ils?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cashier_auth_user_id?: string | null
+          cashier_employee_id?: string | null
+          cashier_name?: string | null
+          closed_at?: string | null
+          created_at?: string
+          expected_cash_ils?: number | null
+          id?: string
+          opened_at?: string | null
+          resolution_payload?: Json
+          resolution_type?: string
+          session_id: string
+          status?: string
+          terminal_id?: string | null
+          updated_at?: string
+          user_id: string
+          variance_ils?: number
+          variance_jod?: number
+          variance_total_ils?: number
+          variance_usd?: number
+        }
+        Update: {
+          accountant_notes?: string | null
+          actual_cash_ils?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cashier_auth_user_id?: string | null
+          cashier_employee_id?: string | null
+          cashier_name?: string | null
+          closed_at?: string | null
+          created_at?: string
+          expected_cash_ils?: number | null
+          id?: string
+          opened_at?: string | null
+          resolution_payload?: Json
+          resolution_type?: string
+          session_id?: string
+          status?: string
+          terminal_id?: string | null
+          updated_at?: string
+          user_id?: string
+          variance_ils?: number
+          variance_jod?: number
+          variance_total_ils?: number
+          variance_usd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_shift_audits_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "pos_session_conflicts"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "pos_shift_audits_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_suppliers: {
         Row: {
           account_name: string | null
@@ -22626,6 +22719,15 @@ export type Database = {
       }
       apply_referral_signup: { Args: { p_code: string }; Returns: undefined }
       apply_rep_invoice_edit: { Args: { p_request_id: string }; Returns: Json }
+      approve_pos_shift_audit: {
+        Args: {
+          p_audit_id: string
+          p_notes?: string
+          p_resolution_payload?: Json
+          p_resolution_type?: string
+        }
+        Returns: Json
+      }
       approve_procurement_request: {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
