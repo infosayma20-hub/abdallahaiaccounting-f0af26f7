@@ -45,8 +45,11 @@ export interface JournalSaveInput {
   date: string;
   /** subtype: normal | opening | adjustment | closing */
   subtype: "normal" | "opening" | "adjustment" | "closing";
-  description: string;
+  /** الوصف — الآن اختياري (تم استبداله بحقل الملاحظات + دفتر السندات) */
+  description?: string;
   notes?: string | null;
+  /** دفتر السندات — إن لم يُمرر يُستخدم الدفتر الافتراضي */
+  book_id?: string | null;
   /** جهة اتصال على مستوى السند ككل (اختياري) */
   contact_id?: string | null;
   /** مركز تكلفة عام على مستوى السند (اختياري) — يُستخدم للسطور التي لا تحدد مركزها */
@@ -230,7 +233,6 @@ async function generateRefNumber(userId: string): Promise<string> {
 
 /** Validation موحّد. يُرجع رسالة خطأ بالعربية أو null إذا كل شيء سليم. */
 export function validateJournalInput(input: JournalSaveInput): string | null {
-  if (!input.description?.trim()) return "الوصف مطلوب";
   if (!input.date) return "التاريخ مطلوب";
 
   const validLines = (input.lines || []).filter(
