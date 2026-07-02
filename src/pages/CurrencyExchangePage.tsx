@@ -395,13 +395,7 @@ const CurrencyExchangePage = () => {
     },
   ];
 
-  if (loading) {
-    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  }
-
-  const titleText = viewId ? "معاينة صرف عملة" : editId ? "تعديل صرف عملة" : "صرف عملة بين صندوقين";
-
-  // Ctrl+S shortcut
+  // Ctrl+S shortcut — must be declared before any early return
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -413,6 +407,12 @@ const CurrencyExchangePage = () => {
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSave, fromBoxId, toBoxId, fromAmount, toAmount, rate, transferDate]);
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  const titleText = viewId ? "معاينة صرف عملة" : editId ? "تعديل صرف عملة" : "صرف عملة بين صندوقين";
 
   return (
     <FinanceShell
