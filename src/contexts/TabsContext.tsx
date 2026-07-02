@@ -53,6 +53,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/finance/bank-accounts": { title: "الحسابات البنكية", icon: "building" },
   "/finance/cash-boxes": { title: "الصناديق", icon: "banknote" },
   "/finance/cash-boxes/transfer": { title: "تحويل بين الصناديق", icon: "banknote" },
+  "/finance/cash-boxes/currency-exchange": { title: "صرف عملة", icon: "banknote" },
   "/inventory": { title: "المخزون", icon: "package" },
   "/inventory-movements": { title: "حركة المخزون", icon: "package" },
   "/inventory-valuation": { title: "تقييم المخزون", icon: "package" },
