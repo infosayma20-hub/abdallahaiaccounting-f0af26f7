@@ -130,6 +130,19 @@ const TX_TYPE_FILTERS = [
   { value: "purchase", label: "فواتير مشتريات" },
 ];
 
+const txTypeMatchesFilter = (transactionType: string, filter: string) => {
+  if (filter === "all") return true;
+  const type = (transactionType || "").toLowerCase();
+  if (filter === "journal") {
+    return type.includes("journal") || type.includes("قيد") || type.includes("salary") || type === "manual";
+  }
+  if (filter === "sale") return type.includes("sale") || type.includes("فاتورة");
+  if (filter === "receipt") return type.includes("receipt") || type.includes("قبض");
+  if (filter === "payment") return type.includes("payment") || type.includes("صرف");
+  if (filter === "purchase") return type.includes("purchase") || type.includes("مشتريات");
+  return type.includes(filter);
+};
+
 // ─── COMPONENT ───
 const AccountStatementV2Page = () => {
   const navigate = useNavigate();
@@ -141,10 +154,10 @@ const AccountStatementV2Page = () => {
   const { toast } = useToast();
   const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
 
-  const urlContactId = searchParams.get("contact_id") || "";
+  const urlContactId = searchParams.get("contact_id") || searchParams.get("contact") || "";
   const urlContactType = searchParams.get("contact_type") || "";
   const urlEmployeeName = searchParams.get("employee_name") || "";
-  const urlAccountCode = searchParams.get("code") || "";
+  const urlAccountCode = searchParams.get("code") || searchParams.get("account") || "";
 
   // ─── Persistent view state (survives tab switches / navigation) ───
   // Stored in sessionStorage so filters, selected entity, dates and tab are
@@ -420,6 +433,27 @@ const AccountStatementV2Page = () => {
   const selectedEntityEmoji = selectedAccount ? "📊" : selectedContact ? (selectedContact.contact_type === "عميل" ? "👤" : "🚚") : selectedEmployee ? "👨‍💼" : "";
   const selectedEntityCode = isAccountsTab ? selectedAccount?.account_code || "" : selectedContact?.linked_account_code || selectedEmployee?.account_code || "";
 
+  const selectedEntityLatestTxDate = useMemo(() => {
+    if (!selectedEntityId) return "";
+
+    let entityTxs: Transaction[] = [];
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      entityTxs = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+    } else if (isEmployeesTab && selectedEmployee?.account_code) {
+      const code = selectedEmployee.account_code;
+      entityTxs = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+    } else if (selectedContact) {
+      const contactName = selectedContact.contact_name?.trim() || "";
+      const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
+      entityTxs = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+    }
+
+    return entityTxs.reduce((latest, tx) => (tx.transaction_date > latest ? tx.transaction_date : latest), "");
+  }, [selectedEntityId, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, transactions, contacts]);
+
+  const hasTransactionsAfterDateTo = Boolean(dateTo && selectedEntityLatestTxDate && selectedEntityLatestTxDate > dateTo);
+
   // Stable SOA number: based on entity + date range, doesn't change during session
   const stableSOANumber = useMemo(() => {
     const seed = `${selectedEntityName}|${dateFrom}|${dateTo}`;
@@ -639,7 +673,7 @@ const AccountStatementV2Page = () => {
 
   const filteredRows = useMemo(() => {
     let r = rows;
-    if (txTypeFilter !== "all") r = r.filter(x => x.transaction_type.includes(txTypeFilter));
+    if (txTypeFilter !== "all") r = r.filter(x => txTypeMatchesFilter(x.transaction_type, txTypeFilter));
     if (txCostCenter !== "all") {
       r = txCostCenter === "__none__"
         ? r.filter(x => !x.cost_center_id)
@@ -1242,6 +1276,23 @@ const AccountStatementV2Page = () => {
                 </div>
               </div>
             </div>
+
+            {hasTransactionsAfterDateTo && (
+              <div className="rounded-lg mb-4 flex items-start gap-2" style={{ background: "#FFFBEB", border: "1px solid #FDE68A", padding: "10px 16px" }}>
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#D97706" }} />
+                <div className="text-xs leading-6" style={{ color: "#92400E" }}>
+                  يوجد حركات أحدث لهذه الجهة بتاريخ {fmtDate(selectedEntityLatestTxDate)}، لكن فلتر "إلى" الحالي ينتهي في {fmtDate(dateTo)}.
+                  <button
+                    type="button"
+                    onClick={() => { setDateTo(selectedEntityLatestTxDate); setActivePeriod(""); }}
+                    className="underline font-semibold mx-1"
+                    style={{ color: "#92400E" }}
+                  >
+                    اعرض حتى آخر حركة
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* ─── FILTER BAR ─── */}
             <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "10px 16px" }}>

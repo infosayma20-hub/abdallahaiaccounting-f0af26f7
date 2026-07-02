@@ -243,15 +243,15 @@ const JournalNewPage = () => {
 
   // Auto-generate ref number
   useEffect(() => {
-    if (!user) return;
-    supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1)
+    if (!user || !dataOwnerId) return;
+    supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1)
       .then(({ data }) => {
         const lastRef = (data || [])[0]?.ref_number || "";
         const match = lastRef.match(/(\d+)$/);
         const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
         setFormRefNumber(`QV-${new Date().getFullYear()}-${nextNum}`);
       });
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   // Auto-fetch exchange rate when currency changes (mirrors VoucherFormPage logic)
   useEffect(() => {
@@ -302,7 +302,7 @@ const JournalNewPage = () => {
 
   // ─── Load existing voucher into the page when editingVoucherId changes ───
   useEffect(() => {
-    if (!user || !editingVoucherId) {
+    if (!user || !dataOwnerId || !editingVoucherId) {
       setEditingCreatedAt(null);
       return;
     }
@@ -314,7 +314,7 @@ const JournalNewPage = () => {
           .from("vouchers")
           .select("id, ref_number, date, subtype, contact_id, cost_center_id, description, notes, attachments, line_sort_order, created_at, type")
           .eq("id", editingVoucherId)
-          .eq("user_id", ownerId)
+          .eq("user_id", dataOwnerId)
           .maybeSingle();
         if (vErr || !v) {
           toast.error("السند غير موجود أو ليس لديك صلاحية");
@@ -378,7 +378,7 @@ const JournalNewPage = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [editingVoucherId, user, navigate]);
+  }, [editingVoucherId, user, dataOwnerId, navigate]);
 
   const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
   const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
@@ -833,12 +833,12 @@ const JournalNewPage = () => {
 
   // Prev/Next navigation between existing journal vouchers
   const goToAdjacentVoucher = async (direction: "prev" | "next") => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     try {
       let q = supabase
         .from("vouchers")
         .select("id, ref_number, created_at")
-        .eq("user_id", ownerId)
+        .eq("user_id", dataOwnerId)
         .eq("type", "journal");
       if (editingCreatedAt) {
         if (direction === "prev") {
@@ -943,10 +943,10 @@ const JournalNewPage = () => {
 
   // Duplicate loaded voucher into a fresh new entry (keeps all data, generates new ref)
   const handleDuplicate = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     // Generate a new ref number
     const { data } = await supabase
-      .from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "journal")
+      .from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal")
       .order("created_at", { ascending: false }).limit(1);
     const lastRef = (data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);

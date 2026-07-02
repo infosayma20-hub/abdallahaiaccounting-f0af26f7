@@ -19,15 +19,38 @@ import { useAuth } from "@/hooks/useAuth";
  * company_settings — those should still key off auth.user.id.
  */
 const OWNER_CACHE_PREFIX = "amwali:data-owner:";
+const OWNER_CACHE_VERSION = 2;
+const OWNER_CACHE_TTL_MS = 30 * 60 * 1000;
+
+type OwnerCache = { ownerId: string | null; fresh: boolean };
+
+function readCachedOwnerMeta(userId: string): OwnerCache {
+  try {
+    const raw = sessionStorage.getItem(OWNER_CACHE_PREFIX + userId);
+    if (!raw) return { ownerId: null, fresh: false };
+
+    // Legacy cache used to be a raw UUID with no version/TTL. Treat it as a
+    // warm hint only, never as fresh, so accountant/team accounts with an old
+    // cached auth.uid() are revalidated and moved back to the tenant owner.
+    if (!raw.trim().startsWith("{")) return { ownerId: raw, fresh: false };
+
+    const parsed = JSON.parse(raw) as { v?: number; ownerId?: string; ts?: number };
+    const ownerId = parsed.ownerId || null;
+    const fresh = Boolean(
+      ownerId &&
+      parsed.v === OWNER_CACHE_VERSION &&
+      parsed.ts &&
+      Date.now() - parsed.ts < OWNER_CACHE_TTL_MS
+    );
+    return { ownerId, fresh };
+  } catch { return { ownerId: null, fresh: false }; }
+}
 
 function readCachedOwner(userId: string): string | null {
-  try {
-    const v = sessionStorage.getItem(OWNER_CACHE_PREFIX + userId);
-    return v && v.length > 0 ? v : null;
-  } catch { return null; }
+  return readCachedOwnerMeta(userId).ownerId;
 }
 function writeCachedOwner(userId: string, ownerId: string) {
-  try { sessionStorage.setItem(OWNER_CACHE_PREFIX + userId, ownerId); } catch { /* ignore */ }
+  try { sessionStorage.setItem(OWNER_CACHE_PREFIX + userId, JSON.stringify({ v: OWNER_CACHE_VERSION, ownerId, ts: Date.now() })); } catch { /* ignore */ }
 }
 
 export function useDataOwnerId(): { dataOwnerId: string | null; userId: string | null } {
@@ -45,11 +68,12 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
       setDataOwnerId(null);
       return;
     }
-    // If we already have a cached value for this user, keep serving it and
-    // skip the network round-trip entirely on this mount.
-    const cached = readCachedOwner(user.id);
-    if (cached) {
-      if (cached !== dataOwnerId) setDataOwnerId(cached);
+    // Serve a fresh versioned cache instantly. Legacy/stale cache is only used
+    // as a temporary hint and is revalidated below to avoid hiding owner data
+    // from accountant/team accounts after owner-resolution fixes.
+    const cached = readCachedOwnerMeta(user.id);
+    if (cached.ownerId && cached.ownerId !== dataOwnerId) setDataOwnerId(cached.ownerId);
+    if (cached.fresh) {
       return;
     }
     let cancelled = false;
@@ -75,7 +99,10 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
       if (profileError) console.error("[useDataOwnerId] owner resolution failed", { error, profileError });
       const resolved = ((profile as any)?.invited_by as string | null) || user.id;
       setDataOwnerId(resolved);
-      writeCachedOwner(user.id, resolved);
+      // Do not persist a self fallback when both owner-resolution paths errored;
+      // a transient failure would otherwise poison the session cache for Sarah
+      // and other accountants, causing new posted entries to disappear.
+      if (!profileError || (profile as any)?.invited_by) writeCachedOwner(user.id, resolved);
     })();
     return () => {
       cancelled = true;

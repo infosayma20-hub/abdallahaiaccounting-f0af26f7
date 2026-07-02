@@ -162,18 +162,18 @@ const FinanceJournalPage = () => {
   };
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
     const [vRes, aRes, cRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", ownerId).eq("is_active", true).order("account_code"),
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", ownerId).neq("is_archived", true),
+      supabase.from("vouchers").select("*").eq("user_id", dataOwnerId).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId).neq("is_archived", true),
     ]);
     setVouchers(vRes.data || []);
     setAccounts(aRes.data || []);
     setContacts(cRes.data || []);
     setLoading(false);
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
@@ -187,13 +187,13 @@ const FinanceJournalPage = () => {
 
   // Auto-generate ref number when modal opens
   const generateRefNumber = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+    if (!user || !dataOwnerId) return;
+    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
     const lastRef = (data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);
     const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
     setFormRefNumber(`QV-${new Date().getFullYear()}-${nextNum}`);
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const totalDebit = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);

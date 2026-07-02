@@ -20,6 +20,7 @@ import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker"
 import type { JournalTemplate as SavedJournalTemplate } from "@/hooks/useJournalTemplates";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 import AccountCombobox from "@/components/finance/AccountCombobox";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 /* ── Types ── */
 interface AccountRow {
@@ -364,6 +365,7 @@ const QuickAddContactDialog = ({
    ══════════════════════════════════════════════════════════ */
 const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: propAccounts }: JournalEntryPopupProps) => {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
   const { save: saveJournalVoucher } = useSaveJournalVoucher();
 
@@ -400,33 +402,33 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
 
   // Load accounts from Supabase
   useEffect(() => {
-    if (!open || !user) return;
+    if (!open || !user || !dataOwnerId) return;
     const load = async () => {
       setLoadingAccounts(true);
       const { data } = await supabase
         .from("accounts")
         .select("id, account_code, account_name, account_type, parent_code")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId)
         .eq("is_active", true)
         .order("account_code");
       setAccounts(data || []);
       setLoadingAccounts(false);
     };
     load();
-  }, [open, user]);
+  }, [open, user, dataOwnerId]);
 
   // Generate sequential reference from DB
   useEffect(() => {
-    if (open && !reference && user) {
+    if (open && !reference && user && dataOwnerId) {
       (async () => {
-        const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+        const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
         const lastRef = (data || [])[0]?.ref_number || "";
         const match = lastRef.match(/(\d+)$/);
         const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
         setReference(`QV-${new Date().getFullYear()}-${nextNum}`);
       })();
     }
-  }, [open, user]);
+  }, [open, reference, user, dataOwnerId]);
 
   // Reset when closed
   useEffect(() => {
@@ -602,8 +604,8 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     setDescription(""); setNotes(""); setReference("");
     setDate(new Date().toISOString().split("T")[0]);
     // Re-generate sequential ref
-    if (user) {
-      const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+    if (user && dataOwnerId) {
+      const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
       const lastRef = (data || [])[0]?.ref_number || "";
       const match = lastRef.match(/(\d+)$/);
       const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
@@ -882,14 +884,14 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
         open={showAddAccount}
         onClose={() => setShowAddAccount(false)}
         accounts={accounts}
-        userId={user?.id || ""}
+        userId={dataOwnerId || user?.id || ""}
         onCreated={handleAccountCreated}
       />
       <QuickAddContactDialog
         open={showAddContact}
         onClose={() => setShowAddContact(false)}
         contactType={addContactType}
-        userId={user?.id || ""}
+        userId={dataOwnerId || user?.id || ""}
         onCreated={handleAccountCreated}
       />
 
