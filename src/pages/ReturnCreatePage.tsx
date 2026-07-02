@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search } from "lucide-react";
+import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { FinanceShell } from "@/components/finance/shell";
+import type { ActionTab } from "@/components/finance/shell";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
