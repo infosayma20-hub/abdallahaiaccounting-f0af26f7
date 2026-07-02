@@ -274,6 +274,7 @@ const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CostCentersPage = lazy(() => import("./pages/CostCentersPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
 const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
+const CurrencyExchangePage = lazy(() => import("./pages/CurrencyExchangePage"));
 const CashLiquidityPage = lazy(() => import("./pages/CashLiquidityPage"));
 const VoucherFormPage = lazy(() => import("./pages/VoucherFormPage"));
 const JournalNewPage = lazy(() => import("./pages/JournalNewPage"));
