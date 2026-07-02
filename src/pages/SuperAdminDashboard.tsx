@@ -1795,6 +1795,17 @@ export default function SuperAdminDashboard() {
     setLoadingUsers(false);
   }, []);
 
+  const loadAuditLogs = useCallback(async (page = 0) => {
+    setLoadingAudit(true);
+    try {
+      const res = await apiCall("audit_logs", { page: String(page) });
+      setAuditLogs(res.logs || []);
+      setAuditTotal(res.total || 0);
+      setAuditPage(page);
+    } catch (e: any) { toast.error(e.message); }
+    setLoadingAudit(false);
+  }, []);
+
   const loadFiLogs = useCallback(async (page = 0, entityFilter = fiFilterEntity, batchFilter = fiFilterBatch) => {
     setFiLoading(true);
     try {
