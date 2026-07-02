@@ -2587,7 +2587,7 @@ export default function SuperAdminDashboard() {
               </h2>
               <div className="flex items-center gap-2 flex-wrap">
                 <Input
-                  placeholder="فلترة الدفعة (batch)"
+                  placeholder="فلترة الدفعة"
                   value={fiFilterBatch}
                   onChange={(e) => { setFiFilterBatch(e.target.value); setFiPage(0); }}
                   className="w-40 text-xs"
@@ -2600,10 +2600,11 @@ export default function SuperAdminDashboard() {
                   style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)", border: "1px solid" }}
                 >
                   <option value="">كل الأنواع</option>
-                  <option value="voucher">سند (voucher)</option>
-                  <option value="transaction">حركة (transaction)</option>
-                  <option value="invoice">فاتورة (invoice)</option>
-                  <option value="cash_transfer">تحويل نقدي (cash_transfer)</option>
+                  <option value="voucher">سند</option>
+                  <option value="transaction">حركة محاسبية</option>
+                  <option value="invoice">فاتورة</option>
+                  <option value="cash_transfer">تحويل نقدي</option>
+                  <option value="journal_entry">قيد يدوي</option>
                 </select>
                 <Button variant="ghost" size="sm" onClick={() => loadFiLogs(0)} disabled={fiLoading} style={{ color: "var(--sa-text-muted)" }}>
                   <RefreshCw className={`h-4 w-4 ${fiLoading ? "animate-spin" : ""}`} />
