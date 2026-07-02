@@ -114,6 +114,7 @@ const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage")
 const RepUnpostedOrdersPage = lazy(() => import("./pages/admin/RepUnpostedOrdersPage"));
 const RepEditRequestsPage = lazy(() => import("./pages/admin/RepEditRequestsPage"));
 const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
+const OpeningBalancesHubPage = lazy(() => import("./pages/OpeningBalancesHubPage"));
 const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
 const WarrantyHomePage = lazy(() => import("./pages/warranty/WarrantyHomePage"));
@@ -860,6 +861,7 @@ const App = () => (
                       <Route path="/payroll-settings" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollSettingsPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/payroll-settings/policies" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollPoliciesPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
+                      <Route path="/opening-balances" element={<OpeningBalancesHubPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
                       <Route path="/warranty" element={<WarrantyHomePage />} />
