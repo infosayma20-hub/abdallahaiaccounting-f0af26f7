@@ -3521,66 +3521,67 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         />
       )}
 
-      {/* ───── BOTTOM ROW (inside left col): Notes + Attachments
-          Nested 3-col grid keeps both inside the col-span-8 left
-          column so the sticky summary on the right keeps content
-          beside it all the way down. */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      {/* Notes — 2/3 */}
-      <Card className="md:col-span-2 border-2 border-border shadow-md bg-card">
-        <CardContent className="p-3">
-          <Label className="text-xs mb-1.5 block font-bold">ملاحظات</Label>
-          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={2} className="resize-none border-2 bg-background" />
-        </CardContent>
-      </Card>
-
-      {/* Attachments — 1/3 */}
-      <Card className="md:col-span-1 border-2 border-border shadow-md bg-card">
-        <CardContent className="p-3 space-y-2">
-          <button
-            type="button"
-            onClick={() => dropZoneRef.current?.classList.toggle("hidden")}
-            className="flex items-center gap-2 text-sm font-bold text-foreground w-full"
-          >
-            <Paperclip className="h-4 w-4 text-primary" />
-            المرفقات ({attachments.length})
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground mr-auto" />
-          </button>
-          <div ref={dropZoneRef}>
-            <div
-              className="border-2 border-dashed border-border rounded-lg p-3 text-center hover:border-primary/60 hover:bg-primary/5 transition-colors cursor-pointer bg-muted/30"
-              onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("border-primary/60", "bg-primary/5"); }}
-              onDragLeave={e => { e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); }}
-              onDrop={e => { e.preventDefault(); e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); handleFileUpload(e.dataTransfer.files); }}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-5 w-5 text-muted-foreground/60 mx-auto mb-1" />
-              <p className="text-[11px] text-muted-foreground">اسحب الملفات هنا أو انقر للرفع</p>
-              <p className="text-[10px] text-muted-foreground/60">PDF, JPG, PNG · 5 ملفات · 10MB</p>
+      {/* ───── COMPACT bottom bar: Notes + Attachments in ONE horizontal row ───── */}
+      <Card className="border-2 border-[#CBD5E1] bg-white dark:bg-card shadow-sm">
+        <CardContent className="p-2">
+          <div className="flex items-stretch gap-2">
+            {/* Notes — takes most width */}
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <Label className="text-[11px] font-bold text-foreground whitespace-nowrap shrink-0">ملاحظات</Label>
+              <Textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`}
+                rows={1}
+                className="resize-none border border-[#CBD5E1] bg-white dark:bg-background text-xs px-2 py-1.5 min-h-[45px] h-[45px] leading-tight"
+              />
             </div>
-            <input ref={fileInputRef} type="file" className="hidden" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx"
-              onChange={e => { if (e.target.files) handleFileUpload(e.target.files); e.target.value = ""; }} />
-            {uploadingFile && <p className="text-xs text-primary mt-2 animate-pulse">جاري الرفع...</p>}
-            {attachments.length > 0 && (
-              <div className="space-y-1.5 mt-3">
-                {attachments.map((att, i) => (
-                  <div key={i} className="flex items-center justify-between bg-secondary/30 rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2 text-xs">
-                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="font-medium text-foreground">{att.name}</span>
-                      <span className="text-muted-foreground">({(att.size / 1024).toFixed(0)} KB)</span>
-                    </div>
-                    <button onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-destructive transition-colors">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+
+            {/* Divider */}
+            <div className="w-px bg-[#CBD5E1] shrink-0" />
+
+            {/* Attachments — compact */}
+            <div className="flex items-center gap-2 shrink-0">
+              <Paperclip className="h-4 w-4 text-primary" />
+              <span className="text-[11px] font-bold text-foreground whitespace-nowrap">
+                المرفقات ({attachments.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md border border-[#CBD5E1] bg-white dark:bg-background hover:bg-primary/5 hover:border-primary/50 transition-colors font-medium text-foreground"
+              >
+                <Plus className="h-3 w-3" /> إضافة
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.xlsx"
+                onChange={e => { if (e.target.files) handleFileUpload(e.target.files); e.target.value = ""; }}
+              />
+              {uploadingFile && <span className="text-[10px] text-primary animate-pulse">جاري الرفع...</span>}
+            </div>
           </div>
+
+          {/* Attached files list — only when files exist, kept ultra-compact */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-[#CBD5E1]">
+              {attachments.map((att, i) => (
+                <div key={i} className="flex items-center gap-1.5 bg-secondary/40 border border-border rounded-md px-2 py-1 text-[11px]">
+                  <Paperclip className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium text-foreground max-w-[160px] truncate">{att.name}</span>
+                  <span className="text-muted-foreground">({(att.size / 1024).toFixed(0)}KB)</span>
+                  <button onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
-      </div>
 
       {/* ═══ END LEFT COLUMN (col-span-8) ═══ */}
       </div>
