@@ -1705,7 +1705,7 @@ const JournalNewPage = () => {
 
           {/* Ghost: Notes/Attachments toggle */}
           <button onClick={() => setExtrasOpen(v => !v)}
-            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border"
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all border-2 border-border bg-muted/30"
             title="ملاحظات ومرفقات">
             <Paperclip className="h-4 w-4" />
             {(formNotes || attachments.length > 0) ? (
@@ -1720,13 +1720,13 @@ const JournalNewPage = () => {
 
           {/* Ghost: Print */}
           <button onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all border-2 border-border bg-muted/30">
             <Printer className="h-4 w-4" /> طباعة
           </button>
 
           {/* Secondary: Draft */}
           <button onClick={() => handleSave("draft")} disabled={saving}
-            className="px-4 h-11 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            className="px-4 h-11 rounded-xl border-2 border-border text-foreground text-sm hover:bg-muted transition-all disabled:opacity-50 bg-muted/30 font-medium">
             حفظ كمسودة
           </button>
 
