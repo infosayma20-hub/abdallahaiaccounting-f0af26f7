@@ -14,7 +14,7 @@ type Stat = { label: string; value: number; icon: any; href: string; description
 
 const OpeningBalancesHubPage = () => {
   const navigate = useNavigate();
-  const ownerId = useDataOwnerId();
+  const { dataOwnerId: ownerId } = useDataOwnerId();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     customers: 0, suppliers: 0, cashBoxes: 0, banks: 0, totalDebit: 0, totalCredit: 0,
