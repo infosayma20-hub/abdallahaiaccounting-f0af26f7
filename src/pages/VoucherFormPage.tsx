@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator, Wallet, Utensils, TrendingDown, ShoppingCart, Truck, ShieldAlert, NotebookPen } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight, Eye, Pencil, Lock, Copy, ChevronRight, ChevronLeft, ListChecks, Calculator, Wallet, Utensils, TrendingDown, ShoppingCart, Truck, ShieldAlert, NotebookPen, Pin, PinOff } from "lucide-react";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import EndorseChequeModal, { type EndorsedCheque } from "@/components/EndorseChequeModal";
 import VoucherCancelModal from "@/components/VoucherCancelModal";
@@ -934,7 +934,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       ]);
       setCashBoxes(cbRes.data || []);
       setBankAccounts(baRes.data || []);
-      if (cbRes.data?.length) setSelectedCashBox(cbRes.data[0].id);
+      if (cbRes.data?.length) {
+        const defaultKey = `voucher_default_cash_box_${ownerId}_${isReceipt ? "receipt" : "payment"}`;
+        const savedDefault = typeof window !== "undefined" ? localStorage.getItem(defaultKey) : null;
+        const validDefault = savedDefault && cbRes.data.some(cb => cb.id === savedDefault) ? savedDefault : null;
+        setSelectedCashBox(validDefault || cbRes.data[0].id);
+      }
       if (baRes.data?.length) {
         setSelectedBankAccount(baRes.data[0].id);
         setSelectedChequeBankAccount(baRes.data[0].id);
@@ -3251,10 +3256,45 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 <>
                   <Label className="text-xs mb-1.5 block">{depositType === "cash_box" ? "الصندوق" : "الحساب البنكي"}</Label>
                   {depositType === "cash_box" ? (
-                    <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
-                      <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
-                      <SelectContent>{cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1">
+                        <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
+                          <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+                          <SelectContent>{cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      {(() => {
+                        const defaultKey = `voucher_default_cash_box_${ownerId}_${isReceipt ? "receipt" : "payment"}`;
+                        const currentDefault = typeof window !== "undefined" ? localStorage.getItem(defaultKey) : null;
+                        const isPinned = currentDefault && currentDefault === selectedCashBox;
+                        return (
+                          <button
+                            type="button"
+                            title={isPinned ? "إلغاء تعيين الصندوق الافتراضي" : "تعيين كصندوق افتراضي تلقائي"}
+                            onClick={() => {
+                              if (!selectedCashBox) { toast.error("اختر الصندوق أولاً"); return; }
+                              if (isPinned) {
+                                localStorage.removeItem(defaultKey);
+                                toast.success("تم إلغاء الصندوق الافتراضي");
+                              } else {
+                                localStorage.setItem(defaultKey, selectedCashBox);
+                                const cbName = cashBoxes.find(c => c.id === selectedCashBox)?.name || "";
+                                toast.success(`تم تعيين "${cbName}" كصندوق افتراضي`);
+                              }
+                              // force re-render
+                              setCashBoxes(prev => [...prev]);
+                            }}
+                            className={`h-10 w-10 flex items-center justify-center rounded-md border transition-all ${
+                              isPinned
+                                ? "bg-primary/15 border-primary/50 text-primary"
+                                : "bg-secondary/40 border-border/40 text-muted-foreground hover:bg-secondary/70"
+                            }`}
+                          >
+                            {isPinned ? <Pin className="h-4 w-4 fill-current" /> : <PinOff className="h-4 w-4" />}
+                          </button>
+                        );
+                      })()}
+                    </div>
                   ) : (
                     <div className="space-y-1.5">
                       <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
