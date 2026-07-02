@@ -1769,7 +1769,7 @@ const AccountStatementV2Page = () => {
                         );
                       }
                       return (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: navigatingRowId === row.transaction_id ? 0.6 : (row.isCancelled ? 0.7 : 1) }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) openRowDocument(row); }}>
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isShiftChild ? "#FAFBFC" : row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: navigatingRowId === row.transaction_id ? 0.6 : (row.isCancelled ? 0.7 : 1) }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) openRowDocument(row); }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
