@@ -1594,6 +1594,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       }
 
+      const finalRefNumber = isEditMode ? refNumber : (await reserveVoucherRefNumber());
+
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
         if (isReceipt) {
@@ -1879,7 +1881,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
 
       // ─── CREATE MODE ───
-      const finalRefNumber = isEditMode ? refNumber : (await reserveVoucherRefNumber());
       let txId: string | null = null;
 
       // Force direct transaction (bypass legacy RPC) whenever the intent
