@@ -1290,7 +1290,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* ═══ JOURNAL LINES — compact ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-3 lg:p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -1307,7 +1307,7 @@ const JournalNewPage = () => {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/60 overflow-hidden">
+          <div className="rounded-xl border border-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
