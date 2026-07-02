@@ -162,6 +162,44 @@ const ALLOWED_TABLES = [
   { key: "employee_payroll", label: "الرواتب", icon: "💳" },
 ];
 
+const fiEntityTypeLabels: Record<string, string> = {
+  voucher: "سند",
+  transaction: "حركة محاسبية",
+  invoice: "فاتورة",
+  cash_transfer: "تحويل نقدي",
+  journal_entry: "قيد يدوي",
+};
+
+const fiBatchLabels: Record<string, string> = {
+  phase_1_duplicate_voucher_renumber: "المرحلة 1: إعادة ترقيم السندات المكررة",
+  phase_2_orphan_journal_entries: "المرحلة 2: حذف القيود اليتيمة",
+  phase_3_currency_exchange_fix: "المرحلة 3: تصحيح صرف العملة",
+  phase_4_invoice_payment_audit: "المرحلة 4: تدقيق مدفوعات الفواتير",
+  phase_5_cash_transfers_orphan_audit: "المرحلة 5: مراجعة التحويلات اليتيمة",
+  finance_integrity_migration: "تدقيق شامل للمالية",
+};
+
+const fiReasonLabels: Record<string, string> = {
+  "re_numbered duplicate voucher": "إعادة ترقيم سند مكرر",
+  "deleted orphan journal entry from cancelled voucher": "حذف قيد يتيم من سند ملغى",
+  "legacy transfer without gl kept for manual review": "تحويل قديم بدون قيود محاسبية (للمراجعة اليدوية)",
+  "cancelled invoice zeroed paid_amount": "تصفير مبلغ مدفوع لفاتورة ملغاة",
+  "invoice payment mismatch recorded": "تسجيل فروقات دفع الفاتورة",
+  "cross_currency_cash_transfer_fixed": "تصحيح تحويل نقدي بين عملات",
+  "duplicate_reference_cleaned": "تنظيف مرجع مكرر",
+  "voided return reversed journal entries": "إلغاء مردودات وعكس قيودها",
+  "return edit cancelled and recreated": "إلغاء مردود وإعادة إنشائه",
+};
+
+export const formatFiBatch = (batch?: string) =>
+  batch ? (fiBatchLabels[batch] || batch.replace(/_/g, " ")) : "—";
+
+export const formatFiEntityType = (type?: string) =>
+  type ? (fiEntityTypeLabels[type] || type) : "—";
+
+export const formatFiReason = (reason?: string) =>
+  reason ? (fiReasonLabels[reason] || reason) : "—";
+
 async function apiCall(action: string, params?: Record<string, string>, body?: any) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("غير مسجل الدخول");
