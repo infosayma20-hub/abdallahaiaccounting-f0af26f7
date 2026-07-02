@@ -533,6 +533,83 @@ export default function EmployeeFormsManagementPage() {
           </TabsList>
 
           <TabsContent value="forms" className="mt-4 space-y-3">
+            {/* HR intake controls — open/close employee request submissions */}
+            {(isAdmin || can("can_manage_forms")) && (
+              <Card className="border-border">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold">استقبال طلبات الموظفين</h3>
+                      <p className="text-[11px] text-muted-foreground">
+                        تحكم دائرة الموارد البشرية بفتح أو إغلاق تقديم طلبات السلف والإجازات من قبل الموظفين.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => saveCompanySettings()}
+                      disabled={savingCompanySettings}
+                    >
+                      {savingCompanySettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "حفظ"}
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Advances */}
+                    <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">طلبات السلف</p>
+                          <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات السلف من الموظفين.</p>
+                        </div>
+                        <Switch
+                          checked={companySettings.hr_allow_advance_requests !== false}
+                          onCheckedChange={v => updateCompanySettings({ hr_allow_advance_requests: v })}
+                        />
+                      </div>
+                      {companySettings.hr_allow_advance_requests === false && (
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
+                          <Textarea
+                            rows={2}
+                            className="text-xs"
+                            placeholder="مثال: تم إغلاق استقبال طلبات السلف حتى نهاية الشهر."
+                            value={companySettings.hr_advance_requests_closed_message ?? ""}
+                            onChange={e => updateCompanySettings({ hr_advance_requests_closed_message: e.target.value })}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Leaves */}
+                    <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">طلبات الإجازات</p>
+                          <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات الإجازات من الموظفين.</p>
+                        </div>
+                        <Switch
+                          checked={companySettings.hr_allow_leave_requests !== false}
+                          onCheckedChange={v => updateCompanySettings({ hr_allow_leave_requests: v })}
+                        />
+                      </div>
+                      {companySettings.hr_allow_leave_requests === false && (
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
+                          <Textarea
+                            rows={2}
+                            className="text-xs"
+                            placeholder="مثال: تم إغلاق استقبال طلبات الإجازات مؤقتاً."
+                            value={companySettings.hr_leave_requests_closed_message ?? ""}
+                            onChange={e => updateCompanySettings({ hr_leave_requests_closed_message: e.target.value })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Category chips */}
             <div className="flex flex-wrap gap-2">
               {CATEGORY_CHIPS.map(c => {
