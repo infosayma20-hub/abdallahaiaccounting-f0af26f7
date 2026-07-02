@@ -1527,64 +1527,28 @@ const JournalNewPage = () => {
             </table>
           </div>
 
-          <p className="text-[11px] text-muted-foreground px-1">
-            كل سطر يكون مدين أو دائن فقط.
-          </p>
-
-          {/* Sort Order Radio */}
-          <div className="flex items-center gap-4 text-xs">
-            <span className="text-muted-foreground font-medium">ترتيب البنود:</span>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="radio" name="sortOrder" checked={lineSortOrder === "debit_first"} onChange={() => setLineSortOrder("debit_first")} className="accent-primary" />
-              <span className={lineSortOrder === "debit_first" ? "font-bold text-foreground" : "text-muted-foreground"}>المدين ثم الدائن</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="radio" name="sortOrder" checked={lineSortOrder === "original"} onChange={() => setLineSortOrder("original")} className="accent-primary" />
-              <span className={lineSortOrder === "original" ? "font-bold text-foreground" : "text-muted-foreground"}>الترتيب الأصلي</span>
-            </label>
+          <div className="flex items-center justify-between gap-3 text-[11px]">
+            <span className="text-muted-foreground">كل سطر مدين أو دائن فقط.</span>
+            <div className="flex items-center gap-3">
+              <span className="text-muted-foreground">الترتيب:</span>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="sortOrder" checked={lineSortOrder === "original"} onChange={() => setLineSortOrder("original")} className="accent-primary" />
+                <span className={lineSortOrder === "original" ? "font-semibold text-foreground" : "text-muted-foreground"}>الأصلي</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="sortOrder" checked={lineSortOrder === "debit_first"} onChange={() => setLineSortOrder("debit_first")} className="accent-primary" />
+                <span className={lineSortOrder === "debit_first" ? "font-semibold text-foreground" : "text-muted-foreground"}>مدين ثم دائن</span>
+              </label>
+            </div>
           </div>
 
         </CardContent>
       </Card>
 
-      {/* ═══ Description — ALWAYS visible (required) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl">
-        <CardContent className="p-5 space-y-2">
-          <Label className="text-xs block flex items-center gap-2 font-semibold">
-            الوصف *
-          </Label>
-          <Textarea
-            value={formDescription}
-            onChange={e => setFormDescription(e.target.value)}
-            placeholder="مثال: سلفة راتب - رهام حسون"
-            rows={2}
-            className="resize-none"
-          />
-        </CardContent>
-      </Card>
-
-      {/* ═══ Notes + Attachments (collapsed by default) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <button
-          onClick={() => setExtrasOpen(v => !v)}
-          className="w-full flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <Paperclip className="h-4 w-4 text-primary" />
-            الملاحظات والمرفقات
-            {(formNotes || attachments.length > 0) && (
-              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                {[formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
-              </span>
-            )}
-          </span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
-        </button>
-      </Card>
-
+      {/* ═══ Notes + Attachments — hidden card body, toggled from bottom "خيارات" ═══ */}
       {extrasOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <Card className="lg:col-span-7 border border-border/60 shadow-sm rounded-2xl">
+      <Card className="lg:col-span-7 border border-border shadow-sm rounded-2xl">
         <CardContent className="p-5">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             ملاحظات
@@ -1594,7 +1558,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* Attachments Section */}
-      <Card className="lg:col-span-5 border border-border/60 shadow-sm rounded-2xl">
+      <Card className="lg:col-span-5 border border-border shadow-sm rounded-2xl">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
