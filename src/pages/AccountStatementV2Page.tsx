@@ -796,6 +796,10 @@ const AccountStatementV2Page = () => {
 
   // ─── POS Shift Data (loaded when a POS cash-box account is selected) ───
   const posShiftEnabled = !!(isAccountsTab && selectedAccount);
+  // Fallback date range for the shift RPC (the user often leaves "from" blank
+  // when opening a statement — we still want the grouping toggle to appear).
+  const posShiftFromDate = dateFrom || '2000-01-01';
+  const posShiftToDate = dateTo || new Date().toISOString().slice(0, 10);
   const {
     shifts: posShifts,
     orderToSession: posOrderToSession,
@@ -804,8 +808,8 @@ const AccountStatementV2Page = () => {
   } = usePosShiftData(
     dataOwnerId || undefined,
     posShiftEnabled ? (selectedAccount?.account_code || undefined) : undefined,
-    dateFrom,
-    dateTo,
+    posShiftFromDate,
+    posShiftToDate,
     posShiftEnabled,
   );
 
