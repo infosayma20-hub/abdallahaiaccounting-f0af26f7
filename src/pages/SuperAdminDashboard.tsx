@@ -2628,8 +2628,33 @@ export default function SuperAdminDashboard() {
                 <Button variant="ghost" size="sm" onClick={() => loadFiLogs(0)} disabled={fiLoading} style={{ color: "var(--sa-text-muted)" }}>
                   <RefreshCw className={`h-4 w-4 ${fiLoading ? "animate-spin" : ""}`} />
                 </Button>
+                <Button size="sm" onClick={runIntegrityCheck} disabled={fiCheckLoading}
+                  className="bg-amber-500 hover:bg-amber-600 text-white text-xs">
+                  <AlertTriangle className={`h-4 w-4 me-1 ${fiCheckLoading ? "animate-pulse" : ""}`} />
+                  {fiCheckLoading ? "جاري الفحص..." : "فحص فوري"}
+                </Button>
               </div>
             </div>
+
+            {fiCheckResult && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "سندات غير متوازنة", value: fiCheckResult.unbalanced_vouchers ?? fiCheckResult.unbalanced ?? 0, bad: true },
+                  { label: "دفعات يتيمة", value: fiCheckResult.orphan_payments ?? 0, bad: true },
+                  { label: "تحويلات نقدية بلا قيد", value: fiCheckResult.cash_transfers_no_gl ?? fiCheckResult.orphan_cash_transfers ?? 0, bad: true },
+                  { label: "إصلاحات آخر 7 أيام", value: fiCheckResult.fixes_last_7_days ?? fiCheckResult.recent_fixes ?? 0, bad: false },
+                ].map((s: any) => (
+                  <div key={s.label} className="rounded-2xl p-4"
+                    style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+                    <div className="text-xs mb-1" style={{ color: "var(--sa-text-muted)" }}>{s.label}</div>
+                    <div className="text-2xl font-bold tabular-nums"
+                      style={{ color: s.bad && Number(s.value) > 0 ? "#f87171" : "var(--sa-text-primary)" }}>
+                      {s.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               <div className="overflow-x-auto">
