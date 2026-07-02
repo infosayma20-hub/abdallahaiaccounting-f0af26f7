@@ -47,14 +47,14 @@ function formatAmount(n: number) {
 }
 
 function resolveContactAccountCode(contact: Contact, accounts: Account[]) {
-  const parentCodes = new Set(accounts.map((a) => a.parent_code).filter(Boolean));
-  const postableAccounts = accounts.filter((a) => {
-    if (parentCodes.has(a.account_code)) return false;
-    return !accounts.some((other) =>
-      other.account_code !== a.account_code &&
-      String(other.account_code || "").startsWith(String(a.account_code || ""))
-    );
-  });
+  // Leaf detection based ONLY on parent_code — prefix matching would treat siblings
+  // like 11101 and 111010 as parent/child and wrongly exclude 11101.
+  const parentCodes = new Set(
+    accounts.map((a) => String(a.parent_code || "").trim()).filter(Boolean)
+  );
+  const postableAccounts = accounts.filter(
+    (a) => !parentCodes.has(String(a.account_code || "").trim())
+  );
   const linked = contact.linked_account_code?.trim();
   if (linked && postableAccounts.some((a) => a.account_code === linked)) return linked;
 
