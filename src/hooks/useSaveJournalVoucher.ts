@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { formatDbError } from "@/lib/db-error-toast";
+import { broadcastChange } from "@/lib/crossTabSync";
 import {
   isVouchersRpcEnabled,
   callCreateJournalMultiPartyRpc,
@@ -497,6 +498,9 @@ export function useSaveJournalVoucher() {
       }
 
       setSaving(false);
+      // بث فوري لكل التبويبات المفتوحة (كشف الحساب، دفتر اليومية، ملخصات) لكي تُحدّث نفسها مباشرةً بدون انتظار Realtime.
+      try { broadcastChange("journal_entry", "created", voucher.id); } catch {}
+      try { broadcastChange("transaction", "created", voucher.id); } catch {}
       return { success: true, voucher_id: voucher.id, ref_number: voucher.ref_number };
     } catch (err: any) {
       // ── Rollback يدوي: لو فشلنا بعد إنشاء voucher نحذفه (cascade ينظف voucher_lines) ──
@@ -703,6 +707,8 @@ export function useSaveJournalVoucher() {
       }
 
       setSaving(false);
+      try { broadcastChange("journal_entry", "updated", voucherId); } catch {}
+      try { broadcastChange("transaction", "updated", voucherId); } catch {}
       return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
     } catch (err: any) {
       setSaving(false);
@@ -743,6 +749,8 @@ export function useSaveJournalVoucher() {
       if (dErr) throw dErr;
 
       setSaving(false);
+      try { broadcastChange("journal_entry", "deleted", voucherId); } catch {}
+      try { broadcastChange("transaction", "deleted", voucherId); } catch {}
       return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
     } catch (err: any) {
       setSaving(false);

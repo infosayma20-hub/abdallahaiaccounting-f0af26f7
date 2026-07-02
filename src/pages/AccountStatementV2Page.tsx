@@ -34,6 +34,7 @@ import { useCostCenters } from "@/hooks/useCostCenters";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 import { useTaxEnabled } from "@/hooks/useTaxEnabled";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { onCrossTabChange } from "@/lib/crossTabSync";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -377,6 +378,22 @@ const AccountStatementV2Page = () => {
       if (timeoutId) clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
+  }, [user, dataOwnerId]);
+
+  // ─── Cross-tab sync: refresh instantly when a voucher/invoice is saved in another tab ───
+  useEffect(() => {
+    if (!user || !dataOwnerId) return;
+    const REFRESH_ENTITIES = new Set([
+      "journal_entry", "transaction", "receipt_voucher", "payment_voucher",
+      "invoice", "purchase_invoice", "contact",
+    ]);
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const unsub = onCrossTabChange((ev) => {
+      if (!REFRESH_ENTITIES.has(ev.entity)) return;
+      if (t) return;
+      t = setTimeout(() => { t = null; fetchData(); }, 400);
+    });
+    return () => { if (t) clearTimeout(t); unsub(); };
   }, [user, dataOwnerId]);
 
   // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
