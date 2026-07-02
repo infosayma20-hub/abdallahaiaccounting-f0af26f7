@@ -273,6 +273,8 @@ const HeaterScreenPage = lazy(() => import("./pages/HeaterScreenPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CostCentersPage = lazy(() => import("./pages/CostCentersPage"));
+const ProductionFormulasPage = lazy(() => import("./pages/production/ProductionFormulasPage"));
+const ProductionOrdersPage = lazy(() => import("./pages/production/ProductionOrdersPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
 const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
 const CurrencyExchangePage = lazy(() => import("./pages/CurrencyExchangePage"));
