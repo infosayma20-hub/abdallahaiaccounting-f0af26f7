@@ -382,9 +382,13 @@ const AccountStatementV2Page = () => {
   const selectedAccountCodeRef = useRef<string>("");
   const selectedContactIdRef = useRef<string>("");
   useEffect(() => {
-    selectedAccountCodeRef.current = selectedEntityCode || "";
-    selectedContactIdRef.current = (selectedContact?.id || "");
-  }, [selectedEntityCode, selectedContact]);
+    const acct = accounts.find(a => a.id === selectedEntityId);
+    const cont = contacts.find(c => c.id === selectedEntityId);
+    const emp = employeeEntities.find(e => e.id === selectedEntityId);
+    selectedAccountCodeRef.current =
+      acct?.account_code || cont?.linked_account_code || emp?.account_code || "";
+    selectedContactIdRef.current = cont?.id || "";
+  }, [selectedEntityId, accounts, contacts, employeeEntities]);
 
   useEffect(() => {
     if (!user || !dataOwnerId) return;
