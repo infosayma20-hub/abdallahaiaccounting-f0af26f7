@@ -5201,6 +5201,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "delivery_notes_linked_invoice_id_fkey"
+            columns: ["linked_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "delivery_notes_to_branch_id_fkey"
             columns: ["to_branch_id"]
             isOneToOne: false
@@ -8913,6 +8920,13 @@ export type Database = {
             referencedRelation: "v_drift_invoice_no_link"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoice_activity_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
+          },
         ]
       }
       invoice_items: {
@@ -9006,6 +9020,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drift_invoice_no_link"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -9230,6 +9251,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drift_invoice_no_link"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_original_invoice_id_fkey"
+            columns: ["original_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
           },
           {
             foreignKeyName: "invoices_salesperson_fk"
@@ -10991,6 +11019,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drift_invoice_no_link"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
           },
           {
             foreignKeyName: "payment_invoice_links_payment_id_fkey"
@@ -15312,6 +15347,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rep_edit_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "rep_edit_requests_new_invoice_id_fkey"
             columns: ["new_invoice_id"]
             isOneToOne: false
@@ -15324,6 +15366,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drift_invoice_no_link"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rep_edit_requests_new_invoice_id_fkey"
+            columns: ["new_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
           },
         ]
       }
@@ -15657,6 +15706,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drift_invoice_no_link"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_related_invoice_id_fkey"
+            columns: ["related_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
           },
         ]
       }
@@ -21351,6 +21407,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "warranty_cards_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "warranty_cards_invoice_item_id_fkey"
             columns: ["invoice_item_id"]
             isOneToOne: false
@@ -21462,6 +21525,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drift_invoice_no_link"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_claims_replacement_invoice_id_fkey"
+            columns: ["replacement_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
           },
           {
             foreignKeyName: "warranty_claims_supplier_claim_id_fkey"
@@ -22389,6 +22459,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_payment_mismatch"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -22603,6 +22680,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_cash_transfers_missing_gl: {
+        Row: {
+          amount: number | null
+          currency: string | null
+          description: string | null
+          id: string | null
+          issue: string | null
+          transfer_date: string | null
+          transfer_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          issue?: never
+          transfer_date?: string | null
+          transfer_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          issue?: never
+          transfer_date?: string | null
+          transfer_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       v_drift_cheque_no_voucher: {
         Row: {
@@ -22822,6 +22932,19 @@ export type Database = {
           document_ref: string | null
           issue_type: string | null
           transaction_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_invoices_payment_mismatch: {
+        Row: {
+          active_allocations: number | null
+          description: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          paid_amount: number | null
+          status: string | null
+          total_amount: number | null
           user_id: string | null
         }
         Relationships: []
@@ -23165,20 +23288,39 @@ export type Database = {
         }
         Returns: Json
       }
-      create_cash_transfer_atomic: {
-        Args: {
-          p_amount: number
-          p_currency?: string
-          p_description?: string
-          p_from_account_code: string
-          p_idempotency_key?: string
-          p_source?: string
-          p_to_account_code: string
-          p_transfer_date?: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      create_cash_transfer_atomic:
+        | {
+            Args: {
+              p_amount: number
+              p_currency?: string
+              p_description?: string
+              p_from_account_code: string
+              p_idempotency_key?: string
+              p_source?: string
+              p_to_account_code: string
+              p_transfer_date?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_currency?: string
+              p_description?: string
+              p_exchange_rate?: number
+              p_foreign_amount?: number
+              p_from_account_code: string
+              p_from_box_id?: string
+              p_idempotency_key?: string
+              p_source?: string
+              p_to_account_code: string
+              p_to_box_id?: string
+              p_transfer_date?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
       create_cheque_bounce_atomic: {
         Args: {
           p_bank_fees?: number
