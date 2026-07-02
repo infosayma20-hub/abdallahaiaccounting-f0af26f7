@@ -1545,65 +1545,62 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
-      {/* ═══ Notes + Attachments — hidden card body, toggled from bottom "خيارات" ═══ */}
-      {extrasOpen && (
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <Card className="lg:col-span-7 border-2 border-border shadow-sm rounded-2xl bg-card/80">
-        <CardContent className="p-5">
-          <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
-            ملاحظات
-          </Label>
-          <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." rows={5} className="resize-none" />
-        </CardContent>
-      </Card>
-
-      {/* Attachments Section */}
-      <Card className="lg:col-span-5 border-2 border-border shadow-sm rounded-2xl bg-card/80">
-        <CardContent className="p-0">
-          <button
-            onClick={() => setAttachmentsOpen(!attachmentsOpen)}
-            className="w-full flex items-center justify-between p-4 hover:bg-secondary/30 transition-colors rounded-xl"
-          >
-            <span className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <Paperclip className="h-4 w-4 text-primary" />
-              المرفقات {attachments.length > 0 && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{attachments.length}</span>}
-            </span>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${attachmentsOpen ? "rotate-180" : ""}`} />
-          </button>
-          {attachmentsOpen && (
-            <div className="px-4 pb-4 space-y-3">
-              <div
-                ref={dropZoneRef}
-                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={e => { e.preventDefault(); e.stopPropagation(); const files = e.dataTransfer.files; if (files.length) handleFileUpload(files[0]); }}
-                className="border-2 border-dashed border-border/80 rounded-xl p-6 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground">اسحب الملفات هنا أو اضغط للرفع</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, JPG, PNG, XLSX — حد أقصى 10MB / 5 ملفات</p>
+      {/* ═══ Notes (right, wider) + Attachments (left, compact) — inline row under the entries table ═══ */}
+      <Card className="border-2 border-border shadow-sm rounded-2xl bg-card/80">
+        <CardContent className="p-3">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+            {/* Notes — right side in RTL (first in DOM) */}
+            <div className="lg:col-span-8 flex items-center gap-3">
+              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0">الملاحظات</Label>
+              <Input
+                value={formNotes}
+                onChange={e => setFormNotes(e.target.value)}
+                placeholder="ملاحظات إضافية على السند..."
+                className="flex-1 h-10 border-2 border-border bg-background"
+              />
+            </div>
+            {/* Attachments — left side, compact */}
+            <div className="lg:col-span-4 flex items-center gap-2 border-2 border-border rounded-xl bg-background px-3 py-1.5">
+              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0">المرفقات</Label>
+              <div className="flex-1 min-w-0 text-[11px] text-muted-foreground truncate">
+                {attachments.length === 0
+                  ? "لا توجد مرفقات"
+                  : attachments.map(a => a.name).join("، ")}
               </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:bg-primary/10 rounded-lg px-2.5 py-1.5 transition-colors shrink-0"
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+                إرفاق ملف
+              </button>
               <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.xlsx"
                 onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); e.target.value = ""; }} />
-              {uploadingFile && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ الرفع...</div>}
+            </div>
+          </div>
+          {/* Attachments list (only when files exist) */}
+          {attachments.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
               {attachments.map((att, i) => (
-                <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{att.name}</a>
-                    <span className="text-muted-foreground">({(att.size / 1024).toFixed(0)} KB)</span>
-                  </div>
-                  <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="p-1 hover:text-destructive text-muted-foreground">
+                <div key={i} className="flex items-center gap-2 bg-muted/40 border border-border/60 rounded-lg px-2.5 py-1">
+                  <Paperclip className="h-3 w-3 text-muted-foreground" />
+                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary hover:underline">{att.name}</a>
+                  <span className="text-[10px] text-muted-foreground">({(att.size / 1024).toFixed(0)} KB)</span>
+                  <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="h-3 w-3" />
                   </button>
                 </div>
               ))}
             </div>
           )}
+          {uploadingFile && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ الرفع...
+            </div>
+          )}
         </CardContent>
       </Card>
-      </div>
-      )}
 
       {/* ═══ END LEFT COLUMN ═══ */}
       </div>
