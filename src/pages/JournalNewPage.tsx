@@ -1145,7 +1145,7 @@ const JournalNewPage = () => {
       <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
       {/* ═══ Header Card — single compact row: date, ref, currency, rate, brief description ═══ */}
-      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-2 border-border shadow-sm rounded-2xl overflow-hidden bg-card/80">
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
             <div className="md:col-span-2">
@@ -1290,7 +1290,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* ═══ JOURNAL LINES — compact ═══ */}
-      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-2 border-border shadow-sm rounded-2xl overflow-hidden bg-card/80">
         <CardContent className="p-3 lg:p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -1307,7 +1307,7 @@ const JournalNewPage = () => {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border-2 border-border overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
@@ -1332,7 +1332,7 @@ const JournalNewPage = () => {
                     : lines;
                   return displayLines.map((line, i) => {
                   return (
-                  <tr key={line.id} className={`border-t border-border/60 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
+                  <tr key={line.id} className={`border-b border-border/60 ${i % 2 === 0 ? "bg-background" : "bg-muted/40"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
                     <td className="p-3">
                       <Input
