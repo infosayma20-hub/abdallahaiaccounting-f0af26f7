@@ -321,25 +321,31 @@ const AccountStatementV2Page = () => {
   const fetchTxServerFiltered = async (filter: { accountCode?: string; contactId?: string }) => {
     const PAGE = 1000;
     const all: any[] = [];
-    // Build the entity filter clause (server-side). If neither is set, no
-    // filter is added — behaviour matches the previous "fetch all" path.
-    const entityClauseParts: string[] = [];
+    // Build entity filter (server-side). If unset → no filter → old behavior.
+    const entityParts: string[] = [];
     if (filter.accountCode) {
-      entityClauseParts.push(`debit_account_code.eq.${filter.accountCode}`);
-      entityClauseParts.push(`credit_account_code.eq.${filter.accountCode}`);
+      entityParts.push(`debit_account_code.eq.${filter.accountCode}`);
+      entityParts.push(`credit_account_code.eq.${filter.accountCode}`);
     }
     if (filter.contactId) {
-      entityClauseParts.push(`contact_id.eq.${filter.contactId}`);
+      entityParts.push(`contact_id.eq.${filter.contactId}`);
     }
-    const entityClause = entityClauseParts.length ? entityClauseParts.join(",") : null;
+    const entityInner = entityParts.length ? entityParts.join(",") : null;
+    // IMPORTANT: chaining .or() twice on the same builder does NOT AND them —
+    // the second call silently replaces the first at the URL layer. We compose
+    // both conditions into ONE .or() using PostgREST nested syntax:
+    //   or=(and(is_deleted.eq.false,or(entity…)),and(reversed_by_id.not.is.null,or(entity…)))
+    // This preserves the original semantic:
+    //   (NOT soft-deleted OR row-is-a-reversal) AND (row touches viewed entity)
+    const composedOr = entityInner
+      ? `and(is_deleted.eq.false,or(${entityInner})),and(reversed_by_id.not.is.null,or(${entityInner}))`
+      : `is_deleted.eq.false,reversed_by_id.not.is.null`;
     for (let from = 0; ; from += PAGE) {
-      let q = supabase
+      const q = supabase
         .from("transactions")
         .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
         .eq("user_id", dataOwnerId!)
-        .or("is_deleted.eq.false,reversed_by_id.not.is.null");
-      if (entityClause) q = q.or(entityClause);
-      q = q
+        .or(composedOr)
         .order("transaction_date", { ascending: true })
         .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
