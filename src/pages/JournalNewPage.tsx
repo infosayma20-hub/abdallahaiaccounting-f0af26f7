@@ -1145,7 +1145,7 @@ const JournalNewPage = () => {
       <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
       {/* ═══ Header Card — single compact row: date, ref, currency, rate, brief description ═══ */}
-      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
             <div className="md:col-span-2">
@@ -1290,7 +1290,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* ═══ JOURNAL LINES — compact ═══ */}
-      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-3 lg:p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -1307,7 +1307,7 @@ const JournalNewPage = () => {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border border-border/60 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
@@ -1548,7 +1548,7 @@ const JournalNewPage = () => {
       {/* ═══ Notes + Attachments — hidden card body, toggled from bottom "خيارات" ═══ */}
       {extrasOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <Card className="lg:col-span-7 border border-border shadow-sm rounded-2xl">
+      <Card className="lg:col-span-7 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             ملاحظات
@@ -1558,7 +1558,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* Attachments Section */}
-      <Card className="lg:col-span-5 border border-border shadow-sm rounded-2xl">
+      <Card className="lg:col-span-5 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
@@ -1705,7 +1705,7 @@ const JournalNewPage = () => {
 
           {/* Ghost: Notes/Attachments toggle */}
           <button onClick={() => setExtrasOpen(v => !v)}
-            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border"
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border/60"
             title="ملاحظات ومرفقات">
             <Paperclip className="h-4 w-4" />
             {(formNotes || attachments.length > 0) ? (
@@ -1726,7 +1726,7 @@ const JournalNewPage = () => {
 
           {/* Secondary: Draft */}
           <button onClick={() => handleSave("draft")} disabled={saving}
-            className="px-4 h-11 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            className="px-4 h-11 rounded-xl border border-border/60 text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
             حفظ كمسودة
           </button>
 
