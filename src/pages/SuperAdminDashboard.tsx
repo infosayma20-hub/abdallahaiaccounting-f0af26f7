@@ -1655,7 +1655,6 @@ export default function SuperAdminDashboard() {
   const [checking, setChecking] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchParams, setSearchParams] = useSearchParams();
-  const themeFromUrl = searchParams.get("tab");
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("sa-theme") as "dark" | "light") || "light";
   });
