@@ -2163,7 +2163,10 @@ export default function SuperAdminDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(tab) => {
+          setActiveTab(tab);
+          setSearchParams({ tab });
+        }}>
           <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 mb-4 sm:mb-6">
             <TabsList className="border p-1 flex-nowrap sm:flex-wrap h-auto gap-1 w-max sm:w-auto"
               style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
