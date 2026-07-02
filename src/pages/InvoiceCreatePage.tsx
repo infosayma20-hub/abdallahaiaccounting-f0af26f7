@@ -2829,6 +2829,16 @@ const InvoiceCreatePage = () => {
                             كود: <span className="font-mono">{prod?.sku || prod?.barcode}</span>
                           </p>
                         )}
+                        {item.productId && prod && (
+                          <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5 tabular-nums flex flex-wrap gap-x-2">
+                            {Number(prod.buy_price) > 0 && (
+                              <span title="آخر سعر شراء مسجّل">🛒 شراء: <span className="font-semibold text-foreground">{Number(prod.buy_price).toLocaleString("en", { maximumFractionDigits: 2 })}</span></span>
+                            )}
+                            {Number((prod as any).sale_price ?? prod.price) > 0 && (
+                              <span title="سعر بيع الصنف">🏷️ بيع: <span className="font-semibold text-foreground">{Number((prod as any).sale_price ?? prod.price).toLocaleString("en", { maximumFractionDigits: 2 })}</span></span>
+                            )}
+                          </p>
+                        )}
                       </td>
 
                       {/* Quantity */}
