@@ -1405,6 +1405,73 @@ export default function NewDeviceOnboardingPage() {
         bridgeOnline={bridgeOnline === true}
       />
 
+      {/* ── Link kitchen printer to station(s) ── */}
+      <Dialog open={!!linkStationsFor} onOpenChange={(v) => { if (!v) { setLinkStationsFor(null); setLinkSelected([]); } }}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>ربط الطابعة بمحطة مطبخ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              اختر المحطة (أو المحطات) التي ستُرسل تذاكرها إلى{" "}
+              <span className="font-semibold text-foreground">{linkStationsFor?.name}</span>.
+              الأصناف التي تتبع محطة غير مربوطة بأي طابعة لن تُطبع.
+            </div>
+            {stations.length === 0 ? (
+              <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground text-center">
+                لا توجد محطات مطبخ معرّفة. أنشئ محطة من إعدادات المطبخ أولاً.
+              </div>
+            ) : (
+              <div className="rounded-md border divide-y">
+                {stations.map(s => {
+                  const checked = linkSelected.includes(s.id);
+                  return (
+                    <label key={s.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/50">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          setLinkSelected(prev => v ? Array.from(new Set([...prev, s.id])) : prev.filter(x => x !== s.id));
+                        }}
+                      />
+                      <span className="text-sm">🍳 {s.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => { setLinkStationsFor(null); setLinkSelected([]); }} disabled={linkSaving}>
+              إلغاء
+            </Button>
+            <Button
+              disabled={linkSaving || !linkStationsFor}
+              onClick={async () => {
+                if (!linkStationsFor) return;
+                setLinkSaving(true);
+                try {
+                  const { error } = await supabase
+                    .from("pos_printers")
+                    .update({ station_ids: linkSelected })
+                    .eq("id", linkStationsFor.id);
+                  if (error) throw error;
+                  toast.success("تم تحديث ربط المحطات");
+                  setLinkStationsFor(null);
+                  setLinkSelected([]);
+                  await loadOptions();
+                } catch (e: any) {
+                  toast.error(e?.message || "تعذّر حفظ الربط");
+                } finally {
+                  setLinkSaving(false);
+                }
+              }}
+            >
+              {linkSaving ? "جارٍ الحفظ..." : "حفظ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!printerToDelete} onOpenChange={(v) => !v && setPrinterToDelete(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
