@@ -313,6 +313,45 @@ const AccountStatementV2Page = () => {
   }, [dataOwnerId, navigate, toggleShiftExpanded]);
 
   // ─── FETCH DATA ───
+  // Server-side filtered transactions fetch. Composes the account/contact
+  // filter with the existing "is_deleted=false OR reversed_by_id NOT NULL"
+  // clause. Paginated (PostgREST caps at 1000 rows/query).
+  // NOTE: multiple .or() calls compose with AND, which is what we want:
+  //   (is_deleted=false OR reversed) AND (debit=X OR credit=X OR contact=Y)
+  const fetchTxServerFiltered = async (filter: { accountCode?: string; contactId?: string }) => {
+    const PAGE = 1000;
+    const all: any[] = [];
+    // Build the entity filter clause (server-side). If neither is set, no
+    // filter is added — behaviour matches the previous "fetch all" path.
+    const entityClauseParts: string[] = [];
+    if (filter.accountCode) {
+      entityClauseParts.push(`debit_account_code.eq.${filter.accountCode}`);
+      entityClauseParts.push(`credit_account_code.eq.${filter.accountCode}`);
+    }
+    if (filter.contactId) {
+      entityClauseParts.push(`contact_id.eq.${filter.contactId}`);
+    }
+    const entityClause = entityClauseParts.length ? entityClauseParts.join(",") : null;
+    for (let from = 0; ; from += PAGE) {
+      let q = supabase
+        .from("transactions")
+        .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
+        .eq("user_id", dataOwnerId!)
+        .or("is_deleted.eq.false,reversed_by_id.not.is.null");
+      if (entityClause) q = q.or(entityClause);
+      q = q
+        .order("transaction_date", { ascending: true })
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      const { data, error } = await q;
+      if (error) throw error;
+      const chunk = data || [];
+      all.push(...chunk);
+      if (chunk.length < PAGE) break;
+    }
+    return all as Transaction[];
+  };
+
   const fetchData = async (opts: { silent?: boolean } = {}) => {
     if (!user || !dataOwnerId) return;
     const silent = opts.silent === true && hasLoadedOnceRef.current;
