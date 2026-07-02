@@ -1218,6 +1218,12 @@ const AccountStatementV2Page = () => {
       actionTabs={actionTabs}
       rightSlot={
         <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+          {isRefreshing && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>يتم التحديث…</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 rounded-lg px-2 py-1 bg-muted/40 border border-border/40">
             <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
             <div className="w-px h-4 bg-border" />
