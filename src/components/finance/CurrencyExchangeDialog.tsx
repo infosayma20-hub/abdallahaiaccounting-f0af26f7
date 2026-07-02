@@ -32,11 +32,6 @@ const CURRENCIES = [
   { code: "EUR", label: "يورو €", symbol: "€", arLabel: "يورو" },
 ];
 
-// FX clearing/suspense account (pre-existing in the standard COA).
-// Each leg posts against this account so both cash-box statements show the
-// correct native-currency movement; the clearing nets ≈0 at ILS equivalent.
-const FX_CLEARING_CODE = "1199";
-
 const curMeta = (code?: string) =>
   CURRENCIES.find(c => c.code === (code || "ILS")) || CURRENCIES[0];
 
@@ -116,44 +111,31 @@ export default function CurrencyExchangeDialog({ open, onOpenChange, boxes, onSu
 
     setSaving(true);
     try {
-      const ref = `FX-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-      const idemBase = `FX-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const idemKey = `FX-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const baseDesc = `صرف عملة: ${fromBox.name} (${fromCur.label}) → ${toBox.name} (${toCur.label}) | سعر: 1 ${fromCur.arLabel} = ${r} ${toCur.arLabel}`;
       const desc = notes ? `${baseDesc} - ${notes}` : baseDesc;
 
-      // Leg 1 — OUT of source (Dr Clearing / Cr Source), source currency
-      const { error: e1 } = await supabase.from("transactions").insert({
-        user_id: userId,
-        transaction_date: transferDate,
-        description: `${desc} [1/2 خصم من ${fromBox.name}]`,
-        debit_account_code: FX_CLEARING_CODE,
-        credit_account_code: fromBox.gl_account_code,
-        amount: src,
-        currency: fromCur.arLabel,
-        transaction_type: "currency_exchange",
-        reference: ref,
-        payment_method: "نقدي",
-        idempotency_key: `${idemBase}-OUT`,
+      // Use the official atomic RPC — validates postable accounts, is idempotent,
+      // and records a single direct from→to transaction (no non-standard clearing account).
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc("create_currency_exchange_atomic", {
+        p_user_id: userId,
+        p_from_account_code: fromBox.gl_account_code,
+        p_to_account_code: toBox.gl_account_code,
+        p_from_amount: src,
+        p_to_amount: tgt,
+        p_from_currency: fromCur.arLabel,
+        p_to_currency: toCur.arLabel,
+        p_exchange_rate: r,
+        p_exchange_date: transferDate,
+        p_description: desc,
+        p_idempotency_key: idemKey,
       });
-      if (e1) throw e1;
+      if (rpcErr) throw rpcErr;
+      const res = rpcRes as any;
+      if (!res?.success) throw new Error(res?.error || "فشل تنفيذ الصرف");
+      const ref = res?.reference || idemKey;
 
-      // Leg 2 — IN to target (Dr Target / Cr Clearing), target currency
-      const { error: e2 } = await supabase.from("transactions").insert({
-        user_id: userId,
-        transaction_date: transferDate,
-        description: `${desc} [2/2 إضافة إلى ${toBox.name}]`,
-        debit_account_code: toBox.gl_account_code,
-        credit_account_code: FX_CLEARING_CODE,
-        amount: tgt,
-        currency: toCur.arLabel,
-        transaction_type: "currency_exchange",
-        reference: ref,
-        payment_method: "نقدي",
-        idempotency_key: `${idemBase}-IN`,
-      });
-      if (e2) throw e2;
-
-      // Audit log (best-effort — non-fatal on error)
+      // Audit trail (best-effort — non-fatal)
       await supabase.from("cash_transfers").insert({
         user_id: userId,
         from_box_id: fromBox.id,
@@ -268,7 +250,7 @@ export default function CurrencyExchangeDialog({ open, onOpenChange, boxes, onSu
             {fromCur.symbol}{fmt(Number(amount))} × {rate} = {toCur.symbol}{fmt(convertedAmount)}
           </p>
           <p className="text-[10px] text-muted-foreground mt-2 border-t pt-1.5">
-            القيد: Cr {fromBox.gl_account_code} ({fromCur.arLabel}) / Dr {toBox.gl_account_code} ({toCur.arLabel}) عبر الحساب الوسيط {FX_CLEARING_CODE}
+            القيد: Cr {fromBox.gl_account_code} ({fromCur.arLabel}) {fmt(Number(amount))} / Dr {toBox.gl_account_code} ({toCur.arLabel}) {fmt(convertedAmount)}
           </p>
         </div>
       )}
