@@ -1054,7 +1054,52 @@ function SubscriptionsManager() {
     expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
     cancelled: { text: "ملغي", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
     suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  const statusLabel: Record<string, { text: string; cls: string }> = {
+    trial: { text: "تجريبي", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    active: { text: "نشط", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+    cancelled: { text: "ملغي", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
+    suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
   };
+
+  const fiEntityTypeLabels: Record<string, string> = {
+    voucher: "سند",
+    transaction: "حركة محاسبية",
+    invoice: "فاتورة",
+    cash_transfer: "تحويل نقدي",
+    journal_entry: "قيد يدوي",
+  };
+
+  const fiBatchLabels: Record<string, string> = {
+    phase_1_duplicate_voucher_renumber: "المرحلة 1: إعادة ترقيم السندات المكررة",
+    phase_2_orphan_journal_entries: "المرحلة 2: حذف القيود اليتيمة",
+    phase_3_currency_exchange_fix: "المرحلة 3: تصحيح صرف العملة",
+    phase_4_invoice_payment_audit: "المرحلة 4: تدقيق مدفوعات الفواتير",
+    phase_5_cash_transfers_orphan_audit: "المرحلة 5: مراجعة التحويلات اليتيمة",
+    finance_integrity_migration: "تدقيق شامل للمالية",
+  };
+
+  const fiReasonLabels: Record<string, string> = {
+    "re_numbered duplicate voucher": "إعادة ترقيم سند مكرر",
+    "deleted orphan journal entry from cancelled voucher": "حذف قيد يتيم من سند ملغى",
+    "legacy transfer without gl kept for manual review": "تحويل قديم بدون قيود محاسبية (للمراجعة اليدوية)",
+    "cancelled invoice zeroed paid_amount": "تصفير مبلغ مدفوع لفاتورة ملغاة",
+    "invoice payment mismatch recorded": "تسجيل فروقات دفع الفاتورة",
+    "cross_currency_cash_transfer_fixed": "تصحيح تحويل نقدي بين عملات",
+    "duplicate_reference_cleaned": "تنظيف مرجع مكرر",
+    "voided return reversed journal entries": "إلغاء مردودات وعكس قيودها",
+    "return edit cancelled and recreated": "إلغاء مردود وإعادة إنشائه",
+  };
+
+  const formatFiBatch = (batch?: string) =>
+    batch ? (fiBatchLabels[batch] || batch.replace(/_/g, " ")) : "—";
+
+  const formatFiEntityType = (type?: string) =>
+    type ? (fiEntityTypeLabels[type] || type) : "—";
+
+  const formatFiReason = (reason?: string) =>
+    reason ? (fiReasonLabels[reason] || reason) : "—";
+
 
    const openEdit = (sub: any) => {
      setEditSub(sub);
