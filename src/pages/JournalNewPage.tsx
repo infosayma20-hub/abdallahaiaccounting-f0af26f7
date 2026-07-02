@@ -64,6 +64,7 @@ interface Contact {
   contact_name: string;
   contact_type: string;
   current_balance: number;
+  linked_account_code?: string | null;
 }
 
 const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
@@ -123,10 +124,14 @@ const JournalNewPage = () => {
 
   // Postable accounts only (exclude parents — any code referenced as parent_code is a parent)
   const postableAccounts = useMemo(() => {
-    const parentCodes = new Set(
-      accounts.map((a: any) => a.parent_code).filter(Boolean)
-    );
-    return accounts.filter((a: any) => !parentCodes.has(a.account_code));
+    const parentCodes = new Set(accounts.map((a: any) => a.parent_code).filter(Boolean));
+    return accounts.filter((a: any) => {
+      if (parentCodes.has(a.account_code)) return false;
+      return !accounts.some((other: any) =>
+        other.account_code !== a.account_code &&
+        String(other.account_code || "").startsWith(String(a.account_code || ""))
+      );
+    });
   }, [accounts]);
 
   // Quick-add contact state
@@ -232,13 +237,39 @@ const JournalNewPage = () => {
   // Load data
   useEffect(() => {
     if (!user || !dataOwnerId) return;
+    let cancelled = false;
+
+    const fetchAllContacts = async () => {
+      const pageSize = 1000;
+      const all: Contact[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .from("contacts")
+          .select("id, contact_name, contact_type, current_balance, linked_account_code")
+          .eq("user_id", dataOwnerId)
+          .or("is_archived.is.null,is_archived.eq.false")
+          .order("contact_name", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        all.push(...((data || []) as Contact[]));
+        if (!data || data.length < pageSize) break;
+      }
+      return all;
+    };
+
     Promise.all([
-      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId).neq("is_archived", true),
-    ]).then(([aRes, cRes]) => {
+      supabase.from("accounts").select("account_code, account_name, account_type, parent_code").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
+      fetchAllContacts(),
+    ]).then(([aRes, allContacts]) => {
+      if (cancelled) return;
       setAccounts(aRes.data || []);
-      setContacts(cRes.data || []);
-    }).finally(() => setDraftReady(true));
+      setContacts(allContacts || []);
+    }).catch((err: any) => {
+      if (!cancelled) toast.error(err.message || "تعذر تحميل بيانات سند القيد");
+    }).finally(() => {
+      if (!cancelled) setDraftReady(true);
+    });
+    return () => { cancelled = true; };
   }, [user, dataOwnerId]);
 
   // Auto-generate ref number
@@ -384,6 +415,28 @@ const JournalNewPage = () => {
   const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
   const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
 
+  const resolveContactAccountCode = useCallback((contact: Partial<Contact> | null | undefined) => {
+    if (!contact) return "";
+    const linked = contact.linked_account_code?.trim();
+    if (linked && postableAccounts.some((a: any) => a.account_code === linked)) return linked;
+
+    const prefixes = isSupplier(contact)
+      ? ["2110", "211"]
+      : isCustomer(contact)
+        ? ["1130", "113"]
+        : isEmployee(contact)
+          ? ["2180", "218"]
+          : [];
+
+    for (const prefix of prefixes) {
+      const match = postableAccounts.find((a: any) =>
+        a.parent_code === prefix || String(a.account_code || "").startsWith(prefix)
+      );
+      if (match) return match.account_code;
+    }
+    return "";
+  }, [postableAccounts]);
+
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return contacts;
     return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name));
@@ -525,16 +578,25 @@ const JournalNewPage = () => {
     setQuickAddSaving(true);
     try {
       const contactType = quickAddType === "customer" ? "عميل" : "مورد";
+      const defaultAccountCode = resolveContactAccountCode({ contact_type: contactType });
       const { data, error } = await supabase.from("contacts").insert({
         user_id: ownerId,
         contact_name: quickAddName.trim(),
         contact_type: contactType,
         current_balance: 0,
-      }).select("id, contact_name, contact_type, current_balance").single();
+        linked_account_code: defaultAccountCode || null,
+      }).select("id, contact_name, contact_type, current_balance, linked_account_code").single();
       if (error) throw error;
       setContacts(prev => [...prev, data]);
       if (quickAddForLineId) {
-        updateLine(quickAddForLineId, "contact_id", data.id);
+        const acct = accounts.find(a => a.account_code === defaultAccountCode);
+        setLines(prev => prev.map(l => l.id !== quickAddForLineId ? l : {
+          ...l,
+          contact_id: data.id,
+          contact_name: data.contact_name,
+          account_code: defaultAccountCode,
+          account_name: acct?.account_name || "",
+        }));
       }
       toast.success(`تم إضافة ${contactType}: ${data.contact_name}`);
       setShowQuickAdd(false);
@@ -557,7 +619,7 @@ const JournalNewPage = () => {
     const preparedLines = lines.map(l => {
       if (!l.account_code && l.contact_id && l.contact_id !== "__none__") {
         const c = contacts.find(ct => ct.id === l.contact_id);
-        const autoCode = c && isCustomer(c) ? "1130" : c && isSupplier(c) ? "2110" : c && isEmployee(c) ? "2180" : "";
+        const autoCode = resolveContactAccountCode(c);
         const acct = accounts.find(a => a.account_code === autoCode);
         return { ...l, account_code: autoCode, account_name: acct?.account_name || "" };
       }
@@ -1367,10 +1429,11 @@ const JournalNewPage = () => {
                               contact_id: "", contact_name: "",
                             }));
                           } else {
-                            const acct = accounts.find(a => a.account_code === sel.autoAccountCode);
+                            const accountCode = resolveContactAccountCode(sel.contact) || sel.autoAccountCode;
+                            const acct = accounts.find(a => a.account_code === accountCode);
                             setLines(prev => prev.map(l => l.id !== line.id ? l : {
                               ...l, contact_id: sel.contact.id, contact_name: sel.contact.contact_name,
-                              account_code: sel.autoAccountCode, account_name: acct?.account_name || "",
+                              account_code: accountCode, account_name: acct?.account_name || "",
                             }));
                           }
                         }}
