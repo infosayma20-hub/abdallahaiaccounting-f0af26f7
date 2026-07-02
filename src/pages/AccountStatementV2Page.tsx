@@ -370,26 +370,45 @@ const AccountStatementV2Page = () => {
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
   // ─── Realtime: auto-refresh on transaction changes ───
+  // Perf hardening (Solution B — Silent + Smart):
+  //   1) Scope Realtime by tenant (user_id=eq.<owner>).
+  //   2) SMART FILTER: only refetch when the changed transaction actually
+  //      touches the currently-viewed account/contact. POS bursts on other
+  //      accounts are ignored — no more infinite "loading…" loop on cashier
+  //      statements at high-volume branches (Malaki).
+  //   3) SILENT refresh: after the first successful load, subsequent updates
+  //      run in the background and never blank the table.
+  //   4) Debounce 800ms to coalesce bursts.
+  const selectedAccountCodeRef = useRef<string>("");
+  const selectedContactIdRef = useRef<string>("");
+  useEffect(() => {
+    selectedAccountCodeRef.current = selectedEntityCode || "";
+    selectedContactIdRef.current = (selectedContact?.id || "");
+  }, [selectedEntityCode, selectedContact]);
+
   useEffect(() => {
     if (!user || !dataOwnerId) return;
-    // Perf hardening (Solution A):
-    //   1) Scope Realtime by tenant (user_id=eq.<owner>) so other tenants' POS
-    //      writes never trigger a full 8k-row refetch here.
-    //   2) Throttle refetches to at most once per 3s to survive POS bursts
-    //      (300–500 inserts/day per branch) without the "loading…" flicker
-    //      users reported.
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
       .channel(`account_statement_realtime-${dataOwnerId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${dataOwnerId}` },
-        () => {
+        (payload: any) => {
+          // Smart filter — ignore events that don't affect the viewed entity.
+          const acctCode = selectedAccountCodeRef.current;
+          const contactId = selectedContactIdRef.current;
+          if (acctCode || contactId) {
+            const rec: any = payload?.new || payload?.old || {};
+            const touchesAccount = !!acctCode && (rec.debit_account_code === acctCode || rec.credit_account_code === acctCode);
+            const touchesContact = !!contactId && rec.contact_id === contactId;
+            if (!touchesAccount && !touchesContact) return;
+          }
           if (timeoutId) return; // coalesce bursts
           timeoutId = setTimeout(() => {
             timeoutId = null;
-            fetchData();
-          }, 3000);
+            fetchData({ silent: true });
+          }, 800);
         },
       )
       .subscribe();
@@ -410,7 +429,7 @@ const AccountStatementV2Page = () => {
     const unsub = onCrossTabChange((ev) => {
       if (!REFRESH_ENTITIES.has(ev.entity)) return;
       if (t) return;
-      t = setTimeout(() => { t = null; fetchData(); }, 400);
+      t = setTimeout(() => { t = null; fetchData({ silent: true }); }, 400);
     });
     return () => { if (t) clearTimeout(t); unsub(); };
   }, [user, dataOwnerId]);
