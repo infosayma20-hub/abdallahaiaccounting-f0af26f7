@@ -34,6 +34,7 @@ import { useCostCenters } from "@/hooks/useCostCenters";
 import { SmartTextCell } from "@/components/ui/smart-text-cell";
 import { useTaxEnabled } from "@/hooks/useTaxEnabled";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { onCrossTabChange } from "@/lib/crossTabSync";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
