@@ -28,19 +28,18 @@ const OpeningBalancesHubPage = () => {
         const [obTx, cashBoxesRes, banksRes] = await Promise.all([
           supabase
             .from("transactions")
-            .select("id, contact_id, amount, direction, type", { count: "exact" })
-            .eq("data_owner_id", ownerId)
+            .select("id, contact_id, amount, direction, type")
+            .eq("user_id", ownerId)
             .eq("is_opening_balance", true)
             .eq("is_deleted", false),
           supabase
             .from("cash_boxes")
-            .select("id, opening_balance", { count: "exact" })
-            .eq("data_owner_id", ownerId)
-            .eq("is_deleted", false),
+            .select("id, opening_balance")
+            .eq("user_id", ownerId),
           supabase
             .from("bank_accounts")
-            .select("id, opening_balance", { count: "exact" })
-            .eq("data_owner_id", ownerId),
+            .select("id, opening_balance")
+            .eq("user_id", ownerId),
         ]);
 
         const rows = obTx.data || [];
