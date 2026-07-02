@@ -2659,9 +2659,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         Bottom : [Notes col-span-8]               [Attachments col-span-4]
         Footer : Sticky action bar
         ═══════════════════════════════════════════════════════════════ */}
-    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
       {/* ───── TOP-RIGHT (RTL right): Voucher Form — 8 cols ───── */}
-      <div className="lg:col-span-8 space-y-5 min-w-0">
+      <div className="lg:col-span-8 space-y-3 min-w-0">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
@@ -2815,8 +2815,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       )}
 
       {/* Row 1: Basic Info */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
+      <Card className="border-2 border-border shadow-sm">
+        <CardContent className="p-4 space-y-3">
           {/* Party Type Toggle */}
           <div>
             <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
@@ -3162,8 +3162,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           always has content beside it (no more "floating" feel). */}
 
       {/* Row 2: Payment Method, Currency & Amount */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
+      <Card className="border-2 border-border shadow-sm">
+        <CardContent className="p-4 space-y-3">
           {/* ─── Row 1: AMOUNT FIRST (dominant) + Currency ─── */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-8">
@@ -3384,13 +3384,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
           )}
 
-          {/* Cheque details - Multi cheque */}
-          {(paymentMethod === "شيك" || paymentMethod === "مختلط") && (
-            <div className="pt-2 border-t border-border/30 space-y-3">
+          {/* Cheque details - Multi cheque (always visible, Hesabate-style) */}
+          {(
+            <div className="pt-3 border-t-2 border-border space-y-2">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-xs font-bold flex items-center gap-1.5">
                   <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
                   بيانات الشيكات ({cheques.length + endorsedCheques.length})
+                  {paymentMethod !== "شيك" && paymentMethod !== "مختلط" && (
+                    <span className="text-[10px] font-normal text-muted-foreground mr-1">
+                      — غيّر طريقة الدفع إلى "شيك" أو "مختلط" لتفعيل الإدخال
+                    </span>
+                  )}
                 </Label>
                 <div className="flex items-center gap-2">
                   {!isReceipt && (
@@ -3398,7 +3403,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       <ArrowLeftRight className="h-3 w-3" /> تجيير شيك مستلم
                     </button>
                   )}
-                  <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (paymentMethod !== "شيك" && paymentMethod !== "مختلط") setPaymentMethod("شيك");
+                      addCheque();
+                    }}
+                    className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium"
+                  >
                     <Plus className="h-3 w-3" /> إضافة شيك
                   </button>
                 </div>
@@ -3513,18 +3525,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           Nested 3-col grid keeps both inside the col-span-8 left
           column so the sticky summary on the right keeps content
           beside it all the way down. */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {/* Notes — 2/3 */}
-      <Card className="md:col-span-2">
-        <CardContent className="p-5">
-          <Label className="text-xs mb-1.5 block font-semibold">ملاحظات</Label>
-          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={5} className="resize-none" />
+      <Card className="md:col-span-2 border-2 border-border shadow-sm">
+        <CardContent className="p-4">
+          <Label className="text-xs mb-1.5 block font-bold">ملاحظات</Label>
+          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={3} className="resize-none border-2" />
         </CardContent>
       </Card>
 
       {/* Attachments — 1/3 */}
-      <Card className="md:col-span-1">
-        <CardContent className="p-5 space-y-3">
+      <Card className="md:col-span-1 border-2 border-border shadow-sm">
+        <CardContent className="p-4 space-y-2">
           <button
             type="button"
             onClick={() => dropZoneRef.current?.classList.toggle("hidden")}
