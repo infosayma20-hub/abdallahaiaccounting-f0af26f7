@@ -431,6 +431,30 @@ const AccountStatementV2Page = () => {
 
   useEffect(() => { fetchData(); }, [user, dataOwnerId]);
 
+  // ─── Silent server-side refetch when the viewed entity changes ───
+  // Reuses the same helper as Phase B above. Runs only AFTER the first full
+  // load, so URL/session-restored entities are handled by fetchData itself.
+  // If entity is cleared → falls back to unfiltered pull (matches old UX).
+  const lastTxFilterKeyRef = useRef<string>("");
+  useEffect(() => {
+    if (!hasLoadedOnceRef.current || !user || !dataOwnerId) return;
+    const acct = accounts.find(a => a.id === selectedEntityId);
+    const cont = contacts.find(c => c.id === selectedEntityId);
+    const emp = employeeEntities.find(e => e.id === selectedEntityId);
+    const accountCode = acct?.account_code || cont?.linked_account_code || emp?.account_code || undefined;
+    const contactId = cont?.id || undefined;
+    const key = `${accountCode || ""}|${contactId || ""}`;
+    if (key === lastTxFilterKeyRef.current) return;
+    lastTxFilterKeyRef.current = key;
+    let cancelled = false;
+    setIsRefreshing(true);
+    fetchTxServerFiltered({ accountCode, contactId })
+      .then(rows => { if (!cancelled) setTransactions(rows); })
+      .catch(err => { console.error("targeted tx fetch failed:", err); })
+      .finally(() => { if (!cancelled) setIsRefreshing(false); });
+    return () => { cancelled = true; };
+  }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId]);
+
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
   // ─── Realtime: auto-refresh on transaction changes ───
