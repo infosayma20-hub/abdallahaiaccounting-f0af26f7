@@ -884,14 +884,14 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
         open={showAddAccount}
         onClose={() => setShowAddAccount(false)}
         accounts={accounts}
-        userId={user?.id || ""}
+        userId={dataOwnerId || user?.id || ""}
         onCreated={handleAccountCreated}
       />
       <QuickAddContactDialog
         open={showAddContact}
         onClose={() => setShowAddContact(false)}
         contactType={addContactType}
-        userId={user?.id || ""}
+        userId={dataOwnerId || user?.id || ""}
         onCreated={handleAccountCreated}
       />
 
