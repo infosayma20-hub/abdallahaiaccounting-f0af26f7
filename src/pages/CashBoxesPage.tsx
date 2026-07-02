@@ -19,7 +19,6 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
 import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDialog";
-import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog";
 import BankDepositDialog from "@/components/finance/BankDepositDialog";
 import CashBoxTransferDialog from "@/components/finance/CashBoxTransferDialog";
 import ForeignCashOpeningBalanceDialog from "@/components/finance/ForeignCashOpeningBalanceDialog";
