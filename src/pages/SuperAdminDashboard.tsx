@@ -2630,12 +2630,12 @@ export default function SuperAdminDashboard() {
                         <td className="px-4 py-3 tabular-nums text-xs font-mono" style={{ color: "var(--sa-text-muted)" }}>
                           {format(new Date(log.fixed_at), "dd/MM/yy HH:mm:ss")}
                         </td>
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.fix_batch}</td>
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.entity_type}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{formatFiBatch(log.fix_batch)}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{formatFiEntityType(log.entity_type)}</td>
                         <td className="px-4 py-3 text-xs font-mono truncate max-w-[150px]" style={{ color: "var(--sa-text-muted)" }}>
                           {log.entity_id ? `${log.entity_id.substring(0, 18)}...` : "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.reason || "—"}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{formatFiReason(log.reason)}</td>
                         <td className="px-4 py-3 text-xs font-mono truncate max-w-[180px]" style={{ color: "var(--sa-text-faint)" }}>
                           {log.old_value ? JSON.stringify(log.old_value).substring(0, 40) : "—"}
                         </td>
