@@ -130,6 +130,19 @@ const TX_TYPE_FILTERS = [
   { value: "purchase", label: "فواتير مشتريات" },
 ];
 
+const txTypeMatchesFilter = (transactionType: string, filter: string) => {
+  if (filter === "all") return true;
+  const type = (transactionType || "").toLowerCase();
+  if (filter === "journal") {
+    return type.includes("journal") || type.includes("قيد") || type.includes("salary") || type === "manual";
+  }
+  if (filter === "sale") return type.includes("sale") || type.includes("فاتورة");
+  if (filter === "receipt") return type.includes("receipt") || type.includes("قبض");
+  if (filter === "payment") return type.includes("payment") || type.includes("صرف");
+  if (filter === "purchase") return type.includes("purchase") || type.includes("مشتريات");
+  return type.includes(filter);
+};
+
 // ─── COMPONENT ───
 const AccountStatementV2Page = () => {
   const navigate = useNavigate();
@@ -639,7 +652,7 @@ const AccountStatementV2Page = () => {
 
   const filteredRows = useMemo(() => {
     let r = rows;
-    if (txTypeFilter !== "all") r = r.filter(x => x.transaction_type.includes(txTypeFilter));
+    if (txTypeFilter !== "all") r = r.filter(x => txTypeMatchesFilter(x.transaction_type, txTypeFilter));
     if (txCostCenter !== "all") {
       r = txCostCenter === "__none__"
         ? r.filter(x => !x.cost_center_id)
