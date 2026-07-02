@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { formatDbError } from "@/lib/db-error-toast";
+import { broadcastChange } from "@/lib/crossTabSync";
 import {
   isVouchersRpcEnabled,
   callCreateJournalMultiPartyRpc,
