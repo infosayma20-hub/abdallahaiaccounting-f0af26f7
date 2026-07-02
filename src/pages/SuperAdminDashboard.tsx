@@ -1675,6 +1675,14 @@ export default function SuperAdminDashboard() {
   const [auditTotal, setAuditTotal] = useState(0);
   const [loadingAudit, setLoadingAudit] = useState(false);
 
+  // Finance integrity audit state
+  const [fiLogs, setFiLogs] = useState<any[]>([]);
+  const [fiPage, setFiPage] = useState(0);
+  const [fiTotal, setFiTotal] = useState(0);
+  const [fiLoading, setFiLoading] = useState(false);
+  const [fiFilterEntity, setFiFilterEntity] = useState<string>("");
+  const [fiFilterBatch, setFiFilterBatch] = useState<string>("");
+
   // Password confirm
   const [pwDialog, setPwDialog] = useState<{ open: boolean; title: string; onConfirmed: () => void }>({
     open: false, title: "", onConfirmed: () => {},
