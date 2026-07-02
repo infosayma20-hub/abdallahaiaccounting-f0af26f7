@@ -3513,18 +3513,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           Nested 3-col grid keeps both inside the col-span-8 left
           column so the sticky summary on the right keeps content
           beside it all the way down. */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {/* Notes — 2/3 */}
-      <Card className="md:col-span-2">
-        <CardContent className="p-5">
-          <Label className="text-xs mb-1.5 block font-semibold">ملاحظات</Label>
-          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={5} className="resize-none" />
+      <Card className="md:col-span-2 border-2 border-border shadow-sm">
+        <CardContent className="p-4">
+          <Label className="text-xs mb-1.5 block font-bold">ملاحظات</Label>
+          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={3} className="resize-none border-2" />
         </CardContent>
       </Card>
 
       {/* Attachments — 1/3 */}
-      <Card className="md:col-span-1">
-        <CardContent className="p-5 space-y-3">
+      <Card className="md:col-span-1 border-2 border-border shadow-sm">
+        <CardContent className="p-4 space-y-2">
           <button
             type="button"
             onClick={() => dropZoneRef.current?.classList.toggle("hidden")}
