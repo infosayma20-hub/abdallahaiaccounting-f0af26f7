@@ -2180,6 +2180,7 @@ export default function SuperAdminDashboard() {
                 { value: "settings", icon: Settings, label: "إعدادات المنصة" },
                 { value: "tools", icon: Zap, label: "أدوات" },
                 { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
+                { value: "finance_integrity", icon: AlertTriangle, label: "تدقيق المالية" },
                 { value: "leads", icon: UserPlus, label: "زبائن سامي" },
                 { value: "revenue", icon: BarChart3, label: "الإيرادات" },
                 { value: "notifications", icon: Bell, label: "الإشعارات" },
