@@ -1144,20 +1144,19 @@ const JournalNewPage = () => {
       {/* ═══ LEFT COLUMN — Main content (grows to fill) ═══ */}
       <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
-      {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+      {/* ═══ Header Card — single compact row: date, ref, currency, rate, brief description ═══ */}
+      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-3 space-y-3">
-          {/* Compact always-visible row */}
           <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
-            <div className="md:col-span-3">
-              <Label className="text-xs mb-1.5 block">التاريخ</Label>
+            <div className="md:col-span-2">
+              <Label className="text-xs mb-1.5 block">التاريخ <span className="text-destructive">*</span></Label>
               <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} data-smart-first className="h-9" />
             </div>
-            <div className="md:col-span-3">
-              <Label className="text-xs mb-1.5 block">رقم السند</Label>
+            <div className="md:col-span-2">
+              <Label className="text-xs mb-1.5 block">رقم السند <span className="text-destructive">*</span></Label>
               <Input value={formRefNumber} readOnly className="font-mono bg-muted/50 cursor-default h-9" />
             </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <Label className="text-xs mb-1.5 block">العملة</Label>
               <Select value={formCurrency} onValueChange={setFormCurrency}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -1168,12 +1167,42 @@ const JournalNewPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-3 flex md:justify-end">
-              <Button variant="outline" size="sm" onClick={() => setDetailsOpen(v => !v)} className="h-9 gap-1 text-xs w-full md:w-auto">
-                <FileText className="h-3.5 w-3.5" />
-                تفاصيل السند
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
-              </Button>
+            <div className="md:col-span-2">
+              <Label className="text-xs mb-1.5 block flex items-center gap-1">
+                سعر الصرف
+                {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
+              </Label>
+              <Input
+                type="number"
+                value={formExchangeRate}
+                onChange={e => setFormExchangeRate(parseFloat(e.target.value) || 0)}
+                step="0.001"
+                min="0"
+                disabled={formCurrency === "ILS"}
+                className={`h-9 font-mono text-left ${formCurrency === "ILS" ? "bg-muted/50" : ""}`}
+              />
+            </div>
+            <div className="md:col-span-4">
+              <Label className="text-xs mb-1.5 block">البيان المختصر <span className="text-destructive">*</span></Label>
+              <div className="flex items-stretch gap-1">
+                <Input
+                  value={formDescription}
+                  onChange={e => setFormDescription(e.target.value)}
+                  placeholder="مثال: مصاريف تشغيلية شهر يوليو"
+                  className="h-9"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDetailsOpen(v => !v)}
+                  title="تفاصيل السند (نوع، جهة، مركز تكلفة)"
+                  className="h-9 px-2 shrink-0"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <ChevronDown className={`h-3 w-3 mr-1 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -1254,88 +1283,29 @@ const JournalNewPage = () => {
                 يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
               </p>
             </div>
-            {formCurrency !== "ILS" && (
-              <div className="md:col-span-12">
-                <Label className="text-xs mb-1.5 block flex items-center gap-1">
-                  سعر الصرف
-                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
-                </Label>
-                <Input
-                  type="number"
-                  value={formExchangeRate}
-                  onChange={e => setFormExchangeRate(parseFloat(e.target.value) || 0)}
-                  step="0.001"
-                  min="0"
-                  className="font-mono text-left"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  1 {CURRENCIES.find(c => c.value === formCurrency)?.label} = ₪{formExchangeRate}
-                </p>
-              </div>
-            )}
           </div>
           </div>
           )}
         </CardContent>
       </Card>
 
-      {/* ═══ JOURNAL LINES — Big, wide, primary focus ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <CardContent className="p-5 lg:p-6 space-y-4">
-          <div className="flex items-center justify-between">
+      {/* ═══ JOURNAL LINES — compact ═══ */}
+      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-3 lg:p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-primary" />
               أسطر القيد
             </h3>
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <span className="hidden md:flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Enter</kbd>
-                <span>التالي</span>
-                <span className="text-muted-foreground/50">•</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Alt+N</kbd>
-                <span>سطر</span>
-                <span className="text-muted-foreground/50">•</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+D</kbd>
-                <span>نسخ</span>
-                <span className="text-muted-foreground/50">•</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+Enter</kbd>
-                <span>حفظ</span>
-              </span>
+            <div className="flex items-center gap-1.5">
               <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8">
-                <Plus className="h-3 w-3" /> إضافة سطر
+                <Plus className="h-3 w-3" /> سطر
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8">
-                <Bookmark className="h-3 w-3" /> القوالب
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setSummaryOpen(v => !v)} className="gap-1 text-xs h-8">
-                {summaryOpen ? <PanelRightClose className="h-3 w-3" /> : <PanelRightOpen className="h-3 w-3" />}
-                {summaryOpen ? "إخفاء الملخص" : "إظهار الملخص"}
+                <Bookmark className="h-3 w-3" /> قوالب
               </Button>
             </div>
           </div>
-
-          {!summaryOpen && (
-            <div className="flex items-center flex-wrap gap-2 px-3 py-2 rounded-xl bg-muted/40 border border-border/60 text-[12px]">
-              {(() => {
-                const isZero = totalDebit === 0 && totalCredit === 0;
-                if (isZero) return <span className="flex items-center gap-1.5 text-muted-foreground"><FileText className="h-3.5 w-3.5" /> أدخل المبالغ للتحقق من التوازن</span>;
-                if (isBalanced) return <span className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400"><CheckCircle className="h-3.5 w-3.5" /> متوازن</span>;
-                return <span className="flex items-center gap-1.5 font-bold text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> غير متوازن</span>;
-              })()}
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">مدين</span>
-              <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">₪{formatAmount(totalDebit)}</span>
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">دائن</span>
-              <span className="font-bold tabular-nums text-destructive">₪{formatAmount(totalCredit)}</span>
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">الفرق</span>
-              <span className={`font-extrabold tabular-nums ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">الأسطر</span>
-              <span className="font-semibold tabular-nums">{lines.length}</span>
-            </div>
-          )}
 
           <div className="rounded-xl border border-border overflow-hidden">
             <table className="w-full text-sm">
@@ -1557,64 +1527,28 @@ const JournalNewPage = () => {
             </table>
           </div>
 
-          <p className="text-[11px] text-muted-foreground px-1">
-            كل سطر يكون مدين أو دائن فقط.
-          </p>
-
-          {/* Sort Order Radio */}
-          <div className="flex items-center gap-4 text-xs">
-            <span className="text-muted-foreground font-medium">ترتيب البنود:</span>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="radio" name="sortOrder" checked={lineSortOrder === "debit_first"} onChange={() => setLineSortOrder("debit_first")} className="accent-primary" />
-              <span className={lineSortOrder === "debit_first" ? "font-bold text-foreground" : "text-muted-foreground"}>المدين ثم الدائن</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="radio" name="sortOrder" checked={lineSortOrder === "original"} onChange={() => setLineSortOrder("original")} className="accent-primary" />
-              <span className={lineSortOrder === "original" ? "font-bold text-foreground" : "text-muted-foreground"}>الترتيب الأصلي</span>
-            </label>
+          <div className="flex items-center justify-between gap-3 text-[11px]">
+            <span className="text-muted-foreground">كل سطر مدين أو دائن فقط.</span>
+            <div className="flex items-center gap-3">
+              <span className="text-muted-foreground">الترتيب:</span>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="sortOrder" checked={lineSortOrder === "original"} onChange={() => setLineSortOrder("original")} className="accent-primary" />
+                <span className={lineSortOrder === "original" ? "font-semibold text-foreground" : "text-muted-foreground"}>الأصلي</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="sortOrder" checked={lineSortOrder === "debit_first"} onChange={() => setLineSortOrder("debit_first")} className="accent-primary" />
+                <span className={lineSortOrder === "debit_first" ? "font-semibold text-foreground" : "text-muted-foreground"}>مدين ثم دائن</span>
+              </label>
+            </div>
           </div>
 
         </CardContent>
       </Card>
 
-      {/* ═══ Description — ALWAYS visible (required) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl">
-        <CardContent className="p-5 space-y-2">
-          <Label className="text-xs block flex items-center gap-2 font-semibold">
-            الوصف *
-          </Label>
-          <Textarea
-            value={formDescription}
-            onChange={e => setFormDescription(e.target.value)}
-            placeholder="مثال: سلفة راتب - رهام حسون"
-            rows={2}
-            className="resize-none"
-          />
-        </CardContent>
-      </Card>
-
-      {/* ═══ Notes + Attachments (collapsed by default) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <button
-          onClick={() => setExtrasOpen(v => !v)}
-          className="w-full flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <Paperclip className="h-4 w-4 text-primary" />
-            الملاحظات والمرفقات
-            {(formNotes || attachments.length > 0) && (
-              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                {[formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
-              </span>
-            )}
-          </span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
-        </button>
-      </Card>
-
+      {/* ═══ Notes + Attachments — hidden card body, toggled from bottom "خيارات" ═══ */}
       {extrasOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <Card className="lg:col-span-7 border border-border/60 shadow-sm rounded-2xl">
+      <Card className="lg:col-span-7 border border-border shadow-sm rounded-2xl">
         <CardContent className="p-5">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             ملاحظات
@@ -1624,7 +1558,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* Attachments Section */}
-      <Card className="lg:col-span-5 border border-border/60 shadow-sm rounded-2xl">
+      <Card className="lg:col-span-5 border border-border shadow-sm rounded-2xl">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
@@ -1768,6 +1702,21 @@ const JournalNewPage = () => {
               <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> فرق ₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
             )}
           </div>
+
+          {/* Ghost: Notes/Attachments toggle */}
+          <button onClick={() => setExtrasOpen(v => !v)}
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border"
+            title="ملاحظات ومرفقات">
+            <Paperclip className="h-4 w-4" />
+            {(formNotes || attachments.length > 0) ? (
+              <span className="text-[11px] font-semibold">
+                {[formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
+              </span>
+            ) : (
+              <span className="hidden md:inline">ملاحظات ومرفقات</span>
+            )}
+            <ChevronDown className={`h-3 w-3 transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
+          </button>
 
           {/* Ghost: Print */}
           <button onClick={handlePrint}
