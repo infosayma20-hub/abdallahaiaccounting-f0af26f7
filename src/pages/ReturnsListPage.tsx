@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, RefreshCw, XCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
+import { broadcastChange } from "@/lib/crossTabSync";
 
 interface ReturnRow {
   id: string;
@@ -93,6 +94,34 @@ const ReturnsListPage = ({ returnType }: Props) => {
     const { error } = await supabase.from("returns" as any).update({ is_deleted: true } as any).eq("id", row.id);
     if (error) toast({ title: "خطأ في الحذف", description: error.message, variant: "destructive" });
     else { toast({ title: "تم الحذف ✅" }); fetchRows(); }
+  };
+
+  // ─── CANCEL POSTED RETURN (mirrors invoice cancel) ───
+  // Flips status → cancelled (trigger reverses stock) then purges the linked
+  // accounting transaction + tax ledger so the account statement clears.
+  const handleCancel = async (row: ReturnRow) => {
+    if (row.status !== "confirmed") return;
+    if (!confirm(`إلغاء المردود ${row.return_number}؟\nسيتم عكس القيد المحاسبي وحركة المخزون تلقائياً.\nيبقى السجل للمراجعة كـ"ملغى".`)) return;
+    try {
+      const { error: statusErr } = await supabase
+        .from("returns" as any)
+        .update({ status: "cancelled" } as any)
+        .eq("id", row.id);
+      if (statusErr) throw statusErr;
+      await supabase.from("transactions").delete().eq("return_id", row.id);
+      await supabase.from("transactions").delete().eq("idempotency_key", `RETURN-${row.id}`);
+      await supabase
+        .from("tax_ledger")
+        .delete()
+        .eq("reference_id", row.id)
+        .in("reference_type", ["sales_return", "purchase_return"]);
+      await supabase.from("returns" as any).update({ journal_entry_id: null } as any).eq("id", row.id);
+      broadcastChange("transaction", "deleted", row.id);
+      toast({ title: `تم إلغاء ${row.return_number} ✅`, description: "تم عكس القيد وحركة المخزون" });
+      fetchRows();
+    } catch (err: any) {
+      toast({ title: "خطأ في الإلغاء", description: err?.message || "حدث خطأ", variant: "destructive" });
+    }
   };
 
   const statusBadge = (s: string | null) => {
@@ -205,6 +234,16 @@ const ReturnsListPage = ({ returnType }: Props) => {
                               onClick={() => navigate(`${newPath}?edit=${r.id}`)}
                             >
                               <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {r.status === "confirmed" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="إلغاء المردود (عكس القيد والمخزون)"
+                              onClick={() => handleCancel(r)}
+                            >
+                              <XCircle className="h-4 w-4 text-rose-600" />
                             </Button>
                           )}
                           {r.status === "draft" && (
