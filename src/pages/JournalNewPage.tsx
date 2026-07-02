@@ -1703,6 +1703,21 @@ const JournalNewPage = () => {
             )}
           </div>
 
+          {/* Ghost: Notes/Attachments toggle */}
+          <button onClick={() => setExtrasOpen(v => !v)}
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border"
+            title="ملاحظات ومرفقات">
+            <Paperclip className="h-4 w-4" />
+            {(formNotes || attachments.length > 0) ? (
+              <span className="text-[11px] font-semibold">
+                {[formNotes && "ملاحظات", attachments.length > 0 && `${attachments.length} مرفق`].filter(Boolean).join(" • ")}
+              </span>
+            ) : (
+              <span className="hidden md:inline">ملاحظات ومرفقات</span>
+            )}
+            <ChevronDown className={`h-3 w-3 transition-transform ${extrasOpen ? "rotate-180" : ""}`} />
+          </button>
+
           {/* Ghost: Print */}
           <button onClick={handlePrint}
             className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
