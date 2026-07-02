@@ -1054,12 +1054,6 @@ function SubscriptionsManager() {
     expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
     cancelled: { text: "ملغي", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
     suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  const statusLabel: Record<string, { text: string; cls: string }> = {
-    trial: { text: "تجريبي", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-    active: { text: "نشط", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-    expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
-    cancelled: { text: "ملغي", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
-    suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
   };
 
   const fiEntityTypeLabels: Record<string, string> = {
