@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
-import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { FinanceShell } from "@/components/finance/shell";
+import type { ActionTab } from "@/components/finance/shell";
 
 interface ReturnRow {
   id: string;
@@ -101,18 +102,38 @@ const ReturnsListPage = ({ returnType }: Props) => {
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
-      <PageHeader
-        title={titleAr}
-        breadcrumb={["الرئيسية", isSales ? "المبيعات" : "المشتريات", titleAr]}
-      />
-      <div className="flex justify-between items-start gap-3">
-        <p className="text-sm text-muted-foreground">{headerSubtitle}</p>
-        <Button onClick={() => navigate(newPath)} className="gap-2">
-          <Plus className="h-4 w-4" /> {newButtonLabel}
-        </Button>
-      </div>
-
+    <FinanceShell
+      title={titleAr}
+      subtitle={headerSubtitle}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: isSales ? "المبيعات" : "المشتريات" },
+        { label: titleAr },
+      ]}
+      actionTabs={[
+        {
+          key: "main",
+          label: "عام",
+          groups: [
+            {
+              key: "new",
+              label: "جديد",
+              items: [
+                { key: "new", label: newButtonLabel, icon: Plus, variant: "primary", onClick: () => navigate(newPath) },
+              ],
+            },
+            {
+              key: "refresh",
+              label: "تحديث",
+              items: [
+                { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchRows },
+              ],
+            },
+          ],
+        },
+      ] satisfies ActionTab[]}
+    >
+    <div className="space-y-4" dir="rtl">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card><CardContent className="p-4">
           <div className="text-xs text-muted-foreground">إجمالي المردودات</div>
@@ -176,15 +197,20 @@ const ReturnsListPage = ({ returnType }: Props) => {
                       <TableCell>{statusBadge(r.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          {r.status !== "cancelled" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title={r.status === "confirmed" ? "تعديل مردود مرحَّل (إلغاء الترحيل ثم إعادته)" : "تعديل المسودة"}
+                              onClick={() => navigate(`${newPath}?edit=${r.id}`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {r.status === "draft" && (
-                            <>
-                              <Button size="icon" variant="ghost" onClick={() => navigate(`${newPath}?edit=${r.id}`)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => handleDelete(r)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </>
+                            <Button size="icon" variant="ghost" onClick={() => handleDelete(r)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           )}
                           <Button size="icon" variant="ghost" onClick={() => navigate(`${newPath}?view=${r.id}`)}>
                             <Eye className="h-4 w-4" />
@@ -200,6 +226,7 @@ const ReturnsListPage = ({ returnType }: Props) => {
         </CardContent>
       </Card>
     </div>
+    </FinanceShell>
   );
 };
 
