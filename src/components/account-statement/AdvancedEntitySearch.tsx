@@ -57,7 +57,7 @@ interface Props {
 
 const fmtBal = (n: number, txCount: number) => {
   if (n === 0) {
-    return txCount > 0 ? "✓ مسدّد" : "لا توجد حركات";
+    return txCount > 0 ? "✓ مسدّد" : "";
   }
   const symbol = "₪";
   return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
