@@ -68,6 +68,25 @@ export interface GroupableRow {
 }
 
 const POS_TX_TYPES = new Set(['pos_sale', 'pos_sale_vat', 'pos_refund']);
+// Reversal entries for POS sales — reference is prefixed with "REV-" over the
+// original order_number, so we can resolve them back to the same shift.
+const POS_REVERSAL_TYPES = new Set(['reversal']);
+
+function resolveShiftKeyForRow(
+  row: GroupableRow,
+  orderToSession: Map<string, string>,
+): string | null {
+  const ref = row.reference ? String(row.reference) : '';
+  if (!ref) return null;
+  if (POS_TX_TYPES.has(row.transaction_type)) {
+    return orderToSession.get(ref) || null;
+  }
+  if (POS_REVERSAL_TYPES.has(row.transaction_type) && ref.startsWith('REV-POS-')) {
+    const original = ref.replace(/^REV-/, '');
+    return orderToSession.get(original) || null;
+  }
+  return null;
+}
 
 function timeOnly(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -80,7 +99,10 @@ function timeOnly(iso: string | null | undefined): string {
 }
 
 export function isPosStatementRow(r: GroupableRow): boolean {
-  return !!r.reference && POS_TX_TYPES.has(r.transaction_type);
+  if (!r.reference) return false;
+  if (POS_TX_TYPES.has(r.transaction_type)) return true;
+  if (POS_REVERSAL_TYPES.has(r.transaction_type) && String(r.reference).startsWith('REV-POS-')) return true;
+  return false;
 }
 
 /**
@@ -100,7 +122,7 @@ export function groupRowsByShift<T extends GroupableRow>(
 
   rows.forEach((row, idx) => {
     if (!isPosStatementRow(row)) { slots.push({ idx, row }); return; }
-    const sid = ctx.orderToSession.get(String(row.reference));
+    const sid = resolveShiftKeyForRow(row, ctx.orderToSession);
     if (!sid || !ctx.shifts.has(sid)) { slots.push({ idx, row }); return; }
     if (!buckets.has(sid)) { buckets.set(sid, []); firstIdx.set(sid, idx); }
     buckets.get(sid)!.push(row);
@@ -120,11 +142,19 @@ export function groupRowsByShift<T extends GroupableRow>(
     const openStatus = info.state === 'open' ? ' (مفتوحة)' : '';
     const description = `📦 وردية ${cashier}${device} · ${info.order_count} طلب · ${open}→${close}${openStatus}`;
 
+    // Human-readable shift identifier: date + sequence (e.g. "وردية-20260702-1")
+    // Falls back to short hex only if business_date is missing.
+    const dateCompact = (info.business_date || '').replace(/-/g, '');
+    const seq = info.session_seq ?? 1;
+    const shiftRef = dateCompact
+      ? `وردية-${dateCompact}-${seq}`
+      : `SHIFT-${sid.slice(0, 8)}`;
+
     const summary = {
       date: displayDate,
       description,
       transaction_type: 'pos_shift_summary',
-      reference: `SHIFT-${sid.slice(0, 8)}`,
+      reference: shiftRef,
       debit,
       credit,
       balance: 0, // recomputed below
