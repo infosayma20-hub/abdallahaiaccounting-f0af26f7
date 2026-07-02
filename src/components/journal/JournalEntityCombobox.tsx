@@ -7,6 +7,7 @@ interface Account {
   account_code: string;
   account_name: string;
   account_type?: string;
+  parent_code?: string | null;
 }
 
 interface Contact {
@@ -14,6 +15,7 @@ interface Contact {
   contact_name: string;
   contact_type: string;
   current_balance?: number;
+  linked_account_code?: string | null;
 }
 
 type AccountSelection = { kind: "account"; account_code: string; account_name: string };
@@ -42,6 +44,36 @@ const MAX_PER_GROUP = 20;
 
 function formatAmount(n: number) {
   return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function resolveContactAccountCode(contact: Contact, accounts: Account[]) {
+  const parentCodes = new Set(accounts.map((a) => a.parent_code).filter(Boolean));
+  const postableAccounts = accounts.filter((a) => {
+    if (parentCodes.has(a.account_code)) return false;
+    return !accounts.some((other) =>
+      other.account_code !== a.account_code &&
+      String(other.account_code || "").startsWith(String(a.account_code || ""))
+    );
+  });
+  const linked = contact.linked_account_code?.trim();
+  if (linked && postableAccounts.some((a) => a.account_code === linked)) return linked;
+
+  const prefixes = isSupplier(contact)
+    ? ["2110", "211"]
+    : isCustomer(contact)
+      ? ["1130", "113"]
+      : isEmployee(contact)
+        ? ["2180", "218"]
+        : [];
+
+  for (const prefix of prefixes) {
+    const match = postableAccounts.find((a) =>
+      a.parent_code === prefix || String(a.account_code || "").startsWith(prefix)
+    );
+    if (match) return match.account_code;
+  }
+
+  return "";
 }
 
 export default function JournalEntityCombobox({
@@ -87,9 +119,9 @@ export default function JournalEntityCombobox({
     const emp = contacts.filter(c => isEmployee(c) && multiWordMatchAny(debounced, c.contact_name)).slice(0, MAX_PER_GROUP);
     const flat: Array<AccountSelection | ContactSelection> = [
       ...ar.map(a => ({ kind: "account" as const, account_code: a.account_code, account_name: a.account_name })),
-      ...cust.map(c => ({ kind: "contact" as const, contact: c, autoAccountCode: "1130" })),
-      ...sup.map(c => ({ kind: "contact" as const, contact: c, autoAccountCode: "2110" })),
-      ...emp.map(c => ({ kind: "contact" as const, contact: c, autoAccountCode: "2180" })),
+      ...cust.map(c => ({ kind: "contact" as const, contact: c, autoAccountCode: resolveContactAccountCode(c, accounts) })),
+      ...sup.map(c => ({ kind: "contact" as const, contact: c, autoAccountCode: resolveContactAccountCode(c, accounts) })),
+      ...emp.map(c => ({ kind: "contact" as const, contact: c, autoAccountCode: resolveContactAccountCode(c, accounts) })),
     ];
     return { accountResults: ar, customerResults: cust, supplierResults: sup, employeeResults: emp, flatItems: flat };
   }, [debounced, accounts, contacts]);
