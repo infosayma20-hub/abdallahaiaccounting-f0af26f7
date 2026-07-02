@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { multiWordMatchAny } from "@/lib/utils";
 
 interface VoucherNavToolbarProps {
@@ -79,6 +80,7 @@ const VoucherNavToolbar = ({
 }: VoucherNavToolbarProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const [allIds, setAllIds] = useState<string[]>([]);
   const [allRefs, setAllRefs] = useState<VoucherItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -91,12 +93,12 @@ const VoucherNavToolbar = ({
 
   // Load all voucher IDs for navigation
   const loadVoucherList = useCallback(async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     if (isReceipt) {
       const { data } = await supabase
         .from("receipt_vouchers")
         .select("id, receipt_number, payment_date, contact_name, amount, status")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId)
         .order("created_at", { ascending: true });
       if (data) {
         setAllIds(data.map(d => d.id));
@@ -113,7 +115,7 @@ const VoucherNavToolbar = ({
       const { data } = await supabase
         .from("invoices")
         .select("id, invoice_number, invoice_date, contact_name, total_amount, status")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId)
         .order("created_at", { ascending: true });
       if (data) {
         setAllIds(data.map(d => d.id));
@@ -130,7 +132,7 @@ const VoucherNavToolbar = ({
       const { data } = await supabase
         .from("vouchers")
         .select("id, ref_number, date, description, amount, status")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId)
         .eq("type", "journal")
         .order("created_at", { ascending: true });
       if (data) {
@@ -149,7 +151,7 @@ const VoucherNavToolbar = ({
       const { data } = await supabase
         .from("vouchers")
         .select("id, ref_number, date, description, amount, status")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId)
         .eq("type", "payment")
         .order("created_at", { ascending: true });
       if (data) {
@@ -164,7 +166,7 @@ const VoucherNavToolbar = ({
         })));
       }
     }
-  }, [user, isReceipt, isJournal, isInvoice]);
+  }, [user, dataOwnerId, isReceipt, isJournal, isInvoice]);
 
   useEffect(() => { loadVoucherList(); }, [loadVoucherList]);
 
