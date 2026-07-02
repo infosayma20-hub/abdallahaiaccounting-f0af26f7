@@ -45,8 +45,11 @@ export interface JournalSaveInput {
   date: string;
   /** subtype: normal | opening | adjustment | closing */
   subtype: "normal" | "opening" | "adjustment" | "closing";
-  description: string;
+  /** الوصف — الآن اختياري (تم استبداله بحقل الملاحظات + دفتر السندات) */
+  description?: string;
   notes?: string | null;
+  /** دفتر السندات — إن لم يُمرر يُستخدم الدفتر الافتراضي */
+  book_id?: string | null;
   /** جهة اتصال على مستوى السند ككل (اختياري) */
   contact_id?: string | null;
   /** مركز تكلفة عام على مستوى السند (اختياري) — يُستخدم للسطور التي لا تحدد مركزها */
@@ -230,7 +233,6 @@ async function generateRefNumber(userId: string): Promise<string> {
 
 /** Validation موحّد. يُرجع رسالة خطأ بالعربية أو null إذا كل شيء سليم. */
 export function validateJournalInput(input: JournalSaveInput): string | null {
-  if (!input.description?.trim()) return "الوصف مطلوب";
   if (!input.date) return "التاريخ مطلوب";
 
   const validLines = (input.lines || []).filter(
@@ -354,6 +356,35 @@ export function useSaveJournalVoucher() {
       // ── (2) رقم السند ──
       const refNumber = input.ref_number?.trim() || (await generateRefNumber(ownerId));
 
+      // ── (2.1) دفتر السندات + الرقم المستقل داخل الدفتر ──
+      // - إن لم يُمرر book_id نستخدم الدفتر الافتراضي "GENERAL".
+      // - ثم نصدر رقماً مستقلاً بصيغة CODE-YYYY-#### عبر RPC آمن ضد التزامن.
+      let bookId: string | null = input.book_id || null;
+      let bookNumber: string | null = null;
+      try {
+        if (!bookId) {
+          const { data: defBook } = await supabase.rpc(
+            "ensure_default_journal_book" as any,
+            { _user_id: ownerId }
+          );
+          bookId = (defBook as any) || null;
+        }
+        if (bookId) {
+          const year = new Date(input.date).getFullYear();
+          const { data: allocated } = await supabase.rpc(
+            "allocate_journal_book_number" as any,
+            { _book_id: bookId, _year: year }
+          );
+          const row = Array.isArray(allocated) ? allocated[0] : allocated;
+          bookNumber = (row as any)?.book_number || null;
+        }
+      } catch (e) {
+        // Fail-soft: لا نمنع الحفظ لو فشل تخصيص رقم الدفتر — يبقى book_id
+        console.warn("[journal-books] allocate number failed:", e);
+      }
+
+      const headerDescription = (input.description?.trim() || input.notes?.trim() || bookNumber || refNumber);
+
       // ── (3) إنشاء voucher master ──
       // ⚠️ نُنشئ السند دائماً بحالة draft أولاً، ثم نُرحّله بعد إنشاء
       // الـ transactions وربط linked_transaction_id، لتفادي trigger
@@ -375,13 +406,15 @@ export function useSaveJournalVoucher() {
           amount_ils: totalDebitIls,
             currency: masterCode,
             exchange_rate: masterRate,
-          description: input.description.trim(),
+          description: headerDescription,
           notes: input.notes || null,
           status: initialStatus,
           posted_by: null,
           posted_at: null,
           attachments: input.attachments && input.attachments.length > 0 ? input.attachments : [],
           line_sort_order: input.line_sort_order || "original",
+          book_id: bookId,
+          book_number: bookNumber,
         })
         .select("id, ref_number")
         .single();
@@ -415,7 +448,7 @@ export function useSaveJournalVoucher() {
         const { txns, usedClearing } = buildTransactionsFromLines({
           userId: ownerId,
           date: input.date,
-          description: input.description.trim(),
+          description: headerDescription,
           lines: validLines,
           txType,
           reference: voucher.ref_number,
@@ -474,9 +507,11 @@ export function useSaveJournalVoucher() {
             throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
         } else if (txns.length > 0) {
+          // ختم كل الحركات ببيانات دفتر السندات (للفلترة السريعة على كشوف الحسابات)
+          const stampedTxns = txns.map((t) => ({ ...t, book_id: bookId, book_number: bookNumber }));
           const { data: txData, error: tErr } = await supabase
             .from("transactions")
-            .insert(txns)
+            .insert(stampedTxns)
             .select("id");
           if (tErr) throw tErr;
 

@@ -278,6 +278,7 @@ const CurrencyExchangePage = lazy(() => import("./pages/CurrencyExchangePage"));
 const CashLiquidityPage = lazy(() => import("./pages/CashLiquidityPage"));
 const VoucherFormPage = lazy(() => import("./pages/VoucherFormPage"));
 const JournalNewPage = lazy(() => import("./pages/JournalNewPage"));
+const JournalBooksPage = lazy(() => import("./pages/JournalBooksPage"));
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
 const PortalDashboard = lazy(() => import("./pages/portal/PortalDashboard"));
 const TaskLoginPage = lazy(() => import("./pages/tasks/TaskLoginPage"));
@@ -789,6 +790,7 @@ const App = () => (
                       <Route path="/finance/payments" element={<FinancePaymentsPage />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
                       <Route path="/finance/journal/new" element={<FeatureGuard app="finance" feature="journal" perm="create" label="إنشاء قيد"><JournalNewPage /></FeatureGuard>} />
+                      <Route path="/finance/settings/journal-books" element={<JournalBooksPage />} />
                       <Route path="/finance/receipt/new" element={<FeatureGuard app="finance" feature="receipts" perm="create" label="سند قبض جديد"><VoucherFormPage voucherType="receipt" /></FeatureGuard>} />
                       <Route path="/finance/receipt/:id/edit" element={<FeatureGuard app="finance" feature="receipts" perm="update" label="تعديل سند قبض"><VoucherFormPage voucherType="receipt" /></FeatureGuard>} />
                       <Route path="/finance/payment/new" element={<FeatureGuard app="finance" feature="payments" perm="create" label="سند صرف جديد"><VoucherFormPage voucherType="payment" /></FeatureGuard>} />

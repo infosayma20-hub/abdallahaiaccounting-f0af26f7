@@ -39,6 +39,8 @@ import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown"
 import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
+import { useJournalBooks } from "@/hooks/useJournalBooks";
+import { Settings2, BookOpen as BookOpenIcon } from "lucide-react";
 
 const CURRENCIES = [
   { value: "ILS", label: "شيكل", symbol: "₪" },
@@ -92,6 +94,13 @@ const JournalNewPage = () => {
   const [formSubtype, setFormSubtype] = useState("normal");
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formBookId, setFormBookId] = useState<string | null>(null);
+  const { books: journalBooks, defaultBook } = useJournalBooks();
+  // اضبط الدفتر الافتراضي تلقائياً عند التحميل الأول
+  useEffect(() => {
+    if (!formBookId && defaultBook) setFormBookId(defaultBook.id);
+  }, [defaultBook, formBookId]);
+  const currentBook = journalBooks.find((b) => b.id === formBookId) || defaultBook || null;
   const [formContactId, setFormContactId] = useState("");
   const [formCostCenterId, setFormCostCenterId] = useState<string | null>(null);
   const [contactSearch, setContactSearch] = useState("");
@@ -372,6 +381,7 @@ const JournalNewPage = () => {
         setFormCostCenterId(v.cost_center_id || null);
         setFormDescription(v.description || "");
         setFormNotes(v.notes || "");
+        if ((v as any).book_id) setFormBookId((v as any).book_id);
         setAttachments(Array.isArray(v.attachments) ? (v.attachments as any) : []);
         setLineSortOrder((v.line_sort_order as any) || "original");
 
@@ -610,7 +620,6 @@ const JournalNewPage = () => {
 
   const handleSave = async (mode: "draft" | "posted" | "deferred" = "posted") => {
     if (!user) return;
-    if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
     if (mode === "posted" && !isBalanced) { toast.error("القيد غير متوازن"); return; }
 
     // Auto-assign account codes for contact-only lines before validation
@@ -676,6 +685,7 @@ const JournalNewPage = () => {
         subtype: formSubtype as any,
         description: formDescription,
         notes: formNotes || null,
+        book_id: formBookId,
         contact_id: formContactId || null,
         cost_center_id: formCostCenterId || null,
         currency_code: formCurrency,
@@ -943,6 +953,7 @@ const JournalNewPage = () => {
       subtype: formSubtype as any,
       description: formDescription,
       notes: formNotes || null,
+      book_id: formBookId,
       contact_id: formContactId || null,
       cost_center_id: formCostCenterId || null,
       currency_code: formCurrency,
@@ -958,7 +969,6 @@ const JournalNewPage = () => {
   // Update an existing loaded voucher
   const handleUpdate = async () => {
     if (!editingVoucherId) return;
-    if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
     if (!isBalanced) { toast.error("القيد غير متوازن"); return; }
     setSaving(true);
     try {
@@ -1183,14 +1193,49 @@ const JournalNewPage = () => {
               />
             </div>
             <div className="md:col-span-4">
-              <Label className="text-xs mb-1.5 block">البيان المختصر <span className="text-destructive">*</span></Label>
+              <Label className="text-xs mb-1.5 block flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <BookOpenIcon className="h-3 w-3 text-muted-foreground" />
+                  دفتر السندات
+                </span>
+                <button
+                  type="button"
+                  onClick={() => navigate("/finance/settings/journal-books")}
+                  className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                  title="إدارة الدفاتر"
+                >
+                  <Settings2 className="h-2.5 w-2.5" /> إدارة
+                </button>
+              </Label>
               <div className="flex items-stretch gap-1">
-                <Input
-                  value={formDescription}
-                  onChange={e => setFormDescription(e.target.value)}
-                  placeholder="مثال: مصاريف تشغيلية شهر يوليو"
-                  className="h-9"
-                />
+                <Select value={formBookId || ""} onValueChange={(v) => setFormBookId(v)} disabled={isReadOnly}>
+                  <SelectTrigger className="h-9 flex-1">
+                    <SelectValue placeholder="اختر دفتراً...">
+                      {currentBook && (
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="h-3 w-3 rounded-sm shrink-0"
+                            style={{ backgroundColor: currentBook.color }}
+                          />
+                          <span className="font-medium">{currentBook.name}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">({currentBook.code})</span>
+                        </span>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {journalBooks.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        <span className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm shrink-0" style={{ backgroundColor: b.color }} />
+                          <span>{b.name}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{b.code}</span>
+                          {b.is_default && <span className="text-[9px] text-amber-600">★</span>}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   type="button"
                   variant="outline"
