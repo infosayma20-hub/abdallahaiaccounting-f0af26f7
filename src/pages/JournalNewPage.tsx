@@ -40,7 +40,6 @@ import JournalAccountPicker from "@/components/journal/JournalAccountPicker";
 import JournalEntityCombobox from "@/components/journal/JournalEntityCombobox";
 import { openOfficialVoucherWindow } from "@/lib/print/buildOfficialVoucher";
 import { useJournalBooks } from "@/hooks/useJournalBooks";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Settings2, BookOpen as BookOpenIcon } from "lucide-react";
 
 const CURRENCIES = [
