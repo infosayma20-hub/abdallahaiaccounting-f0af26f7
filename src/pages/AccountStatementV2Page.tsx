@@ -186,6 +186,24 @@ const AccountStatementV2Page = () => {
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true); // initial full-page loader only
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
+  // Full-screen mode for wide tables (client request)
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (e) {
+      console.warn("[fullscreen] toggle failed", e);
+    }
+  }, []);
   const hasLoadedOnceRef = useRef(false);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
