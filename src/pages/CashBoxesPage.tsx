@@ -676,7 +676,6 @@ const CashBoxesPage = () => {
 
       <CashBoxDrawer open={drawerOpen} onClose={() => { setDrawerOpen(false); setEditBox(null); }} defaultType={drawerType} editBox={editBox} hasMainBox={hasMainBox} onSaved={() => { setDrawerOpen(false); setEditBox(null); fetchData(); }} />
       <PettyCashReplenishDialog open={replenishOpen} onOpenChange={setReplenishOpen} boxes={boxes} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
-      <CurrencyExchangeDialog open={exchangeOpen} onOpenChange={setExchangeOpen} boxes={boxes} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
       <BankDepositDialog open={depositOpen} onOpenChange={setDepositOpen} boxes={boxes} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
       <CashBoxTransferDialog open={transferOpen} onOpenChange={setTransferOpen} boxes={boxes} balances={balances} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
       <ForeignCashOpeningBalanceDialog open={openingBalanceOpen} onOpenChange={setOpeningBalanceOpen} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
