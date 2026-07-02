@@ -162,6 +162,47 @@ const ALLOWED_TABLES = [
   { key: "employee_payroll", label: "الرواتب", icon: "💳" },
 ];
 
+const fiEntityTypeLabels: Record<string, string> = {
+  voucher: "سند",
+  transaction: "حركة محاسبية",
+  invoice: "فاتورة",
+  cash_transfer: "تحويل نقدي",
+  journal_entry: "قيد يدوي",
+};
+
+const fiBatchLabels: Record<string, string> = {
+  phase_1_duplicate_voucher_renumber: "المرحلة 1: إعادة ترقيم السندات المكررة",
+  phase_2_orphan_journal_entries: "المرحلة 2: حذف القيود اليتيمة",
+  phase_3_currency_exchange_fix: "المرحلة 3: تصحيح صرف العملة",
+  phase_4_invoice_payment_audit: "المرحلة 4: تدقيق مدفوعات الفواتير",
+  phase_5_cash_transfers_orphan_audit: "المرحلة 5: مراجعة التحويلات اليتيمة",
+  finance_integrity_migration: "تدقيق شامل للمالية",
+};
+
+const fiReasonLabels: Record<string, string> = {
+  "re_numbered duplicate voucher": "إعادة ترقيم سند مكرر",
+  "deleted orphan journal entry from cancelled voucher": "حذف قيد يتيم من سند ملغى",
+  "legacy transfer without gl kept for manual review": "تحويل قديم بدون قيود محاسبية (للمراجعة اليدوية)",
+  "legacy_transfer_without_gl_kept_for_manual_review": "تحويل قديم بدون قيود محاسبية (للمراجعة اليدوية)",
+  "legacy_data_kept_for_review": "بيانات قديمة محتفظ بها للمراجعة",
+  "cancelled invoice zeroed paid_amount": "تصفير مبلغ مدفوع لفاتورة ملغاة",
+  "reset_paid_amount_on_cancelled_invoice": "تصفير المبلغ المدفوع لفاتورة ملغاة",
+  "invoice payment mismatch recorded": "تسجيل فروقات دفع الفاتورة",
+  "cross_currency_cash_transfer_fixed": "تصحيح تحويل نقدي بين عملات",
+  "duplicate_reference_cleaned": "تنظيف مرجع مكرر",
+  "voided return reversed journal entries": "إلغاء مردودات وعكس قيودها",
+  "return edit cancelled and recreated": "إلغاء مردود وإعادة إنشائه",
+};
+
+export const formatFiBatch = (batch?: string) =>
+  batch ? (fiBatchLabels[batch] || batch.replace(/_/g, " ")) : "—";
+
+export const formatFiEntityType = (type?: string) =>
+  type ? (fiEntityTypeLabels[type] || type) : "—";
+
+export const formatFiReason = (reason?: string) =>
+  reason ? (fiReasonLabels[reason] || reason) : "—";
+
 async function apiCall(action: string, params?: Record<string, string>, body?: any) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("غير مسجل الدخول");
@@ -2548,7 +2589,7 @@ export default function SuperAdminDashboard() {
               </h2>
               <div className="flex items-center gap-2 flex-wrap">
                 <Input
-                  placeholder="فلترة الدفعة (batch)"
+                  placeholder="فلترة الدفعة"
                   value={fiFilterBatch}
                   onChange={(e) => { setFiFilterBatch(e.target.value); setFiPage(0); }}
                   className="w-40 text-xs"
@@ -2561,10 +2602,11 @@ export default function SuperAdminDashboard() {
                   style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)", border: "1px solid" }}
                 >
                   <option value="">كل الأنواع</option>
-                  <option value="voucher">سند (voucher)</option>
-                  <option value="transaction">حركة (transaction)</option>
-                  <option value="invoice">فاتورة (invoice)</option>
-                  <option value="cash_transfer">تحويل نقدي (cash_transfer)</option>
+                  <option value="voucher">سند</option>
+                  <option value="transaction">حركة محاسبية</option>
+                  <option value="invoice">فاتورة</option>
+                  <option value="cash_transfer">تحويل نقدي</option>
+                  <option value="journal_entry">قيد يدوي</option>
                 </select>
                 <Button variant="ghost" size="sm" onClick={() => loadFiLogs(0)} disabled={fiLoading} style={{ color: "var(--sa-text-muted)" }}>
                   <RefreshCw className={`h-4 w-4 ${fiLoading ? "animate-spin" : ""}`} />
@@ -2590,12 +2632,12 @@ export default function SuperAdminDashboard() {
                         <td className="px-4 py-3 tabular-nums text-xs font-mono" style={{ color: "var(--sa-text-muted)" }}>
                           {format(new Date(log.fixed_at), "dd/MM/yy HH:mm:ss")}
                         </td>
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.fix_batch}</td>
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.entity_type}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{formatFiBatch(log.fix_batch)}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{formatFiEntityType(log.entity_type)}</td>
                         <td className="px-4 py-3 text-xs font-mono truncate max-w-[150px]" style={{ color: "var(--sa-text-muted)" }}>
                           {log.entity_id ? `${log.entity_id.substring(0, 18)}...` : "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{log.reason || "—"}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-secondary)" }}>{formatFiReason(log.reason)}</td>
                         <td className="px-4 py-3 text-xs font-mono truncate max-w-[180px]" style={{ color: "var(--sa-text-faint)" }}>
                           {log.old_value ? JSON.stringify(log.old_value).substring(0, 40) : "—"}
                         </td>
