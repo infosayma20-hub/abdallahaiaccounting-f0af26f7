@@ -310,7 +310,7 @@ const AccountStatementV2Page = () => {
     } finally {
       setNavigatingRowId(null);
     }
-  }, [dataOwnerId, navigate]);
+  }, [dataOwnerId, navigate, toggleShiftExpanded]);
 
   // ─── FETCH DATA ───
   const fetchData = async (opts: { silent?: boolean } = {}) => {
