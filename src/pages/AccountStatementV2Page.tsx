@@ -433,6 +433,27 @@ const AccountStatementV2Page = () => {
   const selectedEntityEmoji = selectedAccount ? "📊" : selectedContact ? (selectedContact.contact_type === "عميل" ? "👤" : "🚚") : selectedEmployee ? "👨‍💼" : "";
   const selectedEntityCode = isAccountsTab ? selectedAccount?.account_code || "" : selectedContact?.linked_account_code || selectedEmployee?.account_code || "";
 
+  const selectedEntityLatestTxDate = useMemo(() => {
+    if (!selectedEntityId) return "";
+
+    let entityTxs: Transaction[] = [];
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      entityTxs = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+    } else if (isEmployeesTab && selectedEmployee?.account_code) {
+      const code = selectedEmployee.account_code;
+      entityTxs = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+    } else if (selectedContact) {
+      const contactName = selectedContact.contact_name?.trim() || "";
+      const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
+      entityTxs = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+    }
+
+    return entityTxs.reduce((latest, tx) => (tx.transaction_date > latest ? tx.transaction_date : latest), "");
+  }, [selectedEntityId, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, transactions, contacts]);
+
+  const hasTransactionsAfterDateTo = Boolean(dateTo && selectedEntityLatestTxDate && selectedEntityLatestTxDate > dateTo);
+
   // Stable SOA number: based on entity + date range, doesn't change during session
   const stableSOANumber = useMemo(() => {
     const seed = `${selectedEntityName}|${dateFrom}|${dateTo}`;
