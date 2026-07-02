@@ -19,7 +19,6 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { fetchAllRows } from "@/lib/fetch-all-rows";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
 import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDialog";
-import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog";
 import BankDepositDialog from "@/components/finance/BankDepositDialog";
 import CashBoxTransferDialog from "@/components/finance/CashBoxTransferDialog";
 import ForeignCashOpeningBalanceDialog from "@/components/finance/ForeignCashOpeningBalanceDialog";
@@ -76,7 +75,6 @@ const CashBoxesPage = () => {
   const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">("branch");
   const [editBox, setEditBox] = useState<any>(null);
   const [replenishOpen, setReplenishOpen] = useState(false);
-  const [exchangeOpen, setExchangeOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [openingBalanceOpen, setOpeningBalanceOpen] = useState(false);
@@ -385,7 +383,7 @@ const CashBoxesPage = () => {
       { key: "movements", label: "حركات", items: [
         { key: "transfer", label: "تحويل بين الصناديق", icon: ArrowLeftRight, onClick: () => navigate("/finance/cash-boxes/transfer") },
         { key: "deposit", label: "إيداع بنكي", icon: ArrowUpFromLine, onClick: () => setDepositOpen(true) },
-        { key: "exchange", label: "صرف عملة", icon: ArrowLeftRight, onClick: () => setExchangeOpen(true) },
+        { key: "exchange", label: "صرف عملة", icon: ArrowLeftRight, onClick: () => navigate("/finance/cash-boxes/currency-exchange") },
         { key: "replenish", label: "تغذية النثرية", icon: ArrowDownToLine, onClick: () => setReplenishOpen(true) },
         { key: "fx-opening", label: "رصيد افتتاحي عملة", icon: Banknote, onClick: () => setOpeningBalanceOpen(true) },
       ]},
@@ -677,7 +675,6 @@ const CashBoxesPage = () => {
 
       <CashBoxDrawer open={drawerOpen} onClose={() => { setDrawerOpen(false); setEditBox(null); }} defaultType={drawerType} editBox={editBox} hasMainBox={hasMainBox} onSaved={() => { setDrawerOpen(false); setEditBox(null); fetchData(); }} />
       <PettyCashReplenishDialog open={replenishOpen} onOpenChange={setReplenishOpen} boxes={boxes} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
-      <CurrencyExchangeDialog open={exchangeOpen} onOpenChange={setExchangeOpen} boxes={boxes} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
       <BankDepositDialog open={depositOpen} onOpenChange={setDepositOpen} boxes={boxes} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
       <CashBoxTransferDialog open={transferOpen} onOpenChange={setTransferOpen} boxes={boxes} balances={balances} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
       <ForeignCashOpeningBalanceDialog open={openingBalanceOpen} onOpenChange={setOpeningBalanceOpen} userId={dataOwnerId || user?.id || ""} onSuccess={fetchData} />
