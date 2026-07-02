@@ -35,6 +35,9 @@ import { SmartTextCell } from "@/components/ui/smart-text-cell";
 import { useTaxEnabled } from "@/hooks/useTaxEnabled";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { onCrossTabChange } from "@/lib/crossTabSync";
+import { usePosShiftData } from "@/hooks/usePosShiftData";
+import { groupRowsByShift, type PosShiftInfo } from "@/lib/pos-shift-grouping";
+import { Package, ChevronRight } from "lucide-react";
 
 // ─── Reference label formatting ───
 // Shortens long internal references (UUIDs etc.) into Arabic-friendly labels.
@@ -57,7 +60,7 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; cost_center_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; cost_center_id?: string | null; cost_center_name?: string; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; cost_center_id?: string | null; cost_center_name?: string; isShiftSummary?: boolean; isShiftChild?: boolean; shiftSessionId?: string; shiftMeta?: PosShiftInfo | null; }
 interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
 interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
 interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; chequeStatus?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
@@ -209,6 +212,21 @@ const AccountStatementV2Page = () => {
   const [navigatingRowId, setNavigatingRowId] = useState<string | null>(null);
   const [statementOptions, setStatementOptions] = useState<StatementViewOptions>(() => loadViewOptions());
   const [detailsMap, setDetailsMap] = useState<StatementDetailsMap>(() => emptyDetailsMap());
+  // ─── POS Shift Grouping ───
+  // When viewing a POS cash-box account, collapse sale rows per shift.
+  // Default: grouped ON (user preference — accountants see one line per shift).
+  const [posGroupMode, setPosGroupMode] = useState<'grouped' | 'detailed'>(() => {
+    try { return (localStorage.getItem('as.posGroupMode') as any) || 'grouped'; } catch { return 'grouped'; }
+  });
+  const [expandedShifts, setExpandedShifts] = useState<Set<string>>(new Set());
+  useEffect(() => { try { localStorage.setItem('as.posGroupMode', posGroupMode); } catch {} }, [posGroupMode]);
+  const toggleShiftExpanded = useCallback((sid: string) => {
+    setExpandedShifts(prev => {
+      const n = new Set(prev);
+      if (n.has(sid)) n.delete(sid); else n.add(sid);
+      return n;
+    });
+  }, []);
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
 
@@ -229,6 +247,11 @@ const AccountStatementV2Page = () => {
   // no source document can be matched (e.g. opening balances, POS lines).
   const openRowDocument = useCallback(async (row: StatementRow) => {
     if (row.isLineItem) return;
+    // Shift summary rows expand/collapse instead of navigating.
+    if (row.isShiftSummary && row.shiftSessionId) {
+      toggleShiftExpanded(row.shiftSessionId);
+      return;
+    }
     if (!dataOwnerId) { setDrawerRow(row); setDrawerOpen(true); return; }
     const ref = (row.reference || "").trim();
     const txType = (row.transaction_type || "").toLowerCase();
@@ -287,7 +310,7 @@ const AccountStatementV2Page = () => {
     } finally {
       setNavigatingRowId(null);
     }
-  }, [dataOwnerId, navigate]);
+  }, [dataOwnerId, navigate, toggleShiftExpanded]);
 
   // ─── FETCH DATA ───
   const fetchData = async (opts: { silent?: boolean } = {}) => {
@@ -700,8 +723,37 @@ const AccountStatementV2Page = () => {
   }, [costCenters]);
   const ccLabel = useCallback((id?: string | null) => id ? (ccMap.get(id) || "—") : "بدون مركز تكلفة", [ccMap]);
 
+  // ─── POS Shift Data (loaded when a POS cash-box account is selected) ───
+  const posShiftEnabled = !!(isAccountsTab && selectedAccount);
+  const {
+    shifts: posShifts,
+    orderToSession: posOrderToSession,
+    isPosBox,
+    loading: posShiftLoading,
+  } = usePosShiftData(
+    dataOwnerId || undefined,
+    posShiftEnabled ? (selectedAccount?.account_code || undefined) : undefined,
+    dateFrom,
+    dateTo,
+    posShiftEnabled,
+  );
+
+  // ─── Grouped rows (POS shift collapsing) ───
+  // Runs AFTER the raw rows are built and BEFORE filtering/rendering, so all
+  // downstream code (search, cost-center filter, print, export) transparently
+  // sees the collapsed representation.
+  const groupedRows = useMemo<StatementRow[]>(() => {
+    if (!isPosBox || posGroupMode !== 'grouped' || posShifts.size === 0) return rows;
+    return groupRowsByShift(rows as any, {
+      shifts: posShifts,
+      orderToSession: posOrderToSession,
+      expandedSessions: expandedShifts,
+      enabled: true,
+    }) as StatementRow[];
+  }, [rows, isPosBox, posGroupMode, posShifts, posOrderToSession, expandedShifts]);
+
   const filteredRows = useMemo(() => {
-    let r = rows;
+    let r = groupedRows;
     if (txTypeFilter !== "all") r = r.filter(x => txTypeMatchesFilter(x.transaction_type, txTypeFilter));
     if (txCostCenter !== "all") {
       r = txCostCenter === "__none__"
@@ -713,7 +765,7 @@ const AccountStatementV2Page = () => {
     // rows. The input stays instantly responsive; results settle after 300ms.
     if (debouncedTxSearch.trim()) r = r.filter(x => multiWordMatchAny(debouncedTxSearch, x.description, x.reference));
     return r;
-  }, [rows, debouncedTxSearch, txTypeFilter, txCostCenter]);
+  }, [groupedRows, debouncedTxSearch, txTypeFilter, txCostCenter]);
 
   // ─── RELATED CHEQUES ───
   const relatedCheques = useMemo(() => {
@@ -1230,6 +1282,24 @@ const AccountStatementV2Page = () => {
             <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
           </div>
           <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
+          {isPosBox && posShifts.size > 0 && (
+            <button
+              onClick={() => setPosGroupMode(m => m === 'grouped' ? 'detailed' : 'grouped')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors"
+              style={{
+                background: posGroupMode === 'grouped' ? '#0D1B2E' : 'white',
+                color: posGroupMode === 'grouped' ? 'white' : '#0D1B2E',
+                borderColor: '#0D1B2E',
+              }}
+              title={posGroupMode === 'grouped' ? 'انقر للعرض المفصّل (كل طلب سطر)' : 'انقر للتجميع بالوردية'}
+            >
+              <Package className="w-3.5 h-3.5" />
+              {posGroupMode === 'grouped'
+                ? `مُجمّع بالوردية (${posShifts.size})`
+                : 'عرض مفصّل'}
+              {posShiftLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+            </button>
+          )}
           {selectedEntityId && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/40">
               <span className="text-sm">{selectedEntityEmoji}</span>
@@ -1443,6 +1513,86 @@ const AccountStatementV2Page = () => {
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
                     statementRowsWithDetails.map((row, i) => {
+                      // ─── POS Shift Summary Row (Collapsible) ───
+                      if (row.isShiftSummary) {
+                        const meta = row.shiftMeta;
+                        const isOpen = row.shiftSessionId ? expandedShifts.has(row.shiftSessionId) : false;
+                        const variance = meta?.cash_variance;
+                        const varianceLabel = variance == null ? null
+                          : Math.abs(variance) < 0.005 ? 'مطابق'
+                          : variance > 0 ? `+${fmtAmount(variance, row.currency)} زيادة`
+                          : `${fmtAmount(variance, row.currency)} عجز`;
+                        const varianceColor = variance == null || Math.abs(variance) < 0.005 ? '#065F46' : variance > 0 ? '#B45309' : '#B91C1C';
+                        return (
+                          <tr
+                            key={row.transaction_id + '-' + i}
+                            onClick={() => row.shiftSessionId && toggleShiftExpanded(row.shiftSessionId)}
+                            style={{
+                              borderBottom: '1px solid #E5E7EB',
+                              background: isOpen ? '#EFF6FF' : '#F8FAFC',
+                              cursor: 'pointer',
+                            }}
+                            className="hover:bg-blue-50 transition-colors"
+                          >
+                            {screenCols.map(c => {
+                              if (c.key === 'date') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 11, color: '#0D1B2E', fontWeight: 700 }}>
+                                  <div>{fmtDate(row.date)}</div>
+                                  <div style={{ fontSize: 9, color: '#6B7280', fontWeight: 500 }}>{getDayName(row.date)}</div>
+                                </td>
+                              );
+                              if (c.key === 'reference') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 10, fontFamily: 'monospace', color: '#475569', fontWeight: 600 }}>
+                                  {row.reference}
+                                </td>
+                              );
+                              if (c.key === 'description') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 11.5, color: '#0D1B2E', fontWeight: 600 }}>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <ChevronRight
+                                      className="w-3.5 h-3.5 shrink-0 transition-transform"
+                                      style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', color: '#0D1B2E' }}
+                                    />
+                                    <span>{row.description}</span>
+                                    {meta?.state === 'open' && (
+                                      <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>مفتوحة</span>
+                                    )}
+                                    {varianceLabel && (
+                                      <span style={{ background: '#F1F5F9', color: varianceColor, padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
+                                        {`النقد: ${varianceLabel}`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                              if (c.key === 'due') return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                              if (c.key === 'type') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 9.5 }}>
+                                  <span style={{ background: '#0D1B2E', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>وردية POS</span>
+                                </td>
+                              );
+                              if (c.key === 'cost_center') return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                              if (c.key === 'debit') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#1E40AF', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                  {row.debit > 0 ? fmtAmount(row.debit, row.currency) : '—'}
+                                </td>
+                              );
+                              if (c.key === 'credit') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#065F46', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                  {row.credit > 0 ? fmtAmount(row.credit, row.currency) : '—'}
+                                </td>
+                              );
+                              if (c.key === 'balance') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 800, color: balColor(row.balance), textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                  {fmtAmount(row.balance, row.currency)}
+                                  <span style={{ fontSize: 9, fontWeight: 400, color: '#9CA3AF', marginRight: 2 }}>{row.balance > 0 ? 'م' : row.balance < 0 ? 'د' : ''}</span>
+                                </td>
+                              );
+                              return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                            })}
+                          </tr>
+                        );
+                      }
                       // ─── Nested Invoice Items Table (Document-aware) ───
                       if (row.lineItemDetail === "invoice-table" && row.invoiceItems && row.invoiceItems.length > 0) {
                         const items = row.invoiceItems;
@@ -1619,7 +1769,7 @@ const AccountStatementV2Page = () => {
                         );
                       }
                       return (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: navigatingRowId === row.transaction_id ? 0.6 : (row.isCancelled ? 0.7 : 1) }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) openRowDocument(row); }}>
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isShiftChild ? "#FAFBFC" : row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : undefined, opacity: navigatingRowId === row.transaction_id ? 0.6 : (row.isCancelled ? 0.7 : 1) }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) openRowDocument(row); }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
@@ -1689,8 +1839,8 @@ const AccountStatementV2Page = () => {
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           <div className="flex items-center gap-1">
                             <span>
-                              {fmtAmount(row.balance, row.currency)}
-                              <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
+                              {Number.isFinite(row.balance) ? fmtAmount(row.balance, row.currency) : "—"}
+                              {Number.isFinite(row.balance) && <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>}
                             </span>
                             <ArrowLeft className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" style={{ color: "#9CA3AF" }} />
                           </div>

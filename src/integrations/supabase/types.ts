@@ -23702,6 +23702,34 @@ export type Database = {
         Args: { p_currency_name: string; p_user_id: string }
         Returns: number
       }
+      get_pos_shift_summary: {
+        Args: {
+          p_cash_box_gl: string
+          p_from_date: string
+          p_to_date: string
+          p_user_id: string
+        }
+        Returns: {
+          business_date: string
+          cash_box_id: string
+          cash_box_name: string
+          cash_variance: number
+          cashier_name: string
+          closed_at: string
+          closing_cash: number
+          currency: string
+          device_name: string
+          expected_cash: number
+          opened_at: string
+          order_count: number
+          session_id: string
+          session_seq: number
+          state: string
+          total_credit: number
+          total_debit: number
+          total_vat: number
+        }[]
+      }
       get_rep_customers_with_balances: {
         Args: { p_sales_rep_id: string; p_user_id: string }
         Returns: {
