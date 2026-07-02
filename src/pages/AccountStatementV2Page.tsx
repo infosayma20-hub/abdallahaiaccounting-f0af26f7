@@ -313,39 +313,59 @@ const AccountStatementV2Page = () => {
   }, [dataOwnerId, navigate, toggleShiftExpanded]);
 
   // ─── FETCH DATA ───
+  // Server-side filtered transactions fetch. Composes the account/contact
+  // filter with the existing "is_deleted=false OR reversed_by_id NOT NULL"
+  // clause. Paginated (PostgREST caps at 1000 rows/query).
+  // NOTE: multiple .or() calls compose with AND, which is what we want:
+  //   (is_deleted=false OR reversed) AND (debit=X OR credit=X OR contact=Y)
+  const fetchTxServerFiltered = async (filter: { accountCode?: string; contactId?: string }) => {
+    const PAGE = 1000;
+    const all: any[] = [];
+    // Build the entity filter clause (server-side). If neither is set, no
+    // filter is added — behaviour matches the previous "fetch all" path.
+    const entityClauseParts: string[] = [];
+    if (filter.accountCode) {
+      entityClauseParts.push(`debit_account_code.eq.${filter.accountCode}`);
+      entityClauseParts.push(`credit_account_code.eq.${filter.accountCode}`);
+    }
+    if (filter.contactId) {
+      entityClauseParts.push(`contact_id.eq.${filter.contactId}`);
+    }
+    const entityClause = entityClauseParts.length ? entityClauseParts.join(",") : null;
+    for (let from = 0; ; from += PAGE) {
+      let q = supabase
+        .from("transactions")
+        .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
+        .eq("user_id", dataOwnerId!)
+        .or("is_deleted.eq.false,reversed_by_id.not.is.null");
+      if (entityClause) q = q.or(entityClause);
+      q = q
+        .order("transaction_date", { ascending: true })
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      const { data, error } = await q;
+      if (error) throw error;
+      const chunk = data || [];
+      all.push(...chunk);
+      if (chunk.length < PAGE) break;
+    }
+    return all as Transaction[];
+  };
+
   const fetchData = async (opts: { silent?: boolean } = {}) => {
     if (!user || !dataOwnerId) return;
     const silent = opts.silent === true && hasLoadedOnceRef.current;
     if (silent) setIsRefreshing(true);
     else setLoading(true);
     try {
-      // Paginated fetch for transactions — PostgREST caps at 1000 rows/query.
-      // Without this, tenants with >1000 tx silently lose the most-recent data
-      // (order asc → the tail gets truncated), which broke cash-box statements.
-      const fetchAllTransactions = async () => {
-        const PAGE = 1000;
-        const all: any[] = [];
-        for (let from = 0; ; from += PAGE) {
-          const { data, error } = await supabase
-            .from("transactions")
-            .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id, cost_center_id")
-            .eq("user_id", dataOwnerId)
-            .or("is_deleted.eq.false,reversed_by_id.not.is.null")
-            .order("transaction_date", { ascending: true })
-            .order("created_at", { ascending: true })
-            .range(from, from + PAGE - 1);
-          if (error) throw error;
-          const chunk = data || [];
-          all.push(...chunk);
-          if (chunk.length < PAGE) break;
-        }
-        return { data: all };
-      };
-
-      const [{ data: contactData }, { data: accData }, { data: txData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
+      // ─── Phase A: static data (contacts, accounts, employees, company, cheques) ───
+      // Load these first — small tables — so we can resolve the selected entity's
+      // account_code / contact_id BEFORE fetching transactions. This lets Phase B
+      // do a server-side filtered pull (see fetchTxServerFiltered below) instead of
+      // dragging every transaction in the tenant to the browser (Malaki: ~10k rows).
+      const [{ data: contactData }, { data: accData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("user_id", dataOwnerId).eq("is_active", true).order("contact_name"),
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
-        fetchAllTransactions(),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", ownerId).maybeSingle(),
         supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
@@ -354,7 +374,6 @@ const AccountStatementV2Page = () => {
 
       setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
-      setTransactions((txData as Transaction[]) || []);
       setCheques((chequeData as Cheque[]) || []);
 
       const allAccounts = (accData as Account[]) || [];
@@ -379,6 +398,28 @@ const AccountStatementV2Page = () => {
 
       if (urlEmployeeName && empList.length > 0) { const f = empList.find(e => e.full_name === urlEmployeeName); if (f) setSelectedEntityId(f.id); }
       if (urlAccountCode && allAccounts.length > 0) { const f = allAccounts.find(a => a.account_code === urlAccountCode); if (f) setSelectedEntityId(f.id); }
+
+      // ─── Phase B: transactions (server-side filtered if entity resolved) ───
+      // Resolve current entity from freshly-loaded static arrays. If we can pin
+      // it to an account_code / contact_id, ask Postgres to return only rows
+      // that touch it (uses existing idx_transactions_user_debit / _user_credit
+      // / _contact indexes). Fallback: full paginated pull (preserves old UX).
+      let resolvedAccountCode: string | undefined;
+      let resolvedContactId: string | undefined;
+      // Prefer the entity we're about to auto-select from URL, else current state.
+      const entityIdForFilter =
+        (urlEmployeeName && empList.find(e => e.full_name === urlEmployeeName)?.id) ||
+        (urlAccountCode && allAccounts.find(a => a.account_code === urlAccountCode)?.id) ||
+        selectedEntityId;
+      if (entityIdForFilter) {
+        const acct = allAccounts.find(a => a.id === entityIdForFilter);
+        const cont = ((contactData as Contact[]) || []).find(c => c.id === entityIdForFilter);
+        const emp = empList.find(e => e.id === entityIdForFilter);
+        resolvedAccountCode = acct?.account_code || cont?.linked_account_code || emp?.account_code || undefined;
+        resolvedContactId = cont?.id || undefined;
+      }
+      const txData = await fetchTxServerFiltered({ accountCode: resolvedAccountCode, contactId: resolvedContactId });
+      setTransactions(txData);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -389,6 +430,30 @@ const AccountStatementV2Page = () => {
   };
 
   useEffect(() => { fetchData(); }, [user, dataOwnerId]);
+
+  // ─── Silent server-side refetch when the viewed entity changes ───
+  // Reuses the same helper as Phase B above. Runs only AFTER the first full
+  // load, so URL/session-restored entities are handled by fetchData itself.
+  // If entity is cleared → falls back to unfiltered pull (matches old UX).
+  const lastTxFilterKeyRef = useRef<string>("");
+  useEffect(() => {
+    if (!hasLoadedOnceRef.current || !user || !dataOwnerId) return;
+    const acct = accounts.find(a => a.id === selectedEntityId);
+    const cont = contacts.find(c => c.id === selectedEntityId);
+    const emp = employeeEntities.find(e => e.id === selectedEntityId);
+    const accountCode = acct?.account_code || cont?.linked_account_code || emp?.account_code || undefined;
+    const contactId = cont?.id || undefined;
+    const key = `${accountCode || ""}|${contactId || ""}`;
+    if (key === lastTxFilterKeyRef.current) return;
+    lastTxFilterKeyRef.current = key;
+    let cancelled = false;
+    setIsRefreshing(true);
+    fetchTxServerFiltered({ accountCode, contactId })
+      .then(rows => { if (!cancelled) setTransactions(rows); })
+      .catch(err => { console.error("targeted tx fetch failed:", err); })
+      .finally(() => { if (!cancelled) setIsRefreshing(false); });
+    return () => { cancelled = true; };
+  }, [selectedEntityId, accounts, contacts, employeeEntities, user, dataOwnerId]);
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
