@@ -1839,8 +1839,8 @@ const AccountStatementV2Page = () => {
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           <div className="flex items-center gap-1">
                             <span>
-                              {fmtAmount(row.balance, row.currency)}
-                              <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
+                              {Number.isFinite(row.balance) ? fmtAmount(row.balance, row.currency) : "—"}
+                              {Number.isFinite(row.balance) && <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>}
                             </span>
                             <ArrowLeft className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" style={{ color: "#9CA3AF" }} />
                           </div>
