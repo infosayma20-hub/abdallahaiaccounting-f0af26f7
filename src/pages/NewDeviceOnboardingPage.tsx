@@ -166,6 +166,7 @@ export default function NewDeviceOnboardingPage() {
 
   // Step 4 — Printers
   const [printers, setPrinters] = useState<Printer[]>([]);
+  const [stations, setStations] = useState<KitchenStation[]>([]);
   const [printerStatus, setPrinterStatus] = useState<Record<string, boolean | null>>({});
   const [bridgePrinterHealth, setBridgePrinterHealth] = useState<Record<string, { connected: boolean; subnetMismatch: boolean }>>({});
   // Print Bridge logo presence (true = bridge can read logo.png from its folder)
@@ -280,16 +281,18 @@ export default function NewDeviceOnboardingPage() {
     try {
       const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
       const ownerId = (ownerIdRaw as string | null) || user.id;
-      const [br, term, cb, pr] = await Promise.all([
+      const [br, term, cb, pr, st] = await Promise.all([
         supabase.from("branches").select("id, name, is_active, user_id").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("pos_terminals").select("id, name, branch_id, user_id, is_active").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("cash_boxes").select("id, name, pos_terminal_id, currency, is_active").eq("user_id", ownerId).eq("is_active", true).order("name"),
         supabase.from("pos_printers").select("*").eq("is_active", true).order("is_default", { ascending: false }),
+        supabase.from("kitchen_stations" as any).select("id, name").eq("is_active", true).order("display_order"),
       ]);
       setBranches((br.data as Branch[]) || []);
       setTerminals((term.data as Terminal[]) || []);
       setCashBoxes((cb.data as CashBox[]) || []);
       setPrinters((pr.data as Printer[]) || []);
+      setStations(((st.data as any[]) || []).map(s => ({ id: s.id, name: s.name })));
     } finally {
       setLoadingOptions(false);
     }
