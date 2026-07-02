@@ -424,8 +424,17 @@ const AccountStatementV2Page = () => {
         resolvedAccountCode = acct?.account_code || cont?.linked_account_code || emp?.account_code || undefined;
         resolvedContactId = cont?.id || undefined;
       }
-      const txData = await fetchTxServerFiltered({ accountCode: resolvedAccountCode, contactId: resolvedContactId });
-      setTransactions(txData);
+      // ⚡ Perf: if no entity is resolved yet (user hasn't picked one),
+      // skip the transactions pull entirely. Otherwise we would drag every
+      // transaction in the tenant (~10k+ rows) just to render an empty
+      // statement + a search dropdown. Balances in the search will render
+      // as blank until an entity is selected — a fair trade for instant UX.
+      if (resolvedAccountCode || resolvedContactId) {
+        const txData = await fetchTxServerFiltered({ accountCode: resolvedAccountCode, contactId: resolvedContactId });
+        setTransactions(txData);
+      } else {
+        setTransactions([]);
+      }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
