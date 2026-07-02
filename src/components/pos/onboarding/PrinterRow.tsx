@@ -310,6 +310,11 @@ export default function PrinterRow(props: PrinterRowProps) {
                 <Pencil className="h-4 w-4 ml-2" /> تعديل
               </DropdownMenuItem>
             )}
+            {isKitchenRole && onLinkStations && (
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onLinkStations(); }}>
+                <Link2 className="h-4 w-4 ml-2" /> ربط بمحطة مطبخ
+              </DropdownMenuItem>
+            )}
             {!isWindows && (
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); void runProbe(); }} disabled={probing || !bridgeOnline}>
                 <Activity className="h-4 w-4 ml-2" /> فحص متقدم
