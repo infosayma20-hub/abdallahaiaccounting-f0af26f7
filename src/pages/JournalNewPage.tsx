@@ -122,16 +122,14 @@ const JournalNewPage = () => {
   // Invalid line IDs (highlighted on failed save attempt)
   const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
 
-  // Postable accounts only (exclude parents — any code referenced as parent_code is a parent)
+  // Postable accounts only — exclude accounts that are referenced as a parent_code by any other account.
+  // NOTE: Do NOT use string-prefix matching here — codes like 11101 and 111010 are siblings
+  // (both children of 1110), not parent/child. Prefix matching would wrongly hide 11101.
   const postableAccounts = useMemo(() => {
-    const parentCodes = new Set(accounts.map((a: any) => a.parent_code).filter(Boolean));
-    return accounts.filter((a: any) => {
-      if (parentCodes.has(a.account_code)) return false;
-      return !accounts.some((other: any) =>
-        other.account_code !== a.account_code &&
-        String(other.account_code || "").startsWith(String(a.account_code || ""))
-      );
-    });
+    const parentCodes = new Set(
+      accounts.map((a: any) => String(a.parent_code || "").trim()).filter(Boolean)
+    );
+    return accounts.filter((a: any) => !parentCodes.has(String(a.account_code || "").trim()));
   }, [accounts]);
 
   // Quick-add contact state
