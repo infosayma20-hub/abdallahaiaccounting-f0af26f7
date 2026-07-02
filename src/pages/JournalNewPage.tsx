@@ -1576,7 +1576,7 @@ const JournalNewPage = () => {
                 ref={dropZoneRef}
                 onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
                 onDrop={e => { e.preventDefault(); e.stopPropagation(); const files = e.dataTransfer.files; if (files.length) handleFileUpload(files[0]); }}
-                className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+                className="border-2 border-dashed border-border/80 rounded-xl p-6 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
@@ -1611,8 +1611,8 @@ const JournalNewPage = () => {
       {/* ═══ RIGHT COLUMN — Truly Sticky Balance Summary (responsive width) ═══ */}
       {summaryOpen && (
       <aside className="w-full lg:w-[clamp(240px,18vw,300px)] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
-        <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
+        <Card className="border border-border shadow-md rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center gap-2">
             <Scale className="h-4 w-4 text-primary" />
             <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
           </div>
