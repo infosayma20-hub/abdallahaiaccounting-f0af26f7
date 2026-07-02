@@ -383,7 +383,7 @@ const CashBoxesPage = () => {
         { key: "new-box", label: "صندوق جديد", icon: Plus, variant: "primary", onClick: () => openAdd(hasMainBox ? "branch" : "main") },
       ]},
       { key: "movements", label: "حركات", items: [
-        { key: "transfer", label: "تحويل بين الصناديق", icon: ArrowLeftRight, onClick: () => setTransferOpen(true) },
+        { key: "transfer", label: "تحويل بين الصناديق", icon: ArrowLeftRight, onClick: () => navigate("/finance/cash-boxes/transfer") },
         { key: "deposit", label: "إيداع بنكي", icon: ArrowUpFromLine, onClick: () => setDepositOpen(true) },
         { key: "exchange", label: "صرف عملة", icon: ArrowLeftRight, onClick: () => setExchangeOpen(true) },
         { key: "replenish", label: "تغذية النثرية", icon: ArrowDownToLine, onClick: () => setReplenishOpen(true) },
