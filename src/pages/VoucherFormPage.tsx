@@ -13,6 +13,7 @@ import { useCompany } from "@/hooks/useCompanyContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -3567,6 +3568,24 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       {/* Invoice Linking Section */}
       {selectedContact && partyType === "contact" && (
+        <>
+        {/* Quick-toggle: Payment on Account — sets mode to "advance" so amount stays as open credit */}
+        <div className="flex items-center justify-between gap-2 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 px-3 py-2">
+          <div className="text-[12px] text-foreground flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-primary" />
+            <span className="font-bold">دفعة على الحساب؟</span>
+            <span className="text-muted-foreground">— احفظ المبلغ كرصيد مفتوح بدون ربطه بفاتورة.</span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant={allocationMode === "advance" ? "default" : "outline"}
+            onClick={() => setAllocationMode(allocationMode === "advance" ? "auto" : "advance")}
+            className="h-7 text-[11px] gap-1"
+          >
+            {allocationMode === "advance" ? "✓ مفعّل" : "تفعيل"}
+          </Button>
+        </div>
         <SmartAllocationPanel
           voucherKind={voucherType}
           partyType={partyType}
@@ -3585,6 +3604,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           invoiceSearch={invoiceSearch}
           onInvoiceSearch={setInvoiceSearch}
         />
+        </>
       )}
 
       {/* ───── COMPACT bottom bar: Notes + Attachments in ONE horizontal row ───── */}
