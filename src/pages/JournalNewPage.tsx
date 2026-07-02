@@ -621,7 +621,6 @@ const JournalNewPage = () => {
 
   const handleSave = async (mode: "draft" | "posted" | "deferred" = "posted") => {
     if (!user) return;
-    if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
     if (mode === "posted" && !isBalanced) { toast.error("القيد غير متوازن"); return; }
 
     // Auto-assign account codes for contact-only lines before validation
@@ -687,6 +686,7 @@ const JournalNewPage = () => {
         subtype: formSubtype as any,
         description: formDescription,
         notes: formNotes || null,
+        book_id: formBookId,
         contact_id: formContactId || null,
         cost_center_id: formCostCenterId || null,
         currency_code: formCurrency,
@@ -954,6 +954,7 @@ const JournalNewPage = () => {
       subtype: formSubtype as any,
       description: formDescription,
       notes: formNotes || null,
+      book_id: formBookId,
       contact_id: formContactId || null,
       cost_center_id: formCostCenterId || null,
       currency_code: formCurrency,
@@ -969,7 +970,6 @@ const JournalNewPage = () => {
   // Update an existing loaded voucher
   const handleUpdate = async () => {
     if (!editingVoucherId) return;
-    if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
     if (!isBalanced) { toast.error("القيد غير متوازن"); return; }
     setSaving(true);
     try {
