@@ -191,11 +191,39 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
             .in("id", oldTxs.map(t => t.id));
         }
       }
+      // For foreign-currency boxes: fetch latest ILS rate, store ILS-equivalent in `amount`
+      // and the raw foreign value in `foreign_amount` so the account statement (which
+      // reads `foreign_amount` for foreign cash accounts 1111-1114) shows the JOD/USD/EUR
+      // opening balance in its own currency instead of ₪.
+      let ilsAmount = obAmount;
+      let fxAmount: number | null = null;
+      let fxRate: number | null = null;
+      if (currency !== "ILS") {
+        const { data: cur } = await supabase
+          .from("currencies").select("id").eq("code", currency).eq("is_active", true).maybeSingle();
+        let r = 0;
+        if (cur?.id) {
+          const { data: er } = await supabase
+            .from("exchange_rates")
+            .select("mid_rate, buy_rate, sell_rate")
+            .eq("currency_id", cur.id)
+            .order("rate_date", { ascending: false })
+            .limit(1).maybeSingle();
+          r = Number(er?.mid_rate || er?.sell_rate || er?.buy_rate || 0);
+        }
+        if (!r || r <= 0) {
+          // Sane defaults so we never store a ₪-equivalent equal to the foreign value.
+          r = currency === "USD" ? 3.6 : currency === "JOD" ? 5.0 : currency === "EUR" ? 4.0 : currency === "EGP" ? 0.075 : 1;
+        }
+        fxRate = r;
+        fxAmount = obAmount;
+        ilsAmount = +(obAmount * r).toFixed(2);
+      }
       await supabase.rpc("create_opening_balance_entry", {
         p_user_id: ownerId,
         p_debit_account_code: finalGlCode,
         p_credit_account_code: "3200",
-        p_amount: obAmount,
+        p_amount: ilsAmount,
         p_balance_date: openingDate,
         p_description: `رصيد افتتاحي — ${name.trim()}`,
         p_currency: obCurrency,
@@ -203,7 +231,9 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
         p_reference: `OB-CASHBOX-${finalGlCode}`,
         p_replace_existing: false,
         p_idempotency_key: `OB-CASHBOX-${finalGlCode}-${Date.now()}`,
-      });
+        p_foreign_amount: fxAmount,
+        p_exchange_rate: fxRate,
+      } as any);
     } else if (editBox && finalGlCode && obAmount === 0) {
       // If opening balance removed during edit, soft-delete old transaction
       await supabase.from("transactions")
