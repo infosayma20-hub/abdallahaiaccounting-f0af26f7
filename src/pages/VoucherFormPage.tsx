@@ -3527,16 +3527,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           beside it all the way down. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {/* Notes — 2/3 */}
-      <Card className="md:col-span-2 border-2 border-border shadow-sm">
-        <CardContent className="p-4">
+      <Card className="md:col-span-2 border-2 border-border shadow-md bg-card">
+        <CardContent className="p-3">
           <Label className="text-xs mb-1.5 block font-bold">ملاحظات</Label>
-          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={3} className="resize-none border-2" />
+          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={2} className="resize-none border-2 bg-background" />
         </CardContent>
       </Card>
 
       {/* Attachments — 1/3 */}
-      <Card className="md:col-span-1 border-2 border-border shadow-sm">
-        <CardContent className="p-4 space-y-2">
+      <Card className="md:col-span-1 border-2 border-border shadow-md bg-card">
+        <CardContent className="p-3 space-y-2">
           <button
             type="button"
             onClick={() => dropZoneRef.current?.classList.toggle("hidden")}
@@ -3548,15 +3548,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </button>
           <div ref={dropZoneRef}>
             <div
-              className="border-2 border-dashed border-border/50 rounded-xl p-6 text-center hover:border-primary/40 transition-colors cursor-pointer"
+              className="border-2 border-dashed border-border rounded-lg p-3 text-center hover:border-primary/60 hover:bg-primary/5 transition-colors cursor-pointer bg-muted/30"
               onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("border-primary/60", "bg-primary/5"); }}
               onDragLeave={e => { e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); }}
               onDrop={e => { e.preventDefault(); e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); handleFileUpload(e.dataTransfer.files); }}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">اسحب الملفات هنا أو انقر للرفع</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB</p>
+              <Upload className="h-5 w-5 text-muted-foreground/60 mx-auto mb-1" />
+              <p className="text-[11px] text-muted-foreground">اسحب الملفات هنا أو انقر للرفع</p>
+              <p className="text-[10px] text-muted-foreground/60">PDF, JPG, PNG · 5 ملفات · 10MB</p>
             </div>
             <input ref={fileInputRef} type="file" className="hidden" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx"
               onChange={e => { if (e.target.files) handleFileUpload(e.target.files); e.target.value = ""; }} />
