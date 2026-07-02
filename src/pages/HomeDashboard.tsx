@@ -17,6 +17,7 @@ import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget"
 import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
 import TopSellingWidget from "@/components/dashboard/TopSellingWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
+import BranchComparisonWidget from "@/components/dashboard/BranchComparisonWidget";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import CustomizeDashboardDialog, { loadWidgetConfig, type DashboardWidgetConfig } from "@/components/dashboard/CustomizeDashboardDialog";
 
@@ -185,6 +186,7 @@ const HomeDashboard = () => {
             {isVisible("inventory") && <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />}
             {isVisible("cheques") && <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />}
             {isVisible("exchange-rates") && <ExchangeRatesWidget />}
+            {isVisible("branch-comparison") && <BranchComparisonWidget />}
           </div>
         </div>
       </div>

@@ -17,6 +17,7 @@ const DEFAULT_WIDGETS: DashboardWidgetConfig[] = [
   { id: "inventory", label: "نبض المخزون", visible: true },
   { id: "cheques", label: "الشيكات المستحقة", visible: true },
   { id: "exchange-rates", label: "أسعار الصرف", visible: true },
+  { id: "branch-comparison", label: "مقارنة الفروع", visible: true },
 ];
 
 const STORAGE_KEY = "dashboard_widget_config";
