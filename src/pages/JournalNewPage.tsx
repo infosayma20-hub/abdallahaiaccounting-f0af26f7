@@ -1145,7 +1145,7 @@ const JournalNewPage = () => {
       <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
       {/* ═══ Header Card — single compact row: date, ref, currency, rate, brief description ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
             <div className="md:col-span-2">
@@ -1207,7 +1207,7 @@ const JournalNewPage = () => {
           </div>
 
           {detailsOpen && (
-          <div className="space-y-4 pt-3 border-t border-border/50">
+          <div className="space-y-4 pt-3 border-t border-border">
           {/* Subtype Tabs — chip strip, single row */}
           <div className="flex flex-wrap gap-2">
             {(["normal", "opening", "adjustment", "closing"] as const).map(st => (
