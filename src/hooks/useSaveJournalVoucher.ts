@@ -498,6 +498,9 @@ export function useSaveJournalVoucher() {
       }
 
       setSaving(false);
+      // بث فوري لكل التبويبات المفتوحة (كشف الحساب، دفتر اليومية، ملخصات) لكي تُحدّث نفسها مباشرةً بدون انتظار Realtime.
+      try { broadcastChange("journal_entry", "created", voucher.id); } catch {}
+      try { broadcastChange("transaction", "created", voucher.id); } catch {}
       return { success: true, voucher_id: voucher.id, ref_number: voucher.ref_number };
     } catch (err: any) {
       // ── Rollback يدوي: لو فشلنا بعد إنشاء voucher نحذفه (cascade ينظف voucher_lines) ──
