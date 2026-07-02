@@ -1289,63 +1289,23 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
-      {/* ═══ JOURNAL LINES — Big, wide, primary focus ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-        <CardContent className="p-5 lg:p-6 space-y-4">
-          <div className="flex items-center justify-between">
+      {/* ═══ JOURNAL LINES — compact ═══ */}
+      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-3 lg:p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-primary" />
               أسطر القيد
             </h3>
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <span className="hidden md:flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Enter</kbd>
-                <span>التالي</span>
-                <span className="text-muted-foreground/50">•</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Alt+N</kbd>
-                <span>سطر</span>
-                <span className="text-muted-foreground/50">•</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+D</kbd>
-                <span>نسخ</span>
-                <span className="text-muted-foreground/50">•</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+Enter</kbd>
-                <span>حفظ</span>
-              </span>
+            <div className="flex items-center gap-1.5">
               <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8">
-                <Plus className="h-3 w-3" /> إضافة سطر
+                <Plus className="h-3 w-3" /> سطر
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8">
-                <Bookmark className="h-3 w-3" /> القوالب
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setSummaryOpen(v => !v)} className="gap-1 text-xs h-8">
-                {summaryOpen ? <PanelRightClose className="h-3 w-3" /> : <PanelRightOpen className="h-3 w-3" />}
-                {summaryOpen ? "إخفاء الملخص" : "إظهار الملخص"}
+                <Bookmark className="h-3 w-3" /> قوالب
               </Button>
             </div>
           </div>
-
-          {!summaryOpen && (
-            <div className="flex items-center flex-wrap gap-2 px-3 py-2 rounded-xl bg-muted/40 border border-border/60 text-[12px]">
-              {(() => {
-                const isZero = totalDebit === 0 && totalCredit === 0;
-                if (isZero) return <span className="flex items-center gap-1.5 text-muted-foreground"><FileText className="h-3.5 w-3.5" /> أدخل المبالغ للتحقق من التوازن</span>;
-                if (isBalanced) return <span className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400"><CheckCircle className="h-3.5 w-3.5" /> متوازن</span>;
-                return <span className="flex items-center gap-1.5 font-bold text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> غير متوازن</span>;
-              })()}
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">مدين</span>
-              <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">₪{formatAmount(totalDebit)}</span>
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">دائن</span>
-              <span className="font-bold tabular-nums text-destructive">₪{formatAmount(totalCredit)}</span>
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">الفرق</span>
-              <span className={`font-extrabold tabular-nums ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>₪{formatAmount(Math.abs(totalDebit - totalCredit))}</span>
-              <span className="opacity-40">·</span>
-              <span className="text-muted-foreground">الأسطر</span>
-              <span className="font-semibold tabular-nums">{lines.length}</span>
-            </div>
-          )}
 
           <div className="rounded-xl border border-border overflow-hidden">
             <table className="w-full text-sm">
