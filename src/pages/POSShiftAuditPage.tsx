@@ -62,6 +62,132 @@ type ResolutionOption =
   | "employee_wallet"
   | "deferred";
 
+/* ------------- ترجمة طرق الدفع للعربية ------------- */
+const PAY_METHOD_AR: Record<string, string> = {
+  cash: "نقدي",
+  card: "بطاقة/فيزا",
+  credit: "بيع آجل (على الحساب)",
+  employee_account: "على حساب الموظف",
+  cheque: "شيك",
+  bank_transfer: "حوالة بنكية",
+  wallet: "محفظة إلكترونية",
+};
+const CURRENCY_AR: Record<string, string> = {
+  ILS: "شيكل",
+  USD: "دولار",
+  JOD: "دينار",
+};
+const arMethod = (m?: string | null) => (m && PAY_METHOD_AR[m]) || m || "—";
+const arCurr = (c?: string | null) => (c && CURRENCY_AR[c]) || c || "—";
+
+type SessionDetails = {
+  loading: boolean;
+  paymentsByMethod: Array<{ method: string; currency: string; total: number; count: number; refunds: number }>;
+  ordersCount: number;
+  cancelledCount: number;
+  cancelledTotal: number;
+  creditTotal: number;
+  employeeAccountTotal: number;
+  callCenterCount: number;
+  cardReferences: Array<{ ref: string; total: number; currency: string }>;
+};
+
+function useSessionDetails(sessionId: string, dataOwnerId: string | null | undefined) {
+  const [state, setState] = useState<SessionDetails>({
+    loading: true,
+    paymentsByMethod: [],
+    ordersCount: 0,
+    cancelledCount: 0,
+    cancelledTotal: 0,
+    creditTotal: 0,
+    employeeAccountTotal: 0,
+    callCenterCount: 0,
+    cardReferences: [],
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sessionId || !dataOwnerId) return;
+      // 1) اطلبات الوردية
+      const { data: orders } = await supabase
+        .from("pos_orders")
+        .select("id,total,state,cancelled_at,notes,order_type,ils_equivalent,currency")
+        .eq("user_id", dataOwnerId)
+        .eq("session_id", sessionId);
+      const ids = (orders || []).map((o: any) => o.id);
+      const cancelled_ = (orders || []).filter(
+        (o: any) => o.state === "cancelled" || o.cancelled_at,
+      );
+      const callCenter = (orders || []).filter((o: any) =>
+        (o.notes || "").toLowerCase().includes("call") ||
+        (o.notes || "").includes("كول") ||
+        (o.notes || "").includes("كولسنتر"),
+      );
+
+      // 2) الدفعات
+      let payments: any[] = [];
+      if (ids.length) {
+        const { data: pays } = await supabase
+          .from("pos_payments")
+          .select("payment_method,currency,amount,is_refund,card_reference,reference,order_id")
+          .in("order_id", ids);
+        payments = pays || [];
+      }
+
+      // تجميع حسب (طريقة، عملة)
+      const map = new Map<string, { method: string; currency: string; total: number; count: number; refunds: number }>();
+      let creditTotal = 0;
+      let employeeAccountTotal = 0;
+      const cardRefs = new Map<string, { total: number; currency: string }>();
+
+      for (const p of payments) {
+        const key = `${p.payment_method}::${p.currency}`;
+        const entry = map.get(key) || {
+          method: p.payment_method,
+          currency: p.currency,
+          total: 0,
+          count: 0,
+          refunds: 0,
+        };
+        const amt = Number(p.amount || 0);
+        entry.total += amt;
+        entry.count += 1;
+        if (p.is_refund) entry.refunds += amt;
+        map.set(key, entry);
+
+        if (p.payment_method === "credit") creditTotal += amt;
+        if (p.payment_method === "employee_account") employeeAccountTotal += amt;
+
+        if (p.payment_method === "card") {
+          const ref = (p.card_reference || p.reference || "بطاقة عامة").toString();
+          const r = cardRefs.get(ref) || { total: 0, currency: p.currency };
+          r.total += amt;
+          cardRefs.set(ref, r);
+        }
+      }
+
+      if (cancelled) return;
+      setState({
+        loading: false,
+        paymentsByMethod: Array.from(map.values()).sort((a, b) => b.total - a.total),
+        ordersCount: (orders || []).length,
+        cancelledCount: cancelled_.length,
+        cancelledTotal: cancelled_.reduce((s: number, o: any) => s + Number(o.ils_equivalent || o.total || 0), 0),
+        creditTotal,
+        employeeAccountTotal,
+        callCenterCount: callCenter.length,
+        cardReferences: Array.from(cardRefs.entries()).map(([ref, v]) => ({ ref, ...v })),
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, dataOwnerId]);
+
+  return state;
+}
+
 export default function POSShiftAuditPage() {
   const { dataOwnerId } = useDataOwnerId();
   const [rows, setRows] = useState<AuditRow[]>([]);
@@ -258,6 +384,8 @@ function AuditDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { dataOwnerId } = useDataOwnerId();
+  const details = useSessionDetails(audit.session_id, dataOwnerId);
   const [resolution, setResolution] = useState<ResolutionOption>(
     (audit.resolution_type as ResolutionOption) || "employee_wallet",
   );
@@ -301,7 +429,7 @@ function AuditDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent dir="rtl" className="max-w-2xl">
+      <DialogContent dir="rtl" className="max-w-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <ScaleIcon className="h-4 w-4 text-primary" />
@@ -355,6 +483,111 @@ function AuditDialog({
                 {v.toFixed(2)}
               </div>
             </div>
+          </div>
+
+          {/* تفاصيل الوردية */}
+          <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
+            <div className="text-xs font-semibold flex items-center gap-1">
+              <ClipboardCheck className="h-3 w-3" />
+              تفاصيل الوردية
+            </div>
+
+            {details.loading ? (
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" /> جارٍ تحميل التفاصيل…
+              </div>
+            ) : (
+              <>
+                {/* مؤشرات سريعة */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+                  <div className="rounded border bg-card p-2">
+                    <div className="text-muted-foreground">عدد الطلبات</div>
+                    <div className="font-bold">{details.ordersCount}</div>
+                  </div>
+                  <div className="rounded border bg-card p-2">
+                    <div className="text-muted-foreground">طلبات ملغاة</div>
+                    <div className="font-bold text-rose-700">
+                      {details.cancelledCount} <span className="text-[10px]">({details.cancelledTotal.toFixed(2)} ₪)</span>
+                    </div>
+                  </div>
+                  <div className="rounded border bg-card p-2">
+                    <div className="text-muted-foreground">بيع آجل</div>
+                    <div className="font-bold text-amber-700">{details.creditTotal.toFixed(2)}</div>
+                  </div>
+                  <div className="rounded border bg-card p-2">
+                    <div className="text-muted-foreground">على حساب الموظف</div>
+                    <div className="font-bold text-blue-700">{details.employeeAccountTotal.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                {/* تفصيل طرق الدفع */}
+                {details.paymentsByMethod.length > 0 && (
+                  <div className="rounded border bg-card overflow-hidden">
+                    <div className="text-[11px] font-semibold px-2 py-1 bg-muted/60 border-b">
+                      تفصيل الدفعات حسب الطريقة والعملة
+                    </div>
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          <th className="text-right p-1.5">طريقة الدفع</th>
+                          <th className="text-right p-1.5">العملة</th>
+                          <th className="text-right p-1.5">عدد الحركات</th>
+                          <th className="text-right p-1.5">الإجمالي</th>
+                          <th className="text-right p-1.5">منها مرتجعات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {details.paymentsByMethod.map((p) => (
+                          <tr key={p.method + p.currency} className="border-t">
+                            <td className="p-1.5">{arMethod(p.method)}</td>
+                            <td className="p-1.5">{arCurr(p.currency)}</td>
+                            <td className="p-1.5 font-mono">{p.count}</td>
+                            <td className="p-1.5 font-mono font-bold">{p.total.toFixed(2)}</td>
+                            <td className="p-1.5 font-mono text-rose-700">
+                              {p.refunds ? "-" + p.refunds.toFixed(2) : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* بطاقات: مرجع/بنك */}
+                {details.cardReferences.length > 0 && (
+                  <div className="rounded border bg-card overflow-hidden">
+                    <div className="text-[11px] font-semibold px-2 py-1 bg-muted/60 border-b">
+                      تفصيل البطاقات (لتمييز فيزا الشركات المختلفة)
+                    </div>
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          <th className="text-right p-1.5">المرجع / البنك</th>
+                          <th className="text-right p-1.5">العملة</th>
+                          <th className="text-right p-1.5">الإجمالي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {details.cardReferences.map((c) => (
+                          <tr key={c.ref} className="border-t">
+                            <td className="p-1.5">{c.ref}</td>
+                            <td className="p-1.5">{arCurr(c.currency)}</td>
+                            <td className="p-1.5 font-mono font-bold">{c.total.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {details.callCenterCount > 0 && (
+                  <div className="text-[11px] rounded border border-blue-200 bg-blue-50 p-2 flex items-center justify-between">
+                    <span>طلبات واردة من الكول سنتر</span>
+                    <span className="font-bold text-blue-700">{details.callCenterCount}</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Resolution options */}
