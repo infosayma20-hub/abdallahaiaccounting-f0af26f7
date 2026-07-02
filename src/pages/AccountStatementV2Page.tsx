@@ -380,6 +380,22 @@ const AccountStatementV2Page = () => {
     };
   }, [user, dataOwnerId]);
 
+  // ─── Cross-tab sync: refresh instantly when a voucher/invoice is saved in another tab ───
+  useEffect(() => {
+    if (!user || !dataOwnerId) return;
+    const REFRESH_ENTITIES = new Set([
+      "journal_entry", "transaction", "receipt_voucher", "payment_voucher",
+      "invoice", "purchase_invoice", "contact",
+    ]);
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const unsub = onCrossTabChange((ev) => {
+      if (!REFRESH_ENTITIES.has(ev.entity)) return;
+      if (t) return;
+      t = setTimeout(() => { t = null; fetchData(); }, 400);
+    });
+    return () => { if (t) clearTimeout(t); unsub(); };
+  }, [user, dataOwnerId]);
+
   // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
   useEffect(() => {
     if (!user) return;
