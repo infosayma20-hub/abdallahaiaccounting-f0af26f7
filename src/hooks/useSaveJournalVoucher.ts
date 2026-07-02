@@ -707,6 +707,8 @@ export function useSaveJournalVoucher() {
       }
 
       setSaving(false);
+      try { broadcastChange("journal_entry", "updated", voucherId); } catch {}
+      try { broadcastChange("transaction", "updated", voucherId); } catch {}
       return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
     } catch (err: any) {
       setSaving(false);
@@ -747,6 +749,8 @@ export function useSaveJournalVoucher() {
       if (dErr) throw dErr;
 
       setSaving(false);
+      try { broadcastChange("journal_entry", "deleted", voucherId); } catch {}
+      try { broadcastChange("transaction", "deleted", voucherId); } catch {}
       return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
     } catch (err: any) {
       setSaving(false);
