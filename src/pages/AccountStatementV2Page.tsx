@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   Printer, ChevronLeft, ChevronDown, ChevronUp,
@@ -181,7 +181,9 @@ const AccountStatementV2Page = () => {
   const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cheques, setCheques] = useState<Cheque[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // initial full-page loader only
+  const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
+  const hasLoadedOnceRef = useRef(false);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
   const [activeTab, setActiveTab] = useState<EntityTab>(
@@ -288,9 +290,11 @@ const AccountStatementV2Page = () => {
   }, [dataOwnerId, navigate]);
 
   // ─── FETCH DATA ───
-  const fetchData = async () => {
+  const fetchData = async (opts: { silent?: boolean } = {}) => {
     if (!user || !dataOwnerId) return;
-    setLoading(true);
+    const silent = opts.silent === true && hasLoadedOnceRef.current;
+    if (silent) setIsRefreshing(true);
+    else setLoading(true);
     try {
       // Paginated fetch for transactions — PostgREST caps at 1000 rows/query.
       // Without this, tenants with >1000 tx silently lose the most-recent data
@@ -355,7 +359,9 @@ const AccountStatementV2Page = () => {
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
-      setLoading(false);
+      hasLoadedOnceRef.current = true;
+      if (silent) setIsRefreshing(false);
+      else setLoading(false);
     }
   };
 
