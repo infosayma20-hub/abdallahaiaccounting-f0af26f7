@@ -429,6 +429,7 @@ const FinanceJournalPage = () => {
       groups: [
         { key: "new", label: "إنشاء", items: [
           { key: "new-voucher", label: "سند قيد جديد", icon: Plus, onClick: () => navigate("/finance/journal/new"), variant: "primary" as const },
+          { key: "all-ledger", label: "دفتر اليومية الكامل", icon: BookOpen, onClick: () => navigate("/transactions") },
         ]},
         { key: "data", label: "بيانات", items: [
           { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
@@ -443,11 +444,11 @@ const FinanceJournalPage = () => {
 
   return (
     <FinanceShell
-      title="القيود اليومية"
-      subtitle="إدارة القيود المحاسبية اليدوية"
+      title="سندات القيد اليدوية"
+      subtitle="هذه الشاشة تعرض سندات القيد فقط؛ سندات الصرف والقبض والتحويلات تظهر في دفتر اليومية الكامل"
       breadcrumb={[
         { label: "المالية", href: "/accounting-center" },
-        { label: "القيود اليومية" },
+        { label: "سندات القيد اليدوية" },
       ]}
       actionTabs={actionTabs}
     >
