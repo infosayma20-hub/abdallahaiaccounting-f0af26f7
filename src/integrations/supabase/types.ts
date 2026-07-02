@@ -7386,6 +7386,42 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_integrity_fix_log: {
+        Row: {
+          entity_id: string | null
+          entity_type: string
+          fix_batch: string
+          fixed_at: string
+          fixed_by: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          reason: string | null
+        }
+        Insert: {
+          entity_id?: string | null
+          entity_type: string
+          fix_batch: string
+          fixed_at?: string
+          fixed_by?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+        }
+        Update: {
+          entity_id?: string | null
+          entity_type?: string
+          fix_batch?: string
+          fixed_at?: string
+          fixed_by?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       financial_claims: {
         Row: {
           amount: number
