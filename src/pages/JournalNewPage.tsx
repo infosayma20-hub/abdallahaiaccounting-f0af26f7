@@ -1611,8 +1611,8 @@ const JournalNewPage = () => {
       {/* ═══ RIGHT COLUMN — Truly Sticky Balance Summary (responsive width) ═══ */}
       {summaryOpen && (
       <aside className="w-full lg:w-[clamp(240px,18vw,300px)] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
-        <Card className="border border-border shadow-md rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center gap-2">
+        <Card className="border-2 border-border shadow-md rounded-2xl overflow-hidden bg-card/80">
+          <div className="px-4 py-3 border-b border-border bg-muted/40 flex items-center gap-2">
             <Scale className="h-4 w-4 text-primary" />
             <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
           </div>
@@ -1686,7 +1686,7 @@ const JournalNewPage = () => {
 
       {/* ═══ Bottom Action Bar (inline, in-flow) ═══ */}
       {!editingVoucherId && (
-      <div className="mt-4 rounded-2xl border border-border bg-card/60 px-3 sm:px-4 py-2.5">
+      <div className="mt-4 rounded-2xl border-2 border-border bg-card/80 px-3 sm:px-4 py-2.5 shadow-sm">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Mini status pill */}
           <div className={`hidden md:flex items-center gap-2 px-3 h-11 rounded-xl text-[11px] font-semibold tabular-nums ${isBalanced && totalDebit > 0 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : totalDebit > 0 ? "bg-destructive/10 text-destructive" : "bg-muted/40 text-muted-foreground"}`}>
