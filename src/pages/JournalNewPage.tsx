@@ -1548,7 +1548,7 @@ const JournalNewPage = () => {
       {/* ═══ Notes + Attachments — hidden card body, toggled from bottom "خيارات" ═══ */}
       {extrasOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <Card className="lg:col-span-7 border border-border shadow-sm rounded-2xl">
+      <Card className="lg:col-span-7 border-2 border-border shadow-sm rounded-2xl bg-card/80">
         <CardContent className="p-5">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             ملاحظات
@@ -1558,7 +1558,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* Attachments Section */}
-      <Card className="lg:col-span-5 border border-border shadow-sm rounded-2xl">
+      <Card className="lg:col-span-5 border-2 border-border shadow-sm rounded-2xl bg-card/80">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
