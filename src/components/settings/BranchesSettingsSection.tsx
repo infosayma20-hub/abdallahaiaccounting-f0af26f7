@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, MapPin, Building2, Pencil, X, Check, QrCode, Copy, ExternalLink } from "lucide-react";
+import { Plus, Trash2, MapPin, Building2, Pencil, X, Check, QrCode, Copy, ExternalLink, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -143,6 +143,19 @@ export default function BranchesSettingsSection() {
         <Button onClick={openAdd} size="sm" className="gap-1.5 shrink-0">
           <Plus className="h-3.5 w-3.5" /> إضافة فرع
         </Button>
+      </div>
+
+      {/* Docs: Cost Center vs Branch vs Warehouse */}
+      <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 text-xs leading-relaxed">
+        <div className="flex items-center gap-2 font-semibold text-primary mb-2">
+          <Info className="h-4 w-4" /> فهم فصل الحسابات والفروع
+        </div>
+        <ul className="space-y-1.5 text-foreground/80 pr-4 list-disc">
+          <li><strong>الفرع (Branch):</strong> الموقع الفعلي (مبنى/مطعم) — يُستعمل لتحديد موقع الموظفين، محطات POS، والطابعات.</li>
+          <li><strong>مركز التكلفة (Cost Center):</strong> وحدة محاسبية لتقسيم الإيرادات والمصاريف حسب الفرع/القسم — تظهر في قائمة الدخل (P&amp;L) وميزان المراجعة كفلتر مستقل.</li>
+          <li><strong>المستودع (Warehouse):</strong> موقع تخزين المخزون — قد يخدم فرعاً واحداً أو أكثر، ويُستعمل في تحويلات المخزون والجرد.</li>
+          <li>القاعدة الذهبية: <strong>فرع واحد ↔ مركز تكلفة واحد ↔ مستودع أو أكثر</strong>. حسابات الشجرة (Chart of Accounts) موحّدة لكل الشركة؛ الفصل يتم بمركز التكلفة على مستوى القيد.</li>
+        </ul>
       </div>
 
       {/* Branches List */}
