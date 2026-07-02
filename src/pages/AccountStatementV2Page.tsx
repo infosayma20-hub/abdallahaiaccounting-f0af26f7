@@ -154,10 +154,10 @@ const AccountStatementV2Page = () => {
   const { toast } = useToast();
   const { data: costCenters = [] } = useCostCenters({ includeInactive: true });
 
-  const urlContactId = searchParams.get("contact_id") || "";
+  const urlContactId = searchParams.get("contact_id") || searchParams.get("contact") || "";
   const urlContactType = searchParams.get("contact_type") || "";
   const urlEmployeeName = searchParams.get("employee_name") || "";
-  const urlAccountCode = searchParams.get("code") || "";
+  const urlAccountCode = searchParams.get("code") || searchParams.get("account") || "";
 
   // ─── Persistent view state (survives tab switches / navigation) ───
   // Stored in sessionStorage so filters, selected entity, dates and tab are
