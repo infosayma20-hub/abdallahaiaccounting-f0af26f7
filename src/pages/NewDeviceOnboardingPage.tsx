@@ -1172,6 +1172,7 @@ export default function NewDeviceOnboardingPage() {
                     notSynced={bridgeSource === "fallback"}
                     testStatus={printerStatus[p.id] ?? null}
                     windowsPrinters={windowsPrinters}
+                    stations={stations}
                     onTest={() => handlePrinterTest(p)}
                     onConvertToWindows={() => setConvertTarget(p)}
                     onDelete={() => setPrinterToDelete(p)}
