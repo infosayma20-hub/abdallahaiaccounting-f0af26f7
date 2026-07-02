@@ -1144,20 +1144,19 @@ const JournalNewPage = () => {
       {/* ═══ LEFT COLUMN — Main content (grows to fill) ═══ */}
       <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
-      {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+      {/* ═══ Header Card — single compact row: date, ref, currency, rate, brief description ═══ */}
+      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
         <CardContent className="p-3 space-y-3">
-          {/* Compact always-visible row */}
           <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
-            <div className="md:col-span-3">
-              <Label className="text-xs mb-1.5 block">التاريخ</Label>
+            <div className="md:col-span-2">
+              <Label className="text-xs mb-1.5 block">التاريخ <span className="text-destructive">*</span></Label>
               <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} data-smart-first className="h-9" />
             </div>
-            <div className="md:col-span-3">
-              <Label className="text-xs mb-1.5 block">رقم السند</Label>
+            <div className="md:col-span-2">
+              <Label className="text-xs mb-1.5 block">رقم السند <span className="text-destructive">*</span></Label>
               <Input value={formRefNumber} readOnly className="font-mono bg-muted/50 cursor-default h-9" />
             </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <Label className="text-xs mb-1.5 block">العملة</Label>
               <Select value={formCurrency} onValueChange={setFormCurrency}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -1168,12 +1167,42 @@ const JournalNewPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-3 flex md:justify-end">
-              <Button variant="outline" size="sm" onClick={() => setDetailsOpen(v => !v)} className="h-9 gap-1 text-xs w-full md:w-auto">
-                <FileText className="h-3.5 w-3.5" />
-                تفاصيل السند
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
-              </Button>
+            <div className="md:col-span-2">
+              <Label className="text-xs mb-1.5 block flex items-center gap-1">
+                سعر الصرف
+                {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
+              </Label>
+              <Input
+                type="number"
+                value={formExchangeRate}
+                onChange={e => setFormExchangeRate(parseFloat(e.target.value) || 0)}
+                step="0.001"
+                min="0"
+                disabled={formCurrency === "ILS"}
+                className={`h-9 font-mono text-left ${formCurrency === "ILS" ? "bg-muted/50" : ""}`}
+              />
+            </div>
+            <div className="md:col-span-4">
+              <Label className="text-xs mb-1.5 block">البيان المختصر <span className="text-destructive">*</span></Label>
+              <div className="flex items-stretch gap-1">
+                <Input
+                  value={formDescription}
+                  onChange={e => setFormDescription(e.target.value)}
+                  placeholder="مثال: مصاريف تشغيلية شهر يوليو"
+                  className="h-9"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDetailsOpen(v => !v)}
+                  title="تفاصيل السند (نوع، جهة، مركز تكلفة)"
+                  className="h-9 px-2 shrink-0"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <ChevronDown className={`h-3 w-3 mr-1 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -1254,25 +1283,6 @@ const JournalNewPage = () => {
                 يُطبَّق على جميع السطور التي لا تحدد مركزاً خاصاً.
               </p>
             </div>
-            {formCurrency !== "ILS" && (
-              <div className="md:col-span-12">
-                <Label className="text-xs mb-1.5 block flex items-center gap-1">
-                  سعر الصرف
-                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
-                </Label>
-                <Input
-                  type="number"
-                  value={formExchangeRate}
-                  onChange={e => setFormExchangeRate(parseFloat(e.target.value) || 0)}
-                  step="0.001"
-                  min="0"
-                  className="font-mono text-left"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  1 {CURRENCIES.find(c => c.value === formCurrency)?.label} = ₪{formExchangeRate}
-                </p>
-              </div>
-            )}
           </div>
           </div>
           )}
