@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { SettingsSection } from "./shell/SettingsSection";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import TeamAccountManager from "./TeamAccountManager";
@@ -76,6 +77,57 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
         <div className="mt-4 flex items-center justify-between p-3 bg-muted/40 rounded-lg">
           <span className="text-sm">ترحيل الإجازات غير المستخدمة للسنة التالية</span>
           <Switch checked={settings.hr_carry_over_leave ?? false} onCheckedChange={v => onChange({ hr_carry_over_leave: v })} />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="استقبال طلبات الموظفين"
+        description="تحكم دائرة الموارد البشرية بفتح أو إغلاق تقديم طلبات السلف والإجازات من قبل الموظفين."
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+            <div>
+              <p className="font-medium text-sm">السماح بتقديم طلبات السلف</p>
+              <p className="text-xs text-muted-foreground">عند الإغلاق، لن يتمكن الموظفون من إرسال طلبات سلفة جديدة.</p>
+            </div>
+            <Switch
+              checked={settings.hr_allow_advance_requests !== false}
+              onCheckedChange={v => onChange({ hr_allow_advance_requests: v })}
+            />
+          </div>
+          {settings.hr_allow_advance_requests === false && (
+            <div className="space-y-2 pr-3">
+              <Label className="text-xs">رسالة تظهر للموظف عند محاولة تقديم سلفة (اختياري)</Label>
+              <Textarea
+                rows={2}
+                placeholder="مثال: تم إغلاق استقبال طلبات السلف حتى نهاية الشهر."
+                value={settings.hr_advance_requests_closed_message ?? ""}
+                onChange={e => onChange({ hr_advance_requests_closed_message: e.target.value })}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+            <div>
+              <p className="font-medium text-sm">السماح بتقديم طلبات الإجازات</p>
+              <p className="text-xs text-muted-foreground">عند الإغلاق، لن يتمكن الموظفون من إرسال طلبات إجازة جديدة.</p>
+            </div>
+            <Switch
+              checked={settings.hr_allow_leave_requests !== false}
+              onCheckedChange={v => onChange({ hr_allow_leave_requests: v })}
+            />
+          </div>
+          {settings.hr_allow_leave_requests === false && (
+            <div className="space-y-2 pr-3">
+              <Label className="text-xs">رسالة تظهر للموظف عند محاولة تقديم إجازة (اختياري)</Label>
+              <Textarea
+                rows={2}
+                placeholder="مثال: تم إغلاق استقبال طلبات الإجازات مؤقتاً."
+                value={settings.hr_leave_requests_closed_message ?? ""}
+                onChange={e => onChange({ hr_leave_requests_closed_message: e.target.value })}
+              />
+            </div>
+          )}
         </div>
       </SettingsSection>
 

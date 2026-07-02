@@ -98,6 +98,10 @@ export default function EmployeeFormsTab({
   const [policies, setPolicies] = useState<any[]>([]);
   const [showPolicies, setShowPolicies] = useState(true);
   const [showLoanForm, setShowLoanForm] = useState(true);
+  const [allowAdvance, setAllowAdvance] = useState(true);
+  const [allowLeave, setAllowLeave] = useState(true);
+  const [advanceClosedMsg, setAdvanceClosedMsg] = useState<string>("");
+  const [leaveClosedMsg, setLeaveClosedMsg] = useState<string>("");
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
@@ -127,12 +131,16 @@ export default function EmployeeFormsTab({
     const ownerId = ownerData || userId;
     const { data } = await supabase
       .from("company_settings")
-      .select("hr_show_policies, hr_show_loan_form")
+      .select("hr_show_policies, hr_show_loan_form, hr_allow_advance_requests, hr_allow_leave_requests, hr_advance_requests_closed_message, hr_leave_requests_closed_message")
       .eq("user_id", ownerId)
       .maybeSingle();
     if (data) {
       setShowPolicies(data.hr_show_policies !== false);
       setShowLoanForm(data.hr_show_loan_form !== false);
+      setAllowAdvance((data as any).hr_allow_advance_requests !== false);
+      setAllowLeave((data as any).hr_allow_leave_requests !== false);
+      setAdvanceClosedMsg(((data as any).hr_advance_requests_closed_message ?? "") as string);
+      setLeaveClosedMsg(((data as any).hr_leave_requests_closed_message ?? "") as string);
     }
   };
 
@@ -302,6 +310,24 @@ export default function EmployeeFormsTab({
 
   const submitForm = async () => {
     if (!activeForm) return;
+
+    // HR-gated intake windows — block submission when closed by HR.
+    if (activeForm === "advance_request" && !allowAdvance) {
+      toast({
+        title: "تم إغلاق استقبال طلبات السلف",
+        description: advanceClosedMsg?.trim() || "دائرة الموارد البشرية أوقفت مؤقتاً استقبال طلبات السلف.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (activeForm === "leave_request" && !allowLeave) {
+      toast({
+        title: "تم إغلاق استقبال طلبات الإجازات",
+        description: leaveClosedMsg?.trim() || "دائرة الموارد البشرية أوقفت مؤقتاً استقبال طلبات الإجازات.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Build the data we'll submit (allow auto-computation for some forms)
     const submitData: Record<string, any> = { ...formData };
@@ -1105,18 +1131,49 @@ export default function EmployeeFormsTab({
         <h3 className="text-sm font-semibold text-muted-foreground mb-2">النماذج والطلبات</h3>
         <div className="space-y-2">
           {allForms.map(card => (
+            (() => {
+              const isClosed =
+                (card.id === "advance_request" && !allowAdvance) ||
+                (card.id === "leave_request" && !allowLeave);
+              const closedMsg =
+                card.id === "advance_request" ? advanceClosedMsg : leaveClosedMsg;
+              return (
             <button
               key={card.id}
-              onClick={() => { setActiveForm(card.id); setFormData({}); }}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border hover:bg-muted/50 active:scale-[0.99] transition-all text-right"
+              onClick={() => {
+                if (isClosed) {
+                  toast({
+                    title:
+                      card.id === "advance_request"
+                        ? "تم إغلاق استقبال طلبات السلف"
+                        : "تم إغلاق استقبال طلبات الإجازات",
+                    description:
+                      closedMsg?.trim() ||
+                      "دائرة الموارد البشرية أوقفت مؤقتاً استقبال هذا النوع من الطلبات.",
+                  });
+                  return;
+                }
+                setActiveForm(card.id);
+                setFormData({});
+              }}
+              className={`w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border transition-all text-right ${isClosed ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/50 active:scale-[0.99]"}`}
             >
               <div className={`h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0`}>
                 <card.icon className={`h-5 w-5 ${card.color}`} />
               </div>
-              <span className="text-sm font-medium flex-1">{card.label}</span>
+              <span className="text-sm font-medium flex-1">
+                {card.label}
+                {isClosed && (
+                  <span className="mr-2 text-[10px] text-destructive font-normal">
+                    (مغلق مؤقتاً)
+                  </span>
+                )}
+              </span>
               {card.managerOnly && <Badge variant="outline" className="text-[9px]">مدير</Badge>}
               <ChevronLeft className="h-4 w-4 text-muted-foreground" />
             </button>
+              );
+            })()
           ))}
         </div>
       </div>

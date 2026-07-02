@@ -146,6 +146,11 @@ export interface CompanySettings {
   hr_salary_day: number;
   hr_salary_currency: string;
   hr_social_security: boolean;
+  // HR — Requests intake windows
+  hr_allow_advance_requests: boolean;
+  hr_allow_leave_requests: boolean;
+  hr_advance_requests_closed_message: string;
+  hr_leave_requests_closed_message: string;
   // Security
   security_session_timeout: number;
   security_warning_minutes: number;
@@ -289,6 +294,10 @@ const defaultSettings: CompanySettings = {
   hr_salary_day: 28,
   hr_salary_currency: "ILS",
   hr_social_security: false,
+  hr_allow_advance_requests: true,
+  hr_allow_leave_requests: true,
+  hr_advance_requests_closed_message: "",
+  hr_leave_requests_closed_message: "",
   // Security
   security_session_timeout: 30,
   security_warning_minutes: 2,
@@ -470,6 +479,8 @@ export function useCompanySettings() {
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
     "hr_work_days_per_week","hr_daily_hours",
+    "hr_allow_advance_requests","hr_allow_leave_requests",
+    "hr_advance_requests_closed_message","hr_leave_requests_closed_message",
     "onboarding_completed","onboarding_step","business_type","has_employees",
     "employee_count_range","has_pos","pos_count","inventory_method",
     "onboarding_skipped","onboarding_completed_at",
