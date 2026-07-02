@@ -14150,6 +14150,176 @@ export type Database = {
           },
         ]
       }
+      production_formula_items: {
+        Row: {
+          created_at: string
+          formula_id: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          formula_id: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          formula_id?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_formula_items_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "production_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_formula_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_formula_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_formulas: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          name: string
+          notes: string | null
+          output_product_id: string
+          output_quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          name: string
+          notes?: string | null
+          output_product_id: string
+          output_quantity?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          name?: string
+          notes?: string | null
+          output_product_id?: string
+          output_quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_formulas_output_product_id_fkey"
+            columns: ["output_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "production_formulas_output_product_id_fkey"
+            columns: ["output_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_orders: {
+        Row: {
+          created_at: string
+          formula_id: string
+          id: string
+          notes: string | null
+          order_number: string | null
+          posted_at: string | null
+          quantity: number
+          status: string
+          updated_at: string
+          user_id: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          formula_id: string
+          id?: string
+          notes?: string | null
+          order_number?: string | null
+          posted_at?: string | null
+          quantity: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          formula_id?: string
+          id?: string
+          notes?: string | null
+          order_number?: string | null
+          posted_at?: string | null
+          quantity?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_orders_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "production_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "production_orders_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -23797,6 +23967,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      execute_production_order: { Args: { _order_id: string }; Returns: Json }
       expire_trials: { Args: never; Returns: Json }
       feedback_enable_do_not_call: {
         Args: { p_customer_id: string; p_reason: string }
