@@ -934,7 +934,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       ]);
       setCashBoxes(cbRes.data || []);
       setBankAccounts(baRes.data || []);
-      if (cbRes.data?.length) setSelectedCashBox(cbRes.data[0].id);
+      if (cbRes.data?.length) {
+        const defaultKey = `voucher_default_cash_box_${ownerId}_${isReceipt ? "receipt" : "payment"}`;
+        const savedDefault = typeof window !== "undefined" ? localStorage.getItem(defaultKey) : null;
+        const validDefault = savedDefault && cbRes.data.some(cb => cb.id === savedDefault) ? savedDefault : null;
+        setSelectedCashBox(validDefault || cbRes.data[0].id);
+      }
       if (baRes.data?.length) {
         setSelectedBankAccount(baRes.data[0].id);
         setSelectedChequeBankAccount(baRes.data[0].id);
