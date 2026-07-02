@@ -179,6 +179,9 @@ export default function NewDeviceOnboardingPage() {
   const [showAddPrinter, setShowAddPrinter] = useState(false);
   const [windowsPrinters, setWindowsPrinters] = useState<WindowsPrinterInfo[]>([]);
   const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
+  const [linkStationsFor, setLinkStationsFor] = useState<Printer | null>(null);
+  const [linkSelected, setLinkSelected] = useState<string[]>([]);
+  const [linkSaving, setLinkSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [convertTarget, setConvertTarget] = useState<Printer | null>(null);
 
