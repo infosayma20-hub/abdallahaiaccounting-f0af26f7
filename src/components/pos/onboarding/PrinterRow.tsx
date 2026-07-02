@@ -20,7 +20,7 @@
 import { useState } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, TestTube, Printer,
-  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud,
+  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,6 +110,8 @@ export interface PrinterRowProps {
   onDelete: () => void;
   onEdit?: () => void;
   onResyncAll: () => void | Promise<void>;
+  /** Open the "link printer to kitchen station(s)" dialog. */
+  onLinkStations?: () => void;
 }
 
 type State =
@@ -123,7 +125,7 @@ export default function PrinterRow(props: PrinterRowProps) {
     bridgeConnected, bridgeSubnetMismatch, notSynced, bridgeOnline,
     testStatus, windowsPrinters,
     stations,
-    onTest, onConvertToWindows, onDelete, onEdit, onResyncAll,
+    onTest, onConvertToWindows, onDelete, onEdit, onResyncAll, onLinkStations,
   } = props;
 
   // Kitchen-role printer → show which station it's routed to.
@@ -235,21 +237,27 @@ export default function PrinterRow(props: PrinterRowProps) {
             {isKitchenRole && (
               linkedStations.length > 0 ? (
                 linkedStations.map(s => (
-                  <span
+                  <button
                     key={s.id}
-                    className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-primary/10 text-primary border-primary/30"
-                    title="محطة المطبخ المرتبطة"
+                    type="button"
+                    onClick={() => onLinkStations?.()}
+                    disabled={!onLinkStations}
+                    className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 disabled:cursor-default"
+                    title="اضغط لتعديل المحطات المرتبطة"
                   >
                     🍳 {s.name}
-                  </span>
+                  </button>
                 ))
               ) : (
-                <span
-                  className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800"
-                  title="لن تصلها تذاكر لأنها غير مربوطة بأي محطة"
+                <button
+                  type="button"
+                  onClick={() => onLinkStations?.()}
+                  disabled={!onLinkStations}
+                  className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800 hover:bg-amber-200 dark:hover:bg-amber-900/60 disabled:cursor-default"
+                  title="اضغط للربط بمحطة مطبخ"
                 >
                   ⚠️ غير مربوطة بمحطة
-                </span>
+                </button>
               )
             )}
           </div>
@@ -300,6 +308,11 @@ export default function PrinterRow(props: PrinterRowProps) {
             {onEdit && (
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onEdit(); }}>
                 <Pencil className="h-4 w-4 ml-2" /> تعديل
+              </DropdownMenuItem>
+            )}
+            {isKitchenRole && onLinkStations && (
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onLinkStations(); }}>
+                <Link2 className="h-4 w-4 ml-2" /> ربط بمحطة مطبخ
               </DropdownMenuItem>
             )}
             {!isWindows && (
