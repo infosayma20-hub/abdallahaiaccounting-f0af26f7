@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Loader2, RefreshCw, Search, BookOpen, FileSpreadsheet, Printer,
   X, ArrowUpDown, ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown,
-  Check, ChevronsUpDown,
+  Check, ChevronsUpDown, Maximize2, Minimize2,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,20 @@ const GeneralLedgerPage = () => {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
+
+  // Full-screen mode (client request — mirror AccountStatementV2Page)
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch (e) { console.warn("[fullscreen] toggle failed", e); }
+  };
 
   const accountMap = useMemo(() => {
     const map: Record<string, any> = {};
@@ -235,11 +249,13 @@ const GeneralLedgerPage = () => {
         { key: "export", label: "إخراج", items: [
           { key: "excel", label: "تصدير Excel", icon: FileSpreadsheet, onClick: handleExport, disabled: allRows.length === 0 },
           { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print() },
+          { key: "fullscreen", label: isFullscreen ? "خروج ملء الشاشة" : "ملء الشاشة",
+            icon: isFullscreen ? Minimize2 : Maximize2, onClick: toggleFullscreen },
         ]},
       ],
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ]), [allRows.length]);
+  ]), [allRows.length, isFullscreen]);
 
   return (
     <FinanceShell
