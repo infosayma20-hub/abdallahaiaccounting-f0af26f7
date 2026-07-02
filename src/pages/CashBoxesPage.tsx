@@ -76,7 +76,6 @@ const CashBoxesPage = () => {
   const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">("branch");
   const [editBox, setEditBox] = useState<any>(null);
   const [replenishOpen, setReplenishOpen] = useState(false);
-  const [exchangeOpen, setExchangeOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [openingBalanceOpen, setOpeningBalanceOpen] = useState(false);
