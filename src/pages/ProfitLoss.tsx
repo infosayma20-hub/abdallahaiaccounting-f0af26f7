@@ -664,6 +664,22 @@ const ProfitLoss = () => {
               </button>
             ))}
           </div>
+          {costCenters.length > 0 && (
+            <div className="flex items-center gap-1.5 mr-4">
+              <span className="text-muted-foreground text-[10px]">الفرع / مركز التكلفة:</span>
+              <select
+                value={costCenterFilter}
+                onChange={(e) => setCostCenterFilter(e.target.value)}
+                className="h-7 rounded-md border border-input bg-background px-2 text-[11px]"
+              >
+                <option value="all">الكل</option>
+                <option value="none">بدون مركز تكلفة</option>
+                {costCenters.map(cc => (
+                  <option key={cc.id} value={cc.id}>{cc.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </Card>
 
