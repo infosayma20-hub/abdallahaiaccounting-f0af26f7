@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, Search, Factory, Save, X } from "lucide-react";
-import PageHeader from "@/components/layout/PageHeader";
 import BackButton from "@/components/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -117,7 +116,13 @@ export default function ProductionFormulasPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4" dir="rtl">
       <BackButton />
-      <PageHeader icon={Factory} title="معادلات الإنتاج" subtitle="تعريف قوائم المكونات (BOM) للمنتجات المصنّعة" />
+      <div className="mb-4 flex items-center gap-2">
+        <Factory className="w-6 h-6 text-teal-600" />
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">معادلات الإنتاج</h1>
+          <p className="text-xs text-gray-500">تعريف قوائم المكونات (BOM) للمنتجات المصنّعة</p>
+        </div>
+      </div>
 
       <Card className="mb-4">
         <CardContent className="p-3 flex items-center gap-2">
