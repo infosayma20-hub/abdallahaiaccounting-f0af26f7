@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   Printer, ChevronLeft, ChevronDown, ChevronUp,
@@ -181,7 +181,9 @@ const AccountStatementV2Page = () => {
   const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cheques, setCheques] = useState<Cheque[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // initial full-page loader only
+  const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
+  const hasLoadedOnceRef = useRef(false);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
   const [activeTab, setActiveTab] = useState<EntityTab>(
@@ -288,9 +290,11 @@ const AccountStatementV2Page = () => {
   }, [dataOwnerId, navigate]);
 
   // ─── FETCH DATA ───
-  const fetchData = async () => {
+  const fetchData = async (opts: { silent?: boolean } = {}) => {
     if (!user || !dataOwnerId) return;
-    setLoading(true);
+    const silent = opts.silent === true && hasLoadedOnceRef.current;
+    if (silent) setIsRefreshing(true);
+    else setLoading(true);
     try {
       // Paginated fetch for transactions — PostgREST caps at 1000 rows/query.
       // Without this, tenants with >1000 tx silently lose the most-recent data
@@ -355,7 +359,9 @@ const AccountStatementV2Page = () => {
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
-      setLoading(false);
+      hasLoadedOnceRef.current = true;
+      if (silent) setIsRefreshing(false);
+      else setLoading(false);
     }
   };
 
@@ -364,26 +370,49 @@ const AccountStatementV2Page = () => {
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
   // ─── Realtime: auto-refresh on transaction changes ───
+  // Perf hardening (Solution B — Silent + Smart):
+  //   1) Scope Realtime by tenant (user_id=eq.<owner>).
+  //   2) SMART FILTER: only refetch when the changed transaction actually
+  //      touches the currently-viewed account/contact. POS bursts on other
+  //      accounts are ignored — no more infinite "loading…" loop on cashier
+  //      statements at high-volume branches (Malaki).
+  //   3) SILENT refresh: after the first successful load, subsequent updates
+  //      run in the background and never blank the table.
+  //   4) Debounce 800ms to coalesce bursts.
+  const selectedAccountCodeRef = useRef<string>("");
+  const selectedContactIdRef = useRef<string>("");
+  useEffect(() => {
+    const acct = accounts.find(a => a.id === selectedEntityId);
+    const cont = contacts.find(c => c.id === selectedEntityId);
+    const emp = employeeEntities.find(e => e.id === selectedEntityId);
+    selectedAccountCodeRef.current =
+      acct?.account_code || cont?.linked_account_code || emp?.account_code || "";
+    selectedContactIdRef.current = cont?.id || "";
+  }, [selectedEntityId, accounts, contacts, employeeEntities]);
+
   useEffect(() => {
     if (!user || !dataOwnerId) return;
-    // Perf hardening (Solution A):
-    //   1) Scope Realtime by tenant (user_id=eq.<owner>) so other tenants' POS
-    //      writes never trigger a full 8k-row refetch here.
-    //   2) Throttle refetches to at most once per 3s to survive POS bursts
-    //      (300–500 inserts/day per branch) without the "loading…" flicker
-    //      users reported.
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
       .channel(`account_statement_realtime-${dataOwnerId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${dataOwnerId}` },
-        () => {
+        (payload: any) => {
+          // Smart filter — ignore events that don't affect the viewed entity.
+          const acctCode = selectedAccountCodeRef.current;
+          const contactId = selectedContactIdRef.current;
+          if (acctCode || contactId) {
+            const rec: any = payload?.new || payload?.old || {};
+            const touchesAccount = !!acctCode && (rec.debit_account_code === acctCode || rec.credit_account_code === acctCode);
+            const touchesContact = !!contactId && rec.contact_id === contactId;
+            if (!touchesAccount && !touchesContact) return;
+          }
           if (timeoutId) return; // coalesce bursts
           timeoutId = setTimeout(() => {
             timeoutId = null;
-            fetchData();
-          }, 3000);
+            fetchData({ silent: true });
+          }, 800);
         },
       )
       .subscribe();
@@ -404,7 +433,7 @@ const AccountStatementV2Page = () => {
     const unsub = onCrossTabChange((ev) => {
       if (!REFRESH_ENTITIES.has(ev.entity)) return;
       if (t) return;
-      t = setTimeout(() => { t = null; fetchData(); }, 400);
+      t = setTimeout(() => { t = null; fetchData({ silent: true }); }, 400);
     });
     return () => { if (t) clearTimeout(t); unsub(); };
   }, [user, dataOwnerId]);
@@ -1189,6 +1218,12 @@ const AccountStatementV2Page = () => {
       actionTabs={actionTabs}
       rightSlot={
         <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+          {isRefreshing && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>يتم التحديث…</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 rounded-lg px-2 py-1 bg-muted/40 border border-border/40">
             <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
             <div className="w-px h-4 bg-border" />
@@ -1402,7 +1437,7 @@ const AccountStatementV2Page = () => {
                     })}
                   </tr>
 
-                  {loading ? (
+                  {loading && statementRowsWithDetails.length === 0 ? (
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />جاري التحميل...</td></tr>
                   ) : filteredRows.length === 0 ? (
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
