@@ -1224,26 +1224,35 @@ const AccountStatementV2Page = () => {
     if (!selectedEntityId || filteredRows.length === 0) return;
     setPdfGenerating(true);
     let iframe: HTMLIFrameElement | null = null;
+    let createdIframe = false;
     try {
-      iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.left = "-10000px";
-      iframe.style.top = "0";
-      iframe.style.width = "210mm";
-      iframe.style.height = "297mm";
-      iframe.style.border = "0";
-      iframe.style.background = "white";
-
-      const loaded = new Promise<void>((resolve) => {
-        const fallback = window.setTimeout(resolve, 1500);
-        iframe!.onload = () => {
-          window.clearTimeout(fallback);
-          resolve();
-        };
-      });
-      document.body.appendChild(iframe);
-      iframe.srcdoc = buildCurrentStatementPrintHTML();
-      await loaded;
+      // Prefer the already-rendered preview iframe (fonts + layout already settled).
+      const existing = document.querySelector<HTMLIFrameElement>(
+        "#statement-preview-doc iframe"
+      );
+      if (existing && existing.contentDocument?.body) {
+        iframe = existing;
+      } else {
+        iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.left = "-10000px";
+        iframe.style.top = "0";
+        iframe.style.width = "210mm";
+        iframe.style.height = "297mm";
+        iframe.style.border = "0";
+        iframe.style.background = "white";
+        createdIframe = true;
+        const loaded = new Promise<void>((resolve) => {
+          const fallback = window.setTimeout(resolve, 2500);
+          iframe!.onload = () => {
+            window.clearTimeout(fallback);
+            resolve();
+          };
+        });
+        document.body.appendChild(iframe);
+        iframe.srcdoc = buildCurrentStatementPrintHTML();
+        await loaded;
+      }
 
       const idoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (!idoc?.body) throw new Error("PDF preview document was not ready");
@@ -1252,15 +1261,24 @@ const AccountStatementV2Page = () => {
         img.onload = () => resolve();
         img.onerror = () => resolve();
       })));
+      // Extra settle time for Arabic fonts + RTL layout.
+      await new Promise<void>((resolve) => setTimeout(resolve, 350));
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
       const target = idoc.body;
-      const captureWidth = Math.ceil(Math.max(target.scrollWidth, idoc.documentElement.scrollWidth));
-      const captureHeight = Math.ceil(Math.max(target.scrollHeight, idoc.documentElement.scrollHeight, target.offsetHeight));
+      const captureWidth = Math.max(
+        Math.ceil(Math.max(target.scrollWidth, idoc.documentElement.scrollWidth, target.offsetWidth)),
+        794 // ≈ 210mm @ 96dpi fallback
+      );
+      const captureHeight = Math.max(
+        Math.ceil(Math.max(target.scrollHeight, idoc.documentElement.scrollHeight, target.offsetHeight)),
+        1123 // ≈ 297mm @ 96dpi fallback
+      );
       const canvas = await html2canvas(target, {
         backgroundColor: "#ffffff",
-        scale: Math.max(2, Math.min(3, window.devicePixelRatio || 2)),
+        scale: 2,
         useCORS: true,
+        allowTaint: true,
         logging: false,
         width: captureWidth,
         height: captureHeight,
@@ -1270,18 +1288,23 @@ const AccountStatementV2Page = () => {
         scrollY: 0,
       });
 
+      if (!canvas.width || !canvas.height) {
+        throw new Error("لم يتم توليد صورة صالحة للـ PDF");
+      }
+
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
       const pageWidth = 210;
       const pageHeight = 297;
       const imgHeight = (canvas.height * pageWidth) / canvas.width;
-      const imgData = canvas.toDataURL("image/png");
+      // JPEG keeps PDF size small and avoids browser toDataURL PNG size limits.
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
 
-      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight, undefined, "FAST");
+      pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, imgHeight, undefined, "FAST");
       let remaining = imgHeight - pageHeight;
       let pageIndex = 1;
       while (remaining > 0.5) {
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, -pageHeight * pageIndex, pageWidth, imgHeight, undefined, "FAST");
+        pdf.addImage(imgData, "JPEG", 0, -pageHeight * pageIndex, pageWidth, imgHeight, undefined, "FAST");
         remaining -= pageHeight;
         pageIndex += 1;
       }
@@ -1290,9 +1313,10 @@ const AccountStatementV2Page = () => {
       toast({ title: "تم تحميل PDF بنجاح ✓" });
     } catch (err) {
       console.error("PDF download error:", err);
-      toast({ title: "خطأ في تحميل PDF", variant: "destructive" });
+      const msg = err instanceof Error ? err.message : "خطأ غير معروف";
+      toast({ title: "خطأ في تحميل PDF", description: msg, variant: "destructive" });
     } finally {
-      iframe?.remove();
+      if (createdIframe) iframe?.remove();
       setPdfGenerating(false);
     }
   }, [selectedEntityId, filteredRows.length, buildCurrentStatementPrintHTML, selectedEntityName, dateFrom, toast]);
