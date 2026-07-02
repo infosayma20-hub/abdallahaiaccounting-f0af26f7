@@ -1145,7 +1145,7 @@ const JournalNewPage = () => {
       <div className="flex-1 min-w-0 space-y-5 w-full order-2 lg:order-1">
 
       {/* ═══ Header Card — single compact row: date, ref, currency, rate, brief description ═══ */}
-      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-2 border-border shadow-sm rounded-2xl overflow-hidden bg-card/80">
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
             <div className="md:col-span-2">
@@ -1290,7 +1290,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* ═══ JOURNAL LINES — compact ═══ */}
-      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-2 border-border shadow-sm rounded-2xl overflow-hidden bg-card/80">
         <CardContent className="p-3 lg:p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -1298,26 +1298,26 @@ const JournalNewPage = () => {
               أسطر القيد
             </h3>
             <div className="flex items-center gap-1.5">
-              <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8">
+              <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8 border-2 border-border bg-muted/40 hover:bg-muted">
                 <Plus className="h-3 w-3" /> سطر
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8">
+              <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8 border-2 border-border bg-muted/40 hover:bg-muted">
                 <Bookmark className="h-3 w-3" /> قوالب
               </Button>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="rounded-xl border-2 border-border overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-right" style={{ background: "#0D1B2A" }}>
-                  <th className="p-3.5 text-white font-semibold text-[13px] w-12">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "10%" }}>رقم الحساب</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "26%" }}>الحساب أو الجهة</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>مدين ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>دائن ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "22%" }}>تعليق</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>مركز التكلفة</th>
+                <tr className="text-right border-b-2 border-border" style={{ background: "#0D1B2A" }}>
+                  <th className="p-3.5 text-white font-semibold text-[13px] w-12 border-l border-white/10">#</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "10%" }}>رقم الحساب</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "26%" }}>الحساب أو الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "22%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "18%" }}>مركز التكلفة</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
@@ -1332,7 +1332,7 @@ const JournalNewPage = () => {
                     : lines;
                   return displayLines.map((line, i) => {
                   return (
-                  <tr key={line.id} className={`border-t border-border/60 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
+                  <tr key={line.id} className={`border-b border-border/60 ${i % 2 === 0 ? "bg-background" : "bg-muted/40"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-3 text-muted-foreground text-sm font-semibold">{i + 1}</td>
                     <td className="p-3">
                       <Input
@@ -1548,7 +1548,7 @@ const JournalNewPage = () => {
       {/* ═══ Notes + Attachments — hidden card body, toggled from bottom "خيارات" ═══ */}
       {extrasOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <Card className="lg:col-span-7 border border-border shadow-sm rounded-2xl">
+      <Card className="lg:col-span-7 border-2 border-border shadow-sm rounded-2xl bg-card/80">
         <CardContent className="p-5">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             ملاحظات
@@ -1558,7 +1558,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* Attachments Section */}
-      <Card className="lg:col-span-5 border border-border shadow-sm rounded-2xl">
+      <Card className="lg:col-span-5 border-2 border-border shadow-sm rounded-2xl bg-card/80">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
@@ -1611,8 +1611,8 @@ const JournalNewPage = () => {
       {/* ═══ RIGHT COLUMN — Truly Sticky Balance Summary (responsive width) ═══ */}
       {summaryOpen && (
       <aside className="w-full lg:w-[clamp(240px,18vw,300px)] lg:shrink-0 lg:sticky lg:top-4 self-start order-1 lg:order-2">
-        <Card className="border border-border shadow-md rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center gap-2">
+        <Card className="border-2 border-border shadow-md rounded-2xl overflow-hidden bg-card/80">
+          <div className="px-4 py-3 border-b border-border bg-muted/40 flex items-center gap-2">
             <Scale className="h-4 w-4 text-primary" />
             <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
           </div>
@@ -1686,7 +1686,7 @@ const JournalNewPage = () => {
 
       {/* ═══ Bottom Action Bar (inline, in-flow) ═══ */}
       {!editingVoucherId && (
-      <div className="mt-4 rounded-2xl border border-border bg-card/60 px-3 sm:px-4 py-2.5">
+      <div className="mt-4 rounded-2xl border-2 border-border bg-card/80 px-3 sm:px-4 py-2.5 shadow-sm">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Mini status pill */}
           <div className={`hidden md:flex items-center gap-2 px-3 h-11 rounded-xl text-[11px] font-semibold tabular-nums ${isBalanced && totalDebit > 0 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : totalDebit > 0 ? "bg-destructive/10 text-destructive" : "bg-muted/40 text-muted-foreground"}`}>
@@ -1705,7 +1705,7 @@ const JournalNewPage = () => {
 
           {/* Ghost: Notes/Attachments toggle */}
           <button onClick={() => setExtrasOpen(v => !v)}
-            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all border border-border"
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all border-2 border-border bg-muted/30"
             title="ملاحظات ومرفقات">
             <Paperclip className="h-4 w-4" />
             {(formNotes || attachments.length > 0) ? (
@@ -1720,13 +1720,13 @@ const JournalNewPage = () => {
 
           {/* Ghost: Print */}
           <button onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all border-2 border-border bg-muted/30">
             <Printer className="h-4 w-4" /> طباعة
           </button>
 
           {/* Secondary: Draft */}
           <button onClick={() => handleSave("draft")} disabled={saving}
-            className="px-4 h-11 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            className="px-4 h-11 rounded-xl border-2 border-border text-foreground text-sm hover:bg-muted transition-all disabled:opacity-50 bg-muted/30 font-medium">
             حفظ كمسودة
           </button>
 
