@@ -3256,10 +3256,45 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 <>
                   <Label className="text-xs mb-1.5 block">{depositType === "cash_box" ? "الصندوق" : "الحساب البنكي"}</Label>
                   {depositType === "cash_box" ? (
-                    <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
-                      <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
-                      <SelectContent>{cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1">
+                        <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
+                          <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+                          <SelectContent>{cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      {(() => {
+                        const defaultKey = `voucher_default_cash_box_${ownerId}_${isReceipt ? "receipt" : "payment"}`;
+                        const currentDefault = typeof window !== "undefined" ? localStorage.getItem(defaultKey) : null;
+                        const isPinned = currentDefault && currentDefault === selectedCashBox;
+                        return (
+                          <button
+                            type="button"
+                            title={isPinned ? "إلغاء تعيين الصندوق الافتراضي" : "تعيين كصندوق افتراضي تلقائي"}
+                            onClick={() => {
+                              if (!selectedCashBox) { toast.error("اختر الصندوق أولاً"); return; }
+                              if (isPinned) {
+                                localStorage.removeItem(defaultKey);
+                                toast.success("تم إلغاء الصندوق الافتراضي");
+                              } else {
+                                localStorage.setItem(defaultKey, selectedCashBox);
+                                const cbName = cashBoxes.find(c => c.id === selectedCashBox)?.name || "";
+                                toast.success(`تم تعيين "${cbName}" كصندوق افتراضي`);
+                              }
+                              // force re-render
+                              setCashBoxes(prev => [...prev]);
+                            }}
+                            className={`h-10 w-10 flex items-center justify-center rounded-md border transition-all ${
+                              isPinned
+                                ? "bg-primary/15 border-primary/50 text-primary"
+                                : "bg-secondary/40 border-border/40 text-muted-foreground hover:bg-secondary/70"
+                            }`}
+                          >
+                            {isPinned ? <Pin className="h-4 w-4 fill-current" /> : <PinOff className="h-4 w-4" />}
+                          </button>
+                        );
+                      })()}
+                    </div>
                   ) : (
                     <div className="space-y-1.5">
                       <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
