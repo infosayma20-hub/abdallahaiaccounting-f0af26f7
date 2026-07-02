@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search } from "lucide-react";
+import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { FinanceShell } from "@/components/finance/shell";
+import type { ActionTab } from "@/components/finance/shell";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
@@ -349,7 +350,30 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       let returnNumber = "";
 
       if (editId) {
-        // Update existing (always start as draft to allow item replacement, then re-confirm)
+        // Update existing: unpost first (status→draft triggers stock reversal),
+        // then wipe prior journal + tax ledger so re-confirm can post cleanly.
+        // This follows the "Delete & Recreate" integrity policy — no in-place mutation of posted lines.
+        const { data: prevRow } = await supabase
+          .from("returns" as any)
+          .select("status, journal_entry_id")
+          .eq("id", editId)
+          .single();
+        const wasConfirmed = (prevRow as any)?.status === "confirmed";
+        if (wasConfirmed) {
+          // Reverse stock via status flip
+          await supabase.from("returns" as any).update({ status: "draft" } as any).eq("id", editId);
+          // Remove previous accounting transaction (linked by return_id and idempotency_key)
+          await supabase.from("transactions").delete().eq("return_id", editId);
+          await supabase.from("transactions").delete().eq("idempotency_key", `RETURN-${editId}`);
+          // Remove previous tax ledger reversal entry
+          await supabase
+            .from("tax_ledger")
+            .delete()
+            .eq("reference_id", editId)
+            .in("reference_type", ["sales_return", "purchase_return"]);
+          // Clear stale journal link
+          await supabase.from("returns" as any).update({ journal_entry_id: null } as any).eq("id", editId);
+        }
         const { error } = await supabase.from("returns" as any).update({ ...payload, status: "draft" } as any).eq("id", editId).eq("user_id", user.id);
         if (error) throw error;
         await supabase.from("return_items" as any).delete().eq("return_id", editId);
@@ -466,25 +490,49 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
-  const isPosted = form.status === "confirmed" && !!recordId;
-  const readonly = isView || isPosted;
+  const wasPosted = form.status === "confirmed" && !!recordId;
+  const readonly = isView;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-4 pb-32" dir="rtl">
-      <PageHeader
-        title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
-        breadcrumb={["الرئيسية", isSales ? "المبيعات" : "المشتريات", titleAr]}
-      />
-      <p className="text-sm text-muted-foreground">
-        {isSales
-          ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً"
-          : "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
-      </p>
-
-      {isPosted && (
+    <FinanceShell
+      title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
+      subtitle={isSales
+        ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً"
+        : "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: isSales ? "المبيعات" : "المشتريات" },
+        { label: titleAr, href: listPath },
+      ]}
+      actionTabs={!readonly ? ([
+        {
+          key: "main",
+          label: "عام",
+          groups: [
+            {
+              key: "save",
+              label: "حفظ",
+              items: [
+                { key: "draft", label: "حفظ كمسودة", icon: Save, onClick: () => handleSave(true), disabled: saving },
+                { key: "confirm", label: wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل", icon: Send, variant: "primary", onClick: () => handleSave(false), disabled: saving },
+              ],
+            },
+            {
+              key: "nav",
+              label: "تنقّل",
+              items: [
+                { key: "back", label: "رجوع للقائمة", icon: ArrowRight, onClick: () => navigate(listPath) },
+              ],
+            },
+          ],
+        },
+      ] satisfies ActionTab[]) : []}
+    >
+    <div className="space-y-4 pb-32" dir="rtl">
+      {wasPosted && !isView && (
         <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm">
           <AlertTriangle className="h-4 w-4" />
-          هذا المردود مؤكد ومرحَّل محاسبياً ومخزنياً — لا يمكن تعديله.
+          هذا المردود مرحَّل محاسبياً ومخزنياً. عند حفظ التعديل سيتم عكس القيد والمخزون القديم تلقائياً ثم إعادة الترحيل بالبيانات الجديدة (سياسة "احذف وأنشئ").
         </div>
       )}
 
@@ -776,12 +824,13 @@ const ReturnCreatePage = ({ returnType }: Props) => {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} حفظ كمسودة
             </Button>
             <Button disabled={saving} onClick={() => handleSave(false)} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} تأكيد وترحيل
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل"}
             </Button>
           </div>
         </div>
       )}
     </div>
+    </FinanceShell>
   );
 };
 
