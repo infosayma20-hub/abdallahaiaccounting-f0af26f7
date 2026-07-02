@@ -2659,9 +2659,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         Bottom : [Notes col-span-8]               [Attachments col-span-4]
         Footer : Sticky action bar
         ═══════════════════════════════════════════════════════════════ */}
-    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
       {/* ───── TOP-RIGHT (RTL right): Voucher Form — 8 cols ───── */}
-      <div className="lg:col-span-8 space-y-5 min-w-0">
+      <div className="lg:col-span-8 space-y-3 min-w-0">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
