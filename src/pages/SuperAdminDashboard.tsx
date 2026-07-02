@@ -1737,6 +1737,23 @@ export default function SuperAdminDashboard() {
   const [fiFilterEntity, setFiFilterEntity] = useState<string>("");
   const [fiFilterBatch, setFiFilterBatch] = useState<string>("");
 
+  // Live integrity check result
+  const [fiCheckLoading, setFiCheckLoading] = useState(false);
+  const [fiCheckResult, setFiCheckResult] = useState<any>(null);
+
+  const runIntegrityCheck = useCallback(async () => {
+    setFiCheckLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("finance-integrity-check", { body: {} });
+      if (error) throw error;
+      setFiCheckResult(data);
+      toast.success("تم الفحص بنجاح");
+    } catch (e: any) {
+      toast.error(e.message || "فشل الفحص");
+    }
+    setFiCheckLoading(false);
+  }, []);
+
   // Password confirm
   const [pwDialog, setPwDialog] = useState<{ open: boolean; title: string; onConfirmed: () => void }>({
     open: false, title: "", onConfirmed: () => {},
