@@ -38,6 +38,7 @@ export interface PrinterRowPrinter {
   printer_type: string;
   print_categories: string[];
   settings?: Record<string, unknown>;
+  station_ids?: string[] | null;
 }
 
 /** Subset of Windows printer info from bridge /windows-printers. */
@@ -101,6 +102,8 @@ export interface PrinterRowProps {
   testStatus?: boolean | null;
   /** Windows printers list from /windows-printers (only used for Windows printers). */
   windowsPrinters?: WindowsPrinterMeta[];
+  /** Kitchen stations lookup (id → name) for showing the routing link. */
+  stations?: Array<{ id: string; name: string }>;
 
   onTest: () => void | Promise<void>;
   onConvertToWindows: () => void;
@@ -119,8 +122,16 @@ export default function PrinterRow(props: PrinterRowProps) {
     printer: p, roleLabel, roleEmoji,
     bridgeConnected, bridgeSubnetMismatch, notSynced, bridgeOnline,
     testStatus, windowsPrinters,
+    stations,
     onTest, onConvertToWindows, onDelete, onEdit, onResyncAll,
   } = props;
+
+  // Kitchen-role printer → show which station it's routed to.
+  const isKitchenRole = !((p.print_categories || []).includes("receipt")) &&
+    (p.printer_type === "kitchen_ticket" || (p.print_categories || []).some(c => c !== "receipt"));
+  const linkedStations = (p.station_ids || [])
+    .map(sid => (stations || []).find(s => s.id === sid))
+    .filter(Boolean) as Array<{ id: string; name: string }>;
 
   const settings = (p.settings || {}) as Record<string, unknown>;
   const winName = String(settings.windows_printer_name || "");
@@ -220,6 +231,26 @@ export default function PrinterRow(props: PrinterRowProps) {
               </>
             ) : (
               <ConnTypeBadge kind="Network IP" />
+            )}
+            {isKitchenRole && (
+              linkedStations.length > 0 ? (
+                linkedStations.map(s => (
+                  <span
+                    key={s.id}
+                    className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-primary/10 text-primary border-primary/30"
+                    title="محطة المطبخ المرتبطة"
+                  >
+                    🍳 {s.name}
+                  </span>
+                ))
+              ) : (
+                <span
+                  className="text-[10px] rounded-full border px-1.5 py-0.5 shrink-0 bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800"
+                  title="لن تصلها تذاكر لأنها غير مربوطة بأي محطة"
+                >
+                  ⚠️ غير مربوطة بمحطة
+                </span>
+              )
             )}
           </div>
           <div className="text-[11px] text-muted-foreground font-mono truncate" dir="ltr">
