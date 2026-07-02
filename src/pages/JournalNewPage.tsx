@@ -1298,10 +1298,10 @@ const JournalNewPage = () => {
               أسطر القيد
             </h3>
             <div className="flex items-center gap-1.5">
-              <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8">
+              <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8 border-2 border-border bg-muted/40 hover:bg-muted">
                 <Plus className="h-3 w-3" /> سطر
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8">
+              <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8 border-2 border-border bg-muted/40 hover:bg-muted">
                 <Bookmark className="h-3 w-3" /> قوالب
               </Button>
             </div>
@@ -1310,14 +1310,14 @@ const JournalNewPage = () => {
           <div className="rounded-xl border-2 border-border overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-right" style={{ background: "#0D1B2A" }}>
-                  <th className="p-3.5 text-white font-semibold text-[13px] w-12">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "10%" }}>رقم الحساب</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "26%" }}>الحساب أو الجهة</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>مدين ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "12%" }}>دائن ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "22%" }}>تعليق</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px]" style={{ width: "18%" }}>مركز التكلفة</th>
+                <tr className="text-right border-b-2 border-border" style={{ background: "#0D1B2A" }}>
+                  <th className="p-3.5 text-white font-semibold text-[13px] w-12 border-l border-white/10">#</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "10%" }}>رقم الحساب</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "26%" }}>الحساب أو الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "22%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "18%" }}>مركز التكلفة</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
