@@ -586,6 +586,7 @@ const ProfitLoss = () => {
                   debitType: normalizeAccountType(accMap[tx.debit_account_code || ""]?.account_type || ""),
                   creditType: normalizeAccountType(accMap[tx.credit_account_code || ""]?.account_type || ""),
                   transactionType: tx.transaction_type || "",
+                  costCenterId: (tx as any).cost_center_id || null,
                 }))
               );
             } finally { setLoading(false); }
