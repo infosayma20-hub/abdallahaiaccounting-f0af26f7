@@ -2815,8 +2815,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       )}
 
       {/* Row 1: Basic Info */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
+      <Card className="border-2 border-border shadow-sm">
+        <CardContent className="p-4 space-y-3">
           {/* Party Type Toggle */}
           <div>
             <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
