@@ -114,6 +114,7 @@ const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage")
 const RepUnpostedOrdersPage = lazy(() => import("./pages/admin/RepUnpostedOrdersPage"));
 const RepEditRequestsPage = lazy(() => import("./pages/admin/RepEditRequestsPage"));
 const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
+const OpeningBalancesHubPage = lazy(() => import("./pages/OpeningBalancesHubPage"));
 const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
 const WarrantyHomePage = lazy(() => import("./pages/warranty/WarrantyHomePage"));
