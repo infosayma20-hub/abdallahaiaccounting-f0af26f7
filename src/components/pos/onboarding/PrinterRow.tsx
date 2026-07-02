@@ -20,7 +20,7 @@
 import { useState } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, TestTube, Printer,
-  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud,
+  MoreVertical, Pencil, Trash2, Activity, Copy, Cloud, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,6 +110,8 @@ export interface PrinterRowProps {
   onDelete: () => void;
   onEdit?: () => void;
   onResyncAll: () => void | Promise<void>;
+  /** Open the "link printer to kitchen station(s)" dialog. */
+  onLinkStations?: () => void;
 }
 
 type State =
@@ -123,7 +125,7 @@ export default function PrinterRow(props: PrinterRowProps) {
     bridgeConnected, bridgeSubnetMismatch, notSynced, bridgeOnline,
     testStatus, windowsPrinters,
     stations,
-    onTest, onConvertToWindows, onDelete, onEdit, onResyncAll,
+    onTest, onConvertToWindows, onDelete, onEdit, onResyncAll, onLinkStations,
   } = props;
 
   // Kitchen-role printer → show which station it's routed to.
