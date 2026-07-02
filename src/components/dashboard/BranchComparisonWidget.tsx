@@ -33,7 +33,7 @@ export default function BranchComparisonWidget() {
         const { data: centers } = await supabase
           .from("cost_centers")
           .select("id, name")
-          .eq("data_owner_id", dataOwnerId)
+          .eq("user_id", dataOwnerId)
           .eq("is_active", true);
 
         if (!centers || centers.length === 0) {
@@ -44,7 +44,7 @@ export default function BranchComparisonWidget() {
         const { data: txs } = await supabase
           .from("transactions")
           .select("cost_center_id, amount, type, is_deleted")
-          .eq("data_owner_id", dataOwnerId)
+          .eq("user_id", dataOwnerId)
           .gte("date", monthStart.toISOString().slice(0, 10))
           .not("cost_center_id", "is", null);
 
