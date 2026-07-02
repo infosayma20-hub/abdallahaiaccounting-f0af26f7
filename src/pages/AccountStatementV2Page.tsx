@@ -4,7 +4,7 @@ import {
   Printer, ChevronLeft, ChevronDown, ChevronUp,
   Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
   Filter, Download, AlertTriangle, Zap, Calculator,
-  ArrowLeft,
+  ArrowLeft, Maximize2, Minimize2,
 } from "lucide-react";
 import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
 import * as XLSX from "xlsx";
@@ -186,6 +186,24 @@ const AccountStatementV2Page = () => {
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true); // initial full-page loader only
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh indicator
+  // Full-screen mode for wide tables (client request)
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (e) {
+      console.warn("[fullscreen] toggle failed", e);
+    }
+  }, []);
   const hasLoadedOnceRef = useRef(false);
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
@@ -1366,6 +1384,15 @@ const AccountStatementV2Page = () => {
             <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
           </div>
           <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
+          <button
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors bg-white hover:bg-muted"
+            style={{ borderColor: '#0D1B2E', color: '#0D1B2E' }}
+            title={isFullscreen ? 'الخروج من ملء الشاشة (Esc)' : 'ملء الشاشة'}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {isFullscreen ? 'خروج' : 'ملء الشاشة'}
+          </button>
           {isPosBox && posShifts.size > 0 && (
             <button
               onClick={() => setPosGroupMode(m => m === 'grouped' ? 'detailed' : 'grouped')}
