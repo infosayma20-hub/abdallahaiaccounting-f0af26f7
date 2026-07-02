@@ -467,25 +467,49 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
-  const isPosted = form.status === "confirmed" && !!recordId;
-  const readonly = isView || isPosted;
+  const wasPosted = form.status === "confirmed" && !!recordId;
+  const readonly = isView;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-4 pb-32" dir="rtl">
-      <PageHeader
-        title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
-        breadcrumb={["الرئيسية", isSales ? "المبيعات" : "المشتريات", titleAr]}
-      />
-      <p className="text-sm text-muted-foreground">
-        {isSales
-          ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً"
-          : "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
-      </p>
-
-      {isPosted && (
+    <FinanceShell
+      title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
+      subtitle={isSales
+        ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً"
+        : "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: isSales ? "المبيعات" : "المشتريات" },
+        { label: titleAr, href: listPath },
+      ]}
+      actionTabs={!readonly ? ([
+        {
+          key: "main",
+          label: "عام",
+          groups: [
+            {
+              key: "save",
+              label: "حفظ",
+              items: [
+                { key: "draft", label: "حفظ كمسودة", icon: Save, onClick: () => handleSave(true), disabled: saving },
+                { key: "confirm", label: wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل", icon: Send, variant: "primary", onClick: () => handleSave(false), disabled: saving },
+              ],
+            },
+            {
+              key: "nav",
+              label: "تنقّل",
+              items: [
+                { key: "back", label: "رجوع للقائمة", icon: ArrowRight, onClick: () => navigate(listPath) },
+              ],
+            },
+          ],
+        },
+      ] satisfies ActionTab[]) : []}
+    >
+    <div className="space-y-4 pb-32" dir="rtl">
+      {wasPosted && !isView && (
         <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm">
           <AlertTriangle className="h-4 w-4" />
-          هذا المردود مؤكد ومرحَّل محاسبياً ومخزنياً — لا يمكن تعديله.
+          هذا المردود مرحَّل محاسبياً ومخزنياً. عند حفظ التعديل سيتم عكس القيد والمخزون القديم تلقائياً ثم إعادة الترحيل بالبيانات الجديدة (سياسة "احذف وأنشئ").
         </div>
       )}
 
@@ -777,12 +801,13 @@ const ReturnCreatePage = ({ returnType }: Props) => {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} حفظ كمسودة
             </Button>
             <Button disabled={saving} onClick={() => handleSave(false)} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} تأكيد وترحيل
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {wasPosted ? "إعادة الترحيل" : "تأكيد وترحيل"}
             </Button>
           </div>
         </div>
       )}
     </div>
+    </FinanceShell>
   );
 };
 
