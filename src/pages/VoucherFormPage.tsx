@@ -3162,8 +3162,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           always has content beside it (no more "floating" feel). */}
 
       {/* Row 2: Payment Method, Currency & Amount */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
+      <Card className="border-2 border-border shadow-sm">
+        <CardContent className="p-4 space-y-3">
           {/* ─── Row 1: AMOUNT FIRST (dominant) + Currency ─── */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-8">
