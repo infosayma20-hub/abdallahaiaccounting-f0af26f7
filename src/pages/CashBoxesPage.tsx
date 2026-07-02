@@ -385,7 +385,7 @@ const CashBoxesPage = () => {
       { key: "movements", label: "حركات", items: [
         { key: "transfer", label: "تحويل بين الصناديق", icon: ArrowLeftRight, onClick: () => navigate("/finance/cash-boxes/transfer") },
         { key: "deposit", label: "إيداع بنكي", icon: ArrowUpFromLine, onClick: () => setDepositOpen(true) },
-        { key: "exchange", label: "صرف عملة", icon: ArrowLeftRight, onClick: () => setExchangeOpen(true) },
+        { key: "exchange", label: "صرف عملة", icon: ArrowLeftRight, onClick: () => navigate("/finance/cash-boxes/currency-exchange") },
         { key: "replenish", label: "تغذية النثرية", icon: ArrowDownToLine, onClick: () => setReplenishOpen(true) },
         { key: "fx-opening", label: "رصيد افتتاحي عملة", icon: Banknote, onClick: () => setOpeningBalanceOpen(true) },
       ]},
