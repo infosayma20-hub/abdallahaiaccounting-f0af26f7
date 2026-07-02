@@ -404,8 +404,12 @@ async function branchHasUnifiedKitchenPrinter(branchId: string | null): Promise<
 async function shouldUseUnifiedKitchenPrinter(order: PrintOrder): Promise<boolean> {
   const branchId = getDeviceBranchId();
   if (await branchHasUnifiedKitchenPrinter(branchId)) return true;
-  // Legacy fallback — keep Plaza working until they set image_mode.
-  return branchId === LEGACY_RAMALLAH_PLAZA_BRANCH_ID || !!order.branchName?.includes('رام الله بلازا');
+  // Legacy Plaza fallback removed (2026-07): Plaza now has dedicated kitchen
+  // printers (المشاوي + المطبخ) linked to real stations, so the receipt
+  // printer must NOT receive a duplicate kitchen ticket anymore.
+  // Any branch that still wants the unified behaviour can opt-in via
+  // pos_printers.settings.image_mode = 'unified_kitchen'.
+  return false;
 }
 
 function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
