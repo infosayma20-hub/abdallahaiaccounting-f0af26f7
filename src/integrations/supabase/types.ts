@@ -2075,6 +2075,13 @@ export type Database = {
             referencedRelation: "cash_boxes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cash_transfers_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cheque_status_history: {
@@ -14956,6 +14963,41 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "receipt_vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_idempotency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_same_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_zero_amount"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "receipt_vouchers_workshop_id_fkey"
             columns: ["workshop_id"]
             isOneToOne: false
@@ -21059,6 +21101,41 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_idempotency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_same_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_zero_amount"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vouchers_workshop_id_fkey"
             columns: ["workshop_id"]
             isOneToOne: false
@@ -22679,10 +22756,37 @@ export type Database = {
         }
         Relationships: []
       }
+      v_duplicate_voucher_refs: {
+        Row: {
+          duplicate_count: number | null
+          first_created: string | null
+          last_created: string | null
+          ref_number: string | null
+          statuses: string[] | null
+          type: string | null
+          user_id: string | null
+          voucher_ids: string[] | null
+        }
+        Relationships: []
+      }
       v_financial_drift_summary: {
         Row: {
           cnt: number | null
           metric: string | null
+        }
+        Relationships: []
+      }
+      v_financial_integrity_issues: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          description: string | null
+          document_id: string | null
+          document_kind: string | null
+          document_ref: string | null
+          issue_type: string | null
+          transaction_id: string | null
+          user_id: string | null
         }
         Relationships: []
       }
