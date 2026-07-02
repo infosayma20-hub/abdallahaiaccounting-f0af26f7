@@ -84,7 +84,7 @@ const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: st
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
-  const { settings: companySettings } = useCompanySettings();
+  const { settings: companySettings, updateSettings: updateCompanySettings, saveSettings: saveCompanySettings, saving: savingCompanySettings } = useCompanySettings();
   const { can, isAdmin } = useHRManagerPermissions();
   const navigate = useNavigate();
   const canDelete = isAdmin || can("can_manage_forms");
