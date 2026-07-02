@@ -37,6 +37,7 @@ interface TxRecord {
   debitType: string;
   creditType: string;
   transactionType: string;
+  costCenterId: string | null;
 }
 
 interface StatementLine {
@@ -122,6 +123,8 @@ const ProfitLoss = () => {
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
   const [showCharts, setShowCharts] = useState(true);
   const [detailLevel, setDetailLevel] = useState(1);
+  const [costCenters, setCostCenters] = useState<Array<{ id: string; name: string }>>([]);
+  const [costCenterFilter, setCostCenterFilter] = useState<string>("all");
 
   // Resolve the actual data owner (team owner) so employees/cashiers see the company books
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
@@ -165,6 +168,7 @@ const ProfitLoss = () => {
             debitType: normalizeAccountType(accMap[tx.debit_account_code || ""]?.account_type || ""),
             creditType: normalizeAccountType(accMap[tx.credit_account_code || ""]?.account_type || ""),
             transactionType: tx.transaction_type || "",
+            costCenterId: (tx as any).cost_center_id || null,
           }));
 
         setAllTxRecords(records);
@@ -177,6 +181,18 @@ const ProfitLoss = () => {
     load();
   }, [user, dataOwnerId]);
 
+  // Load cost centers (branches) for filter
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    supabase
+      .from("cost_centers")
+      .select("id, name")
+      .eq("user_id", dataOwnerId)
+      .eq("is_active", true)
+      .order("name")
+      .then(({ data }) => setCostCenters((data as any) || []));
+  }, [dataOwnerId]);
+
   const handleQuickPeriod = useCallback((key: string) => {
     setActivePeriod(key);
     const [from, to] = getQuickPeriod(key);
@@ -186,8 +202,13 @@ const ProfitLoss = () => {
 
   // Filter transactions by date range
   const plTransactions = useMemo(() => {
-    return allTxRecords.filter(tx => tx.date >= dateFrom && tx.date <= dateTo);
-  }, [allTxRecords, dateFrom, dateTo]);
+    return allTxRecords.filter(tx => {
+      if (tx.date < dateFrom || tx.date > dateTo) return false;
+      if (costCenterFilter === "all") return true;
+      if (costCenterFilter === "none") return !tx.costCenterId;
+      return tx.costCenterId === costCenterFilter;
+    });
+  }, [allTxRecords, dateFrom, dateTo, costCenterFilter]);
 
   // Previous period transactions
   const prevPeriodTxs = useMemo(() => {
@@ -197,8 +218,13 @@ const ProfitLoss = () => {
     const duration = toDate.getTime() - fromDate.getTime();
     const prevFrom = format(new Date(fromDate.getTime() - duration - 86400000), "yyyy-MM-dd");
     const prevTo = format(new Date(fromDate.getTime() - 86400000), "yyyy-MM-dd");
-    return allTxRecords.filter(tx => tx.date >= prevFrom && tx.date <= prevTo);
-  }, [allTxRecords, dateFrom, dateTo, showComparison]);
+    return allTxRecords.filter(tx => {
+      if (tx.date < prevFrom || tx.date > prevTo) return false;
+      if (costCenterFilter === "all") return true;
+      if (costCenterFilter === "none") return !tx.costCenterId;
+      return tx.costCenterId === costCenterFilter;
+    });
+  }, [allTxRecords, dateFrom, dateTo, showComparison, costCenterFilter]);
 
   // ── Compute P&L ──
   const computePL = useCallback((txs: TxRecord[]) => {
@@ -560,6 +586,7 @@ const ProfitLoss = () => {
                   debitType: normalizeAccountType(accMap[tx.debit_account_code || ""]?.account_type || ""),
                   creditType: normalizeAccountType(accMap[tx.credit_account_code || ""]?.account_type || ""),
                   transactionType: tx.transaction_type || "",
+                  costCenterId: (tx as any).cost_center_id || null,
                 }))
               );
             } finally { setLoading(false); }
@@ -637,6 +664,22 @@ const ProfitLoss = () => {
               </button>
             ))}
           </div>
+          {costCenters.length > 0 && (
+            <div className="flex items-center gap-1.5 mr-4">
+              <span className="text-muted-foreground text-[10px]">الفرع / مركز التكلفة:</span>
+              <select
+                value={costCenterFilter}
+                onChange={(e) => setCostCenterFilter(e.target.value)}
+                className="h-7 rounded-md border border-input bg-background px-2 text-[11px]"
+              >
+                <option value="all">الكل</option>
+                <option value="none">بدون مركز تكلفة</option>
+                {costCenters.map(cc => (
+                  <option key={cc.id} value={cc.id}>{cc.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </Card>
 
