@@ -797,6 +797,7 @@ const App = () => (
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />
                       <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
+                      <Route path="/finance/cash-boxes/currency-exchange" element={<CurrencyExchangePage />} />
                       <Route path="/finance/cost-centers" element={<CostCentersPage />} />
                       <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
