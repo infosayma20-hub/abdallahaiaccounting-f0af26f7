@@ -1513,6 +1513,86 @@ const AccountStatementV2Page = () => {
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
                     statementRowsWithDetails.map((row, i) => {
+                      // ─── POS Shift Summary Row (Collapsible) ───
+                      if (row.isShiftSummary) {
+                        const meta = row.shiftMeta;
+                        const isOpen = row.shiftSessionId ? expandedShifts.has(row.shiftSessionId) : false;
+                        const variance = meta?.cash_variance;
+                        const varianceLabel = variance == null ? null
+                          : Math.abs(variance) < 0.005 ? 'مطابق'
+                          : variance > 0 ? `+${fmtAmount(variance, row.currency)} زيادة`
+                          : `${fmtAmount(variance, row.currency)} عجز`;
+                        const varianceColor = variance == null || Math.abs(variance) < 0.005 ? '#065F46' : variance > 0 ? '#B45309' : '#B91C1C';
+                        return (
+                          <tr
+                            key={row.transaction_id + '-' + i}
+                            onClick={() => row.shiftSessionId && toggleShiftExpanded(row.shiftSessionId)}
+                            style={{
+                              borderBottom: '1px solid #E5E7EB',
+                              background: isOpen ? '#EFF6FF' : '#F8FAFC',
+                              cursor: 'pointer',
+                            }}
+                            className="hover:bg-blue-50 transition-colors"
+                          >
+                            {screenCols.map(c => {
+                              if (c.key === 'date') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 11, color: '#0D1B2E', fontWeight: 700 }}>
+                                  <div>{fmtDate(row.date)}</div>
+                                  <div style={{ fontSize: 9, color: '#6B7280', fontWeight: 500 }}>{getDayName(row.date)}</div>
+                                </td>
+                              );
+                              if (c.key === 'reference') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 10, fontFamily: 'monospace', color: '#475569', fontWeight: 600 }}>
+                                  {row.reference}
+                                </td>
+                              );
+                              if (c.key === 'description') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 11.5, color: '#0D1B2E', fontWeight: 600 }}>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <ChevronRight
+                                      className="w-3.5 h-3.5 shrink-0 transition-transform"
+                                      style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', color: '#0D1B2E' }}
+                                    />
+                                    <span>{row.description}</span>
+                                    {meta?.state === 'open' && (
+                                      <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>مفتوحة</span>
+                                    )}
+                                    {varianceLabel && (
+                                      <span style={{ background: '#F1F5F9', color: varianceColor, padding: '1px 6px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
+                                        {`النقد: ${varianceLabel}`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                              if (c.key === 'due') return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                              if (c.key === 'type') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 9.5 }}>
+                                  <span style={{ background: '#0D1B2E', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>وردية POS</span>
+                                </td>
+                              );
+                              if (c.key === 'cost_center') return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                              if (c.key === 'debit') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#1E40AF', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                  {row.debit > 0 ? fmtAmount(row.debit, row.currency) : '—'}
+                                </td>
+                              );
+                              if (c.key === 'credit') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#065F46', textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                  {row.credit > 0 ? fmtAmount(row.credit, row.currency) : '—'}
+                                </td>
+                              );
+                              if (c.key === 'balance') return (
+                                <td key={c.key} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 800, color: balColor(row.balance), textAlign: 'left', direction: 'ltr', fontFamily: 'tabular-nums' }}>
+                                  {fmtAmount(row.balance, row.currency)}
+                                  <span style={{ fontSize: 9, fontWeight: 400, color: '#9CA3AF', marginRight: 2 }}>{row.balance > 0 ? 'م' : row.balance < 0 ? 'د' : ''}</span>
+                                </td>
+                              );
+                              return <td key={c.key} style={{ padding: '10px 12px' }} />;
+                            })}
+                          </tr>
+                        );
+                      }
                       // ─── Nested Invoice Items Table (Document-aware) ───
                       if (row.lineItemDetail === "invoice-table" && row.invoiceItems && row.invoiceItems.length > 0) {
                         const items = row.invoiceItems;
