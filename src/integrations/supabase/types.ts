@@ -9310,6 +9310,74 @@ export type Database = {
           },
         ]
       }
+      journal_book_sequences: {
+        Row: {
+          book_id: string
+          last_number: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          book_id: string
+          last_number?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          book_id?: string
+          last_number?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_book_sequences_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "journal_books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_books: {
+        Row: {
+          code: string
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       journal_templates: {
         Row: {
           created_at: string
@@ -19561,6 +19629,8 @@ export type Database = {
           account_id_credit: string | null
           account_id_debit: string | null
           amount: number
+          book_id: string | null
+          book_number: string | null
           contact_id: string | null
           cost_center_id: string | null
           cost_center_name: string | null
@@ -19592,6 +19662,8 @@ export type Database = {
           account_id_credit?: string | null
           account_id_debit?: string | null
           amount?: number
+          book_id?: string | null
+          book_number?: string | null
           contact_id?: string | null
           cost_center_id?: string | null
           cost_center_name?: string | null
@@ -19623,6 +19695,8 @@ export type Database = {
           account_id_credit?: string | null
           account_id_debit?: string | null
           amount?: number
+          book_id?: string | null
+          book_number?: string | null
           contact_id?: string | null
           cost_center_id?: string | null
           cost_center_name?: string | null
@@ -19651,6 +19725,13 @@ export type Database = {
           workshop_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "journal_books"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_contact_id_fkey"
             columns: ["contact_id"]
@@ -22718,6 +22799,13 @@ export type Database = {
           tax_number: string
         }[]
       }
+      allocate_journal_book_number: {
+        Args: { _book_id: string; _year?: number }
+        Returns: {
+          book_number: string
+          sequence_number: number
+        }[]
+      }
       allocate_voucher_to_invoices_atomic: {
         Args: {
           p_allocations: Json
@@ -23362,6 +23450,10 @@ export type Database = {
       ensure_advance_accounts: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      ensure_default_journal_book: {
+        Args: { _user_id: string }
+        Returns: string
       }
       ensure_default_warehouse: { Args: { p_user_id: string }; Returns: string }
       ensure_party_transfer_clearing_account: {
