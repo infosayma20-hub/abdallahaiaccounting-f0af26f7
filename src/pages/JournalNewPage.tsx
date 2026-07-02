@@ -833,12 +833,12 @@ const JournalNewPage = () => {
 
   // Prev/Next navigation between existing journal vouchers
   const goToAdjacentVoucher = async (direction: "prev" | "next") => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     try {
       let q = supabase
         .from("vouchers")
         .select("id, ref_number, created_at")
-        .eq("user_id", ownerId)
+        .eq("user_id", dataOwnerId)
         .eq("type", "journal");
       if (editingCreatedAt) {
         if (direction === "prev") {
@@ -943,10 +943,10 @@ const JournalNewPage = () => {
 
   // Duplicate loaded voucher into a fresh new entry (keeps all data, generates new ref)
   const handleDuplicate = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     // Generate a new ref number
     const { data } = await supabase
-      .from("vouchers").select("ref_number").eq("user_id", ownerId).eq("type", "journal")
+      .from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal")
       .order("created_at", { ascending: false }).limit(1);
     const lastRef = (data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);
