@@ -187,7 +187,7 @@ const ProfitLoss = () => {
     supabase
       .from("cost_centers")
       .select("id, name")
-      .eq("data_owner_id", dataOwnerId)
+      .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("name")
       .then(({ data }) => setCostCenters((data as any) || []));
