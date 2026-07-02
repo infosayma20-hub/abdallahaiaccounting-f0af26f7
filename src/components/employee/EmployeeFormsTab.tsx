@@ -98,6 +98,10 @@ export default function EmployeeFormsTab({
   const [policies, setPolicies] = useState<any[]>([]);
   const [showPolicies, setShowPolicies] = useState(true);
   const [showLoanForm, setShowLoanForm] = useState(true);
+  const [allowAdvance, setAllowAdvance] = useState(true);
+  const [allowLeave, setAllowLeave] = useState(true);
+  const [advanceClosedMsg, setAdvanceClosedMsg] = useState<string>("");
+  const [leaveClosedMsg, setLeaveClosedMsg] = useState<string>("");
   const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
   const [branchOptions, setBranchOptions] = useState<{ id: string; name: string }[]>([]);
   const [deptOptions, setDeptOptions] = useState<{ id: string; name: string }[]>([]);
@@ -127,12 +131,16 @@ export default function EmployeeFormsTab({
     const ownerId = ownerData || userId;
     const { data } = await supabase
       .from("company_settings")
-      .select("hr_show_policies, hr_show_loan_form")
+      .select("hr_show_policies, hr_show_loan_form, hr_allow_advance_requests, hr_allow_leave_requests, hr_advance_requests_closed_message, hr_leave_requests_closed_message")
       .eq("user_id", ownerId)
       .maybeSingle();
     if (data) {
       setShowPolicies(data.hr_show_policies !== false);
       setShowLoanForm(data.hr_show_loan_form !== false);
+      setAllowAdvance((data as any).hr_allow_advance_requests !== false);
+      setAllowLeave((data as any).hr_allow_leave_requests !== false);
+      setAdvanceClosedMsg(((data as any).hr_advance_requests_closed_message ?? "") as string);
+      setLeaveClosedMsg(((data as any).hr_leave_requests_closed_message ?? "") as string);
     }
   };
 
