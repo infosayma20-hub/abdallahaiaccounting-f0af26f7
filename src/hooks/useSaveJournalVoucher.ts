@@ -507,9 +507,11 @@ export function useSaveJournalVoucher() {
             throw new Error("فشل إنشاء القيد المحاسبي المرتبط");
           }
         } else if (txns.length > 0) {
+          // ختم كل الحركات ببيانات دفتر السندات (للفلترة السريعة على كشوف الحسابات)
+          const stampedTxns = txns.map((t) => ({ ...t, book_id: bookId, book_number: bookNumber }));
           const { data: txData, error: tErr } = await supabase
             .from("transactions")
-            .insert(txns)
+            .insert(stampedTxns)
             .select("id");
           if (tErr) throw tErr;
 
