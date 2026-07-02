@@ -212,6 +212,21 @@ const AccountStatementV2Page = () => {
   const [navigatingRowId, setNavigatingRowId] = useState<string | null>(null);
   const [statementOptions, setStatementOptions] = useState<StatementViewOptions>(() => loadViewOptions());
   const [detailsMap, setDetailsMap] = useState<StatementDetailsMap>(() => emptyDetailsMap());
+  // ─── POS Shift Grouping ───
+  // When viewing a POS cash-box account, collapse sale rows per shift.
+  // Default: grouped ON (user preference — accountants see one line per shift).
+  const [posGroupMode, setPosGroupMode] = useState<'grouped' | 'detailed'>(() => {
+    try { return (localStorage.getItem('as.posGroupMode') as any) || 'grouped'; } catch { return 'grouped'; }
+  });
+  const [expandedShifts, setExpandedShifts] = useState<Set<string>>(new Set());
+  useEffect(() => { try { localStorage.setItem('as.posGroupMode', posGroupMode); } catch {} }, [posGroupMode]);
+  const toggleShiftExpanded = useCallback((sid: string) => {
+    setExpandedShifts(prev => {
+      const n = new Set(prev);
+      if (n.has(sid)) n.delete(sid); else n.add(sid);
+      return n;
+    });
+  }, []);
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
 
