@@ -25,6 +25,7 @@ import { fmtDateDisplay } from "@/lib/utils";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
+import useSavePostShortcut from "@/hooks/useSavePostShortcut";
 
 // Marker embedded in description so we can locate & reverse the paired
 // journal transactions when a transfer is edited or deleted.
@@ -298,6 +299,8 @@ const CashTransferPage = () => {
       String(t.amount).includes(q) || (t.description || "").toLowerCase().includes(q);
   });
 
+  useSavePostShortcut(handleSave, !saving && !readonly);
+
   const actionTabs: ActionTab[] = [
     {
       key: "main",
@@ -308,7 +311,7 @@ const CashTransferPage = () => {
           label: "الحفظ",
           items: [
             { key: "save", label: recordId ? "حفظ التعديل" : "حفظ وترحيل", icon: Save, variant: "primary",
-              onClick: handleSave, disabled: saving || readonly, shortcut: "Ctrl+S" },
+              onClick: handleSave, disabled: saving || readonly, shortcut: "Ctrl+Enter" },
             { key: "new", label: "جديد", icon: Plus,
               onClick: () => { resetForm(); setSearchParams({}); } },
           ],

@@ -16,6 +16,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
+import useSavePostShortcut from "@/hooks/useSavePostShortcut";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
@@ -547,6 +548,8 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const wasPosted = form.status === "confirmed" && !!recordId;
   const isCancelled = form.status === "cancelled";
   const readonly = isView || isCancelled;
+
+  useSavePostShortcut(() => handleSave(false), !saving && !readonly);
 
   return (
     <FinanceShell
