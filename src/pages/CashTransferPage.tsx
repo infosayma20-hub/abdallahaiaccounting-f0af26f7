@@ -309,7 +309,7 @@ const CashTransferPage = () => {
           label: "الحفظ",
           items: [
             { key: "save", label: recordId ? "حفظ التعديل" : "حفظ وترحيل", icon: Save, variant: "primary",
-              onClick: handleSave, disabled: saving || readonly, shortcut: "Ctrl+S" },
+              onClick: handleSave, disabled: saving || readonly, shortcut: "Ctrl+Enter" },
             { key: "new", label: "جديد", icon: Plus,
               onClick: () => { resetForm(); setSearchParams({}); } },
           ],
