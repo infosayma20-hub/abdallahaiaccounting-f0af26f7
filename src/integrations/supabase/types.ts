@@ -23106,6 +23106,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_identity_column_dictionary: {
+        Row: {
+          column_name: unknown
+          data_type: string | null
+          is_nullable: string | null
+          role_meaning: string | null
+          table_name: unknown
+        }
+        Relationships: []
+      }
       v_invoices_payment_mismatch: {
         Row: {
           active_allocations: number | null
@@ -23150,6 +23160,16 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_tenant_scope_map: {
+        Row: {
+          effective_tenant_column: string | null
+          has_company_id: string | null
+          has_owner_id: string | null
+          has_user_id: string | null
+          table_name: unknown
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -24426,6 +24446,7 @@ export type Database = {
         Args: { _employee_id: string; _template_id: string }
         Returns: boolean
       }
+      is_tenant_owner: { Args: { _tenant_owner_id: string }; Returns: boolean }
       kds_business_date: { Args: { _at?: string }; Returns: string }
       kds_create_tickets_for_order: {
         Args: { _order_id: string }
