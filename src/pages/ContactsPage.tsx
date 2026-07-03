@@ -921,7 +921,7 @@ const ContactsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(contact => {
+                {paged.map(contact => {
                   const isOverLimit = contact.credit_limit && contact.current_balance && contact.current_balance > contact.credit_limit;
                   const hasOverdue = (contact.overdue_amount || 0) > 0;
 
