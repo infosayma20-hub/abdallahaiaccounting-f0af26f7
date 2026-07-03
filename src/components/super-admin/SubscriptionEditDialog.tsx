@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, addMonths, differenceInDays } from "date-fns";
-import { ArrowLeft, Calendar as CalendarIcon, Crown, Users, Sparkles, AlertTriangle, CheckCircle2, Zap, Lock } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Crown, Users, Sparkles, AlertTriangle, CheckCircle2, Zap, Lock, LayoutGrid, Check, X as XIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,36 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { APPS_VISUAL_META } from "@/pages/Apps/data/appsRegistry";
+import { toast } from "sonner";
+
+const APP_LABELS: Record<string, string> = {
+  dashboard: "لوحة المعلومات",
+  "ai-accountant": "المحاسب الذكي",
+  "print-templates": "نماذج للطباعة",
+  finance: "المالية",
+  tax: "المحاسبة الضريبية",
+  crm: "إدارة علاقات العملاء",
+  sales: "المبيعات",
+  purchases: "المشتريات",
+  pos: "نقطة البيع",
+  inventory: "المخزون",
+  "van-sales": "البائع المتجول",
+  "fixed-assets": "الأصول الثابتة",
+  warranty: "إدارة الكفالات",
+  contractor: "محاسب المشاريع والمقاولات",
+  workshops: "إدارة الورشات والمناجر",
+  ecommerce: "إدارة المتاجر الإلكترونية",
+  tasks: "إدارة المهام",
+  "cost-centers": "مراكز التكلفة",
+  production: "معادلة الإنتاج",
+  notifications: "الإشعارات",
+  travel: "إدارة مالية السياحة والسفر",
+  reports: "التقارير",
+  dashboards: "لوحات التحكم",
+  hr: "الموارد البشرية",
+  settings: "الإعدادات",
+};
 
 const MODULE_LABELS: Record<string, string> = {
   dashboard: "لوحة المعلومات",
@@ -106,6 +136,8 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
   const [customCurrency, setCustomCurrency] = useState("ILS");
   const [teamCount, setTeamCount] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [overrides, setOverrides] = useState<Record<string, "allow" | "deny">>({});
+  const [initialOverrides, setInitialOverrides] = useState<Record<string, "allow" | "deny">>({});
 
   // Initialize from sub
   useEffect(() => {
@@ -123,6 +155,14 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
     if (sub.user_id) {
       supabase.from("profiles").select("user_id", { count: "exact", head: true }).eq("invited_by", sub.user_id)
         .then(({ count }) => setTeamCount(count ?? 0));
+
+      supabase.from("user_app_access_overrides").select("app_key, access_state").eq("target_user_id", sub.user_id)
+        .then(({ data }) => {
+          const m: Record<string, "allow" | "deny"> = {};
+          (data ?? []).forEach((r: any) => { m[r.app_key] = r.access_state; });
+          setOverrides(m);
+          setInitialOverrides(m);
+        });
     }
   }, [sub]);
 
@@ -247,6 +287,26 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
         custom_amount: customAmount ? Number(customAmount) : null,
         custom_currency: customCurrency,
       });
+      // Persist app-access overrides diff
+      if (sub.user_id) {
+        const keys = new Set([...Object.keys(overrides), ...Object.keys(initialOverrides)]);
+        const toUpsert: any[] = [];
+        const toDelete: string[] = [];
+        keys.forEach(k => {
+          const cur = overrides[k];
+          const prev = initialOverrides[k];
+          if (cur && cur !== prev) toUpsert.push({ target_user_id: sub.user_id, app_key: k, access_state: cur });
+          else if (!cur && prev) toDelete.push(k);
+        });
+        if (toUpsert.length) {
+          const { error } = await supabase.from("user_app_access_overrides").upsert(toUpsert, { onConflict: "target_user_id,app_key" });
+          if (error) toast.error(`صلاحيات البطاقات: ${error.message}`);
+        }
+        if (toDelete.length) {
+          const { error } = await supabase.from("user_app_access_overrides").delete().eq("target_user_id", sub.user_id).in("app_key", toDelete);
+          if (error) toast.error(`إزالة صلاحية: ${error.message}`);
+        }
+      }
       onClose();
     } finally {
       setSaving(false);
