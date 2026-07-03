@@ -299,6 +299,8 @@ const CashTransferPage = () => {
       String(t.amount).includes(q) || (t.description || "").toLowerCase().includes(q);
   });
 
+  useSavePostShortcut(handleSave, !saving && !readonly);
+
   const actionTabs: ActionTab[] = [
     {
       key: "main",
