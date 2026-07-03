@@ -234,12 +234,16 @@ const ContactsPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData, error }, { data: txData }] = await Promise.all([
-        supabase.from('contacts').select('*').eq('user_id', ownerId).order('contact_name'),
-        supabase.from('transactions').select('id, amount, debit_account_code, credit_account_code, contact_id, transaction_date, description')
-          .eq('user_id', ownerId).eq('is_deleted', false),
+      const [contactData, txData] = await Promise.all([
+        fetchAllRows<any>((f, t) =>
+          supabase.from('contacts').select('*').eq('user_id', ownerId).order('contact_name').range(f, t)
+        ),
+        fetchAllRows<any>((f, t) =>
+          supabase.from('transactions')
+            .select('id, amount, debit_account_code, credit_account_code, contact_id, transaction_date, description')
+            .eq('user_id', ownerId).eq('is_deleted', false).range(f, t)
+        ),
       ]);
-      if (error) throw error;
       const txs = txData || [];
       setTransactions(txs);
 
