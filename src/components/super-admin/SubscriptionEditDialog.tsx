@@ -270,7 +270,13 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
     return differenceInDays(new Date(sub.current_period_end), new Date());
   }, [sub]);
 
-  const hasChanges = diff.length > 0;
+  const overrideChanges = useMemo(() => {
+    const keys = new Set([...Object.keys(overrides), ...Object.keys(initialOverrides)]);
+    let n = 0;
+    keys.forEach(k => { if (overrides[k] !== initialOverrides[k]) n++; });
+    return n;
+  }, [overrides, initialOverrides]);
+  const hasChanges = diff.length > 0 || overrideChanges > 0;
 
   const handleSave = async () => {
     if (!sub) return;
