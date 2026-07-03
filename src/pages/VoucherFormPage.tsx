@@ -2921,7 +2921,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             )}
             <div>
               <Label className="text-xs mb-1.5 block">التاريخ</Label>
-              <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} autoFocus />
+              <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} autoFocus data-smart-first="true" />
             </div>
 
             {/* Contact Search */}
@@ -2963,7 +2963,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     }}
                     placeholder={contactPlaceholder}
                     className="pr-9"
-                    data-smart-first="true"
                   />
                   {(selectedContact || contactSearch) && (
                     <button onClick={() => { setSelectedContact(null); setContactSearch(""); setShowContactDropdown(false); }}
