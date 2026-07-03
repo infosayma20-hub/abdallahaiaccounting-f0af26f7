@@ -16,6 +16,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { FinanceShell } from "@/components/finance/shell";
 import type { ActionTab } from "@/components/finance/shell";
 import { broadcastChange } from "@/lib/crossTabSync";
+import useSavePostShortcut from "@/hooks/useSavePostShortcut";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
