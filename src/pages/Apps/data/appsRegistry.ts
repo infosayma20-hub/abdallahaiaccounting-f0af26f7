@@ -66,6 +66,8 @@ export const APPS_VISUAL_META: AppVisualMeta[] = [
 
   // OPERATIONS (العمليات والإدارة)
   { id: "tasks",           iconColor: PALETTE.gray,     section: "operations" },
+  { id: "cost-centers",    iconColor: PALETTE.green,    section: "operations" },
+  { id: "production",      iconColor: PALETTE.mint,     section: "operations" },
   { id: "notifications",   iconColor: PALETTE.red,      section: "operations" },
   { id: "workshops",       iconColor: PALETTE.violet,   section: "operations" },
   { id: "fixed-assets",    iconColor: PALETTE.teal,     section: "operations" },

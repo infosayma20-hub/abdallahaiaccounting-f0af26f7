@@ -2,7 +2,7 @@ import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
   Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
-  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell,
+  Activity, PieChart, Scale, LayoutDashboard, PhoneCall, Bell, Factory, Layers,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -325,6 +325,25 @@ export const navigationSections: NavSection[] = [
         color: "text-sky-400", bgColor: "bg-sky-400/10", path: "/tasks", isDirect: true,
         enableSetting: "has_tasks",
         keywords: ["مهام", "تكليف", "متابعة", "tasks"],
+      },
+      {
+        id: "cost-centers", label: "مراكز التكلفة", description: "تعريف مراكز التكلفة وتوزيع المصاريف والإيرادات", module: "accounting", icon: Layers,
+        color: "text-emerald-600", bgColor: "bg-emerald-500/10", path: "/finance/cost-centers", isDirect: true,
+        keywords: ["مركز", "مراكز", "تكلفة", "cost center", "توزيع"],
+      },
+      {
+        id: "production", label: "معادلة الإنتاج", description: "قوائم المكونات (BOM) وأوامر الإنتاج مع ترحيل تلقائي للمخزون", module: "inventory", icon: Factory,
+        color: "text-teal-600", bgColor: "bg-teal-500/10", path: "/production/formulas",
+        keywords: ["معادلة", "إنتاج", "تصنيع", "BOM", "أمر إنتاج", "مواد خام"],
+        groups: [
+          {
+            groupLabel: "العمليات",
+            children: [
+              { label: "معادلات الإنتاج", path: "/production/formulas" },
+              { label: "أوامر الإنتاج", path: "/production/orders" },
+            ],
+          },
+        ],
       },
       {
         id: "notifications", label: "الإشعارات", description: "إرسال تنبيهات للموظفين والمدراء والمحاسبين", module: "settings", icon: Bell,

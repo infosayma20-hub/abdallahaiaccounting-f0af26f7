@@ -273,6 +273,8 @@ const HeaterScreenPage = lazy(() => import("./pages/HeaterScreenPage"));
 const KdsControlPage = lazy(() => import("./pages/KdsControlPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CostCentersPage = lazy(() => import("./pages/CostCentersPage"));
+const ProductionFormulasPage = lazy(() => import("./pages/production/ProductionFormulasPage"));
+const ProductionOrdersPage = lazy(() => import("./pages/production/ProductionOrdersPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
 const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
 const CurrencyExchangePage = lazy(() => import("./pages/CurrencyExchangePage"));
@@ -802,6 +804,8 @@ const App = () => (
                       <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
                       <Route path="/finance/cash-boxes/currency-exchange" element={<CurrencyExchangePage />} />
                       <Route path="/finance/cost-centers" element={<CostCentersPage />} />
+                      <Route path="/production/formulas" element={<ProductionFormulasPage />} />
+                      <Route path="/production/orders" element={<ProductionOrdersPage />} />
                       <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />

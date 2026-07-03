@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, addMonths, differenceInDays } from "date-fns";
-import { ArrowLeft, Calendar as CalendarIcon, Crown, Users, Sparkles, AlertTriangle, CheckCircle2, Zap, Lock } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Crown, Users, Sparkles, AlertTriangle, CheckCircle2, Zap, Lock, LayoutGrid, Check, X as XIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,36 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { APPS_VISUAL_META } from "@/pages/Apps/data/appsRegistry";
+import { toast } from "sonner";
+
+const APP_LABELS: Record<string, string> = {
+  dashboard: "لوحة المعلومات",
+  "ai-accountant": "المحاسب الذكي",
+  "print-templates": "نماذج للطباعة",
+  finance: "المالية",
+  tax: "المحاسبة الضريبية",
+  crm: "إدارة علاقات العملاء",
+  sales: "المبيعات",
+  purchases: "المشتريات",
+  pos: "نقطة البيع",
+  inventory: "المخزون",
+  "van-sales": "البائع المتجول",
+  "fixed-assets": "الأصول الثابتة",
+  warranty: "إدارة الكفالات",
+  contractor: "محاسب المشاريع والمقاولات",
+  workshops: "إدارة الورشات والمناجر",
+  ecommerce: "إدارة المتاجر الإلكترونية",
+  tasks: "إدارة المهام",
+  "cost-centers": "مراكز التكلفة",
+  production: "معادلة الإنتاج",
+  notifications: "الإشعارات",
+  travel: "إدارة مالية السياحة والسفر",
+  reports: "التقارير",
+  dashboards: "لوحات التحكم",
+  hr: "الموارد البشرية",
+  settings: "الإعدادات",
+};
 
 const MODULE_LABELS: Record<string, string> = {
   dashboard: "لوحة المعلومات",
@@ -106,6 +136,8 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
   const [customCurrency, setCustomCurrency] = useState("ILS");
   const [teamCount, setTeamCount] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [overrides, setOverrides] = useState<Record<string, "allow" | "deny">>({});
+  const [initialOverrides, setInitialOverrides] = useState<Record<string, "allow" | "deny">>({});
 
   // Initialize from sub
   useEffect(() => {
@@ -123,6 +155,14 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
     if (sub.user_id) {
       supabase.from("profiles").select("user_id", { count: "exact", head: true }).eq("invited_by", sub.user_id)
         .then(({ count }) => setTeamCount(count ?? 0));
+
+      supabase.from("user_app_access_overrides").select("app_key, access_state").eq("target_user_id", sub.user_id)
+        .then(({ data }) => {
+          const m: Record<string, "allow" | "deny"> = {};
+          (data ?? []).forEach((r: any) => { m[r.app_key] = r.access_state; });
+          setOverrides(m);
+          setInitialOverrides(m);
+        });
     }
   }, [sub]);
 
@@ -230,7 +270,13 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
     return differenceInDays(new Date(sub.current_period_end), new Date());
   }, [sub]);
 
-  const hasChanges = diff.length > 0;
+  const overrideChanges = useMemo(() => {
+    const keys = new Set([...Object.keys(overrides), ...Object.keys(initialOverrides)]);
+    let n = 0;
+    keys.forEach(k => { if (overrides[k] !== initialOverrides[k]) n++; });
+    return n;
+  }, [overrides, initialOverrides]);
+  const hasChanges = diff.length > 0 || overrideChanges > 0;
 
   const handleSave = async () => {
     if (!sub) return;
@@ -247,6 +293,26 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
         custom_amount: customAmount ? Number(customAmount) : null,
         custom_currency: customCurrency,
       });
+      // Persist app-access overrides diff
+      if (sub.user_id) {
+        const keys = new Set([...Object.keys(overrides), ...Object.keys(initialOverrides)]);
+        const toUpsert: any[] = [];
+        const toDelete: string[] = [];
+        keys.forEach(k => {
+          const cur = overrides[k];
+          const prev = initialOverrides[k];
+          if (cur && cur !== prev) toUpsert.push({ target_user_id: sub.user_id, app_key: k, access_state: cur });
+          else if (!cur && prev) toDelete.push(k);
+        });
+        if (toUpsert.length) {
+          const { error } = await supabase.from("user_app_access_overrides").upsert(toUpsert, { onConflict: "target_user_id,app_key" });
+          if (error) toast.error(`صلاحيات البطاقات: ${error.message}`);
+        }
+        if (toDelete.length) {
+          const { error } = await supabase.from("user_app_access_overrides").delete().eq("target_user_id", sub.user_id).in("app_key", toDelete);
+          if (error) toast.error(`إزالة صلاحية: ${error.message}`);
+        }
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -377,6 +443,64 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
                   )}
                 </div>
               )}
+            </div>
+
+            {/* ── Allowed Cards (per-user app access overrides) ── */}
+            <div className="rounded-xl border-2 border-indigo-100 bg-gradient-to-l from-indigo-50/40 to-white p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <LayoutGrid className="w-4 h-4 text-indigo-600" />
+                  <h4 className="text-sm font-bold text-indigo-900">البطاقات المسموحة للمستخدم</h4>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setOverrides({})} className="text-[11px] text-gray-500 hover:text-gray-700 underline">إعادة للافتراضي (حسب الباقة)</button>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-500 mb-3">
+                الافتراضي = حسب الباقة. اضغط ✓ لفتح البطاقة دائماً، أو ✕ لإخفائها عن المستخدم — يتجاوز إعدادات الباقة.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                {APPS_VISUAL_META.map(app => {
+                  const label = APP_LABELS[app.id] ?? app.id;
+                  const state = overrides[app.id];
+                  const includedByPlan = (newPlan?.enabled_modules ?? []).includes(app.id);
+                  return (
+                    <div key={app.id} className={`flex items-center justify-between gap-2 border rounded-lg px-2.5 py-2 text-xs ${state === "allow" ? "border-emerald-300 bg-emerald-50" : state === "deny" ? "border-red-300 bg-red-50" : "border-gray-200 bg-white"}`}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: app.iconColor }} />
+                        <span className="font-semibold text-gray-800 truncate">{label}</span>
+                        {includedByPlan && !state && <Badge variant="secondary" className="text-[9px] h-4 px-1">بالباقة</Badge>}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          type="button"
+                          title="السماح دائماً"
+                          onClick={() => setOverrides(o => {
+                            const n = { ...o };
+                            if (n[app.id] === "allow") delete n[app.id]; else n[app.id] = "allow";
+                            return n;
+                          })}
+                          className={`h-6 w-6 rounded flex items-center justify-center border ${state === "allow" ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-200 text-gray-400 hover:text-emerald-600"}`}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="حجب البطاقة"
+                          onClick={() => setOverrides(o => {
+                            const n = { ...o };
+                            if (n[app.id] === "deny") delete n[app.id]; else n[app.id] = "deny";
+                            return n;
+                          })}
+                          className={`h-6 w-6 rounded flex items-center justify-center border ${state === "deny" ? "bg-red-500 border-red-500 text-white" : "border-gray-200 text-gray-400 hover:text-red-600"}`}
+                        >
+                          <XIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* ── Status ── */}
