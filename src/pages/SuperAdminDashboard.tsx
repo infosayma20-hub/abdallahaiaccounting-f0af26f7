@@ -2633,6 +2633,11 @@ export default function SuperAdminDashboard() {
                   <AlertTriangle className={`h-4 w-4 me-1 ${fiCheckLoading ? "animate-pulse" : ""}`} />
                   {fiCheckLoading ? "جاري الفحص..." : "فحص فوري"}
                 </Button>
+                <Button size="sm" onClick={() => navigate("/finance/parent-account-fix")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+                  <AlertTriangle className="h-4 w-4 me-1" />
+                  إصلاح حركات الحساب الأب
+                </Button>
               </div>
             </div>
 
