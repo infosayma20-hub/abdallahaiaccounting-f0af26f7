@@ -1512,6 +1512,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
 
       // Determine the counterpart account code
+      // Contact vouchers are intentionally posted to the selected party ledger
+      // (1130 customers / 2110 suppliers). Advances remain an allocation state,
+      // not a separate visible ledger, so Account Statement always shows one
+      // clean account for the contact.
       let counterAccountCode = isReceipt ? "1130" : "2110"; // default: receivables / payables
       if (isAccountPayment && selectedGlAccount) {
         counterAccountCode = selectedGlAccount.account_code;
@@ -1535,40 +1539,23 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         });
         allocationIntent = cls.intent;
 
-        // Make sure the advance accounts exist for this user (idempotent)
-        if (cls.intent === "advance" || cls.intent === "supplier_advance") {
-          await supabase.rpc("ensure_advance_accounts" as any, { p_user_id: ownerId });
-        }
-
         if (isReceipt) {
-          // Receipt + customer
-          if (cls.intent === "advance") {
-            // Customer prepayment → liability (دفعات مقدمة من العملاء)
-            counterAccountCode = "2115";
-          } else {
-            // settlement / partial → standard receivables
-            counterAccountCode = "1130";
-          }
+          // Receipt + customer: always use the customer receivable sub-ledger.
+          // If there are no invoices, the unallocated amount is tracked by the
+          // allocation layer, but the statement stays under the same contact.
+          counterAccountCode = "1130";
         } else {
-          // Payment voucher
-          if (cls.intent === "refund") {
-            // Refund / reverse-settlement to a customer → reduce receivable
-            counterAccountCode = "1130";
-          } else if (cls.intent === "reverse_settlement") {
-            // Payment to customer with open sale invoices (return / discount)
-            counterAccountCode = "1130";
-          } else if (cls.intent === "supplier_advance") {
-            // Advance to supplier → asset (دفعات مقدمة للموردين)
-            counterAccountCode = "1146";
-          } else {
-            // Standard supplier settlement
-            counterAccountCode = "2110";
-          }
+          // Payment voucher: customer refunds reduce receivables, otherwise use
+          // supplier payable sub-ledger. Supplier advances are not split into a
+          // separate visible account because that creates duplicate statements.
+          counterAccountCode = (cls.intent === "refund" || cls.intent === "reverse_settlement")
+            ? "1130"
+            : "2110";
         }
       }
 
       // ─── Auto-route to contact sub-account when parent has children ───
-      // If the user already opened sub-accounts under 1130 / 2110 / 2115 / 1146,
+      // If the user already opened sub-accounts under 1130 / 2110,
       // posting to the parent is forbidden. Resolve (or auto-create) the
       // contact's own sub-account so receipts/payments always land in a
       // postable account and the customer/supplier statement stays clean.
@@ -1885,11 +1872,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       let txId: string | null = null;
 
       // Force direct transaction (bypass legacy RPC) whenever the intent
-      // requires a non-default counter-account. The RPCs hardcode 1130/2110
-      // and would silently overwrite our smart routing.
+      // requires a non-default counter-account. Advances now stay on the same
+      // contact ledger, so they can safely use the canonical voucher path.
       const intentNeedsDirect =
-        allocationIntent === "advance" ||
-        allocationIntent === "supplier_advance" ||
         allocationIntent === "refund" ||
         allocationIntent === "reverse_settlement";
       const useDirectTransaction = isAccountPayment || currency !== "ILS" || intentNeedsDirect;

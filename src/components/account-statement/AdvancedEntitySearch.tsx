@@ -115,24 +115,28 @@ export default function AdvancedEntitySearch({
 
     const groups: { key: string; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; txCount: number; tab: EntitySubType }[] }[] = [];
 
-    // Accounts
-    const accs = allAccounts.filter(a => multiWordMatchAny(q, a.account_name, a.account_code));
-    if (accs.length > 0) {
-      groups.push({
-        key: "accounts", label: "الحسابات", emoji: "📊",
-        items: accs.slice(0, 10).map(a => ({
-          id: a.id, name: a.account_name, code: a.account_code,
-          balance: accountBalances[a.id] || 0, txCount: accountTxCounts[a.id] || 0, tab: "accounts",
-        })),
-      });
-    }
-
     // Hybrid type sets — include dual customer/supplier classifications
     const CUSTOMER_TYPES = new Set(["عميل", "عميل ومورد"]);
     const SUPPLIER_TYPES = new Set(["مورد", "عميل ومورد"]);
 
+    // Build a set of GL account codes that already have a linked contact.
+    // In Account Statement the business object is the contact, not the raw GL
+    // leaf. Showing both (e.g. "مسمار" account + "مسمار" customer with the
+    // same code) made users think there are two ledgers. Keep the account tab
+    // only for accounts that are not represented by a contact.
+    const linkedContactCodes = new Set(
+      allContacts
+        .map(c => (c.linked_account_code || "").trim())
+        .filter(Boolean)
+    );
+
+    const accountsWithoutContactTwin = allAccounts.filter(a => {
+      const code = (a.account_code || "").trim();
+      return !code || !linkedContactCodes.has(code);
+    });
+
     // Customers (includes hybrid "زبون ومورد")
-    const custs = allContacts.filter(c => CUSTOMER_TYPES.has(c.contact_type) && multiWordMatchAny(q, c.contact_name, c.phone));
+    const custs = allContacts.filter(c => CUSTOMER_TYPES.has(c.contact_type) && multiWordMatchAny(q, c.contact_name, c.phone, c.linked_account_code));
     if (custs.length > 0) {
       groups.push({
         key: "customers", label: "الزبائن", emoji: "👤",
@@ -144,7 +148,7 @@ export default function AdvancedEntitySearch({
     }
 
     // Suppliers (includes hybrid "زبون ومورد")
-    const sups = allContacts.filter(c => SUPPLIER_TYPES.has(c.contact_type) && multiWordMatchAny(q, c.contact_name, c.phone));
+    const sups = allContacts.filter(c => SUPPLIER_TYPES.has(c.contact_type) && multiWordMatchAny(q, c.contact_name, c.phone, c.linked_account_code));
     if (sups.length > 0) {
       groups.push({
         key: "suppliers", label: "الموردين", emoji: "🚚",
@@ -163,6 +167,19 @@ export default function AdvancedEntitySearch({
         items: emps.slice(0, 8).map(e => ({
           id: e.id, name: e.full_name, code: e.account_code || "",
           balance: employeeBalances[e.id] || 0, txCount: employeeTxCounts[e.id] || 0, tab: "employees",
+        })),
+      });
+    }
+
+    // Accounts are intentionally listed after contacts, and duplicates linked
+    // to contacts are removed to keep one visible ledger per party.
+    const accs = accountsWithoutContactTwin.filter(a => multiWordMatchAny(q, a.account_name, a.account_code));
+    if (accs.length > 0) {
+      groups.push({
+        key: "accounts", label: "الحسابات العامة", emoji: "📊",
+        items: accs.slice(0, 10).map(a => ({
+          id: a.id, name: a.account_name, code: a.account_code,
+          balance: accountBalances[a.id] || 0, txCount: accountTxCounts[a.id] || 0, tab: "accounts",
         })),
       });
     }
