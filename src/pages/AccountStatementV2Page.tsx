@@ -464,6 +464,16 @@ const AccountStatementV2Page = () => {
 
   useEffect(() => { fetchData(); }, [user, dataOwnerId]);
 
+  // Listen for Alt+K shortcut → reset to "no entity selected" (same as pressing تغيير)
+  useEffect(() => {
+    const handler = () => {
+      setSelectedEntityId("");
+      try { sessionStorage.removeItem("selectedEntityId"); } catch {}
+    };
+    window.addEventListener("app:account-statement-reset", handler);
+    return () => window.removeEventListener("app:account-statement-reset", handler);
+  }, []);
+
   // ─── Silent server-side refetch when the viewed entity changes ───
   // Reuses the same helper as Phase B above. Runs only AFTER the first full
   // load, so URL/session-restored entities are handled by fetchData itself.
