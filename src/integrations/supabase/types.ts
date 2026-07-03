@@ -24175,6 +24175,7 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      get_current_tenant_owner_id: { Args: never; Returns: string }
       get_day_type_for_date: {
         Args: { p_date: string; p_user_id: string }
         Returns: string
