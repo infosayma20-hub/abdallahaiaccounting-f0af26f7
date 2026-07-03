@@ -24925,13 +24925,13 @@ export type Database = {
       repair_contact_accounts_for_tenant: {
         Args: { p_dry_run?: boolean; p_user_id: string }
         Returns: {
-          action: string
-          affected_rows: number
-          after_value: string
-          amount: number
-          before_value: string
-          entity: string
-          notes: string
+          r_action: string
+          r_after: string
+          r_amount: number
+          r_before: string
+          r_entity: string
+          r_notes: string
+          r_rows: number
         }[]
       }
       request_rep_invoice_edit: {
