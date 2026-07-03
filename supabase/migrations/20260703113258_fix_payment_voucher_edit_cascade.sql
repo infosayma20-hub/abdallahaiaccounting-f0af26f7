@@ -145,6 +145,7 @@ DECLARE
   v_ref text := 'PV-2026-0009';
   v_voucher public.vouchers%ROWTYPE;
   v_tx public.transactions%ROWTYPE;
+  v_tx_found boolean := false;
   v_active_reversals int;
 BEGIN
   SELECT * INTO v_voucher
@@ -159,6 +160,7 @@ BEGIN
     FROM public.transactions
     WHERE id = v_voucher.linked_transaction_id
       AND user_id = v_owner;
+    v_tx_found := FOUND;
 
     SELECT COUNT(*) INTO v_active_reversals
     FROM public.transactions r
@@ -168,7 +170,7 @@ BEGIN
       AND r.reversed_by_id = v_voucher.linked_transaction_id;
 
     IF v_voucher.status = 'cancelled'
-       AND FOUND
+       AND v_tx_found
        AND COALESCE(v_tx.is_deleted, false) = false
        AND v_active_reversals = 0
        AND v_tx.debit_account_code = '5930'
