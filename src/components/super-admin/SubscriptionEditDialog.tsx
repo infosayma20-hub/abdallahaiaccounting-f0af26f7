@@ -469,7 +469,11 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
                         <button
                           type="button"
                           title="السماح دائماً"
-                          onClick={() => setOverrides(o => ({ ...o, [app.id]: o[app.id] === "allow" ? undefined as any : "allow" }))}
+                          onClick={() => setOverrides(o => {
+                            const n = { ...o };
+                            if (n[app.id] === "allow") delete n[app.id]; else n[app.id] = "allow";
+                            return n;
+                          })}
                           className={`h-6 w-6 rounded flex items-center justify-center border ${state === "allow" ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-200 text-gray-400 hover:text-emerald-600"}`}
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -477,7 +481,11 @@ export default function SubscriptionEditDialog({ sub, plans, open, onClose, onSa
                         <button
                           type="button"
                           title="حجب البطاقة"
-                          onClick={() => setOverrides(o => ({ ...o, [app.id]: o[app.id] === "deny" ? undefined as any : "deny" }))}
+                          onClick={() => setOverrides(o => {
+                            const n = { ...o };
+                            if (n[app.id] === "deny") delete n[app.id]; else n[app.id] = "deny";
+                            return n;
+                          })}
                           className={`h-6 w-6 rounded flex items-center justify-center border ${state === "deny" ? "bg-red-500 border-red-500 text-white" : "border-gray-200 text-gray-400 hover:text-red-600"}`}
                         >
                           <XIcon className="w-3.5 h-3.5" />
