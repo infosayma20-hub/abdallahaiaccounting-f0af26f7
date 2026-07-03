@@ -2228,10 +2228,9 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("contacts")
-      .select("id, contact_name")
+      .select("id, contact_name, contact_type, phone")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
-      .eq("contact_type", "عميل")
       .order("contact_name");
     setContacts(data || []);
   };
