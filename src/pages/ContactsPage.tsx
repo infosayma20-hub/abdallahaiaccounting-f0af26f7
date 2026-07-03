@@ -26,6 +26,7 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { fetchManyContactBalances } from "@/lib/contact-balance";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { FinanceShell, ActionPane, ColumnVisibilityMenu, useColumnVisibility } from "@/components/finance/shell";
 import type { ActionTab, ColumnDef } from "@/components/finance/shell";
 import EmptyState from "@/components/EmptyState";
