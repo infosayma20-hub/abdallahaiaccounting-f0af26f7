@@ -1082,6 +1082,20 @@ const ContactsPage = () => {
               )}
             </table>
           </div>
+          {filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t bg-muted/20 text-sm" dir="rtl">
+              <div className="text-xs text-muted-foreground">
+                عرض {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} من {filtered.length}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setCurrentPage(1)}>الأولى</Button>
+                <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>السابق</Button>
+                <span className="px-3 text-xs font-semibold tabular-nums">صفحة {safePage} من {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>التالي</Button>
+                <Button variant="outline" size="sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(totalPages)}>الأخيرة</Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       </FinanceShell>
