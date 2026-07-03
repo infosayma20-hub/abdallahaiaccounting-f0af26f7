@@ -23478,39 +23478,24 @@ export type Database = {
         }
         Returns: Json
       }
-      create_cash_transfer_atomic:
-        | {
-            Args: {
-              p_amount: number
-              p_currency?: string
-              p_description?: string
-              p_from_account_code: string
-              p_idempotency_key?: string
-              p_source?: string
-              p_to_account_code: string
-              p_transfer_date?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_currency?: string
-              p_description?: string
-              p_exchange_rate?: number
-              p_foreign_amount?: number
-              p_from_account_code: string
-              p_from_box_id?: string
-              p_idempotency_key?: string
-              p_source?: string
-              p_to_account_code: string
-              p_to_box_id?: string
-              p_transfer_date?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
+      create_cash_transfer_atomic: {
+        Args: {
+          p_amount: number
+          p_currency?: string
+          p_description?: string
+          p_exchange_rate?: number
+          p_foreign_amount?: number
+          p_from_account_code: string
+          p_from_box_id?: string
+          p_idempotency_key?: string
+          p_source?: string
+          p_to_account_code: string
+          p_to_box_id?: string
+          p_transfer_date?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_cheque_bounce_atomic: {
         Args: {
           p_bank_fees?: number
