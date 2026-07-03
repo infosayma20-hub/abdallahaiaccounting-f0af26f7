@@ -23953,6 +23953,13 @@ export type Database = {
         Returns: string
       }
       ensure_default_warehouse: { Args: { p_user_id: string }; Returns: string }
+      ensure_employee_sub_account: {
+        Args: { p_data_owner: string; p_employee_id: string }
+        Returns: {
+          account_code: string
+          account_name: string
+        }[]
+      }
       ensure_party_transfer_clearing_account: {
         Args: { p_user_id: string }
         Returns: undefined

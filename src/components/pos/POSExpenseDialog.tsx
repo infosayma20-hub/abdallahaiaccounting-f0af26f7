@@ -302,14 +302,31 @@ export default function POSExpenseDialog({
           setSaving(false);
           return;
         }
-        if (!selectedEmployee?.account_code) {
-          toast.error(
-            `لا يوجد حساب فرعي مرتبط بالموظف "${selectedEmployee?.full_name}". أنشئ حسابه من شجرة الحسابات أولاً.`
+        let empAccountCode = selectedEmployee?.account_code || null;
+        if (!empAccountCode) {
+          // Auto-provision the employee's receivable sub-account under 2180
+          const { data: ens, error: ensErr } = await (supabase as any).rpc(
+            "ensure_employee_sub_account",
+            { p_data_owner: dataOwnerId, p_employee_id: employeeId }
           );
-          setSaving(false);
-          return;
+          if (ensErr || !ens || !ens[0]?.account_code) {
+            toast.error(
+              ensErr?.message ||
+                `تعذّر إنشاء حساب فرعي للموظف "${selectedEmployee?.full_name}"`
+            );
+            setSaving(false);
+            return;
+          }
+          empAccountCode = ens[0].account_code as string;
+          // Reflect in local state so subsequent saves skip the RPC
+          setEmployees((prev) =>
+            prev.map((e) =>
+              e.id === employeeId ? { ...e, account_code: empAccountCode } : e
+            )
+          );
+          toast.success(`✅ تم إنشاء الحساب الفرعي ${empAccountCode} تلقائياً`);
         }
-        txDebitAccount = selectedEmployee.account_code;
+        txDebitAccount = empAccountCode;
         expenseKind = empKind;
         const kindLabel = empKind === "employee_loan" ? "قرض حسن" : "سلفة راتب";
         txDescription = `${kindLabel} — ${selectedEmployee.full_name}${
