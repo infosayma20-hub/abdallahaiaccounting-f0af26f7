@@ -575,6 +575,14 @@ const ContactsPage = () => {
   const totalBalance = filtered.reduce((s, c) => s + (c.current_balance || 0), 0);
   const totalOverdueFiltered = filtered.reduce((s, c) => s + (c.overdue_amount || 0), 0);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filtered, safePage]
+  );
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterType, filterClass, dateFrom, dateTo, showArchived]);
+
   const getInitials = (name: string) => {
     const parts = name.trim().split(" ");
     if (parts.length >= 2) return parts[0][0] + parts[1][0];
