@@ -274,6 +274,7 @@ export type Database = {
           account_code: string
           account_name: string
           account_type: string
+          contact_id: string | null
           created_at: string
           currency: string
           description_ar: string | null
@@ -295,6 +296,7 @@ export type Database = {
           account_code: string
           account_name: string
           account_type?: string
+          contact_id?: string | null
           created_at?: string
           currency?: string
           description_ar?: string | null
@@ -316,6 +318,7 @@ export type Database = {
           account_code?: string
           account_name?: string
           account_type?: string
+          contact_id?: string | null
           created_at?: string
           currency?: string
           description_ar?: string | null
@@ -333,7 +336,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accounts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       active_owner_context: {
         Row: {
@@ -23302,6 +23313,22 @@ export type Database = {
         Args: { p_contact_id: string; p_reason?: string }
         Returns: Json
       }
+      audit_contact_account_integrity: {
+        Args: { p_user_id?: string }
+        Returns: {
+          account_code: string
+          contact_name: string
+          contact_type: string
+          details: Json
+          entity_key: string
+          issue_type: string
+          linked_account_code: string
+          parent_code: string
+          total_amount: number
+          transaction_count: number
+          user_id: string
+        }[]
+      }
       auto_close_open_attendance_sessions: {
         Args: {
           p_close_time?: string
@@ -24926,15 +24953,26 @@ export type Database = {
         Args: { _auth_uid?: string }
         Returns: string
       }
-      resolve_postable_account: {
-        Args: {
-          p_contact_id?: string
-          p_contact_name?: string
-          p_parent_code: string
-          p_user_id: string
-        }
-        Returns: string
-      }
+      resolve_postable_account:
+        | {
+            Args: {
+              p_contact_id?: string
+              p_contact_name?: string
+              p_parent_code: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_contact_id?: string
+              p_contact_name?: string
+              p_contact_type?: string
+              p_parent_code: string
+              p_user_id: string
+            }
+            Returns: string
+          }
       resync_pos_order_gl_backfill: {
         Args: { p_dry_run?: boolean; p_order_id: string }
         Returns: Json
