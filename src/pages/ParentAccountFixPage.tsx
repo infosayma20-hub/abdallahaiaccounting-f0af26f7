@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, RefreshCw, Search, ArrowRightLeft } from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCw, Search, ArrowRightLeft, Building2 } from "lucide-react";
 
 interface Row {
   id: string;
@@ -36,6 +36,13 @@ interface LeafAccount {
   account_type: string;
 }
 
+interface TenantOption {
+  owner_id: string;
+  company_name: string;
+  stuck_count: number;
+  missing_contact: number;
+}
+
 const TYPE_LABELS: Record<string, string> = {
   receipt: "سند قبض",
   payment: "سند صرف",
@@ -54,7 +61,7 @@ function formatAmount(n: number, currency?: string | null) {
   return `${v} ${currency || ""}`.trim();
 }
 
-function LeafAccountPicker({ onSelect, disabled }: { onSelect: (acc: LeafAccount) => void; disabled?: boolean }) {
+function LeafAccountPicker({ onSelect, disabled, ownerId }: { onSelect: (acc: LeafAccount) => void; disabled?: boolean; ownerId?: string | null }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<LeafAccount[]>([]);
@@ -69,6 +76,7 @@ function LeafAccountPicker({ onSelect, disabled }: { onSelect: (acc: LeafAccount
         p_query: query || null,
         p_parent_code: null,
         p_limit: 80,
+        p_owner_id: ownerId ?? null,
       });
       if (!active) return;
       if (error) toast.error("تعذّر تحميل الحسابات: " + error.message);
@@ -79,7 +87,7 @@ function LeafAccountPicker({ onSelect, disabled }: { onSelect: (acc: LeafAccount
       active = false;
       clearTimeout(t);
     };
-  }, [query, open]);
+  }, [query, open, ownerId]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -129,11 +137,32 @@ export default function ParentAccountFixPage() {
   const [tab, setTab] = useState<"missing" | "has">("missing");
   const [filter, setFilter] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [tenants, setTenants] = useState<TenantOption[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
+      if (!uid) return;
+      const { data: sa } = await supabase.rpc("is_super_admin", { _user_id: uid });
+      if (!sa) return;
+      setIsSuperAdmin(true);
+      const { data: list, error } = await supabase.rpc("list_tenants_with_parent_stuck");
+      if (error) {
+        toast.error("تعذّر تحميل قائمة الشركات: " + error.message);
+        return;
+      }
+      setTenants((list as TenantOption[]) || []);
+    })();
+  }, []);
 
   async function load() {
     setLoading(true);
     const { data, error } = await supabase.rpc("list_parent_account_transactions", {
       p_only_missing_contact: null,
+      p_owner_id: selectedOwner ?? null,
     });
     if (error) toast.error("فشل التحميل: " + error.message);
     setRows((data as Row[]) || []);
@@ -142,7 +171,7 @@ export default function ParentAccountFixPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [selectedOwner]);
 
   const filtered = useMemo(() => {
     const base = rows.filter((r) => (tab === "missing" ? !r.contact_id : !!r.contact_id));
@@ -169,6 +198,7 @@ export default function ParentAccountFixPage() {
       p_transaction_id: row.id,
       p_new_account_code: acc.account_code,
       p_new_contact_id: null,
+      p_owner_id: selectedOwner ?? null,
     });
     setSavingId(null);
     if (error) {
@@ -177,6 +207,12 @@ export default function ParentAccountFixPage() {
     }
     toast.success(`تم التصحيح إلى ${acc.account_name}`);
     setRows((prev) => prev.filter((r) => r.id !== row.id));
+    // Refresh tenant counts silently
+    if (isSuperAdmin) {
+      supabase.rpc("list_tenants_with_parent_stuck").then(({ data }) => {
+        if (data) setTenants(data as TenantOption[]);
+      });
+    }
   }
 
   return (
@@ -201,6 +237,40 @@ export default function ParentAccountFixPage() {
         </CardHeader>
 
         <CardContent className="p-4">
+          {isSuperAdmin && (
+            <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50/60 p-3">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-900">
+                <Building2 className="h-4 w-4" />
+                وضع السوبر أدمن — اختر الشركة المستهدفة
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={selectedOwner === null ? "default" : "outline"}
+                  className="border-2"
+                  onClick={() => setSelectedOwner(null)}
+                >
+                  شركتي الحالية
+                </Button>
+                {tenants.map((t) => (
+                  <Button
+                    key={t.owner_id}
+                    size="sm"
+                    variant={selectedOwner === t.owner_id ? "default" : "outline"}
+                    className="gap-2 border-2"
+                    onClick={() => setSelectedOwner(t.owner_id)}
+                  >
+                    {t.company_name}
+                    <Badge variant="secondary" className="tabular-nums">{t.stuck_count}</Badge>
+                  </Button>
+                ))}
+                {tenants.length === 0 && (
+                  <span className="text-xs text-muted-foreground">لا توجد شركات فيها حركات عالقة 🎉</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <Tabs value={tab} onValueChange={(v) => setTab(v as "missing" | "has")}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <TabsList className="border-2">
@@ -304,6 +374,7 @@ export default function ParentAccountFixPage() {
                               <LeafAccountPicker
                                 disabled={savingId === r.id}
                                 onSelect={(acc) => handleReroute(r, acc)}
+                                ownerId={selectedOwner}
                               />
                             </div>
                           </TableCell>
