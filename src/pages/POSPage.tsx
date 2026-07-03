@@ -8384,6 +8384,12 @@ const POSPage = () => {
                             >
                               <User className="h-4 w-4 shrink-0" style={{ color: '#9ca3af' }} />
                               <span className="flex-1 truncate">{contact.contact_name}</span>
+                              {(contact as any).contact_type && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0" style={{
+                                  background: (contact as any).contact_type === 'مورد' ? '#fef3c7' : (contact as any).contact_type === 'عميل' ? '#dbeafe' : '#f3f4f6',
+                                  color: (contact as any).contact_type === 'مورد' ? '#92400e' : (contact as any).contact_type === 'عميل' ? '#1e40af' : '#374151',
+                                }}>{(contact as any).contact_type}</span>
+                              )}
                               {customerName === contact.contact_name && <CheckCircle className="h-4 w-4 shrink-0" style={{ color: '#16a34a' }} />}
                             </button>
                           ))}
