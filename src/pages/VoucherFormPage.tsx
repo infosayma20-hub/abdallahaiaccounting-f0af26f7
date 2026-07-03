@@ -952,6 +952,31 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             } else if (data.contact_id) {
               const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
               if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
+            } else if ((data as any).linked_transaction_id) {
+              // Account-based payment vouchers do not have contact_id/employee_id.
+              // Restore the selected GL account from the linked journal entry so
+              // editing a plain expense/payment note never asks for a "جهة" again.
+              const { data: tx } = await supabase
+                .from("transactions")
+                .select("debit_account_code")
+                .eq("id", (data as any).linked_transaction_id)
+                .maybeSingle();
+              const debitCode = (tx as any)?.debit_account_code;
+              if (debitCode) {
+                const { data: acct } = await supabase
+                  .from("accounts")
+                  .select("id, account_code, account_name, account_type")
+                  .eq("user_id", ownerId)
+                  .eq("account_code", debitCode)
+                  .maybeSingle();
+                if (acct) {
+                  setPartyType("account");
+                  setSelectedContact(null);
+                  setSelectedEmployee(null);
+                  setSelectedGlAccount(acct as GLAccount);
+                  setGlAccountSearch("");
+                }
+              }
             }
             if ((data as any).workshop_id) {
               const { data: ws } = await supabase.from("workshops").select("id, name, customer_name").eq("id", (data as any).workshop_id).single();
@@ -1313,6 +1338,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error("جاري تحميل بيانات الحساب، حاول بعد ثانية");
       return;
     }
+    if (isEditMode && isCancelled) {
+      toast.error("لا يمكن تعديل سند ملغي — أنشئ سنداً جديداً مشابهاً بدل تعديل سند ملغى");
+      return;
+    }
     if (amountNum <= 0) {
       toast.error("الرجاء إدخال المبلغ");
       try { amountInputRef.current?.focus(); } catch {}
@@ -1613,23 +1642,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .eq("user_id", ownerId);
           if (error) throw error;
 
-          // Update linked transaction (Golden Rule: delete old + insert fresh)
+          // Update linked transaction (Golden Rule: insert fresh + relink + delete old).
+          // Do not soft-delete the currently linked transaction before relinking
+          // the voucher: a DB trigger interprets that as intentional cancellation.
           const linkedTxId = (existingReceipt as any)?.linked_transaction_id;
           // Also recover legacy receipts that were saved as "posted" but never
           // got a transaction created (linked_transaction_id IS NULL). Without
           // this, editing such vouchers would skip posting entirely and the
           // Account Statement would never see them.
           if (linkedTxId || !asDraft) {
-            if (linkedTxId) {
-              // Soft-delete old transaction
-              await supabase.from("transactions").update({
-                is_deleted: true,
-                idempotency_key: null,
-              } as any).eq("id", linkedTxId);
-            }
-
             // Insert fresh transaction
-            const { data: newTx } = await supabase.from("transactions").insert({
+            const { data: newTx, error: newTxError } = await supabase.from("transactions").insert({
               user_id: ownerId,
               transaction_date: paymentDate,
               description: notes || `سند قبض من ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`,
@@ -1648,12 +1671,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               cost_center_id: costCenterId,
               reference: finalRefNumber || null,
             } as any).select("id").single();
+            if (newTxError) throw newTxError;
+            if (!newTx?.id) throw new Error("فشل تحديث سند القبض: لم يتم إنشاء القيد الجديد");
 
-            // Update receipt voucher with new linked_transaction_id
-            if (newTx?.id) {
-              await supabase.from("receipt_vouchers").update({
-                linked_transaction_id: newTx.id,
-              } as any).eq("id", editId);
+            // Relink first, then soft-delete the old transaction safely.
+            const { error: relinkError } = await supabase.from("receipt_vouchers").update({
+              linked_transaction_id: newTx.id,
+              status: asDraft ? "draft" : "posted",
+            } as any).eq("id", editId).eq("user_id", ownerId);
+            if (relinkError) throw relinkError;
+
+            if (linkedTxId && linkedTxId !== newTx.id) {
+              const { error: oldTxError } = await supabase.from("transactions").update({
+                is_deleted: true,
+                idempotency_key: null,
+              } as any).eq("id", linkedTxId).eq("user_id", ownerId);
+              if (oldTxError) throw oldTxError;
             }
           }
 
@@ -1762,24 +1795,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .eq("user_id", ownerId);
           if (error) throw error;
 
-          // Update linked transaction (Golden Rule: delete old + insert fresh).
+          // Update linked transaction (Golden Rule: insert fresh + relink + delete old).
+          // Do not soft-delete the currently linked transaction before relinking
+          // the voucher: a DB trigger interprets that as intentional cancellation.
           // Also self-heal legacy payment vouchers that were posted but never
           // got a transaction created (linked_transaction_id IS NULL). Without
           // this, editing such vouchers would skip posting entirely and the
           // Supplier Statement would never see them.
           const linkedTxId = (existingVoucher as any)?.linked_transaction_id;
           if (linkedTxId || !asDraft) {
-            if (linkedTxId) {
-              // Soft-delete old transaction
-              await supabase.from("transactions").update({
-                is_deleted: true,
-                idempotency_key: null,
-              } as any).eq("id", linkedTxId);
-            }
-
             // Insert fresh transaction
             const payMethodMapAr: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
-            const { data: newTx } = await supabase.from("transactions").insert({
+            const { data: newTx, error: newTxError } = await supabase.from("transactions").insert({
               user_id: ownerId,
               transaction_date: paymentDate,
               description: editTxDescription,
@@ -1799,12 +1826,24 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               cost_center_id: costCenterId,
               reference: finalRefNumber || null,
             } as any).select("id").single();
+            if (newTxError) throw newTxError;
+            if (!newTx?.id) throw new Error("فشل تحديث سند الصرف: لم يتم إنشاء القيد الجديد");
 
-            // Update voucher with new linked_transaction_id
-            if (newTx?.id) {
-              await supabase.from("vouchers").update({
-                linked_transaction_id: newTx.id,
-              } as any).eq("id", editId);
+            // Relink first, then soft-delete the old transaction safely.
+            const { error: relinkError } = await supabase.from("vouchers").update({
+              linked_transaction_id: newTx.id,
+              status: asDraft ? "draft" : "posted",
+              posted_by: !asDraft ? user.id : null,
+              posted_at: !asDraft ? new Date().toISOString() : null,
+            } as any).eq("id", editId).eq("user_id", ownerId);
+            if (relinkError) throw relinkError;
+
+            if (linkedTxId && linkedTxId !== newTx.id) {
+              const { error: oldTxError } = await supabase.from("transactions").update({
+                is_deleted: true,
+                idempotency_key: null,
+              } as any).eq("id", linkedTxId).eq("user_id", ownerId);
+              if (oldTxError) throw oldTxError;
             }
           }
 
