@@ -455,7 +455,7 @@ const POSPage = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [loading, setLoading] = useState(true);
-  const [contacts, setContacts] = useState<{ id: string; contact_name: string }[]>([]);
+  const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type?: string; phone?: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [showSalesSummary, setShowSalesSummary] = useState(true);
@@ -2228,10 +2228,9 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("contacts")
-      .select("id, contact_name")
+      .select("id, contact_name, contact_type, phone")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
-      .eq("contact_type", "عميل")
       .order("contact_name");
     setContacts(data || []);
   };
@@ -8385,6 +8384,12 @@ const POSPage = () => {
                             >
                               <User className="h-4 w-4 shrink-0" style={{ color: '#9ca3af' }} />
                               <span className="flex-1 truncate">{contact.contact_name}</span>
+                              {(contact as any).contact_type && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0" style={{
+                                  background: (contact as any).contact_type === 'مورد' ? '#fef3c7' : (contact as any).contact_type === 'عميل' ? '#dbeafe' : '#f3f4f6',
+                                  color: (contact as any).contact_type === 'مورد' ? '#92400e' : (contact as any).contact_type === 'عميل' ? '#1e40af' : '#374151',
+                                }}>{(contact as any).contact_type}</span>
+                              )}
                               {customerName === contact.contact_name && <CheckCircle className="h-4 w-4 shrink-0" style={{ color: '#16a34a' }} />}
                             </button>
                           ))}
