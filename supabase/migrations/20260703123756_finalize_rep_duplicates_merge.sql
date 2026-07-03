@@ -18,7 +18,7 @@ BEGIN
   LOOP
     -- Log all transactions being redirected (debit side)
     INSERT INTO finance_integrity_fix_log(fix_batch, entity_type, entity_id, old_value, new_value, reason, fixed_at)
-    SELECT v_batch, 'transaction.debit_account_code', t.id::text,
+    SELECT v_batch, 'transaction.debit_account_code', t.id,
            jsonb_build_object('debit_account_code', r.old_code, 'amount', t.amount),
            jsonb_build_object('debit_account_code', r.new_code),
            'Merge duplicate rep account (1130-REP → 21100xx)', now()
@@ -32,7 +32,7 @@ BEGIN
 
     -- Log all transactions being redirected (credit side)
     INSERT INTO finance_integrity_fix_log(fix_batch, entity_type, entity_id, old_value, new_value, reason, fixed_at)
-    SELECT v_batch, 'transaction.credit_account_code', t.id::text,
+    SELECT v_batch, 'transaction.credit_account_code', t.id,
            jsonb_build_object('credit_account_code', r.old_code, 'amount', t.amount),
            jsonb_build_object('credit_account_code', r.new_code),
            'Merge duplicate rep account (1130-REP → 21100xx)', now()
@@ -51,7 +51,7 @@ BEGIN
      WHERE user_id = v_uid AND account_code = r.old_code;
 
     INSERT INTO finance_integrity_fix_log(fix_batch, entity_type, entity_id, old_value, new_value, reason, fixed_at)
-    VALUES (v_batch, 'account.deactivate', r.old_code,
+    VALUES (v_batch, 'account.deactivate', NULL,
             jsonb_build_object('account_code', r.old_code, 'is_active', true),
             jsonb_build_object('account_code', r.old_code, 'is_active', false, 'merged_into', r.new_code),
             'Duplicate rep account deactivated after merge', now());
