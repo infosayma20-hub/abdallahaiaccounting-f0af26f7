@@ -549,6 +549,8 @@ const ReturnCreatePage = ({ returnType }: Props) => {
   const isCancelled = form.status === "cancelled";
   const readonly = isView || isCancelled;
 
+  useSavePostShortcut(() => handleSave(false), !saving && !readonly);
+
   return (
     <FinanceShell
       title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
