@@ -24922,6 +24922,18 @@ export type Database = {
         Args: { p_invoice_id: string; p_reason?: string }
         Returns: Json
       }
+      repair_contact_accounts_for_tenant: {
+        Args: { p_dry_run?: boolean; p_user_id: string }
+        Returns: {
+          r_action: string
+          r_after: string
+          r_amount: number
+          r_before: string
+          r_entity: string
+          r_notes: string
+          r_rows: number
+        }[]
+      }
       request_rep_invoice_edit: {
         Args: { p_invoice_id: string; p_proposed_items: Json; p_reason: string }
         Returns: Json
