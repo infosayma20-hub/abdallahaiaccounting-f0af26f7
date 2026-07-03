@@ -125,7 +125,19 @@ export default function POSDeliveryPanel({
       const { data, error } = await supabase.functions.invoke("send-to-wheels", {
         body: { order_id: orderId },
       });
-      if (error) throw error;
+      if (error) {
+        // Unwrap the real error body from FunctionsHttpError.context.
+        let realMsg = error.message || "فشل الإرسال إلى Wheels";
+        try {
+          const ctx: any = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.clone().json().catch(() => null);
+            if (body?.error) realMsg = String(body.error);
+            else if (body?.message) realMsg = String(body.message);
+          }
+        } catch { /* ignore */ }
+        throw new Error(realMsg);
+      }
       if (data?.success) {
         setWheelsStatus("sent");
         setWheelsPrice(data.wheels_delivery_price ?? null);

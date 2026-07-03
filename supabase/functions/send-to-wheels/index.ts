@@ -31,6 +31,11 @@ async function jsonOf(resp: Response) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Order id captured early so the outer catch can persist the real failure
+  // reason onto pos_orders (instead of leaving it as a stale "sending" or
+  // letting the client overwrite it with a generic "non-2xx" message).
+  let capturedOrderId: string | null = null;
+  let capturedAdmin: any = null;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -51,6 +56,7 @@ Deno.serve(async (req) => {
       serviceRoleKey,
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
+    capturedAdmin = admin;
 
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -73,6 +79,7 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    capturedOrderId = order_id;
 
     // 1) Fetch order. Browser calls use user RLS; DB-trigger calls use service
     // role because there is no interactive user token in the database worker.
@@ -487,6 +494,10 @@ Deno.serve(async (req) => {
     });
     const addJson: any = await jsonOf(addResp);
     const ok = addResp.ok && (addJson?.success === true || addJson?.success === undefined && addResp.status < 300 && !addJson?.error);
+    console.log("[send-to-wheels] add response", {
+      order_id, branch: cfg.wheels_branch_id, area: zone.wheels_area_id,
+      http: addResp.status, ok, body: addJson,
+    });
 
     if (ok) {
       await admin.from("pos_orders").update({
@@ -518,8 +529,19 @@ Deno.serve(async (req) => {
       success: false, status: "failed", error: errMsg, wheels_response: addJson,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    console.error("send-to-wheels error:", err);
-    return new Response(JSON.stringify({ error: "خطأ داخلي في الخادم" }), {
+    const errMsg = (err as any)?.message || String(err);
+    console.error("send-to-wheels FATAL:", errMsg, err);
+    // Persist the real reason on the order so the cashier and reports see it,
+    // and reset a stuck "sending" claim so retries are allowed.
+    if (capturedOrderId && capturedAdmin) {
+      try {
+        await capturedAdmin.from("pos_orders").update({
+          wheels_request_status: "failed",
+          wheels_last_error: `INTERNAL: ${errMsg}`.slice(0, 500),
+        }).eq("id", capturedOrderId);
+      } catch (_) { /* swallow */ }
+    }
+    return new Response(JSON.stringify({ error: `خطأ داخلي: ${errMsg}` }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
