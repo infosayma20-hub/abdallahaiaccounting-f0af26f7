@@ -185,6 +185,8 @@ const ContactsPage = () => {
   const [archiving, setArchiving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 100;
   const [alerts, setAlerts] = useState<ContactAlert[]>([]);
   const [showAlerts, setShowAlerts] = useState(false);
   const [overdueContact, setOverdueContact] = useState<Contact | null>(null);
@@ -573,6 +575,14 @@ const ContactsPage = () => {
   const totalBalance = filtered.reduce((s, c) => s + (c.current_balance || 0), 0);
   const totalOverdueFiltered = filtered.reduce((s, c) => s + (c.overdue_amount || 0), 0);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filtered, safePage]
+  );
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterType, filterClass, dateFrom, dateTo, showArchived]);
+
   const getInitials = (name: string) => {
     const parts = name.trim().split(" ");
     if (parts.length >= 2) return parts[0][0] + parts[1][0];
@@ -911,7 +921,7 @@ const ContactsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(contact => {
+                {paged.map(contact => {
                   const isOverLimit = contact.credit_limit && contact.current_balance && contact.current_balance > contact.credit_limit;
                   const hasOverdue = (contact.overdue_amount || 0) > 0;
 
@@ -1072,6 +1082,20 @@ const ContactsPage = () => {
               )}
             </table>
           </div>
+          {filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t bg-muted/20 text-sm" dir="rtl">
+              <div className="text-xs text-muted-foreground">
+                عرض {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} من {filtered.length}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setCurrentPage(1)}>الأولى</Button>
+                <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>السابق</Button>
+                <span className="px-3 text-xs font-semibold tabular-nums">صفحة {safePage} من {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>التالي</Button>
+                <Button variant="outline" size="sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(totalPages)}>الأخيرة</Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       </FinanceShell>
