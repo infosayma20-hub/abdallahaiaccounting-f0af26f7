@@ -141,14 +141,22 @@ export function usePOSReportsData(branchId: string | null = null) {
       setLoading(true);
       const from = dateFrom.toISOString();
       const to = dateTo.toISOString();
+      // POS uses a business-day cutoff (e.g. 6 AM). Filtering purely on
+      // created_at drops late-night orders that belong to the previous
+      // business day, so we prefer business_date when it is populated and
+      // fall back to created_at only for legacy rows without a business_date.
+      const fromDay = format(dateFrom, "yyyy-MM-dd");
+      const toDay = format(dateTo, "yyyy-MM-dd");
+      const businessDayOr =
+        `and(business_date.gte.${fromDay},business_date.lte.${toDay}),` +
+        `and(business_date.is.null,created_at.gte.${from},created_at.lte.${to})`;
 
       const [ordersRes, linesRes, paymentsRes, sessionsRes, productsRes] = await Promise.all([
         supabase
           .from("pos_orders")
-          .select("id, created_at, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id")
+          .select("id, created_at, business_date, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id")
           .eq("user_id", dataOwnerId)
-          .gte("created_at", from)
-          .lte("created_at", to)
+          .or(businessDayOr)
           .order("created_at", { ascending: false }),
         supabase
           .from("pos_order_lines")
