@@ -5212,7 +5212,23 @@ const POSPage = () => {
           );
 
           if (wheelsErr) {
-            throw new Error(wheelsErr.message || "تعذر الاتصال بتكامل Wheels");
+            // supabase-js FunctionsHttpError swallows the real message into
+            // "Edge Function returned a non-2xx status code". The actual
+            // response body (with the Arabic reason) is on error.context.
+            let realMsg = wheelsErr.message || "تعذر الاتصال بتكامل Wheels";
+            try {
+              const ctx: any = (wheelsErr as any)?.context;
+              if (ctx && typeof ctx.json === "function") {
+                const body = await ctx.clone().json().catch(() => null);
+                if (body?.error) realMsg = String(body.error);
+                else if (body?.message) realMsg = String(body.message);
+              } else if (ctx && typeof ctx.text === "function") {
+                const t = await ctx.clone().text().catch(() => "");
+                if (t) realMsg = t.slice(0, 300);
+              }
+            } catch { /* ignore */ }
+            console.warn("[Wheels auto-send] function returned error:", realMsg, wheelsErr);
+            throw new Error(realMsg);
           }
 
           if ((wheelsRes as any)?.success) {
