@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { startOfDay, endOfDay, subDays, startOfWeek, startOfMonth, format, getDay, getHours } from "date-fns";
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 
 export type DatePreset = "today" | "yesterday" | "week" | "month" | "custom";
 
@@ -156,38 +157,58 @@ export function usePOSReportsData(branchId: string | null = null) {
         `and(business_date.gte.${fromDay},business_date.lte.${toDay}),` +
         `and(business_date.is.null,created_at.gte.${from},created_at.lte.${to})`;
 
-      const [ordersRes, linesRes, paymentsRes, sessionsRes, productsRes] = await Promise.all([
-        supabase
-          .from("pos_orders")
-          .select("id, created_at, business_date, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id")
-          .eq("user_id", dataOwnerId)
-          .or(businessDayOr)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("pos_order_lines")
-          .select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, tax_amount")
-          .eq("user_id", dataOwnerId)
-          .gte("created_at", from)
-          .lte("created_at", toBuffered),
-        supabase
-          .from("pos_payments")
-          .select("id, order_id, payment_method, amount, created_at")
-          .eq("user_id", dataOwnerId)
-          .gte("created_at", from)
-          .lte("created_at", toBuffered),
-        supabase
-          .from("pos_sessions")
-          .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state")
-          .eq("user_id", dataOwnerId)
-          .eq("is_deleted", false)
-          .gte("opened_at", from)
-          .lte("opened_at", to)
-          .order("opened_at", { ascending: false }),
+      // NOTE: PostgREST caps single requests at 1000 rows. High-volume tenants
+      // (e.g. Malaki with 1500+ orders/day) MUST paginate — otherwise KPIs
+      // silently under-report. Use fetchAllRows for every list that can exceed
+      // 1000 rows on a busy day.
+      const [ordersData, linesData, paymentsData, sessionsData, productsRes] = await Promise.all([
+        fetchAllRows<any>((f, t) =>
+          supabase
+            .from("pos_orders")
+            .select("id, created_at, business_date, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number, delivery_fee, total_includes_delivery_fee, transaction_id")
+            .eq("user_id", dataOwnerId)
+            .or(businessDayOr)
+            .order("created_at", { ascending: false })
+            .range(f, t),
+        ),
+        fetchAllRows<any>((f, t) =>
+          supabase
+            .from("pos_order_lines")
+            .select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, tax_amount")
+            .eq("user_id", dataOwnerId)
+            .gte("created_at", from)
+            .lte("created_at", toBuffered)
+            .range(f, t),
+        ),
+        fetchAllRows<any>((f, t) =>
+          supabase
+            .from("pos_payments")
+            .select("id, order_id, payment_method, amount, created_at")
+            .eq("user_id", dataOwnerId)
+            .gte("created_at", from)
+            .lte("created_at", toBuffered)
+            .range(f, t),
+        ),
+        fetchAllRows<any>((f, t) =>
+          supabase
+            .from("pos_sessions")
+            .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state")
+            .eq("user_id", dataOwnerId)
+            .eq("is_deleted", false)
+            .gte("opened_at", from)
+            .lte("opened_at", to)
+            .order("opened_at", { ascending: false })
+            .range(f, t),
+        ),
         supabase
           .from("products")
           .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id")
           .eq("user_id", dataOwnerId),
       ]);
+      const ordersRes = { data: ordersData } as any;
+      const linesRes = { data: linesData } as any;
+      const paymentsRes = { data: paymentsData } as any;
+      const sessionsRes = { data: sessionsData } as any;
 
       // Resolve terminal -> branch mapping so sessions/orders can be filtered by branch.
       const rawSessions = (sessionsRes.data || []) as POSSession[];
@@ -236,12 +257,17 @@ export function usePOSReportsData(branchId: string | null = null) {
       const txIds = rawOrders.map(o => o.transaction_id).filter(Boolean) as string[];
       let voidedTxIds = new Set<string>();
       if (txIds.length > 0) {
-        const { data: voided } = await supabase
-          .from("transactions")
-          .select("id")
-          .in("id", txIds)
-          .eq("is_deleted", true);
-        voidedTxIds = new Set((voided || []).map((t: any) => t.id));
+        // Chunk .in() to stay under PostgREST URL/row limits on large tenants.
+        const CHUNK = 500;
+        for (let i = 0; i < txIds.length; i += CHUNK) {
+          const slice = txIds.slice(i, i + CHUNK);
+          const { data: voided } = await supabase
+            .from("transactions")
+            .select("id")
+            .in("id", slice)
+            .eq("is_deleted", true);
+          (voided || []).forEach((t: any) => voidedTxIds.add(t.id));
+        }
       }
       const cleanOrders = rawOrders
         .filter(o => !o.transaction_id || !voidedTxIds.has(o.transaction_id))
