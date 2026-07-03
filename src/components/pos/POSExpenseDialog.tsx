@@ -645,6 +645,36 @@ export default function POSExpenseDialog({
                       />
                     </Field>
                     <Field label="حساب المصروف *">
+                      {/* Selected account summary — always visible so the
+                          cashier can see what's picked even when the search
+                          list filters it out or scrolls away. */}
+                      {accountCode && (
+                        <div
+                          className="mb-2 flex items-center justify-between gap-2 rounded-sm border px-3 py-2 text-xs"
+                          style={{
+                            background: D365.brandSoft,
+                            borderColor: D365.brand,
+                            color: D365.text,
+                          }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-mono text-[11px] shrink-0">
+                              {accountCode}
+                            </span>
+                            <span className="font-semibold truncate">
+                              {selectedAccount?.account_name || "—"}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAccountCode("")}
+                            className="text-[11px] px-2 py-0.5 rounded hover:bg-white/60"
+                            style={{ color: D365.danger }}
+                          >
+                            إلغاء
+                          </button>
+                        </div>
+                      )}
                       <div
                         className="max-h-56 overflow-y-auto rounded-sm border"
                         style={{ background: "#fff", borderColor: D365.border }}
@@ -654,11 +684,37 @@ export default function POSExpenseDialog({
                             جارٍ التحميل…
                           </div>
                         )}
-                        {!loading && expenseAccounts.length === 0 && (
+                        {!loading && expenseAccounts.length === 0 && !accountCode && (
                           <div className="p-4 text-xs text-center text-muted-foreground">
                             لا توجد حسابات مطابقة
                           </div>
                         )}
+                        {/* Always pin the selected row at the top of the list
+                            (even when the current search filters it out) so
+                            the cashier never loses the selection visually. */}
+                        {accountCode &&
+                          !expenseAccounts.some((a) => a.account_code === accountCode) &&
+                          selectedAccount && (
+                            <button
+                              key={`pinned-${accountCode}`}
+                              type="button"
+                              onClick={() => setAccountCode(accountCode)}
+                              className="w-full text-right px-3 py-1.5 text-xs flex justify-between items-center transition-colors"
+                              style={{
+                                background: D365.brandSoft,
+                                borderBottom: `1px solid ${D365.border}`,
+                                color: D365.text,
+                              }}
+                            >
+                              <span className="font-medium">
+                                {selectedAccount.account_name}{" "}
+                                <span className="text-[10px] text-muted-foreground">(المختار)</span>
+                              </span>
+                              <span className="font-mono text-[10px]" style={{ color: D365.subtle }}>
+                                {accountCode}
+                              </span>
+                            </button>
+                          )}
                         {expenseAccounts.map((a) => (
                           <button
                             key={a.account_code}
