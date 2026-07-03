@@ -264,6 +264,7 @@ const FinanceReceiptsPage = lazy(() => import("./pages/FinanceReceiptsPage"));
 const FinancePaymentsPage = lazy(() => import("./pages/FinancePaymentsPage"));
 const FinanceJournalPage = lazy(() => import("./pages/FinanceJournalPage"));
 const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
+const ParentAccountFixPage = lazy(() => import("./pages/ParentAccountFixPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const CustomerOrderDisplayPage = lazy(() => import("./pages/CustomerOrderDisplayPage"));
 const KitchenDisplayPublicPage = lazy(() => import("./pages/KitchenDisplayPublicPage"));
@@ -789,6 +790,7 @@ const App = () => (
                       <Route path="/payments" element={<Navigate to="/finance/payments" replace />} />
                       <Route path="/finance" element={<Navigate to="/finance/receipts" replace />} />
                       <Route path="/accounting-center" element={<AccountingCenterPage />} />
+                      <Route path="/finance/parent-account-fix" element={<ParentAccountFixPage />} />
                      <Route path="/finance/receipts" element={<FinanceReceiptsPage />} />
                       <Route path="/finance/payments" element={<FinancePaymentsPage />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
