@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield,
-  Link2, Printer, Brain, RotateCcw, Monitor, GitBranch, Receipt, HardDrive,
+  Link2, Printer, Brain, RotateCcw, Monitor, GitBranch, Receipt, HardDrive, MapPin,
   Save, RefreshCw, Inbox, Menu,
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -35,6 +35,7 @@ import AISettingsSection from "@/components/settings/AISettingsSection";
 import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
 import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
 import BackupSettingsSection from "@/components/settings/BackupSettingsSection";
+import DeliveryZonesPage from "@/pages/DeliveryZonesPage";
 import { multiWordMatchAny } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -48,6 +49,7 @@ const SECTIONS = [
   { id: "finance", label: "المالية", icon: Wallet, keywords: "مالية حسابات قيود محاسبة ميزان ترقيم فترات" },
   { id: "invoices", label: "الفواتير", icon: FileText, keywords: "فاتورة فواتير قالب خصم دفع آجل" },
   { id: "pos", label: "نقطة البيع", icon: ShoppingCart, keywords: "كاشير نقطة بيع طاولات محطات مطبخ طابعة شبكة وردية" },
+  { id: "delivery-zones", label: "مناطق التوصيل", icon: MapPin, keywords: "مناطق توصيل ديلفري wheels كول سنتر منطقة شارع area_id" },
   { id: "inventory", label: "المخزون", icon: Package, keywords: "مخزون منتج صنف كمية مستودع باركود" },
   { id: "hr", label: "الموارد البشرية", icon: Users, keywords: "موظفين رواتب حضور إجازات HR دوام" },
   { id: "notifications", label: "الإشعارات", icon: Bell, keywords: "إشعار تنبيه رسالة بريد" },
@@ -63,7 +65,7 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 /** Sections that aren't part of the central company_settings save flow. */
-const SELF_SAVED: SectionId[] = ["tax", "backup", "branches", "user", "portal"];
+const SELF_SAVED: SectionId[] = ["tax", "backup", "branches", "user", "portal", "delivery-zones"];
 
 const SettingsPage = () => {
   const { user } = useAuth();
@@ -239,6 +241,8 @@ const SettingsPage = () => {
         return <InvoiceSettingsSection settings={settings} onChange={updateSettings} />;
       case "pos":
         return <POSSettingsSection settings={settings} onChange={updateSettings} />;
+      case "delivery-zones":
+        return <DeliveryZonesPage />;
       case "print":
         return <PrintSettingsSection settings={settings} onChange={updateSettings} />;
       case "portal":
