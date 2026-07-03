@@ -455,7 +455,7 @@ const POSPage = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [loading, setLoading] = useState(true);
-  const [contacts, setContacts] = useState<{ id: string; contact_name: string }[]>([]);
+  const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type?: string; phone?: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [showSalesSummary, setShowSalesSummary] = useState(true);
