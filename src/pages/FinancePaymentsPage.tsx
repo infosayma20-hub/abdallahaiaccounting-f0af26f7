@@ -104,26 +104,45 @@ export default function FinancePaymentsPage() {
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [rvRes, cRes, cbRes, baRes] = await Promise.all([
+    const [rvRes, cRes, cbRes, baRes, empRes] = await Promise.all([
       supabase.from("vouchers").select("*").eq("user_id", ownerId).eq("type", "payment")
         .order("date", { ascending: false }),
       supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId),
       supabase.from("cash_boxes").select("id, name, currency").eq("user_id", ownerId),
       supabase.from("bank_accounts").select("id, name, currency").eq("user_id", ownerId),
+      supabase.from("employees").select("id, full_name").eq("user_id", ownerId),
     ]);
     const cMap = new Map<string, string>((cRes.data || []).map((c: any) => [c.id, c.contact_name]));
     const cbMap = new Map<string, any>((cbRes.data || []).map((b: any) => [b.id, b]));
     const baMap = new Map<string, any>((baRes.data || []).map((b: any) => [b.id, b]));
+    const empMap = new Map<string, string>((empRes.data || []).map((e: any) => [e.id, e.full_name]));
 
-    // fetch cost_center_id from linked transactions
+    // fetch cost_center_id and debit account from linked transactions.
+    // Account-based payment vouchers have no contact_id, so the list should
+    // still display the selected GL account (e.g. تبرعات وهبات) instead of "—".
     const txIds = (rvRes.data || []).map((rv: any) => rv.linked_transaction_id).filter(Boolean);
-    const txMap = new Map<string, string | null>();
+    const txMap = new Map<string, { cost_center_id: string | null; debit_account_code: string | null }>();
     if (txIds.length) {
       const { data: tx } = await supabase
         .from("transactions")
-        .select("id, cost_center_id")
+        .select("id, cost_center_id, debit_account_code")
         .in("id", txIds);
-      for (const t of (tx || [])) txMap.set(t.id, (t as any).cost_center_id || null);
+      for (const t of (tx || [])) {
+        txMap.set(t.id, {
+          cost_center_id: (t as any).cost_center_id || null,
+          debit_account_code: (t as any).debit_account_code || null,
+        });
+      }
+    }
+    const debitCodes = Array.from(new Set(Array.from(txMap.values()).map((t) => t.debit_account_code).filter(Boolean) as string[]));
+    const accountMap = new Map<string, string>();
+    if (debitCodes.length) {
+      const { data: accounts } = await supabase
+        .from("accounts")
+        .select("account_code, account_name")
+        .eq("user_id", ownerId)
+        .in("account_code", debitCodes);
+      for (const a of (accounts || []) as any[]) accountMap.set(a.account_code, a.account_name);
     }
     const ccMap = new Map<string, string>(
       costCenters.map((c) => [c.id, `${c.code} - ${c.name_ar || c.name}`]),
@@ -132,14 +151,21 @@ export default function FinancePaymentsPage() {
     const mapped: Row[] = (rvRes.data || []).map((rv: any) => {
       const cb = rv.cash_box_id ? cbMap.get(rv.cash_box_id) : null;
       const ba = rv.bank_account_id ? baMap.get(rv.bank_account_id) : null;
-      const ccId = rv.linked_transaction_id ? (txMap.get(rv.linked_transaction_id) || null) : null;
+      const txInfo = rv.linked_transaction_id ? txMap.get(rv.linked_transaction_id) : null;
+      const ccId = txInfo?.cost_center_id || null;
       const currency = cb?.currency || ba?.currency || "ILS";
+      const partyLabel = rv.contact_name
+        || cMap.get(rv.contact_id || "")
+        || empMap.get(rv.employee_id || "")
+        || (txInfo?.debit_account_code ? accountMap.get(txInfo.debit_account_code) : "")
+        || rv.description
+        || "—";
       return {
         id: rv.id,
         ref_number: rv.ref_number || "",
         date: rv.date || null,
         contact_id: rv.contact_id,
-        contact_name: rv.contact_name || cMap.get(rv.contact_id || "") || "—",
+        contact_name: partyLabel,
         payment_method: rv.payment_method || "",
         payment_label: PAYMENT_LABELS[rv.payment_method] || rv.payment_method || "—",
         cash_box_id: rv.cash_box_id,
@@ -157,7 +183,7 @@ export default function FinancePaymentsPage() {
     });
     setRows(mapped);
     setLoading(false);
-  }, [user, costCenters]);
+  }, [user, ownerId, costCenters]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
