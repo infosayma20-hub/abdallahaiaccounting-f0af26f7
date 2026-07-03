@@ -141,6 +141,11 @@ export function usePOSReportsData(branchId: string | null = null) {
       setLoading(true);
       const from = dateFrom.toISOString();
       const to = dateTo.toISOString();
+      // Widen the created_at window forward by 12h for child tables so that
+      // late-night order lines/payments belonging to the same business day
+      // aren't dropped. The orders query itself uses business_date, and the
+      // client-side joins by order_id filter out anything not in scope.
+      const toBuffered = new Date(dateTo.getTime() + 12 * 60 * 60 * 1000).toISOString();
       // POS uses a business-day cutoff (e.g. 6 AM). Filtering purely on
       // created_at drops late-night orders that belong to the previous
       // business day, so we prefer business_date when it is populated and
@@ -163,13 +168,13 @@ export function usePOSReportsData(branchId: string | null = null) {
           .select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, tax_amount")
           .eq("user_id", dataOwnerId)
           .gte("created_at", from)
-          .lte("created_at", to),
+          .lte("created_at", toBuffered),
         supabase
           .from("pos_payments")
           .select("id, order_id, payment_method, amount, created_at")
           .eq("user_id", dataOwnerId)
           .gte("created_at", from)
-          .lte("created_at", to),
+          .lte("created_at", toBuffered),
         supabase
           .from("pos_sessions")
           .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state")
