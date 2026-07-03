@@ -77,7 +77,14 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
         // Navigation shortcuts
         if (code === "KeyC") { e.preventDefault(); navigate("/contacts?type=customer"); return; }
         if (code === "KeyM") { e.preventDefault(); navigate("/contacts?type=supplier"); return; }
-        if (code === "KeyK") { e.preventDefault(); navigate("/account-statement"); return; }
+        if (code === "KeyK") {
+          e.preventDefault();
+          // Always reset the statement view (clears the selected entity),
+          // whether we are already on the page or navigating to it.
+          window.dispatchEvent(new CustomEvent("app:account-statement-reset"));
+          navigate("/account-statement");
+          return;
+        }
         if (code === "KeyS") { e.preventDefault(); navigate("/finance/cash-boxes"); return; }
         if (code === "KeyX") { e.preventDefault(); navigate("/inventory"); return; }
         if (code === "KeyL") { e.preventDefault(); navigate("/journal-entries"); return; }
