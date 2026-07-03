@@ -185,6 +185,8 @@ const ContactsPage = () => {
   const [archiving, setArchiving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 100;
   const [alerts, setAlerts] = useState<ContactAlert[]>([]);
   const [showAlerts, setShowAlerts] = useState(false);
   const [overdueContact, setOverdueContact] = useState<Contact | null>(null);
