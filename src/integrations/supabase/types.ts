@@ -24521,6 +24521,25 @@ export type Database = {
         Args: { _status: string; _ticket_id: string; _token: string }
         Returns: boolean
       }
+      list_parent_account_transactions: {
+        Args: { p_only_missing_contact?: boolean }
+        Returns: {
+          amount: number
+          contact_id: string
+          contact_name: string
+          currency: string
+          description: string
+          id: string
+          other_account_code: string
+          other_account_name: string
+          parent_account_code: string
+          parent_account_name: string
+          reference: string
+          side: string
+          transaction_date: string
+          transaction_type: string
+        }[]
+      }
       log_sensitive_access: {
         Args: {
           _action: string
@@ -24851,6 +24870,14 @@ export type Database = {
         Args: { p_invoice_id: string; p_proposed_items: Json; p_reason: string }
         Returns: Json
       }
+      reroute_parent_transaction: {
+        Args: {
+          p_new_account_code: string
+          p_new_contact_id?: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       resolve_account_type: { Args: { _uid: string }; Returns: string }
       resolve_branch_warehouse: {
         Args: { p_branch_id: string; p_user_id: string }
@@ -24909,6 +24936,15 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      search_leaf_accounts: {
+        Args: { p_limit?: number; p_parent_code?: string; p_query?: string }
+        Returns: {
+          account_code: string
+          account_name: string
+          account_type: string
+          parent_code: string
+        }[]
       }
       seed_company_coa: {
         Args: { p_owner_id: string; p_profile?: string }
