@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { MapPin, Plus, Search, Pencil, Power, PowerOff } from "lucide-react";
+import { MapPin, Plus, Search, Pencil, Power, PowerOff, ChevronDown, ChevronLeft } from "lucide-react";
 
 interface Zone {
   id: string;
@@ -36,6 +36,7 @@ export default function DeliveryZonesPage() {
 
   const [editing, setEditing] = useState<Zone | null>(null);
   const [adding, setAdding] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -70,6 +71,25 @@ export default function DeliveryZonesPage() {
       (!search.trim() || z.area_name.includes(search.trim()) || z.city.includes(search.trim()))
     );
   }, [zones, search, cityFilter, branchFilter, showInactive]);
+
+  // Group by city + area_name so each area appears as ONE row (with per-branch details on expand)
+  const grouped = useMemo(() => {
+    const map = new Map<string, { key: string; city: string; area_name: string; rows: Zone[] }>();
+    for (const z of filtered) {
+      const key = `${z.city}||${z.area_name}`;
+      if (!map.has(key)) map.set(key, { key, city: z.city, area_name: z.area_name, rows: [] });
+      map.get(key)!.rows.push(z);
+    }
+    return Array.from(map.values());
+  }, [filtered]);
+
+  const toggleExpand = (key: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
 
   const toggleActive = async (z: Zone) => {
     const { error } = await supabase
@@ -119,47 +139,78 @@ export default function DeliveryZonesPage() {
             <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} />
             عرض المعطّلة
           </label>
-          <Badge variant="outline" className="ml-auto">{filtered.length} منطقة</Badge>
+          <Badge variant="outline" className="ml-auto">{grouped.length} منطقة</Badge>
         </div>
       </Card>
 
       <Card className="overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">جاري التحميل...</div>
-        ) : filtered.length === 0 ? (
+        ) : grouped.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">لا توجد مناطق</div>
         ) : (
           <div className="divide-y divide-border">
-            <div className="grid grid-cols-[1fr_1.5fr_1.5fr_80px_80px_70px] gap-2 px-3 py-2 bg-muted/40 text-[11px] font-bold text-muted-foreground">
+            <div className="grid grid-cols-[20px_1fr_1.8fr_1.5fr_100px_80px] gap-2 px-3 py-2 bg-muted/40 text-[11px] font-bold text-muted-foreground">
+              <div></div>
               <div>المدينة</div>
               <div>المنطقة</div>
-              <div>الفرع</div>
+              <div>الفروع</div>
               <div className="text-left">السعر</div>
               <div>الحالة</div>
-              <div></div>
             </div>
             <div className="max-h-[60vh] overflow-y-auto">
-              {filtered.map(z => (
-                <div key={z.id} className={`grid grid-cols-[1fr_1.5fr_1.5fr_80px_80px_70px] gap-2 px-3 py-1.5 items-center text-xs ${!z.is_active ? "opacity-50" : ""}`}>
-                  <div>{z.city}</div>
-                  <div className="font-semibold">{z.area_name}</div>
-                  <div>{z.branch_name}</div>
-                  <div className="font-mono text-left">₪{Number(z.price).toFixed(2)}</div>
-                  <div>
-                    <Badge className={z.is_active ? "bg-green-600" : "bg-gray-400"}>
-                      {z.is_active ? "مفعّلة" : "معطّلة"}
-                    </Badge>
+              {grouped.map(g => {
+                const isOpen = expanded.has(g.key);
+                const anyActive = g.rows.some(r => r.is_active);
+                const prices = g.rows.map(r => Number(r.price));
+                const minP = Math.min(...prices), maxP = Math.max(...prices);
+                const priceLabel = minP === maxP ? `₪${minP.toFixed(2)}` : `₪${minP.toFixed(2)} - ₪${maxP.toFixed(2)}`;
+                return (
+                  <div key={g.key}>
+                    <div
+                      onClick={() => g.rows.length > 1 && toggleExpand(g.key)}
+                      className={`grid grid-cols-[20px_1fr_1.8fr_1.5fr_100px_80px] gap-2 px-3 py-1.5 items-center text-xs ${!anyActive ? "opacity-50" : ""} ${g.rows.length > 1 ? "cursor-pointer hover:bg-muted/30" : ""}`}
+                    >
+                      <div>
+                        {g.rows.length > 1 ? (
+                          isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />
+                        ) : null}
+                      </div>
+                      <div>{g.city}</div>
+                      <div className="font-semibold">{g.area_name}</div>
+                      <div className="text-muted-foreground">
+                        {g.rows.length === 1 ? g.rows[0].branch_name : `${g.rows.length} فروع`}
+                      </div>
+                      <div className="font-mono text-left">{priceLabel}</div>
+                      <div>
+                        <Badge className={anyActive ? "bg-green-600" : "bg-gray-400"}>
+                          {anyActive ? "مفعّلة" : "معطّلة"}
+                        </Badge>
+                      </div>
+                    </div>
+                    {(isOpen || g.rows.length === 1) && g.rows.map(z => (
+                      <div
+                        key={z.id}
+                        className={`grid grid-cols-[20px_1fr_1.8fr_1.5fr_100px_80px] gap-2 px-3 py-1.5 items-center text-xs border-t border-border/40 ${g.rows.length > 1 ? "bg-muted/20 pr-8" : ""} ${!z.is_active ? "opacity-50" : ""}`}
+                      >
+                        <div></div>
+                        <div className="text-muted-foreground">{g.rows.length > 1 ? "" : z.city}</div>
+                        <div className="text-muted-foreground">{g.rows.length > 1 ? "↳" : z.area_name}</div>
+                        <div>{z.branch_name}</div>
+                        <div className="font-mono text-left">₪{Number(z.price).toFixed(2)}</div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditing(z); }} title="تعديل">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); toggleActive(z); }} title={z.is_active ? "تعطيل" : "تفعيل"}>
+                            {z.is_active ? <PowerOff className="h-3.5 w-3.5 text-red-500" /> : <Power className="h-3.5 w-3.5 text-green-600" />}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(z)} title="تعديل">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggleActive(z)} title={z.is_active ? "تعطيل" : "تفعيل"}>
-                      {z.is_active ? <PowerOff className="h-3.5 w-3.5 text-red-500" /> : <Power className="h-3.5 w-3.5 text-green-600" />}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
