@@ -182,7 +182,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       const { data } = await supabase
         .from("transactions")
         .select("amount, foreign_amount, exchange_rate, debit_account_code, credit_account_code, transaction_date, currency")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId || user.id)
         .eq("reference", ref)
         .eq("is_opening_balance", true)
         .eq("is_deleted", false)
@@ -205,7 +205,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     if (obExchangeRate > 0) return; // keep user-edited rate
     (async () => {
       const { data } = await supabase.rpc("get_latest_exchange_rate", {
-        p_user_id: user.id, p_currency_name: currency,
+        p_user_id: dataOwnerId || user.id, p_currency_name: currency,
       });
       const r = Number(data);
       if (r > 0) setObExchangeRate(r);
@@ -410,7 +410,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           const isFX = currency !== "شيكل";
           const ilsAmount = isFX ? obAmount * obExchangeRate : obAmount;
           const { data: rpcRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
-            p_user_id: user.id,
+            p_user_id: dataOwnerId || user.id,
             p_debit_account_code: debitCode,
             p_credit_account_code: creditCode,
             p_amount: ilsAmount,
@@ -431,7 +431,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         } else if (mode === "edit" && obExistingRef) {
           // Amount cleared → soft-delete existing OB transactions
           await supabase.from("transactions").update({ is_deleted: true } as any)
-            .eq("user_id", user.id).eq("reference", obExistingRef).eq("is_opening_balance", true);
+            .eq("user_id", dataOwnerId || user.id).eq("reference", obExistingRef).eq("is_opening_balance", true);
         }
       }
 
