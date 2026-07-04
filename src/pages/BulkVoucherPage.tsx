@@ -615,9 +615,9 @@ export default function BulkVoucherPage({ mode }: Props) {
           <div className="text-sm text-muted-foreground">جارٍ التحميل...</div>
         )}
 
-        {/* Header form */}
+        {/* Header (Top): رقم السند + التاريخ فقط */}
         <Card>
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>رقم السند</Label>
               <Input value={refNumber} onChange={e => setRefNumber(e.target.value)} disabled={readonly || isEdit} dir="ltr" />
@@ -625,51 +625,6 @@ export default function BulkVoucherPage({ mode }: Props) {
             <div>
               <Label>التاريخ</Label>
               <Input type="date" value={voucherDate} onChange={e => setVoucherDate(e.target.value)} disabled={readonly} />
-            </div>
-            <div>
-              <Label>طريقة الدفع</Label>
-              <Select value={source} onValueChange={(v: any) => setSource(v)} disabled={readonly}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">نقدي (صندوق)</SelectItem>
-                  <SelectItem value="bank">تحويل بنكي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {source === "cash" ? (
-              <div>
-                <Label>{isPayment ? "الصندوق المصروف منه" : "الصندوق المُودَع فيه"}</Label>
-                <Select value={cashBoxId} onValueChange={setCashBoxId} disabled={readonly}>
-                  <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
-                  <SelectContent>
-                    {cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div>
-                <Label>الحساب البنكي</Label>
-                <Select value={bankAccountId} onValueChange={setBankAccountId} disabled={readonly}>
-                  <SelectTrigger><SelectValue placeholder="اختر البنك" /></SelectTrigger>
-                  <SelectContent>
-                    {bankAccountsList.map(b => <SelectItem key={b.id} value={b.id}>{b.bank_name} - {b.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="md:col-span-2">
-              <Label>البيان (يُطبَّق على السند كله)</Label>
-              <Input
-                value={description} onChange={e => setDescription(e.target.value)}
-                placeholder={isPayment ? "مثلاً: سلف موظفين شهر تموز 2026" : "مثلاً: دفعات من عملاء شهر تموز 2026"}
-                disabled={readonly}
-              />
-            </div>
-            <div className="md:col-span-3">
-              <Label>ملاحظات (اختياري)</Label>
-              <Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} disabled={readonly} />
             </div>
           </CardContent>
         </Card>
