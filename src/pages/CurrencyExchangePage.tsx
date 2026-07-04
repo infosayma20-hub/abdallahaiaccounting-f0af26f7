@@ -292,7 +292,7 @@ const CurrencyExchangePage = () => {
         if (oldRef) await purgeTransactionsForRef(oldRef);
 
         const newRef = `FX-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const { finalDesc, r } = await performPosting(newRef);
+        const { internalDesc, r } = await performPosting(newRef);
 
         await supabase.from("cash_transfers").update({
           from_box_id: fromBoxId,
@@ -301,14 +301,14 @@ const CurrencyExchangePage = () => {
           currency: fromCur.code,
           exchange_rate: r,
           transfer_date: transferDate,
-          description: finalDesc,
+          description: internalDesc,
         }).eq("id", editId);
 
         broadcastChange("transaction", "updated", editId);
         toast({ title: "✅ تم تحديث الصرف وإعادة الترحيل" });
       } else {
         const newRef = `FX-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const { finalDesc, r } = await performPosting(newRef);
+        const { internalDesc, r } = await performPosting(newRef);
 
         const { data: inserted } = await supabase.from("cash_transfers").insert({
           user_id: dataOwnerId,
@@ -318,7 +318,7 @@ const CurrencyExchangePage = () => {
           currency: fromCur.code,
           exchange_rate: r,
           transfer_date: transferDate,
-          description: finalDesc,
+          description: internalDesc,
           transfer_type: "currency_exchange",
         }).select("id").maybeSingle();
 
