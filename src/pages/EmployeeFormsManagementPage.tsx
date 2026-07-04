@@ -124,6 +124,26 @@ export default function EmployeeFormsManagementPage() {
   const [editPolicyId, setEditPolicyId] = useState<string | null>(null);
   const [savingPolicy, setSavingPolicy] = useState(false);
 
+  // Unified intake panel — collapsed by default (dedicated place for pausing all incoming requests)
+  const [intakeOpen, setIntakeOpen] = useState(false);
+  const [pendingPwdResetCount, setPendingPwdResetCount] = useState(0);
+  useEffect(() => {
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    const load = async () => {
+      const { count } = await supabase
+        .from("password_reset_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingPwdResetCount(count || 0);
+    };
+    load();
+    ch = supabase
+      .channel("hr-pwd-reset-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, load)
+      .subscribe();
+    return () => { if (ch) supabase.removeChannel(ch); };
+  }, []);
+
   useEffect(() => {
     if (user && dataOwnerId) {
       fetchForms();
