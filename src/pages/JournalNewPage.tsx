@@ -1494,7 +1494,7 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-debit={line.id}
-                        className="h-11 font-mono text-sm" placeholder="0"
+                        className="h-12 font-mono text-base font-semibold tracking-tight text-right" placeholder="0.00"
                       />
                     </td>
                     <td className="p-3">
@@ -1523,7 +1523,7 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-credit={line.id}
-                        className="h-11 font-mono text-sm" placeholder="0"
+                        className="h-12 font-mono text-base font-semibold tracking-tight text-right" placeholder="0.00"
                       />
                     </td>
                     <td className="p-3">
