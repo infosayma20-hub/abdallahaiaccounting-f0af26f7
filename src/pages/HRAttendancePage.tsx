@@ -1456,6 +1456,15 @@ export default function HRAttendancePage() {
               <DropdownMenuItem onClick={() => exportExcel("incomplete")}>تقرير البصمات الناقصة</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={() => navigate("/hr-attendance/backfill")}
+            title="توليد بصمات بأثر رجعي"
+          >
+            <Fingerprint className="h-4 w-4" /> توليد بصمات
+          </Button>
           {/* قائمة المزيد — إجراءات متقدمة (إغلاق/فتح يوم، إضافة فرع) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
