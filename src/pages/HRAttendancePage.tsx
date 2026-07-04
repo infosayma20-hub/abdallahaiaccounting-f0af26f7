@@ -20,7 +20,7 @@ import {
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
   QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer,
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
-  Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info, Camera,
+  Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info, Camera, Fingerprint,
 } from "lucide-react";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import BackButton from "@/components/BackButton";
@@ -1814,6 +1814,21 @@ export default function HRAttendancePage() {
                                 <DropdownMenuItem onClick={() => recalcRecord(r)} className="gap-2"><Calculator className="h-3.5 w-3.5" /> إعادة حساب الساعات</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openNote(r)} className="gap-2"><MessageSquare className="h-3.5 w-3.5" /> إضافة/تعديل ملاحظة</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openHistory(r)} className="gap-2"><History className="h-3.5 w-3.5" /> سجل بصمات اليوم</DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    const now = new Date();
+                                    const next = new URLSearchParams(searchParams);
+                                    next.set("tab", "monthly");
+                                    next.set("employee", r.employee_id);
+                                    next.set("year", String(now.getFullYear()));
+                                    next.set("month", String(now.getMonth() + 1));
+                                    setSearchParams(next);
+                                    setActiveTab("monthly");
+                                  }}
+                                  className="gap-2"
+                                >
+                                  <Fingerprint className="h-3.5 w-3.5 text-emerald-600" /> كشف بصمات الشهر الحالي
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => sendRequestToEmployee(r)} className="gap-2"><Send className="h-3.5 w-3.5" /> إرسال استفسار للموظف</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openHRMessageFor(r, "info")} className="gap-2"><MessageSquare className="h-3.5 w-3.5" /> إرسال رسالة HR</DropdownMenuItem>
