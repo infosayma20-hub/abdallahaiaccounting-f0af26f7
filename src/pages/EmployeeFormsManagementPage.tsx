@@ -694,7 +694,7 @@ export default function EmployeeFormsManagementPage() {
           </Card>
         )}
 
-        <Tabs value={policiesTab} onValueChange={setPoliciesTab} className="w-full">
+        <Tabs value={policiesTab} onValueChange={setPoliciesTab} className="w-full" dir="rtl">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="forms" className="gap-1">
               <FileText className="h-3.5 w-3.5" /> الطلبات والنماذج
@@ -706,7 +706,7 @@ export default function EmployeeFormsManagementPage() {
 
           <TabsContent value="forms" className="mt-4 space-y-3">
             {/* Category chips */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" dir="rtl">
               {CATEGORY_CHIPS.map(c => {
                 const active = filterCategory === c.key;
                 const count = categoryCounts[c.key] || 0;
@@ -732,7 +732,7 @@ export default function EmployeeFormsManagementPage() {
             </div>
 
             {/* Filters — same pattern as Attendance toolbar */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap" dir="rtl">
               <div className="relative">
                 <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
