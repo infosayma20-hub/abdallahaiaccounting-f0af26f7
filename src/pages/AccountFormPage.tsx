@@ -37,11 +37,29 @@ const DEFAULT_BALANCE: Record<string, "debit" | "credit"> = {
 };
 
 const arabicTypeMap: Record<string, string> = {
-  "إيرادات": "Revenue", "مصاريف": "Expenses", "مصروفات": "Expenses",
-  "أصول": "Asset", "التزامات": "Liability", "خصوم": "Liability",
-  "حقوق ملكية": "Owner's Equity", "مشتريات": "Purchases",
+  "إيرادات": "Revenue", "ايرادات": "Revenue",
+  "مصاريف": "Expenses", "مصروفات": "Expenses", "مصروف": "Expenses", "مصاريف تشغيلية": "Expenses",
+  "أصول": "Asset", "اصول": "Asset", "أصل": "Asset", "بنك": "Asset", "صندوق": "Asset",
+  "التزامات": "Liability", "خصوم": "Liability", "التزام": "Liability",
+  "حقوق ملكية": "Owner's Equity", "حقوق الملكية": "Owner's Equity",
+  "مشتريات": "Purchases",
 };
-function normalizeType(t: string) { return arabicTypeMap[t] || t; }
+function normalizeType(t: string) {
+  if (!t) return t;
+  const trimmed = t.trim();
+  if (arabicTypeMap[trimmed]) return arabicTypeMap[trimmed];
+  // Case-insensitive match for English variants (asset/ASSET/Asset, etc.)
+  const lower = trimmed.toLowerCase();
+  const englishMap: Record<string, string> = {
+    "asset": "Asset", "assets": "Asset",
+    "liability": "Liability", "liabilities": "Liability",
+    "owner's equity": "Owner's Equity", "owners equity": "Owner's Equity", "equity": "Owner's Equity",
+    "revenue": "Revenue", "revenues": "Revenue", "income": "Revenue",
+    "expenses": "Expenses", "expense": "Expenses",
+    "purchases": "Purchases", "purchase": "Purchases",
+  };
+  return englishMap[lower] || trimmed;
+}
 
 interface AccountFormPageProps {
   mode: "create" | "edit";
