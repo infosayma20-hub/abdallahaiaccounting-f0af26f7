@@ -4439,6 +4439,18 @@ const POSPage = () => {
         }
       }
 
+      // 🛡️ HARD GUARD: an employee_account payment MUST carry a ذمم-موظف
+      // sub-account. Without it the backend defaults to the shift cash box,
+      // which inflates cash and hides receivables (root cause of the "كاش X"
+      // appearing under the employee column in the shift audit report).
+      if (effectivePaymentMethod === "employee_account" && !employeeAccountCode) {
+        toast.error(
+          "لا يمكن تسجيل دفعة على حساب موظف بدون حساب ذمم فرعي مربوط. الرجاء اختيار موظف صالح أو إنشاء الحساب يدوياً."
+        );
+        setProcessing(false);
+        return;
+      }
+
       // Build payments array. If split mode is active, send one entry per tender.
       const useSplit = splitMode && splitTenders.length > 1;
       const paymentsPayload = useSplit
