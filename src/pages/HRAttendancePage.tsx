@@ -2417,6 +2417,11 @@ export default function HRAttendancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <BackfillAttendanceDialog
+        open={showBackfillDialog}
+        onOpenChange={setShowBackfillDialog}
+        onDone={() => fetchData()}
+      />
     </div>
   );
 }
