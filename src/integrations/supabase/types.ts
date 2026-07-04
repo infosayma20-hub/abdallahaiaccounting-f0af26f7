@@ -24401,6 +24401,17 @@ export type Database = {
           total_debit: number
         }[]
       }
+      hr_backfill_attendance: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_employee_id: string
+          p_from: string
+          p_reason: string
+          p_to: string
+        }
+        Returns: Json
+      }
       increment_device_token_failures: {
         Args: { _id: string }
         Returns: undefined

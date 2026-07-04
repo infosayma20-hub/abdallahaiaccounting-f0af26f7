@@ -35,6 +35,7 @@ import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
+import BackfillAttendanceDialog from "@/components/hr/BackfillAttendanceDialog";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -372,6 +373,7 @@ export default function HRAttendancePage() {
 
   // Branch dialogs
   const [showBranchDialog, setShowBranchDialog] = useState(false);
+  const [showBackfillDialog, setShowBackfillDialog] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [selectedBranchForQR, setSelectedBranchForQR] = useState<Branch | null>(null);
   const [qrToken, setQrToken] = useState("");
@@ -1465,6 +1467,9 @@ export default function HRAttendancePage() {
               <DropdownMenuItem onClick={() => setShowBranchDialog(true)} className="gap-2">
                 <Building2 className="h-3.5 w-3.5" /> إضافة فرع
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowBackfillDialog(true)} className="gap-2">
+                <Fingerprint className="h-3.5 w-3.5" /> توليد بصمات بأثر رجعي
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={openLockDialog}
@@ -2412,6 +2417,11 @@ export default function HRAttendancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <BackfillAttendanceDialog
+        open={showBackfillDialog}
+        onOpenChange={setShowBackfillDialog}
+        onDone={() => fetchData()}
+      />
     </div>
   );
 }
