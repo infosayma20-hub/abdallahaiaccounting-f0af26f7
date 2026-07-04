@@ -18,7 +18,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
+  Settings2, ChevronDown
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
@@ -37,6 +38,7 @@ import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { useNavigate } from "react-router-dom";
 import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -121,6 +123,26 @@ export default function EmployeeFormsManagementPage() {
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
   const [editPolicyId, setEditPolicyId] = useState<string | null>(null);
   const [savingPolicy, setSavingPolicy] = useState(false);
+
+  // Unified intake panel — collapsed by default (dedicated place for pausing all incoming requests)
+  const [intakeOpen, setIntakeOpen] = useState(false);
+  const [pendingPwdResetCount, setPendingPwdResetCount] = useState(0);
+  useEffect(() => {
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    const load = async () => {
+      const { count } = await supabase
+        .from("password_reset_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingPwdResetCount(count || 0);
+    };
+    load();
+    ch = supabase
+      .channel("hr-pwd-reset-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "password_reset_requests" }, load)
+      .subscribe();
+    return () => { if (ch) supabase.removeChannel(ch); };
+  }, []);
 
   useEffect(() => {
     if (user && dataOwnerId) {
@@ -479,47 +501,136 @@ export default function EmployeeFormsManagementPage() {
           </div>
         </div>
 
-        <PasswordResetRequestsPanel />
+        {/* Compact metrics strip — replaces 4 large stat cards */}
+        <Card className="border-border">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-4 divide-x divide-x-reverse divide-border" dir="rtl">
+              {[
+                { label: "الإجمالي", value: counts.total, color: "text-foreground" },
+                { label: "قيد المراجعة", value: counts.pending, color: "text-warning" },
+                { label: "تمت الموافقة", value: counts.approved, color: "text-emerald-600" },
+                { label: "مرفوض", value: counts.rejected, color: "text-destructive" },
+              ].map(s => (
+                <div key={s.label} className="px-3 text-center">
+                  <div className={`text-lg font-bold leading-tight ${s.color}`}>{s.value}</div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+            {/* Financial summary — only when loans/advances category is active */}
+            {filterCategory === "loans" && financialFiltered.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-sm font-bold text-foreground">{totalAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-muted-foreground">إجمالي ({financialFiltered.length})</p>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-warning">{pendingAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-muted-foreground">قيد المراجعة</p>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-emerald-600">{approvedAmount.toLocaleString()} ₪</div>
+                  <p className="text-[10px] text-muted-foreground">تمت الموافقة</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "الإجمالي", value: counts.total, color: "text-foreground" },
-            { label: "قيد المراجعة", value: counts.pending, color: "text-warning" },
-            { label: "تمت الموافقة", value: counts.approved, color: "text-emerald-600" },
-            { label: "مرفوض", value: counts.rejected, color: "text-destructive" },
-          ].map(s => (
-            <Card key={s.label} className="border-border">
-              <CardContent className="p-4 text-center">
-                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Unified intake control panel — dedicated place to pause/manage all incoming employee requests */}
+        {(isAdmin || can("can_manage_forms")) && (
+          <Card className="border-border">
+            <Collapsible open={intakeOpen} onOpenChange={setIntakeOpen}>
+              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 hover:bg-muted/40 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-bold">إعدادات استقبال الطلبات</span>
+                  {(companySettings.hr_allow_advance_requests === false || companySettings.hr_allow_leave_requests === false) && (
+                    <Badge variant="outline" className="h-5 text-[10px] border-warning text-warning">استقبال موقوف جزئياً</Badge>
+                  )}
+                  {pendingPwdResetCount > 0 && (
+                    <Badge variant="destructive" className="h-5 text-[10px]">
+                      {pendingPwdResetCount} طلب كلمة مرور
+                    </Badge>
+                  )}
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${intakeOpen ? "rotate-180" : ""}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="p-4 pt-2 border-t border-border space-y-4">
+                  {/* Intake toggles */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] text-muted-foreground">
+                        فتح أو إغلاق تقديم الطلبات من قبل الموظفين.
+                      </p>
+                      <Button size="sm" onClick={() => saveCompanySettings()} disabled={savingCompanySettings}>
+                        {savingCompanySettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "حفظ الإعدادات"}
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Advances */}
+                      <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">طلبات السلف</p>
+                            <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات السلف.</p>
+                          </div>
+                          <Switch
+                            checked={companySettings.hr_allow_advance_requests !== false}
+                            onCheckedChange={v => updateCompanySettings({ hr_allow_advance_requests: v })}
+                          />
+                        </div>
+                        {companySettings.hr_allow_advance_requests === false && (
+                          <div className="space-y-1">
+                            <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
+                            <Textarea
+                              rows={2}
+                              className="text-xs"
+                              placeholder="مثال: تم إغلاق استقبال طلبات السلف حتى نهاية الشهر."
+                              value={companySettings.hr_advance_requests_closed_message ?? ""}
+                              onChange={e => updateCompanySettings({ hr_advance_requests_closed_message: e.target.value })}
+                            />
+                          </div>
+                        )}
+                      </div>
 
-        {/* Financial summary when filtering financial types */}
-        {(filterType === "advance_request" || filterType === "loan_request" || financialFiltered.length > 0) && (
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="border-border bg-muted/30">
-              <CardContent className="p-3 text-center">
-                <div className="text-lg font-bold text-foreground">{totalAmount.toLocaleString()} ₪</div>
-                <p className="text-[10px] text-muted-foreground">إجمالي المبالغ ({financialFiltered.length})</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-muted/30">
-              <CardContent className="p-3 text-center">
-                <div className="text-lg font-bold text-warning">{pendingAmount.toLocaleString()} ₪</div>
-                <p className="text-[10px] text-muted-foreground">قيد المراجعة</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-muted/30">
-              <CardContent className="p-3 text-center">
-                <div className="text-lg font-bold text-emerald-600">{approvedAmount.toLocaleString()} ₪</div>
-                <p className="text-[10px] text-muted-foreground">تمت الموافقة</p>
-              </CardContent>
-            </Card>
-          </div>
+                      {/* Leaves */}
+                      <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">طلبات الإجازات</p>
+                            <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات الإجازات.</p>
+                          </div>
+                          <Switch
+                            checked={companySettings.hr_allow_leave_requests !== false}
+                            onCheckedChange={v => updateCompanySettings({ hr_allow_leave_requests: v })}
+                          />
+                        </div>
+                        {companySettings.hr_allow_leave_requests === false && (
+                          <div className="space-y-1">
+                            <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
+                            <Textarea
+                              rows={2}
+                              className="text-xs"
+                              placeholder="مثال: تم إغلاق استقبال طلبات الإجازات مؤقتاً."
+                              value={companySettings.hr_leave_requests_closed_message ?? ""}
+                              onChange={e => updateCompanySettings({ hr_leave_requests_closed_message: e.target.value })}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Password-reset requests — inline in same dedicated panel */}
+                  <div className="border-t border-border pt-3">
+                    <PasswordResetRequestsPanel />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
         )}
 
         <Tabs value={policiesTab} onValueChange={setPoliciesTab} className="w-full">
@@ -533,83 +644,6 @@ export default function EmployeeFormsManagementPage() {
           </TabsList>
 
           <TabsContent value="forms" className="mt-4 space-y-3">
-            {/* HR intake controls — open/close employee request submissions */}
-            {(isAdmin || can("can_manage_forms")) && (
-              <Card className="border-border">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <h3 className="text-sm font-bold">استقبال طلبات الموظفين</h3>
-                      <p className="text-[11px] text-muted-foreground">
-                        تحكم دائرة الموارد البشرية بفتح أو إغلاق تقديم طلبات السلف والإجازات من قبل الموظفين.
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => saveCompanySettings()}
-                      disabled={savingCompanySettings}
-                    >
-                      {savingCompanySettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "حفظ"}
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Advances */}
-                    <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">طلبات السلف</p>
-                          <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات السلف من الموظفين.</p>
-                        </div>
-                        <Switch
-                          checked={companySettings.hr_allow_advance_requests !== false}
-                          onCheckedChange={v => updateCompanySettings({ hr_allow_advance_requests: v })}
-                        />
-                      </div>
-                      {companySettings.hr_allow_advance_requests === false && (
-                        <div className="space-y-1">
-                          <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
-                          <Textarea
-                            rows={2}
-                            className="text-xs"
-                            placeholder="مثال: تم إغلاق استقبال طلبات السلف حتى نهاية الشهر."
-                            value={companySettings.hr_advance_requests_closed_message ?? ""}
-                            onChange={e => updateCompanySettings({ hr_advance_requests_closed_message: e.target.value })}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Leaves */}
-                    <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">طلبات الإجازات</p>
-                          <p className="text-[10px] text-muted-foreground">فتح أو إغلاق استقبال طلبات الإجازات من الموظفين.</p>
-                        </div>
-                        <Switch
-                          checked={companySettings.hr_allow_leave_requests !== false}
-                          onCheckedChange={v => updateCompanySettings({ hr_allow_leave_requests: v })}
-                        />
-                      </div>
-                      {companySettings.hr_allow_leave_requests === false && (
-                        <div className="space-y-1">
-                          <Label className="text-[10px]">رسالة تظهر للموظف (اختياري)</Label>
-                          <Textarea
-                            rows={2}
-                            className="text-xs"
-                            placeholder="مثال: تم إغلاق استقبال طلبات الإجازات مؤقتاً."
-                            value={companySettings.hr_leave_requests_closed_message ?? ""}
-                            onChange={e => updateCompanySettings({ hr_leave_requests_closed_message: e.target.value })}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Category chips */}
             <div className="flex flex-wrap gap-2">
               {CATEGORY_CHIPS.map(c => {
