@@ -51,6 +51,8 @@ const FinanceJournalPage = () => {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refDataLoaded, setRefDataLoaded] = useState(false);
+  const [refDataLoading, setRefDataLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = usePageSessionState<string>("searchQuery", "");
@@ -164,16 +166,36 @@ const FinanceJournalPage = () => {
   const fetchData = useCallback(async () => {
     if (!user || !dataOwnerId) return;
     setLoading(true);
-    const [vRes, aRes, cRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", dataOwnerId).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
+    // Only fetch the vouchers list on page load (fast).
+    // Accounts + contacts are only needed inside the form modal — load them lazily.
+    const vRes = await supabase
+      .from("vouchers")
+      .select("id, ref_number, date, subtype, contact_id, contact_name, description, notes, amount, status, created_at")
+      .eq("user_id", dataOwnerId)
+      .eq("type", "journal")
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    setVouchers(vRes.data || []);
+    setLoading(false);
+  }, [user, dataOwnerId]);
+
+  // Lazy loader for accounts + contacts (needed inside the modal / filters)
+  const ensureRefData = useCallback(async () => {
+    if (refDataLoaded || refDataLoading || !dataOwnerId) return;
+    setRefDataLoading(true);
+    const [aRes, cRes] = await Promise.all([
       supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
       supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", dataOwnerId).neq("is_archived", true),
     ]);
-    setVouchers(vRes.data || []);
     setAccounts(aRes.data || []);
     setContacts(cRes.data || []);
-    setLoading(false);
-  }, [user, dataOwnerId]);
+    setRefDataLoaded(true);
+    setRefDataLoading(false);
+  }, [dataOwnerId, refDataLoaded, refDataLoading]);
+
+  // Load reference data as soon as the modal opens
+  useEffect(() => { if (modalOpen) ensureRefData(); }, [modalOpen, ensureRefData]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
@@ -248,6 +270,7 @@ const FinanceJournalPage = () => {
   };
 
   const openVoucherForEdit = async (voucherId: string) => {
+    ensureRefData();
     const [vRes, lRes] = await Promise.all([
       supabase.from("vouchers").select("*").eq("id", voucherId).single(),
       supabase.from("voucher_lines").select("*").eq("voucher_id", voucherId).order("line_order"),
