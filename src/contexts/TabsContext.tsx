@@ -110,6 +110,8 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/opening-balances-import": { title: "أرصدة افتتاحية", icon: "file" },
   "/finance/receipt/new": { title: "سند قبض جديد", icon: "landmark" },
   "/finance/payment/new": { title: "سند صرف جديد", icon: "banknote" },
+  "/finance/payment/bulk/new": { title: "سند صرف جماعي جديد", icon: "banknote" },
+  "/finance/receipt/bulk/new": { title: "سند قبض جماعي جديد", icon: "landmark" },
   "/finance/journal/new": { title: "قيد يومي جديد", icon: "clipboard" },
   "/finance/settings/journal-books": { title: "دفاتر السندات", icon: "book" },
   "/finance/cost-centers": { title: "مراكز التكلفة", icon: "briefcase" },
@@ -235,6 +237,8 @@ export const ICON_MAP: Record<string, React.ElementType> = {
 const DYNAMIC_PATTERNS: Array<{ regex: RegExp; title: string; icon: string }> = [
   { regex: /^\/finance\/receipt\/[^/]+\/edit$/, title: "تعديل سند قبض", icon: "landmark" },
   { regex: /^\/finance\/payment\/[^/]+\/edit$/, title: "تعديل سند صرف", icon: "banknote" },
+  { regex: /^\/finance\/payment\/bulk\/[^/]+\/edit$/, title: "تعديل سند صرف جماعي", icon: "banknote" },
+  { regex: /^\/finance\/receipt\/bulk\/[^/]+\/edit$/, title: "تعديل سند قبض جماعي", icon: "landmark" },
   { regex: /^\/finance\/journal\/[^/]+\/edit$/, title: "تعديل قيد", icon: "clipboard" },
   { regex: /^\/invoices\/[^/]+\/edit$/, title: "تعديل فاتورة", icon: "file" },
   { regex: /^\/invoices\/[^/]+$/, title: "تفاصيل فاتورة", icon: "file" },
