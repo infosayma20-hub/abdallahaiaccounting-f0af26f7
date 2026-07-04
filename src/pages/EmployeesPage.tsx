@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield, Ban, CheckCircle2, Fingerprint } from "lucide-react";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { validatePhoneOptional } from "@/lib/hr/phoneValidation";
 import { Switch } from "@/components/ui/switch";
@@ -715,6 +715,16 @@ const EmployeesPage = () => {
             </button>
             <button onClick={() => navigate(`/account-statement?employee_name=${encodeURIComponent(emp.full_name)}`)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="كشف حساب">
               <FileBarChart className="h-3.5 w-3.5 text-accent-foreground" />
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date();
+                navigate(`/hr-attendance?tab=monthly&employee=${emp.id}&year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
+              }}
+              className="p-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors"
+              title="كشف بصمات الشهر الحالي"
+            >
+              <Fingerprint className="h-3.5 w-3.5 text-emerald-600" />
             </button>
             <button onClick={() => handleDelete(emp.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
               <Trash2 className="h-3.5 w-3.5 text-destructive" />

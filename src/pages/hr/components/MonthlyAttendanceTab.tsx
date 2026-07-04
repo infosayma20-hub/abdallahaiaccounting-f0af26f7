@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,10 +75,14 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function MonthlyAttendanceTab({ employees }: { employees: EmployeeLite[] }) {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const now = new Date();
-  const [year, setYear] = useState<number>(now.getFullYear());
-  const [month, setMonth] = useState<number>(now.getMonth() + 1);
-  const [employeeId, setEmployeeId] = useState<string>("all");
+  const initialYear = Number(searchParams.get("year")) || now.getFullYear();
+  const initialMonth = Number(searchParams.get("month")) || (now.getMonth() + 1);
+  const initialEmployee = searchParams.get("employee") || "all";
+  const [year, setYear] = useState<number>(initialYear);
+  const [month, setMonth] = useState<number>(initialMonth);
+  const [employeeId, setEmployeeId] = useState<string>(initialEmployee);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [rows, setRows] = useState<MonthRow[]>([]);
