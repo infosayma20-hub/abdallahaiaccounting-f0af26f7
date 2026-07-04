@@ -127,6 +127,55 @@ export default function EmployeeFormsManagementPage() {
   // Unified intake panel — collapsed by default (dedicated place for pausing all incoming requests)
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [pendingPwdResetCount, setPendingPwdResetCount] = useState(0);
+  const [intakeSaving, setIntakeSaving] = useState(false);
+  // Local buffers for the closed-messages Textareas so we only persist on blur.
+  const [advMsgDraft, setAdvMsgDraft] = useState<string>("");
+  const [leaveMsgDraft, setLeaveMsgDraft] = useState<string>("");
+  useEffect(() => {
+    setAdvMsgDraft(companySettings.hr_advance_requests_closed_message ?? "");
+  }, [companySettings.hr_advance_requests_closed_message]);
+  useEffect(() => {
+    setLeaveMsgDraft(companySettings.hr_leave_requests_closed_message ?? "");
+  }, [companySettings.hr_leave_requests_closed_message]);
+
+  /**
+   * Persist intake-related company_settings fields directly (without relying on
+   * a separate "Save" button). Employees load this row on mount, so writing
+   * immediately + broadcasting a realtime UPDATE makes the pause take effect
+   * without any refresh on the employee side.
+   */
+  const persistIntake = async (
+    patch: Partial<{
+      hr_allow_advance_requests: boolean;
+      hr_allow_leave_requests: boolean;
+      hr_advance_requests_closed_message: string;
+      hr_leave_requests_closed_message: string;
+    }>
+  ) => {
+    // Optimistic UI update
+    updateCompanySettings(patch as any);
+    const ownerId = dataOwnerId || user?.id;
+    if (!ownerId) {
+      toast.error("تعذر تحديد صاحب البيانات");
+      return;
+    }
+    setIntakeSaving(true);
+    try {
+      // Ensure a row exists first, then update. Using upsert on user_id keeps
+      // this atomic and works whether or not company_settings exists yet.
+      const payload: any = { user_id: ownerId, updated_by: user?.id || null, ...patch };
+      const { error } = await supabase
+        .from("company_settings" as any)
+        .upsert(payload, { onConflict: "user_id" });
+      if (error) throw error;
+      toast.success("تم الحفظ", { duration: 1200 });
+    } catch (e: any) {
+      toast.error("فشل حفظ الإعداد", { description: e?.message });
+    } finally {
+      setIntakeSaving(false);
+    }
+  };
+
   useEffect(() => {
     let ch: ReturnType<typeof supabase.channel> | null = null;
     const load = async () => {
