@@ -58,6 +58,7 @@ interface Row {
   status: string;
   status_label: string;
   notes: string | null;
+  is_bulk: boolean;
   raw: any;
 }
 
@@ -154,7 +155,10 @@ export default function FinancePaymentsPage() {
       const txInfo = rv.linked_transaction_id ? txMap.get(rv.linked_transaction_id) : null;
       const ccId = txInfo?.cost_center_id || null;
       const currency = cb?.currency || ba?.currency || "ILS";
-      const partyLabel = rv.contact_name
+      const isBulk = rv.subtype === "bulk";
+      const partyLabel = isBulk
+        ? "سند جماعي — عدة سطور"
+        : rv.contact_name
         || cMap.get(rv.contact_id || "")
         || empMap.get(rv.employee_id || "")
         || (txInfo?.debit_account_code ? accountMap.get(txInfo.debit_account_code) : "")
@@ -178,6 +182,7 @@ export default function FinancePaymentsPage() {
         status: rv.status || "posted",
         status_label: STATUS_LABELS[rv.status] || rv.status || "—",
         notes: rv.notes || null,
+        is_bulk: isBulk,
         raw: rv,
       };
     });
@@ -320,10 +325,11 @@ export default function FinancePaymentsPage() {
 
   const handleEdit = async (r: Row) => {
     try { await assertPermission("finance", "payments", "update"); } catch { return; }
-    // Open in read-only view first; the EditPostedWarningDialog will be
-    // triggered from inside VoucherFormPage when the user explicitly
-    // presses "تعديل" on a posted voucher.
-    navigate(`/finance/payment/${r.id}/edit`);
+    if (r.is_bulk) {
+      navigate(`/finance/payment/bulk/${r.id}/edit`);
+    } else {
+      navigate(`/finance/payment/${r.id}/edit`);
+    }
   };
   const confirmEditPosted = () => {
     if (!warnTarget) return;
@@ -346,6 +352,23 @@ export default function FinancePaymentsPage() {
   const confirmDelete = async (reason: string) => {
     if (!delTarget || !user) return;
     try {
+      // Bulk vouchers use dedicated RPC (reverses all N transactions atomically)
+      if (delTarget.is_bulk) {
+        const { error: rpcErr } = await (supabase as any).rpc("cancel_bulk_voucher", {
+          p_voucher_id: delTarget.id, p_reason: reason,
+        });
+        if (rpcErr) throw rpcErr;
+        await supabase.from("document_edit_history" as any).insert({
+          document_id: delTarget.id, document_type: "payment",
+          old_data: delTarget.raw, edit_reason: reason,
+          edited_by: user.id, user_id: ownerId,
+          changes: { action: "cancel_bulk", reason },
+        } as any);
+        toast({ title: "تم إلغاء السند الجماعي وعكس كل حركاته ✅" });
+        setDelOpen(false);
+        fetchData();
+        return;
+      }
       const { data: links } = await supabase.from("payment_invoice_links" as any)
         .select("invoice_id, allocated_amount").eq("payment_id", delTarget.id);
       if (links && links.length) {
