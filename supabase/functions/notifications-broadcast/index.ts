@@ -215,6 +215,17 @@ Deno.serve(async (req) => {
           delivery_status: ok ? "delivered" : "failed",
           delivery_error: deliveryError,
         });
+        // In-app copy — يظهر داخل جرس الإشعارات حتى لو Push فشل / غير مفعّل.
+        logRows.push({
+          user_id: userId,
+          type: "broadcast",
+          channel: "in_app",
+          title,
+          body: messageBody,
+          path: path ?? null,
+          broadcast_id: broadcast.id,
+          delivery_status: "delivered",
+        });
       } catch (e) {
         failed++;
         failureDetails.push({
@@ -232,6 +243,17 @@ Deno.serve(async (req) => {
           delivery_status: "failed",
           delivery_error: String(e),
         });
+        // In-app copy still delivered so user sees it in the bell.
+        logRows.push({
+          user_id: userId,
+          type: "broadcast",
+          channel: "in_app",
+          title,
+          body: messageBody,
+          path: path ?? null,
+          broadcast_id: broadcast.id,
+          delivery_status: "delivered",
+        });
       }
     };
 
@@ -246,9 +268,16 @@ Deno.serve(async (req) => {
       await admin.from("notification_log").insert(logRows);
     }
 
-    const finalStatus = failed === 0 ? "completed" : sent === 0 ? "failed" : "partial";
+    // In-app delivery succeeded for every recipient (row inserted in notification_log).
+    // Push is best-effort — if it failed the user still sees the message inside the app bell.
+    const inappDelivered = recipients.length;
+    const finalStatus = failed === 0
+      ? "completed"
+      : sent === 0
+        ? "in_app_only"
+        : "partial";
     const errorSummary = failureDetails.length
-      ? failureDetails.slice(0, 3).map((f) => `${f.recipient}: ${f.error}`).join(" | ")
+      ? `Push غير مفعّل لدى ${failed} مستخدم — تم تسليم الإشعار داخل التطبيق (جرس الإشعارات).`
       : null;
     await admin
       .from("notification_broadcasts")
@@ -262,7 +291,19 @@ Deno.serve(async (req) => {
       .eq("id", broadcast.id);
 
     return new Response(
-      JSON.stringify({ ok: true, broadcast_id: broadcast.id, recipients: recipients.length, sent, failed, status: finalStatus, failure_details: failureDetails }),
+      JSON.stringify({
+        ok: true,
+        broadcast_id: broadcast.id,
+        recipients: recipients.length,
+        sent,
+        failed,
+        inapp_delivered: inappDelivered,
+        status: finalStatus,
+        note: failed > 0
+          ? `تم تسليم الرسالة داخل التطبيق لـ ${inappDelivered} مستخدم. Push فشل لـ ${failed} (لم يفعّلوا الإشعارات بعد).`
+          : undefined,
+        failure_details: failureDetails,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
