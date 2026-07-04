@@ -470,6 +470,25 @@ export default function BulkVoucherPage({ mode }: Props) {
     }
   };
 
+  /* Prev / Next / Query — navigate across bulk vouchers of the same type */
+  const navigateSibling = async (dir: "prev" | "next") => {
+    if (!ownerId) return;
+    const q = supabase
+      .from("vouchers")
+      .select("id, ref_number")
+      .eq("user_id", ownerId)
+      .eq("type", voucherType)
+      .eq("subtype", "bulk")
+      .like("ref_number", `${refPrefix}-%`);
+    const ordered = dir === "prev"
+      ? q.lt("ref_number", refNumber || "\uffff").order("ref_number", { ascending: false }).limit(1)
+      : q.gt("ref_number", refNumber || "").order("ref_number", { ascending: true }).limit(1);
+    const { data } = await ordered;
+    const row = (data || [])[0] as any;
+    if (!row) { toast.info(dir === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالي"); return; }
+    navigate(isPayment ? `/finance/payment/bulk/${row.id}/edit` : `/finance/receipt/bulk/${row.id}/edit`);
+  };
+
   const handlePrint = () => {
     printBulkVoucher({
       mode,
