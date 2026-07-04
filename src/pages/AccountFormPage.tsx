@@ -218,7 +218,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   // Validate code
   useEffect(() => {
     if (!code) { setCodeError(""); return; }
-    if (!/^\d{3,6}$/.test(code)) { setCodeError("يجب أن يكون 3-6 أرقام"); return; }
+    if (!/^\d{3,10}$/.test(code)) { setCodeError("يجب أن يكون 3-10 أرقام"); return; }
     const exists = accounts.some(a => a.account_code === code && a.id !== accountId);
     setCodeError(exists ? "هذا الرمز مستخدم" : "");
   }, [code, accounts, accountId]);
