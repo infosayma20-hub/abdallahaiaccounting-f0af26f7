@@ -202,6 +202,7 @@ export default function BulkVoucherPage({ mode }: Props) {
               contact_name: l.contact_name || undefined,
               description: l.description || l.line_comment || "",
               amount: Number(isPayment ? l.debit : l.credit) || 0,
+              cost_center_id: l.cost_center_id || null,
               linked_invoice: null,
             })));
           }
