@@ -99,9 +99,9 @@ export default function BulkVoucherPage({ mode }: Props) {
   const [status, setStatus] = useState<"draft" | "posted" | "cancelled">("draft");
 
   // Source
-  const source = "cash" as const;
+  const [source, setSource] = useState<"cash" | "bank">("cash");
   const [cashBoxId, setCashBoxId] = useState<string>("");
-  const bankAccountId = "";
+  const [bankAccountId, setBankAccountId] = useState<string>("");
 
   // Loaded data
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
