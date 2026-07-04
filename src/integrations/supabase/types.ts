@@ -24184,6 +24184,13 @@ export type Database = {
         Returns: string
       }
       get_accounting_center_snapshot: { Args: never; Returns: Json }
+      get_all_cash_box_balances: {
+        Args: { p_owner: string }
+        Returns: {
+          account_code: string
+          balance: number
+        }[]
+      }
       get_attendance_selfie_path: {
         Args: { _event_id: string }
         Returns: {

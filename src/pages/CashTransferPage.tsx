@@ -82,20 +82,18 @@ const CashTransferPage = () => {
 
   const fetchBase = useCallback(async () => {
     if (!user || !dataOwnerId) return;
-    const [bRes, tRes, txRes] = await Promise.all([
+    const [bRes, tRes, balRes] = await Promise.all([
       supabase.from("cash_boxes").select("*").eq("user_id", dataOwnerId).eq("is_active", true),
       supabase.from("cash_transfers").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }).limit(200),
-      supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", dataOwnerId).eq("is_deleted", false),
+      (supabase as any).rpc("get_all_cash_box_balances", { p_owner: dataOwnerId }),
     ]);
     const boxesData = bRes.data || [];
     setBoxes(boxesData);
     setTransfers(tRes.data || []);
     const bals: Record<string, number> = {};
     (boxesData || []).forEach((b: any) => { if (b.gl_account_code) bals[b.gl_account_code] = 0; });
-    (txRes.data || []).forEach((tx: any) => {
-      const a = Number(tx.amount) || 0;
-      if (tx.debit_account_code && bals[tx.debit_account_code] !== undefined) bals[tx.debit_account_code] += a;
-      if (tx.credit_account_code && bals[tx.credit_account_code] !== undefined) bals[tx.credit_account_code] -= a;
+    (balRes.data || []).forEach((r: any) => {
+      if (r.account_code) bals[r.account_code] = Number(r.balance) || 0;
     });
     setBalances(bals);
   }, [user, dataOwnerId]);
