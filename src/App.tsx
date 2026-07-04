@@ -91,6 +91,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
 const EmployeeAttendancePage = lazy(() => import("./pages/EmployeeAttendancePage"));
 const HRAttendancePage = lazy(() => import("./pages/HRAttendancePage"));
+const AttendanceBackfillPage = lazy(() => import("./pages/hr/AttendanceBackfillPage"));
 const BranchDisplayPage = lazy(() => import("./pages/BranchDisplayPage"));
 const EmployeeApp = lazy(() => import("./pages/EmployeeApp"));
 const ChooseWorkspacePage = lazy(() => import("./pages/ChooseWorkspacePage"));
@@ -853,6 +854,7 @@ const App = () => (
                       <Route path="/delivery-notes/:id" element={<DeliveryNoteCreatePage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_attendance", "can_manage_attendance"]}><HRAttendancePage /></HRPermGuard></RoleGuard></HRShell>} />
+                      <Route path="/hr-attendance/backfill" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_attendance"]}><AttendanceBackfillPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/advances" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_advances"]}><AdvancesPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/loans" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_loans"]}><LoansPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/hr-deductions" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_deductions"]}><HRDeductionsPage /></HRPermGuard></RoleGuard></HRShell>} />
