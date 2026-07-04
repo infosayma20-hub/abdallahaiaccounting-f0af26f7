@@ -569,13 +569,20 @@ export default function FinancePaymentsPage() {
                         style={cancelled ? { opacity: 0.55, textDecoration: "line-through" } : undefined}
                       >
                         <td className="px-3 py-2 align-middle">
-                          <button
-                            onClick={() => handleEdit(r)}
-                            className="text-primary hover:underline font-mono text-xs bg-transparent border-0 p-0 cursor-pointer truncate block max-w-full text-right"
-                            title={r.ref_number}
-                          >
-                            {r.ref_number || "—"}
-                          </button>
+                          <div className="flex items-center gap-1.5 justify-end">
+                            {r.is_bulk && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700" title="سند جماعي">
+                                جماعي
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleEdit(r)}
+                              className="text-primary hover:underline font-mono text-xs bg-transparent border-0 p-0 cursor-pointer truncate block max-w-full text-right"
+                              title={r.ref_number}
+                            >
+                              {r.ref_number || "—"}
+                            </button>
+                          </div>
                         </td>
                         {show("date") && <td className="px-3 py-2 text-xs tabular-nums align-middle">{fmtDateDisplay(r.date) || "—"}</td>}
                         {show("contact_name") && (
