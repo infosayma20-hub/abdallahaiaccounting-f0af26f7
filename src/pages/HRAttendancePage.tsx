@@ -35,6 +35,7 @@ import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
+import BackfillAttendanceDialog from "@/components/hr/BackfillAttendanceDialog";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate, useSearchParams } from "react-router-dom";
