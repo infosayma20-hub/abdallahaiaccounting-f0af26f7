@@ -228,7 +228,7 @@ const CurrencyExchangePage = () => {
       .from("transactions")
       .update({ is_deleted: true } as any)
       .eq("user_id", dataOwnerId)
-      .ilike("description", `%${REF_TAG(ref)}%`);
+      .eq("reference", ref);
   };
 
   const performPosting = async (refKey: string) => {
@@ -241,13 +241,16 @@ const CurrencyExchangePage = () => {
     const foreignCurName = fromIsILS ? toCur.arLabel : fromCur.arLabel;
     const ilsPerForeign = ilsAmount / foreignAmount;
 
-    const baseDesc = description || `صرف عملة: ${fromBox.name} (${fromCur.arLabel} ${fmt(fAmt)}) → ${toBox.name} (${toCur.arLabel} ${fmt(tAmt)}) | سعر: 1 ${fromCur.arLabel} = ${r} ${toCur.arLabel}`;
-    const finalDesc = `${baseDesc}${notes ? ` — ${notes}` : ""} ${REF_TAG(refKey)}`;
+    // User-facing description (appears on account statements and reports).
+    const baseDesc = description || `صرف ${fromBox.name} (${fromCur.symbol}${fmt(fAmt)}) → ${toBox.name}`;
+    const txDesc = `${baseDesc}${notes ? ` — ${notes}` : ""}`;
+    // Internal description keeps the FXREF tag so we can locate the record for edit/delete.
+    const internalDesc = `${txDesc} ${REF_TAG(refKey)}`;
 
     const { error: insErr } = await supabase.from("transactions").insert({
       user_id: dataOwnerId!,
       transaction_date: transferDate,
-      description: finalDesc,
+      description: txDesc,
       debit_account_code: toBox.gl_account_code,
       credit_account_code: fromBox.gl_account_code,
       amount: ilsAmount,
@@ -260,7 +263,7 @@ const CurrencyExchangePage = () => {
       payment_method: "exchange",
     });
     if (insErr) throw insErr;
-    return { finalDesc, ilsAmount, foreignAmount, r };
+    return { txDesc, internalDesc, ilsAmount, foreignAmount, r };
   };
 
   const validate = (): string | null => {
@@ -289,7 +292,7 @@ const CurrencyExchangePage = () => {
         if (oldRef) await purgeTransactionsForRef(oldRef);
 
         const newRef = `FX-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const { finalDesc, r } = await performPosting(newRef);
+        const { internalDesc, r } = await performPosting(newRef);
 
         await supabase.from("cash_transfers").update({
           from_box_id: fromBoxId,
@@ -298,14 +301,14 @@ const CurrencyExchangePage = () => {
           currency: fromCur.code,
           exchange_rate: r,
           transfer_date: transferDate,
-          description: finalDesc,
+          description: internalDesc,
         }).eq("id", editId);
 
         broadcastChange("transaction", "updated", editId);
         toast({ title: "✅ تم تحديث الصرف وإعادة الترحيل" });
       } else {
         const newRef = `FX-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const { finalDesc, r } = await performPosting(newRef);
+        const { internalDesc, r } = await performPosting(newRef);
 
         const { data: inserted } = await supabase.from("cash_transfers").insert({
           user_id: dataOwnerId,
@@ -315,7 +318,7 @@ const CurrencyExchangePage = () => {
           currency: fromCur.code,
           exchange_rate: r,
           transfer_date: transferDate,
-          description: finalDesc,
+          description: internalDesc,
           transfer_type: "currency_exchange",
         }).select("id").maybeSingle();
 
@@ -636,7 +639,7 @@ const CurrencyExchangePage = () => {
             <div>
               <Label className="text-xs font-bold">البيان</Label>
               <Input value={description} onChange={e => setDescription(e.target.value)} disabled={readonly}
-                placeholder={fromBox && toBox ? `صرف عملة: ${fromBox.name} → ${toBox.name}` : "البيان..."}
+                placeholder={fromBox && toBox ? `صرف: ${fromBox.name} → ${toBox.name}` : "البيان..."}
                 className="mt-1 h-10" />
             </div>
 
