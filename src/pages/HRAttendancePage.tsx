@@ -1751,7 +1751,23 @@ export default function HRAttendancePage() {
                               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
                                 {(r.employees?.full_name || "?").slice(0, 1)}
                               </div>
-                              <span>{r.employees?.full_name || "—"}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const now = new Date();
+                                  const next = new URLSearchParams(searchParams);
+                                  next.set("tab", "monthly");
+                                  next.set("employee", r.employee_id);
+                                  next.set("year", String(now.getFullYear()));
+                                  next.set("month", String(now.getMonth() + 1));
+                                  setSearchParams(next);
+                                  setActiveTab("monthly");
+                                }}
+                                className="text-primary hover:underline hover:text-primary/80 transition-colors text-right"
+                                title="كشف بصمات الشهر الحالي"
+                              >
+                                {r.employees?.full_name || "—"}
+                              </button>
                               {r.is_manually_adjusted && <Badge variant="outline" className="text-[10px] h-4 px-1">معدّل يدوياً</Badge>}
                               {issue.isEstimatedShift && (
                                 <Badge
