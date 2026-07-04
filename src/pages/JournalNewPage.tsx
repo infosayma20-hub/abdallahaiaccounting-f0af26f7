@@ -1468,7 +1468,7 @@ const JournalNewPage = () => {
                     <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
-                        value={line.debit || ""}
+                        value={amountDrafts[line.id]?.debit ?? (line.debit ? String(line.debit) : "")}
                         onChange={e => {
                           const val = e.target.value;
                           if (val === "=" || val === "=") {
@@ -1477,10 +1477,16 @@ const JournalNewPage = () => {
                             const currentTotalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
                             const remaining = Math.max(0, currentTotalCredit - otherDebit);
                             updateLine(line.id, "debit", remaining);
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], debit: undefined } }));
                           } else {
-                            updateLine(line.id, "debit", Number(val) || 0);
+                            // Accept only digits and a single dot; preserve raw text so
+                            // users can type "13." then "13.5" without disruption.
+                            const cleaned = val.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], debit: cleaned } }));
+                            updateLine(line.id, "debit", cleaned === "" || cleaned === "." ? 0 : Number(cleaned) || 0);
                           }
                         }}
+                        onBlur={() => setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], debit: undefined } }))}
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -1494,7 +1500,7 @@ const JournalNewPage = () => {
                     <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
-                        value={line.credit || ""}
+                        value={amountDrafts[line.id]?.credit ?? (line.credit ? String(line.credit) : "")}
                         onChange={e => {
                           const val = e.target.value;
                           if (val === "=" || val === "=") {
@@ -1502,10 +1508,14 @@ const JournalNewPage = () => {
                             const currentTotalDebit = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
                             const remaining = Math.max(0, currentTotalDebit - otherCredit);
                             updateLine(line.id, "credit", remaining);
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], credit: undefined } }));
                           } else {
-                            updateLine(line.id, "credit", Number(val) || 0);
+                            const cleaned = val.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], credit: cleaned } }));
+                            updateLine(line.id, "credit", cleaned === "" || cleaned === "." ? 0 : Number(cleaned) || 0);
                           }
                         }}
+                        onBlur={() => setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], credit: undefined } }))}
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
