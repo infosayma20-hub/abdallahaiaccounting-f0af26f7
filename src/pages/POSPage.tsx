@@ -3949,6 +3949,17 @@ const POSPage = () => {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
     }
+    // Split mode: any employee_account tender ALSO requires a selected employee.
+    // Without it, the backend has no ذمم-موظف account to debit and falls back to
+    // the shift's cash box account, corrupting both AR and cash balances.
+    if (
+      splitMode &&
+      splitTenders.some((t) => t.method === "employee_account" && Number(t.amount) > 0) &&
+      !selectedEmployee
+    ) {
+      toast.error("يرجى اختيار الموظف قبل استخدام دفعة \"حساب موظف\" في الدفع المقسم");
+      return;
+    }
     if (
       effectivePaymentMethod === "employee_account" &&
       mealDiscountMode === "dual" &&
