@@ -140,7 +140,7 @@ export default function AdvancedEntitySearch({
     if (custs.length > 0) {
       groups.push({
         key: "customers", label: "الزبائن", emoji: "👤",
-        items: custs.slice(0, 50).map(c => ({
+        items: custs.slice(0, 200).map(c => ({
           id: c.id, name: c.contact_name, code: c.linked_account_code || "",
           balance: contactBalances[c.id] || 0, txCount: contactTxCounts[c.id] || 0, tab: "customers",
         })),
@@ -152,7 +152,7 @@ export default function AdvancedEntitySearch({
     if (sups.length > 0) {
       groups.push({
         key: "suppliers", label: "الموردين", emoji: "🚚",
-        items: sups.slice(0, 50).map(c => ({
+        items: sups.slice(0, 200).map(c => ({
           id: c.id, name: c.contact_name, code: c.linked_account_code || "",
           balance: contactBalances[c.id] || 0, txCount: contactTxCounts[c.id] || 0, tab: "suppliers",
         })),
@@ -164,7 +164,7 @@ export default function AdvancedEntitySearch({
     if (emps.length > 0) {
       groups.push({
         key: "employees", label: "الموظفين", emoji: "👨‍💼",
-        items: emps.slice(0, 30).map(e => ({
+        items: emps.slice(0, 200).map(e => ({
           id: e.id, name: e.full_name, code: e.account_code || "",
           balance: employeeBalances[e.id] || 0, txCount: employeeTxCounts[e.id] || 0, tab: "employees",
         })),
@@ -177,7 +177,7 @@ export default function AdvancedEntitySearch({
     if (accs.length > 0) {
       groups.push({
         key: "accounts", label: "الحسابات العامة", emoji: "📊",
-        items: accs.slice(0, 50).map(a => ({
+        items: accs.slice(0, 300).map(a => ({
           id: a.id, name: a.account_name, code: a.account_code,
           balance: accountBalances[a.id] || 0, txCount: accountTxCounts[a.id] || 0, tab: "accounts",
         })),
