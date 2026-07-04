@@ -20,6 +20,8 @@ interface Props {
   disabled?: boolean;
   className?: string;
   allowClear?: boolean;
+  /** عرض الأيقونة فقط (زر مضغوط بدون نص) */
+  iconOnly?: boolean;
 }
 
 /** Combobox لاختيار مركز تكلفة: بحث بالكود/الاسم، يخفي غير النشطة. */
@@ -30,6 +32,7 @@ export default function CostCenterCombobox({
   disabled,
   className,
   allowClear = true,
+  iconOnly = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const { data: list = [], isLoading } = useCostCenters();
@@ -39,6 +42,23 @@ export default function CostCenterCombobox({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
+        {iconOnly ? (
+          <Button
+            type="button"
+            variant={selected ? "default" : "outline"}
+            size="icon"
+            disabled={disabled}
+            dir="rtl"
+            title={selected ? `مركز التكلفة: ${selected.code} - ${selected.name_ar || selected.name}` : (placeholder || "إضافة مركز تكلفة")}
+            aria-label={selected ? `مركز التكلفة: ${selected.name_ar || selected.name}` : "اختر مركز تكلفة"}
+            className={cn("h-8 w-8 shrink-0 relative", className)}
+          >
+            <Tag className="h-4 w-4" />
+            {selected && (
+              <span className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+            )}
+          </Button>
+        ) : (
         <Button
           type="button"
           variant="outline"
@@ -60,6 +80,7 @@ export default function CostCenterCombobox({
           </span>
           <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-[320px] p-0 z-[100]" align="start" dir="rtl">
         <Command dir="rtl">

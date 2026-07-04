@@ -1362,12 +1362,12 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right border-b-2 border-border" style={{ background: "#0D1B2A" }}>
                   <th className="p-3.5 text-white font-semibold text-[13px] w-12 border-l border-white/10">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "10%" }}>رقم الحساب</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "26%" }}>الحساب أو الجهة</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>مدين ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>دائن ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "22%" }}>تعليق</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "18%" }}>مركز التكلفة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "9%" }}>رقم الحساب</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "24%" }}>الحساب أو الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "27%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10 text-center" style={{ width: "60px" }} title="مركز التكلفة">م.ت</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
@@ -1494,7 +1494,7 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-debit={line.id}
-                        className="h-11 font-mono text-sm" placeholder="0"
+                        className="h-12 font-mono text-base font-semibold tracking-tight text-right" placeholder="0.00"
                       />
                     </td>
                     <td className="p-3">
@@ -1523,7 +1523,7 @@ const JournalNewPage = () => {
                           }
                         }}
                         data-journal-credit={line.id}
-                        className="h-11 font-mono text-sm" placeholder="0"
+                        className="h-12 font-mono text-base font-semibold tracking-tight text-right" placeholder="0.00"
                       />
                     </td>
                     <td className="p-3">
@@ -1542,7 +1542,7 @@ const JournalNewPage = () => {
                       />
                     </td>
                     <td
-                      className="p-3"
+                      className="p-2 text-center"
                       onKeyDown={(e) => {
                         // Enter on the last row's cost-center cell creates a new row
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -1557,14 +1557,9 @@ const JournalNewPage = () => {
                       <CostCenterCombobox
                         value={line.cost_center_id || null}
                         onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
-                        placeholder={formCostCenterId ? "موروث من الرأس" : "بدون"}
-                        className="h-11 text-sm"
+                        placeholder={formCostCenterId ? "موروث من الرأس" : "إضافة مركز تكلفة"}
+                        iconOnly
                       />
-                      {!line.cost_center_id && formCostCenterId && (
-                        <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
-                          ↪ يرث مركز الرأس
-                        </p>
-                      )}
                     </td>
                     <td className="p-3">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
@@ -1610,13 +1605,14 @@ const JournalNewPage = () => {
         <CardContent className="p-3">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
             {/* Notes — right side in RTL (first in DOM) */}
-            <div className="lg:col-span-8 flex items-center gap-3">
-              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0">الملاحظات</Label>
-              <Input
+            <div className="lg:col-span-8 flex items-start gap-3">
+              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0 mt-2">الملاحظات</Label>
+              <Textarea
                 value={formNotes}
                 onChange={e => setFormNotes(e.target.value)}
-                placeholder="ملاحظات إضافية على السند..."
-                className="flex-1 h-10 border-2 border-border bg-background"
+                placeholder="ملاحظات إضافية على السند... (اضغط Enter لسطر جديد)"
+                rows={2}
+                className="flex-1 min-h-[44px] border-2 border-border bg-background resize-y text-sm leading-relaxed"
               />
             </div>
             {/* Attachments — left side, compact */}
