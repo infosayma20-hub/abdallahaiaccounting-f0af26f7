@@ -19966,6 +19966,7 @@ export type Database = {
           is_opening_balance: boolean | null
           notes: string | null
           payment_method: string | null
+          pos_order_id: string | null
           reference: string | null
           return_id: string | null
           reversed_by_id: string | null
@@ -19999,6 +20000,7 @@ export type Database = {
           is_opening_balance?: boolean | null
           notes?: string | null
           payment_method?: string | null
+          pos_order_id?: string | null
           reference?: string | null
           return_id?: string | null
           reversed_by_id?: string | null
@@ -20032,6 +20034,7 @@ export type Database = {
           is_opening_balance?: boolean | null
           notes?: string | null
           payment_method?: string | null
+          pos_order_id?: string | null
           reference?: string | null
           return_id?: string | null
           reversed_by_id?: string | null
@@ -20062,6 +20065,13 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_pos_order_id_fkey"
+            columns: ["pos_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
             referencedColumns: ["id"]
           },
           {
@@ -24985,6 +24995,10 @@ export type Database = {
           r_notes: string
           r_rows: number
         }[]
+      }
+      repost_pos_order_gl: {
+        Args: { p_dry_run?: boolean; p_order_id: string; p_reason?: string }
+        Returns: Json
       }
       request_rep_invoice_edit: {
         Args: { p_invoice_id: string; p_proposed_items: Json; p_reason: string }
