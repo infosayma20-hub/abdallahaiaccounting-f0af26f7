@@ -70,6 +70,7 @@ export default function AttendanceBackfillPage() {
   const [checkOut, setCheckOut] = useState("17:00");
   const [skipWeekends, setSkipWeekends] = useState(false);
   const [weekendDay, setWeekendDay] = useState<number>(5); // Friday
+  const [overwrite, setOverwrite] = useState(true);
   const [reason, setReason] = useState("موظف جديد — تعبئة بصمات بأثر رجعي");
 
   const [preview, setPreview] = useState<PreviewRow[]>([]);
@@ -178,8 +179,9 @@ export default function AttendanceBackfillPage() {
     runPreview();
   }, [runPreview]);
 
-  const willInsertCount = preview.filter(p => !p.existing).length;
-  const willSkipCount = preview.filter(p => p.existing).length;
+  const willInsertCount = overwrite ? preview.length : preview.filter(p => !p.existing).length;
+  const willSkipCount = overwrite ? 0 : preview.filter(p => p.existing).length;
+  const willOverwriteCount = overwrite ? preview.filter(p => p.existing).length : 0;
 
   const canRun =
     !running &&
@@ -204,6 +206,7 @@ export default function AttendanceBackfillPage() {
             p_check_in: checkIn + ":00",
             p_check_out: checkOut + ":00",
             p_reason: reason.trim(),
+            p_overwrite: overwrite,
           });
           if (error) throw error;
           const r: any = data || {};
