@@ -131,18 +131,17 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
       </svg>
 
       <div className="relative grid grid-cols-[auto_1fr] gap-6 md:gap-8">
-        {/* Big circular icon with dotted ring */}
-        <div className="relative flex items-center justify-center">
+        {/* Big circular icon centered inside dashed ring */}
+        <div
+          className={cn(
+            "relative shrink-0 rounded-full border-2 border-dashed flex items-center justify-center",
+            t.ringDots,
+          )}
+          style={{ width: "9rem", height: "9rem" }}
+        >
           <div
             className={cn(
-              "absolute inset-0 rounded-full border-2 border-dashed",
-              t.ringDots,
-            )}
-            style={{ width: "9rem", height: "9rem" }}
-          />
-          <div
-            className={cn(
-              "relative rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105",
+              "rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105",
               t.iconBg,
             )}
             style={{ width: "7rem", height: "7rem" }}
