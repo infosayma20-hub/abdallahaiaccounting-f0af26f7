@@ -15,7 +15,7 @@ import { fmtDateDisplay, cn } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   Loader2, Pencil, AlertCircle, Search, Calendar, Clock, XCircle,
-  AlertTriangle, RefreshCw, CheckCircle2,
+  AlertTriangle, RefreshCw, CheckCircle2, Plus, Trash2,
 } from "lucide-react";
 
 type EmployeeLite = {
@@ -37,6 +37,27 @@ type MonthRow = {
   notes: string | null;
   is_manually_adjusted: boolean | null;
   employees?: { full_name: string };
+};
+
+/** In-memory shape for an attendance break row while editing. */
+type BreakDraft = {
+  /** Existing DB id (null = new row not yet inserted). */
+  id: string | null;
+  break_type: "prayer" | "personal" | "meal" | "external_task" | "other";
+  /** HH:mm — same day as `attendance_date`. */
+  out: string;
+  in: string;
+  reason: string;
+  /** Marks rows that were loaded from DB and later removed by the user. */
+  _deleted?: boolean;
+};
+
+const BREAK_TYPE_LABEL: Record<BreakDraft["break_type"], string> = {
+  prayer: "خروج للصلاة",
+  personal: "خروج خاص",
+  meal: "استراحة طعام",
+  external_task: "مهمة عمل خارجية",
+  other: "أخرى",
 };
 
 type QuickFilter = "all" | "missing_checkout" | "missing_checkin" | "late" | "absent" | "present";
@@ -92,6 +113,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const [editing, setEditing] = useState<MonthRow | null>(null);
   const [form, setForm] = useState({ first_check_in: "", last_check_out: "", status: "present", notes: "", reason: "" });
   const [saving, setSaving] = useState(false);
+  const [breaks, setBreaks] = useState<BreakDraft[]>([]);
+  const [breaksLoading, setBreaksLoading] = useState(false);
 
   const fetchRows = useCallback(async () => {
     if (!user) return;
@@ -164,12 +187,95 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       notes: r.notes || "",
       reason: "",
     });
+    setBreaks([]);
+    setBreaksLoading(true);
+    supabase
+      .from("attendance_breaks")
+      .select("id, break_type, break_out, break_in, reason")
+      .eq("attendance_day_id", r.id)
+      .order("break_out", { ascending: true })
+      .then(({ data }) => {
+        setBreaks(
+          ((data as any[]) || []).map((b) => ({
+            id: b.id,
+            break_type: (b.break_type as BreakDraft["break_type"]) || "other",
+            out: b.break_out ? format(new Date(b.break_out), "HH:mm") : "",
+            in: b.break_in ? format(new Date(b.break_in), "HH:mm") : "",
+            reason: b.reason || "",
+          })),
+        );
+        setBreaksLoading(false);
+      });
+  };
+
+  /** Combine an attendance_date (YYYY-MM-DD) with HH:mm into a Date. */
+  const combineDT = useCallback((dateStr: string, hhmm: string): Date | null => {
+    if (!hhmm) return null;
+    const [y, mo, d] = dateStr.split("-").map(Number);
+    const [h, mi] = hhmm.split(":").map(Number);
+    if (!y || !mo || !d) return null;
+    return new Date(y, mo - 1, d, h || 0, mi || 0, 0, 0);
+  }, []);
+
+  /** Live totals for the dialog: gross span − sum(closed sessions). */
+  const liveTotals = useMemo(() => {
+    if (!editing) return { gross: 0, breakMin: 0, net: 0 };
+    const ci = combineDT(editing.attendance_date, form.first_check_in);
+    const co = combineDT(editing.attendance_date, form.last_check_out);
+    let gross = 0;
+    if (ci && co && co.getTime() > ci.getTime()) {
+      gross = Math.floor((co.getTime() - ci.getTime()) / 60000);
+    }
+    let breakMin = 0;
+    for (const b of breaks) {
+      if (b._deleted) continue;
+      const bo = combineDT(editing.attendance_date, b.out);
+      const bi = combineDT(editing.attendance_date, b.in);
+      if (bo && bi && bi.getTime() > bo.getTime()) {
+        breakMin += Math.floor((bi.getTime() - bo.getTime()) / 60000);
+      }
+    }
+    return { gross, breakMin, net: Math.max(0, gross - breakMin) };
+  }, [editing, form.first_check_in, form.last_check_out, breaks, combineDT]);
+
+  const fmtHM = (min: number) => `${Math.floor(min / 60)} س ${min % 60} د`;
+
+  /** Validate that every session sits inside the day span and doesn't overlap another. */
+  const validateBreaks = (): string | null => {
+    if (!editing) return null;
+    const ci = combineDT(editing.attendance_date, form.first_check_in);
+    const co = combineDT(editing.attendance_date, form.last_check_out);
+    const rows = breaks
+      .filter((b) => !b._deleted && (b.out || b.in))
+      .map((b) => ({
+        out: combineDT(editing.attendance_date, b.out),
+        in: combineDT(editing.attendance_date, b.in),
+        label: BREAK_TYPE_LABEL[b.break_type],
+      }));
+    for (const r of rows) {
+      if (!r.out || !r.in) return `الجلسة "${r.label}": يجب تعبئة وقت الخروج والعودة معاً`;
+      if (r.in.getTime() <= r.out.getTime()) return `الجلسة "${r.label}": وقت العودة يجب أن يكون بعد الخروج`;
+      if (ci && r.out.getTime() < ci.getTime()) return `الجلسة "${r.label}": خارج نطاق يوم العمل (قبل الدخول)`;
+      if (co && r.in.getTime() > co.getTime()) return `الجلسة "${r.label}": خارج نطاق يوم العمل (بعد الخروج)`;
+    }
+    const sorted = [...rows].sort((a, b) => (a.out!.getTime() - b.out!.getTime()));
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].out!.getTime() < sorted[i - 1].in!.getTime()) {
+        return "يوجد تداخل زمني بين الجلسات — راجع الأوقات";
+      }
+    }
+    return null;
   };
 
   const saveEdit = async () => {
     if (!editing || !user) return;
     if (!form.reason.trim()) {
       toast({ title: "سبب التعديل إلزامي", variant: "destructive" });
+      return;
+    }
+    const vErr = validateBreaks();
+    if (vErr) {
+      toast({ title: "خطأ في الجلسات", description: vErr, variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -183,35 +289,66 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       };
       const ci = buildTs(form.first_check_in);
       const co = buildTs(form.last_check_out);
-      let total = 0;
-      if (ci && co) total = Math.max(0, (new Date(co).getTime() - new Date(ci).getTime()) / 3600000);
-      // Recompute overtime based on employee's daily work hours (default 8)
-      let dailyHours = 8;
-      try {
-        const { data: emp } = await supabase
-          .from("employees")
-          .select("work_hours_per_day")
-          .eq("id", editing.employee_id)
-          .maybeSingle();
-        if (emp?.work_hours_per_day) dailyHours = Number(emp.work_hours_per_day) || 8;
-      } catch { /* fallback to 8 */ }
-      const overtime = ci && co ? Math.max(0, total - dailyHours) : 0;
-      const { error } = await supabase.from("attendance_days").update({
+      // 1) Update the day header (times/status/notes) — totals will be
+      //    recomputed by the DB trigger after breaks sync.
+      const { error: dayErr } = await supabase.from("attendance_days").update({
         first_check_in: ci,
         last_check_out: co,
-        total_hours: Number(total.toFixed(2)),
-        overtime_hours: Number(overtime.toFixed(2)),
         status: form.status,
         notes: form.notes || null,
         is_manually_adjusted: true,
         updated_at: new Date().toISOString(),
       }).eq("id", editing.id);
-      if (error) throw error;
+      if (dayErr) throw dayErr;
+
+      // 2) Sync breaks: delete removed, upsert current.
+      const toDelete = breaks.filter((b) => b._deleted && b.id).map((b) => b.id as string);
+      if (toDelete.length > 0) {
+        const { error: delErr } = await supabase
+          .from("attendance_breaks")
+          .delete()
+          .in("id", toDelete);
+        if (delErr) throw delErr;
+      }
+      const active = breaks.filter((b) => !b._deleted);
+      for (const b of active) {
+        const bo = buildTs(b.out);
+        const bi = buildTs(b.in);
+        if (!bo || !bi) continue;
+        if (b.id) {
+          const { error: uErr } = await supabase
+            .from("attendance_breaks")
+            .update({
+              break_type: b.break_type,
+              break_out: bo,
+              break_in: bi,
+              reason: b.reason || BREAK_TYPE_LABEL[b.break_type],
+            })
+            .eq("id", b.id);
+          if (uErr) throw uErr;
+        } else {
+          const { error: iErr } = await supabase.from("attendance_breaks").insert({
+            attendance_day_id: editing.id,
+            employee_id: editing.employee_id,
+            auth_user_id: user.id,
+            break_type: b.break_type,
+            break_out: bo,
+            break_in: bi,
+            reason: b.reason || BREAK_TYPE_LABEL[b.break_type],
+          } as any);
+          if (iErr) throw iErr;
+        }
+      }
+
+      // 3) Final safety net: explicitly recompute totals (the trigger already
+      //    did this on each break write, but a header-only edit needs it too).
+      await supabase.rpc("recompute_attendance_day_totals" as any, { p_day_id: editing.id } as any);
+
       await supabase.from("attendance_audit_logs").insert({
         table_name: "attendance_days",
         record_id: editing.id,
         action: "update",
-        new_values: { ...form } as any,
+        new_values: { ...form, sessions: breaks.filter(b => !b._deleted) } as any,
         changed_by: user.id,
         reason: form.reason,
       });
