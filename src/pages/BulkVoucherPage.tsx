@@ -667,7 +667,7 @@ export default function BulkVoucherPage({ mode }: Props) {
                     <th className="text-right p-2 min-w-[240px]">{isPayment ? "المستفيد / الحساب" : "العميل / الحساب"}</th>
                     <th className="text-right p-2 min-w-[180px]">البيان</th>
                     <th className="text-right p-2 w-32">ربط فاتورة</th>
-                    <th className="text-right p-2 w-32">المبلغ</th>
+                    <th className="text-right p-2 w-56">المبلغ</th>
                     <th className="p-2 w-10"></th>
                   </tr>
                 </thead>
@@ -742,10 +742,19 @@ export default function BulkVoucherPage({ mode }: Props) {
                           )}
                         </td>
                         <td className="p-2">
-                          <Input type="number" inputMode="decimal" step="0.01" min="0"
-                            value={l.amount || ""}
-                            onChange={e => updateLine(l.id, { amount: parseFloat(e.target.value) || 0 })}
-                            className="text-right font-mono" disabled={readonly} />
+                          <div className="flex items-center gap-1">
+                            <Input type="number" inputMode="decimal" step="0.01" min="0"
+                              value={l.amount || ""}
+                              onChange={e => updateLine(l.id, { amount: parseFloat(e.target.value) || 0 })}
+                              className="text-right font-mono text-base h-10 flex-1 min-w-[140px]"
+                              placeholder="0.00"
+                              disabled={readonly} />
+                            <CostCenterIconPicker
+                              value={l.cost_center_id || null}
+                              onChange={(v) => updateLine(l.id, { cost_center_id: v })}
+                              disabled={readonly}
+                            />
+                          </div>
                         </td>
                         <td className="p-2">
                           <Button size="icon" variant="ghost"
