@@ -28,6 +28,7 @@ import {
   ArrowUpRight,
   FileEdit,
   FilePlus2,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 
@@ -198,6 +199,20 @@ const voucherTiles: {
     icon: ArrowUpRight,
     accent: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
     shortcut: "Alt+E",
+  },
+  {
+    to: "/finance/payment/bulk/new",
+    title: "سند صرف جماعي",
+    description: "صرف دفعات متعددة (رواتب، سلف، مصاريف) بسند واحد.",
+    icon: Layers,
+    accent: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  },
+  {
+    to: "/finance/receipt/bulk/new",
+    title: "سند قبض جماعي",
+    description: "قبض دفعات متعددة من عملاء أو جهات بسند واحد.",
+    icon: Layers,
+    accent: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
   {
     to: "/finance/journal/new",

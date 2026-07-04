@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Save, CheckCircle, ArrowRight, AlertTriangle,
   User, BookOpen, Building2, Printer, XCircle, FileText, RefreshCw,
-  Calculator, Eraser, Layers, ArrowLeftRight, Tag,
+  Calculator, Eraser, Layers, ArrowLeftRight, Tag, ChevronRight, ChevronLeft, Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -470,6 +470,25 @@ export default function BulkVoucherPage({ mode }: Props) {
     }
   };
 
+  /* Prev / Next / Query — navigate across bulk vouchers of the same type */
+  const navigateSibling = async (dir: "prev" | "next") => {
+    if (!ownerId) return;
+    const q = supabase
+      .from("vouchers")
+      .select("id, ref_number")
+      .eq("user_id", ownerId)
+      .eq("type", voucherType)
+      .eq("subtype", "bulk")
+      .like("ref_number", `${refPrefix}-%`);
+    const ordered = dir === "prev"
+      ? q.lt("ref_number", refNumber || "\uffff").order("ref_number", { ascending: false }).limit(1)
+      : q.gt("ref_number", refNumber || "").order("ref_number", { ascending: true }).limit(1);
+    const { data } = await ordered;
+    const row = (data || [])[0] as any;
+    if (!row) { toast.info(dir === "prev" ? "لا يوجد سند سابق" : "لا يوجد سند تالي"); return; }
+    navigate(isPayment ? `/finance/payment/bulk/${row.id}/edit` : `/finance/receipt/bulk/${row.id}/edit`);
+  };
+
   const handlePrint = () => {
     printBulkVoucher({
       mode,
@@ -546,6 +565,12 @@ export default function BulkVoucherPage({ mode }: Props) {
         },
         {
           key: "nav", label: "تنقّل", items: [
+            { key: "prev", label: "السابق", icon: ChevronRight,
+              onClick: () => navigateSibling("prev"), disabled: !refNumber },
+            { key: "next", label: "التالي", icon: ChevronLeft,
+              onClick: () => navigateSibling("next"), disabled: !refNumber },
+            { key: "query", label: "استعلام", icon: Search,
+              onClick: () => navigate(`${listPath}?subtype=bulk`) },
             { key: "list", label: "قائمة السندات", icon: FileText,
               onClick: () => navigate(listPath) },
             { key: "back", label: "رجوع", icon: ArrowRight, variant: "ghost",
@@ -555,7 +580,7 @@ export default function BulkVoucherPage({ mode }: Props) {
       ],
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ]), [saving, readonly, validationError, isEdit, status, lines.length, isPayment]);
+  ]), [saving, readonly, validationError, isEdit, status, lines.length, isPayment, refNumber]);
 
   const statusBadge = status === "posted"
     ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">مُرحّل</Badge>
@@ -590,9 +615,9 @@ export default function BulkVoucherPage({ mode }: Props) {
           <div className="text-sm text-muted-foreground">جارٍ التحميل...</div>
         )}
 
-        {/* Header form */}
+        {/* Header (Top): رقم السند + التاريخ فقط */}
         <Card>
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>رقم السند</Label>
               <Input value={refNumber} onChange={e => setRefNumber(e.target.value)} disabled={readonly || isEdit} dir="ltr" />
@@ -600,51 +625,6 @@ export default function BulkVoucherPage({ mode }: Props) {
             <div>
               <Label>التاريخ</Label>
               <Input type="date" value={voucherDate} onChange={e => setVoucherDate(e.target.value)} disabled={readonly} />
-            </div>
-            <div>
-              <Label>طريقة الدفع</Label>
-              <Select value={source} onValueChange={(v: any) => setSource(v)} disabled={readonly}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">نقدي (صندوق)</SelectItem>
-                  <SelectItem value="bank">تحويل بنكي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {source === "cash" ? (
-              <div>
-                <Label>{isPayment ? "الصندوق المصروف منه" : "الصندوق المُودَع فيه"}</Label>
-                <Select value={cashBoxId} onValueChange={setCashBoxId} disabled={readonly}>
-                  <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
-                  <SelectContent>
-                    {cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div>
-                <Label>الحساب البنكي</Label>
-                <Select value={bankAccountId} onValueChange={setBankAccountId} disabled={readonly}>
-                  <SelectTrigger><SelectValue placeholder="اختر البنك" /></SelectTrigger>
-                  <SelectContent>
-                    {bankAccountsList.map(b => <SelectItem key={b.id} value={b.id}>{b.bank_name} - {b.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="md:col-span-2">
-              <Label>البيان (يُطبَّق على السند كله)</Label>
-              <Input
-                value={description} onChange={e => setDescription(e.target.value)}
-                placeholder={isPayment ? "مثلاً: سلف موظفين شهر تموز 2026" : "مثلاً: دفعات من عملاء شهر تموز 2026"}
-                disabled={readonly}
-              />
-            </div>
-            <div className="md:col-span-3">
-              <Label>ملاحظات (اختياري)</Label>
-              <Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} disabled={readonly} />
             </div>
           </CardContent>
         </Card>
@@ -777,6 +757,44 @@ export default function BulkVoucherPage({ mode }: Props) {
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer: طريقة الدفع (نقدي فقط) + الصندوق + البيان + الملاحظات */}
+        <Card>
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>طريقة الدفع</Label>
+              <Input value="نقدي (صندوق)" disabled dir="rtl" />
+            </div>
+            <div className="md:col-span-2">
+              <Label>{isPayment ? "الصندوق المصروف منه" : "الصندوق المُودَع فيه"}</Label>
+              <Select value={cashBoxId} onValueChange={setCashBoxId} disabled={readonly}>
+                <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+                <SelectContent>
+                  {cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-3">
+              <Label>البيان (يُطبَّق على السند كله)</Label>
+              <Input
+                value={description} onChange={e => setDescription(e.target.value)}
+                placeholder={isPayment ? "مثلاً: سلف موظفين شهر تموز 2026" : "مثلاً: دفعات من عملاء شهر تموز 2026"}
+                disabled={readonly}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Label>ملاحظات (اختياري — Enter لسطر جديد)</Label>
+              <Textarea
+                rows={4}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                disabled={readonly}
+                className="resize-y whitespace-pre-wrap"
+                placeholder="اكتب ملاحظاتك هنا... اضغط Enter لسطر جديد"
+              />
             </div>
           </CardContent>
         </Card>
