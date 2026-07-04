@@ -232,6 +232,19 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
             >
               <X className="h-4 w-4" />
             </button>
+            {t.method === "cash" && Math.abs(remaining) > 0.01 && (
+              <button
+                onClick={() => fillRemainingIntoRow(idx)}
+                className="shrink-0 rounded p-1 transition-colors"
+                style={{ color: "#a16207", background: "transparent" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#fef3c7")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                aria-label="املأ الباقي في هذا الصف"
+                title={`املأ الباقي (${remaining > 0 ? "+" : ""}₪${remaining.toFixed(2)}) في هذا الصف`}
+              >
+                <Wand2 className="h-4 w-4" />
+              </button>
+            )}
             </div>
             {t.method === "cash" && t.currency && t.currency !== "ILS" && (
               <div className="flex items-center justify-between text-[11px] px-1" style={{ color: "#6b7280" }}>
