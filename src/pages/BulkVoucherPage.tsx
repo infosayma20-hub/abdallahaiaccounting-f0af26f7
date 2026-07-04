@@ -761,6 +761,44 @@ export default function BulkVoucherPage({ mode }: Props) {
           </CardContent>
         </Card>
 
+        {/* Footer: طريقة الدفع (نقدي فقط) + الصندوق + البيان + الملاحظات */}
+        <Card>
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>طريقة الدفع</Label>
+              <Input value="نقدي (صندوق)" disabled dir="rtl" />
+            </div>
+            <div className="md:col-span-2">
+              <Label>{isPayment ? "الصندوق المصروف منه" : "الصندوق المُودَع فيه"}</Label>
+              <Select value={cashBoxId} onValueChange={setCashBoxId} disabled={readonly}>
+                <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+                <SelectContent>
+                  {cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-3">
+              <Label>البيان (يُطبَّق على السند كله)</Label>
+              <Input
+                value={description} onChange={e => setDescription(e.target.value)}
+                placeholder={isPayment ? "مثلاً: سلف موظفين شهر تموز 2026" : "مثلاً: دفعات من عملاء شهر تموز 2026"}
+                disabled={readonly}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Label>ملاحظات (اختياري — Enter لسطر جديد)</Label>
+              <Textarea
+                rows={4}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                disabled={readonly}
+                className="resize-y whitespace-pre-wrap"
+                placeholder="اكتب ملاحظاتك هنا... اضغط Enter لسطر جديد"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {validationError && (
           <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
             <AlertTriangle className="w-4 h-4" /> {validationError}
