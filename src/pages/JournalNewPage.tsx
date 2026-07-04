@@ -1605,13 +1605,14 @@ const JournalNewPage = () => {
         <CardContent className="p-3">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
             {/* Notes — right side in RTL (first in DOM) */}
-            <div className="lg:col-span-8 flex items-center gap-3">
-              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0">الملاحظات</Label>
-              <Input
+            <div className="lg:col-span-8 flex items-start gap-3">
+              <Label className="text-xs font-bold text-foreground whitespace-nowrap shrink-0 mt-2">الملاحظات</Label>
+              <Textarea
                 value={formNotes}
                 onChange={e => setFormNotes(e.target.value)}
-                placeholder="ملاحظات إضافية على السند..."
-                className="flex-1 h-10 border-2 border-border bg-background"
+                placeholder="ملاحظات إضافية على السند... (اضغط Enter لسطر جديد)"
+                rows={2}
+                className="flex-1 min-h-[44px] border-2 border-border bg-background resize-y text-sm leading-relaxed"
               />
             </div>
             {/* Attachments — left side, compact */}
