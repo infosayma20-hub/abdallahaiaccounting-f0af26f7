@@ -21,30 +21,41 @@ type Props = {
   to: string;
 };
 
-const TONE: Record<Props["tone"], { ring: string; iconBg: string; iconText: string; chip: string }> = {
+const TONE: Record<
+  Props["tone"],
+  { ring: string; iconBg: string; iconText: string; chip: string; hoverText: string; dot: string }
+> = {
   indigo: {
-    ring: "before:bg-indigo-500/60",
+    ring: "before:bg-indigo-500",
     iconBg: "bg-indigo-500/10",
     iconText: "text-indigo-600 dark:text-indigo-400",
     chip: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20",
+    hoverText: "group-hover/link:text-indigo-600 dark:group-hover/link:text-indigo-400",
+    dot: "bg-indigo-300/70",
   },
   amber: {
-    ring: "before:bg-amber-500/60",
+    ring: "before:bg-amber-500",
     iconBg: "bg-amber-500/10",
     iconText: "text-amber-600 dark:text-amber-400",
     chip: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+    hoverText: "group-hover/link:text-amber-600 dark:group-hover/link:text-amber-400",
+    dot: "bg-amber-300/70",
   },
   emerald: {
-    ring: "before:bg-emerald-500/60",
+    ring: "before:bg-emerald-500",
     iconBg: "bg-emerald-500/10",
     iconText: "text-emerald-600 dark:text-emerald-400",
     chip: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    hoverText: "group-hover/link:text-emerald-600 dark:group-hover/link:text-emerald-400",
+    dot: "bg-emerald-300/70",
   },
   rose: {
-    ring: "before:bg-rose-500/60",
+    ring: "before:bg-rose-500",
     iconBg: "bg-rose-500/10",
     iconText: "text-rose-600 dark:text-rose-400",
     chip: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+    hoverText: "group-hover/link:text-rose-600 dark:group-hover/link:text-rose-400",
+    dot: "bg-rose-300/70",
   },
 };
 
@@ -65,57 +76,67 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
         }
       }}
       className={cn(
-        "relative overflow-hidden p-4 transition-all cursor-pointer text-right",
-        "hover:shadow-lg hover:-translate-y-0.5 hover:border-foreground/20",
+        "group relative overflow-hidden rounded-3xl p-6 md:p-8 transition-all duration-300 cursor-pointer text-right",
+        "shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-foreground/20",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-        "before:absolute before:right-0 before:top-0 before:h-full before:w-1",
+        "before:absolute before:right-0 before:top-0 before:h-full before:w-2 md:before:w-[10px]",
         t.ring,
       )}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0 flex-1 text-right order-1">
-          <h3 className="text-sm font-bold text-foreground text-right">{title}</h3>
-          <p className="text-[11px] text-muted-foreground leading-tight truncate text-right">{subtitle}</p>
+      {/* Header: icon on left, badge on right (RTL flips visually) */}
+      <div className="flex items-start justify-between gap-4 mb-6 md:mb-8">
+        <div className={cn("p-3.5 md:p-4 rounded-2xl shrink-0 transition-transform group-hover:scale-105", t.iconBg)}>
+          <Icon className={cn("h-7 w-7 md:h-8 md:w-8", t.iconText)} strokeWidth={1.75} />
         </div>
-        <div className="flex items-center gap-2 shrink-0 order-2">
-          {badge != null && badge !== "" && (
-            <Badge variant="outline" className={cn("text-[10px] font-bold border", t.chip)}>
-              {badge}
-            </Badge>
-          )}
-          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", t.iconBg)}>
-            <Icon className={cn("h-5 w-5", t.iconText)} />
-          </div>
-        </div>
+        {badge != null && badge !== "" && (
+          <Badge
+            variant="outline"
+            className={cn("h-7 px-3 text-xs font-bold rounded-full border shrink-0", t.chip)}
+          >
+            {badge}
+          </Badge>
+        )}
       </div>
 
-      <div className="space-y-0.5">
-        {actions.map((a) => (
-          <button
-            key={a.to}
-            type="button"
-            dir="rtl"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(a.to);
-            }}
-            className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-right
-                       hover:bg-muted/60 transition-colors group"
-          >
-            {/* النص + العداد على اليمين */}
-            <div className="flex items-center gap-1.5 min-w-0 flex-1 text-right">
-              <span className="text-xs font-medium text-foreground truncate text-right">{a.label}</span>
-              {a.count != null && a.count > 0 && (
-                <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md", t.chip, "border-0")}>
-                  {a.count}
-                </span>
-              )}
-            </div>
-            {/* السهم على الشمال */}
-            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors shrink-0" />
-          </button>
-        ))}
+      {/* Title + subtitle */}
+      <div className="mb-6 md:mb-8">
+        <h3 className="text-xl md:text-2xl font-bold text-foreground mb-1.5">{title}</h3>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
+
+      {/* Sub-links as a table of contents */}
+      <ul className="space-y-3 md:space-y-4">
+        {actions.map((a) => (
+          <li key={a.to}>
+            <button
+              type="button"
+              dir="rtl"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(a.to);
+              }}
+              className={cn(
+                "group/link w-full flex items-center justify-between gap-3 py-1.5 text-right",
+                "text-sm md:text-[15px] text-muted-foreground transition-colors",
+                t.hoverText,
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform group-hover/link:scale-125", t.dot)} />
+                <span className="truncate font-medium">{a.label}</span>
+                {a.count != null && a.count > 0 && (
+                  <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md border-0", t.chip)}>
+                    {a.count}
+                  </span>
+                )}
+              </div>
+              <ChevronLeft
+                className="h-4 w-4 opacity-0 -translate-x-2 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all shrink-0"
+              />
+            </button>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
