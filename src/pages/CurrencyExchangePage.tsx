@@ -460,7 +460,7 @@ const CurrencyExchangePage = () => {
                 <Select value={fromBoxId} onValueChange={setFromBoxId} disabled={readonly}>
                   <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر الصندوق المصدر..." /></SelectTrigger>
                   <SelectContent>
-                    {boxes.filter(b => b.id !== toBoxId && (b.type === "main" || b.type === "branch")).map(b => (
+                    {boxes.filter(b => b.id !== toBoxId).map(b => (
                       <SelectItem key={b.id} value={b.id}>
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
@@ -477,7 +477,7 @@ const CurrencyExchangePage = () => {
                 <Select value={toBoxId} onValueChange={setToBoxId} disabled={readonly}>
                   <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر الصندوق الوجهة..." /></SelectTrigger>
                   <SelectContent>
-                    {boxes.filter(b => b.id !== fromBoxId && (b.type === "main" || b.type === "branch")).map(b => (
+                    {boxes.filter(b => b.id !== fromBoxId).map(b => (
                       <SelectItem key={b.id} value={b.id}>
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
