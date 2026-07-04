@@ -132,6 +132,10 @@ const JournalNewPage = () => {
   // Invalid line IDs (highlighted on failed save attempt)
   const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
 
+  // Raw text buffers for debit/credit inputs so users can type partial values
+  // like "13." or "0." without them being reformatted mid-typing.
+  const [amountDrafts, setAmountDrafts] = useState<Record<string, { debit?: string; credit?: string }>>({});
+
   // Postable accounts only — exclude accounts that are referenced as a parent_code by any other account.
   // NOTE: Do NOT use string-prefix matching here — codes like 11101 and 111010 are siblings
   // (both children of 1110), not parent/child. Prefix matching would wrongly hide 11101.
