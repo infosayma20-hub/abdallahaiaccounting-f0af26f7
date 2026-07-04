@@ -24199,6 +24199,14 @@ export type Database = {
         }[]
       }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
+      get_cash_box_native_balances: {
+        Args: { p_owner: string }
+        Returns: {
+          account_code: string
+          balance_foreign: number
+          balance_ils: number
+        }[]
+      }
       get_contact_balance: {
         Args: {
           p_as_of_date?: string

@@ -99,34 +99,25 @@ const CurrencyExchangePage = () => {
 
   const fetchBase = useCallback(async () => {
     if (!user || !dataOwnerId) return;
-    const [bRes, tRes, txRes] = await Promise.all([
+    const [bRes, tRes, balRes] = await Promise.all([
       supabase.from("cash_boxes").select("*").eq("user_id", dataOwnerId).eq("is_active", true),
       supabase.from("cash_transfers").select("*").eq("user_id", dataOwnerId).eq("transfer_type", "currency_exchange").order("created_at", { ascending: false }).limit(200),
-      supabase.from("transactions").select("amount, foreign_amount, debit_account_code, credit_account_code, currency").eq("user_id", dataOwnerId).eq("is_deleted", false),
+      (supabase as any).rpc("get_cash_box_native_balances", { p_owner: dataOwnerId }),
     ]);
     const boxesData = bRes.data || [];
     setBoxes(boxesData);
     setRecords(tRes.data || []);
-    // Compute per-box balance in that box's own currency:
-    //   - ILS boxes accumulate `amount`
-    //   - foreign boxes accumulate `foreign_amount` when tx currency matches
+    // Per-box balance in that box's OWN currency:
+    //   - ILS boxes → balance_ils
+    //   - Foreign boxes → balance_foreign (native currency)
     const bals: Record<string, number> = {};
     const codeToBox: Record<string, any> = {};
     boxesData.forEach((b: any) => { if (b.gl_account_code) { bals[b.gl_account_code] = 0; codeToBox[b.gl_account_code] = b; } });
-    (txRes.data || []).forEach((tx: any) => {
-      const useForeign = (code: string) => {
-        const box = codeToBox[code];
-        return box && box.currency && box.currency !== "ILS";
-      };
-      const dr = tx.debit_account_code, cr = tx.credit_account_code;
-      if (dr && bals[dr] !== undefined) {
-        const v = useForeign(dr) ? Number(tx.foreign_amount || 0) : Number(tx.amount || 0);
-        bals[dr] += v;
-      }
-      if (cr && bals[cr] !== undefined) {
-        const v = useForeign(cr) ? Number(tx.foreign_amount || 0) : Number(tx.amount || 0);
-        bals[cr] -= v;
-      }
+    (balRes.data || []).forEach((r: any) => {
+      const box = codeToBox[r.account_code];
+      if (!box) return;
+      const isForeign = box.currency && box.currency !== "ILS";
+      bals[r.account_code] = Number(isForeign ? r.balance_foreign : r.balance_ils) || 0;
     });
     setBalances(bals);
   }, [user, dataOwnerId]);
