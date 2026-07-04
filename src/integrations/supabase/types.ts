@@ -23362,6 +23362,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cancel_bulk_voucher: {
+        Args: { p_reason?: string; p_voucher_id: string }
+        Returns: undefined
+      }
       cancel_cheque_deposit: {
         Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
         Returns: Json
