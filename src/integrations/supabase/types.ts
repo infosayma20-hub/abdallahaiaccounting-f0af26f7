@@ -1174,6 +1174,7 @@ export type Database = {
           branch_id: string | null
           break_in: string | null
           break_out: string
+          break_type: string
           created_at: string | null
           duration_minutes: number | null
           employee_id: string
@@ -1186,6 +1187,7 @@ export type Database = {
           branch_id?: string | null
           break_in?: string | null
           break_out?: string
+          break_type?: string
           created_at?: string | null
           duration_minutes?: number | null
           employee_id: string
@@ -1198,6 +1200,7 @@ export type Database = {
           branch_id?: string | null
           break_in?: string | null
           break_out?: string
+          break_type?: string
           created_at?: string | null
           duration_minutes?: number | null
           employee_id?: string
@@ -24906,6 +24909,10 @@ export type Database = {
       }
       recompute_attendance_day: {
         Args: { p_date: string; p_employee_id: string }
+        Returns: undefined
+      }
+      recompute_attendance_day_totals: {
+        Args: { p_day_id: string }
         Returns: undefined
       }
       reconcile_pos_session_totals: {
