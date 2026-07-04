@@ -345,7 +345,20 @@ const ContactsPage = () => {
           const isDebit = newContact.balance_direction === "debit";
           // عميل ومورد → نعتمد اتجاه الرصيد لتحديد الحساب الصحيح
           const isSupplierSide = newContact.type === "مورد" || (newContact.type === "عميل ومورد" && !isDebit);
-          const contactAccountCode = isSupplierSide ? "2110" : "1130";
+          const parentCode = isSupplierSide ? "2110" : "1130";
+          // حل الحساب الأب إلى حساب فرعي مخصّص لهذه الجهة (يُنشئه إن لم يكن موجوداً
+          // ويحدّث linked_account_code). الترحيل المباشر على 1130/2110 ممنوع.
+          const { data: leafCode, error: resolveErr } = await supabase.rpc("resolve_postable_account", {
+            p_user_id: ownerId,
+            p_parent_code: parentCode,
+            p_contact_id: newC.id,
+            p_contact_name: newContact.name.trim(),
+            p_contact_type: newContact.type,
+          });
+          if (resolveErr || !leafCode) {
+            throw new Error(resolveErr?.message || "تعذر تحديد الحساب الفرعي لجهة الاتصال");
+          }
+          const contactAccountCode = leafCode as string;
           const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
             p_user_id: ownerId,
             p_debit_account_code: isDebit ? contactAccountCode : "3400",
@@ -416,7 +429,18 @@ const ContactsPage = () => {
       if (obAmount > 0) {
         const isDebit = editData.balance_direction === "debit";
         const isSupplierSide = editData.contact_type === "مورد" || (editData.contact_type === "عميل ومورد" && !isDebit);
-        const contactAccountCode = isSupplierSide ? "2110" : "1130";
+        const parentCode = isSupplierSide ? "2110" : "1130";
+        const { data: leafCode, error: resolveErr } = await supabase.rpc("resolve_postable_account", {
+          p_user_id: ownerId,
+          p_parent_code: parentCode,
+          p_contact_id: editContact.id,
+          p_contact_name: editData.contact_name.trim(),
+          p_contact_type: editData.contact_type,
+        });
+        if (resolveErr || !leafCode) {
+          throw new Error(resolveErr?.message || "تعذر تحديد الحساب الفرعي لجهة الاتصال");
+        }
+        const contactAccountCode = leafCode as string;
         const { data: obRes, error: obErr } = await supabase.rpc("create_opening_balance_entry", {
           p_user_id: ownerId,
           p_debit_account_code: isDebit ? contactAccountCode : "3400",
