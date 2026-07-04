@@ -79,6 +79,10 @@ const CurrencyExchangePage = () => {
   const [queryOpen, setQueryOpen] = useState(false);
   const [queryText, setQueryText] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [fromPopoverOpen, setFromPopoverOpen] = useState(false);
+  const [toPopoverOpen, setToPopoverOpen] = useState(false);
+  const [fromSearch, setFromSearch] = useState("");
+  const [toSearch, setToSearch] = useState("");
 
   // Track which two fields the user last touched so the third auto-updates.
   const lastEdited = useRef<Array<"from" | "to" | "rate">>(["from", "rate"]);
