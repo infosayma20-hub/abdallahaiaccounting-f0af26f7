@@ -24972,26 +24972,16 @@ export type Database = {
         Args: { _auth_uid?: string }
         Returns: string
       }
-      resolve_postable_account:
-        | {
-            Args: {
-              p_contact_id?: string
-              p_contact_name?: string
-              p_parent_code: string
-              p_user_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_contact_id?: string
-              p_contact_name?: string
-              p_contact_type?: string
-              p_parent_code: string
-              p_user_id: string
-            }
-            Returns: string
-          }
+      resolve_postable_account: {
+        Args: {
+          p_contact_id?: string
+          p_contact_name?: string
+          p_contact_type?: string
+          p_parent_code: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       resync_pos_order_gl_backfill: {
         Args: { p_dry_run?: boolean; p_order_id: string }
         Returns: Json

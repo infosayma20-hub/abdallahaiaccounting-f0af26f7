@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.resolve_postable_account(uuid, text, uuid, text);
