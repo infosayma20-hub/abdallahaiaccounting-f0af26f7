@@ -800,6 +800,7 @@ const App = () => (
                       <Route path="/finance/receipt/new" element={<FeatureGuard app="finance" feature="receipts" perm="create" label="سند قبض جديد"><VoucherFormPage voucherType="receipt" /></FeatureGuard>} />
                       <Route path="/finance/receipt/:id/edit" element={<FeatureGuard app="finance" feature="receipts" perm="update" label="تعديل سند قبض"><VoucherFormPage voucherType="receipt" /></FeatureGuard>} />
                       <Route path="/finance/payment/new" element={<FeatureGuard app="finance" feature="payments" perm="create" label="سند صرف جديد"><VoucherFormPage voucherType="payment" /></FeatureGuard>} />
+                      <Route path="/finance/payment/bulk/new" element={<FeatureGuard app="finance" feature="payments" perm="create" label="سند صرف جماعي"><BulkPaymentVoucherPage /></FeatureGuard>} />
                       <Route path="/finance/payment/:id/edit" element={<FeatureGuard app="finance" feature="payments" perm="update" label="تعديل سند صرف"><VoucherFormPage voucherType="payment" /></FeatureGuard>} />
                       <Route path="/finance/cheques" element={<ChequesPage />} />
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
