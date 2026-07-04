@@ -537,6 +537,118 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
+            {/* Sessions (multi-break) editor */}
+            <div className="border rounded-md p-2 bg-muted/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  الجلسات خلال اليوم (خروج/عودة)
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1"
+                  onClick={() =>
+                    setBreaks((prev) => [
+                      ...prev,
+                      { id: null, break_type: "prayer", out: "", in: "", reason: "" },
+                    ])
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5" /> إضافة جلسة
+                </Button>
+              </div>
+              {breaksLoading ? (
+                <div className="text-[11px] text-muted-foreground py-2 text-center">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> جاري تحميل الجلسات...
+                </div>
+              ) : breaks.filter((b) => !b._deleted).length === 0 ? (
+                <div className="text-[11px] text-muted-foreground py-1">لا توجد جلسات — اضغط "إضافة جلسة" لتسجيل خروج مؤقت (صلاة/خاص/طعام/مهمة).</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {breaks.map((b, idx) =>
+                    b._deleted ? null : (
+                      <div
+                        key={b.id ?? `new-${idx}`}
+                        className="grid grid-cols-12 gap-1.5 items-end bg-background border rounded px-2 py-1.5"
+                      >
+                        <div className="col-span-4">
+                          <label className="text-[10px] text-muted-foreground mb-0.5 block">نوع الجلسة</label>
+                          <Select
+                            value={b.break_type}
+                            onValueChange={(v) =>
+                              setBreaks((prev) => prev.map((x, i) => (i === idx ? { ...x, break_type: v as BreakDraft["break_type"] } : x)))
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(BREAK_TYPE_LABEL) as BreakDraft["break_type"][]).map((k) => (
+                                <SelectItem key={k} value={k}>{BREAK_TYPE_LABEL[k]}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-3">
+                          <label className="text-[10px] text-muted-foreground mb-0.5 block">خروج</label>
+                          <Input
+                            type="time"
+                            value={b.out}
+                            onChange={(e) => setBreaks((prev) => prev.map((x, i) => (i === idx ? { ...x, out: e.target.value } : x)))}
+                            dir="ltr"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <label className="text-[10px] text-muted-foreground mb-0.5 block">عودة</label>
+                          <Input
+                            type="time"
+                            value={b.in}
+                            onChange={(e) => setBreaks((prev) => prev.map((x, i) => (i === idx ? { ...x, in: e.target.value } : x)))}
+                            dir="ltr"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="col-span-2 flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:bg-red-50"
+                            onClick={() =>
+                              setBreaks((prev) =>
+                                prev
+                                  .map((x, i) => (i === idx ? { ...x, _deleted: true } : x))
+                                  // drop unsaved rows entirely
+                                  .filter((x) => !(x._deleted && !x.id)),
+                              )
+                            }
+                            aria-label="حذف الجلسة"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
+              )}
+              {/* Live totals */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t">
+                <div className="rounded bg-muted/40 px-2 py-1 text-center">
+                  <div className="text-[10px] text-muted-foreground">إجمالي الفترة</div>
+                  <div className="text-xs font-bold tabular-nums">{fmtHM(liveTotals.gross)}</div>
+                </div>
+                <div className="rounded bg-amber-50 text-amber-800 border border-amber-200 px-2 py-1 text-center">
+                  <div className="text-[10px]">مجموع الجلسات</div>
+                  <div className="text-xs font-bold tabular-nums">{fmtHM(liveTotals.breakMin)}</div>
+                </div>
+                <div className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 text-center">
+                  <div className="text-[10px]">صافي العمل</div>
+                  <div className="text-xs font-bold tabular-nums">{fmtHM(liveTotals.net)}</div>
+                </div>
+              </div>
+            </div>
             <div>
               <label className="text-xs text-red-600 mb-1 block">سبب التعديل (إلزامي) *</label>
               <Textarea rows={2} value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} placeholder="اكتب سبب التعديل هنا..." />
