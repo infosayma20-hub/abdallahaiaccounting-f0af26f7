@@ -10,6 +10,7 @@ import {
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllAccountsForOwner } from "@/lib/fetchAllAccounts";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
@@ -265,11 +266,11 @@ const JournalNewPage = () => {
     };
 
     Promise.all([
-      supabase.from("accounts").select("account_code, account_name, account_type, parent_code").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
+      fetchAllAccountsForOwner<any>(dataOwnerId, "account_code, account_name, account_type, parent_code", { activeOnly: true }),
       fetchAllContacts(),
-    ]).then(([aRes, allContacts]) => {
+    ]).then(([allAccounts, allContacts]) => {
       if (cancelled) return;
-      setAccounts(aRes.data || []);
+      setAccounts(allAccounts || []);
       setContacts(allContacts || []);
     }).catch((err: any) => {
       if (!cancelled) toast.error(err.message || "تعذر تحميل بيانات سند القيد");
