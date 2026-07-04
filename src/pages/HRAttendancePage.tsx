@@ -1467,6 +1467,9 @@ export default function HRAttendancePage() {
               <DropdownMenuItem onClick={() => setShowBranchDialog(true)} className="gap-2">
                 <Building2 className="h-3.5 w-3.5" /> إضافة فرع
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowBackfillDialog(true)} className="gap-2">
+                <Fingerprint className="h-3.5 w-3.5" /> توليد بصمات بأثر رجعي
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={openLockDialog}
