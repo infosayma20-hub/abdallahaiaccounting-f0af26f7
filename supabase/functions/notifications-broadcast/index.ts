@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve caller's company_id from profiles (multi-tenant isolation)
+    // Resolve caller's company_id from profiles (legacy scope)
     const { data: profile } = await admin
       .from("profiles")
       .select("company_id")
@@ -78,22 +78,28 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const companyId = (profile as { company_id?: string } | null)?.company_id ?? null;
 
+    // Resolve caller's effective data owner (primary multi-tenant key on employees.user_id).
+    // profiles.company_id is often null for admins, so we rely on the owner id instead.
+    const { data: ownerData } = await admin.rpc("resolve_effective_owner_id", {
+      _auth_uid: callerId,
+    });
+    const ownerId = (ownerData as string | null) ?? callerId;
+
     // ---- Resolve audience -> auth user_ids ----
     const recipientUserIds = new Set<string>();
 
     if (audience_type === "employees") {
       const ids = audience_filter.employee_ids ?? [];
       if (ids.length > 0) {
-        let q = admin.from("employees").select("auth_user_id").in("id", ids);
-        if (companyId) q = q.eq("company_id", companyId);
+        let q = admin.from("employees").select("auth_user_id").in("id", ids).eq("user_id", ownerId);
         const { data: emps } = await q;
         (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
       }
     } else if (audience_type === "department") {
       const depId = audience_filter.department_id;
       if (depId) {
-        let q = admin.from("employees").select("auth_user_id").eq("department_id", depId).eq("is_active", true);
-        if (companyId) q = q.eq("company_id", companyId);
+        const q = admin.from("employees").select("auth_user_id")
+          .eq("department_id", depId).eq("is_active", true).eq("user_id", ownerId);
         const { data: emps } = await q;
         (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
       }
@@ -102,44 +108,36 @@ Deno.serve(async (req) => {
       if (role) {
         const { data: ur } = await admin.from("user_roles").select("user_id").eq("role", role);
         const userIds = (ur ?? []).map((r: any) => r.user_id).filter(Boolean);
-        if (userIds.length > 0 && companyId) {
-          // scope to current company via profiles
-          const { data: profs } = await admin
-            .from("profiles")
-            .select("id")
-            .in("id", userIds)
-            .eq("company_id", companyId);
-          (profs ?? []).forEach((p: any) => recipientUserIds.add(p.id));
-        } else {
-          userIds.forEach((id: string) => recipientUserIds.add(id));
+        if (userIds.length > 0) {
+          // Scope to same tenant: only users whose employees.user_id = ownerId
+          const { data: emps } = await admin
+            .from("employees")
+            .select("auth_user_id")
+            .in("auth_user_id", userIds)
+            .eq("user_id", ownerId);
+          (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
         }
       }
     } else if (audience_type === "company") {
-      if (companyId) {
-        const { data: emps } = await admin
-          .from("employees")
-          .select("auth_user_id")
-          .eq("company_id", companyId)
-          .eq("is_active", true);
-        (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
-      }
+      const { data: emps } = await admin
+        .from("employees")
+        .select("auth_user_id")
+        .eq("user_id", ownerId)
+        .eq("is_active", true)
+        .not("auth_user_id", "is", null);
+      (emps ?? []).forEach((e: any) => e.auth_user_id && recipientUserIds.add(e.auth_user_id));
+      console.log(`[notifications-broadcast] company audience: owner=${ownerId} matched=${recipientUserIds.size}`);
     } else if (audience_type === "portal") {
       // بوابة الإدارة — مستخدمو malaki_portal_users التابعون لنفس مالك التينانت
-      // نستخدم resolve_effective_owner_id لإيجاد صاحب الحساب الفعلي للمتصل،
-      // ثم نطابق malaki_portal_users.user_id = ownerId (هذا الحقل يحتوي على owner uid).
-      const { data: ownerData } = await admin.rpc("resolve_effective_owner_id", {
-        _auth_uid: callerId,
-      });
-      const scopeOwnerId = (ownerData as string | null) ?? callerId;
       const { data: portals } = await admin
         .from("malaki_portal_users")
         .select("auth_user_id")
         .eq("is_active", true)
-        .eq("user_id", scopeOwnerId)
+        .eq("user_id", ownerId)
         .not("auth_user_id", "is", null);
       (portals ?? []).forEach((p: any) => p.auth_user_id && recipientUserIds.add(p.auth_user_id));
       console.log(
-        `[notifications-broadcast] portal audience: owner=${scopeOwnerId} portals_found=${(portals ?? []).length}`,
+        `[notifications-broadcast] portal audience: owner=${ownerId} portals_found=${(portals ?? []).length}`,
       );
     }
 
