@@ -1542,7 +1542,7 @@ const JournalNewPage = () => {
                       />
                     </td>
                     <td
-                      className="p-3"
+                      className="p-2 text-center"
                       onKeyDown={(e) => {
                         // Enter on the last row's cost-center cell creates a new row
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -1557,14 +1557,9 @@ const JournalNewPage = () => {
                       <CostCenterCombobox
                         value={line.cost_center_id || null}
                         onChange={(id) => updateLine(line.id, "cost_center_id" as any, id)}
-                        placeholder={formCostCenterId ? "موروث من الرأس" : "بدون"}
-                        className="h-11 text-sm"
+                        placeholder={formCostCenterId ? "موروث من الرأس" : "إضافة مركز تكلفة"}
+                        iconOnly
                       />
-                      {!line.cost_center_id && formCostCenterId && (
-                        <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
-                          ↪ يرث مركز الرأس
-                        </p>
-                      )}
                     </td>
                     <td className="p-3">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
