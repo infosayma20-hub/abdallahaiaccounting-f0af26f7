@@ -48,6 +48,8 @@ const fxMainAccounts: Record<string, string> = {
 const CashTransferPage = () => {
   const navigate = useNavigate();
   const [params, setSearchParams] = useSearchParams();
+  const [fromSearch, setFromSearch] = useState("");
+  const [toSearch, setToSearch] = useState("");
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
@@ -405,10 +407,23 @@ const CashTransferPage = () => {
                 }} disabled={readonly}>
                   <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={`اختر صندوق ${transferCurrency}...`} /></SelectTrigger>
                   <SelectContent>
+                    <div className="p-2 sticky top-0 bg-popover z-10 border-b">
+                      <Input
+                        placeholder="بحث..."
+                        value={fromSearch}
+                        onChange={(e) => setFromSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="h-8 text-xs"
+                      />
+                    </div>
                     {boxesForCurrency.filter(b => b.id !== toBoxId).length === 0 && (
                       <div className="p-3 text-xs text-muted-foreground text-center">لا يوجد صناديق بعملة {transferCurrency}</div>
                     )}
-                    {boxesForCurrency.filter(b => b.id !== toBoxId).map(b => (
+                    {boxesForCurrency.filter(b => b.id !== toBoxId && (
+                      !fromSearch.trim() ||
+                      b.name?.toLowerCase().includes(fromSearch.toLowerCase()) ||
+                      b.gl_account_code?.toLowerCase().includes(fromSearch.toLowerCase())
+                    )).map(b => (
                       <SelectItem key={b.id} value={b.id}>
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
@@ -425,10 +440,23 @@ const CashTransferPage = () => {
                 <Select value={toBoxId} onValueChange={setToBoxId} disabled={readonly}>
                   <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={`اختر صندوق ${transferCurrency}...`} /></SelectTrigger>
                   <SelectContent>
+                    <div className="p-2 sticky top-0 bg-popover z-10 border-b">
+                      <Input
+                        placeholder="بحث..."
+                        value={toSearch}
+                        onChange={(e) => setToSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="h-8 text-xs"
+                      />
+                    </div>
                     {boxesForCurrency.filter(b => b.id !== fromBoxId).length === 0 && (
                       <div className="p-3 text-xs text-muted-foreground text-center">لا يوجد صناديق بعملة {transferCurrency}</div>
                     )}
-                    {boxesForCurrency.filter(b => b.id !== fromBoxId).map(b => (
+                    {boxesForCurrency.filter(b => b.id !== fromBoxId && (
+                      !toSearch.trim() ||
+                      b.name?.toLowerCase().includes(toSearch.toLowerCase()) ||
+                      b.gl_account_code?.toLowerCase().includes(toSearch.toLowerCase())
+                    )).map(b => (
                       <SelectItem key={b.id} value={b.id}>
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
