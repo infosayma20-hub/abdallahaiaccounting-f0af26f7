@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { cn, multiWordMatchAny } from "@/lib/utils";
+import { fetchAllAccountsForOwner } from "@/lib/fetchAllAccounts";
 import { FinanceShell, type ActionTab, type FilterField, type FilterCondition, applyFilters } from "@/components/finance/shell";
 
 interface Account {
@@ -175,7 +176,7 @@ const AccountsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
-  const ownerId = dataOwnerId || user?.id;
+  const ownerId = dataOwnerId;
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,22 +193,21 @@ const AccountsPage = () => {
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
   const [profileData, setProfileData] = useState<{ company_name?: string | null; display_name?: string | null } | null>(null);
 
-  const fetchAccounts = async () => {
-    if (!user) return;
+  const fetchAccounts = useCallback(async () => {
+    if (!ownerId) return [];
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.from('accounts').select('*').eq('user_id', ownerId).order('account_code');
-      if (error) throw error;
-      setAccounts(data || []);
-      return data || [];
+      const data = await fetchAllAccountsForOwner<Account>(ownerId);
+      setAccounts(data);
+      return data;
     } catch (err: any) {
       setError(err.message || "خطأ في جلب البيانات");
       return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, [ownerId]);
 
   const setupDefaultAccounts = async (silent = false) => {
     if (!user) return;
@@ -238,7 +238,7 @@ const AccountsPage = () => {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!ownerId) return;
     const init = async () => {
       const data = await fetchAccounts();
       if (data && data.length === 0 && !autoSetupAttempted) {
@@ -247,17 +247,17 @@ const AccountsPage = () => {
       }
     };
     init();
-  }, [user]);
+  }, [ownerId, fetchAccounts, autoSetupAttempted]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!ownerId) return;
     supabase
       .from("profiles")
       .select("company_name, display_name")
       .eq("user_id", ownerId)
       .maybeSingle()
       .then(({ data }) => setProfileData(data as any));
-  }, [user]);
+  }, [ownerId]);
 
   const handleDeleteAccount = useCallback(async (acc: Account) => {
     if (!user) return;
@@ -506,7 +506,7 @@ const AccountsPage = () => {
         },
       ],
     },
-  ], [navigate, loading, accounts, expanded.size, collapseAll, expandAll, settingUp]);
+  ], [navigate, loading, accounts, expanded.size, collapseAll, expandAll, settingUp, fetchAccounts]);
 
   const filterFields: FilterField[] = useMemo(() => [
     { key: "account_code", label: "رمز الحساب", type: "text" },
