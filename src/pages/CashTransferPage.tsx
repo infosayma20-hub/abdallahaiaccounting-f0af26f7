@@ -48,6 +48,8 @@ const fxMainAccounts: Record<string, string> = {
 const CashTransferPage = () => {
   const navigate = useNavigate();
   const [params, setSearchParams] = useSearchParams();
+  const [fromSearch, setFromSearch] = useState("");
+  const [toSearch, setToSearch] = useState("");
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
