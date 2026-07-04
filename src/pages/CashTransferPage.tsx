@@ -136,6 +136,8 @@ const CashTransferPage = () => {
 
   const fromBox = boxes.find(b => b.id === fromBoxId);
   const toBox = boxes.find(b => b.id === toBoxId);
+  // Filter boxes strictly by the selected currency — each cash box holds ONE currency only.
+  const boxesForCurrency = boxes.filter(b => (b.currency || "ILS") === transferCurrency);
   const fromBal = fromBox ? (balances[fromBox.gl_account_code] || 0) : 0;
   const toBal = toBox ? (balances[toBox.gl_account_code] || 0) : 0;
   const amountNum = Number(amount) || 0;
@@ -388,16 +390,23 @@ const CashTransferPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs font-bold">من الصندوق *</Label>
-                <Select value={fromBoxId} onValueChange={setFromBoxId} disabled={readonly}>
-                  <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر الصندوق المصدر..." /></SelectTrigger>
+                <Label className="text-xs font-bold">من الصندوق * <span className="text-muted-foreground font-normal">({transferCurrency})</span></Label>
+                <Select value={fromBoxId} onValueChange={(v) => {
+                  setFromBoxId(v);
+                  const b = boxes.find(x => x.id === v);
+                  if (b?.currency && b.currency !== transferCurrency) setTransferCurrency(b.currency);
+                }} disabled={readonly}>
+                  <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={`اختر صندوق ${transferCurrency}...`} /></SelectTrigger>
                   <SelectContent>
-                    {boxes.filter(b => b.id !== toBoxId).map(b => (
+                    {boxesForCurrency.filter(b => b.id !== toBoxId).length === 0 && (
+                      <div className="p-3 text-xs text-muted-foreground text-center">لا يوجد صناديق بعملة {transferCurrency}</div>
+                    )}
+                    {boxesForCurrency.filter(b => b.id !== toBoxId).map(b => (
                       <SelectItem key={b.id} value={b.id}>
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
                           {b.name}
-                          <span className="text-[10px] font-mono text-muted-foreground">₪{fmt(balances[b.gl_account_code] || 0)}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">{currencySymbols[b.currency||"ILS"]}{fmt(balances[b.gl_account_code] || 0)}</span>
                         </span>
                       </SelectItem>
                     ))}
@@ -405,16 +414,19 @@ const CashTransferPage = () => {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs font-bold">إلى الصندوق *</Label>
+                <Label className="text-xs font-bold">إلى الصندوق * <span className="text-muted-foreground font-normal">({transferCurrency})</span></Label>
                 <Select value={toBoxId} onValueChange={setToBoxId} disabled={readonly}>
-                  <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر الصندوق الوجهة..." /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-10"><SelectValue placeholder={`اختر صندوق ${transferCurrency}...`} /></SelectTrigger>
                   <SelectContent>
-                    {boxes.filter(b => b.id !== fromBoxId).map(b => (
+                    {boxesForCurrency.filter(b => b.id !== fromBoxId).length === 0 && (
+                      <div className="p-3 text-xs text-muted-foreground text-center">لا يوجد صناديق بعملة {transferCurrency}</div>
+                    )}
+                    {boxesForCurrency.filter(b => b.id !== fromBoxId).map(b => (
                       <SelectItem key={b.id} value={b.id}>
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
                           {b.name}
-                          <span className="text-[10px] font-mono text-muted-foreground">₪{fmt(balances[b.gl_account_code] || 0)}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">{currencySymbols[b.currency||"ILS"]}{fmt(balances[b.gl_account_code] || 0)}</span>
                         </span>
                       </SelectItem>
                     ))}
