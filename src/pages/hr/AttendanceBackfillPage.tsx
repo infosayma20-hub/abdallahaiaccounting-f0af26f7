@@ -28,7 +28,7 @@ interface Employee {
   id: string;
   full_name: string;
   branch_id: string | null;
-  branches?: { name_ar?: string | null; name?: string | null } | null;
+  branches?: { name?: string | null } | null;
 }
 
 interface PreviewRow {
@@ -84,7 +84,7 @@ export default function AttendanceBackfillPage() {
       setLoadingEmps(true);
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, branches(name_ar, name)")
+        .select("id, full_name, branch_id, branches(name)")
         .eq("is_active", true)
         .order("full_name");
       if (error) toast({ title: "خطأ في تحميل الموظفين", description: error.message, variant: "destructive" });
@@ -297,7 +297,7 @@ export default function AttendanceBackfillPage() {
                               <Checkbox checked={selectedIds.includes(e.id)} className="me-2" />
                               <div className="flex-1">
                                 <div className="text-sm">{e.full_name}</div>
-                                {e.branches?.name_ar && <div className="text-[10px] text-muted-foreground">{e.branches.name_ar}</div>}
+                                {e.branches?.name && <div className="text-[10px] text-muted-foreground">{e.branches.name}</div>}
                               </div>
                             </CommandItem>
                           ))}
