@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Banknote, CreditCard, X, Plus, Split } from "lucide-react";
+import { Banknote, CreditCard, X, Plus, Split, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type SplitTender = {
@@ -95,6 +95,22 @@ export default function SplitPaymentPanel({ total, tenders, setTenders, userId, 
   const fillRemainingCash = () => {
     if (remaining <= 0) return;
     setTenders([...tenders, { method: "cash", amount: remaining, currency: "ILS", exchange_rate: 1, foreign_amount: remaining }]);
+  };
+
+  /** Top up an existing cash tender so its ILS-equivalent absorbs the remaining balance. */
+  const fillRemainingIntoRow = (idx: number) => {
+    const t = tenders[idx];
+    if (!t) return;
+    const extraIls = remaining; // may be negative → subtract
+    const newIls = Math.max(0, Math.round((t.amount + extraIls) * 100) / 100);
+    if (!t.currency || t.currency === "ILS") {
+      updateTender(idx, { amount: newIls, foreign_amount: newIls, currency: "ILS", exchange_rate: 1 });
+      return;
+    }
+    const rate = t.exchange_rate || exchangeRates[t.currency] || 0;
+    if (!rate) return;
+    const newForeign = Math.max(0, Math.round((newIls / rate) * 100) / 100);
+    updateTender(idx, { foreign_amount: newForeign, amount: Math.round(newForeign * rate * 100) / 100 });
   };
 
   return (
