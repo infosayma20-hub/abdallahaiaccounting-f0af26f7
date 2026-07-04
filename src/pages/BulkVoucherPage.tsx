@@ -565,6 +565,12 @@ export default function BulkVoucherPage({ mode }: Props) {
         },
         {
           key: "nav", label: "تنقّل", items: [
+            { key: "prev", label: "السابق", icon: ChevronRight,
+              onClick: () => navigateSibling("prev"), disabled: !refNumber },
+            { key: "next", label: "التالي", icon: ChevronLeft,
+              onClick: () => navigateSibling("next"), disabled: !refNumber },
+            { key: "query", label: "استعلام", icon: Search,
+              onClick: () => navigate(`${listPath}?subtype=bulk`) },
             { key: "list", label: "قائمة السندات", icon: FileText,
               onClick: () => navigate(listPath) },
             { key: "back", label: "رجوع", icon: ArrowRight, variant: "ghost",
@@ -574,7 +580,7 @@ export default function BulkVoucherPage({ mode }: Props) {
       ],
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ]), [saving, readonly, validationError, isEdit, status, lines.length, isPayment]);
+  ]), [saving, readonly, validationError, isEdit, status, lines.length, isPayment, refNumber]);
 
   const statusBadge = status === "posted"
     ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">مُرحّل</Badge>
