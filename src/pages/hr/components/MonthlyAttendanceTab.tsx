@@ -314,8 +314,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       }
       const active = breaks.filter((b) => !b._deleted);
       for (const b of active) {
-        const bo = buildTs(b.out);
-        const bi = buildTs(b.in);
+        const boDate = combineDT(editing.attendance_date, b.out, ciDate);
+        const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
+        const bo = boDate ? boDate.toISOString() : null;
+        const bi = biDate ? biDate.toISOString() : null;
         if (!bo || !bi) continue;
         if (b.id) {
           const { error: uErr } = await supabase
