@@ -373,6 +373,7 @@ export default function HRAttendancePage() {
 
   // Branch dialogs
   const [showBranchDialog, setShowBranchDialog] = useState(false);
+  const [showBackfillDialog, setShowBackfillDialog] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [selectedBranchForQR, setSelectedBranchForQR] = useState<Branch | null>(null);
   const [qrToken, setQrToken] = useState("");
