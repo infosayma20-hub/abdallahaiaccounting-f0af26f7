@@ -208,20 +208,27 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       });
   };
 
-  /** Combine an attendance_date (YYYY-MM-DD) with HH:mm into a Date. */
-  const combineDT = useCallback((dateStr: string, hhmm: string): Date | null => {
+  /** Combine an attendance_date (YYYY-MM-DD) with HH:mm into a Date.
+   *  Overnight-shift aware: when `anchor` is provided and the resulting time
+   *  falls before it, roll forward one calendar day so a 04:49 PM check-in
+   *  + 01:04 AM check-out is treated as ~8h15m (not a negative span). */
+  const combineDT = useCallback((dateStr: string, hhmm: string, anchor?: Date | null): Date | null => {
     if (!hhmm) return null;
     const [y, mo, d] = dateStr.split("-").map(Number);
     const [h, mi] = hhmm.split(":").map(Number);
     if (!y || !mo || !d) return null;
-    return new Date(y, mo - 1, d, h || 0, mi || 0, 0, 0);
+    const dt = new Date(y, mo - 1, d, h || 0, mi || 0, 0, 0);
+    if (anchor && dt.getTime() < anchor.getTime()) {
+      dt.setDate(dt.getDate() + 1);
+    }
+    return dt;
   }, []);
 
   /** Live totals for the dialog: gross span − sum(closed sessions). */
   const liveTotals = useMemo(() => {
     if (!editing) return { gross: 0, breakMin: 0, net: 0 };
     const ci = combineDT(editing.attendance_date, form.first_check_in);
-    const co = combineDT(editing.attendance_date, form.last_check_out);
+    const co = combineDT(editing.attendance_date, form.last_check_out, ci);
     let gross = 0;
     if (ci && co && co.getTime() > ci.getTime()) {
       gross = Math.floor((co.getTime() - ci.getTime()) / 60000);
@@ -229,8 +236,8 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     let breakMin = 0;
     for (const b of breaks) {
       if (b._deleted) continue;
-      const bo = combineDT(editing.attendance_date, b.out);
-      const bi = combineDT(editing.attendance_date, b.in);
+      const bo = combineDT(editing.attendance_date, b.out, ci);
+      const bi = combineDT(editing.attendance_date, b.in, bo || ci);
       if (bo && bi && bi.getTime() > bo.getTime()) {
         breakMin += Math.floor((bi.getTime() - bo.getTime()) / 60000);
       }
@@ -244,14 +251,14 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
   const validateBreaks = (): string | null => {
     if (!editing) return null;
     const ci = combineDT(editing.attendance_date, form.first_check_in);
-    const co = combineDT(editing.attendance_date, form.last_check_out);
+    const co = combineDT(editing.attendance_date, form.last_check_out, ci);
     const rows = breaks
       .filter((b) => !b._deleted && (b.out || b.in))
-      .map((b) => ({
-        out: combineDT(editing.attendance_date, b.out),
-        in: combineDT(editing.attendance_date, b.in),
-        label: BREAK_TYPE_LABEL[b.break_type],
-      }));
+      .map((b) => {
+        const bo = combineDT(editing.attendance_date, b.out, ci);
+        const bi = combineDT(editing.attendance_date, b.in, bo || ci);
+        return { out: bo, in: bi, label: BREAK_TYPE_LABEL[b.break_type] };
+      });
     for (const r of rows) {
       if (!r.out || !r.in) return `الجلسة "${r.label}": يجب تعبئة وقت الخروج والعودة معاً`;
       if (r.in.getTime() <= r.out.getTime()) return `الجلسة "${r.label}": وقت العودة يجب أن يكون بعد الخروج`;
@@ -280,15 +287,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
     }
     setSaving(true);
     try {
-      const buildTs = (hhmm: string) => {
-        if (!hhmm) return null;
-        const [h, m] = hhmm.split(":").map(Number);
-        const d = new Date(editing.attendance_date);
-        d.setHours(h || 0, m || 0, 0, 0);
-        return d.toISOString();
-      };
-      const ci = buildTs(form.first_check_in);
-      const co = buildTs(form.last_check_out);
+      const ciDate = combineDT(editing.attendance_date, form.first_check_in);
+      const coDate = combineDT(editing.attendance_date, form.last_check_out, ciDate);
+      const ci = ciDate ? ciDate.toISOString() : null;
+      const co = coDate ? coDate.toISOString() : null;
       // 1) Update the day header (times/status/notes) — totals will be
       //    recomputed by the DB trigger after breaks sync.
       const { error: dayErr } = await supabase.from("attendance_days").update({
@@ -312,8 +314,10 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       }
       const active = breaks.filter((b) => !b._deleted);
       for (const b of active) {
-        const bo = buildTs(b.out);
-        const bi = buildTs(b.in);
+        const boDate = combineDT(editing.attendance_date, b.out, ciDate);
+        const biDate = combineDT(editing.attendance_date, b.in, boDate || ciDate);
+        const bo = boDate ? boDate.toISOString() : null;
+        const bi = biDate ? biDate.toISOString() : null;
         if (!bo || !bi) continue;
         if (b.id) {
           const { error: uErr } = await supabase
