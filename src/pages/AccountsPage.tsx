@@ -606,7 +606,8 @@ const AccountsPage = () => {
               ))}
             </div>
             <div className="px-3 py-2">
-              <div className="relative">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                 <Input
                   value={searchQuery}
@@ -615,6 +616,23 @@ const AccountsPage = () => {
                   className="pr-9 border-0 bg-[hsl(210,20%,98%)] dark:bg-muted/30 rounded-lg text-sm h-9 focus-visible:ring-1 focus-visible:ring-[hsl(142,71%,45%)]"
                   dir="rtl"
                 />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={hideZeroSubs ? "default" : "outline"}
+                      size="sm"
+                      className="h-9 gap-1.5 text-xs whitespace-nowrap"
+                      onClick={() => setHideZeroSubs(v => !v)}
+                    >
+                      {hideZeroSubs ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {hideZeroSubs ? "إخفاء الأرصدة الصفرية" : "إظهار الكل"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    إخفاء حسابات الزبائن/الموردين الفرعية ذات الرصيد الصفري من شجرة الحسابات (تبقى محفوظة في جهات الاتصال)
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
