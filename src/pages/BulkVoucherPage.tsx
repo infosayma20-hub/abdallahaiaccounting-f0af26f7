@@ -371,6 +371,7 @@ export default function BulkVoucherPage({ mode }: Props) {
         line_order: idx + 1,
         contact_id: r.contactIdForTx,
         contact_name: r.kind === "contact" ? r.resolvedName : (r.kind === "employee" ? r.employee_name : null),
+        cost_center_id: r.cost_center_id || null,
       }));
       const sourceLine = {
         voucher_id: voucherId!,
@@ -403,6 +404,7 @@ export default function BulkVoucherPage({ mode }: Props) {
             payment_method: payMethodAr,
             idempotency_key: `BULK-${finalRef}-${i + 1}`,
             reference: finalRef,
+            cost_center_id: r.cost_center_id || null,
           } as any).select("id").single();
           if (txErr) throw txErr;
           if (tx?.id) insertedTxIds.push(tx.id);
