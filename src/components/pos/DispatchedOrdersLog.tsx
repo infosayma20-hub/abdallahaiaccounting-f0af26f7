@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users, Trash2, Utensils, VolumeX, Unlock, ShieldAlert } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw, Pencil, StickyNote, Users, Trash2, Utensils, VolumeX, Unlock, ShieldAlert, Search, X } from "lucide-react";
 import { CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { CalendarDays } from "lucide-react";
 import EditOrderDialog from "./EditOrderDialog";
@@ -153,6 +154,8 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
   const [nowTick, setNowTick] = useState<number>(() => Date.now());
   /** Force-release / takeover in-flight guard. */
   const [lockActionId, setLockActionId] = useState<string | null>(null);
+  /** Free-text search across customer, phone, branch, agent, items, note, and total. */
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
@@ -394,11 +397,46 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
     new Set(orders.map(o => (o.dispatched_by_name || "").trim()).filter(Boolean))
   ).sort();
 
-  // Apply both status + agent filters at render time. (Status is already
-  // filtered at the query level when not "all".)
-  const visibleOrders = orders.filter(o =>
-    agentFilter ? (o.dispatched_by_name || "") === agentFilter : true
-  );
+  // Apply status + agent + free-text search at render time. (Status is
+  // already filtered at the query level when not "all".) Search is a
+  // pure client-side filter — no route changes, no server queries.
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const digitsOnlyQuery = normalizedQuery.replace(/\D+/g, "");
+  const visibleOrders = orders.filter(o => {
+    if (agentFilter && (o.dispatched_by_name || "") !== agentFilter) return false;
+    if (!normalizedQuery) return true;
+    const hay: string[] = [
+      o.customer_name || "",
+      o.customer_phone || "",
+      o.target_branch_name || "",
+      o.dispatched_by_name || "",
+      o.delivery_address || "",
+      o.order_note || "",
+      o.cancel_reason || "",
+      o.cancelled_by_name || "",
+      String(o.total ?? ""),
+      o.id || "",
+    ];
+    try {
+      const items = Array.isArray(o.items) ? o.items : [];
+      for (const it of items) {
+        if (it && typeof it === "object") {
+          hay.push(String((it as any).name || (it as any).product_name || ""));
+        }
+      }
+    } catch {
+      /* ignore malformed items */
+    }
+    const blob = hay.join(" \u0001 ").toLowerCase();
+    if (blob.includes(normalizedQuery)) return true;
+    // Phone-friendly match: strip non-digits on both sides so "0599 814 813"
+    // matches "0599814813".
+    if (digitsOnlyQuery.length >= 3) {
+      const phoneDigits = (o.customer_phone || "").replace(/\D+/g, "");
+      if (phoneDigits && phoneDigits.includes(digitsOnlyQuery)) return true;
+    }
+    return false;
+  });
 
   return (
     <>
@@ -476,6 +514,26 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
 
         {/* Date-range filter — defaults to today; max 7 days. */}
         <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-border bg-muted/10">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="بحث: اسم الزبون، رقم الهاتف، الفرع، الموظفة، صنف…"
+              className="h-7 text-[11px] pr-7 pl-6"
+              aria-label="بحث في سجل الفواتير المحوّلة"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 h-4 w-4 grid place-items-center rounded hover:bg-muted text-muted-foreground"
+                aria-label="مسح البحث"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
             <CalendarDays className="h-3 w-3" /> الفترة:
           </span>
