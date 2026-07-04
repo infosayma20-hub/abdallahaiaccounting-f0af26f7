@@ -215,6 +215,17 @@ Deno.serve(async (req) => {
           delivery_status: ok ? "delivered" : "failed",
           delivery_error: deliveryError,
         });
+        // In-app copy — يظهر داخل جرس الإشعارات حتى لو Push فشل / غير مفعّل.
+        logRows.push({
+          user_id: userId,
+          type: "broadcast",
+          channel: "in_app",
+          title,
+          body: messageBody,
+          path: path ?? null,
+          broadcast_id: broadcast.id,
+          delivery_status: "delivered",
+        });
       } catch (e) {
         failed++;
         failureDetails.push({
@@ -231,6 +242,17 @@ Deno.serve(async (req) => {
           broadcast_id: broadcast.id,
           delivery_status: "failed",
           delivery_error: String(e),
+        });
+        // In-app copy still delivered so user sees it in the bell.
+        logRows.push({
+          user_id: userId,
+          type: "broadcast",
+          channel: "in_app",
+          title,
+          body: messageBody,
+          path: path ?? null,
+          broadcast_id: broadcast.id,
+          delivery_status: "delivered",
         });
       }
     };
