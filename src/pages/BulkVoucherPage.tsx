@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Save, CheckCircle, ArrowRight, AlertTriangle,
   User, BookOpen, Building2, Printer, XCircle, FileText, RefreshCw,
-  Calculator, Eraser, Layers, ArrowLeftRight,
+  Calculator, Eraser, Layers, ArrowLeftRight, Tag,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +23,9 @@ import { broadcastChange } from "@/lib/crossTabSync";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { printBulkVoucher } from "@/components/print/buildBulkVoucherPrint";
 import BulkInvoiceLinkPicker, { type LinkedInvoiceInfo } from "@/components/finance/BulkInvoiceLinkPicker";
+import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useCostCenters } from "@/hooks/useCostCenters";
 
 /* ────────────────────────────────────────────────────────────────
    Bulk Voucher (سند صرف/قبض جماعي) — Microsoft Dynamics style
@@ -51,6 +54,7 @@ interface LineRow {
   contact_name?: string;
   description: string;
   amount: number;
+  cost_center_id?: string | null;
   linked_invoice?: LinkedInvoiceInfo | null;
 }
 
@@ -67,6 +71,7 @@ const newLine = (): LineRow => ({
   account_name: "",
   description: "",
   amount: 0,
+  cost_center_id: null,
   linked_invoice: null,
 });
 
