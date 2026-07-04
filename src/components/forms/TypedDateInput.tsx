@@ -150,7 +150,7 @@ export default function TypedDateInput({
         disabled={disabled}
         title="فتح التقويم"
         className={cn(
-          "absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center",
+          "absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center z-10",
           "h-7 w-7 rounded-md text-muted-foreground hover:text-primary hover:bg-muted/60 transition-colors",
         )}
       >
@@ -169,12 +169,12 @@ export default function TypedDateInput({
         tabIndex={-1}
         style={{
           position: "absolute",
-          width: 1,
-          height: 1,
+          width: 28,
+          height: 28,
           opacity: 0,
-          pointerEvents: "none",
-          right: 0,
-          top: 0,
+          right: 8,
+          top: "50%",
+          transform: "translateY(-50%)",
           direction: "ltr",
         }}
       />
