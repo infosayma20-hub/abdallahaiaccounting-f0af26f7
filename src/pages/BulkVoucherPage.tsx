@@ -790,3 +790,42 @@ export default function BulkVoucherPage({ mode }: Props) {
     </FinanceShell>
   );
 }
+
+/* ─── Icon-sized cost center picker used inside the amount cell ─── */
+function CostCenterIconPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const { data: list = [] } = useCostCenters();
+  const selected = list.find((c) => c.id === value) || null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          size="icon"
+          variant={selected ? "default" : "ghost"}
+          disabled={disabled}
+          className="h-9 w-9 shrink-0"
+          title={selected ? `مركز التكلفة: ${selected.code} - ${selected.name_ar || selected.name}` : "إضافة مركز تكلفة"}
+        >
+          <Tag className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] p-2 z-[100]" align="end" dir="rtl">
+        <div className="text-[11px] font-semibold text-muted-foreground mb-2">مركز التكلفة</div>
+        <CostCenterCombobox
+          value={value}
+          onChange={(v) => { onChange(v); setOpen(false); }}
+          disabled={disabled}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
