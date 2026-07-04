@@ -8592,7 +8592,7 @@ const POSPage = () => {
                     Math.abs(
                       splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
                       (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
-                    ) > 0.01 ||
+                    ) > (splitTenders.some((t) => t.currency && t.currency !== "ILS") ? 0.05 : 0.01) ||
                     splitTenders.some((t) => !(t.amount > 0))
                   ))
                 }
@@ -8621,7 +8621,7 @@ const POSPage = () => {
                     Math.abs(
                       splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
                       (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
-                    ) > 0.01 ||
+                    ) > (splitTenders.some((t) => t.currency && t.currency !== "ILS") ? 0.05 : 0.01) ||
                     splitTenders.some((t) => !(t.amount > 0))
                   ))
                 }
