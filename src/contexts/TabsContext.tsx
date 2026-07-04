@@ -334,8 +334,16 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         const userTabs = loadTabs(userId);
         // Filter out excluded/legacy paths (e.g. /billing, /subscription, /pricing)
         const cleaned = userTabs.filter(t => !isExcludedPath(t.path));
-        if (cleaned.length !== userTabs.length) saveTabs(cleaned, userId);
-        setTabs(cleaned);
+        // إعادة توليد العناوين/الأيقونات من خريطة المسارات (لتحديث الترجمات)
+        const refreshed = cleaned.map(t => {
+          const meta = getRouteMeta(t.path);
+          return { ...t, title: meta.title, icon: meta.icon };
+        });
+        const changed =
+          refreshed.length !== userTabs.length ||
+          refreshed.some((t, i) => t.title !== cleaned[i]?.title || t.icon !== cleaned[i]?.icon);
+        if (changed) saveTabs(refreshed, userId);
+        setTabs(refreshed);
       } else {
         setTabs([]);
       }
