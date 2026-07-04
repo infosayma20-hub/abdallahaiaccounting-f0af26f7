@@ -514,6 +514,26 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId, isAdmi
 
         {/* Date-range filter — defaults to today; max 7 days. */}
         <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-border bg-muted/10">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="بحث: اسم الزبون، رقم الهاتف، الفرع، الموظفة، صنف…"
+              className="h-7 text-[11px] pr-7 pl-6"
+              aria-label="بحث في سجل الفواتير المحوّلة"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 h-4 w-4 grid place-items-center rounded hover:bg-muted text-muted-foreground"
+                aria-label="مسح البحث"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
             <CalendarDays className="h-3 w-3" /> الفترة:
           </span>
