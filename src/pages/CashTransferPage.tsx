@@ -138,6 +138,13 @@ const CashTransferPage = () => {
   const toBox = boxes.find(b => b.id === toBoxId);
   // Filter boxes strictly by the selected currency — each cash box holds ONE currency only.
   const boxesForCurrency = boxes.filter(b => (b.currency || "ILS") === transferCurrency);
+
+  // Clear any selected box that doesn't match the active currency (avoid cross-currency posting).
+  useEffect(() => {
+    if (fromBox && (fromBox.currency || "ILS") !== transferCurrency) setFromBoxId("");
+    if (toBox && (toBox.currency || "ILS") !== transferCurrency) setToBoxId("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transferCurrency]);
   const fromBal = fromBox ? (balances[fromBox.gl_account_code] || 0) : 0;
   const toBal = toBox ? (balances[toBox.gl_account_code] || 0) : 0;
   const amountNum = Number(amount) || 0;
