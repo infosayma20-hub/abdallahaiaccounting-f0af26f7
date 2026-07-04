@@ -24351,6 +24351,13 @@ export type Database = {
         }[]
       }
       get_rep_warehouse_id: { Args: never; Returns: string }
+      get_sub_account_balances: {
+        Args: { p_owner: string; p_parents: string[] }
+        Returns: {
+          account_code: string
+          balance: number
+        }[]
+      }
       get_team_owner_id: { Args: { _user_id: string }; Returns: string }
       get_tenant_company_logo: { Args: never; Returns: string }
       has_feature_permission: {

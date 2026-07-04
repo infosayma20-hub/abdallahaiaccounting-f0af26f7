@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Trash2, FileSpreadsheet, Lock, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown, FileText, Network, Settings2, Printer, Calculator } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Trash2, FileSpreadsheet, Lock, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown, FileText, Network, Settings2, Printer, Calculator, EyeOff } from "lucide-react";
 import { MoveAccountModal } from "@/components/accounting/MoveAccountModal";
 import { ImportAccountsModal } from "@/components/accounting/ImportAccountsModal";
 import { exportAccountsToExcel } from "@/lib/accountsExport";
@@ -192,6 +192,32 @@ const AccountsPage = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
   const [profileData, setProfileData] = useState<{ company_name?: string | null; display_name?: string | null } | null>(null);
+  const [hideZeroSubs, setHideZeroSubs] = useState<boolean>(() => {
+    try { return localStorage.getItem("accounts:hideZeroSubs") !== "0"; } catch { return true; }
+  });
+  const [subBalances, setSubBalances] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    try { localStorage.setItem("accounts:hideZeroSubs", hideZeroSubs ? "1" : "0"); } catch {}
+  }, [hideZeroSubs]);
+
+  useEffect(() => {
+    if (!ownerId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase as any).rpc("get_sub_account_balances", {
+        p_owner: ownerId,
+        p_parents: ["1130", "2110"],
+      });
+      if (cancelled) return;
+      if (!error && Array.isArray(data)) {
+        const m = new Map<string, number>();
+        data.forEach((r: any) => m.set(r.account_code, Number(r.balance) || 0));
+        setSubBalances(m);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ownerId, accounts.length]);
 
   const fetchAccounts = useCallback(async () => {
     if (!ownerId) return [];
@@ -339,6 +365,11 @@ const AccountsPage = () => {
       if (searchQuery.trim()) {
         if (!multiWordMatchAny(searchQuery, a.account_name, a.account_code)) return false;
       }
+      // Hide zero-balance customer/supplier sub-accounts (kept as contacts, no clutter in CoA)
+      if (hideZeroSubs && !searchQuery.trim() && (a.parent_code === "1130" || a.parent_code === "2110")) {
+        const bal = subBalances.get(a.account_code);
+        if (bal !== undefined && Math.abs(bal) < 0.005) return false;
+      }
       return true;
     }).sort((a, b) => a.account_code.localeCompare(b.account_code));
     return applyFilters(base, shellFilters, (row, key) => {
@@ -351,7 +382,7 @@ const AccountsPage = () => {
         default: return (row as any)[key];
       }
     });
-  }, [accounts, searchQuery, typeFilter, shellFilters]);
+  }, [accounts, searchQuery, typeFilter, shellFilters, hideZeroSubs, subBalances]);
 
   type TreeRow = 
     | { type: 'account'; account: Account; level: number; isGroup: boolean; hasChildren: boolean; isCollapsed: boolean }
@@ -575,7 +606,8 @@ const AccountsPage = () => {
               ))}
             </div>
             <div className="px-3 py-2">
-              <div className="relative">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                 <Input
                   value={searchQuery}
@@ -584,6 +616,23 @@ const AccountsPage = () => {
                   className="pr-9 border-0 bg-[hsl(210,20%,98%)] dark:bg-muted/30 rounded-lg text-sm h-9 focus-visible:ring-1 focus-visible:ring-[hsl(142,71%,45%)]"
                   dir="rtl"
                 />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={hideZeroSubs ? "default" : "outline"}
+                      size="sm"
+                      className="h-9 gap-1.5 text-xs whitespace-nowrap"
+                      onClick={() => setHideZeroSubs(v => !v)}
+                    >
+                      {hideZeroSubs ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {hideZeroSubs ? "إخفاء الأرصدة الصفرية" : "إظهار الكل"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    إخفاء حسابات الزبائن/الموردين الفرعية ذات الرصيد الصفري من شجرة الحسابات (تبقى محفوظة في جهات الاتصال)
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
