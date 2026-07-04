@@ -1362,12 +1362,12 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right border-b-2 border-border" style={{ background: "#0D1B2A" }}>
                   <th className="p-3.5 text-white font-semibold text-[13px] w-12 border-l border-white/10">#</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "10%" }}>رقم الحساب</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "26%" }}>الحساب أو الجهة</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>مدين ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "12%" }}>دائن ₪</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "22%" }}>تعليق</th>
-                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "18%" }}>مركز التكلفة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "9%" }}>رقم الحساب</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "24%" }}>الحساب أو الجهة</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>مدين ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "16%" }}>دائن ₪</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10" style={{ width: "27%" }}>تعليق</th>
+                  <th className="p-3.5 text-white font-semibold text-[13px] border-l border-white/10 text-center" style={{ width: "60px" }} title="مركز التكلفة">م.ت</th>
                   <th className="p-3.5 w-12"></th>
                 </tr>
               </thead>
