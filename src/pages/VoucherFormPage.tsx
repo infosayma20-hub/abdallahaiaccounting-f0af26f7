@@ -7,6 +7,7 @@ import VoucherCancelModal from "@/components/VoucherCancelModal";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllAccountsForOwner } from "@/lib/fetchAllAccounts";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
@@ -723,12 +724,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Load GL accounts (for "account" party type)
   useEffect(() => {
     if (!user || !ownerId) return;
-    supabase.from("accounts")
-      .select("id, account_code, account_name, account_type")
-      .eq("user_id", ownerId)
-      .eq("is_active", true)
-      .order("account_code")
-      .then(({ data }) => setGlAccounts(data || []));
+    fetchAllAccountsForOwner<{ id: string; account_code: string; account_name: string; account_type: string }>(
+      ownerId,
+      "id, account_code, account_name, account_type",
+      { activeOnly: true }
+    ).then((data) => setGlAccounts(data));
   }, [user, ownerId]);
 
   // Load employees (for payment vouchers)
