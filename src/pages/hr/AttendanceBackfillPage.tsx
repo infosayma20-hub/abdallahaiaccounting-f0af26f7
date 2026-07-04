@@ -70,6 +70,7 @@ export default function AttendanceBackfillPage() {
   const [checkOut, setCheckOut] = useState("17:00");
   const [skipWeekends, setSkipWeekends] = useState(false);
   const [weekendDay, setWeekendDay] = useState<number>(5); // Friday
+  const [overwrite, setOverwrite] = useState(true);
   const [reason, setReason] = useState("موظف جديد — تعبئة بصمات بأثر رجعي");
 
   const [preview, setPreview] = useState<PreviewRow[]>([]);
@@ -178,8 +179,9 @@ export default function AttendanceBackfillPage() {
     runPreview();
   }, [runPreview]);
 
-  const willInsertCount = preview.filter(p => !p.existing).length;
-  const willSkipCount = preview.filter(p => p.existing).length;
+  const willInsertCount = overwrite ? preview.length : preview.filter(p => !p.existing).length;
+  const willSkipCount = overwrite ? 0 : preview.filter(p => p.existing).length;
+  const willOverwriteCount = overwrite ? preview.filter(p => p.existing).length : 0;
 
   const canRun =
     !running &&
@@ -204,6 +206,7 @@ export default function AttendanceBackfillPage() {
             p_check_in: checkIn + ":00",
             p_check_out: checkOut + ":00",
             p_reason: reason.trim(),
+            p_overwrite: overwrite,
           });
           if (error) throw error;
           const r: any = data || {};
@@ -367,6 +370,12 @@ export default function AttendanceBackfillPage() {
                   </select>
                 )}
               </div>
+              <div className="col-span-2 flex items-center gap-2 pt-1 border-t mt-1">
+                <Checkbox id="overwrite" checked={overwrite} onCheckedChange={(v) => setOverwrite(!!v)} />
+                <Label htmlFor="overwrite" className="text-xs cursor-pointer">
+                  استبدال البصمات الموجودة (لا تتخطى أي يوم)
+                </Label>
+              </div>
             </div>
           </Card>
 
@@ -413,7 +422,11 @@ export default function AttendanceBackfillPage() {
               <span className="text-sm font-semibold">معاينة قبل الترحيل</span>
               <div className="ms-auto flex items-center gap-2 text-xs">
                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">إدراج: {willInsertCount}</Badge>
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">تخطي: {willSkipCount}</Badge>
+                {overwrite ? (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">استبدال: {willOverwriteCount}</Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">تخطي: {willSkipCount}</Badge>
+                )}
               </div>
             </div>
             <ScrollArea className="max-h-[520px]">

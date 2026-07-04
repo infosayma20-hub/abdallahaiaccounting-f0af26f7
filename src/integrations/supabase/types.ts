@@ -24407,6 +24407,7 @@ export type Database = {
           p_check_out: string
           p_employee_id: string
           p_from: string
+          p_overwrite?: boolean
           p_reason: string
           p_to: string
         }
