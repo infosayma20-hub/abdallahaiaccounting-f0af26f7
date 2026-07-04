@@ -3925,7 +3925,9 @@ const POSPage = () => {
       }
       const paid = splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0);
       const diff = Math.abs(paid - cartTotals.total);
-      if (diff > 0.01) {
+      const hasForeignTender = splitTenders.some((t) => t.currency && t.currency !== "ILS");
+      const balanceTolerance = hasForeignTender ? 0.05 : 0.01;
+      if (diff > balanceTolerance) {
         toast.error(`مجموع الدفعات (₪${paid.toFixed(2)}) لا يساوي إجمالي الفاتورة (₪${cartTotals.total.toFixed(2)})`);
         return;
       }
@@ -8590,7 +8592,7 @@ const POSPage = () => {
                     Math.abs(
                       splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
                       (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
-                    ) > 0.01 ||
+                    ) > (splitTenders.some((t) => t.currency && t.currency !== "ILS") ? 0.05 : 0.01) ||
                     splitTenders.some((t) => !(t.amount > 0))
                   ))
                 }
@@ -8619,7 +8621,7 @@ const POSPage = () => {
                     Math.abs(
                       splitTenders.reduce((s, t) => s + (Number(t.amount) || 0), 0) -
                       (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total)
-                    ) > 0.01 ||
+                    ) > (splitTenders.some((t) => t.currency && t.currency !== "ILS") ? 0.05 : 0.01) ||
                     splitTenders.some((t) => !(t.amount > 0))
                   ))
                 }
