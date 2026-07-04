@@ -127,6 +127,55 @@ export default function EmployeeFormsManagementPage() {
   // Unified intake panel — collapsed by default (dedicated place for pausing all incoming requests)
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [pendingPwdResetCount, setPendingPwdResetCount] = useState(0);
+  const [intakeSaving, setIntakeSaving] = useState(false);
+  // Local buffers for the closed-messages Textareas so we only persist on blur.
+  const [advMsgDraft, setAdvMsgDraft] = useState<string>("");
+  const [leaveMsgDraft, setLeaveMsgDraft] = useState<string>("");
+  useEffect(() => {
+    setAdvMsgDraft(companySettings.hr_advance_requests_closed_message ?? "");
+  }, [companySettings.hr_advance_requests_closed_message]);
+  useEffect(() => {
+    setLeaveMsgDraft(companySettings.hr_leave_requests_closed_message ?? "");
+  }, [companySettings.hr_leave_requests_closed_message]);
+
+  /**
+   * Persist intake-related company_settings fields directly (without relying on
+   * a separate "Save" button). Employees load this row on mount, so writing
+   * immediately + broadcasting a realtime UPDATE makes the pause take effect
+   * without any refresh on the employee side.
+   */
+  const persistIntake = async (
+    patch: Partial<{
+      hr_allow_advance_requests: boolean;
+      hr_allow_leave_requests: boolean;
+      hr_advance_requests_closed_message: string;
+      hr_leave_requests_closed_message: string;
+    }>
+  ) => {
+    // Optimistic UI update
+    updateCompanySettings(patch as any);
+    const ownerId = dataOwnerId || user?.id;
+    if (!ownerId) {
+      toast.error("تعذر تحديد صاحب البيانات");
+      return;
+    }
+    setIntakeSaving(true);
+    try {
+      // Ensure a row exists first, then update. Using upsert on user_id keeps
+      // this atomic and works whether or not company_settings exists yet.
+      const payload: any = { user_id: ownerId, updated_by: user?.id || null, ...patch };
+      const { error } = await supabase
+        .from("company_settings" as any)
+        .upsert(payload, { onConflict: "user_id" });
+      if (error) throw error;
+      toast.success("تم الحفظ", { duration: 1200 });
+    } catch (e: any) {
+      toast.error("فشل حفظ الإعداد", { description: e?.message });
+    } finally {
+      setIntakeSaving(false);
+    }
+  };
+
   useEffect(() => {
     let ch: ReturnType<typeof supabase.channel> | null = null;
     const load = async () => {
@@ -562,11 +611,13 @@ export default function EmployeeFormsManagementPage() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-[11px] text-muted-foreground">
-                        فتح أو إغلاق تقديم الطلبات من قبل الموظفين.
+                        فتح أو إغلاق تقديم الطلبات من قبل الموظفين. يتم الحفظ تلقائياً وينعكس فوراً على الموظف.
                       </p>
-                      <Button size="sm" onClick={() => saveCompanySettings()} disabled={savingCompanySettings}>
-                        {savingCompanySettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "حفظ الإعدادات"}
-                      </Button>
+                      {intakeSaving && (
+                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" /> يتم الحفظ...
+                        </span>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* Advances */}
@@ -578,7 +629,7 @@ export default function EmployeeFormsManagementPage() {
                           </div>
                           <Switch
                             checked={companySettings.hr_allow_advance_requests !== false}
-                            onCheckedChange={v => updateCompanySettings({ hr_allow_advance_requests: v })}
+                            onCheckedChange={v => persistIntake({ hr_allow_advance_requests: v })}
                           />
                         </div>
                         {companySettings.hr_allow_advance_requests === false && (
@@ -588,8 +639,13 @@ export default function EmployeeFormsManagementPage() {
                               rows={2}
                               className="text-xs"
                               placeholder="مثال: تم إغلاق استقبال طلبات السلف حتى نهاية الشهر."
-                              value={companySettings.hr_advance_requests_closed_message ?? ""}
-                              onChange={e => updateCompanySettings({ hr_advance_requests_closed_message: e.target.value })}
+                              value={advMsgDraft}
+                              onChange={e => setAdvMsgDraft(e.target.value)}
+                              onBlur={() => {
+                                if (advMsgDraft !== (companySettings.hr_advance_requests_closed_message ?? "")) {
+                                  persistIntake({ hr_advance_requests_closed_message: advMsgDraft });
+                                }
+                              }}
                             />
                           </div>
                         )}
@@ -604,7 +660,7 @@ export default function EmployeeFormsManagementPage() {
                           </div>
                           <Switch
                             checked={companySettings.hr_allow_leave_requests !== false}
-                            onCheckedChange={v => updateCompanySettings({ hr_allow_leave_requests: v })}
+                            onCheckedChange={v => persistIntake({ hr_allow_leave_requests: v })}
                           />
                         </div>
                         {companySettings.hr_allow_leave_requests === false && (
@@ -614,8 +670,13 @@ export default function EmployeeFormsManagementPage() {
                               rows={2}
                               className="text-xs"
                               placeholder="مثال: تم إغلاق استقبال طلبات الإجازات مؤقتاً."
-                              value={companySettings.hr_leave_requests_closed_message ?? ""}
-                              onChange={e => updateCompanySettings({ hr_leave_requests_closed_message: e.target.value })}
+                              value={leaveMsgDraft}
+                              onChange={e => setLeaveMsgDraft(e.target.value)}
+                              onBlur={() => {
+                                if (leaveMsgDraft !== (companySettings.hr_leave_requests_closed_message ?? "")) {
+                                  persistIntake({ hr_leave_requests_closed_message: leaveMsgDraft });
+                                }
+                              }}
                             />
                           </div>
                         )}
