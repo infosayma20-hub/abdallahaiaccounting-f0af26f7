@@ -639,7 +639,7 @@ const CurrencyExchangePage = () => {
             <div>
               <Label className="text-xs font-bold">البيان</Label>
               <Input value={description} onChange={e => setDescription(e.target.value)} disabled={readonly}
-                placeholder={fromBox && toBox ? `صرف عملة: ${fromBox.name} → ${toBox.name}` : "البيان..."}
+                placeholder={fromBox && toBox ? `صرف: ${fromBox.name} → ${toBox.name}` : "البيان..."}
                 className="mt-1 h-10" />
             </div>
 
