@@ -132,6 +132,10 @@ const JournalNewPage = () => {
   // Invalid line IDs (highlighted on failed save attempt)
   const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
 
+  // Raw text buffers for debit/credit inputs so users can type partial values
+  // like "13." or "0." without them being reformatted mid-typing.
+  const [amountDrafts, setAmountDrafts] = useState<Record<string, { debit?: string; credit?: string }>>({});
+
   // Postable accounts only — exclude accounts that are referenced as a parent_code by any other account.
   // NOTE: Do NOT use string-prefix matching here — codes like 11101 and 111010 are siblings
   // (both children of 1110), not parent/child. Prefix matching would wrongly hide 11101.
@@ -1464,7 +1468,7 @@ const JournalNewPage = () => {
                     <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
-                        value={line.debit || ""}
+                        value={amountDrafts[line.id]?.debit ?? (line.debit ? String(line.debit) : "")}
                         onChange={e => {
                           const val = e.target.value;
                           if (val === "=" || val === "=") {
@@ -1473,10 +1477,16 @@ const JournalNewPage = () => {
                             const currentTotalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
                             const remaining = Math.max(0, currentTotalCredit - otherDebit);
                             updateLine(line.id, "debit", remaining);
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], debit: undefined } }));
                           } else {
-                            updateLine(line.id, "debit", Number(val) || 0);
+                            // Accept only digits and a single dot; preserve raw text so
+                            // users can type "13." then "13.5" without disruption.
+                            const cleaned = val.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], debit: cleaned } }));
+                            updateLine(line.id, "debit", cleaned === "" || cleaned === "." ? 0 : Number(cleaned) || 0);
                           }
                         }}
+                        onBlur={() => setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], debit: undefined } }))}
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -1490,7 +1500,7 @@ const JournalNewPage = () => {
                     <td className="p-3">
                       <Input
                         type="text" inputMode="decimal"
-                        value={line.credit || ""}
+                        value={amountDrafts[line.id]?.credit ?? (line.credit ? String(line.credit) : "")}
                         onChange={e => {
                           const val = e.target.value;
                           if (val === "=" || val === "=") {
@@ -1498,10 +1508,14 @@ const JournalNewPage = () => {
                             const currentTotalDebit = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
                             const remaining = Math.max(0, currentTotalDebit - otherCredit);
                             updateLine(line.id, "credit", remaining);
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], credit: undefined } }));
                           } else {
-                            updateLine(line.id, "credit", Number(val) || 0);
+                            const cleaned = val.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+                            setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], credit: cleaned } }));
+                            updateLine(line.id, "credit", cleaned === "" || cleaned === "." ? 0 : Number(cleaned) || 0);
                           }
                         }}
+                        onBlur={() => setAmountDrafts(p => ({ ...p, [line.id]: { ...p[line.id], credit: undefined } }))}
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
