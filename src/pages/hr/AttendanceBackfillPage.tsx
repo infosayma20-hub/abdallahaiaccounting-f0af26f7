@@ -113,9 +113,15 @@ export default function AttendanceBackfillPage() {
     const a = new Date(fromDate + "T00:00:00");
     const b = new Date(toDate + "T00:00:00");
     if (isNaN(a.getTime()) || isNaN(b.getTime()) || a > b) return [];
+    const fmt = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
     for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) {
       if (skipWeekends && d.getDay() === weekendDay) continue;
-      out.push(d.toISOString().slice(0, 10));
+      out.push(fmt(d));
     }
     return out;
   }, [fromDate, toDate, skipWeekends, weekendDay]);
