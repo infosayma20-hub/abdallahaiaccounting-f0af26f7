@@ -18,7 +18,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal, Pencil,
+  Settings2, ChevronDown
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import DynamicTemplateView, { type TemplateSchema } from "@/components/employee/DynamicTemplateView";
@@ -37,6 +38,8 @@ import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { useNavigate } from "react-router-dom";
 import { PasswordResetRequestsPanel } from "@/pages/hr/components/PasswordResetRequestsPanel";
 import { openEmployeeFormsStorageFile } from "@/lib/employeeStorageFiles";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { supabase as _supabaseForCount } from "@/integrations/supabase/client";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
