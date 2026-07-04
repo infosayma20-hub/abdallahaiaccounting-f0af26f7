@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Save, CheckCircle, ArrowRight, AlertTriangle,
   User, BookOpen, Building2, Printer, XCircle, FileText, RefreshCw,
-  Calculator, Eraser, Layers, ArrowLeftRight,
+  Calculator, Eraser, Layers, ArrowLeftRight, Tag,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +23,9 @@ import { broadcastChange } from "@/lib/crossTabSync";
 import { FinanceShell, type ActionTab } from "@/components/finance/shell";
 import { printBulkVoucher } from "@/components/print/buildBulkVoucherPrint";
 import BulkInvoiceLinkPicker, { type LinkedInvoiceInfo } from "@/components/finance/BulkInvoiceLinkPicker";
+import CostCenterCombobox from "@/components/cost-centers/CostCenterCombobox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useCostCenters } from "@/hooks/useCostCenters";
 
 /* ────────────────────────────────────────────────────────────────
    Bulk Voucher (سند صرف/قبض جماعي) — Microsoft Dynamics style
@@ -51,6 +54,7 @@ interface LineRow {
   contact_name?: string;
   description: string;
   amount: number;
+  cost_center_id?: string | null;
   linked_invoice?: LinkedInvoiceInfo | null;
 }
 
@@ -67,6 +71,7 @@ const newLine = (): LineRow => ({
   account_name: "",
   description: "",
   amount: 0,
+  cost_center_id: null,
   linked_invoice: null,
 });
 
@@ -197,6 +202,7 @@ export default function BulkVoucherPage({ mode }: Props) {
               contact_name: l.contact_name || undefined,
               description: l.description || l.line_comment || "",
               amount: Number(isPayment ? l.debit : l.credit) || 0,
+              cost_center_id: l.cost_center_id || null,
               linked_invoice: null,
             })));
           }
@@ -365,6 +371,7 @@ export default function BulkVoucherPage({ mode }: Props) {
         line_order: idx + 1,
         contact_id: r.contactIdForTx,
         contact_name: r.kind === "contact" ? r.resolvedName : (r.kind === "employee" ? r.employee_name : null),
+        cost_center_id: r.cost_center_id || null,
       }));
       const sourceLine = {
         voucher_id: voucherId!,
@@ -397,6 +404,7 @@ export default function BulkVoucherPage({ mode }: Props) {
             payment_method: payMethodAr,
             idempotency_key: `BULK-${finalRef}-${i + 1}`,
             reference: finalRef,
+            cost_center_id: r.cost_center_id || null,
           } as any).select("id").single();
           if (txErr) throw txErr;
           if (tx?.id) insertedTxIds.push(tx.id);
@@ -659,7 +667,7 @@ export default function BulkVoucherPage({ mode }: Props) {
                     <th className="text-right p-2 min-w-[240px]">{isPayment ? "المستفيد / الحساب" : "العميل / الحساب"}</th>
                     <th className="text-right p-2 min-w-[180px]">البيان</th>
                     <th className="text-right p-2 w-32">ربط فاتورة</th>
-                    <th className="text-right p-2 w-32">المبلغ</th>
+                    <th className="text-right p-2 w-56">المبلغ</th>
                     <th className="p-2 w-10"></th>
                   </tr>
                 </thead>
@@ -734,10 +742,19 @@ export default function BulkVoucherPage({ mode }: Props) {
                           )}
                         </td>
                         <td className="p-2">
-                          <Input type="number" inputMode="decimal" step="0.01" min="0"
-                            value={l.amount || ""}
-                            onChange={e => updateLine(l.id, { amount: parseFloat(e.target.value) || 0 })}
-                            className="text-right font-mono" disabled={readonly} />
+                          <div className="flex items-center gap-1">
+                            <Input type="number" inputMode="decimal" step="0.01" min="0"
+                              value={l.amount || ""}
+                              onChange={e => updateLine(l.id, { amount: parseFloat(e.target.value) || 0 })}
+                              className="text-right font-mono text-base h-10 flex-1 min-w-[140px]"
+                              placeholder="0.00"
+                              disabled={readonly} />
+                            <CostCenterIconPicker
+                              value={l.cost_center_id || null}
+                              onChange={(v) => updateLine(l.id, { cost_center_id: v })}
+                              disabled={readonly}
+                            />
+                          </div>
                         </td>
                         <td className="p-2">
                           <Button size="icon" variant="ghost"
@@ -771,5 +788,44 @@ export default function BulkVoucherPage({ mode }: Props) {
         )}
       </div>
     </FinanceShell>
+  );
+}
+
+/* ─── Icon-sized cost center picker used inside the amount cell ─── */
+function CostCenterIconPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const { data: list = [] } = useCostCenters();
+  const selected = list.find((c) => c.id === value) || null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          size="icon"
+          variant={selected ? "default" : "ghost"}
+          disabled={disabled}
+          className="h-9 w-9 shrink-0"
+          title={selected ? `مركز التكلفة: ${selected.code} - ${selected.name_ar || selected.name}` : "إضافة مركز تكلفة"}
+        >
+          <Tag className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] p-2 z-[100]" align="end" dir="rtl">
+        <div className="text-[11px] font-semibold text-muted-foreground mb-2">مركز التكلفة</div>
+        <CostCenterCombobox
+          value={value}
+          onChange={(v) => { onChange(v); setOpen(false); }}
+          disabled={disabled}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
