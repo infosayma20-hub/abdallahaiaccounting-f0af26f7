@@ -403,6 +403,7 @@ export default function FinancePaymentsPage() {
     groups: [
       { key: "new", label: "جديد", items: [
         { key: "new", label: "سند صرف جديد", icon: Plus, variant: "primary", onClick: handleNew },
+        { key: "new-bulk", label: "سند صرف جماعي", icon: Plus, onClick: () => navigate("/finance/payment/bulk/new") },
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
