@@ -117,6 +117,38 @@ export default function EmployeeFormsTab({
     fetchBranchesAndDepartments();
   }, [employeeId]);
 
+  // Keep intake toggles (hr_allow_advance_requests / hr_allow_leave_requests / closed messages)
+  // in sync with what HR set — without requiring the employee to refresh.
+  // 1) Realtime subscription on the owner's company_settings row.
+  // 2) Refetch when the tab/window regains focus (mobile PWA safety net).
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    (async () => {
+      const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+      const ownerId = (ownerData as string) || userId;
+      if (cancelled || !ownerId) return;
+      channel = supabase
+        .channel(`emp-forms-settings-${ownerId}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "company_settings", filter: `user_id=eq.${ownerId}` },
+          () => { fetchOwnerSettings(); }
+        )
+        .subscribe();
+    })();
+    const onFocus = () => { fetchOwnerSettings(); };
+    const onVisibility = () => { if (document.visibilityState === "visible") fetchOwnerSettings(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [employeeId, userId]);
+
   // Auto-open requested form (e.g. when user taps "تحديث معلوماتي" from profile)
   useEffect(() => {
     if (initialFormId) {
