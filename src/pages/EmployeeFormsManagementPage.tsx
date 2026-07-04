@@ -161,13 +161,23 @@ export default function EmployeeFormsManagementPage() {
     }
     setIntakeSaving(true);
     try {
-      // Ensure a row exists first, then update. Using upsert on user_id keeps
-      // this atomic and works whether or not company_settings exists yet.
-      const payload: any = { user_id: ownerId, updated_by: user?.id || null, ...patch };
-      const { error } = await supabase
+      // Try UPDATE first (company_settings has no unique constraint on
+      // user_id, so upsert with onConflict fails). Fall back to INSERT only
+      // if no row exists yet for this owner.
+      const updatePayload: any = { updated_by: user?.id || null, ...patch };
+      const { data: updated, error: updErr } = await supabase
         .from("company_settings" as any)
-        .upsert(payload, { onConflict: "user_id" });
-      if (error) throw error;
+        .update(updatePayload)
+        .eq("user_id", ownerId)
+        .select("id");
+      if (updErr) throw updErr;
+      if (!updated || updated.length === 0) {
+        const insertPayload: any = { user_id: ownerId, updated_by: user?.id || null, ...patch };
+        const { error: insErr } = await supabase
+          .from("company_settings" as any)
+          .insert(insertPayload);
+        if (insErr) throw insErr;
+      }
       toast.success("تم الحفظ", { duration: 1200 });
     } catch (e: any) {
       toast.error("فشل حفظ الإعداد", { description: e?.message });
