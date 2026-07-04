@@ -361,8 +361,12 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       }
 
       if (mode === "create") {
+        // MUST insert under the tenant owner, not the acting team member,
+        // otherwise the new account belongs to a different tenant and no one
+        // in the owner's workspace can see it.
+        const ownerId = dataOwnerId || user.id;
         const { data: ins, error } = await supabase.from("accounts").insert({
-          user_id: user.id,
+          user_id: ownerId,
           account_code: code,
           account_name: name.trim(),
           account_type: accountType,
