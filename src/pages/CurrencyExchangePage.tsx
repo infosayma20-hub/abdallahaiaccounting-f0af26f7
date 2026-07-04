@@ -228,7 +228,7 @@ const CurrencyExchangePage = () => {
       .from("transactions")
       .update({ is_deleted: true } as any)
       .eq("user_id", dataOwnerId)
-      .ilike("description", `%${REF_TAG(ref)}%`);
+      .eq("reference", ref);
   };
 
   const performPosting = async (refKey: string) => {
