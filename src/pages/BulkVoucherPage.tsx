@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Save, CheckCircle, ArrowRight, AlertTriangle,
   User, BookOpen, Building2, Printer, XCircle, FileText, RefreshCw,
-  Calculator, Eraser, Layers, ArrowLeftRight, Tag,
+  Calculator, Eraser, Layers, ArrowLeftRight, Tag, ChevronRight, ChevronLeft, Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -99,9 +99,9 @@ export default function BulkVoucherPage({ mode }: Props) {
   const [status, setStatus] = useState<"draft" | "posted" | "cancelled">("draft");
 
   // Source
-  const [source, setSource] = useState<"cash" | "bank">("cash");
+  const source = "cash" as const;
   const [cashBoxId, setCashBoxId] = useState<string>("");
-  const [bankAccountId, setBankAccountId] = useState<string>("");
+  const bankAccountId = "";
 
   // Loaded data
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
