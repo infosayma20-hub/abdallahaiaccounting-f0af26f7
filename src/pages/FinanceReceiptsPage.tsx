@@ -58,6 +58,7 @@ interface Row {
   status: string;
   status_label: string;
   notes: string | null;
+  is_bulk: boolean;
   raw: any;
 }
 
@@ -104,9 +105,12 @@ export default function FinanceReceiptsPage() {
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [rvRes, cRes, cbRes, baRes] = await Promise.all([
+    const [rvRes, bulkRes, cRes, cbRes, baRes] = await Promise.all([
       supabase.from("receipt_vouchers").select("*").eq("user_id", ownerId)
         .order("payment_date", { ascending: false }),
+      supabase.from("vouchers").select("*")
+        .eq("user_id", ownerId).eq("type", "receipt").eq("subtype", "bulk")
+        .order("date", { ascending: false }),
       supabase.from("contacts").select("id, contact_name").eq("user_id", ownerId),
       supabase.from("cash_boxes").select("id, name, currency").eq("user_id", ownerId),
       supabase.from("bank_accounts").select("id, name, currency").eq("user_id", ownerId),
@@ -152,10 +156,36 @@ export default function FinanceReceiptsPage() {
         status: rv.status || "posted",
         status_label: STATUS_LABELS[rv.status] || rv.status || "—",
         notes: rv.notes || null,
+        is_bulk: false,
         raw: rv,
       };
     });
-    setRows(mapped);
+    const bulkMapped: Row[] = ((bulkRes as any).data || []).map((v: any) => {
+      const ba = v.bank_account_id ? baMap.get(v.bank_account_id) : null;
+      return {
+        id: v.id,
+        ref_number: v.ref_number || "",
+        date: v.date || null,
+        contact_id: null,
+        contact_name: "سند جماعي — عدة سطور",
+        payment_method: v.payment_method || "",
+        payment_label: PAYMENT_LABELS[v.payment_method] || v.payment_method || "—",
+        cash_box_id: null,
+        bank_account_id: v.bank_account_id,
+        account_label: ba?.name || (v.payment_method === "cash" ? "صندوق" : "—"),
+        cost_center_id: null,
+        cost_center_name: "بدون مركز تكلفة",
+        currency: v.currency || "ILS",
+        amount: Number(v.amount || 0),
+        status: v.status || "posted",
+        status_label: STATUS_LABELS[v.status] || v.status || "—",
+        notes: v.notes || null,
+        is_bulk: true,
+        raw: v,
+      };
+    });
+    const all = [...mapped, ...bulkMapped].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    setRows(all);
     setLoading(false);
   }, [user, costCenters]);
 
@@ -166,7 +196,7 @@ export default function FinanceReceiptsPage() {
     const onFocus = () => fetchData();
     window.addEventListener("focus", onFocus);
     const off = onCrossTabChange((e) => {
-      if (e.entity === "receipt_voucher") fetchData();
+      if (e.entity === "receipt_voucher" || e.entity === "voucher") fetchData();
     });
     return () => { window.removeEventListener("focus", onFocus); off(); };
   }, [fetchData]);
@@ -294,10 +324,11 @@ export default function FinanceReceiptsPage() {
 
   const handleEdit = async (r: Row) => {
     try { await assertPermission("finance", "receipts", "update"); } catch { return; }
-    // Open in read-only view first; the EditPostedWarningDialog will be
-    // triggered from inside VoucherFormPage when the user explicitly
-    // presses "تعديل" on a posted voucher.
-    navigate(`/finance/receipt/${r.id}/edit`);
+    if (r.is_bulk) {
+      navigate(`/finance/receipt/bulk/${r.id}/edit`);
+    } else {
+      navigate(`/finance/receipt/${r.id}/edit`);
+    }
   };
   const confirmEditPosted = () => {
     if (!warnTarget) return;
@@ -320,6 +351,22 @@ export default function FinanceReceiptsPage() {
   const confirmDelete = async (reason: string) => {
     if (!delTarget || !user) return;
     try {
+      if (delTarget.is_bulk) {
+        const { error: rpcErr } = await (supabase as any).rpc("cancel_bulk_voucher", {
+          p_voucher_id: delTarget.id, p_reason: reason,
+        });
+        if (rpcErr) throw rpcErr;
+        await supabase.from("document_edit_history" as any).insert({
+          document_id: delTarget.id, document_type: "receipt",
+          old_data: delTarget.raw, edit_reason: reason,
+          edited_by: user.id, user_id: ownerId,
+          changes: { action: "cancel_bulk", reason },
+        } as any);
+        toast({ title: "تم إلغاء السند الجماعي وعكس كل حركاته ✅" });
+        setDelOpen(false);
+        fetchData();
+        return;
+      }
       const { data: links } = await supabase.from("payment_invoice_links" as any)
         .select("invoice_id, allocated_amount").eq("payment_id", delTarget.id);
       if (links && links.length) {
@@ -377,6 +424,7 @@ export default function FinanceReceiptsPage() {
     groups: [
       { key: "new", label: "جديد", items: [
         { key: "new", label: "سند قبض جديد", icon: Plus, variant: "primary", onClick: handleNew },
+        { key: "new-bulk", label: "سند قبض جماعي", icon: Plus, onClick: () => navigate("/finance/receipt/bulk/new") },
       ]},
       { key: "actions", label: "إجراءات", items: [
         { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchData },
