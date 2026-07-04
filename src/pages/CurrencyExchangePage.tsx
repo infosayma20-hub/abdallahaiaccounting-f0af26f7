@@ -464,37 +464,131 @@ const CurrencyExchangePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-bold">من الصندوق *</Label>
-                <Select value={fromBoxId} onValueChange={setFromBoxId} disabled={readonly}>
-                  <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر الصندوق المصدر..." /></SelectTrigger>
-                  <SelectContent>
-                    {boxes.filter(b => b.id !== toBoxId).map(b => (
-                      <SelectItem key={b.id} value={b.id}>
+                <Popover open={fromPopoverOpen} onOpenChange={setFromPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="mt-1 h-10 w-full justify-between font-normal"
+                      disabled={readonly}
+                    >
+                      {fromBox ? (
                         <span className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
-                          {b.name}
-                          <span className="text-[10px] text-muted-foreground">({curMeta(b.currency).symbol})</span>
+                          <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{fromBox.gl_account_code}</span>
+                          {fromBox.name}
+                          <span className="text-[10px] text-muted-foreground">({fromCur.symbol})</span>
                         </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      ) : (
+                        <span className="text-muted-foreground">اختر الصندوق المصدر...</span>
+                      )}
+                      <Search className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-0" align="start">
+                    <Command>
+                      <CommandInput
+                        placeholder="بحث بالكود أو الاسم أو العملة..."
+                        value={fromSearch}
+                        onValueChange={setFromSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>لا توجد صناديق</CommandEmpty>
+                        <CommandGroup>
+                          {boxes
+                            .filter(b => b.id !== toBoxId)
+                            .filter(b => {
+                              const q = fromSearch.toLowerCase();
+                              return (
+                                b.name?.toLowerCase().includes(q) ||
+                                b.gl_account_code?.toLowerCase().includes(q) ||
+                                curMeta(b.currency).arLabel?.toLowerCase().includes(q) ||
+                                curMeta(b.currency).code?.toLowerCase().includes(q)
+                              );
+                            })
+                            .map(b => (
+                              <CommandItem
+                                key={b.id}
+                                onSelect={() => {
+                                  setFromBoxId(b.id);
+                                  setFromSearch("");
+                                  setFromPopoverOpen(false);
+                                }}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
+                                  {b.name}
+                                  <span className="text-[10px] text-muted-foreground">({curMeta(b.currency).symbol})</span>
+                                </span>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label className="text-xs font-bold">إلى الصندوق *</Label>
-                <Select value={toBoxId} onValueChange={setToBoxId} disabled={readonly}>
-                  <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر الصندوق الوجهة..." /></SelectTrigger>
-                  <SelectContent>
-                    {boxes.filter(b => b.id !== fromBoxId).map(b => (
-                      <SelectItem key={b.id} value={b.id}>
+                <Popover open={toPopoverOpen} onOpenChange={setToPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="mt-1 h-10 w-full justify-between font-normal"
+                      disabled={readonly}
+                    >
+                      {toBox ? (
                         <span className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
-                          {b.name}
-                          <span className="text-[10px] text-muted-foreground">({curMeta(b.currency).symbol})</span>
+                          <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{toBox.gl_account_code}</span>
+                          {toBox.name}
+                          <span className="text-[10px] text-muted-foreground">({toCur.symbol})</span>
                         </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      ) : (
+                        <span className="text-muted-foreground">اختر الصندوق الوجهة...</span>
+                      )}
+                      <Search className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-0" align="start">
+                    <Command>
+                      <CommandInput
+                        placeholder="بحث بالكود أو الاسم أو العملة..."
+                        value={toSearch}
+                        onValueChange={setToSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>لا توجد صناديق</CommandEmpty>
+                        <CommandGroup>
+                          {boxes
+                            .filter(b => b.id !== fromBoxId)
+                            .filter(b => {
+                              const q = toSearch.toLowerCase();
+                              return (
+                                b.name?.toLowerCase().includes(q) ||
+                                b.gl_account_code?.toLowerCase().includes(q) ||
+                                curMeta(b.currency).arLabel?.toLowerCase().includes(q) ||
+                                curMeta(b.currency).code?.toLowerCase().includes(q)
+                              );
+                            })
+                            .map(b => (
+                              <CommandItem
+                                key={b.id}
+                                onSelect={() => {
+                                  setToBoxId(b.id);
+                                  setToSearch("");
+                                  setToPopoverOpen(false);
+                                }}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded">{b.gl_account_code}</span>
+                                  {b.name}
+                                  <span className="text-[10px] text-muted-foreground">({curMeta(b.currency).symbol})</span>
+                                </span>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
