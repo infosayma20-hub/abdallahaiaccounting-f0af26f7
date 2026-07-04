@@ -257,9 +257,11 @@ const CashTransferPage = () => {
 
         broadcastChange("transaction", "created", inserted?.id || newRef);
         setSuccess(true);
-        toast({ title: `✅ تم تحويل ${curSym}${fmt(amountNum)}` });
+        toast({ title: `✅ تم تحويل ${curSym}${fmt(amountNum)} — جاهز لتحويل جديد` });
         setTimeout(() => setSuccess(false), 1800);
-        if (inserted?.id) setSearchParams({ view: inserted.id });
+        // Open a fresh empty transfer form after successful posting
+        resetForm();
+        setSearchParams({});
       }
       await fetchBase();
     } catch (err: any) {
