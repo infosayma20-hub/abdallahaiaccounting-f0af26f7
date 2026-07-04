@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import useDataOwnerId from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const { accountId } = useParams();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { company } = useCompany();
   const { toast } = useToast();
 
@@ -120,14 +122,16 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const [obExistingRef, setObExistingRef] = useState<string | null>(null);
   const [obExchangeRate, setObExchangeRate] = useState<number>(0);
 
-  // Load accounts for parent selector
+  // Load accounts for parent selector — MUST filter by dataOwnerId
+  // (owner id), never auth.user.id, otherwise team/accountant users see
+  // an empty list and no parent accounts appear.
   useEffect(() => {
-    if (!user) return;
+    if (!dataOwnerId) return;
     supabase.from("accounts").select("id, account_code, account_name, account_type, parent_code, description_ar, notes, is_system_protected, currency")
-      .eq("user_id", user.id).order("account_code")
+      .eq("user_id", dataOwnerId).order("account_code")
       .then(({ data }) => setAccounts(data ?? []))
       .then(() => setDraftReady(true), () => setDraftReady(true));
-  }, [user]);
+  }, [dataOwnerId]);
 
   // Load existing account in edit mode
   useEffect(() => {
