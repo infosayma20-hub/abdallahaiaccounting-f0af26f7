@@ -69,7 +69,7 @@ const newLine = (): LineRow => ({
 export default function BulkPaymentVoucherPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const ownerId = useDataOwnerId();
+  const { dataOwnerId: ownerId } = useDataOwnerId();
 
   // Header
   const [refNumber, setRefNumber] = useState("");
@@ -387,11 +387,7 @@ export default function BulkPaymentVoucherPage() {
       <div className="max-w-6xl mx-auto p-3 sm:p-6 space-y-4">
         <div className="flex items-center gap-3">
           <BackButton />
-          <PageHeader
-            title="سند صرف جماعي"
-            subtitle="صرف دفعة واحدة لعدة موظفين أو موردين أو حسابات — قيد محاسبي مركّب واحد"
-            icon={Users}
-          />
+          <PageHeader title="سند صرف جماعي" />
         </div>
 
         {/* Header form */}
