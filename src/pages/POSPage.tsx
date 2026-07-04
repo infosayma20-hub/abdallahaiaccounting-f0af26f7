@@ -4451,6 +4451,34 @@ const POSPage = () => {
         return;
       }
 
+      // 🛡️ HARD GUARD: a card tender MUST carry a `visa_gl_account_code`
+      // (either from the delivery-app selection, the split-row selection,
+      // or the tenant default). Otherwise the backend used to fall back to
+      // the shift cash-box GL, inflating the cash balance and hiding the
+      // card receivable — root cause of the recent Faisal-1 discrepancy.
+      // We block BOTH primary and split tenders here.
+      {
+        const useSplitCheck = splitMode && splitTenders.length > 1;
+        if (useSplitCheck) {
+          const badCardTender = splitTenders.find(
+            (t) => t.method === "card" && !(t.visa_gl_account_code || defaultCardGl)
+          );
+          if (badCardTender) {
+            toast.error(
+              "لا يمكن تسجيل دفعة بطاقة بدون حساب بنكي/فيزا مربوط. الرجاء اختيار حساب البطاقة أو ضبط الحساب الافتراضي من الإعدادات."
+            );
+            setProcessing(false);
+            return;
+          }
+        } else if (effectivePaymentMethod === "card" && !(visaGlAccountCode || defaultCardGl)) {
+          toast.error(
+            "لا يمكن تسجيل دفعة بطاقة بدون حساب بنكي/فيزا مربوط. الرجاء اختيار حساب البطاقة أو ضبط الحساب الافتراضي من الإعدادات."
+          );
+          setProcessing(false);
+          return;
+        }
+      }
+
       // Build payments array. If split mode is active, send one entry per tender.
       const useSplit = splitMode && splitTenders.length > 1;
       const paymentsPayload = useSplit
