@@ -17,6 +17,22 @@ import {
   Banknote,
   ClipboardList,
   RefreshCw,
+  Users,
+  Building2,
+  MapPin,
+  Settings2,
+  CalendarDays,
+  Fingerprint,
+  Clock,
+  Plane,
+  BarChart3,
+  FileText,
+  Wallet,
+  Percent,
+  ClipboardCheck,
+  PlayCircle,
+  FilePlus2,
+  SlidersHorizontal,
 } from "lucide-react";
 import { HrSectionCard } from "./components/HrSectionCard";
 
@@ -136,60 +152,65 @@ export default function HrCommandCenter() {
       </div>
 
       {/* ─── الأقسام الأربعة الرئيسية — الواجهة الوحيدة ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         <HrSectionCard
           to="/employees"
           title="التعريفات الأساسية"
-          subtitle="الموظفون والأقسام والفروع"
+          subtitle="إدارة البيانات الأساسية للموظفين والمنظمة"
           Icon={Briefcase}
           tone="indigo"
           badge={totals.active}
           actions={[
-            { label: "قائمة الموظفين", to: "/employees", count: totals.total },
-            { label: "الأقسام والمسميات الوظيفية", to: "/hr/definitions" },
-            { label: "أنواع الأيام والعطل الرسمية", to: "/hr/day-types" },
-            { label: "إدارة الفروع", to: "/settings?section=branches" },
+            { label: "قائمة الموظفين", to: "/employees", count: totals.total, Icon: Users },
+            { label: "الأقسام والمسميات الوظيفية", to: "/hr/definitions", Icon: Building2 },
+            { label: "أنواع الدوام والعطل الرسمية", to: "/hr/day-types", Icon: CalendarDays },
+            { label: "إدارة الفروع", to: "/settings?section=branches", Icon: MapPin },
+            { label: "الإعدادات العامة", to: "/hr/settings", Icon: Settings2 },
           ]}
         />
         <HrSectionCard
           to="/hr-attendance"
           title="الوقت والحضور"
-          subtitle="ورديات، بصمات، إجازات رسمية"
+          subtitle="تسجيل وإدارة الحضور والإجازات بسهولة"
           Icon={CalendarClock}
           tone="amber"
           badge={`${Math.round(totals.avgAttendanceRate * 100)}%`}
           actions={[
-            { label: "لوحة الحضور اليومية", to: "/hr-attendance" },
-            { label: "طلبات تصحيح البصمة", to: "/employee-forms-management?type=correction_request" },
-            { label: "إعدادات الورديات", to: "/hr/settings?tab=shifts" },
+            { label: "لوحة الحضور اليومية", to: "/hr-attendance", Icon: CalendarDays },
+            { label: "طلبات تعديل البصمة", to: "/employee-forms-management?type=correction_request", Icon: Fingerprint },
+            { label: "إعدادات الورديات", to: "/hr/settings?tab=shifts", Icon: Clock },
+            { label: "سجل الإجازات", to: "/leaves", Icon: Plane },
+            { label: "تقارير الحضور", to: "/reports/hr-attendance", Icon: BarChart3 },
           ]}
         />
         <HrSectionCard
           to="/employee-forms-management"
           title="الطلبات والحركات"
-          subtitle="إجازات، سلف، خصومات، علاوات"
+          subtitle="إدارة طلبات الموظفين وحركاتهم الوظيفية"
           Icon={ClipboardList}
           tone="emerald"
           badge={pendingCount > 0 ? pendingCount : null}
           actions={[
-            { label: "الإجازات", to: "/leaves", count: pendingRequests.leaves.length },
-            { label: "السلف والقروض", to: "/advances" },
-            { label: "الخصومات والعلاوات", to: "/hr-deductions" },
-            { label: "نماذج الموظفين", to: "/employee-forms-management", count: pendingRequests.forms.length },
+            { label: "الطلبات", to: "/employee-forms-management", Icon: ClipboardCheck, count: pendingRequests.forms.length },
+            { label: "الإجازات", to: "/leaves", Icon: Plane, count: pendingRequests.leaves.length },
+            { label: "السلف والقروض", to: "/advances", Icon: Wallet },
+            { label: "التقييمات والملاحظات", to: "/hr-deductions", Icon: FileText },
+            { label: "نماذج الموظفين", to: "/employee-forms-management", Icon: Users },
           ]}
         />
         <HrSectionCard
           to="/payroll"
           title="الرواتب والمالية"
-          subtitle="مدخلات، احتساب، صرف، تقارير"
+          subtitle="إدارة الرواتب والمكافآت والمعاملات المالية"
           Icon={Banknote}
           tone="rose"
           badge={totals.totalPayrollThisMonth > 0 ? `₪${fmtShort(totals.totalPayrollThisMonth)}` : null}
           actions={[
-            { label: "تشغيل الرواتب الشهرية", to: "/payroll" },
-            { label: "مدخلات الراتب الشهري", to: "/payroll/inputs" },
-            { label: "إعدادات الرواتب", to: "/payroll-settings" },
-            { label: "تقرير تكلفة الموظفين", to: "/reports/hr-staff-cost" },
+            { label: "تشغيل الرواتب الشهرية", to: "/payroll", Icon: PlayCircle },
+            { label: "مدخلات الراتب الشهري", to: "/payroll/inputs", Icon: FilePlus2 },
+            { label: "إعدادات الرواتب", to: "/payroll-settings", Icon: SlidersHorizontal },
+            { label: "تقرير تكلفة الموظفين", to: "/reports/hr-staff-cost", Icon: BarChart3 },
+            { label: "البدلات والاستقطاعات", to: "/hr-deductions", Icon: Percent },
           ]}
         />
       </div>
