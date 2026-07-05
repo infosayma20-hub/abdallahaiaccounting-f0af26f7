@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import { calculateLeaveBalance, calculateAnnualLeaveEntitlement } from "@/lib/hr-utils";
+import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { differenceInBusinessDays, eachDayOfInterval, getDay } from "date-fns";
 
 const LEAVE_TYPES = [
@@ -60,8 +60,7 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
   };
 
   // Leave balance
-  const annualEntitlement = calculateAnnualLeaveEntitlement(employee?.start_date || "2024-01-01");
-  const sickEntitlement = employee?.sick_leave_days || 14;
+  const fullSickEntitlement = employee?.sick_leave_days || 14;
   const usedAnnual = leaves
     .filter(l => (l.status === "approved" || l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && l.leave_type === "سنوية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
     .reduce((s: number, l: any) => s + Number(l.days_count || 0), 0);
@@ -73,6 +72,11 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
     employee?.start_date || "2024-01-01",
     Number(employee?.previous_year_balance || 0),
     usedAnnual
+  );
+  const sickBalance = calculateSickBalance(
+    employee?.start_date || "2024-01-01",
+    usedSick,
+    fullSickEntitlement,
   );
 
   const handleSubmit = async () => {
@@ -123,7 +127,7 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
         <Card>
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-foreground">سنوية</p>
-            <p className="text-lg font-bold text-foreground">{annualEntitlement} يوم</p>
+            <p className="text-lg font-bold text-foreground">{leaveBalance.entitlement} يوم</p>
             <p className="text-[10px] text-muted-foreground">مستخدم {usedAnnual}</p>
             <p className="text-xs font-bold text-primary">متاح {leaveBalance.available}</p>
           </CardContent>
@@ -131,17 +135,17 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
         <Card>
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-foreground">مرضية</p>
-            <p className="text-lg font-bold text-foreground">{sickEntitlement} يوم</p>
+            <p className="text-lg font-bold text-foreground">{sickBalance.entitlement} يوم</p>
             <p className="text-[10px] text-muted-foreground">مستخدم {usedSick}</p>
-            <p className="text-xs font-bold text-primary">متاح {sickEntitlement - usedSick}</p>
+            <p className="text-xs font-bold text-primary">متاح {sickBalance.available}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-foreground">الإجمالي</p>
-            <p className="text-lg font-bold text-foreground">{annualEntitlement + sickEntitlement} يوم</p>
+            <p className="text-lg font-bold text-foreground">{(leaveBalance.entitlement + sickBalance.entitlement).toFixed(2)} يوم</p>
             <p className="text-[10px] text-muted-foreground">مستخدم {usedAnnual + usedSick}</p>
-            <p className="text-xs font-bold text-primary">متاح {leaveBalance.available + (sickEntitlement - usedSick)}</p>
+            <p className="text-xs font-bold text-primary">متاح {(leaveBalance.available + sickBalance.available).toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
