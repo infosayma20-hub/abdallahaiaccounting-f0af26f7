@@ -92,7 +92,7 @@ export default function LoansMonthlyPage() {
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
-      if (q.trim() && !multiWordMatchAny(q, [r.employee_name, r.branch_name, r.job_title])) return false;
+      if (q.trim() && !multiWordMatchAny(q, r.employee_name, r.branch_name, r.job_title)) return false;
       return true;
     });
   }, [rows, statusFilter, q]);
