@@ -606,8 +606,8 @@ export function useSaveJournalVoucher() {
       await supabase
         .from("transactions")
         .delete()
-        .eq("reference", existing.ref_number)
-        .eq("user_id", ownerId);
+        .eq("user_id", ownerId)
+        .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
 
       // (3) إعادة بناء lines + transactions باستخدام نفس منطق save
       const validLines = input.lines.filter(
@@ -789,8 +789,8 @@ export function useSaveJournalVoucher() {
       await supabase
         .from("transactions")
         .delete()
-        .eq("reference", existing.ref_number)
-        .eq("user_id", ownerId);
+        .eq("user_id", ownerId)
+        .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
       const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
       if (dErr) throw dErr;
 
