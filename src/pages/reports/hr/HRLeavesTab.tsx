@@ -12,6 +12,7 @@ import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { fmtDateDisplay } from "@/lib/utils";
 import { SortableHeader, applySort, cycleSort, noSort, type SortState } from "./SortableHeader";
+import { calculateLeaveBalance } from "@/lib/hr-utils";
 
 type EmployeeLite = {
   id: string;
@@ -21,6 +22,7 @@ type EmployeeLite = {
   annual_leave_balance: number | null;
   annual_leave_days: number | null;
   previous_year_balance: number | null;
+  start_date?: string | null;
 };
 
 type LeaveRow = {
@@ -142,12 +144,22 @@ export default function HRLeavesTab({
       const annualUsed = sumDays(annualApproved);
       const sickUsed = sumDays(sickApproved);
       const unpaidUsed = sumDays(unpaidApproved);
-      // entitlement: use annual_leave_days (yearly entitlement); annual_leave_balance is "remaining" but we recompute when entitlement exists
-      const annualEntitlement =
-        emp.annual_leave_days != null && emp.annual_leave_days > 0
-          ? emp.annual_leave_days + Number(emp.previous_year_balance || 0)
-          : null;
-      const annualRemaining = annualEntitlement != null ? Math.max(0, annualEntitlement - annualUsed) : null;
+      // Entitlement: prorated by months worked in the current year (Amwali standard).
+      // If start_date is unknown, fall back to legacy annual_leave_days configuration.
+      let annualEntitlement: number | null = null;
+      let annualRemaining: number | null = null;
+      if (emp.start_date) {
+        const bal = calculateLeaveBalance(
+          emp.start_date,
+          Number(emp.previous_year_balance || 0),
+          annualUsed,
+        );
+        annualEntitlement = bal.entitlement; // prorated to year-end
+        annualRemaining = bal.available;     // based on accrued-to-date
+      } else if (emp.annual_leave_days != null && emp.annual_leave_days > 0) {
+        annualEntitlement = emp.annual_leave_days + Number(emp.previous_year_balance || 0);
+        annualRemaining = Math.max(0, annualEntitlement - annualUsed);
+      }
       return {
         emp,
         branch: branchName(emp.branch_id),
