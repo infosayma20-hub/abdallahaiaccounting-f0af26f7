@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useHRManagerPermissions, type HRPermKey } from "@/hooks/useHRManagerPermissions";
 import {
   LayoutDashboard,
@@ -12,16 +12,9 @@ import {
   HandCoins,
   Settings,
   BarChart3,
-  ChevronDown,
   Bell,
   Inbox,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 type Item = {
