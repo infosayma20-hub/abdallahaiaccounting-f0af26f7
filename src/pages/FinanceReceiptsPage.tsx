@@ -383,7 +383,7 @@ export default function FinanceReceiptsPage() {
       }
       const linkQuery = supabase.from("payment_invoice_links" as any)
         .select("invoice_id, allocated_amount");
-      const { data: links } = delTarget.source_table === "vouchers" && delTarget.linked_transaction_id
+      const { data: links } = delTarget.linked_transaction_id
         ? await linkQuery.or(`payment_id.eq.${delTarget.id},transaction_id.eq.${delTarget.linked_transaction_id}`)
         : await linkQuery.eq("payment_id", delTarget.id);
       if (links && links.length) {
@@ -400,7 +400,7 @@ export default function FinanceReceiptsPage() {
           }
         }
         const deleteLinks = supabase.from("payment_invoice_links" as any).delete();
-        if (delTarget.source_table === "vouchers" && delTarget.linked_transaction_id) {
+        if (delTarget.linked_transaction_id) {
           await deleteLinks.or(`payment_id.eq.${delTarget.id},transaction_id.eq.${delTarget.linked_transaction_id}`);
         } else {
           await deleteLinks.eq("payment_id", delTarget.id);
