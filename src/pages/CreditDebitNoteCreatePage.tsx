@@ -428,7 +428,15 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         await supabase.from("invoice_items").insert(itemsPayload as any);
       }
 
-      // ─── Post accounting entry (reverse of original invoice) ───
+      // ─── Wipe old tax_ledger entries for this note (Delete & Recreate) ───
+      if (editingId) {
+        await supabase.from("tax_ledger").delete()
+          .eq("user_id", ownerId)
+          .eq("reference_id", editingId)
+          .eq("reference_type", dbType);
+      }
+
+      // ─── Post accounting entry (Delete & Recreate on edit) ───
       if (!asDraft && summary.total > 0) {
         const txDescription = `${titleAr} ${noteNumber} - ${form.contactName}`;
         // Credit Note     : Dr Sales Revenue (4100), Cr AR (1130)
@@ -441,7 +449,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         else if (noteType === "debit")      { debitCode = "2110"; creditCode = "5110"; }
         const txType = dbType;
 
-        const { data: txInsert } = await supabase.from("transactions").insert({
+        const txPayload: any = {
           user_id: ownerId,
           transaction_date: form.date,
           description: txDescription,
@@ -455,10 +463,44 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
           payment_method: "آجل",
           idempotency_key: `${dbType.toUpperCase()}-${noteId}`,
           cost_center_id: form.costCenterId,
-        } as any).select("id").single();
+          is_deleted: false,
+        };
 
-        if (txInsert) {
-          await supabase.from("invoices").update({ linked_transaction_id: (txInsert as any).id } as any).eq("id", noteId);
+        // Resolve existing transaction: linked_transaction_id → idempotency_key → reference
+        let targetTxId: string | null = linkedTxId;
+        if (!targetTxId && editingId) {
+          const { data: idemTx } = await supabase.from("transactions").select("id")
+            .eq("user_id", ownerId)
+            .eq("idempotency_key", `${dbType.toUpperCase()}-${noteId}`)
+            .maybeSingle();
+          targetTxId = (idemTx as any)?.id || null;
+        }
+        if (!targetTxId && editingId && noteNumber) {
+          const { data: refTx } = await supabase.from("transactions").select("id")
+            .eq("user_id", ownerId)
+            .eq("reference", noteNumber)
+            .eq("transaction_type", txType)
+            .order("created_at", { ascending: false }).limit(1).maybeSingle();
+          targetTxId = (refTx as any)?.id || null;
+        }
+
+        let finalTxId: string | null = targetTxId;
+        if (targetTxId) {
+          const { error: upErr } = await supabase.from("transactions")
+            .update(txPayload).eq("id", targetTxId).eq("user_id", ownerId);
+          if (upErr) throw upErr;
+        } else {
+          const { data: insTx, error: insErr } = await supabase.from("transactions")
+            .insert(txPayload as any).select("id").single();
+          if (insErr) throw insErr;
+          finalTxId = (insTx as any).id;
+        }
+
+        if (finalTxId) {
+          await supabase.from("invoices")
+            .update({ linked_transaction_id: finalTxId } as any)
+            .eq("id", noteId).eq("user_id", ownerId);
+          setLinkedTxId(finalTxId);
         }
 
         // Tax ledger reversal
@@ -481,6 +523,15 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
             period_month: d.getMonth() + 1,
           } as any);
         }
+      } else if (editingId && asDraft && linkedTxId) {
+        // Demoted a posted note back to draft: soft-void its transaction
+        await supabase.from("transactions")
+          .update({ is_deleted: true, idempotency_key: null } as any)
+          .eq("id", linkedTxId).eq("user_id", ownerId);
+        await supabase.from("invoices")
+          .update({ linked_transaction_id: null } as any)
+          .eq("id", editingId).eq("user_id", ownerId);
+        setLinkedTxId(null);
       }
 
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم ترحيل ${titleAr} ${noteNumber} ✅` });
