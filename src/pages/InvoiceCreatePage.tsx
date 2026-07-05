@@ -1171,11 +1171,11 @@ const InvoiceCreatePage = () => {
     // Cash invoices are immediately settled (paid_amount = total in summary);
     // credit invoices are paid later via receipt/payment vouchers.
     const paymentMethodDb = form.invoiceKind === "cash" ? "نقدي" : CREDIT_PAYMENT_METHOD_DB;
+    let createdInvoiceId: string | null = null;
+    let createdInvoiceTxId: string | null = null;
 
     try {
       let contactId = form.contactId;
-      let createdInvoiceId: string | null = null;
-      let createdInvoiceTxId: string | null = null;
 
       if (form.contactName.trim() && !contactId) {
         const trimmedName = form.contactName.trim();
