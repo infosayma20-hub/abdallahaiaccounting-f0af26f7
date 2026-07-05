@@ -270,6 +270,8 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         status: (inv as any).status || "draft",
         costCenterId: (inv as any).cost_center_id || null,
       });
+      setLinkedTxId((inv as any).linked_transaction_id || null);
+      setExistingInvoiceNumber((inv as any).invoice_number || "");
       // Fetch linked invoice number
       if ((inv as any).original_invoice_id) {
         const { data: linked } = await supabase
