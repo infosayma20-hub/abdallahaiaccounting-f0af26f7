@@ -360,7 +360,10 @@ export function useSaveJournalVoucher() {
       const totalDebitIls = totalDebit * masterRate;
 
       // ── (2) رقم السند ──
-      const refNumber = input.ref_number?.trim() || (await generateRefNumber(ownerId));
+      // ⚠️ لا نولّد الرقم على العميل — نتركه NULL ليولّده تريجر
+      // trg_generate_voucher_ref مع pg_advisory_xact_lock (آمن ضد التزامن 100%).
+      // نمرّر قيمة العميل فقط لو المستخدم كتبها يدوياً (override صريح).
+      const clientRef = input.ref_number?.trim() || null;
 
       // ── (2.1) دفتر السندات + الرقم المستقل داخل الدفتر ──
       // - إن لم يُمرر book_id نستخدم الدفتر الافتراضي "GENERAL".
@@ -404,7 +407,7 @@ export function useSaveJournalVoucher() {
           user_id: ownerId,
           type: "journal",
           subtype: input.subtype,
-          ref_number: refNumber,
+          ref_number: clientRef,
           date: input.date,
           contact_id: input.contact_id || null,
           cost_center_id: input.cost_center_id || null,
@@ -547,7 +550,8 @@ export function useSaveJournalVoucher() {
       // ── Rollback يدوي: لو فشلنا بعد إنشاء voucher نحذفه (cascade ينظف voucher_lines) ──
       if (createdVoucherId) {
         await supabase.from("voucher_lines").delete().eq("voucher_id", createdVoucherId);
-        await supabase.from("transactions").delete().eq("reference", input.ref_number || "").eq("user_id", ownerId);
+        // امسح transactions المرتبطة بهذا السند بالتحديد (بدل reference الي ممكن يكون فاضي)
+        await supabase.from("transactions").delete().eq("user_id", ownerId).ilike("idempotency_key", `VOUCHER-${createdVoucherId}%`);
         await supabase.from("vouchers").delete().eq("id", createdVoucherId);
       }
       setSaving(false);
