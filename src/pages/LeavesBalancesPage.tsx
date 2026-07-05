@@ -49,7 +49,6 @@ export default function LeavesBalancesPage() {
         .from("employees")
         .select("id, full_name, employee_number, start_date, previous_year_balance, sick_leave_days, department, branches(name)")
         .eq("user_id", dataOwnerId)
-        .neq("employment_status", "terminated")
         .order("employee_number");
       if (error) throw error;
       return data || [];
