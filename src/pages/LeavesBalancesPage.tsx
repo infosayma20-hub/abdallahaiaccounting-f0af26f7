@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Upload, Users, Palmtree, Heart, TrendingUp, TrendingDown, FileSpreadsheet } from "lucide-react";
-import { calculateAnnualLeaveEntitlement, calculateLeaveBalance } from "@/lib/hr-utils";
+import { calculateAnnualLeaveEntitlement, calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 import { LeaveBalancesImportDialog } from "@/components/hr/LeaveBalancesImportDialog";
 import { multiWordMatchAny } from "@/lib/utils";
 import { format } from "date-fns";
@@ -31,6 +31,8 @@ type EmpRow = {
   carriedOver: number;
   availableAnnual: number;
   availableSick: number;
+  sickEntitlement: number;      // prorated to year-end
+  sickAccruedToDate: number;    // accrued up to today
 };
 
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -91,6 +93,7 @@ export default function LeavesBalancesPage() {
       const startDate = e.start_date || "2024-01-01";
       const bal = calculateLeaveBalance(startDate, Number(e.previous_year_balance || 0), used.annual);
       const sickEnt = Number(e.sick_leave_days || 14);
+      const sickBal = calculateSickBalance(startDate, used.sick, sickEnt);
       return {
         id: e.id,
         full_name: e.full_name,
@@ -106,7 +109,9 @@ export default function LeavesBalancesPage() {
         accruedToDate: bal.accruedToDate,
         carriedOver: bal.carriedOver,
         availableAnnual: bal.available,
-        availableSick: Math.max(0, sickEnt - used.sick),
+        availableSick: sickBal.available,
+        sickEntitlement: sickBal.entitlement,
+        sickAccruedToDate: sickBal.accruedToDate,
       };
     });
   }, [employees, leaves]);
