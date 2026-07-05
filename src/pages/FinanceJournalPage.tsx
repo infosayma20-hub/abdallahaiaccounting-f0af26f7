@@ -170,7 +170,7 @@ const FinanceJournalPage = () => {
     // Accounts + contacts are only needed inside the form modal — load them lazily.
     const vRes = await supabase
       .from("vouchers")
-      .select("id, ref_number, date, subtype, contact_id, contact_name, description, notes, amount, status, created_at")
+      .select("id, ref_number, date, subtype, contact_id, description, notes, amount, status, created_at")
       .eq("user_id", dataOwnerId)
       .eq("type", "journal")
       .neq("status", "cancelled")
