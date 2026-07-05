@@ -26,7 +26,8 @@ type EmpRow = {
   department: string | null;
   usedAnnual: number;
   usedSick: number;
-  entitlement: number;
+  entitlement: number;      // prorated to year-end
+  accruedToDate: number;    // accrued up to today
   carriedOver: number;
   availableAnnual: number;
   availableSick: number;
@@ -102,6 +103,7 @@ export default function LeavesBalancesPage() {
         usedAnnual: used.annual,
         usedSick: used.sick,
         entitlement: bal.entitlement,
+        accruedToDate: bal.accruedToDate,
         carriedOver: bal.carriedOver,
         availableAnnual: bal.available,
         availableSick: Math.max(0, sickEnt - used.sick),
@@ -233,6 +235,7 @@ export default function LeavesBalancesPage() {
                   <th className="px-3 py-2 font-semibold text-center">تاريخ التعيين</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">افتتاحي</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">استحقاق سنوي</th>
+                  <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستحق حتى اليوم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستخدم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">متاح</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مرضي</th>
@@ -242,9 +245,9 @@ export default function LeavesBalancesPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={13} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
+                    <tr><td colSpan={14} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={13} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
+                  <tr><td colSpan={14} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
                 ) : (
                   filtered.map((r, i) => (
                     <tr
@@ -261,7 +264,8 @@ export default function LeavesBalancesPage() {
                         {r.start_date ? format(new Date(r.start_date), "yyyy-MM-dd") : "—"}
                       </td>
                       <td className="px-3 py-2 text-center tabular-nums">{fmt(r.carriedOver)}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{r.entitlement}</td>
+                      <td className="px-3 py-2 text-center tabular-nums">{fmt(r.entitlement)}</td>
+                      <td className="px-3 py-2 text-center tabular-nums font-semibold">{fmt(r.accruedToDate)}</td>
                       <td className="px-3 py-2 text-center tabular-nums text-amber-700">{fmt(r.usedAnnual)}</td>
                       <td className="px-3 py-2 text-center">
                         <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 tabular-nums">
@@ -324,7 +328,8 @@ export default function LeavesBalancesPage() {
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span>رصيد افتتاحي</span><span className="tabular-nums font-medium">{fmt(detailFor.carriedOver)}</span></div>
-                    <div className="flex justify-between"><span>استحقاق السنة</span><span className="tabular-nums font-medium">{detailFor.entitlement}</span></div>
+                    <div className="flex justify-between"><span>استحقاق السنة (متناسب)</span><span className="tabular-nums font-medium">{fmt(detailFor.entitlement)}</span></div>
+                    <div className="flex justify-between"><span>مستحق حتى اليوم</span><span className="tabular-nums font-medium">{fmt(detailFor.accruedToDate)}</span></div>
                     <div className="flex justify-between"><span>مستخدم</span><span className="tabular-nums font-medium text-amber-700">{fmt(detailFor.usedAnnual)}</span></div>
                     <div className="border-t pt-1 mt-1 flex justify-between font-bold text-emerald-700"><span>المتاح</span><span className="tabular-nums">{fmt(detailFor.availableAnnual)}</span></div>
                   </div>

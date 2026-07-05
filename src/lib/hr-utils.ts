@@ -58,17 +58,42 @@ export const calculateLeaveBalance = (
   previousYearBalance: number,
   usedThisYear: number
 ) => {
-  const entitlement = calculateAnnualLeaveEntitlement(startDate);
-  const maxCarryOver = entitlement * 2;
+  const fullEntitlement = calculateAnnualLeaveEntitlement(startDate);
+  const maxCarryOver = fullEntitlement * 2;
   const carriedOver = Math.min(previousYearBalance, maxCarryOver);
-  const available = carriedOver + entitlement - usedThisYear;
+
+  // Pro-rate by months worked in the current calendar year.
+  const today = new Date();
+  const year = today.getFullYear();
+  const yearStart = new Date(year, 0, 1);
+  const yearEndPlus1 = new Date(year + 1, 0, 1);
+  const hire = new Date(startDate);
+  const proStart = hire > yearStart ? hire : yearStart;
+
+  const monthDiff = (from: Date, to: Date) => {
+    const months =
+      (to.getFullYear() - from.getFullYear()) * 12 +
+      (to.getMonth() - from.getMonth()) +
+      (to.getDate() - from.getDate()) / 30;
+    return Math.max(0, months);
+  };
+
+  const monthsToYearEnd = Math.min(12, monthDiff(proStart, yearEndPlus1));
+  const monthsAccrued = Math.min(monthsToYearEnd, monthDiff(proStart, today));
+
+  const entitlement = +(fullEntitlement * (monthsToYearEnd / 12)).toFixed(2);
+  const accruedToDate = +(fullEntitlement * (monthsAccrued / 12)).toFixed(2);
+
+  const available = carriedOver + accruedToDate - usedThisYear;
 
   return {
-    entitlement,
+    entitlement,        // prorated year entitlement (Feb→Dec for a Feb hire)
+    accruedToDate,      // accrued so far up to today
     carriedOver,
     used: usedThisYear,
     available: Math.max(0, available),
     maxCarryOver,
+    fullEntitlement,    // 14 / 21 / 30 by tenure
   };
 };
 
