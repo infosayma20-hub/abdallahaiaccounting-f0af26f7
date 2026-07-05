@@ -4,7 +4,8 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Wallet, Users, Calendar, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, Search, UserCheck, Printer, Pencil } from "lucide-react";
+import { Download, Wallet, Users, Calendar, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, Search, UserCheck, Printer, Pencil, CalendarClock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -541,6 +542,11 @@ export default function LoansPage() {
           </Button>
           <Button variant="outline" size="sm" onClick={exportExcel} disabled={!filtered.length}>
             <Download className="h-4 w-4 ml-1" /> Excel
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/loans/monthly">
+              <CalendarClock className="h-4 w-4 ml-1" /> أقساط شهرية
+            </Link>
           </Button>
           <Button size="sm" onClick={() => setShowAddDialog(true)}>
             <Plus className="h-4 w-4 ml-1" /> قرض جديد
