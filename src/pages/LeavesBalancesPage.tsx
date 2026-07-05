@@ -328,7 +328,8 @@ export default function LeavesBalancesPage() {
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span>رصيد افتتاحي</span><span className="tabular-nums font-medium">{fmt(detailFor.carriedOver)}</span></div>
-                    <div className="flex justify-between"><span>استحقاق السنة</span><span className="tabular-nums font-medium">{detailFor.entitlement}</span></div>
+                    <div className="flex justify-between"><span>استحقاق السنة (متناسب)</span><span className="tabular-nums font-medium">{fmt(detailFor.entitlement)}</span></div>
+                    <div className="flex justify-between"><span>مستحق حتى اليوم</span><span className="tabular-nums font-medium">{fmt(detailFor.accruedToDate)}</span></div>
                     <div className="flex justify-between"><span>مستخدم</span><span className="tabular-nums font-medium text-amber-700">{fmt(detailFor.usedAnnual)}</span></div>
                     <div className="border-t pt-1 mt-1 flex justify-between font-bold text-emerald-700"><span>المتاح</span><span className="tabular-nums">{fmt(detailFor.availableAnnual)}</span></div>
                   </div>
