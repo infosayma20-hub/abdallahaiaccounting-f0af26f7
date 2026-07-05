@@ -281,10 +281,10 @@ const LeavesPage = () => {
                       <tr key={r.id} className="border-b border-border/40 hover:bg-muted/20 cursor-pointer" onClick={() => navigate(`/employees?id=${r.id}&tab=leaves`)}>
                         <td className="p-3 font-medium text-foreground">{r.full_name}</td>
                         <td className="p-3 text-muted-foreground">{r.department || "-"}</td>
-                        <td className="p-3 text-center">{r.annual_leave_days}</td>
+                        <td className="p-3 text-center">{r.annualAccrued}</td>
                         <td className="p-3 text-center text-amber-600">{r.annualUsed}</td>
                         <td className={`p-3 text-center font-bold ${r.annualRemaining <= 3 ? "text-red-500" : "text-emerald-600"}`}>{r.annualRemaining}</td>
-                        <td className="p-3 text-center">{r.sick_leave_days}</td>
+                        <td className="p-3 text-center">{r.sickAccrued}</td>
                         <td className="p-3 text-center text-amber-600">{r.sickUsed}</td>
                         <td className={`p-3 text-center font-bold ${r.sickRemaining <= 3 ? "text-red-500" : "text-emerald-600"}`}>{r.sickRemaining}</td>
                         <td className="p-3 text-center">{r.otherUsed}</td>
