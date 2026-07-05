@@ -216,19 +216,25 @@ function buildTransactionsFromLines(args: {
 
 /** توليد رقم سند جديد بصيغة QV-YYYY-#### */
 async function generateRefNumber(userId: string): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `QV-${year}-`;
   const { data } = await supabase
     .from("vouchers")
     .select("ref_number")
     .eq("user_id", userId)
     .eq("type", "journal")
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const lastRef = (data || [])[0]?.ref_number || "";
-  const match = lastRef.match(/(\d+)$/);
-  const nextNum = match
-    ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0")
-    : "0001";
-  return `QV-${new Date().getFullYear()}-${nextNum}`;
+    .like("ref_number", `${prefix}%`);
+  let maxNum = 0;
+  let width = 4;
+  for (const row of data || []) {
+    const m = (row as any).ref_number?.match(/(\d+)$/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n > maxNum) maxNum = n;
+      if (m[1].length > width) width = m[1].length;
+    }
+  }
+  return `${prefix}${String(maxNum + 1).padStart(width, "0")}`;
 }
 
 /** Validation موحّد. يُرجع رسالة خطأ بالعربية أو null إذا كل شيء سليم. */
