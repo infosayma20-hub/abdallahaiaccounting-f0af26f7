@@ -72,11 +72,12 @@ const statusConfig: Record<string, { label: string; variant: "default" | "destru
 const financialTypes = ["advance_request", "loan_request"];
 
 // Quick-filter category chips. Each maps to a set of form_type values.
-type CategoryKey = "all" | "leaves" | "loans" | "attendance" | "messages" | "custom" | "info";
+type CategoryKey = "all" | "leaves" | "advances" | "loans" | "attendance" | "messages" | "custom" | "info";
 const CATEGORY_CHIPS: { key: CategoryKey; label: string; icon: string; types: string[] }[] = [
   { key: "all",        label: "الكل",                  icon: "📋", types: [] },
   { key: "leaves",     label: "الإجازات",              icon: "🏖️", types: ["leave_request"] },
-  { key: "loans",      label: "السلف والقروض",         icon: "💰", types: ["advance_request", "loan_request"] },
+  { key: "advances",   label: "السلف",                 icon: "💵", types: ["advance_request"] },
+  { key: "loans",      label: "القروض",                icon: "💰", types: ["loan_request"] },
   { key: "attendance", label: "الحضور والاستئذان",     icon: "✏️", types: ["correction_request", "overtime_request", "_attendance_correction"] },
   { key: "messages",   label: "الرسائل والشكاوى",      icon: "💬", types: ["hr_message", "complaints", "disciplinary_action", "_hr_message", "_hr_inquiry", "_hr_warning", "_hr_penalty"] },
   { key: "custom",     label: "النماذج المخصصة",       icon: "📑", types: ["dynamic_template", "facility_quality", "equipment_fault", "inventory_balance"] },
