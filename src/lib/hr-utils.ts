@@ -97,6 +97,45 @@ export const calculateLeaveBalance = (
   };
 };
 
+/**
+ * Sick leave balance — same proration logic as annual, but no carry-over.
+ * fullEntitlement defaults to 14 (Palestinian labor law) if not overridden.
+ */
+export const calculateSickBalance = (
+  startDate: string,
+  usedThisYear: number,
+  fullEntitlement = 14,
+) => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const yearStart = new Date(year, 0, 1);
+  const yearEndPlus1 = new Date(year + 1, 0, 1);
+  const hire = new Date(startDate);
+  const proStart = hire > yearStart ? hire : yearStart;
+
+  const monthDiff = (from: Date, to: Date) => {
+    const months =
+      (to.getFullYear() - from.getFullYear()) * 12 +
+      (to.getMonth() - from.getMonth()) +
+      (to.getDate() - from.getDate()) / 30;
+    return Math.max(0, months);
+  };
+
+  const monthsToYearEnd = Math.min(12, monthDiff(proStart, yearEndPlus1));
+  const monthsAccrued = Math.min(monthsToYearEnd, monthDiff(proStart, today));
+
+  const entitlement = +(fullEntitlement * (monthsToYearEnd / 12)).toFixed(2);
+  const accruedToDate = +(fullEntitlement * (monthsAccrued / 12)).toFixed(2);
+
+  return {
+    entitlement,
+    accruedToDate,
+    used: usedThisYear,
+    available: Math.max(0, accruedToDate - usedThisYear),
+    fullEntitlement,
+  };
+};
+
 // ━━━ Work Days Calculation ━━━
 export const getWorkDaysInMonth = (year: number, month: number, weeklyOffDays: number[] = [6]): number => {
   // weeklyOffDays: 5=Friday, 6=Saturday (default Palestinian weekend is Friday+Saturday but configurable)
