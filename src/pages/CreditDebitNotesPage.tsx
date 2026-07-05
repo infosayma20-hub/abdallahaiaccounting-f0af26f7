@@ -93,8 +93,8 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
       (r.contact_name || "").toLowerCase().includes(q) ||
       (r.correction_reason || "").toLowerCase().includes(q)
     );
-    return applyFilters(bySearch, shellFilters, filterFields);
-  }, [rows, search, shellFilters, filterFields]);
+    return applyFilters(bySearch, shellFilters);
+  }, [rows, search, shellFilters]);
 
   const totalAmount = useMemo(
     () => filtered.reduce((s, r) => s + Number(r.total_amount || 0), 0),
