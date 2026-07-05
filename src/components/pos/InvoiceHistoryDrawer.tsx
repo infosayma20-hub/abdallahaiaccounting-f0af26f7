@@ -464,6 +464,19 @@ export default function InvoiceHistoryDrawer({
           session_id: targetSessionId,
           transferred_from_session_id: sessionId,
           transferred_to_name: targetUser.name,
+          session_seq: await (async () => {
+            // Avoid unique(session_id, session_seq) collision in target session
+            const { data: maxRow } = await (supabase
+              .from("pos_orders")
+              .select("session_seq") as any)
+              .eq("session_id", targetSessionId)
+              .not("session_seq", "is", null)
+              .order("session_seq", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            const next = ((maxRow?.session_seq as number | null) ?? 0) + 1;
+            return next;
+          })(),
         } as any)
         .eq("id", transferringOrder.id);
 
