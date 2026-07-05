@@ -1669,7 +1669,7 @@ const InvoiceCreatePage = () => {
             const isSales = form.type === "sales";
             const voucherAmount = summary.total;
             const voucherParams = {
-              userId: user.id,
+              userId: ownerId,
               contactId,
               contactName: form.contactName,
               amount: voucherAmount,
