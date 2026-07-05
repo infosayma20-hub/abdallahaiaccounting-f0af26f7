@@ -280,19 +280,19 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
                       <td className="px-3 py-2 text-center align-middle">{statusBadge(r.status)}</td>
                       <td className="px-2 py-1 align-middle">
                         <div className="flex items-center justify-center gap-0.5">
-                          {r.status === "draft" && (
+                          {r.status !== "cancelled" && (
                             <>
                               <button
                                 onClick={() => navigate(`${newPath}?edit=${r.id}`)}
                                 className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                                title="تعديل"
+                                title={r.status === "draft" ? "تعديل" : "تعديل (سيُحدَّث القيد المحاسبي)"}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDelete(r)}
                                 className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="حذف"
+                                title={r.status === "draft" ? "حذف" : "إلغاء (عكس القيد)"}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
