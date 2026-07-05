@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
-import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, RefreshCw, Printer, FileSpreadsheet,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import AccountingShell from "@/components/layout/AccountingShell";
 import { assertAccountantPermission } from "@/lib/permissions/assertAccountantPermission";
+import {
+  FinanceShell, applyFilters,
+  type ActionTab, type FilterCondition, type FilterField,
+} from "@/components/finance/shell";
 
 interface NoteRow {
   id: string;
@@ -36,6 +38,7 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
   const [rows, setRows] = useState<NoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [shellFilters, setShellFilters] = useState<FilterCondition[]>([]);
 
   const isCredit = noteType === "credit";
   const isCustomerSide = noteType === "credit";
@@ -45,11 +48,6 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
   const titleAr = noteType === "credit" ? "الإشعارات الدائنة" : "الإشعارات المدينة";
 
   const newPath = noteType === "credit" ? "/credit-notes/new" : "/debit-notes/new";
-
-  const accentColor = isCustomerSide ? "text-emerald-600" : "text-rose-600";
-  const badgeColor = isCustomerSide
-    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-    : "bg-rose-100 text-rose-700 border-rose-200";
 
   const newButtonLabel = noteType === "credit" ? "إنشاء إشعار دائن" : "إنشاء إشعار مدين";
 
@@ -76,15 +74,27 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
 
   useEffect(() => { fetchNotes(); }, [user, noteType]);
 
+  const filterFields: FilterField[] = useMemo(() => [
+    { key: "invoice_number", label: "رقم الإشعار", type: "text" },
+    { key: "contact_name", label: isCustomerSide ? "العميل" : "المورد", type: "text" },
+    { key: "correction_reason", label: "السبب", type: "text" },
+    { key: "invoice_date", label: "التاريخ", type: "date" },
+    { key: "status", label: "الحالة", type: "option", options: [
+      { value: "draft", label: "مسودة" },
+      { value: "sent", label: "مرحَّل" },
+      { value: "cancelled", label: "ملغى" },
+    ]},
+  ], [isCustomerSide]);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return rows;
-    const q = search.toLowerCase();
-    return rows.filter(r =>
+    const q = search.trim().toLowerCase();
+    const bySearch = !q ? rows : rows.filter(r =>
       (r.invoice_number || "").toLowerCase().includes(q) ||
       (r.contact_name || "").toLowerCase().includes(q) ||
       (r.correction_reason || "").toLowerCase().includes(q)
     );
-  }, [rows, search]);
+    return applyFilters(bySearch, shellFilters, filterFields);
+  }, [rows, search, shellFilters, filterFields]);
 
   const totalAmount = useMemo(
     () => filtered.reduce((s, r) => s + Number(r.total_amount || 0), 0),
@@ -106,111 +116,168 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
   const statusBadge = (s: string | null) => {
     if (s === "draft") return <Badge variant="outline">مسودة</Badge>;
     if (s === "cancelled") return <Badge variant="destructive">ملغى</Badge>;
-    return <Badge className={badgeColor}>مرحَّل</Badge>;
+    return <Badge className="bg-primary/10 text-primary border-primary/20">مرحَّل</Badge>;
   };
 
+  const actionTabs: ActionTab[] = useMemo(() => ([{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "new", label: "جديد", items: [
+        { key: "new", label: newButtonLabel, icon: Plus, variant: "primary", onClick: () => navigate(newPath) },
+      ]},
+      { key: "actions", label: "إجراءات", items: [
+        { key: "refresh", label: "تحديث", icon: RefreshCw, onClick: fetchNotes },
+      ]},
+      { key: "print", label: "طباعة", items: [
+        { key: "print", label: "طباعة", icon: Printer, onClick: () => window.print(), disabled: filtered.length === 0 },
+      ]},
+    ],
+  }]), [filtered.length, newButtonLabel, newPath]);
+
   return (
-    <AccountingShell>
-    <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
-      <PageHeader
-        title={titleAr}
-        breadcrumb={["الرئيسية", isCustomerSide ? "المبيعات" : "المشتريات", titleAr]}
-      />
-      <div className="flex justify-between items-start gap-3">
-        <p className="text-sm text-muted-foreground">{headerSubtitle}</p>
-        <Button onClick={() => navigate(newPath)} className="gap-2">
-          <Plus className="h-4 w-4" /> {newButtonLabel}
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card><CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">إجمالي الإشعارات</div>
-          <div className={`text-2xl font-bold ${accentColor}`}>{filtered.length}</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">إجمالي القيمة</div>
-          <div className={`text-2xl font-bold ${accentColor}`}>₪{totalAmount.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">المسودات</div>
-          <div className="text-2xl font-bold">{filtered.filter(r => r.status === "draft").length}</div>
-        </CardContent></Card>
-      </div>
-
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          <div className="relative max-w-md">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="بحث برقم الإشعار، الاسم، أو السبب..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pr-10"
-            />
+    <FinanceShell
+      title={titleAr}
+      subtitle={headerSubtitle}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: isCustomerSide ? "المبيعات" : "المشتريات" },
+        { label: titleAr },
+      ]}
+      actionTabs={actionTabs}
+      filterFields={filterFields}
+      filters={shellFilters}
+      onFiltersChange={setShellFilters}
+      storageKey={`credit-debit-notes-${noteType}`}
+      rightSlot={
+        <div className="relative">
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="بحث سريع..."
+            className="h-8 w-56 pr-8 text-xs"
+          />
+        </div>
+      }
+    >
+      <div className="space-y-4 w-full" dir="rtl">
+        {/* KPI strip */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
+            <p className="text-[11px] text-muted-foreground">إجمالي الإشعارات</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">{filtered.length}</p>
           </div>
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
+            <p className="text-[11px] text-muted-foreground">إجمالي القيمة</p>
+            <p className="text-xl font-bold text-primary tabular-nums">
+              ₪{totalAmount.toLocaleString()}
+            </p>
+          </div>
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
+            <p className="text-[11px] text-muted-foreground">المسودات</p>
+            <p className="text-xl font-bold text-muted-foreground tabular-nums">
+              {filtered.filter(r => r.status === "draft").length}
+            </p>
+          </div>
+        </div>
 
-          {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>لا توجد {titleAr} بعد</p>
-            </div>
-          ) : (
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20 space-y-3">
+            <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+            <p className="text-sm text-muted-foreground">لا توجد {titleAr} مطابقة</p>
+          </div>
+        ) : (
+          <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>رقم الإشعار</TableHead>
-                    <TableHead>التاريخ</TableHead>
-                    <TableHead>{isCustomerSide ? "العميل" : "المورد"}</TableHead>
-                    <TableHead>السبب</TableHead>
-                    <TableHead className="text-left">المبلغ</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>إجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(r => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-mono">{r.invoice_number || "—"}</TableCell>
-                      <TableCell>{r.invoice_date || "—"}</TableCell>
-                      <TableCell>{r.contact_name || "—"}</TableCell>
-                      <TableCell className="max-w-xs truncate" title={r.correction_reason || ""}>
+              <table className="w-full text-sm" dir="rtl">
+                <thead>
+                  <tr className="border-b border-border/60 bg-primary text-primary-foreground">
+                    <th className="text-right px-3 py-2 text-[11px] font-semibold">رقم الإشعار</th>
+                    <th className="text-right px-3 py-2 text-[11px] font-semibold">التاريخ</th>
+                    <th className="text-right px-3 py-2 text-[11px] font-semibold">{isCustomerSide ? "العميل" : "المورد"}</th>
+                    <th className="text-right px-3 py-2 text-[11px] font-semibold">السبب</th>
+                    <th className="text-left px-3 py-2 text-[11px] font-semibold">المبلغ</th>
+                    <th className="text-center px-3 py-2 text-[11px] font-semibold">الحالة</th>
+                    <th className="text-center px-2 py-2 text-[11px] font-semibold">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r, idx) => (
+                    <tr
+                      key={r.id}
+                      className={`border-b border-border/40 hover:bg-primary/5 transition-colors ${idx % 2 ? "bg-muted/10" : ""}`}
+                    >
+                      <td className="px-3 py-2 align-middle">
+                        <button
+                          onClick={() => navigate(`${newPath}?view=${r.id}`)}
+                          className="text-primary hover:underline font-mono text-xs bg-transparent border-0 p-0 cursor-pointer text-right"
+                        >
+                          {r.invoice_number || "—"}
+                        </button>
+                      </td>
+                      <td className="px-3 py-2 text-xs tabular-nums align-middle">{r.invoice_date || "—"}</td>
+                      <td className="px-3 py-2 text-sm align-middle">{r.contact_name || "—"}</td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground align-middle max-w-xs truncate" title={r.correction_reason || ""}>
                         {r.correction_reason || "—"}
-                      </TableCell>
-                      <TableCell className={`text-left font-bold ${accentColor}`}>
+                      </td>
+                      <td className="px-3 py-2 text-sm font-bold tabular-nums text-left align-middle">
                         ₪{Number(r.total_amount || 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell>{statusBadge(r.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
+                      </td>
+                      <td className="px-3 py-2 text-center align-middle">{statusBadge(r.status)}</td>
+                      <td className="px-2 py-1 align-middle">
+                        <div className="flex items-center justify-center gap-0.5">
                           {r.status === "draft" && (
                             <>
-                              <Button size="icon" variant="ghost" onClick={() => navigate(`${newPath}?edit=${r.id}`)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => handleDelete(r)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              <button
+                                onClick={() => navigate(`${newPath}?edit=${r.id}`)}
+                                className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                title="تعديل"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(r)}
+                                className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                title="حذف"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </>
                           )}
-                          <Button size="icon" variant="ghost" onClick={() => navigate(`${newPath}?view=${r.id}`)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <button
+                            onClick={() => navigate(`${newPath}?view=${r.id}`)}
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                            title="عرض"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                    <td colSpan={4} className="px-3 py-2 text-right text-foreground">
+                      المجموع ({filtered.length} إشعار)
+                    </td>
+                    <td className="px-3 py-2 text-left tabular-nums text-foreground">
+                      ₪{totalAmount.toLocaleString()}
+                    </td>
+                    <td colSpan={2} />
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-    </AccountingShell>
+          </div>
+        )}
+      </div>
+    </FinanceShell>
   );
 };
 
