@@ -235,6 +235,7 @@ export default function LeavesBalancesPage() {
                   <th className="px-3 py-2 font-semibold text-center">تاريخ التعيين</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">افتتاحي</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">استحقاق سنوي</th>
+                  <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستحق حتى اليوم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستخدم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">متاح</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مرضي</th>
@@ -244,9 +245,9 @@ export default function LeavesBalancesPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={13} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
+                    <tr><td colSpan={14} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={13} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
+                  <tr><td colSpan={14} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
                 ) : (
                   filtered.map((r, i) => (
                     <tr
@@ -263,7 +264,8 @@ export default function LeavesBalancesPage() {
                         {r.start_date ? format(new Date(r.start_date), "yyyy-MM-dd") : "—"}
                       </td>
                       <td className="px-3 py-2 text-center tabular-nums">{fmt(r.carriedOver)}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{r.entitlement}</td>
+                      <td className="px-3 py-2 text-center tabular-nums">{fmt(r.entitlement)}</td>
+                      <td className="px-3 py-2 text-center tabular-nums font-semibold">{fmt(r.accruedToDate)}</td>
                       <td className="px-3 py-2 text-center tabular-nums text-amber-700">{fmt(r.usedAnnual)}</td>
                       <td className="px-3 py-2 text-center">
                         <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 tabular-nums">
