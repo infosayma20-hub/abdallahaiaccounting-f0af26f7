@@ -1674,20 +1674,81 @@ const InvoiceCreatePage = () => {
               workshopId: form.workshopId || null,
               costCenterId: form.costCenterId || null,
             };
+            const voucherResult = isSales
+              ? await callCreateReceiptRpc(voucherParams)
+              : await callCreatePaymentRpc(voucherParams);
+            if (voucherResult?.success === false || !voucherResult?.transaction_id) {
+              throw new Error(voucherResult?.error || "فشل إنشاء قيد السند التلقائي");
+            }
+
             if (isSales) {
-              await callCreateReceiptRpc(voucherParams);
+              const { data: receiptDoc, error: receiptDocError } = await supabase
+                .from("receipt_vouchers")
+                .insert({
+                  user_id: ownerId,
+                  receipt_number: null,
+                  contact_id: contactId,
+                  contact_name: form.contactName,
+                  payment_date: form.date,
+                  amount: summary.total,
+                  payment_method: "نقدي",
+                  cash_box_id: null,
+                  bank_account_id: null,
+                  deposit_account_code: cashCode,
+                  notes: `سند قبض تلقائي لفاتورة ${dbInv.invoice_number}`,
+                  status: "posted",
+                  linked_transaction_id: voucherResult.transaction_id,
+                  auto_allocate: true,
+                  workshop_id: form.workshopId || null,
+                } as any)
+                .select("id, receipt_number")
+                .single();
+              if (receiptDocError) throw receiptDocError;
+              if (receiptDoc?.receipt_number) {
+                await supabase
+                  .from("transactions")
+                  .update({ reference: receiptDoc.receipt_number } as any)
+                  .eq("id", voucherResult.transaction_id)
+                  .eq("user_id", ownerId);
+              }
             } else {
-              await callCreatePaymentRpc(voucherParams);
+              const { data: paymentDoc, error: paymentDocError } = await supabase
+                .from("vouchers")
+                .insert({
+                  user_id: ownerId,
+                  type: "payment",
+                  subtype: "normal",
+                  ref_number: null,
+                  date: form.date,
+                  contact_id: contactId,
+                  payment_method: "cash",
+                  amount: summary.total,
+                  amount_ils: amountILS,
+                  currency: form.currency === "شيكل" ? "ILS" : form.currency,
+                  exchange_rate: form.exchangeRate || 1,
+                  description: `سند صرف تلقائي لفاتورة ${dbInv.invoice_number}`,
+                  notes: `سند صرف تلقائي لفاتورة ${dbInv.invoice_number}`,
+                  status: "posted",
+                  linked_transaction_id: voucherResult.transaction_id,
+                  posted_by: user.id,
+                  posted_at: new Date().toISOString(),
+                  workshop_id: form.workshopId || null,
+                  cost_center_id: form.costCenterId || null,
+                } as any)
+                .select("id, ref_number")
+                .single();
+              if (paymentDocError) throw paymentDocError;
+              if (paymentDoc?.ref_number) {
+                await supabase
+                  .from("transactions")
+                  .update({ reference: paymentDoc.ref_number } as any)
+                  .eq("id", voucherResult.transaction_id)
+                  .eq("user_id", ownerId);
+              }
             }
           } catch (voucherErr: any) {
-            // لا نُفشل الفاتورة إذا فشل إنشاء السند التلقائي — نعطي تحذير للمستخدم
-            // ونطلب منه إنشاء السند يدوياً من شاشة السندات.
             console.error("Auto voucher creation failed:", voucherErr);
-            toast({
-              title: "تم حفظ الفاتورة لكن فشل إنشاء السند التلقائي",
-              description: voucherErr?.message || "أنشئ سند قبض/صرف يدوياً من شاشة السندات",
-              variant: "destructive",
-            });
+            throw new Error(voucherErr?.message || "فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية");
           }
         }
       }
