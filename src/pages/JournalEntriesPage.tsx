@@ -107,7 +107,7 @@ const typeDisplayMap: Record<string, string> = {
   "exchange_diff": "فروق عملة",
   "opening_balance": "رصيد افتتاحي",
   "manual": "قيد يدوي",
-  "journal": "سند صرف",
+  "journal": "قيد يومية",
   "workshop_receipt": "دفعة ورشة",
   "asset_purchase": "شراء أصل",
   "depreciation": "إهلاك",
@@ -116,7 +116,7 @@ const typeDisplayMap: Record<string, string> = {
   "reverse": "قيد عكسي",
   "سند صرف": "سند صرف",
   "سند قبض": "سند قبض",
-  "قيد يومية": "سند صرف",
+  "قيد يومية": "قيد يومية",
   "فاتورة مشتريات": "فاتورة مشتريات",
   "فاتورة مبيعات": "فاتورة مبيعات",
 };
@@ -219,7 +219,7 @@ const JournalEntriesPage = () => {
   }, [accounts]);
 
   const fetchData = async () => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     setLoading(true);
     try {
       const [txRes, accRes, profileRes] = await Promise.all([
@@ -253,7 +253,7 @@ const JournalEntriesPage = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { fetchData(); }, [user, ownerId]);
 
   const getDisplayType = (type: string | null) => {
     if (!type) return "—";
@@ -442,7 +442,7 @@ const JournalEntriesPage = () => {
             .from("transactions")
             .update({ is_deleted: true })
             .eq("id", editingTx.id)
-            .eq("user_id", user!.id);
+            .eq("user_id", ownerId);
           if (error) throw error;
           toast({ title: "تم الإلغاء", description: "تم تعليم القيد كملغي." });
           setEditingTx(null);

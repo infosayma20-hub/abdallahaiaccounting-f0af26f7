@@ -694,7 +694,7 @@ const JournalNewPage = () => {
     try {
       // ✅ Source of Truth الموحّد — نفس المنطق المستخدم في JournalEntryPopup
       const result = await saveJournalVoucher({
-        ref_number: formRefNumber,
+        ref_number: undefined,
         date: formDate,
         subtype: formSubtype as any,
         description: formDescription,
@@ -962,7 +962,7 @@ const JournalNewPage = () => {
         cost_center_id: l.cost_center_id || null,
       }));
     return {
-      ref_number: formRefNumber,
+      ref_number: editingVoucherId ? formRefNumber : undefined,
       date: formDate,
       subtype: formSubtype as any,
       description: formDescription,

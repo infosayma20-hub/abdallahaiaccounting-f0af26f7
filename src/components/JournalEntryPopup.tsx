@@ -564,7 +564,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
       const subtype = subtypeMap[entryType] || "normal";
 
       const result = await saveJournalVoucher({
-        ref_number: reference,
+        ref_number: undefined,
         date,
         subtype,
         description,

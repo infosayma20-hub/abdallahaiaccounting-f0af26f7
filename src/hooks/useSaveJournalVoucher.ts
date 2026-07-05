@@ -362,8 +362,9 @@ export function useSaveJournalVoucher() {
       // ── (2) رقم السند ──
       // ⚠️ لا نولّد الرقم على العميل — نتركه NULL ليولّده تريجر
       // trg_generate_voucher_ref مع pg_advisory_xact_lock (آمن ضد التزامن 100%).
-      // نمرّر قيمة العميل فقط لو المستخدم كتبها يدوياً (override صريح).
-      const clientRef = input.ref_number?.trim() || null;
+      // رقم QV المعروض في الواجهة للمعاينة فقط؛ إرساله يعطّل التريغر الآمن.
+      const requestedRef = input.ref_number?.trim() || null;
+      const clientRef = requestedRef && !/^QV-\d{4}-\d+$/i.test(requestedRef) ? requestedRef : null;
 
       // ── (2.1) دفتر السندات + الرقم المستقل داخل الدفتر ──
       // - إن لم يُمرر book_id نستخدم الدفتر الافتراضي "GENERAL".
@@ -489,7 +490,7 @@ export function useSaveJournalVoucher() {
           const result = await callCreateJournalMultiPartyRpc({
             userId: ownerId,
             entryDate: input.date,
-            description: input.description.trim(),
+            description: headerDescription,
             lines: rpcLines,
             currency: currencyLabel,
             reference: voucher.ref_number,
@@ -605,8 +606,8 @@ export function useSaveJournalVoucher() {
       await supabase
         .from("transactions")
         .delete()
-        .eq("reference", existing.ref_number)
-        .eq("user_id", ownerId);
+        .eq("user_id", ownerId)
+        .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
 
       // (3) إعادة بناء lines + transactions باستخدام نفس منطق save
       const validLines = input.lines.filter(
@@ -634,7 +635,7 @@ export function useSaveJournalVoucher() {
           amount_ils: totalDebitIlsU,
           currency: masterCodeU,
           exchange_rate: masterRateU,
-          description: input.description.trim(),
+          description: input.description?.trim() || input.notes?.trim() || existing.ref_number || "",
           notes: input.notes || null,
           status: intermediateStatusU,
           attachments: input.attachments && input.attachments.length > 0 ? input.attachments : [],
@@ -670,7 +671,7 @@ export function useSaveJournalVoucher() {
         const { txns, usedClearing } = buildTransactionsFromLines({
           userId: ownerId,
           date: input.date,
-          description: input.description.trim(),
+          description: input.description?.trim() || input.notes?.trim() || existing.ref_number || "",
           lines: validLines,
           txType,
           reference: existing.ref_number,
@@ -703,7 +704,7 @@ export function useSaveJournalVoucher() {
           const result = await callCreateJournalMultiPartyRpc({
             userId: ownerId,
             entryDate: input.date,
-            description: input.description.trim(),
+            description: input.description?.trim() || input.notes?.trim() || existing.ref_number || "",
             lines: rpcLines,
             currency: currencyLabel,
             reference: existing.ref_number,
@@ -788,8 +789,8 @@ export function useSaveJournalVoucher() {
       await supabase
         .from("transactions")
         .delete()
-        .eq("reference", existing.ref_number)
-        .eq("user_id", ownerId);
+        .eq("user_id", ownerId)
+        .ilike("idempotency_key", `VOUCHER-${voucherId}%`);
       const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
       if (dErr) throw dErr;
 
