@@ -92,7 +92,20 @@ export default function SendHRMessageDialog({
     if (targets.length === 0) return;
     setSending(true);
     let ok = 0, fail = 0, dup = 0;
+
+    // Resolve each employee's owner user_id so the record is visible to the
+    // employee's portal (RLS filters on auth_user_id = auth.uid()).
+    const empIds = Array.from(new Set(targets.map(t => t.employee_id)));
+    const { data: empRows } = await supabase
+      .from("employees")
+      .select("id, user_id")
+      .in("id", empIds);
+    const empOwnerMap = new Map<string, string>();
+    (empRows || []).forEach((e: any) => { if (e.user_id) empOwnerMap.set(e.id, e.user_id); });
+
     for (const t of targets) {
+      const employeeOwnerUid = empOwnerMap.get(t.employee_id);
+      if (!employeeOwnerUid) { fail++; continue; }
       const meta: HRMessageMeta = {
         type,
         subject: subject.trim(),
@@ -121,7 +134,7 @@ export default function SendHRMessageDialog({
       }
       const { error } = await supabase.from("correction_requests").insert({
         employee_id: t.employee_id,
-        auth_user_id: authUserId,
+        auth_user_id: employeeOwnerUid,
         attendance_date: t.attendance_date || new Date().toISOString().slice(0, 10),
         request_type: toRequestType(type),
         reason: encodeHRMessage(meta),
