@@ -1171,6 +1171,9 @@ const InvoiceCreatePage = () => {
     // Cash invoices are immediately settled (paid_amount = total in summary);
     // credit invoices are paid later via receipt/payment vouchers.
     const paymentMethodDb = form.invoiceKind === "cash" ? "نقدي" : CREDIT_PAYMENT_METHOD_DB;
+    let createdInvoiceId: string | null = null;
+    let createdInvoiceTxId: string | null = null;
+    let createdAutoVoucherTxId: string | null = null;
 
     try {
       let contactId = form.contactId;
@@ -1256,6 +1259,11 @@ const InvoiceCreatePage = () => {
       // ويطبع بشكل مستقل (طلب المحاسب: 30/06/2026).
       // على مسار التعديل (isEditMode) نُبقي السلوك القديم كي لا نكسر الفواتير التاريخية.
       const useVoucherAutoFlow = isCashInvoice && !!cashCode && !isEditMode;
+      if (useVoucherAutoFlow) {
+        invoicePayload.paid_amount = 0;
+        invoicePayload.remaining_amount = summary.total;
+        invoicePayload.payment_status = "unpaid";
+      }
       const salesDebitCode = (isCashInvoice && cashCode && !useVoucherAutoFlow) ? cashCode : "1130";
       const salesCreditCode = "4100";
       const purchaseDebitCode = "5110";
@@ -1531,6 +1539,7 @@ const InvoiceCreatePage = () => {
       }
 
       if (invErr || !dbInv) throw invErr ?? new Error("Invoice insert failed");
+      createdInvoiceId = dbInv.id;
 
       const itemsToInsert = buildItemsPayload(dbInv.id);
       if (itemsToInsert.length > 0) {
@@ -1632,6 +1641,7 @@ const InvoiceCreatePage = () => {
         if (txError) throw txError;
           txDataId = txData.id;
         }
+        createdInvoiceTxId = txDataId;
 
         const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", ownerId);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
@@ -1657,11 +1667,12 @@ const InvoiceCreatePage = () => {
         if (useVoucherAutoFlow && contactId) {
           try {
             const isSales = form.type === "sales";
+            const voucherAmount = summary.total;
             const voucherParams = {
-              userId: user.id,
+              userId: ownerId,
               contactId,
               contactName: form.contactName,
-              amount: amountILS,
+              amount: voucherAmount,
               paymentMethod: "نقدي",
               description: `${isSales ? "سند قبض تلقائي" : "سند صرف تلقائي"} — فاتورة ${dbInv.invoice_number}`,
               currency: form.currency,
@@ -1670,24 +1681,86 @@ const InvoiceCreatePage = () => {
               reference: dbInv.invoice_number,
               cashAccountCode: cashCode!,
               idempotencyKey: `INV-VOUCHER-${dbInv.id}`,
-              allocations: [{ invoice_id: dbInv.id, amount: amountILS }],
+              allocations: [{ invoice_id: dbInv.id, amount: voucherAmount }],
               workshopId: form.workshopId || null,
               costCenterId: form.costCenterId || null,
             };
+            const voucherResult = isSales
+              ? await callCreateReceiptRpc(voucherParams)
+              : await callCreatePaymentRpc(voucherParams);
+            if (voucherResult?.success === false || !voucherResult?.transaction_id) {
+              throw new Error(voucherResult?.error || "فشل إنشاء قيد السند التلقائي");
+            }
+            createdAutoVoucherTxId = voucherResult.transaction_id;
+
             if (isSales) {
-              await callCreateReceiptRpc(voucherParams);
+              const { data: receiptDoc, error: receiptDocError } = await supabase
+                .from("receipt_vouchers")
+                .insert({
+                  user_id: ownerId,
+                  receipt_number: null,
+                  contact_id: contactId,
+                  contact_name: form.contactName,
+                  payment_date: form.date,
+                  amount: summary.total,
+                  payment_method: "نقدي",
+                  cash_box_id: null,
+                  bank_account_id: null,
+                  deposit_account_code: cashCode,
+                  notes: `سند قبض تلقائي لفاتورة ${dbInv.invoice_number}`,
+                  status: "posted",
+                  linked_transaction_id: voucherResult.transaction_id,
+                  auto_allocate: true,
+                  workshop_id: form.workshopId || null,
+                } as any)
+                .select("id, receipt_number")
+                .single();
+              if (receiptDocError) throw receiptDocError;
+              if (receiptDoc?.receipt_number) {
+                await supabase
+                  .from("transactions")
+                  .update({ reference: receiptDoc.receipt_number } as any)
+                  .eq("id", voucherResult.transaction_id)
+                  .eq("user_id", ownerId);
+              }
             } else {
-              await callCreatePaymentRpc(voucherParams);
+              const { data: paymentDoc, error: paymentDocError } = await supabase
+                .from("vouchers")
+                .insert({
+                  user_id: ownerId,
+                  type: "payment",
+                  subtype: "normal",
+                  ref_number: null,
+                  date: form.date,
+                  contact_id: contactId,
+                  payment_method: "cash",
+                  amount: summary.total,
+                  amount_ils: amountILS,
+                  currency: form.currency === "شيكل" ? "ILS" : form.currency,
+                  exchange_rate: form.exchangeRate || 1,
+                  description: `سند صرف تلقائي لفاتورة ${dbInv.invoice_number}`,
+                  notes: `سند صرف تلقائي لفاتورة ${dbInv.invoice_number}`,
+                  status: "posted",
+                  linked_transaction_id: voucherResult.transaction_id,
+                  posted_by: user.id,
+                  posted_at: new Date().toISOString(),
+                  workshop_id: form.workshopId || null,
+                  cost_center_id: form.costCenterId || null,
+                } as any)
+                .select("id, ref_number")
+                .single();
+              if (paymentDocError) throw paymentDocError;
+              if (paymentDoc?.ref_number) {
+                await supabase
+                  .from("transactions")
+                  .update({ reference: paymentDoc.ref_number } as any)
+                  .eq("id", voucherResult.transaction_id)
+                  .eq("user_id", ownerId);
+              }
             }
           } catch (voucherErr: any) {
-            // لا نُفشل الفاتورة إذا فشل إنشاء السند التلقائي — نعطي تحذير للمستخدم
-            // ونطلب منه إنشاء السند يدوياً من شاشة السندات.
             console.error("Auto voucher creation failed:", voucherErr);
-            toast({
-              title: "تم حفظ الفاتورة لكن فشل إنشاء السند التلقائي",
-              description: voucherErr?.message || "أنشئ سند قبض/صرف يدوياً من شاشة السندات",
-              variant: "destructive",
-            });
+            throw new Error(voucherErr?.message || "فشل إنشاء سند القبض/الصرف التلقائي للفاتورة النقدية");
           }
         }
       }
@@ -1734,6 +1807,37 @@ const InvoiceCreatePage = () => {
       navigate(workshopId ? "/workshops" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
+      if (!isEditMode && createdInvoiceId) {
+        try {
+          await supabase.from("invoice_items").delete().eq("invoice_id", createdInvoiceId);
+          if (createdInvoiceTxId) {
+            await supabase
+              .from("transactions")
+              .update({ is_deleted: true, idempotency_key: null } as any)
+              .eq("id", createdInvoiceTxId)
+              .eq("user_id", ownerId);
+          }
+          if (createdAutoVoucherTxId) {
+            await supabase
+              .from("transactions")
+              .update({ is_deleted: true, idempotency_key: null } as any)
+              .eq("id", createdAutoVoucherTxId)
+              .eq("user_id", ownerId);
+          }
+          await supabase
+            .from("invoices")
+            .update({
+              status: "cancelled",
+              is_voided: true,
+              voided_at: new Date().toISOString(),
+              void_reason: "rollback_after_posting_failure",
+            } as any)
+            .eq("id", createdInvoiceId)
+            .eq("user_id", ownerId);
+        } catch (cleanupErr) {
+          console.error("Invoice rollback cleanup failed:", cleanupErr);
+        }
+      }
       const message = isDuplicateInvoiceNumberError(err)
         ? "تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."
         : formatDbError(err, "تعذّر حفظ الفاتورة");

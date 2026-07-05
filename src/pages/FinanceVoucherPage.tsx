@@ -126,10 +126,12 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       const table = isReceipt ? "receipt_vouchers" : "vouchers";
       
       // Reverse invoice paid amounts before cancelling (works for both receipt and payment vouchers)
-      const { data: links } = await supabase
+      const linkQuery = supabase
         .from("payment_invoice_links" as any)
-        .select("invoice_id, allocated_amount")
-        .eq("payment_id", deleteTarget.id);
+        .select("invoice_id, allocated_amount");
+      const { data: links } = deleteTarget.linked_transaction_id
+        ? await linkQuery.or(`payment_id.eq.${deleteTarget.id},transaction_id.eq.${deleteTarget.linked_transaction_id}`)
+        : await linkQuery.eq("payment_id", deleteTarget.id);
       
       if (links && links.length > 0) {
         for (const link of links as any[]) {
@@ -150,9 +152,12 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
           }
         }
         // Delete the payment_invoice_links
-        await supabase.from("payment_invoice_links" as any)
-          .delete()
-          .eq("payment_id", deleteTarget.id);
+        const deleteLinks = supabase.from("payment_invoice_links" as any).delete();
+        if (deleteTarget.linked_transaction_id) {
+          await deleteLinks.or(`payment_id.eq.${deleteTarget.id},transaction_id.eq.${deleteTarget.linked_transaction_id}`);
+        } else {
+          await deleteLinks.eq("payment_id", deleteTarget.id);
+        }
       }
       
       // Cancel the voucher — DB trigger handles cascading to linked transaction

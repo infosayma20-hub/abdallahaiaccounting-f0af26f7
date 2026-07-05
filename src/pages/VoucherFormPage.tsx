@@ -1612,6 +1612,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
 
       const finalRefNumber = isEditMode ? refNumber : (await reserveVoucherRefNumber());
+      const postingNonce =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
@@ -1945,7 +1949,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             paymentMethod: paymentMethod === "تحويل" ? "بنك" : "نقدي",
             description: notes || `سند قبض من ${selectedContact!.contact_name}`,
             currency: currencyLabel,
-            idempotencyKey: `RCV-${finalRefNumber}`,
+            idempotencyKey: `RCV-${postingNonce}`,
             reference: finalRefNumber,
             voucherDate: paymentDate,
             cashAccountCode: depositAccountCode,
@@ -1967,7 +1971,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             p_payment_method: paymentMethod === "شيك" ? "شيك" : paymentMethod === "تحويل" ? "بنك" : "نقدي",
             p_description: notes || `سند قبض من ${selectedContact!.contact_name}`,
             p_currency: currencyLabel,
-            p_idempotency_key: `RCV-${finalRefNumber}`,
+            p_idempotency_key: `RCV-${postingNonce}`,
             p_voucher_date: paymentDate,
             p_exchange_rate: currency !== "ILS" ? exchangeRate : null,
             p_reference: finalRefNumber,
@@ -2008,7 +2012,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           transaction_type: "receipt",
           contact_id: selectedContact?.id || null,
           payment_method: paymentMethod,
-          idempotency_key: `RCV-${finalRefNumber}`,
+          idempotency_key: `RCV-${postingNonce}`,
           reference: finalRefNumber || null,
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
@@ -2093,7 +2097,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             paymentMethod: paymentMethod === "تحويل" ? "بنك" : "نقدي",
             description: txDescription,
             currency: currencyLabel,
-            idempotencyKey: `PAY-${finalRefNumber}`,
+            idempotencyKey: `PAY-${postingNonce}`,
             reference: finalRefNumber,
             voucherDate: paymentDate,
             cashAccountCode: depositAccountCode,
@@ -2117,7 +2121,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           transaction_type: isEmployeePayment ? (empCategory === "رواتب" ? "employee_salary" : empCategory === "سلفة" ? "employee_advance" : "employee_payment") : isAccountPayment ? "journal" : "payment",
           contact_id: txContactId,
           payment_method: payMethodMap[paymentMethod] || "نقدي",
-          idempotency_key: `PAY-${finalRefNumber}`,
+          idempotency_key: `PAY-${postingNonce}`,
           reference: finalRefNumber || null,
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
