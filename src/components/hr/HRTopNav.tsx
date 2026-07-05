@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useHRManagerPermissions, type HRPermKey } from "@/hooks/useHRManagerPermissions";
 import {
   LayoutDashboard,
@@ -12,16 +12,9 @@ import {
   HandCoins,
   Settings,
   BarChart3,
-  ChevronDown,
   Bell,
   Inbox,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 type Item = {
@@ -48,8 +41,6 @@ const ITEMS: Item[] = [
   { to: "/hr/settings", label: "إعدادات HR", Icon: Settings, perms: ["can_manage_hr_settings"], matchPrefixes: ["/hr/settings", "/hr/definitions", "/hr/day-types", "/hr/shifts", "/hr/policy-assignment", "/payroll-settings", "/hr-deductions"] },
 ];
 
-const VISIBLE_DESKTOP = 10; // all fit on a typical desktop; collapse to "more" only when needed.
-
 export function HRTopNav() {
   const { isAdmin, isHRManager, can } = useHRManagerPermissions();
   const { pathname } = useLocation();
@@ -72,43 +63,27 @@ export function HRTopNav() {
 
   return (
     <div dir="rtl" className="bg-transparent">
-      <div className="container max-w-7xl mx-auto px-3 md:px-6">
-        <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
-          {items.slice(0, VISIBLE_DESKTOP).map((i) => {
+      <div className="w-full px-2 md:px-4">
+        <nav className="flex items-center flex-wrap gap-1 py-2">
+          {items.map((i) => {
             const active = isActive(i);
             return (
               <NavLink
                 key={i.to}
                 to={i.to}
+                title={i.label}
                 className={cn(
-                  "flex items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm rounded-md transition-colors",
+                  "flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[13px] rounded-md transition-colors shrink-0",
                   active
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 )}
               >
-                <i.Icon className="h-4 w-4" />
-                <span>{i.label}</span>
+                <i.Icon className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">{i.label}</span>
               </NavLink>
             );
           })}
-          {items.length > VISIBLE_DESKTOP && (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60">
-                المزيد <ChevronDown className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {items.slice(VISIBLE_DESKTOP).map((i) => (
-                  <DropdownMenuItem key={i.to} asChild>
-                    <NavLink to={i.to} className="flex items-center gap-2">
-                      <i.Icon className="h-4 w-4" />
-                      <span>{i.label}</span>
-                    </NavLink>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
           {/* مركز الإشعارات — متاح للأدمن ومدير الموارد البشرية */}
           {(isAdmin || isHRManager) && (
             <NavLink
@@ -116,15 +91,15 @@ export function HRTopNav() {
               title="مركز الإشعارات — إرسال إشعارات للموظفين"
               className={({ isActive: na }) =>
                 cn(
-                  "flex items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm rounded-md transition-colors mr-auto",
+                  "flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[13px] rounded-md transition-colors mr-auto shrink-0",
                   na
                     ? "bg-primary text-primary-foreground"
                     : "text-rose-600 hover:bg-rose-500/10"
                 )
               }
             >
-              <Bell className="h-4 w-4" />
-              <span>الإشعارات</span>
+              <Bell className="h-4 w-4 shrink-0" />
+              <span className="hidden lg:inline">الإشعارات</span>
             </NavLink>
           )}
         </nav>
