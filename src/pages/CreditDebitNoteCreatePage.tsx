@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, Save, Send, Plus, Trash2, Search, AlertTriangle, ArrowRight } from "lucide-react";
+import {
+  Loader2, Save, Send, Plus, Trash2, Search, AlertTriangle, ArrowRight, ArrowLeft,
+  ChevronRight, ChevronLeft, FileSearch,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +18,8 @@ import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useCostCenters } from "@/hooks/useCostCenters";
+import { FinanceShell, FastTabs, type ActionTab, type FastTabItem } from "@/components/finance/shell";
 
 type TaxCategory = "taxable" | "zero" | "exempt";
 
@@ -147,7 +151,53 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
     notes: "",
     items: [newItem()] as Item[],
     status: "draft" as "draft" | "sent" | "cancelled",
+    costCenterId: null as string | null,
   });
+
+  const { data: costCenters = [] } = useCostCenters();
+
+  // ─── Sibling records for prev/next navigation ───
+  const [siblingIds, setSiblingIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (!user || !ownerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("user_id", ownerId)
+        .eq("invoice_type", dbType)
+        .order("created_at", { ascending: false });
+      setSiblingIds(((data as any[]) || []).map((r) => r.id));
+    })();
+  }, [user, ownerId, dbType]);
+
+  const currentIndex = recordId ? siblingIds.indexOf(recordId) : -1;
+  const prevId = currentIndex > 0 ? siblingIds[currentIndex - 1] : null;
+  const nextId = currentIndex >= 0 && currentIndex < siblingIds.length - 1
+    ? siblingIds[currentIndex + 1]
+    : null;
+  const navMode = isView ? "view" : "edit";
+  const gotoRecord = (id: string | null) => {
+    if (!id) return;
+    navigate(`${listPath}/new?${navMode}=${id}`);
+  };
+
+  // ─── Query popover ───
+  const [queryOpen, setQueryOpen] = useState(false);
+  const [queryList, setQueryList] = useState<any[]>([]);
+  useEffect(() => {
+    if (!queryOpen || !ownerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, invoice_date, contact_name, total_amount, status")
+        .eq("user_id", ownerId)
+        .eq("invoice_type", dbType)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      setQueryList((data as any[]) || []);
+    })();
+  }, [queryOpen, ownerId, dbType]);
 
   // ─── Load contacts + linked invoices ───
   useEffect(() => {
@@ -213,6 +263,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         notes: (inv as any).notes || "",
         items: items.length > 0 ? items : [newItem()],
         status: (inv as any).status || "draft",
+        costCenterId: (inv as any).cost_center_id || null,
       });
       // Fetch linked invoice number
       if ((inv as any).original_invoice_id) {
@@ -330,6 +381,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         notes: form.notes || null,
         source: "manual",
         status: asDraft ? "draft" : "sent",
+        cost_center_id: form.costCenterId,
       };
 
       let noteId = editId;
@@ -390,6 +442,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
           reference: noteNumber,
           payment_method: "آجل",
           idempotency_key: `${dbType.toUpperCase()}-${noteId}`,
+          cost_center_id: form.costCenterId,
         } as any).select("id").single();
 
         if (txInsert) {
@@ -435,33 +488,435 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
   const isPosted = form.status !== "draft" && !!recordId;
   const readonly = isView || isPosted;
 
+  const pageTitle = isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`;
+
+  const actionTabs: ActionTab[] = [{
+    key: "general",
+    label: "عام",
+    groups: [
+      { key: "save", label: "حفظ", items: [
+        {
+          key: "post",
+          label: "ترحيل الإشعار",
+          icon: Send,
+          variant: "primary",
+          onClick: () => handleSave(false),
+          disabled: readonly || saving,
+        },
+        {
+          key: "draft",
+          label: "حفظ مسودة",
+          icon: Save,
+          onClick: () => handleSave(true),
+          disabled: readonly || saving,
+          shortcut: "Ctrl+S",
+        },
+      ]},
+      { key: "nav", label: "تنقل", items: [
+        {
+          key: "prev",
+          label: "السابق",
+          icon: ChevronRight,
+          onClick: () => gotoRecord(prevId),
+          disabled: !prevId,
+        },
+        {
+          key: "next",
+          label: "التالي",
+          icon: ChevronLeft,
+          onClick: () => gotoRecord(nextId),
+          disabled: !nextId,
+        },
+      ]},
+      { key: "inquiry", label: "استعلام", items: [
+        {
+          key: "query",
+          label: "بحث عن إشعار",
+          icon: FileSearch,
+          onClick: () => setQueryOpen(true),
+        },
+      ]},
+      { key: "back", label: "رجوع", items: [
+        {
+          key: "list",
+          label: "قائمة الإشعارات",
+          icon: ArrowRight,
+          onClick: () => navigate(listPath),
+        },
+      ]},
+    ],
+  }];
+
+  const headerSection: FastTabItem = {
+    key: "header",
+    title: "رأس الإشعار",
+    defaultOpen: true,
+    summary: form.contactName ? `${form.contactName} • ${form.date}` : null,
+    children: (
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label>{partyLabel} *</Label>
+            <Popover open={contactPopover} onOpenChange={setContactPopover}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" disabled={readonly}>
+                  {form.contactName || `اختر ${partyLabel}...`}
+                  <Search className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="بحث..." />
+                  <CommandList>
+                    <CommandEmpty>لا توجد نتائج</CommandEmpty>
+                    <CommandGroup>
+                      {contacts.map(c => (
+                        <CommandItem
+                          key={c.id}
+                          onSelect={() => {
+                            setForm(p => ({
+                              ...p,
+                              contactId: c.id,
+                              contactName: c.contact_name,
+                              linkedInvoiceId: null,
+                              linkedInvoiceNumber: "",
+                            }));
+                            setContactPopover(false);
+                          }}
+                        >
+                          {c.contact_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <Label>التاريخ</Label>
+            <Input
+              type="date"
+              value={form.date}
+              onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+              disabled={readonly}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label>مرتبط بفاتورة (اختياري)</Label>
+            <Popover open={invoicePopover} onOpenChange={setInvoicePopover}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" disabled={readonly || !form.contactId}>
+                  {form.linkedInvoiceNumber || (form.contactId ? "اختر فاتورة..." : `اختر ${partyLabel} أولاً`)}
+                  <Search className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="بحث..." />
+                  <CommandList>
+                    <CommandEmpty>لا توجد فواتير</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setForm(p => ({ ...p, linkedInvoiceId: null, linkedInvoiceNumber: "" }));
+                          setInvoicePopover(false);
+                        }}
+                      >
+                        — بدون ربط —
+                      </CommandItem>
+                      {linkedInvoices.map(inv => (
+                        <CommandItem
+                          key={inv.id}
+                          onSelect={async () => {
+                            setForm(p => ({
+                              ...p,
+                              linkedInvoiceId: inv.id,
+                              linkedInvoiceNumber: inv.invoice_number || "",
+                            }));
+                            setInvoicePopover(false);
+                            await pullItemsFromInvoice(inv.id);
+                          }}
+                        >
+                          <div className="flex justify-between w-full">
+                            <span className="font-mono">{inv.invoice_number}</span>
+                            <span className="text-muted-foreground text-xs">
+                              ₪{Number(inv.total_amount || 0).toLocaleString()} • {inv.invoice_date}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <Label>سبب الإشعار *</Label>
+            <Select
+              value={form.reason}
+              onValueChange={v => setForm(p => ({ ...p, reason: v }))}
+              disabled={readonly}
+            >
+              <SelectTrigger><SelectValue placeholder="اختر السبب..." /></SelectTrigger>
+              <SelectContent>
+                {reasons.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {form.reason === "أخرى" && (
+          <div>
+            <Label>اكتب السبب</Label>
+            <Input
+              value={form.reasonOther}
+              onChange={e => setForm(p => ({ ...p, reasonOther: e.target.value }))}
+              disabled={readonly}
+            />
+          </div>
+        )}
+      </div>
+    ),
+  };
+
+  const itemsSection: FastTabItem = {
+    key: "items",
+    title: "البنود",
+    defaultOpen: true,
+    summary: `${form.items.length} بند`,
+    children: (
+      <div className="space-y-2">
+        {!readonly && (
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
+              <Plus className="h-3.5 w-3.5" /> إضافة بند
+            </Button>
+          </div>
+        )}
+        {form.items.map((it) => (
+          <div key={it.id} className="grid grid-cols-12 gap-2 items-end p-2 border rounded-lg">
+            <div className="col-span-12 sm:col-span-4">
+              <Label className="text-xs">الوصف</Label>
+              <Input value={it.description} onChange={e => updateItem(it.id, { description: e.target.value })} disabled={readonly} />
+            </div>
+            <div className="col-span-4 sm:col-span-2">
+              <Label className="text-xs">الكمية</Label>
+              <Input type="number" value={it.quantity} onChange={e => updateItem(it.id, { quantity: Number(e.target.value) || 0 })} disabled={readonly} />
+            </div>
+            <div className="col-span-4 sm:col-span-2">
+              <Label className="text-xs">السعر</Label>
+              <Input type="number" value={it.unitPrice} onChange={e => updateItem(it.id, { unitPrice: Number(e.target.value) || 0 })} disabled={readonly} />
+            </div>
+            <div className="col-span-4 sm:col-span-2">
+              <Label className="text-xs">خصم</Label>
+              <Input type="number" value={it.discount} onChange={e => updateItem(it.id, { discount: Number(e.target.value) || 0 })} disabled={readonly} />
+            </div>
+            {taxEnabled && (
+              <div className="col-span-8 sm:col-span-2">
+                <Label className="text-xs">الضريبة</Label>
+                <Select value={it.taxCategory} onValueChange={v => updateItem(it.id, { taxCategory: v as TaxCategory })} disabled={readonly}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TAX_OPTS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {!readonly && (
+              <div className="col-span-12 flex justify-end">
+                <Button size="icon" variant="ghost" onClick={() => removeItem(it.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    ),
+  };
+
+  const selectedCostCenter = costCenters.find((c: any) => c.id === form.costCenterId);
+  const costCenterSection: FastTabItem = {
+    key: "cost-center",
+    title: "مركز التكلفة والملاحظات",
+    defaultOpen: false,
+    summary: selectedCostCenter
+      ? `${selectedCostCenter.code} — ${selectedCostCenter.name_ar || selectedCostCenter.name}`
+      : "بدون مركز تكلفة",
+    children: (
+      <div className="space-y-3">
+        <div>
+          <Label>مركز التكلفة</Label>
+          <Select
+            value={form.costCenterId || "none"}
+            onValueChange={v => setForm(p => ({ ...p, costCenterId: v === "none" ? null : v }))}
+            disabled={readonly}
+          >
+            <SelectTrigger><SelectValue placeholder="اختر مركز تكلفة..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— بدون —</SelectItem>
+              {costCenters.map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>
+                  <span className="font-mono text-xs">{c.code}</span> — {c.name_ar || c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            يُمرَّر مركز التكلفة إلى قيد الترحيل المحاسبي.
+          </p>
+        </div>
+
+        <div>
+          <Label>ملاحظات</Label>
+          <Textarea
+            value={form.notes}
+            onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+            rows={3}
+            placeholder="ملاحظات إضافية..."
+            disabled={readonly}
+          />
+        </div>
+      </div>
+    ),
+  };
+
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
-      <PageHeader
-        title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
-        breadcrumb={["الرئيسية", isCustomerSide ? "المبيعات" : "المشتريات", titleAr]}
-      />
-      <div className="flex justify-between items-start gap-3">
-        <p className="text-sm text-muted-foreground">
-          {noteType === "credit"
-            ? "تخفيض / إلغاء جزئي على فاتورة مبيعات"
-            : "تخفيض / إرجاع على فاتورة مشتريات"}
-        </p>
-        <Button variant="outline" onClick={() => navigate(listPath)} className="gap-2">
-          <ArrowRight className="h-4 w-4" /> رجوع للقائمة
-        </Button>
+    <FinanceShell
+      title={pageTitle}
+      subtitle={noteType === "credit"
+        ? "تخفيض / إلغاء جزئي على فاتورة مبيعات"
+        : "تخفيض / إرجاع على فاتورة مشتريات"}
+      breadcrumb={[
+        { label: "الرئيسية", href: "/" },
+        { label: isCustomerSide ? "المبيعات" : "المشتريات" },
+        { label: titleAr, href: listPath },
+        { label: pageTitle },
+      ]}
+      actionTabs={actionTabs}
+      rightSlot={
+        currentIndex >= 0 && siblingIds.length > 0 ? (
+          <span className="text-[11px] text-muted-foreground tabular-nums">
+            {currentIndex + 1} / {siblingIds.length}
+          </span>
+        ) : undefined
+      }
+    >
+      <div className="space-y-4" dir="rtl">
+        {readonly && (
+          <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardContent className="p-3 flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              {isPosted ? "هذا الإشعار مرحَّل ولا يقبل التعديل." : "وضع المعاينة فقط."}
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <FastTabs items={[headerSection, itemsSection, costCenterSection]} />
+          </div>
+
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>الإجمالي</span>
+                  <Badge variant="outline">{titleAr}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between"><span>الصافي</span><span className="font-mono">₪{summary.net.toFixed(2)}</span></div>
+                {summary.discount > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>الخصم</span><span className="font-mono">-₪{summary.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                {taxEnabled && summary.tax > 0 && (
+                  <div className="flex justify-between"><span>الضريبة 16%</span><span className="font-mono">₪{summary.tax.toFixed(2)}</span></div>
+                )}
+                <div className="flex justify-between pt-2 border-t font-bold text-lg text-primary">
+                  <span>الإجمالي</span><span className="font-mono">₪{summary.total.toFixed(2)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {!readonly && (
+              <Card>
+                <CardContent className="p-3 space-y-2">
+                  <Button className="w-full gap-2" onClick={() => handleSave(false)} disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    ترحيل الإشعار
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2" onClick={() => handleSave(true)} disabled={saving}>
+                    <Save className="h-4 w-4" /> حفظ كمسودة
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {siblingIds.length > 1 && (
+              <Card>
+                <CardContent className="p-3 flex items-center justify-between gap-2">
+                  <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => gotoRecord(prevId)} disabled={!prevId}>
+                    <ChevronRight className="h-4 w-4" /> السابق
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => gotoRecord(nextId)} disabled={!nextId}>
+                    التالي <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
 
-      {readonly && (
-        <Card className={`border-${accent}-200 bg-${accent}-50/40 dark:bg-${accent}-950/20`}>
-          <CardContent className="p-3 flex items-center gap-2 text-sm">
-            <AlertTriangle className={`h-4 w-4 text-${accent}-600`} />
-            {isPosted ? "هذا الإشعار مرحَّل ولا يقبل التعديل." : "وضع المعاينة فقط."}
-          </CardContent>
-        </Card>
-      )}
+      {/* Inquiry dialog */}
+      <Popover open={queryOpen} onOpenChange={setQueryOpen}>
+        <PopoverTrigger asChild><span className="hidden" /></PopoverTrigger>
+        <PopoverContent className="w-[520px] p-0" align="end">
+          <Command>
+            <CommandInput placeholder="بحث برقم الإشعار أو اسم الجهة..." />
+            <CommandList>
+              <CommandEmpty>لا توجد نتائج</CommandEmpty>
+              <CommandGroup heading={`${titleAr} (${queryList.length})`}>
+                {queryList.map((r) => (
+                  <CommandItem
+                    key={r.id}
+                    onSelect={() => {
+                      setQueryOpen(false);
+                      gotoRecord(r.id);
+                    }}
+                    value={`${r.invoice_number || ""} ${r.contact_name || ""}`}
+                  >
+                    <div className="flex justify-between w-full items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-xs">{r.invoice_number || "—"}</span>
+                        <span className="text-sm truncate">{r.contact_name || "—"}</span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                        ₪{Number(r.total_amount || 0).toLocaleString()} • {r.invoice_date}
+                      </div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </FinanceShell>
+  );
+};
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+export default CreditDebitNoteCreatePage;
         {/* ─── Main form ─── */}
         <div className="lg:col-span-2 space-y-4">
           <Card>
