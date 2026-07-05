@@ -437,6 +437,7 @@ export default function EmployeeFormsTab({
         const leaveOptions = [
           { value: "annual", label: "سنوية" },
           { value: "regular", label: "عادية" },
+          { value: "sick", label: "مرضية" },
         ];
         const selectedLeave = formData.leave_type || "annual";
         const autoDays = diffDaysInclusive(formData.from_date, formData.to_date);
@@ -470,7 +471,7 @@ export default function EmployeeFormsTab({
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة *</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {leaveOptions.map(opt => (
                   <button
                     key={opt.value}
@@ -487,6 +488,69 @@ export default function EmployeeFormsTab({
                 ))}
               </div>
             </div>
+            {selectedLeave === "sick" && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  تقرير طبي <span className="text-[10px] font-normal">(اختياري — إن وُجد)</span>
+                </label>
+                {formData.attachment_url ? (
+                  (() => {
+                    const path = (formData as any).attachment_path as string | undefined;
+                    const isPdf = !!path && /\.pdf$/i.test(path);
+                    return (
+                      <div className="relative border-2 border-emerald-500/40 bg-emerald-500/5 rounded-xl p-3 flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleRemoveAttachment}
+                          aria-label="إزالة الملف"
+                          className="absolute -top-2 -left-2 h-7 w-7 rounded-full bg-destructive text-destructive-foreground shadow-md flex items-center justify-center hover:scale-105 transition"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <div className="h-14 w-14 rounded-lg overflow-hidden bg-muted flex items-center justify-center shrink-0 border border-border">
+                          {isPdf ? (
+                            <FileText className="h-6 w-6 text-primary" />
+                          ) : (
+                            <img src={formData.attachment_url} alt="معاينة" className="h-full w-full object-cover" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            تم رفع التقرير الطبي
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 truncate" dir="ltr">
+                            {isPdf ? "ملف PDF" : "صورة"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <label className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors">
+                    {uploadingFile ? (
+                      <>
+                        <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                        <span className="text-xs text-muted-foreground">جاري الرفع…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-xs text-primary font-medium">اضغط لإرفاق التقرير الطبي</span>
+                        <span className="text-[10px] text-muted-foreground">صورة أو PDF</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+                      disabled={uploadingFile}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب الإجازة..." />
