@@ -391,15 +391,20 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         cost_center_id: form.costCenterId,
       };
 
-      let noteId = editId;
+      // Editing is now allowed for both drafts (editId) and posted (recordId in edit-mode)
+      const editingId = recordId && !isView ? recordId : null;
+      let noteId = editingId;
       let noteNumber = "";
 
-      if (editId) {
-        const { error } = await supabase.from("invoices").update(payload).eq("id", editId).eq("user_id", ownerId);
+      if (editingId) {
+        const { error } = await supabase.from("invoices").update(payload).eq("id", editingId).eq("user_id", ownerId);
         if (error) throw error;
-        await supabase.from("invoice_items").delete().eq("invoice_id", editId);
-        const { data: row } = await supabase.from("invoices").select("invoice_number").eq("id", editId).single();
-        noteNumber = (row as any)?.invoice_number || "";
+        await supabase.from("invoice_items").delete().eq("invoice_id", editingId);
+        noteNumber = existingInvoiceNumber || "";
+        if (!noteNumber) {
+          const { data: row } = await supabase.from("invoices").select("invoice_number").eq("id", editingId).single();
+          noteNumber = (row as any)?.invoice_number || "";
+        }
       } else {
         const { data: ins, error } = await supabase.from("invoices").insert(payload).select("id, invoice_number").single();
         if (error) throw error;
