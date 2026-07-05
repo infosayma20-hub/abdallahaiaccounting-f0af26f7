@@ -861,6 +861,7 @@ const App = () => (
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_attendance", "can_manage_attendance"]}><HRAttendancePage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/hr-attendance/backfill" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_attendance"]}><AttendanceBackfillPage /></HRPermGuard></RoleGuard></HRShell>} />
+                      <Route path="/hr/leaves-balances" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_reports", "can_manage_hr_settings"]}><LeavesBalancesPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/advances" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_advances"]}><AdvancesPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/loans" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_loans"]}><LoansPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/loans/monthly" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_loans"]}><LoansMonthlyPage /></HRPermGuard></RoleGuard></HRShell>} />
