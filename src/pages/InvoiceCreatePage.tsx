@@ -1256,6 +1256,11 @@ const InvoiceCreatePage = () => {
       // ويطبع بشكل مستقل (طلب المحاسب: 30/06/2026).
       // على مسار التعديل (isEditMode) نُبقي السلوك القديم كي لا نكسر الفواتير التاريخية.
       const useVoucherAutoFlow = isCashInvoice && !!cashCode && !isEditMode;
+      if (useVoucherAutoFlow) {
+        invoicePayload.paid_amount = 0;
+        invoicePayload.remaining_amount = summary.total;
+        invoicePayload.payment_status = "unpaid";
+      }
       const salesDebitCode = (isCashInvoice && cashCode && !useVoucherAutoFlow) ? cashCode : "1130";
       const salesCreditCode = "4100";
       const purchaseDebitCode = "5110";
