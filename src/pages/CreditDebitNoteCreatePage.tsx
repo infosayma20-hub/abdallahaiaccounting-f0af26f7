@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Loader2, Save, Send, Plus, Trash2, Search, AlertTriangle, ArrowRight, ArrowLeft,
+  Loader2, Save, Send, Plus, Trash2, Search, AlertTriangle, ArrowRight,
   ChevronRight, ChevronLeft, FileSearch,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
@@ -879,9 +880,13 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       </div>
 
       {/* Inquiry dialog */}
-      <Popover open={queryOpen} onOpenChange={setQueryOpen}>
-        <PopoverTrigger asChild><span className="hidden" /></PopoverTrigger>
-        <PopoverContent className="w-[520px] p-0" align="end">
+      <Dialog open={queryOpen} onOpenChange={setQueryOpen}>
+        <DialogContent className="p-0 max-w-[560px]" dir="rtl">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+              <FileSearch className="h-4 w-4" /> استعلام {titleAr}
+            </DialogTitle>
+          </DialogHeader>
           <Command>
             <CommandInput placeholder="بحث برقم الإشعار أو اسم الجهة..." />
             <CommandList>
@@ -910,8 +915,8 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
               </CommandGroup>
             </CommandList>
           </Command>
-        </PopoverContent>
-      </Popover>
+        </DialogContent>
+      </Dialog>
     </FinanceShell>
   );
 };
