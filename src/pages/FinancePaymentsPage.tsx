@@ -59,6 +59,7 @@ interface Row {
   status_label: string;
   notes: string | null;
   is_bulk: boolean;
+  linked_transaction_id?: string | null;
   raw: any;
 }
 
@@ -183,6 +184,7 @@ export default function FinancePaymentsPage() {
         status_label: STATUS_LABELS[rv.status] || rv.status || "—",
         notes: rv.notes || null,
         is_bulk: isBulk,
+        linked_transaction_id: rv.linked_transaction_id || null,
         raw: rv,
       };
     });
@@ -369,8 +371,11 @@ export default function FinancePaymentsPage() {
         fetchData();
         return;
       }
-      const { data: links } = await supabase.from("payment_invoice_links" as any)
-        .select("invoice_id, allocated_amount").eq("payment_id", delTarget.id);
+      const linkQuery = supabase.from("payment_invoice_links" as any)
+        .select("invoice_id, allocated_amount");
+      const { data: links } = delTarget.linked_transaction_id
+        ? await linkQuery.or(`payment_id.eq.${delTarget.id},transaction_id.eq.${delTarget.linked_transaction_id}`)
+        : await linkQuery.eq("payment_id", delTarget.id);
       if (links && links.length) {
         for (const link of links as any[]) {
           const { data: inv } = await supabase.from("invoices")
@@ -384,7 +389,12 @@ export default function FinancePaymentsPage() {
             }).eq("id", link.invoice_id);
           }
         }
-        await supabase.from("payment_invoice_links" as any).delete().eq("payment_id", delTarget.id);
+        const deleteLinks = supabase.from("payment_invoice_links" as any).delete();
+        if (delTarget.linked_transaction_id) {
+          await deleteLinks.or(`payment_id.eq.${delTarget.id},transaction_id.eq.${delTarget.linked_transaction_id}`);
+        } else {
+          await deleteLinks.eq("payment_id", delTarget.id);
+        }
       }
       const { error } = await supabase.from("vouchers")
         .update({ status: "cancelled" } as any).eq("id", delTarget.id);
