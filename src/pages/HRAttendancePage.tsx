@@ -591,6 +591,7 @@ export default function HRAttendancePage() {
       const { data: att } = await supabase
         .from("attendance_days")
         .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
+        .eq("user_id", dataOwnerId)
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
       let filtered = (att as any) || [];
@@ -600,6 +601,7 @@ export default function HRAttendancePage() {
       const { data: corr } = await supabase
         .from("correction_requests")
         .select("*, employees!inner(full_name)")
+        .eq("user_id", dataOwnerId)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       setCorrections((corr as any) || []);
@@ -653,6 +655,7 @@ export default function HRAttendancePage() {
     const { data, error } = await supabase
       .from("attendance_days")
       .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id)")
+      .eq("user_id", dataOwnerId)
       .gte("attendance_date", startISO)
       .lte("attendance_date", endISO)
       .order("attendance_date", { ascending: false });
