@@ -26,7 +26,8 @@ type EmpRow = {
   department: string | null;
   usedAnnual: number;
   usedSick: number;
-  entitlement: number;
+  entitlement: number;      // prorated to year-end
+  accruedToDate: number;    // accrued up to today
   carriedOver: number;
   availableAnnual: number;
   availableSick: number;
@@ -102,6 +103,7 @@ export default function LeavesBalancesPage() {
         usedAnnual: used.annual,
         usedSick: used.sick,
         entitlement: bal.entitlement,
+        accruedToDate: bal.accruedToDate,
         carriedOver: bal.carriedOver,
         availableAnnual: bal.available,
         availableSick: Math.max(0, sickEnt - used.sick),
