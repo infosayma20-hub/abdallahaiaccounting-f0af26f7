@@ -328,7 +328,7 @@ const FinanceJournalPage = () => {
     // - إنشاء voucher + voucher_lines + transactions atomic مع rollback
     // - currency=ILS و transaction_type=journal/opening_balance
     const payload = {
-      ref_number: formRefNumber || undefined,
+      ref_number: editingVoucherId ? formRefNumber || undefined : undefined,
       date: formDate,
       subtype: (formSubtype as "normal" | "opening" | "adjustment" | "closing") || "normal",
       description: formDescription,

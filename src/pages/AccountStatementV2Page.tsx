@@ -48,7 +48,7 @@ function formatReferenceLabel(ref: string | null | undefined): string {
   if (/^OB-/i.test(r)) return "رصيد افتتاحي";
   if (/^INV-/i.test(r)) return r; // invoice numbers are already short/clean
   if (/^PO-/i.test(r)) return r;
-  if (/^RV-|^PV-|^JV-|^REC-/i.test(r)) return r;
+  if (/^RV-|^PV-|^JV-|^QV-|^REC-/i.test(r)) return r;
   // Generic long reference: keep first 12 chars + ellipsis
   if (r.length > 16) return r.slice(0, 12) + "…";
   return r;
@@ -606,7 +606,12 @@ const AccountStatementV2Page = () => {
     } else if (selectedContact) {
       const contactName = selectedContact.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      entityTxs = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+      const linkedCode = selectedContact?.linked_account_code || "";
+      entityTxs = transactions.filter(tx =>
+        (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
+        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        (!tx.contact_id && contactName && tx.description?.includes(contactName))
+      );
     }
 
     return entityTxs.reduce((latest, tx) => (tx.transaction_date > latest ? tx.transaction_date : latest), "");
@@ -664,7 +669,11 @@ const AccountStatementV2Page = () => {
       let b = 0, cnt = 0;
       const roots = rootsByType[c.contact_type] || ["2180"];
       for (const tx of transactions) {
-        const matches = (tx.contact_id === c.id) || (!tx.contact_id && tx.description?.includes(c.contact_name?.trim()));
+        const linkedCode = c.linked_account_code || "";
+        const matches =
+          (tx.contact_id === c.id) ||
+          (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+          (!tx.contact_id && tx.description?.includes(c.contact_name?.trim()));
         if (!matches) continue;
         const isDr = matchesRoot(tx.debit_account_code, roots);
         const isCr = matchesRoot(tx.credit_account_code, roots);
@@ -709,7 +718,12 @@ const AccountStatementV2Page = () => {
         if (!code) return false;
         return contactAccountRoots.some(root => code === root || code.startsWith(root));
       };
-      related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+      const linkedCode = selectedContact?.linked_account_code || "";
+      related = transactions.filter(tx =>
+        (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
+        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        (!tx.contact_id && contactName && tx.description?.includes(contactName))
+      );
       resolveDebitCredit = (tx) => ({ isDebit: matchesContactAccount(tx.debit_account_code), isCredit: matchesContactAccount(tx.credit_account_code) });
       // Hybrid helper exposed via closure for the row-builder below: cash sales / cash payments
       // touch the contact_id but don't post to AR/AP. We surface them as INFO rows (debit & credit
@@ -1084,7 +1098,12 @@ const AccountStatementV2Page = () => {
       const contactAccountRoots = ["113", "211", "2180", "1146"];
       const matchesContactAccount = (code: string | null | undefined) =>
         !!code && contactAccountRoots.some(root => code === root || code.startsWith(root));
-      related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+      const linkedCode = selectedContact?.linked_account_code || "";
+      related = transactions.filter(tx =>
+        (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
+        (!!linkedCode && (tx.debit_account_code === linkedCode || tx.credit_account_code === linkedCode)) ||
+        (!tx.contact_id && contactName && tx.description?.includes(contactName))
+      );
       resolveDebitCredit = (tx) => ({ isDebit: matchesContactAccount(tx.debit_account_code), isCredit: matchesContactAccount(tx.credit_account_code) });
     }
 
