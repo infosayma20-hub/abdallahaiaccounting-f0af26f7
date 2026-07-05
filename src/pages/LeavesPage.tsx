@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
+import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const LeavesPage = () => {
@@ -34,7 +35,7 @@ const LeavesPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, department, annual_leave_days, sick_leave_days, start_date")
+        .select("id, full_name, department, annual_leave_days, sick_leave_days, start_date, previous_year_balance")
         .eq("is_active", true)
         .order("full_name");
       if (error) throw error;
@@ -71,12 +72,26 @@ const LeavesPage = () => {
     });
     return employees.map((e: any) => {
       const used = leaveMap.get(e.id) || { annual: 0, sick: 0, other: 0, pending: 0 };
+      const annualBal = calculateLeaveBalance(
+        e.start_date || "2024-01-01",
+        Number(e.previous_year_balance || 0),
+        used.annual,
+      );
+      const sickBal = calculateSickBalance(
+        e.start_date || "2024-01-01",
+        used.sick,
+        Number(e.sick_leave_days || 14),
+      );
       return {
         ...e,
+        annualEntitlement: annualBal.entitlement,
+        annualAccrued: annualBal.accruedToDate,
         annualUsed: used.annual,
-        annualRemaining: e.annual_leave_days - used.annual,
+        annualRemaining: annualBal.available,
+        sickEntitlement: sickBal.entitlement,
+        sickAccrued: sickBal.accruedToDate,
         sickUsed: used.sick,
-        sickRemaining: e.sick_leave_days - used.sick,
+        sickRemaining: sickBal.available,
         otherUsed: used.other,
         pendingRequests: used.pending,
       };
@@ -148,10 +163,12 @@ const LeavesPage = () => {
     const rows = balanceData.map(r => ({
       "الموظف": r.full_name,
       "القسم": r.department || "-",
-      "رصيد سنوي": r.annual_leave_days,
+      "استحقاق سنوي (متناسب)": r.annualEntitlement,
+      "مستحق حتى اليوم (سنوي)": r.annualAccrued,
       "مستخدم سنوي": r.annualUsed,
       "متبقي سنوي": r.annualRemaining,
-      "رصيد مرضي": r.sick_leave_days,
+      "استحقاق مرضي (متناسب)": r.sickEntitlement,
+      "مستحق حتى اليوم (مرضي)": r.sickAccrued,
       "مستخدم مرضي": r.sickUsed,
       "متبقي مرضي": r.sickRemaining,
       "أخرى": r.otherUsed,
