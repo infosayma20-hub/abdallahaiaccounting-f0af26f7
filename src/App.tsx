@@ -224,6 +224,7 @@ const ContractPreviewPage = lazy(() => import("./pages/ContractPreviewPage"));
 const LoadingDemoPage = lazy(() => import("./pages/LoadingDemoPage"));
 const AdvancesPage = lazy(() => import("./pages/AdvancesPage"));
 const LoansPage = lazy(() => import("./pages/LoansPage"));
+const LoansMonthlyPage = lazy(() => import("./pages/LoansMonthlyPage"));
 const HRDeductionsPage = lazy(() => import("./pages/HRDeductionsPage"));
 const PayrollSettingsPage = lazy(() => import("./pages/PayrollSettingsPage"));
 const PayrollPage = lazy(() => import("./pages/PayrollPage"));
@@ -861,6 +862,7 @@ const App = () => (
                       <Route path="/hr-attendance/backfill" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_attendance"]}><AttendanceBackfillPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/advances" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_advances"]}><AdvancesPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/loans" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_loans"]}><LoansPage /></HRPermGuard></RoleGuard></HRShell>} />
+                      <Route path="/loans/monthly" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_loans"]}><LoansMonthlyPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/hr-deductions" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_deductions"]}><HRDeductionsPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/payroll" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_payroll", "can_process_payroll"]}><PayrollPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/payroll/inputs" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_process_payroll"]}><MonthlyPayrollInputPage /></HRPermGuard></RoleGuard></HRShell>} />
