@@ -1465,8 +1465,8 @@ export default function InvoiceHistoryDrawer({
                                 <span>سعر الأصناف</span>
                                 <span style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{itemsSubtotal.toFixed(2)}</span>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <span>رسوم التوصيل</span>
+                              <div className="flex items-center justify-between" style={{ color: "#B45309" }}>
+                                <span>رسوم التوصيل <span className="text-[10px]">(لشركة التوصيل — غير محصّلة من الكاشير)</span></span>
                                 <span style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{deliveryFee.toFixed(2)}</span>
                               </div>
                             </>
@@ -1485,7 +1485,7 @@ export default function InvoiceHistoryDrawer({
                           )}
                           <div className="flex items-center justify-between pt-2 mt-1 border-t" style={{ borderColor: "#E5E7EB", color: "#0F172A" }}>
                             <span className="text-[13px] font-semibold">الإجمالي للتحصيل</span>
-                            <span className="text-[15px] font-bold" style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{selectedOrder.total.toFixed(2)}</span>
+                            <span className="text-[15px] font-bold" style={{ fontFamily: "JetBrains Mono, monospace" }}>₪{amountDueFromCustomer.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
