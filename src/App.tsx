@@ -91,6 +91,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
 const EmployeeAttendancePage = lazy(() => import("./pages/EmployeeAttendancePage"));
 const HRAttendancePage = lazy(() => import("./pages/HRAttendancePage"));
+const HRMessagesInboxPage = lazy(() => import("./pages/hr/HRMessagesInboxPage"));
 const AttendanceBackfillPage = lazy(() => import("./pages/hr/AttendanceBackfillPage"));
 const BranchDisplayPage = lazy(() => import("./pages/BranchDisplayPage"));
 const EmployeeApp = lazy(() => import("./pages/EmployeeApp"));
