@@ -103,14 +103,63 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
 
   const handleDelete = async (row: NoteRow) => {
     try { await assertAccountantPermission("can_delete_invoices"); } catch { return; }
-    if (row.status !== "draft") {
-      toast({ title: "لا يمكن حذف إشعار مرحَّل", description: "الإشعار المرحّل ثابت محاسبياً", variant: "destructive" });
-      return;
+    const isPosted = row.status && row.status !== "draft";
+    const confirmMsg = isPosted
+      ? `الإشعار ${row.invoice_number} مرحَّل.\nسيتم إلغاؤه محاسبياً (عكس القيد + حذف من الضريبة) مع الاحتفاظ برقم الإشعار في السجل.\nهل تريد المتابعة؟`
+      : `حذف الإشعار ${row.invoice_number}؟`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      if (isPosted) {
+        // ─── Soft-cancel posted note: void invoice, soft-delete tx, wipe tax_ledger ───
+        // 1) Load linked_transaction_id
+        const { data: invRow } = await supabase.from("invoices")
+          .select("linked_transaction_id, invoice_type")
+          .eq("id", row.id).eq("user_id", user!.id).maybeSingle();
+        const txId = (invRow as any)?.linked_transaction_id || null;
+        const invType = (invRow as any)?.invoice_type || dbInvoiceType;
+
+        // 2) Reverse the linked transaction (removes it from account statement)
+        if (txId) {
+          await supabase.from("transactions")
+            .update({ is_deleted: true, idempotency_key: null } as any)
+            .eq("id", txId).eq("user_id", user!.id);
+        }
+        // 2b) Fallback: any lingering tx with the note's idempotency key
+        await supabase.from("transactions")
+          .update({ is_deleted: true, idempotency_key: null } as any)
+          .eq("user_id", user!.id)
+          .eq("idempotency_key", `${dbInvoiceType.toUpperCase()}-${row.id}`);
+
+        // 3) Remove tax_ledger rows tied to this note
+        await supabase.from("tax_ledger").delete()
+          .eq("user_id", user!.id)
+          .eq("reference_id", row.id)
+          .eq("reference_type", invType);
+
+        // 4) Mark invoice cancelled + voided (preserves invoice_number)
+        const { error: voidErr } = await supabase.from("invoices").update({
+          status: "cancelled",
+          is_voided: true,
+          voided_at: new Date().toISOString(),
+          void_reason: "user_deleted_posted_note",
+          linked_transaction_id: null,
+        } as any).eq("id", row.id).eq("user_id", user!.id);
+        if (voidErr) throw voidErr;
+        toast({ title: `تم إلغاء الإشعار ${row.invoice_number} وعكس قيده ✅` });
+      } else {
+        // Draft: hard delete
+        await supabase.from("invoice_items").delete().eq("invoice_id", row.id);
+        const { error } = await supabase.from("invoices").delete()
+          .eq("id", row.id).eq("user_id", user!.id);
+        if (error) throw error;
+        toast({ title: "تم الحذف ✅" });
+      }
+      fetchNotes();
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "خطأ في الحذف", description: err?.message || "", variant: "destructive" });
     }
-    if (!confirm(`حذف الإشعار ${row.invoice_number}؟`)) return;
-    const { error } = await supabase.from("invoices").delete().eq("id", row.id);
-    if (error) toast({ title: "خطأ في الحذف", variant: "destructive" });
-    else { toast({ title: "تم الحذف ✅" }); fetchNotes(); }
   };
 
   const statusBadge = (s: string | null) => {
@@ -231,19 +280,19 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
                       <td className="px-3 py-2 text-center align-middle">{statusBadge(r.status)}</td>
                       <td className="px-2 py-1 align-middle">
                         <div className="flex items-center justify-center gap-0.5">
-                          {r.status === "draft" && (
+                          {r.status !== "cancelled" && (
                             <>
                               <button
                                 onClick={() => navigate(`${newPath}?edit=${r.id}`)}
                                 className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                                title="تعديل"
+                                title={r.status === "draft" ? "تعديل" : "تعديل (سيُحدَّث القيد المحاسبي)"}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDelete(r)}
                                 className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                title="حذف"
+                                title={r.status === "draft" ? "حذف" : "إلغاء (عكس القيد)"}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>

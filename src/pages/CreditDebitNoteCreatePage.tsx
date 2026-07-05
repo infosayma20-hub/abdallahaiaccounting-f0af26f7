@@ -157,6 +157,10 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
 
   const { data: costCenters = [] } = useCostCenters();
 
+  // Track existing linked transaction id + invoice number to preserve on edit
+  const [linkedTxId, setLinkedTxId] = useState<string | null>(null);
+  const [existingInvoiceNumber, setExistingInvoiceNumber] = useState<string>("");
+
   // ─── Sibling records for prev/next navigation ───
   const [siblingIds, setSiblingIds] = useState<string[]>([]);
   useEffect(() => {
@@ -266,6 +270,8 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         status: (inv as any).status || "draft",
         costCenterId: (inv as any).cost_center_id || null,
       });
+      setLinkedTxId((inv as any).linked_transaction_id || null);
+      setExistingInvoiceNumber((inv as any).invoice_number || "");
       // Fetch linked invoice number
       if ((inv as any).original_invoice_id) {
         const { data: linked } = await supabase
@@ -385,15 +391,20 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         cost_center_id: form.costCenterId,
       };
 
-      let noteId = editId;
+      // Editing is now allowed for both drafts (editId) and posted (recordId in edit-mode)
+      const editingId = recordId && !isView ? recordId : null;
+      let noteId = editingId;
       let noteNumber = "";
 
-      if (editId) {
-        const { error } = await supabase.from("invoices").update(payload).eq("id", editId).eq("user_id", ownerId);
+      if (editingId) {
+        const { error } = await supabase.from("invoices").update(payload).eq("id", editingId).eq("user_id", ownerId);
         if (error) throw error;
-        await supabase.from("invoice_items").delete().eq("invoice_id", editId);
-        const { data: row } = await supabase.from("invoices").select("invoice_number").eq("id", editId).single();
-        noteNumber = (row as any)?.invoice_number || "";
+        await supabase.from("invoice_items").delete().eq("invoice_id", editingId);
+        noteNumber = existingInvoiceNumber || "";
+        if (!noteNumber) {
+          const { data: row } = await supabase.from("invoices").select("invoice_number").eq("id", editingId).single();
+          noteNumber = (row as any)?.invoice_number || "";
+        }
       } else {
         const { data: ins, error } = await supabase.from("invoices").insert(payload).select("id, invoice_number").single();
         if (error) throw error;
@@ -417,7 +428,15 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         await supabase.from("invoice_items").insert(itemsPayload as any);
       }
 
-      // ─── Post accounting entry (reverse of original invoice) ───
+      // ─── Wipe old tax_ledger entries for this note (Delete & Recreate) ───
+      if (editingId) {
+        await supabase.from("tax_ledger").delete()
+          .eq("user_id", ownerId)
+          .eq("reference_id", editingId)
+          .eq("reference_type", dbType);
+      }
+
+      // ─── Post accounting entry (Delete & Recreate on edit) ───
       if (!asDraft && summary.total > 0) {
         const txDescription = `${titleAr} ${noteNumber} - ${form.contactName}`;
         // Credit Note     : Dr Sales Revenue (4100), Cr AR (1130)
@@ -430,7 +449,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         else if (noteType === "debit")      { debitCode = "2110"; creditCode = "5110"; }
         const txType = dbType;
 
-        const { data: txInsert } = await supabase.from("transactions").insert({
+        const txPayload: any = {
           user_id: ownerId,
           transaction_date: form.date,
           description: txDescription,
@@ -444,10 +463,44 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
           payment_method: "آجل",
           idempotency_key: `${dbType.toUpperCase()}-${noteId}`,
           cost_center_id: form.costCenterId,
-        } as any).select("id").single();
+          is_deleted: false,
+        };
 
-        if (txInsert) {
-          await supabase.from("invoices").update({ linked_transaction_id: (txInsert as any).id } as any).eq("id", noteId);
+        // Resolve existing transaction: linked_transaction_id → idempotency_key → reference
+        let targetTxId: string | null = linkedTxId;
+        if (!targetTxId && editingId) {
+          const { data: idemTx } = await supabase.from("transactions").select("id")
+            .eq("user_id", ownerId)
+            .eq("idempotency_key", `${dbType.toUpperCase()}-${noteId}`)
+            .maybeSingle();
+          targetTxId = (idemTx as any)?.id || null;
+        }
+        if (!targetTxId && editingId && noteNumber) {
+          const { data: refTx } = await supabase.from("transactions").select("id")
+            .eq("user_id", ownerId)
+            .eq("reference", noteNumber)
+            .eq("transaction_type", txType)
+            .order("created_at", { ascending: false }).limit(1).maybeSingle();
+          targetTxId = (refTx as any)?.id || null;
+        }
+
+        let finalTxId: string | null = targetTxId;
+        if (targetTxId) {
+          const { error: upErr } = await supabase.from("transactions")
+            .update(txPayload).eq("id", targetTxId).eq("user_id", ownerId);
+          if (upErr) throw upErr;
+        } else {
+          const { data: insTx, error: insErr } = await supabase.from("transactions")
+            .insert(txPayload as any).select("id").single();
+          if (insErr) throw insErr;
+          finalTxId = (insTx as any).id;
+        }
+
+        if (finalTxId) {
+          await supabase.from("invoices")
+            .update({ linked_transaction_id: finalTxId } as any)
+            .eq("id", noteId).eq("user_id", ownerId);
+          setLinkedTxId(finalTxId);
         }
 
         // Tax ledger reversal
@@ -470,6 +523,15 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
             period_month: d.getMonth() + 1,
           } as any);
         }
+      } else if (editingId && asDraft && linkedTxId) {
+        // Demoted a posted note back to draft: soft-void its transaction
+        await supabase.from("transactions")
+          .update({ is_deleted: true, idempotency_key: null } as any)
+          .eq("id", linkedTxId).eq("user_id", ownerId);
+        await supabase.from("invoices")
+          .update({ linked_transaction_id: null } as any)
+          .eq("id", editingId).eq("user_id", ownerId);
+        setLinkedTxId(null);
       }
 
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم ترحيل ${titleAr} ${noteNumber} ✅` });
@@ -486,8 +548,10 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
+  // Editing posted notes is now allowed (Delete-&-Recreate accounting entry).
+  // Only true view mode is readonly.
   const isPosted = form.status !== "draft" && !!recordId;
-  const readonly = isView || isPosted;
+  const readonly = isView;
 
   const pageTitle = isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`;
 
@@ -815,7 +879,15 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
           <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
             <CardContent className="p-3 flex items-center gap-2 text-sm">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
-              {isPosted ? "هذا الإشعار مرحَّل ولا يقبل التعديل." : "وضع المعاينة فقط."}
+              وضع المعاينة فقط.
+            </CardContent>
+          </Card>
+        )}
+        {!readonly && isPosted && (
+          <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardContent className="p-3 flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              إشعار مرحَّل — أي تعديل سيقوم بحذف القيد المحاسبي المرتبط وإعادة إنشائه تلقائياً، مع الحفاظ على رقم الإشعار وربطه في كشف الحساب.
             </CardContent>
           </Card>
         )}
