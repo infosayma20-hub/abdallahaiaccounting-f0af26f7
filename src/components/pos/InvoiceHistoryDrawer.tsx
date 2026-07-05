@@ -1315,7 +1315,17 @@ export default function InvoiceHistoryDrawer({
                 const orderTypeLabel = ({ delivery: "توصيل", takeaway: "استلام", takeout: "استلام", dine_in: "طاولة", table: "طاولة" } as Record<string, string>)[selectedOrder.order_type || ""] || (selectedOrder.is_delivery ? "توصيل" : (selectedOrder.order_type || "—"));
                 const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join("، ") || "—";
                 const deliveryFee = Number(selectedOrder.delivery_fee || 0);
-                const itemsSubtotal = Number(selectedOrder.total) - deliveryFee;
+                // `total` on new orders is already items-only (delivery fee is
+                // informational and NOT collected by the cashier — the driver
+                // collects it directly). Only legacy rows bundle the fee into
+                // `total`, flagged by `total_includes_delivery_fee=true`.
+                const totalHasDelivery = selectedOrder.total_includes_delivery_fee === true;
+                const itemsSubtotal = totalHasDelivery
+                  ? Number(selectedOrder.total) - deliveryFee
+                  : Number(selectedOrder.total);
+                const amountDueFromCustomer = totalHasDelivery
+                  ? Number(selectedOrder.total)
+                  : itemsSubtotal; // delivery NOT added — it's collected by driver
                 const showDelivery = canSeeDetails(selectedOrder) && (selectedOrder.is_delivery || selectedOrder.delivery_address || selectedOrder.customer_address || selectedOrder.area_name);
                 const showNote = canSeeDetails(selectedOrder) && (selectedOrder.order_note || selectedOrder.notes);
                 // Neutral cell wrapper
