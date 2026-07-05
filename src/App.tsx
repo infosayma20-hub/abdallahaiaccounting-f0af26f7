@@ -225,6 +225,7 @@ const LoadingDemoPage = lazy(() => import("./pages/LoadingDemoPage"));
 const AdvancesPage = lazy(() => import("./pages/AdvancesPage"));
 const LoansPage = lazy(() => import("./pages/LoansPage"));
 const LoansMonthlyPage = lazy(() => import("./pages/LoansMonthlyPage"));
+const LeavesBalancesPage = lazy(() => import("./pages/LeavesBalancesPage"));
 const HRDeductionsPage = lazy(() => import("./pages/HRDeductionsPage"));
 const PayrollSettingsPage = lazy(() => import("./pages/PayrollSettingsPage"));
 const PayrollPage = lazy(() => import("./pages/PayrollPage"));
