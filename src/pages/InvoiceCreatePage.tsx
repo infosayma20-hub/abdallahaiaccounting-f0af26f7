@@ -1174,6 +1174,8 @@ const InvoiceCreatePage = () => {
 
     try {
       let contactId = form.contactId;
+      let createdInvoiceId: string | null = null;
+      let createdInvoiceTxId: string | null = null;
 
       if (form.contactName.trim() && !contactId) {
         const trimmedName = form.contactName.trim();
@@ -1536,6 +1538,7 @@ const InvoiceCreatePage = () => {
       }
 
       if (invErr || !dbInv) throw invErr ?? new Error("Invoice insert failed");
+      createdInvoiceId = dbInv.id;
 
       const itemsToInsert = buildItemsPayload(dbInv.id);
       if (itemsToInsert.length > 0) {
@@ -1637,6 +1640,7 @@ const InvoiceCreatePage = () => {
         if (txError) throw txError;
           txDataId = txData.id;
         }
+        createdInvoiceTxId = txDataId;
 
         const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", ownerId);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
@@ -1800,6 +1804,30 @@ const InvoiceCreatePage = () => {
       navigate(workshopId ? "/workshops" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
+      if (!isEditMode && createdInvoiceId) {
+        try {
+          await supabase.from("invoice_items").delete().eq("invoice_id", createdInvoiceId);
+          if (createdInvoiceTxId) {
+            await supabase
+              .from("transactions")
+              .update({ is_deleted: true, idempotency_key: null } as any)
+              .eq("id", createdInvoiceTxId)
+              .eq("user_id", ownerId);
+          }
+          await supabase
+            .from("invoices")
+            .update({
+              status: "cancelled",
+              is_voided: true,
+              voided_at: new Date().toISOString(),
+              void_reason: "rollback_after_posting_failure",
+            } as any)
+            .eq("id", createdInvoiceId)
+            .eq("user_id", ownerId);
+        } catch (cleanupErr) {
+          console.error("Invoice rollback cleanup failed:", cleanupErr);
+        }
+      }
       const message = isDuplicateInvoiceNumberError(err)
         ? "تعذر توليد رقم فاتورة جديد. حدّث الصفحة وحاول مرة أخرى."
         : formatDbError(err, "تعذّر حفظ الفاتورة");
