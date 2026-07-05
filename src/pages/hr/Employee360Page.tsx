@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useEmployee360 } from "@/hooks/hr/useEmployee360";
 import { useEmployeeCostEngine } from "@/hooks/hr/useEmployeeCostEngine";
@@ -15,16 +15,22 @@ import { EmployeeFinancialPanel } from "./components/EmployeeFinancialPanel";
 import { EmployeeTimeline } from "./components/EmployeeTimeline";
 import { OverviewTab } from "./components/tabs/OverviewTab";
 import { AttendanceTab } from "./components/tabs/AttendanceTab";
-import { PayrollTab } from "./components/tabs/PayrollTab";
-import { PayrollPreviewTab } from "./components/tabs/PayrollPreviewTab";
-import { MovementsTab } from "./components/tabs/MovementsTab";
-import { LeavesTab } from "./components/tabs/LeavesTab";
-import { LoansTab } from "./components/tabs/LoansTab";
-import { DeductionsTab } from "./components/tabs/DeductionsTab";
-import { FormsTab } from "./components/tabs/FormsTab";
-import { DocumentsTab } from "./components/tabs/DocumentsTab";
-import { MessagesTab } from "./components/tabs/MessagesTab";
-import { PosMealsTab } from "./components/tabs/PosMealsTab";
+const PayrollTab = lazy(() => import("./components/tabs/PayrollTab").then(m => ({ default: m.PayrollTab })));
+const PayrollPreviewTab = lazy(() => import("./components/tabs/PayrollPreviewTab").then(m => ({ default: m.PayrollPreviewTab })));
+const MovementsTab = lazy(() => import("./components/tabs/MovementsTab").then(m => ({ default: m.MovementsTab })));
+const LeavesTab = lazy(() => import("./components/tabs/LeavesTab").then(m => ({ default: m.LeavesTab })));
+const LoansTab = lazy(() => import("./components/tabs/LoansTab").then(m => ({ default: m.LoansTab })));
+const DeductionsTab = lazy(() => import("./components/tabs/DeductionsTab").then(m => ({ default: m.DeductionsTab })));
+const FormsTab = lazy(() => import("./components/tabs/FormsTab").then(m => ({ default: m.FormsTab })));
+const DocumentsTab = lazy(() => import("./components/tabs/DocumentsTab").then(m => ({ default: m.DocumentsTab })));
+const MessagesTab = lazy(() => import("./components/tabs/MessagesTab").then(m => ({ default: m.MessagesTab })));
+const PosMealsTab = lazy(() => import("./components/tabs/PosMealsTab").then(m => ({ default: m.PosMealsTab })));
+
+const TabFallback = () => (
+  <div className="p-6">
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
 
 export default function Employee360Page() {
   const { id } = useParams<{ id: string }>();
@@ -126,34 +132,34 @@ export default function Employee360Page() {
           <AttendanceTab data={data} />
         </TabsContent>
         <TabsContent value="payroll" className="mt-0">
-          <PayrollTab data={data} cost={cost} />
+          <Suspense fallback={<TabFallback />}><PayrollTab data={data} cost={cost} /></Suspense>
         </TabsContent>
         <TabsContent value="payroll-preview" className="mt-0">
-          <PayrollPreviewTab employeeId={data.employee.id} />
+          <Suspense fallback={<TabFallback />}><PayrollPreviewTab employeeId={data.employee.id} /></Suspense>
         </TabsContent>
         <TabsContent value="movements" className="mt-0">
-          <MovementsTab employeeId={data.employee.id} />
+          <Suspense fallback={<TabFallback />}><MovementsTab employeeId={data.employee.id} /></Suspense>
         </TabsContent>
         <TabsContent value="leaves" className="mt-0">
-          <LeavesTab data={data} />
+          <Suspense fallback={<TabFallback />}><LeavesTab data={data} /></Suspense>
         </TabsContent>
         <TabsContent value="loans" className="mt-0">
-          <LoansTab data={data} />
+          <Suspense fallback={<TabFallback />}><LoansTab data={data} /></Suspense>
         </TabsContent>
         <TabsContent value="deductions" className="mt-0">
-          <DeductionsTab data={data} />
+          <Suspense fallback={<TabFallback />}><DeductionsTab data={data} /></Suspense>
         </TabsContent>
         <TabsContent value="pos-meals" className="mt-0">
-          <PosMealsTab employeeId={data.employee.id} />
+          <Suspense fallback={<TabFallback />}><PosMealsTab employeeId={data.employee.id} /></Suspense>
         </TabsContent>
         <TabsContent value="forms" className="mt-0">
-          <FormsTab data={data} />
+          <Suspense fallback={<TabFallback />}><FormsTab data={data} /></Suspense>
         </TabsContent>
         <TabsContent value="documents" className="mt-0">
-          <DocumentsTab data={data} />
+          <Suspense fallback={<TabFallback />}><DocumentsTab data={data} /></Suspense>
         </TabsContent>
         <TabsContent value="messages" className="mt-0">
-          <MessagesTab data={data} />
+          <Suspense fallback={<TabFallback />}><MessagesTab data={data} /></Suspense>
         </TabsContent>
         <TabsContent value="timeline" className="mt-0">
           <EmployeeTimeline events={data.timeline} />
