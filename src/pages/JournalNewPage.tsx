@@ -287,12 +287,21 @@ const JournalNewPage = () => {
   // Auto-generate ref number
   useEffect(() => {
     if (!user || !dataOwnerId) return;
-    supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal").order("created_at", { ascending: false }).limit(1)
+    const year = new Date().getFullYear();
+    const prefix = `QV-${year}-`;
+    supabase.from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal").like("ref_number", `${prefix}%`)
       .then(({ data }) => {
-        const lastRef = (data || [])[0]?.ref_number || "";
-        const match = lastRef.match(/(\d+)$/);
-        const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
-        setFormRefNumber(`QV-${new Date().getFullYear()}-${nextNum}`);
+        let maxNum = 0;
+        let width = 4;
+        for (const row of (data || []) as any[]) {
+          const m = row.ref_number?.match(/(\d+)$/);
+          if (m) {
+            const n = parseInt(m[1], 10);
+            if (n > maxNum) maxNum = n;
+            if (m[1].length > width) width = m[1].length;
+          }
+        }
+        setFormRefNumber(`${prefix}${String(maxNum + 1).padStart(width, "0")}`);
       });
   }, [user, dataOwnerId]);
 
@@ -1019,14 +1028,23 @@ const JournalNewPage = () => {
   // Duplicate loaded voucher into a fresh new entry (keeps all data, generates new ref)
   const handleDuplicate = async () => {
     if (!user || !dataOwnerId) return;
-    // Generate a new ref number
+    // Generate a new ref number — use MAX numeric suffix (not newest by time) to avoid gaps/collisions
+    const year = new Date().getFullYear();
+    const prefix = `QV-${year}-`;
     const { data } = await supabase
       .from("vouchers").select("ref_number").eq("user_id", dataOwnerId).eq("type", "journal")
-      .order("created_at", { ascending: false }).limit(1);
-    const lastRef = (data || [])[0]?.ref_number || "";
-    const match = lastRef.match(/(\d+)$/);
-    const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
-    const newRef = `QV-${new Date().getFullYear()}-${nextNum}`;
+      .like("ref_number", `${prefix}%`);
+    let maxNum = 0;
+    let width = 4;
+    for (const row of (data || []) as any[]) {
+      const m = row.ref_number?.match(/(\d+)$/);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n > maxNum) maxNum = n;
+        if (m[1].length > width) width = m[1].length;
+      }
+    }
+    const newRef = `${prefix}${String(maxNum + 1).padStart(width, "0")}`;
 
     setEditingVoucherId(null);
     setEditingCreatedAt(null);
