@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
+import { calculateLeaveBalance, calculateSickBalance } from "@/lib/hr-utils";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const HRLeaveReport = () => {
@@ -16,7 +17,7 @@ const HRLeaveReport = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, department, annual_leave_days, sick_leave_days")
+        .select("id, full_name, department, annual_leave_days, sick_leave_days, start_date, previous_year_balance")
         .eq("is_active", true)
         .order("full_name");
       if (error) throw error;
@@ -48,12 +49,26 @@ const HRLeaveReport = () => {
     });
     return employees.map(e => {
       const used = leaveMap.get(e.id) || { annual: 0, sick: 0, other: 0 };
+      const annualBal = calculateLeaveBalance(
+        (e as any).start_date || "2024-01-01",
+        Number((e as any).previous_year_balance || 0),
+        used.annual,
+      );
+      const sickBal = calculateSickBalance(
+        (e as any).start_date || "2024-01-01",
+        used.sick,
+        Number(e.sick_leave_days || 14),
+      );
       return {
         ...e,
+        annualEntitlement: annualBal.entitlement,
+        annualAccrued: annualBal.accruedToDate,
         annualUsed: used.annual,
-        annualRemaining: e.annual_leave_days - used.annual,
+        annualRemaining: annualBal.available,
+        sickEntitlement: sickBal.entitlement,
+        sickAccrued: sickBal.accruedToDate,
         sickUsed: used.sick,
-        sickRemaining: e.sick_leave_days - used.sick,
+        sickRemaining: sickBal.available,
         otherUsed: used.other,
       };
     });
@@ -66,10 +81,12 @@ const HRLeaveReport = () => {
     const rows = reportData.map(r => ({
       "الموظف": r.full_name,
       "القسم": r.department || "-",
-      "رصيد سنوي": r.annual_leave_days,
+      "استحقاق سنوي (متناسب)": r.annualEntitlement,
+      "مستحق حتى اليوم (سنوي)": r.annualAccrued,
       "مستخدم سنوي": r.annualUsed,
       "متبقي سنوي": r.annualRemaining,
-      "رصيد مرضي": r.sick_leave_days,
+      "استحقاق مرضي (متناسب)": r.sickEntitlement,
+      "مستحق حتى اليوم (مرضي)": r.sickAccrued,
       "مستخدم مرضي": r.sickUsed,
       "متبقي مرضي": r.sickRemaining,
       "إجازات أخرى": r.otherUsed,
@@ -129,10 +146,10 @@ const HRLeaveReport = () => {
                   <tr key={r.id} className="border-b border-border/40 hover:bg-muted/20">
                     <td className="p-3 font-medium text-foreground">{r.full_name}</td>
                     <td className="p-3 text-muted-foreground">{r.department || "-"}</td>
-                    <td className="p-3 text-center">{r.annual_leave_days}</td>
+                    <td className="p-3 text-center">{r.annualAccrued}</td>
                     <td className="p-3 text-center text-amber-600">{r.annualUsed}</td>
                     <td className={`p-3 text-center font-bold ${r.annualRemaining <= 3 ? "text-red-500" : "text-emerald-600"}`}>{r.annualRemaining}</td>
-                    <td className="p-3 text-center">{r.sick_leave_days}</td>
+                    <td className="p-3 text-center">{r.sickAccrued}</td>
                     <td className="p-3 text-center text-amber-600">{r.sickUsed}</td>
                     <td className={`p-3 text-center font-bold ${r.sickRemaining <= 3 ? "text-red-500" : "text-emerald-600"}`}>{r.sickRemaining}</td>
                     <td className="p-3 text-center">{r.otherUsed}</td>
