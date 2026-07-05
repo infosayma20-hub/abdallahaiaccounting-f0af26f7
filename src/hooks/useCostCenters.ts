@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export interface CostCenter {
   id: string;
@@ -19,12 +20,15 @@ export interface CostCenter {
 }
 
 export function useCostCenters(opts: { includeInactive?: boolean } = {}) {
+  const { dataOwnerId } = useDataOwnerId();
   return useQuery({
-    queryKey: ["cost_centers", { includeInactive: !!opts.includeInactive }],
+    queryKey: ["cost_centers", { ownerId: dataOwnerId, includeInactive: !!opts.includeInactive }],
     queryFn: async () => {
+      if (!dataOwnerId) return [] as CostCenter[];
       let q = supabase
         .from("cost_centers" as any)
         .select("*")
+        .eq("user_id", dataOwnerId)
         .eq("is_deleted", false)
         .order("code", { ascending: true });
       if (!opts.includeInactive) q = q.eq("is_active", true);
@@ -32,6 +36,7 @@ export function useCostCenters(opts: { includeInactive?: boolean } = {}) {
       if (error) throw error;
       return (data || []) as unknown as CostCenter[];
     },
+    enabled: !!dataOwnerId,
     staleTime: 60_000,
   });
 }
