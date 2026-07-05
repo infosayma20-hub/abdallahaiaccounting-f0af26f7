@@ -392,7 +392,7 @@ export function useSaveJournalVoucher() {
         console.warn("[journal-books] allocate number failed:", e);
       }
 
-      const headerDescription = (input.description?.trim() || input.notes?.trim() || bookNumber || refNumber);
+      const headerDescription = (input.description?.trim() || input.notes?.trim() || bookNumber || clientRef || "");
 
       // ── (3) إنشاء voucher master ──
       // ⚠️ نُنشئ السند دائماً بحالة draft أولاً، ثم نُرحّله بعد إنشاء
