@@ -88,7 +88,6 @@ export function HRTopNav() {
               >
                 <i.Icon className="h-4 w-4 shrink-0" />
                 <span className="hidden lg:inline">{i.label}</span>
-                <span className="lg:hidden xl:hidden md:sr-only">{i.label}</span>
               </NavLink>
             );
           })}
