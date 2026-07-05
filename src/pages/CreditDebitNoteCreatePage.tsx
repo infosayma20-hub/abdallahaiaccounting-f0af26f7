@@ -157,6 +157,10 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
 
   const { data: costCenters = [] } = useCostCenters();
 
+  // Track existing linked transaction id + invoice number to preserve on edit
+  const [linkedTxId, setLinkedTxId] = useState<string | null>(null);
+  const [existingInvoiceNumber, setExistingInvoiceNumber] = useState<string>("");
+
   // ─── Sibling records for prev/next navigation ───
   const [siblingIds, setSiblingIds] = useState<string[]>([]);
   useEffect(() => {
