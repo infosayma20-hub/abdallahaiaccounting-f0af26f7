@@ -1173,6 +1173,7 @@ const InvoiceCreatePage = () => {
     const paymentMethodDb = form.invoiceKind === "cash" ? "نقدي" : CREDIT_PAYMENT_METHOD_DB;
     let createdInvoiceId: string | null = null;
     let createdInvoiceTxId: string | null = null;
+    let createdAutoVoucherTxId: string | null = null;
 
     try {
       let contactId = form.contactId;
@@ -1666,11 +1667,12 @@ const InvoiceCreatePage = () => {
         if (useVoucherAutoFlow && contactId) {
           try {
             const isSales = form.type === "sales";
+            const voucherAmount = summary.total;
             const voucherParams = {
               userId: user.id,
               contactId,
               contactName: form.contactName,
-              amount: amountILS,
+              amount: voucherAmount,
               paymentMethod: "نقدي",
               description: `${isSales ? "سند قبض تلقائي" : "سند صرف تلقائي"} — فاتورة ${dbInv.invoice_number}`,
               currency: form.currency,
@@ -1679,7 +1681,7 @@ const InvoiceCreatePage = () => {
               reference: dbInv.invoice_number,
               cashAccountCode: cashCode!,
               idempotencyKey: `INV-VOUCHER-${dbInv.id}`,
-              allocations: [{ invoice_id: dbInv.id, amount: amountILS }],
+              allocations: [{ invoice_id: dbInv.id, amount: voucherAmount }],
               workshopId: form.workshopId || null,
               costCenterId: form.costCenterId || null,
             };
@@ -1689,6 +1691,7 @@ const InvoiceCreatePage = () => {
             if (voucherResult?.success === false || !voucherResult?.transaction_id) {
               throw new Error(voucherResult?.error || "فشل إنشاء قيد السند التلقائي");
             }
+            createdAutoVoucherTxId = voucherResult.transaction_id;
 
             if (isSales) {
               const { data: receiptDoc, error: receiptDocError } = await supabase
@@ -1812,6 +1815,13 @@ const InvoiceCreatePage = () => {
               .from("transactions")
               .update({ is_deleted: true, idempotency_key: null } as any)
               .eq("id", createdInvoiceTxId)
+              .eq("user_id", ownerId);
+          }
+          if (createdAutoVoucherTxId) {
+            await supabase
+              .from("transactions")
+              .update({ is_deleted: true, idempotency_key: null } as any)
+              .eq("id", createdAutoVoucherTxId)
               .eq("user_id", ownerId);
           }
           await supabase
