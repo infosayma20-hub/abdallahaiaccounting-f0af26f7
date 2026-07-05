@@ -244,15 +244,16 @@ export default function LeavesBalancesPage() {
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">مستخدم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-amber-500/10">متاح</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مرضي</th>
+                  <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مستحق حتى اليوم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">مستخدم</th>
                   <th className="px-3 py-2 font-semibold text-center bg-rose-500/10">متاح</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                    <tr><td colSpan={14} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
+                    <tr><td colSpan={15} className="text-center py-10 text-muted-foreground">جاري التحميل...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={14} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
+                  <tr><td colSpan={15} className="text-center py-10 text-muted-foreground">لا توجد بيانات</td></tr>
                 ) : (
                   filtered.map((r, i) => (
                     <tr
@@ -277,7 +278,8 @@ export default function LeavesBalancesPage() {
                           {fmt(r.availableAnnual)}
                         </Badge>
                       </td>
-                      <td className="px-3 py-2 text-center tabular-nums">{r.sick_leave_days}</td>
+                      <td className="px-3 py-2 text-center tabular-nums">{fmt(r.sickEntitlement)}</td>
+                      <td className="px-3 py-2 text-center tabular-nums font-semibold">{fmt(r.sickAccruedToDate)}</td>
                       <td className="px-3 py-2 text-center tabular-nums text-rose-700">{fmt(r.usedSick)}</td>
                       <td className="px-3 py-2 text-center">
                         <Badge variant="outline" className="bg-teal-500/10 text-teal-700 border-teal-500/30 tabular-nums">
