@@ -548,8 +548,10 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
+  // Editing posted notes is now allowed (Delete-&-Recreate accounting entry).
+  // Only true view mode is readonly.
   const isPosted = form.status !== "draft" && !!recordId;
-  const readonly = isView || isPosted;
+  const readonly = isView;
 
   const pageTitle = isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`;
 
@@ -877,7 +879,15 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
           <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
             <CardContent className="p-3 flex items-center gap-2 text-sm">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
-              {isPosted ? "هذا الإشعار مرحَّل ولا يقبل التعديل." : "وضع المعاينة فقط."}
+              وضع المعاينة فقط.
+            </CardContent>
+          </Card>
+        )}
+        {!readonly && isPosted && (
+          <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardContent className="p-3 flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              إشعار مرحَّل — أي تعديل سيقوم بحذف القيد المحاسبي المرتبط وإعادة إنشائه تلقائياً، مع الحفاظ على رقم الإشعار وربطه في كشف الحساب.
             </CardContent>
           </Card>
         )}
