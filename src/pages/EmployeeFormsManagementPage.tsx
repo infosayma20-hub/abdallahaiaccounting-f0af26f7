@@ -378,6 +378,52 @@ export default function EmployeeFormsManagementPage() {
           toast.error("تعذّر مزامنة البيانات: " + (e?.message || ""));
         }
       }
+      // Sync leave_request → employee_leaves on approval so the balance decreases.
+      if (action === "approved" && form.form_type === "leave_request" && form.employee_id) {
+        try {
+          const d = (form.form_data || {}) as Record<string, any>;
+          const typeMap: Record<string, string> = {
+            annual: "سنوية",
+            regular: "سنوية",
+            sick: "مرضية",
+            unpaid: "بدون راتب",
+            personal: "طارئة",
+          };
+          const rawType = String(d.leave_type || "annual");
+          const mappedType = typeMap[rawType] || rawType;
+          const start = d.from_date || d.start_date;
+          const end = d.to_date || d.end_date || start;
+          const days = Number(d.days_count) || 0;
+          if (start && end && days > 0) {
+            // Avoid duplicate insert if this form was already approved before.
+            const { data: existing } = await supabase
+              .from("employee_leaves")
+              .select("id")
+              .eq("employee_id", form.employee_id)
+              .eq("start_date", start)
+              .eq("end_date", end)
+              .eq("leave_type", mappedType)
+              .limit(1);
+            if (!existing || existing.length === 0) {
+              const { error: lvErr } = await supabase.from("employee_leaves").insert({
+                user_id: form.user_id,
+                employee_id: form.employee_id,
+                leave_type: mappedType,
+                start_date: start,
+                end_date: end,
+                days_count: days,
+                status: "approved",
+                notes: d.reason || null,
+                reviewed_by: user.id,
+                reviewed_at: new Date().toISOString(),
+              } as any);
+              if (lvErr) toast.error("تم اعتماد الطلب لكن فشل تسجيل الإجازة برصيد الموظف: " + lvErr.message);
+            }
+          }
+        } catch (e: any) {
+          toast.error("تعذّر تسجيل الإجازة: " + (e?.message || ""));
+        }
+      }
       toast.success(action === "approved" ? "تمت الموافقة ✅" : "تم الرفض ❌");
       if (selectedForm?.id === form.id) { setSelectedForm(null); setReviewNotes(""); }
       fetchForms();
