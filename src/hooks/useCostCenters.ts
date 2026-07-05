@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 export interface CostCenter {
   id: string;
@@ -19,12 +20,15 @@ export interface CostCenter {
 }
 
 export function useCostCenters(opts: { includeInactive?: boolean } = {}) {
+  const { dataOwnerId } = useDataOwnerId();
   return useQuery({
-    queryKey: ["cost_centers", { includeInactive: !!opts.includeInactive }],
+    queryKey: ["cost_centers", { ownerId: dataOwnerId, includeInactive: !!opts.includeInactive }],
     queryFn: async () => {
+      if (!dataOwnerId) return [] as CostCenter[];
       let q = supabase
         .from("cost_centers" as any)
         .select("*")
+        .eq("user_id", dataOwnerId)
         .eq("is_deleted", false)
         .order("code", { ascending: true });
       if (!opts.includeInactive) q = q.eq("is_active", true);
@@ -32,6 +36,7 @@ export function useCostCenters(opts: { includeInactive?: boolean } = {}) {
       if (error) throw error;
       return (data || []) as unknown as CostCenter[];
     },
+    enabled: !!dataOwnerId,
     staleTime: 60_000,
   });
 }
@@ -64,19 +69,23 @@ export interface CostCenterUpsertInput {
 
 export function useCostCenterMutations() {
   const qc = useQueryClient();
+  const { dataOwnerId } = useDataOwnerId();
   const invalidate = () => qc.invalidateQueries({ queryKey: ["cost_centers"] });
 
   const upsert = useMutation({
     mutationFn: async (input: CostCenterUpsertInput) => {
       const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) throw new Error("غير مسجل الدخول");
+      const authId = userData.user?.id;
+      if (!authId) throw new Error("غير مسجل الدخول");
+      // Always scope cost centers to the tenant owner so accountants/team members
+      // don't fragment the list by creating rows under their own auth id.
+      const ownerId = dataOwnerId || authId;
 
       // Duplicate code check (same user, not soft-deleted, excluding current id)
       const dupQ = supabase
         .from("cost_centers" as any)
         .select("id")
-        .eq("user_id", userId)
+        .eq("user_id", ownerId)
         .eq("code", input.code.trim())
         .eq("is_deleted", false)
         .limit(1);
@@ -87,7 +96,7 @@ export function useCostCenterMutations() {
       }
 
       const payload: any = {
-        user_id: userId,
+        user_id: ownerId,
         code: input.code.trim(),
         name: input.name.trim(),
         name_ar: input.name_ar?.trim() || null,
