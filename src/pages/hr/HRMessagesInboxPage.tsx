@@ -6,10 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Inbox, Search, RefreshCw, Shield, MessageSquare, ExternalLink } from "lucide-react";
+import { Inbox, Search, RefreshCw, Shield, MessageSquare, ExternalLink, Send, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { decodeHRMessage, typeLabel, typeColor, STATUS_LABELS, penaltyLabel } from "@/lib/hrMessages";
 import { format } from "date-fns";
+import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 type Row = {
   id: string;
@@ -23,11 +28,18 @@ type Row = {
 };
 
 export default function HRMessagesInboxPage() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedEmp, setSelectedEmp] = useState<{ id: string; full_name: string } | null>(null);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const canIssuePenalty = userRoles.includes("admin") || userRoles.includes("hr_manager");
 
   const fetchRows = async () => {
     setLoading(true);
@@ -42,6 +54,18 @@ export default function HRMessagesInboxPage() {
   };
 
   useEffect(() => { fetchRows(); }, []);
+
+  useEffect(() => {
+    supabase.from("employees").select("id, full_name").eq("is_active", true).order("full_name")
+      .then(({ data }) => setEmployees((data || []) as any));
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      setUserRoles((data || []).map((x: any) => x.role));
+    });
+  }, [user]);
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
@@ -72,9 +96,41 @@ export default function HRMessagesInboxPage() {
           <Inbox className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">صندوق الرسائل والإجراءات</h1>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchRows}>
-          <RefreshCw className="h-4 w-4 me-2" /> تحديث
-        </Button>
+        <div className="flex items-center gap-2">
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button size="sm" className="gap-1">
+                <Plus className="h-4 w-4" /> رسالة / إجراء جديد
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 p-0" dir="rtl">
+              <Command>
+                <CommandInput placeholder="ابحث عن موظف..." />
+                <CommandList>
+                  <CommandEmpty>لا يوجد نتائج</CommandEmpty>
+                  <CommandGroup>
+                    {employees.map(e => (
+                      <CommandItem
+                        key={e.id}
+                        value={e.full_name}
+                        onSelect={() => {
+                          setSelectedEmp(e);
+                          setPickerOpen(false);
+                          setSendOpen(true);
+                        }}
+                      >
+                        {e.full_name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <Button variant="outline" size="sm" onClick={fetchRows}>
+            <RefreshCw className="h-4 w-4 me-2" /> تحديث
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -121,7 +177,10 @@ export default function HRMessagesInboxPage() {
           ) : filtered.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
               <Inbox className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>لا توجد إجراءات أو رسائل مطابقة للفلتر</p>
+              <p className="mb-3">لا توجد إجراءات أو رسائل مطابقة للفلتر</p>
+              <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
+                <Send className="h-4 w-4 me-2" /> ابدأ بإرسال رسالة أو إجراء
+              </Button>
             </div>
           ) : (
             <Table>
@@ -175,6 +234,17 @@ export default function HRMessagesInboxPage() {
           )}
         </CardContent>
       </Card>
+
+      {user && selectedEmp && (
+        <SendHRMessageDialog
+          open={sendOpen}
+          onOpenChange={(o) => { setSendOpen(o); if (!o) fetchRows(); }}
+          authUserId={user.id}
+          targets={[{ employee_id: selectedEmp.id, employee_name: selectedEmp.full_name }]}
+          canIssuePenalty={canIssuePenalty}
+          onSent={() => fetchRows()}
+        />
+      )}
     </div>
   );
 }
