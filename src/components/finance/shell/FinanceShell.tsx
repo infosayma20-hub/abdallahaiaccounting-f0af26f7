@@ -58,7 +58,7 @@ export function FinanceShell({
             compact ? "px-4 pt-1 pb-1" : "px-5 pt-3 pb-2",
           )}
         >
-          {breadcrumb && breadcrumb.length > 0 && (
+          {breadcrumb && breadcrumb.length > 0 && !compact && (
             <nav
               className={cn(
                 "flex items-center gap-1 text-muted-foreground",
@@ -99,9 +99,12 @@ export function FinanceShell({
             </div>
             {/* In compact mode, the action ribbon lives inline with the title */}
             {compact && actionTabs.length > 0 && (
-              <div className="flex-1 min-w-0 flex justify-start">
-                <CompactActionRibbon tabs={actionTabs} />
-              </div>
+              <>
+                <div className="h-6 w-px bg-border shrink-0 mx-1" />
+                <div className="flex-1 min-w-0 flex justify-start">
+                  <CompactActionRibbon tabs={actionTabs} />
+                </div>
+              </>
             )}
             <div className="flex items-center gap-1.5 shrink-0">
               {rightSlot}
