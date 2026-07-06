@@ -1606,7 +1606,12 @@ const InvoiceCreatePage = () => {
             contactName: form.contactName,
             amount: amountILS,
             description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
-            paymentMethod: paymentMethodDb,
+            // ─── إصلاح: عندما يكون مسار السند التلقائي مفعّلاً للفواتير النقدية،
+            // نُجبر الـ RPC على تقييد الفاتورة على الذمم (AR/AP) بتمرير 'آجل'،
+            // حتى يستطيع سند القبض/الصرف التلقائي أدناه إقفالها بشكل صحيح.
+            // بدون ذلك، الـ RPC يقيّد الفاتورة على الصندوق مباشرةً فيتولّد
+            // رصيد وهمي (دائن) على حساب العميل بمقدار قيمة الفاتورة.
+            paymentMethod: useVoucherAutoFlow ? "آجل" : paymentMethodDb,
             currency: form.currency,
             idempotencyKey: `INV-${dbInv.id}`,
             invoiceType: form.type === "sales" ? "sales" : "purchase",
