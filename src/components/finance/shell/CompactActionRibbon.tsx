@@ -60,8 +60,8 @@ export function CompactActionRibbon({ tabs }: { tabs: ActionTab[] }) {
               )}
               data-testid={`action-${it.key}`}
             >
-              {it.icon && <it.icon className="h-3.5 w-3.5 shrink-0" />}
-              <span className="hidden xl:inline">{it.label}</span>
+              {it.icon && <it.icon className="h-4 w-4 shrink-0" />}
+              <span className="hidden 2xl:inline">{it.label}</span>
             </Button>
           ))}
           {gi < segments.length - 1 && (
