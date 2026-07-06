@@ -86,6 +86,294 @@ export type Database = {
           },
         ]
       }
+      _backup_hybrid_accounts_20260706: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          contact_id: string | null
+          created_at: string | null
+          currency: string | null
+          description_ar: string | null
+          display_order: number | null
+          id: string | null
+          is_active: boolean | null
+          is_contra: boolean | null
+          is_system: boolean | null
+          is_system_protected: boolean | null
+          nature: string | null
+          notes: string | null
+          parent_code: string | null
+          sub_group_label: string | null
+          system_role: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description_ar?: string | null
+          display_order?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_contra?: boolean | null
+          is_system?: boolean | null
+          is_system_protected?: boolean | null
+          nature?: string | null
+          notes?: string | null
+          parent_code?: string | null
+          sub_group_label?: string | null
+          system_role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          account_name?: string | null
+          account_type?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description_ar?: string | null
+          display_order?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_contra?: boolean | null
+          is_system?: boolean | null
+          is_system_protected?: boolean | null
+          nature?: string | null
+          notes?: string | null
+          parent_code?: string | null
+          sub_group_label?: string | null
+          system_role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      _backup_hybrid_contacts_20260706: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          avg_payment_days: number | null
+          company_size: string | null
+          contact_class: string | null
+          contact_name: string | null
+          contact_segment: string | null
+          contact_type: string | null
+          created_at: string | null
+          created_from_order: boolean | null
+          credit_limit: number | null
+          current_balance: number | null
+          early_pay_discount: number | null
+          email: string | null
+          id: string | null
+          industry: string | null
+          is_active: boolean | null
+          is_archived: boolean | null
+          last_transaction_date: string | null
+          linked_account_code: string | null
+          notes: string | null
+          overdue_amount: number | null
+          payment_terms_days: number | null
+          phone: string | null
+          purchase_limit: number | null
+          sales_rep_id: string | null
+          source: string | null
+          tax_number: string | null
+          total_paid: number | null
+          total_purchases: number | null
+          total_sales: number | null
+          updated_at: string | null
+          user_id: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          avg_payment_days?: number | null
+          company_size?: string | null
+          contact_class?: string | null
+          contact_name?: string | null
+          contact_segment?: string | null
+          contact_type?: string | null
+          created_at?: string | null
+          created_from_order?: boolean | null
+          credit_limit?: number | null
+          current_balance?: number | null
+          early_pay_discount?: number | null
+          email?: string | null
+          id?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          last_transaction_date?: string | null
+          linked_account_code?: string | null
+          notes?: string | null
+          overdue_amount?: number | null
+          payment_terms_days?: number | null
+          phone?: string | null
+          purchase_limit?: number | null
+          sales_rep_id?: string | null
+          source?: string | null
+          tax_number?: string | null
+          total_paid?: number | null
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          avg_payment_days?: number | null
+          company_size?: string | null
+          contact_class?: string | null
+          contact_name?: string | null
+          contact_segment?: string | null
+          contact_type?: string | null
+          created_at?: string | null
+          created_from_order?: boolean | null
+          credit_limit?: number | null
+          current_balance?: number | null
+          early_pay_discount?: number | null
+          email?: string | null
+          id?: string | null
+          industry?: string | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          last_transaction_date?: string | null
+          linked_account_code?: string | null
+          notes?: string | null
+          overdue_amount?: number | null
+          payment_terms_days?: number | null
+          phone?: string | null
+          purchase_limit?: number | null
+          sales_rep_id?: string | null
+          source?: string | null
+          tax_number?: string | null
+          total_paid?: number | null
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      _backup_hybrid_transactions_20260706: {
+        Row: {
+          account_id_credit: string | null
+          account_id_debit: string | null
+          amount: number | null
+          book_id: string | null
+          book_number: string | null
+          contact_id: string | null
+          cost_center_id: string | null
+          cost_center_name: string | null
+          created_at: string | null
+          credit_account_code: string | null
+          currency: string | null
+          debit_account_code: string | null
+          description: string | null
+          exchange_rate: number | null
+          expense_category: string | null
+          foreign_amount: number | null
+          id: string | null
+          idempotency_key: string | null
+          is_deleted: boolean | null
+          is_opening_balance: boolean | null
+          notes: string | null
+          payment_method: string | null
+          pos_order_id: string | null
+          reference: string | null
+          return_id: string | null
+          reversed_by_id: string | null
+          sales_rep_id: string | null
+          transaction_date: string | null
+          transaction_type: string | null
+          updated_at: string | null
+          user_id: string | null
+          workshop_id: string | null
+        }
+        Insert: {
+          account_id_credit?: string | null
+          account_id_debit?: string | null
+          amount?: number | null
+          book_id?: string | null
+          book_number?: string | null
+          contact_id?: string | null
+          cost_center_id?: string | null
+          cost_center_name?: string | null
+          created_at?: string | null
+          credit_account_code?: string | null
+          currency?: string | null
+          debit_account_code?: string | null
+          description?: string | null
+          exchange_rate?: number | null
+          expense_category?: string | null
+          foreign_amount?: number | null
+          id?: string | null
+          idempotency_key?: string | null
+          is_deleted?: boolean | null
+          is_opening_balance?: boolean | null
+          notes?: string | null
+          payment_method?: string | null
+          pos_order_id?: string | null
+          reference?: string | null
+          return_id?: string | null
+          reversed_by_id?: string | null
+          sales_rep_id?: string | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workshop_id?: string | null
+        }
+        Update: {
+          account_id_credit?: string | null
+          account_id_debit?: string | null
+          amount?: number | null
+          book_id?: string | null
+          book_number?: string | null
+          contact_id?: string | null
+          cost_center_id?: string | null
+          cost_center_name?: string | null
+          created_at?: string | null
+          credit_account_code?: string | null
+          currency?: string | null
+          debit_account_code?: string | null
+          description?: string | null
+          exchange_rate?: number | null
+          expense_category?: string | null
+          foreign_amount?: number | null
+          id?: string | null
+          idempotency_key?: string | null
+          is_deleted?: boolean | null
+          is_opening_balance?: boolean | null
+          notes?: string | null
+          payment_method?: string | null
+          pos_order_id?: string | null
+          reference?: string | null
+          return_id?: string | null
+          reversed_by_id?: string | null
+          sales_rep_id?: string | null
+          transaction_date?: string | null
+          transaction_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workshop_id?: string | null
+        }
+        Relationships: []
+      }
       accountant_permissions: {
         Row: {
           accountant_auth_id: string
