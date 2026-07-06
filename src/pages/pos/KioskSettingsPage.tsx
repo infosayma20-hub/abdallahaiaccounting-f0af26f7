@@ -8,9 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Save, Monitor } from "lucide-react";
+import { Copy, ExternalLink, Save, Monitor, CreditCard } from "lucide-react";
 
 interface Branch { id: string; name: string; }
+interface BankAccount { id: string; name: string; bank_name: string; gl_account_code: string | null; }
 interface KioskSettingsRow {
   id?: string;
   branch_id: string;
@@ -23,6 +24,7 @@ interface KioskSettingsRow {
   idle_timeout_seconds: number;
   require_phone: boolean;
   require_name: boolean;
+  visa_bank_account_id: string | null;
 }
 
 const defaultRow = (branchId: string): KioskSettingsRow => ({
@@ -36,6 +38,7 @@ const defaultRow = (branchId: string): KioskSettingsRow => ({
   idle_timeout_seconds: 60,
   require_phone: true,
   require_name: true,
+  visa_bank_account_id: null,
 });
 
 export default function KioskSettingsPage() {
@@ -44,6 +47,8 @@ export default function KioskSettingsPage() {
   const [branchId, setBranchId] = useState<string>("");
   const [row, setRow] = useState<KioskSettingsRow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [banks, setBanks] = useState<BankAccount[]>([]);
+  const [profileLogo, setProfileLogo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!dataOwnerId) return;
@@ -52,6 +57,11 @@ export default function KioskSettingsPage() {
       setBranches(bs);
       if (bs.length && !branchId) setBranchId(bs[0].id);
     });
+    supabase.from("bank_accounts").select("id,name,bank_name,gl_account_code")
+      .eq("user_id", dataOwnerId).eq("is_active", true)
+      .then(({ data }) => setBanks((data as any) || []));
+    supabase.from("company_settings").select("logo_url").eq("user_id", dataOwnerId).maybeSingle()
+      .then(({ data }) => setProfileLogo((data as any)?.logo_url || null));
   }, [dataOwnerId]);
 
   useEffect(() => {
@@ -148,12 +158,39 @@ export default function KioskSettingsPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>رابط الشعار (logo)</Label>
-                <Input value={row.logo_url || ""} onChange={e => setRow({ ...row, logo_url: e.target.value || null })} placeholder="https://..." />
+                <Input value={row.logo_url || ""} onChange={e => setRow({ ...row, logo_url: e.target.value || null })} placeholder={profileLogo || "اتركه فارغاً لاستخدام شعار الشركة"} />
+                <p className="text-xs text-muted-foreground mt-1">إذا تركته فارغاً، سيتم استخدام شعار الشركة من الملف الشخصي تلقائياً.</p>
+                {profileLogo && !row.logo_url && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img src={profileLogo} alt="company logo" className="h-10 w-10 rounded object-contain border" />
+                    <span className="text-xs text-muted-foreground">شعار الشركة الحالي (سيظهر على الكيوسك)</span>
+                  </div>
+                )}
               </div>
               <div>
                 <Label>رابط صورة الشاشة الترحيبية</Label>
                 <Input value={row.welcome_image_url || ""} onChange={e => setRow({ ...row, welcome_image_url: e.target.value || null })} placeholder="https://..." />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> حساب استلام الدفعات البطاقة</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">جميع مبيعات الكيوسك المدفوعة بالبطاقة تُقيَّد على هذا الحساب البنكي (مثال: فيزا شيكل بنك فلسطين).</p>
+              <Select value={row.visa_bank_account_id || ""} onValueChange={v => setRow({ ...row, visa_bank_account_id: v || null })}>
+                <SelectTrigger><SelectValue placeholder="اختر حساب البنك للفيزا" /></SelectTrigger>
+                <SelectContent>
+                  {banks.map(b => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name} {b.gl_account_code ? `— ${b.gl_account_code}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {row.visa_bank_account_id && !banks.find(b => b.id === row.visa_bank_account_id)?.gl_account_code && (
+                <p className="text-xs text-destructive">تنبيه: هذا الحساب لا يوجد له كود حساب محاسبي (GL). لن يتم ترحيل القيد المحاسبي.</p>
+              )}
             </CardContent>
           </Card>
 
