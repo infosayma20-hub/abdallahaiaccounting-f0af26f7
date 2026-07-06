@@ -9940,6 +9940,7 @@ export type Database = {
           require_phone: boolean
           updated_at: string
           user_id: string
+          visa_bank_account_id: string | null
           visa_terminal_id: string | null
           welcome_image_url: string | null
         }
@@ -9958,6 +9959,7 @@ export type Database = {
           require_phone?: boolean
           updated_at?: string
           user_id: string
+          visa_bank_account_id?: string | null
           visa_terminal_id?: string | null
           welcome_image_url?: string | null
         }
@@ -9976,10 +9978,19 @@ export type Database = {
           require_phone?: boolean
           updated_at?: string
           user_id?: string
+          visa_bank_account_id?: string | null
           visa_terminal_id?: string | null
           welcome_image_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kiosk_settings_visa_bank_account_id_fkey"
+            columns: ["visa_bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kitchen_stations: {
         Row: {
