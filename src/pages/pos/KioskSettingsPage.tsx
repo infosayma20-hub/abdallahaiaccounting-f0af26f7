@@ -158,12 +158,39 @@ export default function KioskSettingsPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>رابط الشعار (logo)</Label>
-                <Input value={row.logo_url || ""} onChange={e => setRow({ ...row, logo_url: e.target.value || null })} placeholder="https://..." />
+                <Input value={row.logo_url || ""} onChange={e => setRow({ ...row, logo_url: e.target.value || null })} placeholder={profileLogo || "اتركه فارغاً لاستخدام شعار الشركة"} />
+                <p className="text-xs text-muted-foreground mt-1">إذا تركته فارغاً، سيتم استخدام شعار الشركة من الملف الشخصي تلقائياً.</p>
+                {profileLogo && !row.logo_url && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img src={profileLogo} alt="company logo" className="h-10 w-10 rounded object-contain border" />
+                    <span className="text-xs text-muted-foreground">شعار الشركة الحالي (سيظهر على الكيوسك)</span>
+                  </div>
+                )}
               </div>
               <div>
                 <Label>رابط صورة الشاشة الترحيبية</Label>
                 <Input value={row.welcome_image_url || ""} onChange={e => setRow({ ...row, welcome_image_url: e.target.value || null })} placeholder="https://..." />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> حساب استلام الدفعات البطاقة</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">جميع مبيعات الكيوسك المدفوعة بالبطاقة تُقيَّد على هذا الحساب البنكي (مثال: فيزا شيكل بنك فلسطين).</p>
+              <Select value={row.visa_bank_account_id || ""} onValueChange={v => setRow({ ...row, visa_bank_account_id: v || null })}>
+                <SelectTrigger><SelectValue placeholder="اختر حساب البنك للفيزا" /></SelectTrigger>
+                <SelectContent>
+                  {banks.map(b => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name} {b.gl_account_code ? `— ${b.gl_account_code}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {row.visa_bank_account_id && !banks.find(b => b.id === row.visa_bank_account_id)?.gl_account_code && (
+                <p className="text-xs text-destructive">تنبيه: هذا الحساب لا يوجد له كود حساب محاسبي (GL). لن يتم ترحيل القيد المحاسبي.</p>
+              )}
             </CardContent>
           </Card>
 
