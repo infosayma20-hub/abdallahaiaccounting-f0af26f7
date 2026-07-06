@@ -1553,7 +1553,6 @@ const JournalNewPage = () => {
                         onChange={e => updateLine(line.id, "line_comment" as any, e.target.value)}
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
-                            console.log("[memo enter]", line.id, lines.length);
                             e.preventDefault();
                             e.stopPropagation();
                             focusNextJournalCell("memo", line.id, lines.map(l => l.id), addLineAndFocus);
