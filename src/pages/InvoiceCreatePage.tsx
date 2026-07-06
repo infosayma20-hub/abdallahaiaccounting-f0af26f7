@@ -3209,14 +3209,20 @@ const InvoiceCreatePage = () => {
             ))}
           </div>
 
-          {/* Add row footer */}
-          <div className="p-2 bg-muted/10">
+          {/* Zebra footer: subtle green tint, total on the right, add-row action on the left */}
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-emerald-50/60 dark:bg-emerald-950/20 border-t border-border">
             <button
               onClick={addItem}
-              className="w-full h-10 rounded-md border-2 border-dashed border-border bg-muted/30 hover:border-primary/60 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-[12px] font-semibold text-muted-foreground hover:text-primary"
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground hover:text-primary transition-colors"
             >
               <Plus className="h-4 w-4" /> إضافة بند جديد
             </button>
+            <div className="flex items-center gap-2 text-[12.5px]">
+              <span className="text-muted-foreground">الإجمالي الكلي</span>
+              <span className="font-bold tabular-nums text-foreground" dir="ltr">
+                {fmtCurrency(summary.total)}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
