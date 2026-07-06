@@ -246,7 +246,7 @@ const AuthPage = () => {
         }
       }
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ", description: getArabicAuthError(err.message), variant: "destructive" });
     } finally {
       setLoading(false);
     }
