@@ -1376,7 +1376,7 @@ const JournalNewPage = () => {
           </div>
 
           <div className="rounded-xl border-2 border-border overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" data-no-enter-nav>
               <thead>
                 <tr className="text-right border-b-2 border-border" style={{ background: "#0D1B2A" }}>
                   <th className="p-3.5 text-white font-semibold text-[13px] w-12 border-l border-white/10">#</th>
