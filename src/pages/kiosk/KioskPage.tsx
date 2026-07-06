@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { KioskLang, t, pickName } from "./kiosk-i18n";
 import { useKioskMenu, KioskProduct, KioskModifierGroup, KioskModifierOption } from "./useKioskMenu";
 import { cn } from "@/lib/utils";
+import malakyLogo from "@/assets/malaky-logo.png.asset.json";
 
 type Step = "welcome" | "menu" | "cart" | "customer" | "payment" | "success";
 
