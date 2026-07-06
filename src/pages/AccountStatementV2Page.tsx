@@ -1468,7 +1468,7 @@ const AccountStatementV2Page = () => {
       }
     >
       <div data-print-area className="flex flex-col" dir="rtl">
-      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "10px 16px" }}>
+      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: 0 }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
           <div className="max-w-3xl mx-auto mb-6">
@@ -1506,7 +1506,7 @@ const AccountStatementV2Page = () => {
           <>
             {/* ─── MIXED CURRENCY WARNING ─── */}
             {hasMixedCurrencies && (
-              <div className="rounded-lg mb-3 flex items-start gap-2" style={{ background: "#FFFBEB", border: "1px solid #FDE68A", padding: "10px 16px" }}>
+              <div className="rounded-lg mb-1 flex items-start gap-2" style={{ background: "#FFFBEB", border: "1px solid #FDE68A", padding: "6px 10px" }}>
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#D97706" }} />
                 <div style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
                   <strong>تحذير:</strong> هذا الكشف يحتوي حركات بعملات مختلفة. الحركات غير المقيّمة بال{displayCurrencyLabel.split(" ")[0]} محوّلة بسعر صرف اليوم أو معروضة بالشيكل. الرصيد الإجمالي غير دقيق محاسبياً.
@@ -1516,14 +1516,14 @@ const AccountStatementV2Page = () => {
 
             {/* ─── FOREIGN DISPLAY NOTE ─── */}
             {displayCurrency !== "ILS" && !hasMixedCurrencies && (
-              <div className="rounded-lg mb-3 flex items-center gap-2" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "8px 16px" }}>
+              <div className="rounded-lg mb-1 flex items-center gap-2" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "4px 10px" }}>
                 <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#2563EB" }} />
                 <span style={{ fontSize: 11, color: "#1E40AF" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف يوم القيد (أو سعر اليوم إن لم يُحفظ سعر تاريخي).</span>
               </div>
             )}
 
             {/* ─── SUMMARY LINE ─── */}
-            <div className="rounded-lg mb-2" style={{ background: "white", border: "1px solid #E5E7EB", padding: "8px 16px" }}>
+            <div className="rounded-lg" style={{ background: "white", border: "1px solid #E5E7EB", padding: "4px 8px" }}>
               <div className="flex items-center gap-6 flex-wrap text-[13px]">
                 {selectedEntityId && (
                   <div className="flex items-center gap-2 pl-3 border-l border-border/60">
@@ -1547,7 +1547,7 @@ const AccountStatementV2Page = () => {
             </div>
 
             {hasTransactionsAfterDateTo && (
-              <div className="rounded-lg mb-4 flex items-start gap-2" style={{ background: "#FFFBEB", border: "1px solid #FDE68A", padding: "10px 16px" }}>
+              <div className="rounded-lg mb-1 flex items-start gap-2" style={{ background: "#FFFBEB", border: "1px solid #FDE68A", padding: "6px 10px" }}>
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#D97706" }} />
                 <div className="text-xs leading-6" style={{ color: "#92400E" }}>
                   يوجد حركات أحدث لهذه الجهة بتاريخ {fmtDate(selectedEntityLatestTxDate)}، لكن فلتر "إلى" الحالي ينتهي في {fmtDate(dateTo)}.
@@ -1564,7 +1564,7 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── FILTER BAR ─── */}
-            <div className="rounded-lg mb-2" style={{ background: "white", border: "1px solid #E5E7EB", padding: "6px 12px" }}>
+            <div className="rounded-lg" style={{ background: "white", border: "1px solid #E5E7EB", padding: "4px 8px" }}>
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Currency display mode */}
                 <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
@@ -1605,7 +1605,7 @@ const AccountStatementV2Page = () => {
             </div>
 
             {/* ─── TRANSACTIONS TABLE ─── */}
-            <div className="rounded-lg overflow-hidden mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
+            <div className="rounded-lg overflow-hidden" style={{ background: "white", border: "1px solid #E5E7EB" }}>
               {(() => {
                 const screenCols: Array<{ key: string; label: string; width: string }> = [
                   { key: "date", label: "التاريخ", width: "10%" },
