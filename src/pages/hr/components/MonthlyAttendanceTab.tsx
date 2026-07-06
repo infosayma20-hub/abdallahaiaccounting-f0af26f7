@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -499,6 +499,20 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
                 );
               })}
             </TableBody>
+            <TableFooter>
+              <TableRow className="bg-muted/60 font-semibold hover:bg-muted/60">
+                <TableCell colSpan={5} className="text-right">
+                  الإجمالي ({filtered.length} سجل)
+                </TableCell>
+                <TableCell className="tabular-nums">
+                  {filtered.reduce((s, r) => s + (Number(r.total_hours) || 0), 0).toFixed(1)}
+                </TableCell>
+                <TableCell className="tabular-nums">
+                  {filtered.reduce((s, r) => s + (Number(r.overtime_hours) || 0), 0).toFixed(1)}
+                </TableCell>
+                <TableCell colSpan={3} />
+              </TableRow>
+            </TableFooter>
           </Table>
         )}
       </Card>
