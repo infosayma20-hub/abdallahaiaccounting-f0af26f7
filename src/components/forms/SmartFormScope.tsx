@@ -111,6 +111,7 @@ const SmartFormScope = ({
       if (tag === "textarea") return;
       if (tag === "button") return;
       if (target.hasAttribute("data-no-enter-nav")) return;
+      if (target.closest("[data-no-enter-nav]")) return;
       if (target.getAttribute("type") === "submit") return;
 
       // Allow Enter inside open dropdowns / comboboxes (let them select)
