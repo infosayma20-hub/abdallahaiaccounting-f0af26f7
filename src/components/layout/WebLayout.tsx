@@ -58,7 +58,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
   // Compact routes — voucher/invoice data-entry pages own their own header padding
   // via FinanceShell compact mode. Strip the outer <main> padding to reclaim space.
   const isCompactRoute =
-    /^\/finance\/(receipt|payment)\/(new|[^/]+\/edit)$/.test(pathname);
+    /^\/finance\/(receipt|payment|journal)\/(new|[^/]+\/edit)$/.test(pathname);
 
   // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
   const isTrial = subscription?.isTrial ?? false;
