@@ -16,6 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DynamicFormRenderer from "@/components/forms/DynamicFormRenderer";
 import FormSchemaBuilder, { BuilderSchema } from "@/components/hr/FormSchemaBuilder";
+import { useAuth } from "@/hooks/useAuth";
+import { AlertTriangle, RotateCcw } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Template = {
   id: string;
@@ -29,14 +35,33 @@ type Template = {
   is_active: boolean;
   is_system: boolean;
   user_id: string | null;
+  cloned_from_template_id?: string | null;
+};
+
+// Collect all field keys from a schema for safe-edit comparison
+const collectKeys = (schema: any): { sections: string[]; fields: string[] } => {
+  const out = { sections: [] as string[], fields: [] as string[] };
+  if (!schema || !Array.isArray(schema.sections)) return out;
+  for (const s of schema.sections) {
+    if (s?.key) out.sections.push(String(s.key));
+    if (Array.isArray(s?.fields)) {
+      for (const f of s.fields) if (f?.key) out.fields.push(`${s.key}.${f.key}`);
+    }
+  }
+  return out;
 };
 
 export default function FormTemplatesAdminPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [preview, setPreview] = useState<Template | null>(null);
   const [editing, setEditing] = useState<Template | null>(null);
+  const [originalSchema, setOriginalSchema] = useState<any>(null);
   const [submissionsCount, setSubmissionsCount] = useState<Record<string, number>>({});
+  const [confirmCloneEdit, setConfirmCloneEdit] = useState<Template | null>(null);
+  const [confirmRevert, setConfirmRevert] = useState<Template | null>(null);
+  const [saveWarning, setSaveWarning] = useState<{ removed: string[]; onConfirm: () => void } | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -48,7 +73,13 @@ export default function FormTemplatesAdminPage() {
         .order("is_system", { ascending: false })
         .order("created_at", { ascending: false });
       const list = (tpls || []) as Template[];
-      setTemplates(list);
+      // Prefer company clones: hide any system template that has an active clone
+      // owned by the current tenant.
+      const clonedFromIds = new Set(
+        list.filter((t) => !t.is_system && t.cloned_from_template_id).map((t) => t.cloned_from_template_id as string),
+      );
+      const filtered = list.filter((t) => !(t.is_system && clonedFromIds.has(t.id)));
+      setTemplates(filtered);
 
       if (list.length) {
         const { data: subs } = await supabase
@@ -70,7 +101,7 @@ export default function FormTemplatesAdminPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleSave = async () => {
+  const performSave = async () => {
     if (!editing) return;
     try {
       // Parse schema if string
@@ -106,15 +137,40 @@ export default function FormTemplatesAdminPage() {
           target_employee_ids: editing.target_employee_ids || [],
           is_active: editing.is_active ?? true,
           is_system: false,
+          cloned_from_template_id: editing.cloned_from_template_id || null,
+          user_id: user?.id || null,
         });
         if (error) throw error;
       }
       toast({ title: "تم الحفظ" });
       setEditing(null);
+      setOriginalSchema(null);
       fetchData();
     } catch (err: any) {
       toast({ title: "تعذر الحفظ", description: err.message, variant: "destructive" });
     }
+  };
+
+  const handleSave = () => {
+    if (!editing) return;
+    // Compare original vs new to detect removed/renamed keys
+    if (originalSchema) {
+      try {
+        let newSchema = editing.schema;
+        if (typeof newSchema === "string") newSchema = JSON.parse(newSchema);
+        const before = collectKeys(originalSchema);
+        const after = collectKeys(newSchema);
+        const afterSet = new Set([...after.sections.map((k) => `s:${k}`), ...after.fields.map((k) => `f:${k}`)]);
+        const removed: string[] = [];
+        before.sections.forEach((k) => { if (!afterSet.has(`s:${k}`)) removed.push(`قسم: ${k}`); });
+        before.fields.forEach((k) => { if (!afterSet.has(`f:${k}`)) removed.push(`حقل: ${k}`); });
+        if (removed.length > 0) {
+          setSaveWarning({ removed, onConfirm: () => { setSaveWarning(null); performSave(); } });
+          return;
+        }
+      } catch { /* fall through to save */ }
+    }
+    performSave();
   };
 
   // Safe schema for the builder (always an object with sections)
@@ -127,13 +183,78 @@ export default function FormTemplatesAdminPage() {
     return Array.isArray(s.sections) ? s : { sections: [] };
   };
 
+  const deepClone = (v: any) => JSON.parse(JSON.stringify(v ?? null));
+
   const cloneAsCustom = async (tpl: Template) => {
+    const schema = deepClone(tpl.schema);
     setEditing({
       ...tpl,
       id: "" as any,
       is_system: false,
       name: `${tpl.name} (نسخة)`,
+      schema,
+      cloned_from_template_id: null,
     });
+    setOriginalSchema(null);
+  };
+
+  const openEditor = (tpl: Template) => {
+    if (tpl.is_system) {
+      setConfirmCloneEdit(tpl);
+      return;
+    }
+    setOriginalSchema(deepClone(tpl.schema));
+    setEditing({ ...tpl, schema: deepClone(tpl.schema) });
+  };
+
+  const cloneForEdit = async (tpl: Template) => {
+    // Create the clone immediately, then open editor on the fresh clone.
+    try {
+      let schema = tpl.schema;
+      if (typeof schema === "string") schema = JSON.parse(schema);
+      const { data, error } = await supabase
+        .from("form_templates")
+        .insert({
+          name: tpl.name,
+          description: tpl.description,
+          category: tpl.category,
+          schema: deepClone(schema),
+          frequency: tpl.frequency,
+          target_job_title_names: tpl.target_job_title_names || [],
+          target_employee_ids: tpl.target_employee_ids || [],
+          is_active: tpl.is_active ?? true,
+          is_system: false,
+          cloned_from_template_id: tpl.id,
+          user_id: user?.id || null,
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      const clone = data as Template;
+      toast({ title: "تم إنشاء نسخة قابلة للتعديل" });
+      setConfirmCloneEdit(null);
+      setOriginalSchema(deepClone(clone.schema));
+      setEditing({ ...clone, schema: deepClone(clone.schema) });
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "تعذر إنشاء النسخة", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const revertToOriginal = async (tpl: Template) => {
+    if (!tpl.cloned_from_template_id) return;
+    try {
+      const { error } = await supabase
+        .from("form_templates")
+        .update({ is_deleted: true, is_active: false })
+        .eq("id", tpl.id);
+      if (error) throw error;
+      toast({ title: "تم الرجوع للقالب الأصلي" });
+      setConfirmRevert(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "تعذر الرجوع", description: err.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -190,6 +311,11 @@ export default function FormTemplatesAdminPage() {
                           قالب نظام
                         </Badge>
                       )}
+                      {!t.is_system && t.cloned_from_template_id && (
+                        <Badge variant="outline" className="text-[10px] h-5 border-amber-500/50 text-amber-700 dark:text-amber-400">
+                          نسخة معدّلة
+                        </Badge>
+                      )}
                       <Badge variant={t.is_active ? "default" : "outline"} className="text-[10px] h-5">
                         {t.is_active ? "نشط" : "متوقف"}
                       </Badge>
@@ -218,15 +344,18 @@ export default function FormTemplatesAdminPage() {
                     <Eye className="h-3.5 w-3.5 ml-1" />
                     معاينة
                   </Button>
-                  {t.is_system ? (
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => cloneAsCustom(t)}>
-                      <CopyIcon className="h-3.5 w-3.5 ml-1" />
-                      استنساخ
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditor(t)}>
+                    <Edit2 className="h-3.5 w-3.5 ml-1" />
+                    تعديل
+                  </Button>
+                  {t.is_system && (
+                    <Button size="sm" variant="ghost" onClick={() => cloneAsCustom(t)} title="استنساخ كقالب جديد">
+                      <CopyIcon className="h-3.5 w-3.5" />
                     </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setEditing(t)}>
-                      <Edit2 className="h-3.5 w-3.5 ml-1" />
-                      تعديل
+                  )}
+                  {!t.is_system && t.cloned_from_template_id && (
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmRevert(t)} title="رجوع للقالب الأصلي">
+                      <RotateCcw className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
@@ -249,7 +378,7 @@ export default function FormTemplatesAdminPage() {
       </Dialog>
 
       {/* Edit dialog (JSON editor for now) */}
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) { setEditing(null); setOriginalSchema(null); } }}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-right">
@@ -258,6 +387,14 @@ export default function FormTemplatesAdminPage() {
           </DialogHeader>
           {editing && (
             <div className="space-y-3">
+              {editing.cloned_from_template_id && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>
+                    أنت تعدّل نسخة مخصصة لشركتك من قالب نظام. تجنّب تغيير مفاتيح الأقسام والحقول الموجودة حتى لا تتأثر التعبئات السابقة.
+                  </span>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">اسم النموذج *</Label>
@@ -375,6 +512,68 @@ export default function FormTemplatesAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm cloning a system template so it becomes editable */}
+      <AlertDialog open={!!confirmCloneEdit} onOpenChange={(o) => !o && setConfirmCloneEdit(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">تعديل قالب نظام</AlertDialogTitle>
+            <AlertDialogDescription className="text-right leading-6">
+              قوالب النظام محمية ولا يمكن تعديلها مباشرة. سيتم إنشاء نسخة قابلة للتعديل خاصة بشركتك من قالب
+              <span className="font-semibold"> «{confirmCloneEdit?.name}» </span>
+              وستحلّ محلّ الأصل في قائمة النماذج المتاحة للموظفين. القالب الأصلي يبقى محفوظاً ويمكن الرجوع إليه لاحقاً.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmCloneEdit && cloneForEdit(confirmCloneEdit)}>
+              إنشاء نسخة والتعديل
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm reverting a company clone back to the original system template */}
+      <AlertDialog open={!!confirmRevert} onOpenChange={(o) => !o && setConfirmRevert(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">الرجوع للقالب الأصلي</AlertDialogTitle>
+            <AlertDialogDescription className="text-right leading-6">
+              سيتم إخفاء هذه النسخة المعدّلة وسيعود القالب الأصلي للظهور للموظفين. التعبئات السابقة تبقى محفوظة كما هي.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmRevert && revertToOriginal(confirmRevert)}>
+              رجوع للأصل
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Warn before saving if fields/sections were removed or renamed */}
+      <AlertDialog open={!!saveWarning} onOpenChange={(o) => !o && setSaveWarning(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              تحذير: تم حذف أو إعادة تسمية عناصر
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right leading-6">
+              العناصر التالية موجودة في القالب الأصلي لكنها لم تعد في النسخة الجديدة. أي بيانات مرتبطة بها في التعبئات السابقة ستبقى محفوظة لكنها لن تظهر في الواجهة:
+              <ul className="mt-2 space-y-1 text-xs bg-muted/40 rounded p-2 max-h-40 overflow-y-auto">
+                {saveWarning?.removed.map((k, i) => <li key={i}>• {k}</li>)}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>مراجعة</AlertDialogCancel>
+            <AlertDialogAction onClick={() => saveWarning?.onConfirm()}>
+              متابعة الحفظ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

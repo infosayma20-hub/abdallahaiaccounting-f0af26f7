@@ -7796,6 +7796,7 @@ export type Database = {
       form_templates: {
         Row: {
           category: string
+          cloned_from_template_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -7814,6 +7815,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          cloned_from_template_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -7832,6 +7834,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          cloned_from_template_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -7848,7 +7851,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "form_templates_cloned_from_template_id_fkey"
+            columns: ["cloned_from_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generated_reports: {
         Row: {
