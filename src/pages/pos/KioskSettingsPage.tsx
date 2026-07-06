@@ -72,7 +72,8 @@ export default function KioskSettingsPage() {
     else { toast.success("تم الحفظ"); }
   };
 
-  const kioskUrl = branchId ? `${window.location.origin}/kiosk/${branchId}` : "";
+  const PUBLIC_BASE = "https://amwali.app";
+  const kioskUrl = branchId ? `${PUBLIC_BASE}/kiosk/${branchId}` : "";
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6" dir="rtl">
