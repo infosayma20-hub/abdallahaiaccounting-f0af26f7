@@ -203,7 +203,7 @@ export default function KioskPage() {
       </button>
 
       {step === "welcome" && (
-        <WelcomeScreen settings={settings} lang={lang} setLang={setLang} onStart={() => setStep("menu")} />
+        <WelcomeScreen settings={settings} companyLogo={companyLogo} lang={lang} setLang={setLang} onStart={() => setStep("menu")} />
       )}
 
       {step === "menu" && (
@@ -287,15 +287,16 @@ export default function KioskPage() {
 
 /* ---------- Screens ---------- */
 
-function WelcomeScreen({ settings, lang, setLang, onStart }: any) {
+function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
+  const effectiveLogo = settings.logo_url || companyLogo || null;
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-10 relative">
       {settings.welcome_image_url && (
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${settings.welcome_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
       )}
       <div className="relative z-10 flex flex-col items-center gap-8">
-        {settings.logo_url ? (
-          <img src={settings.logo_url} alt="logo" className="h-36 w-36 rounded-3xl object-contain bg-white p-4 shadow-2xl" />
+        {effectiveLogo ? (
+          <img src={effectiveLogo} alt="logo" className="h-36 w-36 rounded-3xl object-contain bg-white p-4 shadow-2xl" />
         ) : (
           <div className="h-36 w-36 rounded-3xl flex items-center justify-center text-white text-6xl font-bold shadow-2xl" style={{ background: settings.primary_color || "#E53935" }}>M</div>
         )}
