@@ -1424,14 +1424,14 @@ const AccountStatementV2Page = () => {
       ]}
       actionTabs={actionTabs}
       rightSlot={
-        <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+        <div className="flex items-center gap-2" dir="rtl">
           {isRefreshing && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs">
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>يتم التحديث…</span>
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-lg px-2 py-1 bg-muted/40 border border-border/40">
+          <div className="flex items-center gap-1.5 rounded-lg px-2 py-1 bg-muted/40 border border-border/40 shrink-0">
             <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
             <div className="w-px h-4 bg-border" />
             <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
@@ -1439,7 +1439,7 @@ const AccountStatementV2Page = () => {
           <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
           <button
             onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors bg-white hover:bg-muted"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors bg-white hover:bg-muted shrink-0"
             style={{ borderColor: '#0D1B2E', color: '#0D1B2E' }}
             title={isFullscreen ? 'الخروج من ملء الشاشة (Esc)' : 'ملء الشاشة'}
           >
@@ -1449,7 +1449,7 @@ const AccountStatementV2Page = () => {
           {isPosBox && posShifts.size > 0 && (
             <button
               onClick={() => setPosGroupMode(m => m === 'grouped' ? 'detailed' : 'grouped')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors shrink-0"
               style={{
                 background: posGroupMode === 'grouped' ? '#0D1B2E' : 'white',
                 color: posGroupMode === 'grouped' ? 'white' : '#0D1B2E',
@@ -1464,19 +1464,11 @@ const AccountStatementV2Page = () => {
               {posShiftLoading && <Loader2 className="w-3 h-3 animate-spin" />}
             </button>
           )}
-          {selectedEntityId && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/40">
-              <span className="text-sm">{selectedEntityEmoji}</span>
-              <span className="text-sm font-semibold text-foreground">{selectedEntityName}</span>
-              {selectedEntityCode && <span className="text-xs text-muted-foreground">— {selectedEntityCode}</span>}
-              <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
-            </div>
-          )}
         </div>
       }
     >
       <div data-print-area className="flex flex-col" dir="rtl">
-      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "24px" }}>
+      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "10px 16px" }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
           <div className="max-w-3xl mx-auto mb-6">
@@ -1531,8 +1523,16 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── SUMMARY LINE ─── */}
-            <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "12px 20px" }}>
-              <div className="flex items-center gap-8 flex-wrap text-[13px]">
+            <div className="rounded-lg mb-2" style={{ background: "white", border: "1px solid #E5E7EB", padding: "8px 16px" }}>
+              <div className="flex items-center gap-6 flex-wrap text-[13px]">
+                {selectedEntityId && (
+                  <div className="flex items-center gap-2 pl-3 border-l border-border/60">
+                    <span className="text-sm">{selectedEntityEmoji}</span>
+                    <span className="text-sm font-semibold text-foreground">{selectedEntityName}</span>
+                    {selectedEntityCode && <span className="text-xs text-muted-foreground">— {selectedEntityCode}</span>}
+                    <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
+                  </div>
+                )}
                 <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
                 <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
                 <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
@@ -1564,28 +1564,8 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── FILTER BAR ─── */}
-            <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "10px 16px" }}>
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* Quick periods */}
-                <div className="flex items-center gap-1">
-                  {QUICK_PERIODS.map(p => (
-                    <button
-                      key={p.label}
-                      onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
-                      className="px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
-                      style={{
-                        color: activePeriod === p.label ? "#1E40AF" : "#6B7280",
-                        background: activePeriod === p.label ? "#EFF6FF" : "transparent",
-                        borderBottom: activePeriod === p.label ? "2px solid #1E40AF" : "2px solid transparent",
-                      }}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="w-px h-5" style={{ background: "#E5E7EB" }} />
-
+            <div className="rounded-lg mb-2" style={{ background: "white", border: "1px solid #E5E7EB", padding: "6px 12px" }}>
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* Currency display mode */}
                 <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
                   <SelectTrigger className="h-7 w-40 text-[11px] border-gray-200"><SelectValue /></SelectTrigger>
@@ -1621,12 +1601,6 @@ const AccountStatementV2Page = () => {
                     style={{ border: "1px solid #E5E7EB", background: "#F9FAFB" }}
                   />
                 </div>
-
-                {/* Year comparison toggle */}
-                <label className="flex items-center gap-1.5 cursor-pointer text-[11px]" style={{ color: "#6B7280" }}>
-                  <input type="checkbox" checked={showYearComparison} onChange={e => setShowYearComparison(e.target.checked)} className="rounded" />
-                  مقارنة سنوية
-                </label>
               </div>
             </div>
 
