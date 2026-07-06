@@ -1523,8 +1523,16 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── SUMMARY LINE ─── */}
-            <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "12px 20px" }}>
-              <div className="flex items-center gap-8 flex-wrap text-[13px]">
+            <div className="rounded-lg mb-2" style={{ background: "white", border: "1px solid #E5E7EB", padding: "8px 16px" }}>
+              <div className="flex items-center gap-6 flex-wrap text-[13px]">
+                {selectedEntityId && (
+                  <div className="flex items-center gap-2 pl-3 border-l border-border/60">
+                    <span className="text-sm">{selectedEntityEmoji}</span>
+                    <span className="text-sm font-semibold text-foreground">{selectedEntityName}</span>
+                    {selectedEntityCode && <span className="text-xs text-muted-foreground">— {selectedEntityCode}</span>}
+                    <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
+                  </div>
+                )}
                 <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
                 <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
                 <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
@@ -1556,28 +1564,8 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── FILTER BAR ─── */}
-            <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "10px 16px" }}>
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* Quick periods */}
-                <div className="flex items-center gap-1">
-                  {QUICK_PERIODS.map(p => (
-                    <button
-                      key={p.label}
-                      onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
-                      className="px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
-                      style={{
-                        color: activePeriod === p.label ? "#1E40AF" : "#6B7280",
-                        background: activePeriod === p.label ? "#EFF6FF" : "transparent",
-                        borderBottom: activePeriod === p.label ? "2px solid #1E40AF" : "2px solid transparent",
-                      }}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="w-px h-5" style={{ background: "#E5E7EB" }} />
-
+            <div className="rounded-lg mb-2" style={{ background: "white", border: "1px solid #E5E7EB", padding: "6px 12px" }}>
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* Currency display mode */}
                 <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
                   <SelectTrigger className="h-7 w-40 text-[11px] border-gray-200"><SelectValue /></SelectTrigger>
@@ -1613,12 +1601,6 @@ const AccountStatementV2Page = () => {
                     style={{ border: "1px solid #E5E7EB", background: "#F9FAFB" }}
                   />
                 </div>
-
-                {/* Year comparison toggle */}
-                <label className="flex items-center gap-1.5 cursor-pointer text-[11px]" style={{ color: "#6B7280" }}>
-                  <input type="checkbox" checked={showYearComparison} onChange={e => setShowYearComparison(e.target.checked)} className="rounded" />
-                  مقارنة سنوية
-                </label>
               </div>
             </div>
 
