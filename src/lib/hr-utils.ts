@@ -48,9 +48,9 @@ export const calculateOvertime = (totalHours: number, hourlyRate: number, dayTyp
 // ━━━ Annual Leave Balance (Palestinian Labor Law) ━━━
 export const calculateAnnualLeaveEntitlement = (startDate: string): number => {
   const yearsWorked = differenceInYears(new Date(), new Date(startDate));
-  if (yearsWorked < 3) return 14;
-  if (yearsWorked < 5) return 21;
-  return 30;
+  // قانون العمل الفلسطيني رقم 7/2000 — المادة 74
+  // أقل من 5 سنوات: 14 يوم | 5 سنوات فأكثر: 21 يوم
+  return yearsWorked < 5 ? 14 : 21;
 };
 
 export const calculateLeaveBalance = (
