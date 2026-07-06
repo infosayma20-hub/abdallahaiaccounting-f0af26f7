@@ -2849,9 +2849,9 @@ const InvoiceCreatePage = () => {
         <CardContent className="p-0">
           {/* Excel-grade accounting grid: visible borders, alternating rows, emphasized columns */}
           <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-border/30 [&_th]:border [&_th]:border-border/40 [&_tr]:transition-colors">
+            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-foreground/70 [&_th]:border [&_th]:border-foreground/80 [&_tr]:transition-colors">
               <thead>
-                <tr className="bg-muted/70 text-[10.5px] font-semibold text-foreground/80 uppercase tracking-wide">
+                <tr className="bg-foreground/90 text-[10.5px] font-bold text-background uppercase tracking-wide">
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
                   <th className="py-2.5 px-3 text-right min-w-[260px]">المنتج / الخدمة</th>
                   <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]">الكمية</th>
