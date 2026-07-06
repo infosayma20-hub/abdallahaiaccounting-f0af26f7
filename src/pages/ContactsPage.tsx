@@ -398,6 +398,13 @@ const ContactsPage = () => {
     if (!editContact || !editData.contact_name?.trim()) return;
     setEditing(true);
     try {
+      // Detect a contact_type change (e.g. مورد ↔ عميل ومورد). When the type
+      // changes we must NEVER touch the opening balance or reassign the linked
+      // sub-account — doing so silently deletes the historical OB and can
+      // spawn a second AR/AP account for the same contact (the bug that hit
+      // منير المحيسن). We only update the profile fields on the contact row.
+      const typeChanged = editContact.contact_type !== editData.contact_type;
+
       const { error } = await supabase.from('contacts').update({
         contact_name: editData.contact_name.trim(),
         contact_type: editData.contact_type,
@@ -415,6 +422,16 @@ const ContactsPage = () => {
         contact_segment: editData.contact_segment || null,
       }).eq('id', editContact.id);
       if (error) throw error;
+
+      if (typeChanged) {
+        toast({
+          title: "تم تعديل جهة الاتصال بنجاح",
+          description: "تم تحديث تصنيف الجهة. الرصيد الافتتاحي والحساب المحاسبي محفوظان كما هما.",
+        });
+        setEditContact(null);
+        fetchContacts();
+        return;
+      }
 
       // Handle opening balance in edit — always clean up old OB first
       const obAmount = parseFloat(editData.opening_balance) || 0;
