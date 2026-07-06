@@ -1424,14 +1424,14 @@ const AccountStatementV2Page = () => {
       ]}
       actionTabs={actionTabs}
       rightSlot={
-        <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+        <div className="flex items-center gap-2" dir="rtl">
           {isRefreshing && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs">
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>يتم التحديث…</span>
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-lg px-2 py-1 bg-muted/40 border border-border/40">
+          <div className="flex items-center gap-1.5 rounded-lg px-2 py-1 bg-muted/40 border border-border/40 shrink-0">
             <RtlDateField label="من" ariaLabel="من تاريخ" value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePeriod(""); }} />
             <div className="w-px h-4 bg-border" />
             <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
@@ -1439,7 +1439,7 @@ const AccountStatementV2Page = () => {
           <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
           <button
             onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors bg-white hover:bg-muted"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors bg-white hover:bg-muted shrink-0"
             style={{ borderColor: '#0D1B2E', color: '#0D1B2E' }}
             title={isFullscreen ? 'الخروج من ملء الشاشة (Esc)' : 'ملء الشاشة'}
           >
@@ -1449,7 +1449,7 @@ const AccountStatementV2Page = () => {
           {isPosBox && posShifts.size > 0 && (
             <button
               onClick={() => setPosGroupMode(m => m === 'grouped' ? 'detailed' : 'grouped')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors shrink-0"
               style={{
                 background: posGroupMode === 'grouped' ? '#0D1B2E' : 'white',
                 color: posGroupMode === 'grouped' ? 'white' : '#0D1B2E',
@@ -1464,19 +1464,11 @@ const AccountStatementV2Page = () => {
               {posShiftLoading && <Loader2 className="w-3 h-3 animate-spin" />}
             </button>
           )}
-          {selectedEntityId && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/40">
-              <span className="text-sm">{selectedEntityEmoji}</span>
-              <span className="text-sm font-semibold text-foreground">{selectedEntityName}</span>
-              {selectedEntityCode && <span className="text-xs text-muted-foreground">— {selectedEntityCode}</span>}
-              <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1 text-primary">تغيير</button>
-            </div>
-          )}
         </div>
       }
     >
       <div data-print-area className="flex flex-col" dir="rtl">
-      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "24px" }}>
+      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "10px 16px" }}>
         {/* Search bar when no entity selected */}
         {!selectedEntityId && (
           <div className="max-w-3xl mx-auto mb-6">
