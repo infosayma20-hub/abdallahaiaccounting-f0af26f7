@@ -28,6 +28,8 @@ import InvoicesPage from "./pages/InvoicesPage";
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
 const FeatureGuard = lazy(() => import("./components/permissions/FeatureGuard"));
 const POSDeviceAuthGuard = lazy(() => import("./components/pos/POSDeviceAuthGuard"));
+const KioskPage = lazy(() => import("./pages/kiosk/KioskPage"));
+const KioskSettingsPage = lazy(() => import("./pages/pos/KioskSettingsPage"));
 
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
@@ -691,6 +693,8 @@ const App = () => (
               <Route path="/pos/kds-control" element={<ProtectedRoute><ModuleGuard><KdsControlPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/delivery-zones" element={<ProtectedRoute><ModuleGuard><RoleGuard allowedRoles={["admin", "accountant_senior"]}><DeliveryZonesPage /></RoleGuard></ModuleGuard></ProtectedRoute>} />
               <Route path="/pos/qr-menu" element={<ProtectedRoute><ModuleGuard><QRMenuAdminPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/kiosk-settings" element={<ProtectedRoute><ModuleGuard><KioskSettingsPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/kiosk/:branchId" element={<KioskPage />} />
               <Route path="/m/:accountSlug/:branchSlug" element={<PublicMenuPage />} />
               <Route path="/m/:accountSlug/:branchSlug/:tableCode" element={<PublicMenuPage />} />
               
