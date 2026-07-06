@@ -673,6 +673,47 @@ function InvoiceSummary({
           <span className="font-semibold text-foreground">الإجمالي النهائي</span>
           <span className={`font-bold ${accentText} tabular-nums`}>{symbol}{fmt(total)}</span>
         </div>
+
+        {/* Customer/Supplier Impact — nested directly under the totals so the panel stays compact */}
+        {partyName && (
+          <>
+            <div className="flex items-center gap-1.5 pt-2 mt-1.5 border-t border-border/40 text-[11px] font-semibold text-muted-foreground">
+              {isPurchase || isCreditNote ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
+              الأثر على {isPurchase ? "المورد" : "الزبون"}
+            </div>
+            <div className="space-y-1.5">
+              <BalanceBreakdown
+                total={before}
+                label={isPosted ? "الرصيد حسب القيود المرحلة" : "الرصيد الحالي حسب كشف الحساب"}
+                openInvoicesTotal={openInvoicesTotal}
+                unappliedCredit={unappliedCredit}
+                symbol={symbol}
+                isReceipt={false}
+                onOpenStatement={onOpenStatement}
+              />
+              <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
+                <span className="text-muted-foreground">
+                  {isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}
+                  <span className="mx-1 text-[10px] text-muted-foreground/70">
+                    {isPurchase
+                      ? "(زيادة على المورد — دائن)"
+                      : isCreditNote
+                        ? "(تخفيض على الزبون — دائن)"
+                        : "(زيادة على الزبون — مدين)"}
+                  </span>
+                </span>
+                <span
+                  className={`font-bold ${isPurchase || isCreditNote ? "text-rose-600" : "text-emerald-600"}`}
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  +{symbol}{fmt(Math.abs(total))}
+                </span>
+              </div>
+              <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
+            </div>
+          </>
+        )}
+
         {currency && currency !== "شيكل" && exchangeRate !== 1 && (
           <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border/30">
             <span className="text-muted-foreground">المكافئ بالشيكل</span>
@@ -680,46 +721,6 @@ function InvoiceSummary({
           </div>
         )}
       </div>
-
-      {/* Customer/Supplier Impact */}
-      {partyName && (
-        <div className="rounded-xl border border-border/60 bg-card p-3 space-y-2">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
-            {isPurchase || isCreditNote ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
-            الأثر على {isPurchase ? "المورد" : "الزبون"}
-          </div>
-          <div className="space-y-2">
-            <BalanceBreakdown
-              total={before}
-              label={isPosted ? "الرصيد حسب القيود المرحلة" : "الرصيد الحالي حسب كشف الحساب"}
-              openInvoicesTotal={openInvoicesTotal}
-              unappliedCredit={unappliedCredit}
-              symbol={symbol}
-              isReceipt={false}
-              onOpenStatement={onOpenStatement}
-            />
-            <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">
-                {isPosted ? "أثر هذا المستند (مُسجَّل)" : "أثر هذا المستند"}
-                <span className="mx-1 text-[10px] text-muted-foreground/70">
-                  {isPurchase
-                    ? "(زيادة على المورد — دائن)"
-                    : isCreditNote
-                      ? "(تخفيض على الزبون — دائن)"
-                      : "(زيادة على الزبون — مدين)"}
-                </span>
-              </span>
-              <span
-                className={`font-bold ${isPurchase || isCreditNote ? "text-rose-600" : "text-emerald-600"}`}
-                style={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                +{symbol}{fmt(Math.abs(total))}
-              </span>
-            </div>
-            <BalanceRow label={isPosted ? "الرصيد الحالي (يشمل هذا المستند)" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
-          </div>
-        </div>
-      )}
 
       {/* Warnings */}
       <div className="space-y-2">
