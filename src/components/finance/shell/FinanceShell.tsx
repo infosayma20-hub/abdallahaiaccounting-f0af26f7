@@ -33,7 +33,7 @@ export function FinanceShell({
   onFiltersChange,
   rightSlot,
   children,
-  compact = false,
+  compact = true,
 }: FinanceShellProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const myViews = useMyViews(storageKey);
