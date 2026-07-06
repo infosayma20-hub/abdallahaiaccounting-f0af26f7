@@ -2509,22 +2509,71 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">المندوب (اختياري)</label>
-              <Select value={form.salespersonId || "__none__"} onValueChange={v => {
-                if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
-                setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
-              }}>
-                <SelectTrigger className="rounded-xl text-sm"><SelectValue placeholder="اختر مندوب المبيعات..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
-                  <SelectItem value="__none__">بدون مندوب</SelectItem>
-                  {salesReps.map(sr => <SelectItem key={sr.id} value={sr.id}>{sr.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1.5">
+                <Select value={form.salespersonId || "__none__"} onValueChange={v => {
+                  if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
+                  setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
+                }}>
+                  <SelectTrigger className="rounded-xl text-sm flex-1"><SelectValue placeholder="اختر مندوب المبيعات..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
+                    <SelectItem value="__none__">بدون مندوب</SelectItem>
+                    {salesReps.map(sr => <SelectItem key={sr.id} value={sr.id}>{sr.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className={`h-10 w-10 rounded-xl shrink-0 ${form.costCenterId ? "border-primary/60 text-primary bg-primary/5" : ""}`}
+                      title={form.costCenterId ? "تم اختيار مركز تكلفة — انقر للتعديل" : "مركز التكلفة (اختياري — لتقارير الربحية)"}
+                    >
+                      <Tag className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-3 space-y-2">
+                    <div className="text-[11px] font-semibold text-foreground">مركز التكلفة</div>
+                    <p className="text-[10px] text-muted-foreground -mt-1">اختياري — لتقارير الربحية</p>
+                    <CostCenterCombobox
+                      value={form.costCenterId}
+                      onChange={(id) => setForm(p => ({ ...p, costCenterId: id }))}
+                      placeholder="بدون مركز تكلفة"
+                    />
+                    {workshops.length > 0 && (
+                      <div className="pt-1">
+                        <label className="text-[10px] text-muted-foreground mb-1 block">
+                          أو ربط بورشة (اختياري)
+                        </label>
+                        <Select
+                          value={form.workshopId || "__none__"}
+                          onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
+                        >
+                          <SelectTrigger className="rounded-xl text-xs h-8">
+                            <SelectValue placeholder="بدون ورشة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">بدون ورشة</SelectItem>
+                            {workshops
+                              .filter(w => w.status === "active" || w.id === form.workshopId)
+                              .map(w => (
+                                <SelectItem key={w.id} value={w.id}>
+                                  {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
 
-          {/* Warehouse / cost center / invoice kind row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
+          {/* Warehouse / invoice kind row (cost center moved to icon beside salesrep) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
               {warehouses.length > 0 && (
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
@@ -2548,42 +2597,6 @@ const InvoiceCreatePage = () => {
                   </Select>
                 </div>
               )}
-              <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                  مركز التكلفة
-                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">(اختياري — لتقارير الربحية)</span>
-                </label>
-                <CostCenterCombobox
-                  value={form.costCenterId}
-                  onChange={(id) => setForm(p => ({ ...p, costCenterId: id }))}
-                  placeholder="بدون مركز تكلفة"
-                />
-                {workshops.length > 0 && (
-                  <div className="mt-2">
-                    <label className="text-[10px] text-muted-foreground mb-1 block">
-                      أو ربط بورشة (اختياري)
-                    </label>
-                    <Select
-                      value={form.workshopId || "__none__"}
-                      onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
-                    >
-                      <SelectTrigger className="rounded-xl text-xs h-8">
-                        <SelectValue placeholder="بدون ورشة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">بدون ورشة</SelectItem>
-                        {workshops
-                          .filter(w => w.status === "active" || w.id === form.workshopId)
-                          .map(w => (
-                            <SelectItem key={w.id} value={w.id}>
-                              {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
               {/* Invoice kind: explicit cash vs credit segmented control */}
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
