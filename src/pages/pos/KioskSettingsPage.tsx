@@ -8,9 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Save, Monitor } from "lucide-react";
+import { Copy, ExternalLink, Save, Monitor, CreditCard } from "lucide-react";
 
 interface Branch { id: string; name: string; }
+interface BankAccount { id: string; name: string; bank_name: string; gl_account_code: string | null; }
 interface KioskSettingsRow {
   id?: string;
   branch_id: string;
@@ -23,6 +24,7 @@ interface KioskSettingsRow {
   idle_timeout_seconds: number;
   require_phone: boolean;
   require_name: boolean;
+  visa_bank_account_id: string | null;
 }
 
 const defaultRow = (branchId: string): KioskSettingsRow => ({
@@ -36,6 +38,7 @@ const defaultRow = (branchId: string): KioskSettingsRow => ({
   idle_timeout_seconds: 60,
   require_phone: true,
   require_name: true,
+  visa_bank_account_id: null,
 });
 
 export default function KioskSettingsPage() {
@@ -44,6 +47,8 @@ export default function KioskSettingsPage() {
   const [branchId, setBranchId] = useState<string>("");
   const [row, setRow] = useState<KioskSettingsRow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [banks, setBanks] = useState<BankAccount[]>([]);
+  const [profileLogo, setProfileLogo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!dataOwnerId) return;
@@ -52,6 +57,11 @@ export default function KioskSettingsPage() {
       setBranches(bs);
       if (bs.length && !branchId) setBranchId(bs[0].id);
     });
+    supabase.from("bank_accounts").select("id,name,bank_name,gl_account_code")
+      .eq("user_id", dataOwnerId).eq("is_active", true)
+      .then(({ data }) => setBanks((data as any) || []));
+    supabase.from("company_settings").select("logo_url").eq("user_id", dataOwnerId).maybeSingle()
+      .then(({ data }) => setProfileLogo((data as any)?.logo_url || null));
   }, [dataOwnerId]);
 
   useEffect(() => {
