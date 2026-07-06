@@ -166,6 +166,15 @@ const AuthPage = () => {
     }
   };
 
+  const getArabicAuthError = (message: string): string => {
+    const lower = (message || "").toLowerCase();
+    if (lower.includes("invalid login credentials")) return "الإيميل أو كلمة المرور خاطئة";
+    if (lower.includes("email not confirmed") || /not confirmed|email.*confirm/i.test(message)) return "لم يتم تأكيد البريد الإلكتروني بعد";
+    if (lower.includes("invalid email")) return "صيغة البريد الإلكتروني غير صحيحة";
+    if (lower.includes("user not found")) return "لا يوجد حساب مرتبط بهذا البريد";
+    return message;
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -237,7 +246,7 @@ const AuthPage = () => {
         }
       }
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ", description: getArabicAuthError(err.message), variant: "destructive" });
     } finally {
       setLoading(false);
     }
