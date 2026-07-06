@@ -1387,8 +1387,8 @@ const AccountStatementV2Page = () => {
   // Balance color helper
   const balColor = (val: number) => {
     if (val === 0) return "#6B7280";
-    const isNormal = val > 0 ? isDebitNature : !isDebitNature;
-    return isNormal ? "#059669" : "#DC2626";
+    // Debit (positive) = أخضر، Credit (negative) = أحمر — بغض النظر عن طبيعة الحساب
+    return val > 0 ? "#059669" : "#DC2626";
   };
 
   // ─── RENDER ───
