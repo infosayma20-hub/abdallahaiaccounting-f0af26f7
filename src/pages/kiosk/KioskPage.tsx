@@ -288,18 +288,14 @@ export default function KioskPage() {
 /* ---------- Screens ---------- */
 
 function WelcomeScreen({ settings, companyLogo, lang, setLang, onStart }: any) {
-  const effectiveLogo = settings.logo_url || companyLogo || null;
+  const effectiveLogo = settings.logo_url || companyLogo || malakyLogo.url;
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-10 relative">
       {settings.welcome_image_url && (
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${settings.welcome_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
       )}
       <div className="relative z-10 flex flex-col items-center gap-8">
-        {effectiveLogo ? (
-          <img src={effectiveLogo} alt="logo" className="h-36 w-36 rounded-3xl object-contain bg-white p-4 shadow-2xl" />
-        ) : (
-          <div className="h-36 w-36 rounded-3xl flex items-center justify-center text-white text-6xl font-bold shadow-2xl" style={{ background: settings.primary_color || "#E53935" }}>M</div>
-        )}
+        <img src={effectiveLogo} alt="logo" className="h-36 w-36 rounded-3xl object-contain bg-white p-4 shadow-2xl" />
         <div>
           <h1 className="text-6xl md:text-7xl font-black text-slate-900">{t(lang, "welcome_title")}</h1>
           <p className="text-2xl mt-4 text-slate-600">{t(lang, "welcome_sub")}</p>
