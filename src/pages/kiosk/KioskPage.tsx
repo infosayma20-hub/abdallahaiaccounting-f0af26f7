@@ -41,6 +41,7 @@ export default function KioskPage() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [settingsErr, setSettingsErr] = useState<string | null>(null);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [lang, setLang] = useState<KioskLang>("ar");
   const [step, setStep] = useState<Step>("welcome");
   const [activeCat, setActiveCat] = useState<string | null>(null);
@@ -60,6 +61,9 @@ export default function KioskPage() {
         if (error || !data) { setSettingsErr(error?.message || "not_found"); return; }
         setSettings(data as any);
         setLang((data as any).default_language === "en" ? "en" : "ar");
+        // Load company logo as fallback for kiosk logo
+        supabase.from("company_settings").select("logo_url").eq("user_id", (data as any).user_id).maybeSingle()
+          .then(({ data: cs }) => setCompanyLogo((cs as any)?.logo_url || null));
       });
   }, [branchId]);
 
