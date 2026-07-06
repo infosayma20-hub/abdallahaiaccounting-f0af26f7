@@ -9924,6 +9924,63 @@ export type Database = {
         }
         Relationships: []
       }
+      kiosk_settings: {
+        Row: {
+          branch_id: string
+          created_at: string
+          default_language: string
+          exit_pin: string
+          id: string
+          idle_timeout_seconds: number
+          is_active: boolean
+          logo_url: string | null
+          primary_color: string | null
+          receipt_printer_id: string | null
+          require_name: boolean
+          require_phone: boolean
+          updated_at: string
+          user_id: string
+          visa_terminal_id: string | null
+          welcome_image_url: string | null
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          default_language?: string
+          exit_pin?: string
+          id?: string
+          idle_timeout_seconds?: number
+          is_active?: boolean
+          logo_url?: string | null
+          primary_color?: string | null
+          receipt_printer_id?: string | null
+          require_name?: boolean
+          require_phone?: boolean
+          updated_at?: string
+          user_id: string
+          visa_terminal_id?: string | null
+          welcome_image_url?: string | null
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          default_language?: string
+          exit_pin?: string
+          id?: string
+          idle_timeout_seconds?: number
+          is_active?: boolean
+          logo_url?: string | null
+          primary_color?: string | null
+          receipt_printer_id?: string | null
+          require_name?: boolean
+          require_phone?: boolean
+          updated_at?: string
+          user_id?: string
+          visa_terminal_id?: string | null
+          welcome_image_url?: string | null
+        }
+        Relationships: []
+      }
       kitchen_stations: {
         Row: {
           branch_id: string | null
@@ -12554,6 +12611,8 @@ export type Database = {
           is_replacement: boolean
           is_return: boolean
           kds_auto_called_at: string | null
+          kiosk_customer_name: string | null
+          kiosk_customer_phone: string | null
           linked_transaction_id: string | null
           local_id: string | null
           meal_discount_type: string | null
@@ -12585,6 +12644,7 @@ export type Database = {
           session_id: string
           session_seq: number | null
           skip_wheels_dispatch: boolean
+          source: string | null
           state: string
           subtotal: number
           survey_sent: boolean | null
@@ -12651,6 +12711,8 @@ export type Database = {
           is_replacement?: boolean
           is_return?: boolean
           kds_auto_called_at?: string | null
+          kiosk_customer_name?: string | null
+          kiosk_customer_phone?: string | null
           linked_transaction_id?: string | null
           local_id?: string | null
           meal_discount_type?: string | null
@@ -12682,6 +12744,7 @@ export type Database = {
           session_id: string
           session_seq?: number | null
           skip_wheels_dispatch?: boolean
+          source?: string | null
           state?: string
           subtotal?: number
           survey_sent?: boolean | null
@@ -12748,6 +12811,8 @@ export type Database = {
           is_replacement?: boolean
           is_return?: boolean
           kds_auto_called_at?: string | null
+          kiosk_customer_name?: string | null
+          kiosk_customer_phone?: string | null
           linked_transaction_id?: string | null
           local_id?: string | null
           meal_discount_type?: string | null
@@ -12779,6 +12844,7 @@ export type Database = {
           session_id?: string
           session_seq?: number | null
           skip_wheels_dispatch?: boolean
+          source?: string | null
           state?: string
           subtotal?: number
           survey_sent?: boolean | null
