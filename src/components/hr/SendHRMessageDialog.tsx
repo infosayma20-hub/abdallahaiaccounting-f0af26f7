@@ -92,20 +92,29 @@ export default function SendHRMessageDialog({
     if (targets.length === 0) return;
     setSending(true);
     let ok = 0, fail = 0, dup = 0;
+    let lastError: string | null = null;
 
     // Resolve each employee's owner user_id so the record is visible to the
     // employee's portal (RLS filters on auth_user_id = auth.uid()).
     const empIds = Array.from(new Set(targets.map(t => t.employee_id)));
-    const { data: empRows } = await supabase
+    const { data: empRows, error: empErr } = await supabase
       .from("employees")
       .select("id, user_id")
       .in("id", empIds);
+    if (empErr) {
+      console.error("[SendHRMessageDialog] employees fetch error:", empErr);
+      lastError = empErr.message;
+    }
     const empOwnerMap = new Map<string, string>();
     (empRows || []).forEach((e: any) => { if (e.user_id) empOwnerMap.set(e.id, e.user_id); });
 
     for (const t of targets) {
       const employeeOwnerUid = empOwnerMap.get(t.employee_id);
-      if (!employeeOwnerUid) { fail++; continue; }
+      if (!employeeOwnerUid) {
+        fail++;
+        lastError = lastError || `لم يتم العثور على user_id للموظف ${t.employee_name || t.employee_id.slice(0, 6)}`;
+        continue;
+      }
       const meta: HRMessageMeta = {
         type,
         subject: subject.trim(),
@@ -140,15 +149,25 @@ export default function SendHRMessageDialog({
         reason: encodeHRMessage(meta),
         status: "pending",
       });
-      if (error) { fail++; } else { ok++; }
+      if (error) {
+        console.error("[SendHRMessageDialog] insert error:", error);
+        lastError = error.message || (error as any).details || (error as any).hint || "خطأ غير معروف";
+        fail++;
+      } else {
+        ok++;
+      }
     }
     setSending(false);
     const parts = [`تم إرسال ${ok}`];
     if (dup > 0) parts.push(`${dup} مكرر`);
     if (fail > 0) parts.push(`${fail} فشل`);
-    toast({ title: parts.join(" • ") });
+    toast({
+      title: parts.join(" • "),
+      description: fail > 0 && lastError ? `السبب: ${lastError}` : undefined,
+      variant: fail > 0 && ok === 0 ? "destructive" : "default",
+    });
     if (ok > 0) onSent?.(ok);
-    onOpenChange(false);
+    if (fail === 0) onOpenChange(false);
   };
 
   return (
