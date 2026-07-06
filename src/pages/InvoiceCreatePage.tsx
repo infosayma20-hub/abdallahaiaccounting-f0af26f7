@@ -2832,8 +2832,8 @@ const InvoiceCreatePage = () => {
       <div className="lg:col-span-12 min-w-0">
 
       {/* ─── SECTION 2: Invoice Items — Clean Professional Table ─── */}
-      <Card className="border-2 border-foreground/70 shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="pb-1.5 pt-2 px-4 border-b-2 border-foreground/60 bg-muted/20">
+      <Card className="border border-border shadow-sm rounded-2xl overflow-hidden bg-background">
+        <CardHeader className="pb-2 pt-2.5 px-4 border-b border-border bg-background">
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
@@ -2870,20 +2870,20 @@ const InvoiceCreatePage = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Excel-grade accounting grid: visible borders, alternating rows, emphasized columns */}
+          {/* Zebra style: soft alternating rows, muted header, subtle borders */}
           <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-foreground/70 [&_th]:border [&_th]:border-foreground/80 [&_tr]:transition-colors">
+            <table className="w-full text-xs border-collapse [&_td]:border-0 [&_th]:border-0 [&_tr]:transition-colors">
               <thead>
-                <tr className="bg-foreground/90 text-[10.5px] font-bold text-background uppercase tracking-wide">
-                  <th className="py-2.5 px-3 text-center w-[42px]">#</th>
-                  <th className="py-2.5 px-3 text-right min-w-[260px]">المنتج / الخدمة</th>
-                  <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]">الكمية</th>
-                  <th className="py-2.5 px-3 text-center min-w-[100px] w-[100px]" title="كمية بونص / مجاني">بونص</th>
-                  <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px] bg-muted/90">السعر</th>
-                  <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px]">الخصم</th>
-                  {taxEnabled && <th className="py-2.5 px-3 text-center min-w-[120px] w-[130px]">الضريبة</th>}
-                  <th className="py-2.5 px-3 text-left min-w-[140px] w-[150px] bg-primary/10 text-primary">الإجمالي</th>
-                  <th className="py-2.5 px-2 text-center w-[40px]"></th>
+                <tr className="bg-muted/50 text-[10.5px] font-semibold text-muted-foreground tracking-wide border-b border-border">
+                  <th className="py-3 px-3 text-center w-[42px]">#</th>
+                  <th className="py-3 px-3 text-right min-w-[260px]">المنتج / الخدمة</th>
+                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]">الكمية</th>
+                  <th className="py-3 px-3 text-center min-w-[100px] w-[100px]" title="كمية بونص / مجاني">بونص</th>
+                  <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">السعر</th>
+                  <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">الخصم</th>
+                  {taxEnabled && <th className="py-3 px-3 text-center min-w-[120px] w-[130px]">الضريبة</th>}
+                  <th className="py-3 px-3 text-left min-w-[140px] w-[150px] text-foreground">الإجمالي</th>
+                  <th className="py-3 px-2 text-center w-[40px]"></th>
                 </tr>
               </thead>
               <tbody>
@@ -2901,11 +2901,11 @@ const InvoiceCreatePage = () => {
                     : 0;
                   const unit = prod?.unit || "قطعة";
                   const isService = prod?.product_type === "service";
-                  const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/10";
+                  const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/25";
                   return (
-                    <tr key={item.id} className={`${rowBg} hover:bg-primary/5 dark:hover:bg-primary/10 focus-within:bg-primary/10 dark:focus-within:bg-primary/15 transition-colors group`}>
+                    <tr key={item.id} className={`${rowBg} hover:bg-primary/5 dark:hover:bg-primary/10 focus-within:bg-primary/10 dark:focus-within:bg-primary/15 transition-colors group border-b border-border/40`}>
                       {/* # */}
-                      <td className="py-2 px-3 text-center text-[11px] text-muted-foreground font-mono align-middle bg-muted/20">
+                      <td className="py-2 px-3 text-center text-[11px] text-muted-foreground font-mono align-middle">
                         {idx + 1}
                       </td>
 
@@ -3004,7 +3004,7 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Price */}
-                      <td className="py-1.5 px-2 align-middle relative bg-muted/20 min-w-[120px]">
+                      <td className="py-1.5 px-2 align-middle relative min-w-[120px]">
                         <InvoiceNumericInput
                           data-invoice-price={item.id}
                           min={0}
@@ -3149,7 +3149,7 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Delete */}
-                      <td className="py-2 px-2 text-center align-middle bg-muted/20">
+                      <td className="py-2 px-2 text-center align-middle">
                         <button
                           onClick={() => removeItem(item.id)}
                           className="text-muted-foreground/40 hover:text-destructive transition-colors disabled:opacity-20 disabled:hover:text-muted-foreground/40 opacity-0 group-hover:opacity-100"
