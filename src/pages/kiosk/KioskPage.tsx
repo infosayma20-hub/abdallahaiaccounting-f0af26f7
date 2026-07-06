@@ -127,43 +127,31 @@ export default function KioskPage() {
   };
 
   const submitOrder = async (paymentMethod: "card" | "cashier"): Promise<{ ok: boolean; orderNumber?: string; error?: string }> => {
-    if (!settings) return { ok: false, error: "no_settings" };
-    const orderNumber = `K${Date.now().toString().slice(-8)}`;
-    const subtotal = cartTotal;
-    const total = subtotal;
-    const { data: order, error } = await supabase.from("pos_orders" as any).insert({
-      user_id: settings.user_id,
-      order_number: orderNumber,
-      state: paymentMethod === "cashier" ? "pending" : "paid",
-      subtotal, total, discount_amount: 0, tax_amount: 0,
-      currency: "ILS",
-      order_type: "takeaway",
-      source: "kiosk",
-      kiosk_customer_name: custName || null,
-      kiosk_customer_phone: custPhone || null,
-      customer_name: custName || null,
-      display_number: orderNumber,
-      paid_at: paymentMethod === "card" ? new Date().toISOString() : null,
-      notes: paymentMethod === "cashier" ? "طلبية كيوسك - دفع على الكاشير" : "طلبية كيوسك - مدفوعة بالبطاقة",
-    } as any).select("id").single();
-    if (error || !order) return { ok: false, error: error?.message };
-
-    const lines = cart.map((c, idx) => ({
-      order_id: (order as any).id,
-      product_id: c.product.id,
-      product_name: c.product.name,
-      quantity: c.qty,
+    if (!settings || !branchId) return { ok: false, error: "no_settings" };
+    const items = cart.map((c) => ({
+      name: c.product.name,
+      qty: c.qty,
       unit_price: c.unitPrice,
-      line_total: c.unitPrice * c.qty,
-      line_no: idx + 1,
-      modifiers: c.modifiers.length
-        ? c.modifiers.map(m => ({ group_id: m.group_id, group_name: m.group_name, option_id: m.option_id, option_name: m.option_name, extra_price: m.extra }))
-        : null,
+      total: c.unitPrice * c.qty,
+      product_id: c.product.id,
+      note: "",
+      modifiers: c.modifiers.map(m => ({ option_name: m.option_name, extra_price: m.extra })),
     }));
-    if (lines.length) {
-      await supabase.from("pos_order_lines" as any).insert(lines as any);
-    }
-    return { ok: true, orderNumber };
+
+    const { data, error } = await supabase.rpc("create_kiosk_call_center_order" as any, {
+      p_branch_id: branchId,
+      p_customer_name: custName || null,
+      p_customer_phone: custPhone || null,
+      p_payment_method: paymentMethod === "card" ? "visa" : "cash",
+      p_items: items as any,
+      p_total: cartTotal,
+      p_order_note: paymentMethod === "card" ? "مدفوعة بالبطاقة من الكيوسك" : "الدفع على الكاشير من الكيوسك",
+    });
+
+    if (error) return { ok: false, error: error.message };
+    const res = (data as any) || {};
+    if (!res.ok) return { ok: false, error: res.reason || "order_failed" };
+    return { ok: true, orderNumber: res.order_number };
   };
 
   const attemptCardPayment = async () => {

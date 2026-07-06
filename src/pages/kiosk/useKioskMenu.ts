@@ -54,7 +54,7 @@ export function useKioskMenu(userId: string | null) {
       setLoading(true);
       const [catsRes, prodsRes, pmgRes, mgRes, moRes] = await Promise.all([
         supabase.from("pos_categories").select("id,name,color,display_order").eq("user_id", userId).eq("is_active", true).order("display_order"),
-        supabase.from("products").select("id,name,name_en,price,image_url,category_id,is_pos_available,description").eq("user_id", userId).eq("is_pos_available", true),
+        supabase.from("products").select("id,name,price:sell_price,image_url,category_id:pos_category_id,is_pos_available,description").eq("user_id", userId).eq("is_pos_available", true),
         supabase.from("product_modifier_groups").select("product_id,group_id"),
         supabase.from("modifier_groups").select("*").eq("user_id", userId).eq("is_active", true),
         supabase.from("modifier_options").select("*").eq("is_active", true).order("sort_order"),
