@@ -1428,6 +1428,7 @@ const JournalNewPage = () => {
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
+                            e.stopPropagation();
                             const raw = (e.target as HTMLInputElement).value.trim();
                             const acct = postableAccounts.find((a: any) => a.account_code === raw);
                             if (raw && acct) {
@@ -1508,6 +1509,7 @@ const JournalNewPage = () => {
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
+                            e.stopPropagation();
                             focusNextJournalCell("debit", line.id, lines.map(l => l.id), addLineAndFocus);
                           }
                         }}
@@ -1537,6 +1539,7 @@ const JournalNewPage = () => {
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
+                            e.stopPropagation();
                             focusNextJournalCell("credit", line.id, lines.map(l => l.id), addLineAndFocus);
                           }
                         }}
@@ -1551,6 +1554,7 @@ const JournalNewPage = () => {
                         onKeyDown={e => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
+                            e.stopPropagation();
                             focusNextJournalCell("memo", line.id, lines.map(l => l.id), addLineAndFocus);
                           }
                         }}
@@ -1567,6 +1571,7 @@ const JournalNewPage = () => {
                           const ids = lines.map(l => l.id);
                           if (ids[ids.length - 1] === line.id) {
                             e.preventDefault();
+                            e.stopPropagation();
                             addLineAndFocus();
                           }
                         }
