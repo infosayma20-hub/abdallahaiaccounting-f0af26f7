@@ -55,6 +55,11 @@ const WebLayout = ({ children }: WebLayoutProps) => {
   const { subscription } = useSubscription();
   const isHRRoute = ["/hr", "/employees", "/employee-forms-management", "/hr-attendance", "/attendance/roster", "/manager/roster", "/manager/forms-inbox", "/leaves", "/loans", "/advances", "/hr-deductions", "/payroll", "/payroll-settings"].some((p) => pathname === p || pathname.startsWith(p + "/"));
 
+  // Compact routes — voucher/invoice data-entry pages own their own header padding
+  // via FinanceShell compact mode. Strip the outer <main> padding to reclaim space.
+  const isCompactRoute =
+    /^\/finance\/(receipt|payment)\/(new|[^/]+\/edit)$/.test(pathname);
+
   // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
   const isTrial = subscription?.isTrial ?? false;
 
@@ -95,7 +100,13 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         {isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />}
 
         {/* Content — no heavy page transitions */}
-        <main className={isHRRoute ? "flex-1 overflow-y-auto" : "flex-1 overflow-y-auto p-5 lg:p-8"}>
+        <main
+          className={
+            isHRRoute || isCompactRoute
+              ? "flex-1 overflow-y-auto"
+              : "flex-1 overflow-y-auto p-5 lg:p-8"
+          }
+        >
           <TrialExpiredGate>
             {children}
           </TrialExpiredGate>
