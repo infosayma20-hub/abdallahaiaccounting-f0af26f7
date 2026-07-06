@@ -512,6 +512,68 @@ export default function FormTemplatesAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm cloning a system template so it becomes editable */}
+      <AlertDialog open={!!confirmCloneEdit} onOpenChange={(o) => !o && setConfirmCloneEdit(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">تعديل قالب نظام</AlertDialogTitle>
+            <AlertDialogDescription className="text-right leading-6">
+              قوالب النظام محمية ولا يمكن تعديلها مباشرة. سيتم إنشاء نسخة قابلة للتعديل خاصة بشركتك من قالب
+              <span className="font-semibold"> «{confirmCloneEdit?.name}» </span>
+              وستحلّ محلّ الأصل في قائمة النماذج المتاحة للموظفين. القالب الأصلي يبقى محفوظاً ويمكن الرجوع إليه لاحقاً.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmCloneEdit && cloneForEdit(confirmCloneEdit)}>
+              إنشاء نسخة والتعديل
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm reverting a company clone back to the original system template */}
+      <AlertDialog open={!!confirmRevert} onOpenChange={(o) => !o && setConfirmRevert(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">الرجوع للقالب الأصلي</AlertDialogTitle>
+            <AlertDialogDescription className="text-right leading-6">
+              سيتم إخفاء هذه النسخة المعدّلة وسيعود القالب الأصلي للظهور للموظفين. التعبئات السابقة تبقى محفوظة كما هي.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmRevert && revertToOriginal(confirmRevert)}>
+              رجوع للأصل
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Warn before saving if fields/sections were removed or renamed */}
+      <AlertDialog open={!!saveWarning} onOpenChange={(o) => !o && setSaveWarning(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              تحذير: تم حذف أو إعادة تسمية عناصر
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right leading-6">
+              العناصر التالية موجودة في القالب الأصلي لكنها لم تعد في النسخة الجديدة. أي بيانات مرتبطة بها في التعبئات السابقة ستبقى محفوظة لكنها لن تظهر في الواجهة:
+              <ul className="mt-2 space-y-1 text-xs bg-muted/40 rounded p-2 max-h-40 overflow-y-auto">
+                {saveWarning?.removed.map((k, i) => <li key={i}>• {k}</li>)}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>مراجعة</AlertDialogCancel>
+            <AlertDialogAction onClick={() => saveWarning?.onConfirm()}>
+              متابعة الحفظ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
